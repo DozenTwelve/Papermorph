@@ -18,6 +18,7 @@ Make a brief judgment of:
 - a question card covering the object it asks about;
 - leftovers from the previous beat, half faded;
 - geometry contradicting the intended values, spacing or area;
+- shapes inside circles or curves crossing the outline; check thin geometry on the full-size `chNN_bII_T.png`, not only on the sheet;
 - text too small to read at half size, or too much text at once;
 - inconsistent colours for the same idea.
 

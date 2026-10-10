@@ -12,8 +12,9 @@ page where the chapter itself begins. Pages before the first chapter become
 Every PDF page lands in exactly one section, numbered by PDF page order (from 1),
 not by printed page numbers.
 
-Without bookmarks, render the contents using split_pages.py book.pdf --pages 1-12,
-then write sections.json from those pages. Its JSON array covers every PDF page once:
+Without usable chapter bookmarks, render the contents using split_pages.py book.pdf
+--pages 1-12, then write sections.json from those pages. Its JSON array covers every
+PDF page once:
 [{"folder":"00_front","title":"Front matter","start":1,"end":12},
  {"folder":"ch01","title":"Chapter title","start":13,"end":40,"unit":"Part one"}, ...]
 Adjust boundaries to the actual PDF; start/end are inclusive PDF page numbers.
@@ -25,8 +26,14 @@ from pathlib import Path
 
 import pymupdf
 
+FLAT_PDF_HINT = ("Render contents with split_pages.py book.pdf --pages 1-12, "
+                 "then write sections.json from them (schema: outline.py --help).")
+
 
 def main():
+    # Captured output (a pipe) uses the system code page on Windows; bookmark titles may be any language.
+    for stream in (sys.stdout, sys.stderr):
+        stream.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("pdf", type=Path)
     ap.add_argument("--level", type=int, help="bookmark depth of chapters; omit to print the tree")
@@ -36,11 +43,14 @@ def main():
     toc = doc.get_toc()                     # [level, title, page]
     n = len(doc)
     if not toc:
-        sys.exit("No bookmarks. Render contents with split_pages.py book.pdf --pages 1-12, then write sections.json from them.")
+        sys.exit(f"No bookmarks. {FLAT_PDF_HINT}")
     if a.level is None:
         for lv, title, page in toc:
             print(f"{'  ' * (lv - 1)}[{lv}] p{page}  {title}")
-        print(f"\n{n} pages. Rerun with --level N (the depth whose entries are chapters).")
+        if len(toc) < 2:
+            print(f"\n{n} pages, one bookmark: it does not split the book into chapters. {FLAT_PDF_HINT}")
+        else:
+            print(f"\n{n} pages. Rerun with --level N (the depth whose entries are chapters).")
         return
 
     chapters = [(i, t, p) for i, (lv, t, p) in enumerate(toc) if lv == a.level and p >= 1]
@@ -81,6 +91,10 @@ def main():
         print(f"{len(sections)} sections, {sum(1 for s in sections if s['folder'].startswith('ch'))} chapters -> {a.output}")
     else:
         print(text)
+    if len(chapters) < 2:
+        sys.stdout.flush()                  # keep the hint after the result when both streams are captured
+        print(f"One chapter at level {a.level}. If the book has more chapters, its bookmarks do not mark them. "
+              f"{FLAT_PDF_HINT}", file=sys.stderr)
 
 
 if __name__ == "__main__":

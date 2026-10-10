@@ -53,9 +53,14 @@ async def main(a):
 
 
 if __name__ == "__main__":
+    # Captured output (a pipe) uses the system code page on Windows; page errors may be any language.
+    for stream in (sys.stdout, sys.stderr):
+        stream.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("chapter")
-    ap.add_argument("specs", nargs="*")
+    ap.add_argument("chapter", help="chapter folder under --url, e.g. ch07")
+    ap.add_argument("specs", nargs="*",
+                    help="moments as BEAT:TIME; BEAT is the index in BEATS from 0 (the player shows BEAT+1), "
+                         "TIME is seconds, open, mid or end; e.g. 3:end 5:4.5 (default: every beat at open and end)")
     ap.add_argument("--moments", nargs="*", default=[], choices=["mid"], help="extra moments for every beat")
     ap.add_argument("--url", default="http://localhost:8765/")
     ap.add_argument("--out", type=Path, default=Path("/tmp/animebook-shots"))
