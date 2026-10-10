@@ -31,7 +31,7 @@ This Skill takes it further: books you can explore, listen to, and interact with
 PDF -> Book plan -> Storyboards -> Narration -> Animation & quizzes -> Web book
 ```
 
-**Today:** Opus 5.5 only. No image models, multilingual support, or BGM yet.
+**Today:** Opus 5.5 only. Books in English or Russian; no image models or BGM yet.
 
 **Planned:** Image models and storyboarding for interactive picture books and humanities documentaries.
 

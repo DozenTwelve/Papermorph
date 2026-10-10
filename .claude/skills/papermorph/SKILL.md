@@ -28,7 +28,7 @@ site/                          static output; private sources stay outside
   <book>/chNN/audio/<lang>/    beat MP3s + timings.js
 ```
 
-`SKILL` means this skill's absolute folder; `<book>` is the book slug, `<lang>` its primary language code. Existing books keep their paths. Needs: `uv`, `ffmpeg`/`ffprobe`, Edge TTS network access and Playwright Chromium (`uv run --with playwright playwright install chromium`). Preview: `python3 -m http.server 8765 -d site`.
+`SKILL` means this skill's absolute folder; `<book>` is the book slug, `<lang>` its primary language code, also set as each page's `<html lang>` for the interface text ([site.md](references/site.md#languages)). Existing books keep their paths. Needs: `uv`, `ffmpeg`/`ffprobe`, Edge TTS network access and Playwright Chromium (`uv run --with playwright playwright install chromium`). Preview: `python3 -m http.server 8765 -d site`.
 
 ## Pipeline
 

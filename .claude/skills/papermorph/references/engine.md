@@ -60,7 +60,7 @@ quiz(position, [{ id: 'c-mean', prompt: ['Find the mean of ', $m('7, 3, 9'), '.'
 - `grid(rows, cols, {multi, text})` — rows `{parts, ans: [keys], why, fx?}`, cols `[[key, label, colour?, hotkey?]]`; with `text: true` parts are rich text (math via `$m`). ↑/↓ change rows.
 - `tap(values, right, why, v => wrongWhy, onRight?)` points on the number line; `tapEls(row, idx, right, …)` tokens of a `tokens` row; `pickEls([{el, box: [x,y,w,h], label}], right, …)` any drawn objects; `pickPoint(P, [x,y], why, (x,y) => wrongWhy, onRight?, test?)` grid points (arrows + Enter or click); `sorter(items, trayXY)` drag into the set diagram (keys 1–6).
 - Answer animations run on their own clock: `fx`, `fxp`, `pulseFx`, `shakeFx`, `floatText`, `qlayer()` (a layer cleared with the question). They are finished automatically when the beat is left.
-- A new type: `build(body, api)` returns `{ reveal, check?, lock?, key?(e), hint? }` and calls `api.grade(ok, message, {right, total})`. `key` handles its shortcuts (return true when used); `hint` lists the keys under the prompt. Every action needs a key; the help overlay (`?`) lists the global ones.
+- A new type: `build(body, api)` returns `{ reveal, check?, lock?, key?(e), hint? }` and calls `api.grade(ok, message, {right, total})`. `key` handles its shortcuts (return true when used); `hint` lists the keys under the prompt. Every action needs a key; the help overlay (`?`) lists the global ones. Match letter keys with `isShortcut(e, 'x')`, which also accepts the same physical key on a non-Latin layout, and take its texts from `translate()`.
 - Scores: `SCORE[id]` keeps the first try across revisits and step jumps; restarting the chapter clears it. A multi-row question scores one per row. A correct retry changes the feedback, not the first-attempt score.
 
 ## Player
@@ -73,6 +73,13 @@ Treat saved progress as optional: malformed JSON, `null` or a non-object value s
 
 Keep `<link rel="expect" href="#bar" blocking="render">` in every chapter's head; without it Chromium may paint before the player exists and cancel the page transition from the contents page.
 
+## Interface language
+
+- `LANGUAGE` comes from the page's `<html lang>`; a language without a `TRANSLATIONS` block uses English. It is read when the engine loads, before `CHAPTER` exists; `CHAPTER.language` only picks the audio folder.
+- `translate(key, vars)` returns the interface text from `TRANSLATIONS[LANGUAGE]`, falling back to English: `translate('chapterNumber', { n: 3 })`. Plural forms are chosen by `vars.n`. Chapters may use it for their own labels, e.g. `translate('chapterPractice') + '   ' + translate('countOf', { k: 1, n: 2 })`; the default `quiz` label is `translate('quickCheck')`.
+- `DECIMAL_SIGN` is the language's `decimalSign`: `num()` writes it and answer boxes accept it besides `.`. Write decimals in chapter text the same way.
+- `isShortcut(e, letter)` matches a letter key on any keyboard layout. The global keys (C, F), Show answer (S), replay (R) and `grid` letters (T/F) use it.
+
 ## Traps
 
 - `M()` italicises 1–2 letter lowercase runs (variables) and runs of capitals, but keeps common short English words upright (by, my, an, if, in, is, of, or, …; capitalised: By, If, In, …). In maths write `b​y`, `m​y`, `a​n`, `B​y` to keep them italic. Units inside `M()` turn italic too: write them as words in `T()` text ("meters"). Never put an English sentence in `M()`.
@@ -80,4 +87,5 @@ Keep `<link rel="expect" href="#bar" blocking="render">` in every chapter's head
 - Prefix chapter-specific helpers when their names might collide with engine globals (`rect`, `popIn`, `eqLine`, `fit`, `slot`, `Y0`, …); a redeclaration stops the page script.
 - Drag handling: re-parent (append) the element before `setPointerCapture`; moving a node drops its capture.
 - A card whose content is too long for `BAND` should become several `blanks` rows in a wider side card.
+- A `grid` needs a card at least 560 px wide: its rows keep a 170 px column for the item, so in `RIGHT` (330 px) the option buttons overflow, sooner with longer translated labels.
 - When a question beat is continued early, the engine finishes the beat's pending tweens first; don't rely on half-finished fades.
