@@ -31,7 +31,7 @@ This Skill takes it further: books you can explore, listen to, and interact with
 PDF -> Book plan -> Storyboards -> Narration -> Animation & quizzes -> Web book
 ```
 
-**Today:** Opus 5.5 only. No image models, multilingual support, or BGM yet.
+**Today:** Built with Opus 5.5, and tested with other models (see [Models](#models)). No image models, multilingual support, or BGM yet.
 
 **Planned:** Image models and storyboarding for interactive picture books and humanities documentaries.
 
@@ -54,6 +54,24 @@ an animated interactive web book.
 Target readers: [your audience].
 Start with one English chapter for review.
 ```
+
+## Models
+
+The Skill is not tied to one model. Books on the shelf show the results:
+
+- **Opus 5.5:** most of the books, including the physics chapters.
+- **GPT-6.1-Sol:** runs the Skill well. See *Elementary Mathematics*, chapters 4–20.
+- **Sonnet 5.5:** works, with some rough edges. See *Elementary Mathematics*, chapters 21–22.
+
+## Official alternative
+
+Claude now offers official animated explainers ([Claude Motion](https://claude.com/resources/articles/dashboards-and-motion), in beta), which overlap with much of what this Skill does. For token efficiency, the official tool may be the better choice.
+
+I will still finish Papermorph along its roadmap. Building it is worth it to me.
+
+## Contributing
+
+Fixes to the Skill and the player are welcome. Please do not open pull requests that add a book, its PDF, or generated lessons, audio or videos: those raise copyright issues.
 
 ## Try the examples locally
 
