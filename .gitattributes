@@ -1,0 +1,2 @@
+# Vendored files stay byte-exact, so their checksums hold on every OS.
+.claude/skills/papermorph/assets/vendor/** -text

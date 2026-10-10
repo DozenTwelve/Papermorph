@@ -19,17 +19,27 @@ Many helpers are mathematical because the first book was algebra. Use those that
 | `G(parent, {x,y,s,r,o})` | group |
 | `path(parent, d, attrs, {d:0})` | path; `{d: 0}` makes it ready to be drawn on with `draw()` |
 | `T(parent, str, {x,y,size,fill,font,weight,anchor,o})` | text |
-| `M(parent, parts, {x,y,size,fill,anchor,o,s})` | math with its baseline at y; parts are strings, `F(n,d)` fractions, `R(x, i)` roots (x may be `F(...)`, i the index), `E(exp)` exponents; returns a group with `_w` (width) |
+| `M(parent, parts, {x,y,size,fill,anchor,o,s})` | math with its baseline at y; parts are strings, `F(n,d)` fractions, `R(x, i)` roots (x may be `F(...)`, i the index), `E(exp)` exponents, `TX(tex)` LaTeX (see [LaTeX](#latex)); returns a group with `_w` (width) |
 | `mathW(parts, size)` | width of math without drawing it |
 | `frac(p, top, bot, x, y, t0, opts)` | built-up fraction whose top and bottom are math parts |
 | `chip(parent, parts, color, {x,y,size})` | pill-shaped token centred on (x,y) |
 | `tokens(parent, items, {x,y,size,anchor})` | a row of separately movable math tokens (items: string, parts, or `{t, fill}`); returns the array with `.w .y .size`, each token with `_px` (centre) |
 | `collapse(row, i, j, parts, t0)` | box tokens i..j, shrink them into one result, close the gap; returns the new row |
 | `eqLine(p, L, R, y, t0, {xEq, sym, note})` | one line of a derivation aligned on its `=` (or `<`, …) with an optional note |
-| `mathEl(parts, size)`, `rich([...])`, `$m(...parts)` | inline math in HTML (cards, prompts) |
+| `mathEl(parts, size)`, `rich([...])`, `$m(...parts)`, `$tex(tex)` | inline math in HTML (cards, prompts) |
+| `texPart(el, name)` | the part `\class{name}{…}` of a TeX formula inside `el`, for `tw`/`fx` on `c_color` and `o` |
 | `panel(t0)` | fade the current scene group and start a new one; call it at the start of a beat that changes the picture |
 
 Topic helpers already in the engine: number lines (`numberLine`, `X(v)`, `Y0`, `tick`, `dot`, `move`, `landDot`, `brace`, `AXIS`), signed tiles (`tile`, `tiles`, `cancelPairs`), algebra tiles (`atile`, `tileRow`, `cancel`, `popIn`, sizes in `TS`), fraction rows (`fracRow`, `reduce`), a decimal point that hops (`pointRow`), a balance (`balance`), inequality graphs (`ray`, `segment`), a coordinate plane (`plane`: `PX/PY`, `dot`, `walk`, `line`, `arrow`, `stair`, `region`, `half`, `fn` for y = f(x); set `P.layer = panel(0)` so marks clear with the beat), scaled axes (`axes`), dot plots (`dataLine`), chance objects (`die`, `coin`, `spinner`, `outline`), area grids (`areaGrid` with `.cell`, `.ring`; `arc`), rectangles (`rect`, `bracketH`), vertical scales (`vAxis`, `thermometer`), the number-set diagram (`RINGS`, `buildVenn`, `regionAt`). Read the function in engine.js before first use.
+
+## LaTeX
+
+A book whose formulas need more than `M()` parts (indices, sums, matrices, accents) uses the vendored MathJax: copy it when starting the book ([site.md](site.md#start-a-book-folder)) and load `<script src="../lib/mathjax.js"></script>` right after `engine.js` in every chapter.
+
+- `TX('\\frac{a}{b}')` is a part like `F()`: it works in `M`, `tokens`, `chip`, `eqLine` (also as `sym`), `mathEl`, `blanks` and `grid`; `$tex(tex)` puts one in HTML text. 1 em is `size`; the baseline is at `y`.
+- Formulas are set in text style, like `$…$`; write `\displaystyle` for large sums and fractions. Words go in `\text{…}` and use the book's math font.
+- Mark a part with `\class{name}{…}` and tween it: `tw(texPart(e, 'name'), { c_color: COL.nat }, m('name'))`, or `show`/`hide` it. Parts change colour and opacity only; to move terms, make each one a token in `tokens()`.
+- A TeX error or an unknown macro stops the page with the formula in the message. Every MathJax extension is included; turn on an optional one with `\require{physics}`, no network needed.
 
 ## Timing
 
@@ -77,6 +87,8 @@ Keep `<link rel="expect" href="#bar" blocking="render">` in every chapter's head
 
 - `M()` italicises 1–2 letter lowercase runs (variables) and runs of capitals, but keeps common short English words upright (by, my, an, if, in, is, of, or, …; capitalised: By, If, In, …). In maths write `b​y`, `m​y`, `a​n`, `B​y` to keep them italic. Units inside `M()` turn italic too: write them as words in `T()` text ("meters"). Never put an English sentence in `M()`.
 - Prompts, `grid` text rows and `choice` options are HTML: plain strings render as text, so wrap math in `$m(...)`.
+- In a JS string, double each TeX backslash (`'\\frac{a}{b}'`) or use `` String.raw`\frac{a}{b}` ``: `'\text'` is a tab followed by "ext".
+- Write a formula wholly in TeX, an `eqLine` sign included (`sym: TX('\\le')`): TeX glyphs are smaller and lighter than `M()` text.
 - Prefix chapter-specific helpers when their names might collide with engine globals (`rect`, `popIn`, `eqLine`, `fit`, `slot`, `Y0`, …); a redeclaration stops the page script.
 - Drag handling: re-parent (append) the element before `setPointerCapture`; moving a node drops its capture.
 - A card whose content is too long for `BAND` should become several `blanks` rows in a wider side card.

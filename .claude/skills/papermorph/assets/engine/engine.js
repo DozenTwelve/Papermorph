@@ -146,7 +146,50 @@ const VAR = /(?<![A-Za-z°])(?:(?!(?:of|in|is|to|or|at|on|by|as|an|if|it|be|no|s
 const F = (n, d) => ({ f: [String(n), String(d)] });   // fraction
 const R = (x, i) => ({ r: x && x.f ? x : String(x), i: i && String(i) });   // root of a number or of F(n, d); i = index, e.g. 3 for a cube root
 const E = x => ({ sup: String(x) });                    // exponent, raised after the part before it
-// Math expression from parts: 'text' | F(n,d) | R(x) | E(exp). Baseline at y; anchor start/middle/end.
+const TX = tex => ({ tex: String(tex) });               // LaTeX, drawn by MathJax; the book loads lib/mathjax.js right after this file
+const $tex = tex => $m(TX(tex));                        // LaTeX inline in HTML text
+// MathJax takes this object as its configuration when lib/mathjax.js loads after the engine.
+window.MathJax ??= {
+  startup: { typeset: false },                                   // no page scan; formulas are converted on demand
+  svg: { fontCache: 'none', mtextInheritFont: true },            // self-contained paths; \text{} in the book's math font
+  tex: { packages: { '[-]': ['noerrors', 'noundefined'] },       // a typo stops the page, like a misspelt mark
+         formatError: (_, error) => { throw error; } },
+  options: { enableMenu: false },
+};
+const TEX_CACHE = new Map();   // TeX source -> { graphic, viewBox }; seek() redraws every earlier beat
+// A copy of the formula's MathJax drawing: units of 1/1000 em, baseline at y = 0; viewBox is [x, y, width, height].
+function texGraphic(tex) {
+  let drawn = TEX_CACHE.get(tex);
+  if (!drawn) {
+    if (!window.MathJax?.tex2svg) throw new Error(`TX('${tex}') needs lib/mathjax.js: load ../lib/mathjax.js right after engine.js`);
+    if (!document.getElementById('MJX-SVG-styles')) document.head.append(MathJax.svgStylesheet());   // draws table rules and frames
+    let svg;
+    try { svg = MathJax.tex2svg(tex, { display: false, family: MATH }).querySelector('svg'); }   // family: \text{} is measured in the font it is drawn in
+    catch (error) { throw new Error(`TX('${tex}'): ${error.message}`); }
+    const graphic = mk('g');
+    graphic.append(...svg.childNodes);
+    drawn = { graphic, viewBox: svg.getAttribute('viewBox').split(' ').map(Number) };
+    TEX_CACHE.set(tex, drawn);
+  }
+  return { graphic: drawn.graphic.cloneNode(true), viewBox: drawn.viewBox };
+}
+// The part of a TeX formula marked \class{name}{...}, ready for tw/fx on c_color and o.
+// MathJax places the part with its own transform, so the tweens act on a group inside it.
+function texPart(el, name) {
+  const part = el.querySelector(`g.${CSS.escape(name)}`);
+  if (!part) throw new Error(`texPart: no \\class{${name}}{…} in this formula`);
+  if (!part._tweenGroup) {
+    const group = mk('g');
+    group.append(...part.childNodes);
+    part.append(group);
+    const color = part.closest('[color]')?.getAttribute('color');   // the formula's fill
+    put(group, /^#[\da-f]{6}$/i.test(color) ? { c_color: color } : {});
+    part._tweenGroup = group;
+  }
+  return part._tweenGroup;
+}
+// Math expression from parts: 'text' | F(n,d) | R(x) | E(exp) | TX(tex). Baseline at y; anchor start/middle/end.
+// _ascent and _descent are the TeX parts' height above and below the baseline (0 without TX).
 function M(parent, parts, { x = 0, y = 0, size = 36, fill = COL.chalk, anchor = 'middle', o = 1, s = 1 } = {}) {
   const g = G(parent, { x, y, o, s });
   const inner = mk('g', {}, g);
@@ -165,10 +208,18 @@ function M(parent, parts, { x = 0, y = 0, size = 36, fill = COL.chalk, anchor = 
     return w;
   };
   const rule = (x1, x2, yy) => mk('path', { d: `M${x1} ${yy}H${x2}`, stroke: fill, 'stroke-width': lw, 'stroke-linecap': 'round' }, inner);
-  let cx = 0;
+  let cx = 0, ascent = 0, descent = 0;
   for (const p of parts) {
     if (typeof p === 'string') cx += text(p, cx, 0, size);
-    else if (p.f) {
+    else if (p.tex !== undefined) {
+      const { graphic, viewBox: [, top, w, h] } = texGraphic(p.tex), k = size / 1000;   // 1000 units = 1 em = size
+      graphic.setAttribute('transform', `translate(${cx},0) scale(${k})`);
+      graphic.setAttribute('color', fill);   // MathJax paints with currentColor
+      inner.append(graphic);
+      ascent = Math.max(ascent, -top * k);
+      descent = Math.max(descent, (top + h) * k);
+      cx += w * k;
+    } else if (p.f) {
       const fs = size * .72, [n, d] = p.f, wn = textW(n, fs), wd = textW(d, fs);
       const w = Math.max(wn, wd) + size * .2, bar = -size * .3;
       text(n, cx + (w - wn) / 2, bar - size * .12, fs);
@@ -197,6 +248,8 @@ function M(parent, parts, { x = 0, y = 0, size = 36, fill = COL.chalk, anchor = 
   const dx = anchor === 'middle' ? -cx / 2 : anchor === 'end' ? -cx : 0;
   inner.setAttribute('transform', `translate(${dx},0)`);
   g._w = cx;
+  g._ascent = ascent;
+  g._descent = descent;
   return g;
 }
 // Pill-shaped number token, centred on (x, y).
@@ -204,7 +257,13 @@ function chip(parent, parts, color, { x = 0, y = 0, o = 1, s = 1, size = 34 } = 
   const g = G(parent, { x, y, o, s });
   const rect = mk('rect', {}, g);
   const m = M(g, parts, { size, y: size * .3 });
-  const w = Math.max(m._w + 36, 64), h = size * (parts.some(p => p.f) ? 1.75 : 1.45);
+  const w = Math.max(m._w + 36, 64);
+  let h = size * (parts.some(p => p.f) ? 1.75 : 1.45);
+  if (m._ascent) {   // a TeX formula: centre it and grow the pill to fit
+    const above = Math.max(size * 1.05, m._ascent), below = Math.max(size * .45, m._descent);
+    put(m, { y: (above - below) / 2 });
+    h = Math.max(h, m._ascent + m._descent + size * .4);
+  }
   for (const [k, v] of Object.entries({ x: -w / 2, y: -h / 2, width: w, height: h, rx: h / 2, fill: COL.board, stroke: color, 'stroke-width': 2.5 })) rect.setAttribute(k, v);
   g._rect = rect;
   return g;
@@ -231,8 +290,14 @@ function layRow(els, { x, y, size, anchor }, move) {
 function collapse(row, i, j, parts, t0, { color = COL.task, fill = COL.chalk, live = false } = {}) {
   const run = live ? fx : tw, p = row[0].parentNode, { size, y } = row;
   const left = row[i]._px - row[i]._w / 2, right = row[j]._px + row[j]._w / 2;
+  let above = size * .95, height = size * 1.3;
+  const tall = row.slice(i, j + 1).filter(e => e._ascent);   // TeX tokens may reach higher and lower than text
+  if (tall.length) {
+    above = Math.max(above, ...tall.map(e => e._ascent + 8));
+    height = above + Math.max(size * .35, ...tall.map(e => e._descent + 8));
+  }
   const box = put(mk('rect', { rx: 10, fill: 'none', stroke: color, 'stroke-width': 3 }, p),
-    { o: 0, a_x: left - 8, a_y: y - size * .95, a_width: right - left + 16, a_height: size * 1.3 });
+    { o: 0, a_x: left - 8, a_y: y - above, a_width: right - left + 16, a_height: height });
   run(box, { o: 1 }, t0, .3);
   run(box, { o: 0 }, t0 + 1.2, .3);
   const res = M(p, parts, { size, fill, o: 0, x: (left + right) / 2, y });
@@ -760,11 +825,16 @@ function brace(p, a, b, y, label, color, t0) {
 function mathEl(parts, size = 22) {
   const svg = mk('svg', { class: 'm', 'font-weight': 400 });   // widths are measured at normal weight, so a bold prompt must not thicken the math
   const m = M(svg, parts, { size, anchor: 'start', fill: 'currentColor' });
-  const top = size * 1.05, h = size * 1.5;
+  let top = size * 1.05, bottom = size * .45, h = size * 1.5;
+  if (m._ascent) {   // a TeX formula may reach higher and lower than text
+    top = Math.max(top, m._ascent + size * .1);
+    bottom = Math.max(bottom, m._descent + size * .1);
+    h = top + bottom;
+  }
   svg.setAttribute('viewBox', `0 ${-top} ${m._w + 2} ${h}`);
   svg.setAttribute('width', m._w + 2);
   svg.setAttribute('height', h);
-  svg.style.verticalAlign = `${-size * .45}px`;  // line up the math baseline with the text baseline
+  svg.style.verticalAlign = `${-bottom}px`;  // line up the math baseline with the text baseline
   return svg;
 }
 
@@ -1315,7 +1385,7 @@ const slot = (k, n) => {
   const r = RINGS[k];
   return [r.lx + [-72, 72, 0][n % 3], r.ly + 50 + 56 * Math.floor(n / 2)];
 };
-const plain = parts => parts.map(p => typeof p === 'string' ? p : p.f ? p.f.join('/') : p.sup !== undefined ? '^' + p.sup : (p.i ? p.i : '') + '√' + (p.r.f ? p.r.f.join('/') : p.r)).join('');
+const plain = parts => parts.map(p => typeof p === 'string' ? p : p.tex !== undefined ? p.tex : p.f ? p.f.join('/') : p.sup !== undefined ? '^' + p.sup : (p.i ? p.i : '') + '√' + (p.r.f ? p.r.f.join('/') : p.r)).join('');
 const sorter = (items, trayXY) => (body, api) => {
   const L = qlayer();
   const bg = mk('rect', { width: 1600, height: 900, fill: 'transparent' }, L);

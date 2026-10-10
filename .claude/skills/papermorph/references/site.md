@@ -20,6 +20,13 @@ cp "$SKILL/assets/templates/narration.en.json" "content/$BOOK_ID/ch01/narration.
 
 Use the agreed primary language: rename the narration source, load `audio/<lang>/timings.js`, and set `CHAPTER.language` to match (default `en`). Choose the voice and translate the template's visible UI text as needed before the pilot.
 
+If the book's formulas need LaTeX ([engine.md](engine.md#latex)), also copy MathJax with its license, and load `../lib/mathjax.js` right after `engine.js` in every chapter:
+
+```sh
+cp "$SKILL/assets/vendor/mathjax/tex-svg-full.js" "$BOOK_SITE/lib/mathjax.js"
+cp "$SKILL/assets/vendor/mathjax/LICENSE" "$BOOK_SITE/lib/mathjax-LICENSE.txt"
+```
+
 Each book has its own engine, source materials, narration and optional tests. The engine and cover derive the same progress key from the book's URL folder. Keep existing books on their current paths; their legacy progress remains intact.
 
 A chapter returns to its book's index. Preserve cover → contents → chapter navigation and the return from contents to cover. The book opens directly at `/<book>/`; it needs no parent index page. Keep existing books' navigation when editing them.
