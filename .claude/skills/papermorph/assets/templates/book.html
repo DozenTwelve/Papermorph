@@ -154,8 +154,8 @@ main#contents { padding-bottom: 80px; }
 .ch b { grid-row: span 2; min-width: 1.15em; font: 500 42px/1 var(--book); color: var(--c); font-variant-numeric: lining-nums tabular-nums; }
 .ch span { font-size: 18px; line-height: 1.3; }
 .ch small { color: var(--dim); font-size: 14px; }
-.ch.done small::before { content: "✓ Finished · "; color: var(--good); font-weight: 600; }
-.ch.last small::after { content: " · Last opened"; color: var(--quiz); }
+.ch.done small::before { content: var(--done, "✓ Finished · "); color: var(--good); font-weight: 600; }
+.ch.last small::after { content: var(--last, " · Last opened"); color: var(--quiz); }
 .ch.here:focus-visible { outline-color: var(--c); }
 .ch.here { animation: here 1.8s ease-out .3s; }
 @keyframes here { 0% { box-shadow: 0 0 0 0 var(--c); } 25% { box-shadow: 0 0 0 5px var(--c); } 100% { box-shadow: 0 0 0 14px transparent; } }
@@ -199,7 +199,7 @@ main#contents { padding-bottom: 80px; }
   <h1>BOOK <i>&amp;</i> TITLE</h1>
   <p class="lede">ONE OR TWO SENTENCES ABOUT WHAT THE READER WILL SEE AND DO.</p>
   <div class="acts">
-    <a class="btn go" href="#contents">Open the book<svg viewBox="0 0 16 16"><path d="M6 2.5 11.5 8 6 13.5 4.6 12.1 8.7 8 4.6 3.9z"/></svg></a>
+    <a class="btn go" href="#contents" data-t="open">Open the book<svg viewBox="0 0 16 16"><path d="M6 2.5 11.5 8 6 13.5 4.6 12.1 8.7 8 4.6 3.9z"/></svg></a>
     <a class="btn quiet" id="resume" hidden></a>
   </div>
   <p class="meta" id="meta"></p>
@@ -207,7 +207,7 @@ main#contents { padding-bottom: 80px; }
 
 <main id="contents">
   <header class="top">
-    <a class="home" href="#book" aria-label="Back to the cover"><svg class="mascot" id="guideSmall" width="52" height="36"></svg><strong>BOOK <i>&amp;</i> TITLE</strong></a>
+    <a class="home" href="#book" aria-label="Back to the cover" data-t-label="toCover"><svg class="mascot" id="guideSmall" width="52" height="36"></svg><strong>BOOK <i>&amp;</i> TITLE</strong></a>
     <span class="prog" id="prog"></span>
   </header>
   <div id="units"></div>
@@ -215,6 +215,40 @@ main#contents { padding-bottom: 80px; }
 
 <script>
 'use strict';
+// Interface text in the page's <html lang>, as in the lessons; missing keys fall back to English.
+// A value is a string or plural forms { one, few, many, other } chosen by vars.n.
+const TRANSLATIONS = {
+  en: {
+    open: 'Open the book', toCover: 'Back to the cover', resume: 'Continue · Chapter {n}', unit: 'Unit {n}', minutes: '{n} min',
+    meta: '{chapters} · {units} · with sound', metaChapters: '{n} chapters', metaUnits: '{n} units',
+    chapterCount: { one: '{n} chapter', other: '{n} chapters' }, finished: '{done} of {n} finished',
+    doneMark: '✓ Finished · ', lastMark: ' · Last opened',
+  },
+  ru: {
+    open: 'Открыть книгу', toCover: 'К обложке', resume: 'Продолжить · Глава {n}', unit: 'Раздел {n}', minutes: '{n} мин',
+    meta: '{chapters} · {units} · со звуком',
+    metaChapters: { one: '{n} глава', few: '{n} главы', many: '{n} глав', other: '{n} главы' },
+    metaUnits: { one: '{n} раздел', few: '{n} раздела', many: '{n} разделов', other: '{n} раздела' },
+    chapterCount: { one: '{n} глава', few: '{n} главы', many: '{n} глав', other: '{n} главы' }, finished: 'Пройдено {done} из {n}',
+    doneMark: '✓ Пройдено · ', lastMark: ' · Открыта последней',
+  },
+};
+const LANGUAGE = (document.documentElement.lang || 'en').toLowerCase().split('-')[0];
+function translate(key, vars = {}) {
+  const language = TRANSLATIONS[LANGUAGE]?.[key] !== undefined ? LANGUAGE : 'en';
+  let text = TRANSLATIONS[language][key] ?? key;
+  if (typeof text === 'object') {
+    let rules;
+    try { rules = new Intl.PluralRules(language); } catch { rules = new Intl.PluralRules('en'); }
+    text = text[rules.select(vars.n)] ?? text.other;
+  }
+  return text.replace(/\{(\w+)\}/g, (placeholder, name) => name in vars ? vars[name] : placeholder);
+}
+for (const element of document.querySelectorAll('[data-t]')) element.firstChild.nodeValue = translate(element.dataset.t);
+for (const element of document.querySelectorAll('[data-t-label]')) element.setAttribute('aria-label', translate(element.dataset.tLabel));
+document.documentElement.style.setProperty('--done', JSON.stringify(translate('doneMark')));
+document.documentElement.style.setProperty('--last', JSON.stringify(translate('lastMark')));
+
 // Chapters are numbered in order through the units. Add a chapter here when its lesson is ready.
 const UNITS = [   // [unit title, [[chapter title, minutes], ...]]; chapters are numbered in order. Add a chapter when its lesson is ready.
   ['First unit', [['First chapter', 8]]],
@@ -233,10 +267,10 @@ const done = new Set(Array.isArray(P.done) ? P.done.filter(n => Number.isInteger
 let n = 0, total = 0, i = 0;   // i staggers the entrance, in reading order
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 document.getElementById('units').innerHTML = UNITS.map(([name, chs], u) => {
-  return `<section class="unit" style="--c:${HUES[u % HUES.length]};--i:${i++}"><svg class="unit-art" viewBox="0 0 600 180" aria-hidden="true">${UNIT_ART[u] || ''}</svg><h2><span>Unit ${u + 1}</span>${esc(name)}</h2><div class="grid">` +
+  return `<section class="unit" style="--c:${HUES[u % HUES.length]};--i:${i++}"><svg class="unit-art" viewBox="0 0 600 180" aria-hidden="true">${UNIT_ART[u] || ''}</svg><h2><span>${translate('unit', { n: u + 1 })}</span>${esc(name)}</h2><div class="grid">` +
     chs.map(([t, min]) => { n++;
       const cls = 'ch' + (done.has(n) ? ' done' : '') + (P.last === n ? ' last' : '');
-      return `<a class="${cls}" id="${id(n)}" href="${id(n)}/" style="--i:${i++}"><b>${n}</b><span>${esc(t)}</span><small>${min} min</small></a>`;
+      return `<a class="${cls}" id="${id(n)}" href="${id(n)}/" style="--i:${i++}"><b>${n}</b><span>${esc(t)}</span><small>${translate('minutes', { n: min })}</small></a>`;
     }).join('') + '</div></section>';
 }).join('');
 total = n;
@@ -244,14 +278,15 @@ total = n;
 const seen = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('seen'); seen.unobserve(e.target); } }), { threshold: .25 });
 document.querySelectorAll('.unit').forEach(u => seen.observe(u));
 const finished = [...done].filter(k => k <= total).length;
-document.getElementById('prog').innerHTML = finished ? `<b>${finished}</b> of ${total} finished` : `${total} chapter${total === 1 ? '' : 's'}`;
-document.getElementById('meta').textContent = `${total} chapters · ${UNITS.length} units · with sound`;
+document.getElementById('prog').innerHTML = finished ? translate('finished', { done: `<b>${finished}</b>`, n: total }) : translate('chapterCount', { n: total });
+document.getElementById('meta').textContent = translate('meta', {
+  chapters: translate('metaChapters', { n: total }), units: translate('metaUnits', { n: UNITS.length }) });
 const last = Number.isInteger(P.last) && document.getElementById(id(P.last));
 if (last) {
   const r = document.getElementById('resume');
   r.hidden = false;
   r.href = last.getAttribute('href');
-  r.textContent = `Continue · Chapter ${P.last}`;
+  r.textContent = translate('resume', { n: P.last });
 }
 
 // The guide, drawn the same way as in the lessons.

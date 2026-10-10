@@ -27,7 +27,7 @@ Report the delivery result and any unresolved defects in a few lines. A new visu
 
 ## Targeted interaction tests
 
-For changes to playback, question types or grading, run existing tests that exercise the changed behavior. If needed, adapt `assets/templates/e2e.py` into `tools/<book>/e2e_chNN.py`; set `URL` to the actual chapter URL. Check the relevant wrong/right feedback, Show answer and continuation, or pause/replay/seek behavior. Shared timing/replay changes warrant the whole book's blank check and existing affected tests; ordinary new chapters use the delivery pass above.
+For changes to playback, question types or grading, run existing tests that exercise the changed behavior. If needed, adapt `assets/templates/e2e.py` into `tools/<book>/e2e_chNN.py`; set `URL` to the actual chapter URL. In another language, match that language's feedback and finish-card text. For changes to interface text, number formats or letter shortcuts, run `scripts/check_i18n.py` (no server needed); it also compares English pages with `main`. Check the relevant wrong/right feedback, Show answer and continuation, or pause/replay/seek behavior. Shared timing/replay changes warrant the whole book's blank check and existing affected tests; ordinary new chapters use the delivery pass above.
 
 For scoring changes, verify a wrong first attempt stays recorded after leaving and revisiting the question, and that restarting clears it. For progress changes, check book isolation and loading with missing or malformed stored data. Apply common fixes to the affected book engines and the Skill engine/template, preserving book-specific helpers and legacy keys.
 

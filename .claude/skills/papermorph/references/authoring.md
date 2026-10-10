@@ -49,6 +49,7 @@ Principles that held up over a whole book:
 - Question beats get one short line ("Quick check. Find the mean."); the card holds the question.
 - `tts.py` caches word timings beside the narration JSON; the output folder receives `<beat>.mp3` and `timings.js` (duration, marks, sentence captions). Moving or adding `[[marks]]` reuses the spoken-text cache and recalculates timings. Existing caches made with raw-text keys are reused for an unchanged beat and then upgraded; changing its marks before that upgrade may require one new synthesis.
 - Audio is replaced only after synthesis and timing validation succeed, and each completed beat is cached immediately. After a later failure, rerun the same command to reuse completed beats rather than regenerating the chapter.
+- Another language: write `narration.<lang>.json` from the template with a voice for that language (`uv run --with edge-tts edge-tts --list-voices`); marks and captions work the same way. Beat ids and mark names stay ASCII.
 
 ## Questions
 

@@ -18,7 +18,7 @@ cp "$SKILL/assets/templates/chapter.html" "$BOOK_SITE/ch01/index.html"
 cp "$SKILL/assets/templates/narration.en.json" "content/$BOOK_ID/ch01/narration.en.json"
 ```
 
-Use the agreed primary language: rename the narration source, load `audio/<lang>/timings.js`, and set `CHAPTER.language` to match (default `en`). Choose the voice and translate the template's visible UI text as needed before the pilot.
+Use the agreed primary language: rename the narration source, load `audio/<lang>/timings.js`, and set `CHAPTER.language` to match (default `en`), with `<html lang="<lang>">` in `index.html` and every chapter for the interface text ([Languages](#languages)). Choose the voice and translate the template's visible UI text as needed before the pilot.
 
 Each book has its own engine, source materials, narration and optional tests. The engine and cover derive the same progress key from the book's URL folder. Keep existing books on their current paths; their legacy progress remains intact.
 
@@ -53,3 +53,5 @@ Open `http://localhost:8765/<book>/`. Confirm the cover opens the contents, read
 ## Languages
 
 Narration and on-screen text are written in one language first. A second language comes after the book is done and approved: keep beat ids and question ids stable, add `narration.<lang>.json` and audio per language, and decide with the user how switching behaves mid-lesson before building it.
+
+A page's `<html lang>` picks the interface text of the player, questions, finish card, cover and contents from `TRANSLATIONS` in `lib/engine.js` and `index.html`; `CHAPTER.language` picks only the audio folder, so set both alike. A language without a block there, or a missing key, falls back to English. For a new language, add a block with the same keys to both files before the pilot: a value is a string or plural forms `{ one, few, many, other }` chosen by `Intl.PluralRules`, and `decimalSign` sets how `num()` writes decimals and which sign answer boxes accept. Right-to-left scripts also need layout work the engine does not do. Keep beat ids and `[[mark]]` names ASCII in every language: they are file names and JS keys, and `tts.py` prints them.
