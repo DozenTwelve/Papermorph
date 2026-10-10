@@ -1002,6 +1002,8 @@ function finishCard() {
 
 /* ---------- in-picture cards ---------- */
 const $ = id => document.getElementById(id);
+// The volume control (volume.js, volume.css) lives in its own files next to this one, the same in every book.
+document.head.append(Object.assign(document.createElement('script'), { src: new URL('volume.js', document.currentScript.src) }));
 const kbd = s => h('kbd', '', s);
 const uiW = (str, size) => { ctx2d.font = `600 ${size}px ${UI}`; return ctx2d.measureText(str).width; };
 const RING_KEYS = ['nat', 'whole', 'int', 'rat', 'irr', 'real'];   // number keys 1–6 in sorting questions
@@ -1573,6 +1575,7 @@ function start(i, play) {
   evalTo(0);
   const a = P.audio = new Audio(`audio/${CHAPTER.language || 'en'}/${BEATS[i].id}.mp3`);
   a.preload = 'auto';
+  a.volume = +($('volume')?.value ?? 1);
   // An aborted or superseded load (fast stepping, a reload) is not a failure: only a real error for the current clip
   // shows the note, and the note goes away as soon as a clip plays.
   a.onerror = () => { if (P.audio === a && a.error && a.error.code !== MediaError.MEDIA_ERR_ABORTED) soundFailed(); };
@@ -1678,8 +1681,8 @@ document.addEventListener('keydown', e => {
   if (e.altKey || e.metaKey || e.ctrlKey) return;
   const k = e.key;
   if (!$('help').hidden) { if (k === 'Escape' || k === '?') { e.preventDefault(); toggleHelp(); } return; }
-  if (e.target.matches?.('input')) {        // typing an answer: only Enter (check) and Escape (leave the box) are ours
-    if (k === 'Enter' && P.keys) { e.preventDefault(); P.keys(e); }
+  if (e.target.matches?.('input')) {        // Keep native input keys; only answer boxes use Enter to check.
+    if (k === 'Enter' && e.target.type !== 'range' && P.keys) { e.preventDefault(); P.keys(e); }
     else if (k === 'Escape') e.target.blur();
     return;
   }
@@ -1701,7 +1704,7 @@ document.addEventListener('keydown', e => {
 // Mouse clicks should not leave focus on a control, so Enter and Space keep meaning "check" and "play".
 $('frame').addEventListener('mousedown', e => { if (e.target.closest('button, [tabindex]')) e.preventDefault(); });
 $('bHelp').onclick = toggleHelp;
-const fit = () => document.documentElement.style.setProperty('--k', Math.min(innerWidth / 1640, innerHeight / 1000));
+const fit = () => document.documentElement.style.setProperty('--k', Math.min(innerWidth / 1640, (innerHeight - (innerWidth <= 700 ? 120 : 0)) / 1000));
 addEventListener('resize', fit);
 fit();
 

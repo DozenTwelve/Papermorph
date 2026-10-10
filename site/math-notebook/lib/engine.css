@@ -1,3 +1,4 @@
+@import url(volume.css);
 :root {
   --page: #0f1613; --board: #1d2b27; --panel: #22322d; --edge: #3a5047;
   --chalk: #ece8dc; --dim: #9aaba3; --faint: #5d7068;
@@ -106,22 +107,6 @@ button[hidden] { display: none; }
 .seg.ask { background: #2d4a57; }
 .seg.ask i { background: var(--quiz); }
 .step { width: 300px; flex: none; color: var(--dim); font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; }
-.volume { display: flex; align-items: center; flex: none; width: 44px; height: 44px; overflow: hidden;
-  border: 1px solid var(--edge); border-radius: 999px; background: var(--panel); color: var(--chalk); transition: width .18s ease; }
-.volume .icon { width: 42px; height: 42px; border: 0; background: transparent; }
-.volume:hover, .volume:focus-within { width: 166px; gap: 10px; padding-right: 12px; }
-.volume:hover { background: #2b3f36; border-color: var(--faint); }
-.volume:has(:focus-visible) { outline: 2px solid var(--task); outline-offset: 3px; }
-.volume .icon:focus-visible { outline: none; }
-.volume input { appearance: none; flex: none; width: 0; height: 42px; margin: 0; opacity: 0; background: transparent; cursor: pointer; }
-.volume:hover input, .volume:focus-within input { width: 100px; opacity: 1; }
-.volume input:focus-visible { outline: none; }
-.volume input::-webkit-slider-runnable-track { height: 4px; border-radius: 999px;
-  background: linear-gradient(to right, var(--chalk) var(--volume, 100%), var(--faint) var(--volume, 100%)); }
-.volume input::-webkit-slider-thumb { appearance: none; width: 12px; height: 12px; margin-top: -4px; border: 0; border-radius: 50%; background: var(--chalk); }
-.volume input::-moz-range-track { height: 4px; border-radius: 999px; background: var(--faint); }
-.volume input::-moz-range-progress { height: 4px; border-radius: 999px; background: var(--chalk); }
-.volume input::-moz-range-thumb { width: 12px; height: 12px; border: 0; border-radius: 50%; background: var(--chalk); }
 /* Keep the control strip usable without scaling down its touch targets. */
 @media (max-width: 700px) {
   #frame { top: calc(50% - 50px); overflow: visible; }
@@ -129,10 +114,6 @@ button[hidden] { display: none; }
     transform: scale(calc(1 / var(--k))); transform-origin: left top; border-radius: 0 0 12px 12px; }
   #bar .icon { width: 36px; height: 40px; }
   .step { display: none; }
-  .volume { width: 36px; height: 40px; }
-  #bar .volume .icon { width: 34px; height: 38px; }
-  .volume:hover, .volume:focus-within { width: 158px; }
-  .volume input { height: 38px; }
   .segs { order: 1; }
   .segs { min-width: 80px; margin: 0; }
 }
@@ -224,7 +205,7 @@ svg.m { display: inline-block; overflow: visible; }
 @keyframes blink { 0%, 93%, 100% { transform: scaleY(1); } 96% { transform: scaleY(.1); } }
 @keyframes hop { 40% { transform: translateY(-12px) rotate(4deg); } }
 @keyframes wobble { 25% { transform: rotate(-8deg); } 75% { transform: rotate(6deg); } }
-@media (prefers-reduced-motion: reduce) { .volume { transition: none; } .card, .fb, .opt, .grid .mark, .mascot * { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { .card, .fb, .opt, .grid .mark, .mascot * { animation: none !important; } }
 
 a.icon { text-decoration: none; }
 a.btn { text-decoration: none; display: inline-block; }

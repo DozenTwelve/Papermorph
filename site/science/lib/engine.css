@@ -1,3 +1,4 @@
+@import url(volume.css);
 :root {
   --page: #0f1613; --board: #1d2b27; --panel: #22322d; --edge: #3a5047;
   --chalk: #ece8dc; --dim: #9aaba3; --faint: #5d7068;
@@ -109,6 +110,16 @@ button[hidden] { display: none; }
 .seg.ask { background: #2d4a57; }
 .seg.ask i { background: var(--quiz); }
 .step { width: 300px; flex: none; color: var(--dim); font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; }
+/* Keep the control strip usable without scaling down its touch targets. */
+@media (max-width: 700px) {
+  #frame { top: calc(50% - 50px); overflow: visible; }
+  #bar { width: calc(1600px * var(--k)); height: auto; flex-wrap: wrap; gap: 6px; padding: 8px;
+    transform: scale(calc(1 / var(--k))); transform-origin: left top; border-radius: 0 0 12px 12px; }
+  #bar .icon { width: 36px; height: 40px; }
+  .step { display: none; }
+  .segs { order: 1; }
+  .segs { min-width: 80px; margin: 0; }
+}
 .sound-note { position: absolute; left: 24px; top: 20px; margin: 0; padding: 8px 18px; border-radius: 12px; background: rgba(15, 22, 19, .85); color: var(--dim); font-size: 19px; }
 .sound-note[hidden] { display: none; }
 .blanks .brow { padding: 8px 0; border-bottom: 1px solid #2e433b; }

@@ -72,15 +72,6 @@ document.body.insertAdjacentHTML('afterbegin', `<div id="frame">
     </button>
     <div class="segs" id="segs"></div>
     <div class="step" id="stepName"></div>
-    <div class="volume">
-      <button class="icon" id="bVolume" aria-label="Adjust volume" aria-controls="volume" title="Volume (0 = muted)">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M3 9v6h4l5 4V5L7 9z" fill="currentColor"/>
-          <path d="M16 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-        </svg>
-      </button>
-      <input id="volume" type="range" min="0" max="1" step="0.05" value="1" aria-label="Volume">
-    </div>
     <button class="icon txt" id="bHelp" aria-label="Keyboard shortcuts (?)" title="Keyboard shortcuts (?)">?</button>
     <button class="icon cc" id="bCC" aria-pressed="false" aria-label="Captions (C)" title="Captions (C)">CC</button>
     <button class="icon" id="bFull" aria-label="Full screen">
@@ -925,6 +916,8 @@ function finishCard() {
 
 /* ---------- in-picture cards ---------- */
 const $ = id => document.getElementById(id);
+// The volume control (volume.js, volume.css) lives in its own files next to this one, the same in every book.
+document.head.append(Object.assign(document.createElement('script'), { src: new URL('volume.js', document.currentScript.src) }));
 const kbd = s => h('kbd', '', s);
 const uiW = (str, size) => { ctx2d.font = `600 ${size}px ${UI}`; return ctx2d.measureText(str).width; };
 const RING_KEYS = ['nat', 'whole', 'int', 'rat', 'irr', 'real'];   // number keys 1–6 in sorting questions
@@ -1488,7 +1481,7 @@ function start(i, play) {
   evalTo(0);
   const a = P.audio = new Audio(`audio/en/${BEATS[i].id}.mp3`);
   a.preload = 'auto';
-  a.volume = +$('volume').value;
+  a.volume = +($('volume')?.value ?? 1);
   a.onerror = () => { if (P.audio === a) soundFailed(); };
   const b = BEATS[i];
   if (b.ask) b.ask(() => { if (P.i === i) { evalTo(Infinity); start(i + 1, true); } });
@@ -1574,11 +1567,6 @@ $('stage').addEventListener('click', e => {
   if (!b.ask && !e.target.closest('.qlayer')) togglePlay();
 });
 $('bPlay').onclick = togglePlay;
-$('bVolume').onclick = () => $('volume').focus();
-$('volume').oninput = () => {
-  $('volume').style.setProperty('--volume', +$('volume').value * 100 + '%');
-  if (P.audio) P.audio.volume = +$('volume').value;
-};
 $('bBack').onclick = () => { hideCover(); back1(); };
 $('bRestart').onclick = restart;
 $('bCC').onclick = () => setCaptions(!captions);
