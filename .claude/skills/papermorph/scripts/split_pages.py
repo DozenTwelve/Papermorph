@@ -19,12 +19,16 @@ never published with the site.
 import argparse
 import json
 import re
+import sys
 from pathlib import Path
 
 import pymupdf
 
 
 def main():
+    # Captured output (a pipe) uses the system code page on Windows; section titles may be any language.
+    for stream in (sys.stdout, sys.stderr):
+        stream.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("pdf", type=Path)
     ap.add_argument("--sections", type=Path, default=Path("sections.json"))
@@ -48,7 +52,7 @@ def main():
                 ap.error("use --pages for a preview or --only for mapped sections")
             sections = [{"folder": "preview", "title": f"Pages {start}-{end}", "start": start, "end": end}]
         else:
-            sections = json.loads(a.sections.read_text(encoding="utf-8"))
+            sections = json.loads(a.sections.read_text(encoding="utf-8-sig"))   # PowerShell 5.1 writes a BOM
             nxt, seen = 1, set()
             for s in sections:
                 f, st, en = s["folder"], s["start"], s["end"]
