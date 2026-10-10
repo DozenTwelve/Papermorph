@@ -11,6 +11,13 @@ word after every mark starts, so page animations can wait for that word,
 plus one caption cue per sentence. Only beats whose text or voice changed are
 regenerated; spoken word times are cached, so caption and mark rules can change
 without new audio.
+
+Narration files are read as UTF-8 on every platform. Keep beat ids and mark names
+ASCII: they become file names and JS keys, and are printed to the console.
+
+Edge sometimes answers a request with no audio (NoAudioReceived), more often for
+some voices; such a beat is requested again up to MAX_ATTEMPTS times with growing
+pauses before the run stops.
 """
 
 import asyncio
@@ -23,8 +30,11 @@ import tempfile
 from pathlib import Path
 
 import edge_tts
+from edge_tts.exceptions import NoAudioReceived
 
 MARK = re.compile(r"\[\[(\w+)\]\]")
+MAX_ATTEMPTS = 5          # requests per beat when Edge returns no audio
+FIRST_RETRY_DELAY = 2     # seconds before the second request; doubles after each failure
 
 
 async def synth(text, voice, rate, mp3_path):
@@ -37,6 +47,20 @@ async def synth(text, voice, rate, mp3_path):
             elif chunk["type"] == "WordBoundary":
                 words.append((chunk["offset"] / 1e7, chunk["text"]))
     return words
+
+
+async def synth_with_retries(beat, text, voice, rate, mp3_path):
+    """synth(), requested again after NoAudioReceived; each attempt rewrites mp3_path from the start."""
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        try:
+            return await synth(text, voice, rate, mp3_path)
+        except NoAudioReceived:
+            if attempt == MAX_ATTEMPTS:
+                raise
+            delay = FIRST_RETRY_DELAY * 2 ** (attempt - 1)
+            print(f"{beat}: Edge returned no audio, retrying in {delay} s (attempt {attempt + 1} of {MAX_ATTEMPTS})",
+                  file=sys.stderr, flush=True)
+            await asyncio.sleep(delay)
 
 
 def split_marks(raw):
@@ -106,11 +130,11 @@ def write_atomic(path, text):
 
 
 async def main(src, out_dir):
-    spec = json.loads(Path(src).read_text())
+    spec = json.loads(Path(src).read_text(encoding="utf-8"))
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     cache_path = Path(src).with_suffix(".timings.json")  # build cache, kept out of the site
-    cache = json.loads(cache_path.read_text()) if cache_path.exists() else {}
+    cache = json.loads(cache_path.read_text(encoding="utf-8")) if cache_path.exists() else {}
     voice, rate = spec["voice"], spec["rate"]
     result = {}
     public = lambda v: {k: v[k] for k in ("dur", "marks", "cues")}
@@ -136,7 +160,7 @@ async def main(src, out_dir):
             clip = tmp
         try:
             if not reusable:
-                words = await synth(clean, voice, rate, clip)
+                words = await synth_with_retries(beat, clean, voice, rate, clip)
             entry = {"key": key, "dur": duration(clip), "words": words,
                      "marks": mark_times(clean, marks, words), "cues": caption_cues(clean, words)}
             if tmp:
