@@ -33,9 +33,14 @@ PDF -> Book plan -> Storyboards -> Narration -> Animation & quizzes -> Web book
 
 **Today:** Built with Opus 5.5, and tested with other models (see [Models](#models)). No image models, multilingual support, or BGM yet.
 
-**Planned:** Image models and storyboarding for interactive picture books and humanities documentaries.
+## Roadmap
 
-**Milestones:** Expand the bookshelf—from STEM textbooks to picture books and social science titles—and release new Skills.
+- [x] **Math books:** formulas and diagrams that change step by step, with quizzes. Two books on the shelf.
+- [ ] **Physics books:** illustrated scenes, acting characters and camera work. Chapters 9–11 are on the shelf; the new Skill that makes them is being refined.
+- [ ] **Picture books:** image models and storyboards for interactive picture books. In local testing.
+- [ ] **Humanities documentaries:** history and social science titles.
+
+Along the way, the bookshelf grows and new Skills are released.
 
 ## Get started
 
