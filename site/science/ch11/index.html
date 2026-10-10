@@ -1,0 +1,977 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chapter 11: Gravity, Friction, and More Forces in Everyday Life — Science</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/figures.js"></script>
+<script src="../lib/actors.js"></script>
+<script src="../lib/physics.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+// Chapter 11, one page in book order: part 1 (gravity, weight, falling), part 2 (friction, air resistance, terminal
+// velocity), part 3 (magnetic and electric forces, electromagnets), part 4 (centripetal force, buoyancy), then the
+// chapter practice. Notes and storyboard intents: books/science/chapters/ch11.md.
+const CHAPTER = { number: 11, title: 'Gravity, Friction, and More Forces in Everyday Life', minutes: 15, language: 'en' };
+const Q_CARD = { x: 96, y: 586, w: 1408, cls: 'band' };   // a band card under the scenes; it moves up by itself when taller
+const GY = 560;                                           // ground line in quick-check pictures
+const Y1 = 740;                                           // ground line under big actors
+Object.assign(PH_SPR, { building: [16, 31], feather: [10, 4], duck: [12, 10], stone: [9, 6] });   // books/science/images/ch11.py
+const ground = (p, y = GY, x = 0, w = 1600) => { phBlock(p, x, y, w, 70, PH.grass, { top: 8, ol: 0 }); mk('rect', { x, y: y + 70, width: w, height: 6, fill: PH.grass, opacity: .5 }, p); };
+const marks = (p, y, x0, x1) => { for (let x = x0; x < x1; x += 140) mk('rect', { x, y: y + 18, width: 24, height: 8, fill: lt(PH.grass, .2) }, p); };
+const AIR = '#9fd3e6';      // air resistance and buoyant force are forces too (orange); this tint is for air streaks only
+const SKY = '#0c1418';      // deep space
+const POLE_N = '#d9534f', POLE_S = '#4a7fc1';
+const G_PX = 1400;          // gravity in px/s² for quick everyday drops (apple, notebook scenes)
+
+/* ---------- shared pictures ---------- */
+// The same shapes as ch10: a thought bubble over a head, a part title, and a three-row summary with small pictures.
+function thought(p, [x0, y0, x1, y1], x, lines, t0) {
+  const q = G(p, { o: 0 });
+  mk('rect', { x: x0, y: y0, width: x1 - x0, height: y1 - y0, rx: 40, fill: '#22322d', stroke: COL.dim, 'stroke-width': 3 }, q);
+  path(q, `M${x - 30} ${y1 - 2}L${x + 30} ${y1 - 2}L${x} ${y1 + 66}Z`, { fill: COL.dim });
+  lines.forEach((s, i) => T(q, s, { x: (x0 + x1) / 2, y: y0 + 70 + i * 56, size: 42, anchor: 'middle' }));
+  show(q, t0); return q;
+}
+function opener(p, x, y, part, name, name2) {
+  const g = G(p, { o: 0, y: 24 });
+  phLabel(g, part.toUpperCase(), { x, y: y - 80, size: 30, fill: COL.dim, weight: 600 }); phLabel(g, name, { x, y, size: 80, weight: 600 });
+  if (name2) phLabel(g, name2, { x, y: y + 86, size: 80, weight: 600 });
+  tw(g, { o: 1, y: 0 }, .2, 1.1, out); return g;
+}
+function summary(p, m, rows, next) {
+  rows.forEach(([lines, icon], i) => {
+    const g = G(p, { x: -16, y: 250 + i * 220, o: 0 });
+    lines.forEach((s, j) => T(g, s, { x: 430, y: j * 50, size: 38, weight: 600 }));
+    icon(g); tw(g, { o: 1, x: 0 }, m(['w1', 'w2', 'w3'][i]), .6);
+  });
+  txt(p, next, 800, 860, m('end'), { size: 32, fill: COL.dim, weight: 500 });
+}
+// Deep space: a dark field with fixed pixel stars.
+function space(p, n = 80, seed = 1) {
+  mk('rect', { x: 0, y: 0, width: 1600, height: 900, fill: SKY }, p);
+  let d = '';
+  for (let i = 0; i < n; i++) { const k = 2 + Math.round(3 * phHash(i, seed + 3)); d += `M${Math.round(1600 * phHash(i, seed))} ${Math.round(900 * phHash(i, seed + 1))}h${k}v${k}h${-k}Z`; }
+  path(p, d, { fill: COL.chalk, opacity: .55 });
+}
+// A pixel disc (rock, moon, planet) of radius r in cells of c px: lit from the top left, a few craters. One path per
+// colour keeps it cheap. lump > 0 makes an uneven rock.
+function pixDisc(p, r, { c = 10, base = '#8d8a80', craters = 0, seed = 1, lump = 0, o = {} } = {}) {
+  const g = G(p, o), ds = { [lt(base, .25)]: '', [base]: '', [dk(base, .3)]: '', [dk(base, .5)]: '' }, ks = Object.keys(ds);
+  const cr = Array.from({ length: craters }, (_, i) => [(phHash(i, seed) - .5) * 1.2 * r, (phHash(i, seed + 1) - .5) * 1.2 * r, r * (.1 + .12 * phHash(i, seed + 2))]);
+  for (let y = -r; y < r; y += c) for (let x = -r; x < r; x += c) {
+    const cx = x + c / 2, cy = y + c / 2, a = Math.atan2(cy, cx), rr = r * (1 + lump * (.12 * Math.sin(3 * a + seed) + .08 * Math.sin(5 * a + 2 * seed)));
+    if (Math.hypot(cx, cy) > rr) continue;
+    const lit = (-cx - cy) / (r * 1.4), hole = cr.some(([hx, hy, hr]) => Math.hypot(cx - hx, cy - hy) < hr);
+    const k = hole ? 3 : lit > .35 ? 0 : lit > -.35 ? 1 : 2;
+    ds[ks[k]] += `M${x} ${y}h${c}v${c}h${-c}Z`;
+  }
+  ks.forEach(col => { if (ds[col]) path(g, ds[col], { fill: col }); });
+  return g;
+}
+// A hanging spring scale marked in newtons, its top hook at (x, y0). set(F) stretches it to F newtons; it returns the
+// y of the bottom hook. ppn: px of stretch per newton.
+function springScale(p, { x, y0, max = 100, every = 10, ppn = 2, label = 'N' }) {
+  const g = G(p), H = max * ppn + 90, top = y0 + 30;
+  path(g, `M${x} ${y0}V${top}`, { stroke: COL.dim, 'stroke-width': 6 });
+  phBlock(g, x - 40, top, 80, H, '#c8ccc4', { top: 6, right: 8, ol: 2.5 });
+  mk('rect', { x: x - 14, y: top + 14, width: 28, height: H - 28, fill: '#e9ebe4' }, g);
+  for (let v = 0; v <= max; v += every) {
+    const yy = top + 40 + v * ppn;
+    path(g, `M${x - 36} ${yy}H${x - 18}`, { stroke: PH.out, 'stroke-width': 2.5 });
+    if (v % (every * 2) === 0) T(g, String(v), { x: x - 50, y: yy + 8, size: 22, fill: COL.chalk, anchor: 'end', weight: 600 });
+  }
+  T(g, label, { x: x - 50, y: top + 10, size: 22, fill: COL.dim, anchor: 'end', weight: 600 });
+  const spring = path(g, '', { stroke: '#6a7570', 'stroke-width': 4, fill: 'none' }), ptr = path(g, '', { stroke: COL.bad, 'stroke-width': 5 });
+  const rod = path(g, '', { stroke: '#6a7570', 'stroke-width': 6 }), hook = path(g, '', { stroke: '#6a7570', 'stroke-width': 5, fill: 'none' });
+  return Object.assign(g, {
+    set(F) {
+      const yp = top + 40 + F * ppn, z = 8;
+      let d = `M${x} ${top + 14}`;
+      for (let i = 1; i <= z; i++) d += `L${x + (i % 2 ? 10 : -10)} ${top + 14 + (yp - top - 14) * (i - .5) / z}`;
+      spring.setAttribute('d', d + `L${x} ${yp}`); ptr.setAttribute('d', `M${x - 34} ${yp}H${x + 34}`);
+      const yb = top + H + 40 + F * ppn;
+      rod.setAttribute('d', `M${x} ${yp}V${yb - 16}`); hook.setAttribute('d', `M${x} ${yb - 16}v10a10 10 0 1 1 -10 10`);
+      return yb + 10;
+    },
+  });
+}
+// A thrown or dropped ball (SVG, so it can be any size): a plain coloured disc with a highlight.
+function ballEl(p, r, fill = '#e07a2e') { const g = G(p); mk('circle', { r, fill, ...phLine(2) }, g); mk('circle', { cx: -r * .35, cy: -r * .35, r: r * .25, fill: '#fff', opacity: .45 }, g); return g; }
+// Fixed-step integration (deterministic, so pause and seek show the same frame): returns state(t) by interpolation.
+function integrate(step, s0, T0, T1, dt = 1 / 240) {
+  const out = [s0.slice()]; let s = s0.slice();
+  for (let t = T0; t < T1; t += dt) { s = step(s, t, dt); out.push(s.slice()); }
+  return t => { const k = Math.max(0, Math.min(out.length - 1.001, (t - T0) / dt)), i = Math.floor(k), f = k - i; return out[i].map((v, j) => v + (out[i + 1][j] - v) * f); };
+}
+
+// A table top at y from x0 to x1 (legs down to the floor y1); returns the top y.
+function table(p, y, x0, x1, y1) {
+  phBlock(p, x0, y, x1 - x0, 26, '#a87a4f', { top: 6, ol: 0 });
+  [x0 + 30, x1 - 60].forEach(x => phBlock(p, x, y + 26, 30, y1 - y - 26, '#7d5737', { top: 0, ol: 0 }));
+  return y;
+}
+// A closed notebook seen from the side (bottom centre at the origin).
+function notebook(p) { const g = G(p); phBlock(g, -150, -50, 300, 50, '#c0504d', { top: 0, ol: 2.5 }); mk('rect', { x: -144, y: -40, width: 288, height: 26, fill: '#f4f1e8' }, g); return g; }
+// Something shoved to speed v0 at t0 that slows at a (px/s²) until it stops: x(t) and v(t) from x0.
+function slider(x0, v0, a, t0) {
+  const T1 = v0 / a;
+  return { a, x: t => { const u = Math.min(Math.max(0, t - t0), T1); return x0 + v0 * u - a * u * u / 2; }, v: t => { const u = t - t0; return u > 0 && u < T1 ? v0 - a * u : 0; } };
+}
+
+// A bar magnet centred on the origin, 260 × 70; poles 'SN' = south on the left, north on the right.
+function magnet(p, poles = 'SN') {
+  const g = G(p);
+  [...poles].forEach((k, i) => { phBlock(g, -130 + i * 130, -35, 130, 70, k === 'N' ? POLE_N : POLE_S, { top: 8, ol: 2.5 }); phLabel(g, k, { x: -65 + i * 130, y: 14, size: 40 }); });
+  return g;
+}
+// A paper clip lying flat (origin at its middle).
+function clip(p) { const g = G(p); path(g, 'M-22 -6H18A6 6 0 0 1 18 6H-16A4 4 0 0 1 -16 -2H12', { stroke: '#c3ccce', 'stroke-width': 3.5, fill: 'none' }); return g; }
+const HAIR_C = '#3e4751';
+
+// A ball whirled on a string, seen from above, around you at (cx, cy): w.at(t) draws the frame. The ball keeps the
+// same speed; its velocity (yellow) is tangent; the string's pull (orange, from t = pull) points to the centre. After
+// release it flies on along the tangent at the same speed.
+function whirl(p, cx, cy, R, P, { release = Infinity, pull = Infinity } = {}) {
+  const W = 2 * Math.PI / P, you = phTop(p, 'you_top', { x: cx, y: cy, s: 3.2 }), str = path(p, '', { stroke: COL.chalk, 'stroke-width': 3 });
+  const ball = ballEl(p, 24), v = forceArrow(p, { color: VEL, w: 12, size: 30 }), f = forceArrow(p, { w: 14, size: 30 }), trail = path(p, '', { stroke: COL.chalk, 'stroke-width': 3, 'stroke-dasharray': '10 10', opacity: .6 });
+  mk('circle', { cx, cy, r: R, fill: 'none', stroke: COL.faint, 'stroke-width': 2, 'stroke-dasharray': '4 10' }, p);
+  p.appendChild(str); p.appendChild(you); p.appendChild(ball); p.appendChild(v); p.appendChild(f);
+  return { at(t) {
+    const tt = Math.min(t, release), q = W * tt, x0 = cx + R * Math.cos(q), y0 = cy + R * Math.sin(q), ux = -Math.sin(q), uy = Math.cos(q), u = Math.max(0, t - release);
+    const x = x0 + W * R * ux * u, y = y0 + W * R * uy * u;
+    put(ball, { x, y }); put(you, { r: q * 57.3 });
+    const hx = cx + 40 * Math.cos(q), hy = cy + 40 * Math.sin(q);
+    str.setAttribute('d', u > 0 ? `M${hx} ${hy}l${(R - 60) * .5 * Math.cos(q + .5)} ${(R - 60) * .5 * Math.sin(q + .5)}` : `M${hx} ${hy}L${x} ${y}`);
+    trail.setAttribute('d', u > 0 ? `M${x0} ${y0}L${x} ${y}` : '');
+    v.set(x + 30 * ux, y + 30 * uy, 120, Math.atan2(uy, ux) * 57.3, '');
+    f.set(x - 30 * Math.cos(q), y - 30 * Math.sin(q), t > pull && u === 0 ? 110 : 0, q * 57.3 + 180, t > pull + 3 ? '' : 'string pull', [-ux, -uy]);   // label trails behind, away from the velocity arrow
+  } };
+}
+// A tub of water seen from the side, centred on x, water surface at y, w wide, depth d.
+function tubScene(p, x, y, w, d) {
+  const g = G(p);
+  mk('rect', { x: x - w / 2, y, width: w, height: d, fill: '#3f7fb0', opacity: .6 }, g);
+  path(g, `M${x - w / 2} ${y}H${x + w / 2}`, { stroke: '#9fd3e6', 'stroke-width': 4 });
+  path(g, `M${x - w / 2 - 8} ${y - 60}V${y + d + 8}H${x + w / 2 + 8}V${y - 60}`, { stroke: '#c3ccce', 'stroke-width': 12, fill: 'none' });
+  // call front() after adding what floats in it: a see-through layer of water over their underwater parts
+  g.front = () => { const e = mk('rect', { x: x - w / 2, y, width: w, height: d, fill: '#3f7fb0', opacity: .45 }, p); return e; };
+  return g;
+}
+let PRACTICE;   // the practice beat's panel: its question pictures are drawn there
+const PICS = {
+  'p-grav': g => { pixDisc(g, 60, { seed: 2, lump: 1, o: { x: 560, y: 760 } }); pixDisc(g, 60, { seed: 7, lump: 1, o: { x: 1040, y: 760 } }); forceArrow(g, { w: 12 }).set(620, 740, 120, 0, ''); forceArrow(g, { w: 12 }).set(980, 780, 120, 180, ''); },
+  'p-bowl': g => { const b = G(g, { x: 620, y: 760 }); mk('circle', { r: 70, fill: '#22282a', ...phLine(2) }, b); phBall(g, 70, { x: 980, y: 760 }); },
+  'p-dist': g => { pixDisc(g, 50, { seed: 2, lump: 1, o: { x: 400, y: 760 } }); pixDisc(g, 50, { seed: 7, lump: 1, o: { x: 1200, y: 760 } }); path(g, 'M470 840H1130', { stroke: COL.dim, 'stroke-width': 4, 'stroke-dasharray': '10 8' }); },
+  'p-cart': g => { phBlock(g, 300, 840, 1000, 12, PH.walk, { top: 0, ol: 0 }); phSprite(g, 'cart', { x: 800, y: 840, s: 2 }); forceArrow(g, { w: 12 }).set(760, 830, 90, 180, ''); },
+  'p-feather': g => { phSprite(g, 'feather', { x: 800, y: 770, s: 3 }); forceArrow(g, { w: 12 }).set(720, 760, 80, -90, ''); forceArrow(g, { w: 12 }).set(880, 770, 80, 90, ''); },
+  'p-term': g => { phActor(g, 'you', { x: 800, y: 860, s: 1.4, anim: 'jump' }); forceArrow(g, { w: 12 }).set(720, 760, 80, 90, ''); forceArrow(g, { w: 12 }).set(880, 760, 80, -90, ''); },
+  'p-like': g => { const a = magnet(g, 'SN'), b = magnet(g, 'NS'); put(a, { x: 600, y: 780 }); put(b, { x: 1000, y: 780 }); forceArrow(g, { w: 12 }).set(600, 720, 90, 180, ''); forceArrow(g, { w: 12 }).set(1000, 720, 90, 0, ''); },
+  'p-cent': g => { mk('circle', { cx: 800, cy: 760, r: 90, fill: 'none', stroke: COL.faint, 'stroke-width': 3 }, g); put(ballEl(g, 18), { x: 890, y: 760 }); forceArrow(g, { w: 10 }).set(866, 760, 56, 180, ''); },
+  'p-boat': g => { tubScene(g, 800, 780, 500, 90); phSprite(g, 'duck', { x: 800, y: 820, s: 1.6 }); },
+  'p-dog': g => { tubScene(g, 800, 780, 500, 90); phSprite(g, 'duck', { x: 800, y: 820, s: 1.6 }); },
+};
+const withPics = qs => qs.map(q => ({ ...q, build(body, api) { const old = PRACTICE.querySelector('.pic'); if (old) old.remove(); const g = G(PRACTICE); g.classList.add('pic'); PICS[q.id]?.(g); return q.build(body, api); } }));
+
+/* ---------- beats ---------- */
+const BEATS = [
+/* ---------- part 1: gravity and weight ---------- */
+['intro', 'Gravity, friction, and more forces', (m, D) => {
+  const p = panel(0), Y = Y1, tq = m('q'), tf = 1.1;
+  // An apple drops from the tree into your hands: gravity acts on it the whole time (the hands push up once it rests).
+  ground(p, Y);
+  const a = phActor(p, 'you', { x: 470, y: Y, s: 3, anim: 'catch' }), [hx, hy] = a.hand('F');
+  phSprite(p, 'tree', { x: hx - 250, y: Y + 2, s: 4.6 });   // a big tree behind you; its canopy reaches over your hands
+  p.appendChild(a);                                              // you in front of the trunk
+  const ap = phSprite(p, 'apple', { s: 1.6 }), x = hx + 22, top = Y - 300, rest = hy + 6, tl = tf + Math.sqrt(2 * (rest - top) / G_PX);
+  const gv = forceArrow(p, { w: 14, size: 32 }), up = forceArrow(p, { w: 14, size: 32 });
+  clockRun(t => {
+    const y = t < tf ? top : t < tl ? top + G_PX * (t - tf) ** 2 / 2 : rest, absorb = t > tl && t < tl + .3;
+    a.show(t < tf - .5 ? 'stand' : 'catch', absorb ? 1 : 0);
+    const [hx2, hy2] = a.hand('F'); put(ap, { x: t < tl ? x : hx2 + 22, y: t < tl ? y : hy2 + 6 });
+    gv.set(x + 70, (t < tl ? y : hy2 + 6) - 40, t > tf ? 110 : 0, 90, t < tl + 1 ? 'gravity' : '', 'right');
+    up.set(x - 70, hy2 + 70, t > tl ? 110 : 0, -90, '');
+  }, D);
+  const ttl = G(p, { o: 0, y: 24 });
+  phLabel(ttl, 'Unit 3 · Motion, Forces, and Work · Chapter 11', { x: 1150, y: 330, size: 26, fill: COL.dim, weight: 600 });
+  phLabel(ttl, 'Gravity, Friction,', { x: 1150, y: 420, size: 76 }); phLabel(ttl, 'and More Forces', { x: 1150, y: 500, size: 76 });
+  tw(ttl, { o: 1, y: 0 }, .3, 1.1, out);
+  thought(p, [70, 60, 930, 220], 510, ['Why do things fall, slow down,', 'stick together, or float?'], tq);
+}, { lead: false }],
+['gravity', 'Gravity', (m, D) => {
+  const p = panel(0), tp = m('pull'), tn = m('never'), tc = m('close'), Y = 520, d0 = 900, R0 = 100;
+  // Two equal rocks start at rest and pull each other together: each feels the same pull, growing as 1/d².
+  space(p);
+  const run = K => integrate(([d, v], t, dt) => { const a = t < tp ? 0 : -K / (d * d); return [d + v * dt, v + a * dt]; }, [d0, 0], 0, D);
+  let lo = 0, hi = 1e8;
+  for (let i = 0; i < 40; i++) { const k = (lo + hi) / 2; if (run(k)(D)[0] > 520) lo = k; else hi = k; }
+  const dAt = run(lo);
+  const A = pixDisc(p, R0, { base: '#8d8a80', craters: 4, seed: 2, lump: 1 }), B = pixDisc(p, R0, { base: '#9a8f7e', craters: 3, seed: 7, lump: 1 });
+  const fa = forceArrow(p, { w: 14, size: 34 }), fb = forceArrow(p, { w: 14, size: 34 });
+  const def = G(p, { o: 0 }); phLabel(def, 'Gravity', { x: 800, y: 150, size: 80 }); phLabel(def, 'the force of attraction between all things that have mass', { x: 800, y: 214, size: 36, weight: 600 }); show(def, .3);
+  txt(p, 'always a pull, never a push', 800, 790, tn, { size: 46, weight: 700 });
+  const cl = phLabel(p, 'closer → stronger pull', { x: 800, y: 340, size: 40, fill: FORCE, o: 0 }); show(cl, tc);
+  clockRun(t => {
+    const d = dAt(t)[0], xa = 800 - d / 2, xb = 800 + d / 2, L = t > tp - .1 ? 70 * (d0 / d) ** 2 : 0;   // ≤ 210 px: never reaches the other rock
+    put(A, { x: xa, y: Y }); put(B, { x: xb, y: Y });
+    fa.set(xa + 60, Y - 24, L, 0, 'pull'); fb.set(xb - 60, Y + 24, L, 180, 'pull', 'below');   // equal pulls, one above, one below
+  }, D);
+}, { lead: false }],
+['strength', 'Mass and distance', (m, D) => {
+  const p = panel(0), ts = m('small'), tb = m('big'), tf = m('far'), V = 350, cy = 470;
+  // Two panels with the same rock speed and the same miss distance: a small moon on the left bends the path a little,
+  // a planet with far more mass on the right bends it a lot; then the same planet, missed by more, bends it less.
+  // Paths come from integrating a = GM/r² (deterministic steps); each arrow is the pull at that moment.
+  space(p, 90, 4);
+  mk('rect', { x: 796, y: 0, width: 8, height: 900, fill: COL.board }, p);
+  const fly = (cx, GM, b, t0) => integrate(([x, y, vx, vy], t, dt) => {
+    if (t < t0) return [x, y, vx, vy];
+    const dx = cx - x, dy = cy - y, r = Math.hypot(dx, dy), a = GM / (r * r);
+    return [x + vx * dt, y + vy * dt, vx + a * dx / r * dt, vy + a * dy / r * dt];
+  }, [cx - b, -40, 0, V], 0, D);
+  const moon = pixDisc(p, 44, { base: '#a7a59c', craters: 3, seed: 3, o: { x: 520, y: cy } });
+  const planet = pixDisc(p, 120, { base: '#c98a5a', craters: 0, seed: 5, o: { x: 1340, y: cy } });
+  phLabel(p, 'small moon', { x: 520, y: cy - 80, size: 34 }); phLabel(p, 'planet: much more mass', { x: 1190, y: cy - 156, size: 34, anchor: 'start' });   // right of the path in, so the passing rock's pull arrow stays clear
+  const passes = [[520, 2.5e6, 260, ts, COL.dim, 'bends a little'], [1340, 1e7, 260, tb, COL.chalk, 'bends a lot'], [1340, 1e7, 460, tf, COL.int, 'bends less']].map(([cx, GM, b, t0, col, verdict]) => {
+    const at = fly(cx, GM, b, t0), trail = path(p, '', { stroke: col, 'stroke-width': 4, 'stroke-dasharray': '10 10', opacity: .8 });
+    const rock = pixDisc(p, 30, { c: 6, base: '#cfc6b2', seed: b, lump: 1 }), f = forceArrow(p, { w: 12, size: 28 });
+    const pts = []; for (let u = t0; u < D; u += 1 / 30) pts.push(at(u));
+    const end = pts.find(([x, y]) => y > 840 || x > 1580 || x < 20) || pts[pts.length - 1];
+    const vl = phLabel(p, verdict, { x: end[0] + 30, y: 870, size: 32, fill: col, anchor: 'start', o: 0 }); show(vl, t0 + 2.6);   // beside where its trail leaves, not on it
+    return { cx, GM, t0, at, trail, rock, f, pts };
+  });
+  const same = phLabel(p, 'same speed, same distance', { x: 800, y: 60, size: 34, fill: COL.dim, weight: 600, o: 0 }); show(same, tb + .3); hide(same, tf - .3, .3);
+  const farL = G(p, { o: 0 }); phLabel(farL, 'same planet,', { x: 1290, y: 60, size: 34, fill: COL.int, weight: 600 }); phLabel(farL, 'passing farther away', { x: 1290, y: 104, size: 34, fill: COL.int, weight: 600 }); show(farL, tf + .1);   // right of both trails
+  clockRun(t => passes.forEach(({ cx, GM, t0, at, trail, rock, f, pts }) => {
+    const on = t >= t0, [x, y] = at(t), dx = cx - x, dy = cy - y, r = Math.hypot(dx, dy), vis = on && y < 940 && x < 1620;
+    put(rock, { x, y, o: vis ? 1 : 0 });
+    const L = .6 * GM / (r * r) + 30; f.set(x + 34 * dx / r, y + 34 * dy / r, vis ? L : 0, Math.atan2(dy, dx) * 180 / Math.PI, '');   // from the rock's edge
+    const n = on ? Math.floor((t - t0) * 30) : -1;
+    if (trail._n !== n) { trail._n = n; trail.setAttribute('d', n > 0 ? 'M' + pts.slice(0, n + 1).map(([a, b]) => `${a.toFixed(1)} ${b.toFixed(1)}`).join('L') : ''); }
+  }), D);
+}, { lead: false }],
+['building', 'Why not the building?', (m, D) => {
+  const p = panel(0), Y = Y1, S2 = 2, tw0 = m('walk'), tt = m('tiny'), te = m('earth'), v = 55, x0 = 120;
+  // You stroll toward a huge apartment block (it runs off the top of the frame). Its pull on you is real but far too
+  // small to draw (≈ 0.0001 N); Earth's pull on you is about 500 N, straight down.
+  ground(p, Y); marks(p, Y, 0, 1600);
+  phSprite(p, 'building', { x: 1330, y: Y + 2, s: 3.4 });
+  const a = phActor(p, 'you', { y: Y, s: S2, anim: 'walk' }), X = t => x0 + v * Math.max(0, t - tw0);
+  const ring = G(p, { o: 0 }); mk('circle', { r: 40, fill: 'none', stroke: FORCE, 'stroke-width': 4, 'stroke-dasharray': '8 7' }, ring); mk('circle', { r: 4, fill: FORCE }, ring);
+  const tl = G(p, { o: 0 }); phLabel(tl, 'the building pulls you:', { y: 0, size: 34, fill: FORCE }); phLabel(tl, 'about 0.0001 N, too small to draw', { y: 42, size: 30, fill: FORCE, weight: 600 });
+  show(ring, tt); show(tl, tt + .3);
+  const ef = forceArrow(p, { w: 18, size: 36 }), el = G(p, { o: 0 });
+  phLabel(el, 'Earth pulls you:', { y: 0, size: 34, fill: FORCE, anchor: 'start' }); phLabel(el, 'about 500 N', { y: 46, size: 44, fill: FORCE, anchor: 'start' }); show(el, te + .3);
+  txt(p, 'Earth’s pull is about 5 million times stronger', 560, 180, te + 4, { size: 34, weight: 600 });   // up in the empty sky: Earth's arrow runs to the bottom edge
+  clockRun(t => {
+    const x = X(t); put(a, { x }); if (t > tw0) a.stride('walk', (x - x0) / S2); else a.show('stand');
+    const cx = x + 8, cyy = Y - 150;
+    put(ring, { x: cx + 90, y: cyy });                        // beside you, on the side the building is
+    put(tl, { x: Math.min(cx + 60, 800), y: Y - 360 });
+    ef.set(cx, cyy, t > te ? 300 : 0, 90, '');
+    put(el, { x: cx + 40, y: Y + 60 });
+  }, D);
+}, { lead: false }],
+['orbit', 'Orbits', (m, D) => {
+  const p = panel(0), tp = m('pull'), ts = m('side'), tb = m('bend'), cx = 800, cy = 470, R = 330, W = 2 * Math.PI / 14;
+  // Seen from above: Earth goes round the Sun counterclockwise. The Sun's pull (orange) always points at the Sun; the
+  // velocity (yellow) is sideways. From "bend", a dashed line shows where Earth would go with no gravity.
+  space(p, 90, 6);
+  [150, 230].forEach(r => mk('circle', { cx, cy, r, fill: 'none', stroke: COL.faint, 'stroke-width': 2 }, p));
+  mk('circle', { cx, cy, r: R, fill: 'none', stroke: COL.faint, 'stroke-width': 2, 'stroke-dasharray': '4 10' }, p);
+  const sun = phSun(p, { x: cx, y: cy, r: 84 }), small = [[150, 4.1, '#b8a48c', 10], [230, 2.4, '#e2b86a', 14]].map(([r, k, col, s]) => [r, k, mk('circle', { r: s, fill: col, ...phLine(2) }, p)]);
+  const earth = phEarthSmall(p, { r: 38 }), g = forceArrow(p, { w: 14, size: 34 }), vv = forceArrow(p, { color: VEL, w: 12, size: 34 });
+  const ghost = path(p, '', { stroke: COL.chalk, 'stroke-width': 4, 'stroke-dasharray': '14 12' }, { o: 0 }), gl = G(p, { o: 0 }); phLabel(gl, 'with no gravity:', { size: 32, weight: 600, anchor: 'end' }); phLabel(gl, 'a straight line', { y: 40, size: 32, weight: 600, anchor: 'end' });
+  const ang = t => -Math.PI / 2 - W * t;                    // counterclockwise on screen, starting at the top
+  const tg = tb + 2.2, ag = ang(tg), gx = cx + R * Math.cos(ag), gy = cy + R * Math.sin(ag), ux = Math.sin(ag), uy = -Math.cos(ag);   // tangent (direction of motion)
+  ghost.setAttribute('d', `M${gx} ${gy}L${gx + 900 * ux} ${gy + 900 * uy}`);
+  tw(ghost, { o: .8 }, tg, .4); put(gl, { x: gx + 110 * ux - 34, y: gy + 110 * uy }); show(gl, tg + .3);   // outside the orbit, left of the line: Earth and its arrows never pass there
+  const t1 = G(p, { o: 0 }); phLabel(t1, 'The Sun’s gravity pulls on every planet', { x: 800, y: 70, size: 42 }); show(t1, tp); hide(t1, ts - .3, .3);
+  const t2 = G(p, { o: 0 }); phLabel(t2, 'Earth also moves sideways, very fast', { x: 800, y: 70, size: 42, fill: VEL }); show(t2, ts + .2); hide(t2, tb - .3, .3);
+  const t3 = G(p, { o: 0 }); phLabel(t3, 'Gravity keeps bending its path into an orbit', { x: 800, y: 70, size: 42 }); show(t3, tb + .2);
+  clockRun(t => {
+    put(sun._rays, { r: t * 6 });
+    small.forEach(([r, k, e]) => { const q = -Math.PI / 2 + 1 - W * k * t; e.setAttribute('cx', cx + r * Math.cos(q)); e.setAttribute('cy', cy + r * Math.sin(q)); });
+    const q = ang(t), x = cx + R * Math.cos(q), y = cy + R * Math.sin(q);
+    put(earth, { x, y });
+    g.set(x - 46 * Math.cos(q), y - 46 * Math.sin(q), t > tp ? 120 : 0, q * 180 / Math.PI + 180, 'gravity', [-Math.sin(q), Math.cos(q)]);   // label on the side away from the velocity
+    vv.set(x + 46 * Math.sin(q), y - 46 * Math.cos(q), t > ts ? 140 : 0, q * 180 / Math.PI - 90, '');
+  }, D);
+}, { lead: false }],
+['weight', 'Weight', (m, D) => {
+  const p = panel(0), th = m('hang'), tm = m('more'), PPN = 2, WPX = 1.2;   // 2 px of stretch per newton; weight arrows 1.2 px per newton
+  // Two spring scales hang from a beam. Each box is hooked on at rest and let go: the spring overshoots, rings and
+  // settles where its pull equals the weight. Weight (orange) is the same the whole time; only the spring changes.
+  phBlock(p, 300, 60, 1000, 26, '#7d6a5a', { top: 4, ol: 0 });
+  const def = G(p, { o: 0 }); phLabel(def, 'Weight', { x: 220, y: 300, size: 72 }); phLabel(def, 'the force of gravity', { x: 220, y: 360, size: 36, weight: 600 }); phLabel(def, 'on an object', { x: 220, y: 404, size: 36, weight: 600 }); show(def, .3);
+  const rows = [[620, 5, 140, 110, th], [1080, 10, 180, 140, tm]].map(([x, kg, w, h, t0]) => {
+    const sc = springScale(p, { x, y0: 86, ppn: PPN }), box = crate(p, { w, h, label: `${kg} kg`, labelY: -h + 36 }), W8 = kg * 9.8;   // the tag above the centre, where the weight arrow starts
+    const wf = forceArrow(p, { w: 14, size: 32 }), rd = phLabel(p, '', { size: 36, fill: FORCE, anchor: 'start' });
+    put(box, { o: 0 }); show(box, t0 - .5, .4);
+    return { x, sc, box, wf, rd, W8, t0, h };
+  });
+  txt(p, 'more mass →', 220, 600, tm + 3, { size: 44, weight: 700 }); txt(p, 'more weight', 220, 656, tm + 3.2, { size: 44, weight: 700 });
+  clockRun(t => rows.forEach(({ x, sc, box, wf, rd, W8, t0, h }) => {
+    const u = t - t0, F = u < 0 ? 0 : W8 * (1 - Math.exp(-1.6 * u) * Math.cos(9 * u));   // let go at rest: ring, then settle
+    const yb = sc.set(F); put(box, { x, y: yb + h });
+    wf.set(x - 7, yb + h / 2, u > 0 ? W8 * WPX : 0, 90, '');   // from the centre (where the planks cross), down
+    phText(rd, u > 1.4 ? `weight ≈ ${Math.round(W8)} N` : ''); put(rd, { x: x + 40, y: yb + h + 50 });
+  }), D);
+}, { lead: false }],
+['moon', 'Mass and weight on the Moon', (m, D) => {
+  const p = panel(0), te = m('earth'), tm = m('moon'), tj = m('jump'), Y = 800, S2 = 2.3;
+  // Earth on the left, the Moon on the right; the same student, the same takeoff speed. Weight arrows at 0.4 px per
+  // newton (490 N vs 82 N). Earth hops land after 0.5 s and 50 px; the Moon jump lasts 6× as long and goes 6× as high.
+  mk('rect', { x: 800, y: 0, width: 800, height: 900, fill: SKY }, p);
+  for (let i = 0; i < 40; i++) mk('rect', { x: 820 + 760 * phHash(i, 9), y: 500 * phHash(i, 10), width: 4, height: 4, fill: COL.chalk, opacity: .6 }, p);
+  phEarthSmall(p, { x: 1480, y: 130, r: 34 });
+  ground(p, Y, 0, 800); phBlock(p, 800, Y, 800, 100, '#9a9890', { top: 8, ol: 0 });
+  [[900, 20], [1150, 30], [1420, 16]].forEach(([x, r]) => mk('ellipse', { cx: x, cy: Y + 40, rx: r * 2, ry: r * .5, fill: '#7a7870' }, p));
+  mk('rect', { x: 796, y: 0, width: 8, height: 900, fill: COL.board }, p);
+  phLabel(p, 'Earth', { x: 400, y: 80, size: 50 }); phLabel(p, 'Moon', { x: 1200, y: 80, size: 50 });
+  const hop = (k, dur, h) => k < 0 ? { y: 0, pose: 'stand' } : k < .25 ? { y: 0, pose: 'crouch' } : k < .35 ? { y: 0, pose: 'land' } : k < .35 + dur ? { y: -h * 4 * ((k - .35) / dur) * (1 - (k - .35) / dur), pose: 'jump' } : k < .55 + dur ? { y: 0, pose: 'land' } : { y: 0, pose: 'stand' };
+  const sides = [[400, 490, te, k => { const c = 1.15; return k < 0 ? hop(-1) : hop(k % c, .5, 50); }], [1200, 82, tm, k => hop(k, 3, 300)]].map(([x, Wn, t0, jump]) => {
+    const a = phActor(p, 'you', { x, y: Y, s: S2, anim: 'stand' }), wf = forceArrow(p, { w: 16, size: 34 });
+    const info = G(p, { o: 0 }); phLabel(info, 'mass 50 kg', { x: x - 110, y: 520, size: 38, anchor: 'end' });
+    phLabel(info, `weight ≈ ${Wn} N`, { x: x - 110, y: 570, size: 38, fill: FORCE, anchor: 'end' }); show(info, t0);
+    return { a, wf, Wn, t0, jump, x };
+  });
+  const same = phLabel(p, 'same mass, about one-sixth the weight', { x: 1200, y: 250, size: 34, fill: COL.dim, weight: 600, o: 0 }); show(same, tm + 4);
+  clockRun(t => sides.forEach(({ a, wf, Wn, t0, jump, x }) => {
+    const j = jump(t - (tj - .2)); put(a, { y: Y + j.y }); a.show(j.pose);
+    wf.set(x + 110, Y + j.y - 200, t > t0 ? Wn * .5 : 0, 90, '');   // beside the body, from its middle
+  }), D);
+}, { lead: false }],
+['fall', 'Falling: 9.8 m/s every second', (m, D) => {
+  const p = panel(0), tu = m('up'), ttop = m('top'), Y = 820, S2 = 2.2, g = 9.8, v0 = 19.6;
+  // Slow motion: 2 s of real flight up, 2 s down, each played over ttop − tu. 28 px per meter (19.6 m ≈ 550 px).
+  // The ledger writes the speed at each whole second; the live label is the same v(s).
+  const k = 2 / (ttop - tu - .25), ts = tu + .25, sAt = t => Math.max(0, Math.min(4, (t - ts) * k)), PXM = 28;
+  ground(p, Y);
+  const a = phActor(p, 'you', { x: 560, y: Y, s: S2, anim: 'toss' }); a.show('toss', 2); const [, hy0] = a.hand('F'); a.show('toss', 0);   // released from, and caught in, the raised hands
+  const ball = ballEl(p, 26), vA = forceArrow(p, { color: VEL, w: 12, size: 32 }), gA = forceArrow(p, { w: 14, size: 32 });
+  const vl = phLabel(p, '', { size: 34, fill: VEL, anchor: 'start' }), clk = simClock(p, 1460, 160, 50);
+  const slow = phLabel(p, 'slow motion', { x: 1460, y: 300, size: 28, fill: COL.dim, weight: 600, o: 0 }); show(slow, ts);
+  const rule = G(p, { o: 0 }); phLabel(rule, 'Falling things speed up by', { x: 1100, y: 380, size: 46, weight: 600 }); phLabel(rule, '9.8 m/s every second', { x: 1100, y: 450, size: 64 });
+  show(rule, .4); hide(rule, tu - .3, .3);
+  const led = [0, 1, 2, 3, 4].map(sec => {
+    const v = v0 - g * sec, s = v > 0 ? `${v.toFixed(1)} m/s up` : v < 0 ? `${(-v).toFixed(1)} m/s down` : '0 m/s: stopped';
+    const e = runs(p, [[`${sec} s:  `, TIME], [s, VEL]], { x: 900, y: 330 + sec * 64, size: 40, anchor: 'start', weight: 700 }); show(e, ts + sec / k, .3); return e;
+  });
+  txt(p, 'going up: −9.8 m/s each second', 900, 680, tu + 3.5, { size: 32, fill: ACC, weight: 600, anchor: 'start' });
+  txt(p, '(a negative acceleration)', 900, 718, tu + 4, { size: 28, fill: ACC, weight: 500, anchor: 'start' });
+  txt(p, 'coming down: +9.8 m/s each second', 900, 770, m('down') + 1, { size: 32, fill: ACC, weight: 600, anchor: 'start' });
+  clockRun(t => {
+    const s = sAt(t), flying = t > ts && s < 4, v = flying ? v0 - g * s : 0;
+    const y = flying ? hy0 - 10 - PXM * (v0 * s - g * s * s / 2) : null;
+    if (t < ts - .6) a.show('toss', 0); else if (t < ts) a.show('toss', 1 + ramp(t, ts - .6, ts - .1)); else a.show('toss', 2);
+    const [hx, hy] = a.hand('F'), by = flying ? y : hy - 10; put(ball, { x: hx + 6, y: by });
+    vA.set(hx + 60, by, Math.abs(v) * 9, v >= 0 ? -90 : 90, '');
+    gA.set(hx - 50, by, flying ? 90 : 0, 90, flying ? 'gravity' : '', 'left');
+    phText(vl, flying ? `${Math.abs(v).toFixed(1)} m/s` : ''); put(vl, { x: hx + 90, y: by + 12 });
+    clk.set(s);
+  }, D);
+}, { lead: false }],
+['q1', 'Quick check', (m, D) => {
+  const p = panel(0), Y = 520;
+  // On the Moon: a slow toss, up and down, again and again (one-sixth gravity).
+  mk('rect', { x: 0, y: 0, width: 1600, height: Y, fill: SKY }, p);
+  for (let i = 0; i < 30; i++) mk('rect', { x: 1600 * phHash(i, 21), y: (Y - 40) * phHash(i, 22), width: 4, height: 4, fill: COL.chalk, opacity: .6 }, p);
+  phEarthSmall(p, { x: 1300, y: 120, r: 40 });
+  phBlock(p, 0, Y, 1600, 60, '#9a9890', { top: 6, ol: 0 });
+  const a = phActor(p, 'you', { x: 700, y: Y, s: 2, anim: 'toss' }), ball = ballEl(p, 20), vA = path(p, '', { stroke: VEL, 'stroke-width': 10 });
+  clockRun(t => { const c = (t % 3.4) / 3.4, h = 250 * 4 * c * (1 - c); a.show('toss', c < .08 || c > .92 ? 1 : 2); const [hx, hy] = a.hand('F'); put(ball, { x: hx + 6, y: hy - 8 - h }); arrowAt(vA, hx + 46, hy - 8 - h, Math.abs(1 - 2 * c) * 90, c < .5 ? -90 : 90, 20); }, D);
+  phLabel(p, 'on the Moon', { x: 400, y: 120, size: 40, fill: COL.dim, weight: 600 });
+}, { ask: done => quiz(Q_CARD, [
+  { id: 'c-dist', prompt: ['The pull of gravity between two objects gets ', h('b', '', 'weaker'), ' when…'],
+    build: choice([['they move farther apart'], ['their masses get bigger'], ['they move closer together']], 0,
+      'More distance, weaker gravity.',
+      [null, 'More mass makes gravity stronger, not weaker.', 'Closer objects pull on each other more strongly.']) },
+  { id: 'c-mass', prompt: ['An astronaut has a mass of 60 kilograms on Earth. What is her ', h('b', '', 'mass'), ' on the Moon?'],
+    build: blanks([{ parts: ['mass on the Moon = ', { box: '60' }, ' kilograms'], why: 'Mass doesn’t depend on where you are. Her weight on the Moon is about one-sixth, but her mass is still 60 kilograms.', hint: 'Mass stays the same everywhere; weight changes.' }]) },
+  { id: 'c-top', prompt: ['You throw a ball straight up. At the very top, it stops for an instant. Is gravity still pulling on it?'],
+    build: choice([['yes, gravity pulls it down the whole time'], ['no, gravity is zero at the top'], ['only once it starts falling again']], 0,
+      'Gravity never switches off: that steady pull is what turned the ball around.',
+      [null, 'If gravity were zero there, the ball would just stay up.', 'Gravity also slowed it on the way up.']) },
+], done) }],
+['wrap1', 'Summary · Gravity', (m, D) => {
+  summary(panel(0), m, [
+    [['Gravity pulls all masses together: stronger with', 'more mass, weaker with more distance.'], g => { pixDisc(g, 30, { c: 6, seed: 2, lump: 1, o: { x: 150, y: 0 } }); pixDisc(g, 30, { c: 6, seed: 7, lump: 1, o: { x: 330, y: 0 } }); forceArrow(g, { w: 8 }).set(180, -10, 60, 0, ''); forceArrow(g, { w: 8 }).set(300, 10, 60, 180, ''); }],
+    [['Weight is the force of gravity on you;', 'your mass is the same everywhere.'], g => { crate(g, { x: 240, y: 60, w: 110, h: 90, label: '5 kg' }); forceArrow(g, { w: 8 }).set(300, 20, 70, 90, ''); }],
+    [['Falling things speed up by about', '9.8 m/s every second.'], g => { put(ballEl(g, 20), { x: 240, y: -10 }); forceArrow(g, { w: 8 }).set(200, -10, 70, 90, ''); }],
+  ], 'Next: friction.');
+}],
+/* ---------- part 2: friction ---------- */
+['part2', 'Part 2 · Friction', (m, D) => {
+  const p = panel(0), Y = Y1, tp = .4;
+  // You flick a notebook along a table: it slides, slows and stops. Friction shows only while it slides.
+  const a = phActor(p, 'you', { x: 220, y: Y, s: 2.6, anim: 'push' }), [hx0, hy0] = a.hand('F');
+  const tab = table(p, hy0 + 8, 330, 1560, Y), nb = notebook(p), sl = slider(hx0 + 8 + 150, 650, 260, tp + .3);
+  const fr = forceArrow(p, { w: 14, size: 32 }), vA = forceArrow(p, { color: VEL, w: 12, size: 30 });
+  clockRun(t => {
+    const x = sl.x(t), v = sl.v(t), pushing = t > tp - .3 && t < tp + .3;
+    put(a, { x: 220 + (pushing ? 60 * ramp(t, tp - .3, tp + .3) : t > tp ? 60 : 0) }); a.show(t < tp + .5 ? 'push' : 'stand', 0);
+    put(nb, { x, y: tab });
+    fr.set(x - 20, tab - 8, v > 0 && t > tp + .3 ? 120 : 0, 180, 'friction', 'below'); vA.set(x + 160, tab - 80, v * .25, 0, '');
+  }, D);
+  opener(p, 1180, 400, 'Part 2', 'Friction');
+  thought(p, [100, 40, 960, 200], 270, ['If nothing pushes back, why does', 'a sliding notebook stop?'], m('q'));
+}, { lead: false }],
+['friction', 'Friction', (m, D) => {
+  const p = panel(0), Y = Y1, ts = m('slide'), tf = m('fric'), tz = m('zoom'), tp = ts + .3;
+  // The same table: at "slide" you push the notebook; it slows down and stops. From "zoom", a magnified replay of
+  // the contact: the bumps of the two surfaces catch on each other while the cover slides, slows and stops.
+  const a = phActor(p, 'you', { x: 220, y: Y, s: 2.6, anim: 'push' }), [hx0, hy0] = a.hand('F');
+  const tab = table(p, hy0 + 8, 330, 1560, Y), nb = notebook(p), sl = slider(hx0 + 8 + 150, 650, 260, tp + .3);
+  const fr = forceArrow(p, { w: 14, size: 32 }), vA = forceArrow(p, { color: VEL, w: 12, size: 30 });
+  const law = G(p, { o: 0 }); phLabel(law, 'A moving object keeps moving…', { x: 800, y: 130, size: 50 }); phLabel(law, '…unless a net force acts on it.', { x: 800, y: 200, size: 50 });
+  show(law, .3); hide(law, tf - .2, .3);
+  const def = G(p, { o: 0 }); phLabel(def, 'Friction', { x: 420, y: 130, size: 72, fill: FORCE });
+  phLabel(def, 'opposes motion between touching surfaces,', { x: 420, y: 190, size: 32, weight: 600 }); phLabel(def, 'always against the direction of motion', { x: 420, y: 232, size: 32, weight: 600 });
+  show(def, tf + .2);
+  clockRun(t => {
+    const x = sl.x(t), v = sl.v(t), pushing = t > ts && t < tp + .3;
+    put(a, { x: 220 + (pushing ? 60 * ramp(t, ts, tp + .3) : t > tp ? 60 : 0) }); a.show(t > ts - .6 && t < tp + .5 ? 'push' : 'stand', 0);
+    put(nb, { x, y: tab });
+    fr.set(x - 20, tab - 8, v > 0 && t > tp + .3 ? 120 : 0, 180, t > tf ? 'friction' : '', 'below'); vA.set(x + 160, tab - 80, v * .25, 0, '');
+  }, D);
+  // up close: a boxed camera on two bumpy surfaces (the cover above, the table below)
+  const box = [880, 60, 640, 360], cam = camera(p, D, { box, x: 800, y: 450, z: 1 }), w = cam.world;
+  put(cam.el, { o: 0 }); show(cam.el, tz, .5);
+  const bumps = (seed, y0, dir) => { let d = `M300 ${y0 + 400 * dir}`; for (let x = 300; x <= 1600; x += 40) d += `L${x} ${y0 - dir * (14 + 46 * phHash(x, seed))}`; return d + `L1600 ${y0 + 400 * dir}Z`; };
+  path(w, bumps(3, 480, 1), { fill: '#a87a4f', ...phLine(3) });
+  const top = G(w); path(top, bumps(8, 420, -1), { fill: '#c0504d', ...phLine(3) });
+  const rl = phLabel(p, 'up close (replay)', { x: 1200, y: 400, size: 28, fill: COL.chalk, weight: 600, o: 0 }); show(rl, tz + .3);
+  const lens = G(p, { o: 0 }); show(lens, tz); mk('circle', { cx: sl.x(D) - 120, cy: tab, r: 26, fill: 'none', stroke: COL.chalk, 'stroke-width': 3, 'stroke-dasharray': '6 5' }, lens);
+  path(lens, `M${sl.x(D) - 120} ${tab - 26}L${box[0] + 40} ${box[1] + box[3]}`, { stroke: COL.chalk, 'stroke-width': 2, 'stroke-dasharray': '6 6' });
+  const cap = phLabel(p, 'the bumps catch on each other', { x: 1200, y: 460, size: 34, o: 0 }); show(cap, tz + 1.4);
+  const rp = slider(0, 160, 64, tz + .4);
+  const rf = forceArrow(cam.world, { w: 14, size: 30 });
+  clockRun(t => { const dx = rp.x(t), lift = 8 * Math.abs(Math.sin(dx / 12.7)); put(top, { x: dx, y: -lift }); rf.set(1000, 330, rp.v(t) > 0 ? 120 : 0, 180, 'friction'); }, D);
+}, { lead: false }],
+['rough', 'Rough and smooth', (m, D) => {
+  const p = panel(0), tg = m('go'), tk = m('knee'), t0 = m('sand') - 1.2, V0 = 520;
+  // Three lanes, the same shove (same starting speed) at t0. Friction (deceleration) is set by the surface:
+  // stopping distances 200, 620 and 1150 px. The friction arrow is drawn while each block slides.
+  const lanes = [['sandpaper', 300, 200, '#b48a55', 'stops quickly', tg + .9], ['paper', 530, 620, '#ece8dc', 'slides farther', tg + 2.3], ['greased', 760, 1150, '#6f8a96', 'glides the farthest', tg + 3.6]].map(([name, y, d, col, verdict, tl]) => {
+    phBlock(p, 0, y, 1600, 34, col, { top: 0, ol: 0 });
+    if (name === 'sandpaper') { let s = ''; for (let i = 0; i < 260; i++) s += `M${Math.round(1600 * phHash(i, 31))} ${y + 4 + Math.round(26 * phHash(i, 32))}h5v5h-5Z`; path(p, s, { fill: '#6e5131' }); }
+    if (name === 'greased') for (let x = 60; x < 1600; x += 170) mk('rect', { x, y: y + 6, width: 60, height: 5, fill: '#e3f1f6', opacity: .7 }, p);
+    const lab = phLabel(p, name, { x: 40, y: y + 80, size: 34, anchor: 'start', o: 0 }); show(lab, tl);
+    const sl = slider(220, V0, V0 * V0 / (2 * d), t0), c = crate(p, { w: 140, h: 110 }), f = forceArrow(p, { w: 14, size: 30 }), sh = forceArrow(p, { w: 14, size: 30 });
+    const vd = phLabel(p, verdict, { size: 34, fill: COL.int, o: 0 }); show(vd, t0 + V0 / sl.a + .2);
+    return { y, sl, c, f, sh, vd };
+  });
+  txt(p, 'the same push', 220, 200, t0 - .2, { size: 30, weight: 600 });
+  clockRun(t => lanes.forEach(({ y, sl, c, f, sh, vd }) => {
+    const x = sl.x(t), v = sl.v(t); put(c, { x, y });
+    f.set(x - 70, y - 14, v > 0 ? 20 + sl.a * .16 : 0, 180, '');
+    sh.set(x - 230, y - 55, t > t0 - .4 && t < t0 ? 150 : 0, 0, '');
+    put(vd, { x, y: y - 140 });
+  }), D);
+  const knee = G(p, { o: 0 }); show(knee, tk);
+  phBlock(knee, 960, 92, 110, 40, '#ffe0bb', { top: 0, ol: 2 }); phBlock(knee, 1062, 110, 40, 110, '#ffe0bb', { top: 0, ol: 2 });   // a bent leg: thigh, shin
+  mk('circle', { cx: 1078, cy: 112, r: 18, fill: '#6fb7e0', stroke: PH.out, 'stroke-width': 2 }, knee);
+  phLabel(knee, 'fluid in your knee joints', { x: 1150, y: 130, size: 32, anchor: 'start', fill: '#6fb7e0' }); phLabel(knee, 'reduces friction', { x: 1150, y: 172, size: 32, anchor: 'start', fill: '#6fb7e0' });
+}, { lead: false }],
+['air', 'Air resistance', (m, D) => {
+  const p = panel(0), Y = 860, td = m('drop'), tfe = m('feather'), ta = m('area'), tr = td + .5;
+  // You on a roof drop a ball and a feather at tr. The ball falls fast (gravity); the feather reaches its slow
+  // terminal speed at once, so air resistance (up) matches its small weight (down), and it sways as it falls.
+  phBlock(p, 0, Y, 1600, 40, PH.grass, { top: 8, ol: 0 });
+  const bd = phSprite(p, 'building', { x: 420, y: Y + 2, s: 1.6 }), roof = Y + 2 - 31 * PX * 1.6 + PX * 1.6;
+  const a = phActor(p, 'you', { x: 480, y: roof, s: 2, anim: 'catch' }), [hx, hy] = a.hand('F');
+  const ball = ballEl(p, 22), fe = phSprite(p, 'feather', { s: 2 });
+  const bg = forceArrow(p, { w: 12, size: 30 }), fg = forceArrow(p, { w: 10, size: 28 }), fa = forceArrow(p, { w: 10, size: 28 });
+  const bx = hx + 26, fx0 = hx + 70, tb = tr + Math.sqrt(2 * (Y - 22 - hy) / G_PX), VF = 52, tl = tr + (Y - hy) / VF;
+  const def = G(p, { o: 0 }); phLabel(def, 'air resistance', { x: 1100, y: 200, size: 66 }); phLabel(def, 'friction with the air', { x: 1100, y: 260, size: 36, weight: 600 }); show(def, 2);
+  const ar = G(p, { o: 0 }); phLabel(ar, 'more surface area →', { x: 1050, y: 600, size: 40 }); phLabel(ar, 'more air resistance', { x: 1050, y: 650, size: 40 }); show(ar, ta + .3);
+  clockRun(t => {
+    a.show(t < tr ? 'catch' : 'stand', 0);
+    const yb = t < tr ? hy + 4 : t < tb ? hy + 4 + G_PX * (t - tr) ** 2 / 2 : Y - 22;
+    put(ball, { x: bx, y: yb }); bg.set(bx - 50, yb - 10, t > tr && t < tb ? 100 : 0, 90, 'gravity', 'left');
+    const u = Math.max(0, Math.min(t, tl) - tr), yf = hy - 8 + VF * u, sway = 60 * Math.sin(u * 2.2), tilt = 18 * Math.cos(u * 2.2);
+    put(fe, { x: fx0 + sway, y: yf, r: t > tr && t < tl ? tilt : 0 });
+    const falling = t > tr && t < tl, fxx = fx0 + sway;
+    fg.set(fxx + 30, yf + 6, falling ? 60 : 0, 90, ''); fa.set(fxx - 30, yf - 20, falling ? 60 : 0, -90, t > tfe ? 'air resistance' : '', 'right');
+  }, D);
+  txt(p, 'the ball falls fast', bx + 340, Y - 40, tr + 1.4, { size: 32, weight: 600, anchor: 'start' });   // past the feather's swaying air-resistance label
+}, { lead: false }],
+['kinds', 'Static, sliding, rolling', (m, D) => {
+  const p = panel(0), Y = Y1, S3 = 3, ts = m('static'), tfr = m('free'), tr = m('roll'), CW = 300, CH = 260;
+  // One push in three stages. Static: your push grows and static friction matches it (no motion). At "free" it gives
+  // way: sliding friction is smaller, the box speeds up for 1 s, then you push just as hard as friction (steady speed).
+  // At "roll": the same box on a wheeled dolly; rolling friction is tiny, and so is the push that keeps it rolling.
+  const U = 0.9;                                           // px per arrow unit
+  const push = t => t < ts ? 0 : t < tfr ? 60 + 160 * ramp(t, ts, tfr) : t < tfr + 1 ? 220 : 150;
+  const dX = t => { const u = Math.max(0, t - tfr); return u < 1 ? 60 * u * u : 60 + 120 * (u - 1); };
+  const cam = camera(p, D), w = cam.world; cam.cut({ x: t => 800 + dX(t) }, 0);
+  ground(w, Y, -400, 4000); marks(w, Y, -400, 4000);
+  const a = phActor(w, 'you', { y: Y, s: S3, anim: 'push' }), cr = crate(w, { w: CW, h: CH });
+  const pf = forceArrow(w, { w: 16, size: 34 }), ff = forceArrow(w, { w: 16, size: 34 });
+  const nm = phLabel(w, 'no motion', { x: 800, y: Y + 110, size: 38, fill: COL.dim, o: 0 }); show(nm, ts + 1.2); hide(nm, tfr, .2);
+  const umph = phLabel(w, 'UMPH!', { size: 60, fill: COL.int, o: 0 }); tw(umph, { o: 1 }, tfr, .15); hide(umph, tfr + 1.2, .4);
+  a.show('push', 0); put(a, { x: 0 }); const off = 800 - CW / 2 - a.hand('F')[0] + 6;
+  clockRun(t => {
+    const d = dX(t), strain = t > ts && t < tfr ? Math.sin(t * 30) * 2 : 0;
+    put(a, { x: off + d + strain }); if (d > 0) a.stride('push', d / S3); else a.show('push', 0);
+    const [hx, hy] = a.hand('F'), cx = 800 + d; put(cr, { x: cx, y: Y });
+    const P = push(t), Fr = t < tfr ? P : 150;
+    pf.set(hx - 4, hy - 30, t > ts ? P * U : 0, 0, 'push');
+    ff.set(cx + 40, Y - 24, t > ts ? Fr * U : 0, 180, t < tfr ? 'static friction' : 'sliding friction', 'below');
+    put(umph, { x: cx, y: Y - CH - 50 });
+  }, D);
+  tw(cam.el, { o: 0 }, tr - .1, .4);
+  // the dolly
+  const roll = camera(p, D); put(roll.el, { o: 0 }); show(roll.el, tr, .4);
+  const R2 = t => 800 + 160 * Math.max(0, t - tr); roll.cut({ x: t => R2(t) }, 0);
+  ground(roll.world, Y, -400, 6000); marks(roll.world, Y, -400, 6000);
+  const b = phActor(roll.world, 'you', { y: Y, s: S3, anim: 'push' }), dolly = G(roll.world);
+  phBlock(dolly, -CW / 2 - 10, -70, CW + 20, 24, '#6a5a4a', { top: 4, ol: 2 });
+  const wh = [-100, 100].map(x => { const g = G(dolly, { x, y: -24 }); mk('circle', { r: 24, fill: '#59646a', ...phLine(2.5) }, g); path(g, 'M-16 0H16M0 -16V16', { stroke: '#c3ccce', 'stroke-width': 4 }); return g; });
+  crate(dolly, { y: -70, w: CW, h: CH });
+  const rp = forceArrow(roll.world, { w: 16, size: 34 }), rf = forceArrow(roll.world, { w: 16, size: 34 });
+  b.show('push', 0); put(b, { x: 0 }); const off2 = 800 - CW / 2 - 10 - b.hand('F')[0] + 6;
+  clockRun(t => {
+    const x = R2(t), d = x - 800; put(b, { x: off2 + d }); b.stride('push', d / S3); put(dolly, { x, y: Y }); wh.forEach(g => put(g, { r: d / 24 * 180 / Math.PI }));
+    const [hx, hy] = b.hand('F'); rp.set(hx - 4, hy - 60, 30 * U * 1.6, 0, 'push'); rf.set(x + 40, Y - 30, 30 * U * 1.6, 180, 'rolling friction', 'below');
+  }, D);
+  // the three frictions compared, kept on screen
+  [['static friction', 220, ts + 1, 70], ['sliding friction', 150, tfr + .6, 120], ['rolling friction', 30, tr + .8, 170]].forEach(([s, L, t0, y]) => {
+    const g = G(p, { o: 0 }); phLabel(g, s, { x: 330, y: y + 10, size: 30, anchor: 'end', weight: 600 }); mk('rect', { x: 350, y: y - 12, width: L * 1.4, height: 24, rx: 4, fill: FORCE }, g); show(g, t0);
+  });
+}, { lead: false }],
+['terminal', 'Terminal velocity', (m, D) => {
+  const p = panel(0), tsp = m('speed'), te = m('equal'), tc = m('chute'), t0 = .8, g = 9.8, VT = 55, VP = 5, DX = 560, DY = 520;
+  // Real time, g = 9.8 m/s². Air resistance = weight × (v / 55)² until the chute opens; while it opens (1.5 s) it
+  // blends to weight × (v / 5)², capped at 4 × weight (a reefed canopy opens gently). Arrows: weight 90 px.
+  const k = t => ramp(t, tc + .3, tc + 1.8), drag = (v, t) => (1 - k(t)) * (v / VT) ** 2 + k(t) * Math.min(4, (v / VP) ** 2);
+  const st = integrate(([v, y], t, dt) => { if (t < t0) return [0, 0]; const a = g * (1 - drag(v, t)); return [v + a * dt, y + v * dt]; }, [0, 0], 0, D + .1, 1 / 120);
+  mk('rect', { x: 0, y: 0, width: 1600, height: 900, fill: '#4f7f9c' }, p);
+  const clouds = G(p), cl = Array.from({ length: 7 }, (_, i) => { const c = G(clouds); [[0, 0, 160, 30], [30, -24, 90, 26], [-40, 14, 90, 22]].forEach(([x, y, w2, h]) => mk('rect', { x, y, width: w2, height: h, fill: '#e9f1f4', opacity: .85 }, c)); return [c, 1600 * phHash(i, 41), 1300 * phHash(i, 42)]; });
+  const can = G(p, { x: DX, y: DY - 330 }), canopy = G(can);
+  path(canopy, 'M-200 0Q-200 -150 0 -150Q200 -150 200 0Z', { fill: '#f08a3c', ...phLine(3) });
+  path(canopy, 'M-70 -146Q-80 -60 -70 0H70Q80 -60 70 -146Q0 -154 -70 -146Z', { fill: '#f4f1e8' });
+  const lines = path(p, '', { stroke: '#dfe6e8', 'stroke-width': 3 });
+  const a = phActor(p, 'you', { x: DX, y: DY, s: 2.4, anim: 'jump' });
+  const gw = forceArrow(p, { w: 16, size: 32 }), ga = forceArrow(p, { w: 16, size: 32 });
+  const spd = phLabel(p, '', { x: 1230, y: 360, size: 52, fill: VEL });
+  // the speed graph
+  const GX = 980, GY0 = 800, GW = 520, GH = 330, gx = t => GX + GW * t / D, gy = v => GY0 - GH * v / 60;
+  path(p, `M${GX} ${GY0 - GH - 10}V${GY0}H${GX + GW + 10}`, { stroke: COL.chalk, 'stroke-width': 4 });
+  phLabel(p, 'speed', { x: GX - 14, y: GY0 - GH + 6, size: 26, anchor: 'end', weight: 600 }); phLabel(p, 'time', { x: GX + GW, y: GY0 + 36, size: 26, weight: 600 });
+  const curve = path(p, '', { stroke: VEL, 'stroke-width': 5, fill: 'none' });
+  const l55 = G(p, { o: 0 }); path(l55, `M${GX} ${gy(VT)}H${GX + GW}`, { stroke: COL.chalk, 'stroke-width': 2, 'stroke-dasharray': '8 8' }); phLabel(l55, 'terminal velocity ≈ 55 m/s', { x: GX + 10, y: gy(VT) - 14, size: 26, anchor: 'start' }); show(l55, te + 1.5);
+  const l5 = G(p, { o: 0 }); path(l5, `M${GX} ${gy(VP)}H${GX + GW}`, { stroke: COL.chalk, 'stroke-width': 2, 'stroke-dasharray': '8 8' }); phLabel(l5, 'with the parachute ≈ 5 m/s', { x: GX + GW, y: gy(VP) - 14, size: 26, anchor: 'end' }); show(l5, tc + 5);
+  const bal = G(p, { o: 0 }); phLabel(bal, 'balanced: no net force', { x: DX, y: 800, size: 40 }); phLabel(bal, 'so a steady speed', { x: DX, y: 846, size: 34, weight: 600 }); show(bal, te + .3); hide(bal, tc, .3);
+  const bal2 = G(p, { o: 0 }); phLabel(bal2, 'balanced again, much slower', { x: DX, y: 820, size: 40 }); show(bal2, tc + 5.5);
+  let pts = '';
+  clockRun(t => {
+    const [v, y] = st(t), D2 = drag(v, t), open = k(t);
+    cl.forEach(([c, x, y0]) => put(c, { x, y: ((y0 - y * 14) % 1300 + 1300) % 1300 - 200 }));
+    put(can, { o: t > tc + .3 ? 1 : 0 }); put(canopy, { s: .1 + .9 * open });
+    const [hx, hy] = a.hand('F'), [bx, by] = a.hand('B');
+    lines.setAttribute('d', t > tc + .3 ? `M${DX - 190 * (.1 + .9 * open)} ${DY - 330}L${bx} ${by}M${DX + 190 * (.1 + .9 * open)} ${DY - 330}L${hx} ${hy}` : '');
+    put(a, { r: t < t0 ? 0 : 0 });
+    gw.set(DX - 130, DY - 190, t > t0 ? 90 : 0, 90, 'gravity', 'left'); ga.set(DX + 150, DY - 190, t > t0 ? 90 * D2 : 0, -90, t > t0 + .5 ? 'air resistance' : '', 'right');
+    phText(spd, `speed ${Math.round(v)} m/s`);
+    const n = Math.floor(t * 10);
+    if (curve._n !== n) { curve._n = n; let d = ''; for (let i = 0; i <= n; i++) { const u = i / 10; d += `${i ? 'L' : 'M'}${gx(u).toFixed(1)} ${gy(st(u)[0]).toFixed(1)}`; } curve.setAttribute('d', d); }
+  }, D);
+  const two = G(p, { o: 0 }); phLabel(two, 'two forces on a falling object', { x: 1230, y: 150, size: 40 }); show(two, 1); hide(two, tsp - .3, .3);
+  const gr = phLabel(p, 'faster → more air resistance', { x: 1230, y: 150, size: 40, o: 0 }); show(gr, tsp + .3); hide(gr, tc - .3, .3);
+  const big = G(p, { o: 0 }); phLabel(big, 'big surface area →', { x: 1230, y: 130, size: 40 }); phLabel(big, 'much more air resistance', { x: 1230, y: 180, size: 40 }); show(big, tc + 1);
+}, { lead: false }],
+['q2', 'Quick check', (m, D) => {
+  const p = panel(0), DX = 800, DY = 470;
+  // A skydiver at terminal velocity: the two arrows equal, the clouds streaming past at a steady rate.
+  mk('rect', { x: 0, y: 0, width: 1600, height: 900, fill: '#4f7f9c' }, p);
+  const cl = Array.from({ length: 6 }, (_, i) => { const c = G(p); [[0, 0, 160, 30], [30, -24, 90, 26]].forEach(([x, y, w2, h]) => mk('rect', { x, y, width: w2, height: h, fill: '#e9f1f4', opacity: .85 }, c)); return [c, 1600 * phHash(i, 51), 900 * phHash(i, 52)]; });
+  const a = phActor(p, 'you', { x: DX, y: DY, s: 2, anim: 'jump' });
+  forceArrow(p, { w: 14, size: 30 }).set(DX - 110, DY - 150, 90, 90, 'gravity', 'left'); forceArrow(p, { w: 14, size: 30 }).set(DX + 130, DY - 150, 90, -90, 'air resistance', 'right');
+  clockRun(t => cl.forEach(([c, x, y0]) => put(c, { x, y: ((y0 - t * 600) % 900 + 900) % 900 - 60 })), D);
+}, { ask: done => quiz(Q_CARD, [
+  { id: 'c-rough', prompt: ['A hockey puck slides much farther on ice than on a carpet. Why?'],
+    build: choice([['the carpet is rougher, so there is more friction'], ['the puck has more mass on the carpet'], ['there is no gravity on ice']], 0,
+      'Rougher surfaces have more friction, so the puck slows down sooner.',
+      [null, 'Its mass doesn’t change; the surface does.', 'Gravity acts on the puck everywhere.']) },
+  { id: 'c-static', prompt: ['To get a heavy box moving, you push harder than you need to keep it sliding. Which friction is ', h('b', '', 'stronger'), '?'],
+    build: choice([['static friction'], ['sliding friction'], ['they are always equal']], 0,
+      'Static friction holds a still box more strongly than sliding friction resists a moving one.',
+      [null, 'Once it slides, the friction is weaker: that’s why it gets easier.', 'Starting is harder than keeping it going, so they differ.']) },
+  { id: 'c-term', prompt: ['A skydiver falls at ', h('b', '', 'terminal velocity'), '. What is the net force on her?'],
+    build: choice([['zero: air resistance equals gravity'], ['downward, so she keeps speeding up'], ['upward, so she slows down']], 0,
+      'Balanced forces: no net force, so her speed stays the same.',
+      [null, 'If she were still speeding up, she would not be at terminal velocity yet.', 'That happens only just after a parachute opens.']) },
+], done) }],
+['wrap2', 'Summary · Friction', (m, D) => {
+  summary(panel(0), m, [
+    [['Friction opposes motion between touching surfaces;', 'rougher surfaces have more friction.'], g => { const n = notebook(g); put(n, { x: 260, y: 30 }); phBlock(g, 120, 30, 300, 14, '#a87a4f', { top: 0, ol: 0 }); forceArrow(g, { w: 8 }).set(240, 20, 70, 180, ''); }],
+    [['Static friction is stronger than sliding friction;', 'rolling friction is the weakest.'], g => { [90, 62, 14].forEach((L, i) => mk('rect', { x: 150, y: -50 + i * 34, width: L * 2.4, height: 22, rx: 4, fill: FORCE }, g)); }],
+    [['When air resistance equals gravity, a falling', 'object reaches terminal velocity.'], g => { phActor(g, 'you', { x: 270, y: 60, s: .9, anim: 'jump' }); forceArrow(g, { w: 8 }).set(200, -40, 60, 90, ''); forceArrow(g, { w: 8 }).set(340, -40, 60, -90, ''); }],
+  ], 'Next: magnetic and electric forces.');
+}],
+/* ---------- part 3: magnetic and electric forces ---------- */
+['part3', 'Part 3 · Magnetic and electric forces', (m, D) => {
+  const p = panel(0), Y = 640, tq = m('q'), d0 = 640, W = 260;
+  // Two bar magnets on a table, north facing south: they pull each other together (equal pulls, growing as they
+  // close in) and click at the middle.
+  table(p, Y, 120, 1480, 900);
+  const run = K => integrate(([d, v], t, dt) => d <= W ? [W, 0] : [d + v * dt, v - (t < .4 ? 0 : K / (d * d)) * dt], [d0, 0], 0, D);
+  let lo = 0, hi = 1e9; for (let i = 0; i < 40; i++) { const k = (lo + hi) / 2; const at = run(k); if (at(2.2)[0] > W + 1) lo = k; else hi = k; }
+  const dAt = run(hi), A = magnet(p, 'SN'), B = magnet(p, 'SN'), fa = forceArrow(p, { w: 14, size: 30 }), fb = forceArrow(p, { w: 14, size: 30 });
+  const click = phLabel(p, 'click!', { x: 800, y: Y - 130, size: 44, fill: COL.int, o: 0 });
+  clockRun(t => {
+    const d = dAt(t)[0], on = d > W + 1 && t > .4, L = Math.min(150, 40 * (d0 / d) ** 2);
+    put(A, { x: 800 - d / 2, y: Y - 40 }); put(B, { x: 800 + d / 2, y: Y - 40 });
+    fa.set(800 - d / 2, Y - 100, on ? L : 0, 0, ''); fb.set(800 + d / 2, Y - 130, on ? L : 0, 180, '');
+    put(click, { o: d <= W + 1 && t < 3.4 ? 1 : 0 });
+  }, D);
+  opener(p, 800, 250, 'Part 3', 'Magnetic and Electric Forces');
+  thought(p, [380, 300, 1220, 460], 800, ['How can things push or pull', 'without even touching?'], tq);
+}, { lead: false }],
+['magnets', 'Magnets', (m, D) => {
+  const p = panel(0), Y = Y1, tc = m('clips'), tp = m('poles'), ta = m('attract'), tr = m('repel'), S3 = 2.6;
+  // Scene 1: you hold a magnet over paper clips; at "clips" they jump up to it, the nearest first. Its ends are named
+  // at "poles". Scene 2 (from "attract"): you walk a magnet toward one lying on the floor: south faces north and
+  // the lying one jumps to it; then (from "repel") north faces north and the lying one is pushed ahead of yours.
+  const s1 = G(p); ground(s1, Y);
+  const a = phActor(s1, 'you', { x: 380, y: Y, s: S3, anim: 'catch' }), [hx, hy] = a.hand('F'), mg = magnet(s1, 'SN'); put(mg, { x: hx + 100, y: hy });
+  const clips = [-110, -60, -10, 40, 90, 140].map((dx, i) => { const c = clip(s1); const x = hx + 100 + dx, y0 = Y - 4, y1 = hy + 46 + 14 * (i % 2), t0 = tc + .2 + .18 * Math.abs(i - 2.5); return { c, x, y0, y1, t0 }; });
+  const s1t = G(s1, { o: 0 }); phLabel(s1t, 'A magnet attracts iron, steel,', { x: 1100, y: 170, size: 46 }); phLabel(s1t, 'and other magnets', { x: 1100, y: 230, size: 46 }); show(s1t, .3);
+  const poles = G(s1, { o: 0 }); phLabel(poles, 'south pole', { x: hx + 35, y: hy - 60, size: 36, fill: POLE_S, anchor: 'end' }); phLabel(poles, 'north pole', { x: hx + 165, y: hy - 60, size: 36, fill: POLE_N, anchor: 'start' }); show(poles, tp + .2);
+  clockRun(t => clips.forEach(({ c, x, y0, y1, t0 }) => { const u = Math.max(0, t - t0), y = Math.max(y1, y0 - 1600 * u * u); put(c, { x, y, r: u > 0 ? 90 : 0 }); }), D);
+  hide(s1, ta - .4, .4);
+  // scene 2
+  const s2 = G(p, { o: 0 }); show(s2, ta - .2, .4); ground(s2, Y);
+  const b = phActor(s2, 'you', { y: Y, s: S3, anim: 'push' }); b.show('push', 0); put(b, { x: 0 });
+  const [hx0, hy0] = b.hand('F'), MY = hy0 + 4, X0 = 120;            // magnets ride at hand height; the lying one on a table
+  table(s2, MY + 35, 820, 1560, Y);
+  const A = magnet(s2, 'NS'), A2 = magnet(s2, 'SN'), B = magnet(s2, 'NS');
+  const fA = forceArrow(s2, { w: 14, size: 30 }), fB = forceArrow(s2, { w: 14, size: 30 });
+  const lab = phLabel(s2, '', { x: 800, y: 200, size: 56 });
+  const B0 = 1150, GAP = 150, tipAt = x => x + hx0 + 260;               // the right end of the magnet in your hands
+  const xStop = B0 - 130 - GAP - hx0 - 260, t1 = ta + .3, t2 = t1 + (xStop - X0) / 140, tR = tr - .3;
+  const walk = t => t < tR ? X0 + Math.min(xStop - X0, 140 * Math.max(0, t - t1)) : X0 + Math.min(520, 120 * Math.max(0, t - tR - .3));
+  clockRun(t => {
+    const rep = t > tR, x = walk(t), d = x - X0; put(b, { x }); if ((rep ? t > tR + .3 : t > t1) && (rep ? d < 520 : x < xStop)) b.stride('push', d / S3); else b.show('push', 0);
+    const tip = tipAt(x); put(A, { x: tip - 130, y: MY, o: rep ? 0 : 1 }); put(A2, { x: tip - 130, y: MY, o: rep ? 1 : 0 });
+    let bx;
+    if (!rep) { const k = ramp(t, t2, t2 + .35); bx = B0 - GAP * k * k; }            // it jumps the last gap and clicks on
+    else bx = Math.max(B0, tip + 130 + GAP);                                           // it is pushed ahead, never touched
+    put(B, { x: bx, y: MY });
+    const gap = bx - 130 - tip, L = gap > 1 && gap < 260 ? 70 + 260 * (1 - gap / 260) * .4 : 0;
+    fA.set(tip - 60, MY - 64, L, rep ? 180 : 0, ''); fB.set(bx - 70, MY - 104, L, rep ? 0 : 180, '');   // one row each, so they never overlap
+    phText(lab, t < ta ? '' : rep ? 'Like poles repel' : 'Opposite poles attract');
+  }, D);
+}, { lead: false }],
+['electric', 'Electric forces', (m, D) => {
+  const p = panel(0), tr = m('rub'), tp = m('repel'), ta = m('attract'), tc = m('close'), Y = 860, L = 330, PX0 = 690, PX1 = 830, PY = 70, RB = 62;
+  // Two balloons on strings. You rub your head on both (they gain −, your hair +), step out: they swing apart. Then
+  // you come back beside the right one: your hair rises toward it and it leans toward you; closer, both get stronger.
+  const q = t => ramp(t, tr + .3, tr + 3);                 // charge on each balloon, 0..1
+  const you = t => t < tr ? 1250 - 500 * ramp(t, 1, tr - .2) : t < tp - .3 ? 750 + 70 * Math.sin((t - tr) * 7.8) : t < ta ? 750 + 500 * ramp(t, tp - .3, tp + 1.2) : t < tc ? 1250 - 160 * ramp(t, ta, ta + 1.5) : 1090 - 70 * ramp(t, tc + .5, tc + 2);
+  const under = t => t > tr - .2 && t < tp + .2;
+  phBlock(p, 560, PY - 16, 400, 18, '#7d6a5a', { top: 4, ol: 0 });
+  const sA = path(p, '', { stroke: COL.chalk, 'stroke-width': 3 }), sB = path(p, '', { stroke: COL.chalk, 'stroke-width': 3 });
+  const balloon = col => { const g = G(p); mk('ellipse', { rx: RB - 6, ry: RB, fill: col, ...phLine(2.5) }, g); mk('ellipse', { cx: -18, cy: -22, rx: 10, ry: 16, fill: '#fff', opacity: .45 }, g); path(g, `M-8 ${RB}h16l-8 12Z`, { fill: col }); g._m = G(g); return g; };
+  const bA = balloon('#e8a0c8'), bB = balloon('#f3c95c');
+  const SPOTS = [[-20, -18], [20, -18], [0, 14], [-24, 40], [24, 40]];
+  const marks = (g, n, sign, col) => { g.replaceChildren(); for (let i = 0; i < n; i++) phLabel(g, sign, { x: SPOTS[i][0], y: SPOTS[i][1] + 10, size: 34, fill: col }); };
+  const a = phActor(p, 'you', { y: Y, s: 2.4, anim: 'stand' }), hair = G(p), strands = Array.from({ length: 5 }, () => path(hair, '', { stroke: '#6a7682', 'stroke-width': 8, 'stroke-linecap': 'square' })), plus = G(p);
+  const fA = forceArrow(p, { w: 12, size: 28 }), fB = forceArrow(p, { w: 12, size: 28 }), fH = forceArrow(p, { w: 12, size: 28 });
+  const say = (s, t0, t1, y = 250, x = 330) => { const e = phLabel(p, s, { x, y, size: 44, o: 0 }); show(e, t0); if (t1) hide(e, t1, .3); return e; };
+  const c1 = G(p, { o: 0 }); phLabel(c1, 'Charges can be', { x: 300, y: 300, size: 40 }); phLabel(c1, '+ positive', { x: 300, y: 360, size: 44, fill: COL.irr }); phLabel(c1, '− negative', { x: 300, y: 416, size: 44, fill: COL.nat }); show(c1, .3); hide(c1, tp - .3, .3);
+  say('Like charges repel', tp + .4, ta - .3); say('Opposite charges', ta + .4, tc - .3, 250); say('attract', ta + .6, tc - .3, 306);
+  const st = G(p, { o: 0 }); phLabel(st, 'more charge, or closer', { x: 330, y: 250, size: 44 }); phLabel(st, '→ a stronger force', { x: 330, y: 306, size: 44 }); show(st, tc + .3);
+  let nA = -1, nP = -1;
+  clockRun(t => {
+    const Q = q(t), x = you(t), headY = Y - 17 * PX * 2.4, hX = x + 4;
+    a.show(t > tr - .2 && t < tp ? 'stand' : 'walk', 0); put(a, { x });
+    const near = t > ta;                                    // your charged hair near the right balloon
+    const dH = Math.max(140, hX - (PX1 + 60));
+    const rep = under(t) ? 0 : Q;                            // held together while you are under them
+    const thA = -rep * .36, attr = near ? Q * 1.0 * (180 / dH) ** 2 : 0, thB = rep * .36 + Math.min(.32, attr * .2);
+    const pos = (px, th) => [px + (L + RB) * Math.sin(th), PY + (L + RB) * Math.cos(th)];
+    const [ax, ay] = pos(PX0, thA), [bx, by] = pos(PX1, thB);
+    const wob = under(t) ? 6 * Math.sin((t - tr) * 7.8 + 1) : 0;
+    put(bA, { x: ax + wob, y: ay, r: -thA * 57.3 }); put(bB, { x: bx + wob, y: by, r: -thB * 57.3 });
+    sA.setAttribute('d', `M${PX0} ${PY}L${ax + wob} ${ay - RB}`); sB.setAttribute('d', `M${PX1} ${PY}L${bx + wob} ${by - RB}`);
+    const n = Math.round(Q * 4); if (n !== nA) { nA = n; marks(bA._m, n, '−', COL.nat); marks(bB._m, n, '−', COL.nat); }
+    if (n !== nP) { nP = n; marks(plus, Math.min(n, 3), '+', COL.irr); }
+    // standing hair: strands lean toward the balloon, longer when the pull is stronger
+    const lift = near ? Math.min(1, attr) : 0, toward = Math.atan2(by - headY, bx - hX);
+    strands.forEach((e, i) => { const len = 20 + 90 * lift, an = (-Math.PI / 2) * (1 - lift) + toward * lift + (i - 2) * .12, sx = hX - 20 + i * 10;
+      e.setAttribute('d', lift > .02 ? `M${sx} ${headY + 8}l${(len * Math.cos(an)).toFixed(1)} ${(len * Math.sin(an)).toFixed(1)}` : ''); });
+    fA.set(ax - RB - 6, ay, !under(t) && rep > .5 ? 90 : 0, 180, ''); fB.set(bx + RB + 6, by, !under(t) && rep > .5 ? 90 : 0, 0, '');   // the balloons push each other apart
+    const toHead = Math.atan2(headY - by, hX - bx);
+    const sp = Math.min(1, lift / .1);   // on the hair; once the pull arrow appears, beside the hair, square to the pull, clear of the arrow
+    put(plus, { x: hX - 72 * sp * Math.sin(toHead), y: headY + 12 + sp * (72 * Math.cos(toHead) - 22), o: t > tr ? 1 : 0 });
+    fH.set(bx + (RB + 14) * Math.cos(toHead), by + (RB + 14) * Math.sin(toHead), near && lift > .1 ? 40 + 60 * lift : 0, toHead * 57.3, '');   // and your hair pulls the right one
+  }, D);
+}, { lead: false }],
+['electromagnet', 'Electromagnets', (m, D) => {
+  const p = panel(0), tw0 = m('wire'), tc = m('coil'), ton = m('on'), toff = m('off'), tf = m('flip'), WY = 330, BY = 720;
+  // A circuit: battery and switch on the bottom wire, the top wire over where the nail will go. Moving dashes are
+  // the current; when it flows, rings around the wire show its magnetic field. With the coil round the nail: on, the
+  // nail is a magnet (clips jump up, the compass swings); off, the clips drop; battery reversed, the poles swap.
+  const closed = t => (t > tw0 + .5 && t < tc) || (t > ton && t < toff) || t > tf + .8;
+  const dir = t => t > tf ? -1 : 1;
+  const flowAt = t => { let s = 0; for (const [a, b, k] of [[tw0 + .5, tc, 1], [ton, toff, 1], [tf + .8, D, -1]]) s += k * Math.max(0, Math.min(t, b) - a); return s * 90; };
+  // the top wire's middle (over the nail) is its own piece: it gives way to the coil
+  const circ = `M520 ${BY}H360V${WY}H640M1080 ${WY}H1300V${BY}H1000M920 ${BY}H780`, mid = `M640 ${WY}H1080`;
+  path(p, circ, { stroke: '#c98a3a', 'stroke-width': 10, fill: 'none', 'stroke-linejoin': 'round' });
+  const midW = G(p); path(midW, mid, { stroke: '#c98a3a', 'stroke-width': 10 }); hide(midW, tc + .3, .5);
+  const cur = path(p, circ, { stroke: COL.int, 'stroke-width': 6, fill: 'none', 'stroke-dasharray': '6 34' }), curM = path(midW, mid, { stroke: COL.int, 'stroke-width': 6, 'stroke-dasharray': '6 34' });
+  const bat = G(p, { x: 650, y: BY }), batIn = G(bat); phBlock(batIn, -130, -45, 260, 90, '#3a4541', { top: 0, ol: 2.5 }); phBlock(batIn, 70, -45, 60, 90, '#c0504d', { top: 0, ol: 0 }); mk('rect', { x: 130, y: -16, width: 14, height: 32, fill: '#9aa5a8' }, batIn);
+  phLabel(batIn, '+', { x: 100, y: 14, size: 40 }); phLabel(batIn, '−', { x: -100, y: 14, size: 40 }); const batL = phLabel(bat, 'battery', { y: 92, size: 30, fill: COL.dim, weight: 600 });
+  const lever = path(p, '', { stroke: '#c98a3a', 'stroke-width': 10, 'stroke-linecap': 'round' }); mk('circle', { cx: 920, cy: BY, r: 9, fill: COL.chalk }, p); mk('circle', { cx: 1000, cy: BY, r: 9, fill: COL.chalk }, p);
+  const swl = phLabel(p, '', { x: 960, y: BY + 70, size: 30, fill: COL.dim, weight: 600 });
+  const rings = G(p, { o: 0 }), ringEls = [560, 760, 960, 1160].map(x => mk('ellipse', { cx: x, cy: WY, rx: 22, ry: 62, fill: 'none', stroke: COL.irr, 'stroke-width': 4, 'stroke-dasharray': '10 8' }, rings));
+  const rl = phLabel(rings, 'magnetic field', { x: 760, y: WY - 90, size: 32, fill: COL.irr });
+  show(rings, tw0 + .8); hide(rings, tc + .2, .3);
+  // the nail and the coil
+  const nail = G(p, { o: 0 }); phBlock(nail, 600, WY + 34, 520, 30, '#9aa5a8', { top: 6, ol: 2.5 }); phBlock(nail, 584, WY + 18, 22, 62, '#9aa5a8', { top: 0, ol: 2.5 }); path(nail, `M1120 ${WY + 34}L1150 ${WY + 49}L1120 ${WY + 64}Z`, { fill: '#9aa5a8', ...phLine(2.5) });
+  tw(nail, { o: 1 }, tc, .5);
+  const coil = G(p); const loops = Array.from({ length: 12 }, (_, i) => { const x = 660 + i * 36, e = path(coil, `M${x} ${WY + 22}Q${x + 26} ${WY + 49} ${x + 18} ${WY + 76}`, { stroke: '#c98a3a', 'stroke-width': 9, fill: 'none' }, { o: 0 }); show(e, tc + .4 + i * .08, .2); return e; });
+  phBlock(p, 560, 600, 640, 20, '#7d6a5a', { top: 4, ol: 0 });                  // a shelf under the nail
+  const clips = [690, 760, 830, 900, 970, 1040].map((x, i) => ({ c: clip(p), x, d: .06 * i }));
+  const nS = phLabel(p, '', { x: 600, y: WY + 140, size: 52 }), nN = phLabel(p, '', { x: 1130, y: WY + 140, size: 52 });
+  const comp = G(p, { x: 1225, y: WY + 49 }); mk('circle', { r: 44, fill: '#f4f1e8', ...phLine(2.5) }, comp); const needle = G(comp); path(needle, 'M0 -34L9 0H-9Z', { fill: COL.bad }); path(needle, 'M0 34L9 0H-9Z', { fill: '#9aa5a8' });
+  phLabel(p, 'compass', { x: 1225, y: WY + 130, size: 26, fill: COL.dim, weight: 600 });
+  const say = (s, t0, t1, fill = COL.chalk) => { const e = phLabel(p, s, { x: 800, y: 110, size: 44, fill, o: 0 }); show(e, t0); if (t1) hide(e, t1, .3); };
+  say('A current has a magnetic field around it', tw0 + .6, tc - .2, COL.irr); say('Wire coiled around iron: an electromagnet', tc + .3, ton - .2);
+  say('Current on: the nail is a magnet', ton + .3, toff - .2); say('Current off: not a magnet', toff + .2, tf - .2); say('Reverse the current: the poles swap', tf + .3);
+  clockRun(t => {
+    const on = closed(t), mag = on && t > tc;
+    cur.setAttribute('stroke-dashoffset', (-flowAt(t)).toFixed(1)); put(cur, { o: on ? 1 : 0 }); curM.setAttribute('stroke-dashoffset', (-flowAt(t) - 280).toFixed(1)); put(curM, { o: on ? 1 : 0 });
+    lever.setAttribute('d', on ? `M920 ${BY}L1000 ${BY}` : `M920 ${BY}L983 ${BY - 50}`); phText(swl, on ? 'switch on' : 'switch off');
+    ringEls.forEach(e => e.setAttribute('stroke-dashoffset', (-flowAt(t) * .4).toFixed(1)));
+    const k = ramp(t, tf, tf + .6); put(batIn, { r: 180 * k }); put(batL, { o: Math.max(0, 3 * Math.abs(1 - 2 * k) - 2) });   // the label steps aside while the battery swings through it
+    const d = dir(t); phText(nS, mag ? (d > 0 ? 'S' : 'N') : ''); phText(nN, mag ? (d > 0 ? 'N' : 'S') : '');
+    nS.setAttribute('fill', d > 0 ? POLE_S : POLE_N); nN.setAttribute('fill', d > 0 ? POLE_N : POLE_S);
+    put(needle, { r: !mag ? 0 : d > 0 ? 90 : -90 });       // north end away from the north pole
+    const tOn = t < toff ? ton : tf + .8;
+    clips.forEach(({ c, x, d: dl }) => {
+      let y = 600;
+      if (mag) { const u = Math.max(0, t - tOn - dl); y = Math.max(WY + 74, 600 - 2400 * u * u); }
+      else if (t > toff && t < tf + .8) { const u = Math.max(0, t - toff); y = Math.min(600, WY + 74 + 2400 * u * u / 2); }
+      put(c, { x, y, r: y < 590 ? 90 : 0 });
+    });
+  }, D);
+}, { lead: false }],
+['q3', 'Quick check', (m, D) => {
+  const p = panel(0), Y = 470;
+  // Two magnets, north facing north: the right one is pushed away and slides, the pair of arrows pointing apart.
+  table(p, Y, 200, 1400, 900);
+  const A = magnet(p, 'SN'), B = magnet(p, 'NS'), fa = forceArrow(p, { w: 14, size: 30 }), fb = forceArrow(p, { w: 14, size: 30 });
+  put(A, { x: 560, y: Y - 40 });
+  put(B, { x: 1040, y: Y - 40 }); fa.set(560, Y - 110, 110, 180, 'repel'); fb.set(1040, Y - 110, 110, 0, 'repel');
+  clockRun(t => put(B, { x: 1040 + 3 * Math.sin(t * 20) }), D);   // north faces north: held apart, trembling
+}, { ask: done => quiz(Q_CARD, [
+  { id: 'c-poles', prompt: ['You push the ', h('b', '', 'north'), ' pole of one magnet toward the ', h('b', '', 'north'), ' pole of another. What happens?'],
+    build: choice([['they push each other away'], ['they pull together'], ['nothing happens']], 0,
+      'Like poles repel.', [null, 'Only opposite poles (north and south) attract.', 'Magnets push or pull each other even without touching.']) },
+  { id: 'c-charge', prompt: ['Two balloons both have a ', h('b', '', 'negative'), ' charge. What do they do?'],
+    build: choice([['push apart'], ['pull together']], 0,
+      'Like charges repel.', [null, 'Opposite charges attract; these are both negative.']) },
+  { id: 'c-emag', prompt: ['How can you make an ', h('b', '', 'electromagnet'), '?'],
+    build: choice([['wrap a wire carrying a current around an iron core'], ['rub an iron nail on your hair'], ['cool a magnet in water']], 0,
+      'A current in a coil around iron makes a magnet you can switch on and off.',
+      [null, 'Rubbing gives things an electric charge; it doesn’t make an electromagnet.', 'An electromagnet needs a current.']) },
+], done) }],
+['wrap3', 'Summary · Magnetic and electric forces', (m, D) => {
+  summary(panel(0), m, [
+    [['Opposite poles and charges attract;', 'like poles and charges repel.'], g => { const a = magnet(g, 'SN'), b = magnet(g, 'SN'); put(a, { x: 190, y: -10, s: .5 }); put(b, { x: 330, y: -10, s: .5 }); }],
+    [['Electric and magnetic forces are stronger with', 'more charge and less distance.'], g => { mk('ellipse', { cx: 210, cy: -10, rx: 34, ry: 40, fill: '#e8a0c8', ...phLine(2) }, g); mk('ellipse', { cx: 310, cy: -10, rx: 34, ry: 40, fill: '#f3c95c', ...phLine(2) }, g); }],
+    [['A current in a coil around iron makes', 'an electromagnet.'], g => { phBlock(g, 150, -20, 220, 20, '#9aa5a8', { top: 4, ol: 2 }); for (let i = 0; i < 6; i++) path(g, `M${180 + i * 30} -30Q${200 + i * 30} -10 ${192 + i * 30} 10`, { stroke: '#c98a3a', 'stroke-width': 6, fill: 'none' }); }],
+  ], 'Next: moving in circles, and floating.');
+}],
+/* ---------- part 4: circles and floating ---------- */
+['part4', 'Part 4 · Circles and floating', (m, D) => {
+  const p = panel(0), tq = m('q');
+  // Two small loops side by side: a ball whirled on a string (seen from above) and a duck bobbing in a tub.
+  const w = whirl(p, 430, 560, 190, 2.2), tub = tubScene(p, 1170, 560, 520, 300), duck = phSprite(p, 'duck', { s: 2.2 }); tub.front();
+  clockRun(t => { w.at(t); put(duck, { x: 1170, y: 560 + 70 + 5 * Math.sin(t * 2.6) }); }, D);
+  opener(p, 800, 170, 'Part 4', 'Circles and Floating');
+  txt(p, 'What keeps a ball swinging in a circle, or a duck afloat?', 800, 280, tq, { size: 40, weight: 600 });
+}, { lead: false }],
+['circle', 'Centripetal force', (m, D) => {
+  const p = panel(0), tc = m('center'), tl = m('let'), tg = m('go'), tm = m('moon'), cx = 800, cy = 490, R = 300, P = 3.2;
+  // From above: you whirl a ball on a string. Its speed stays the same; the velocity arrow (yellow) keeps turning.
+  // From "center" the string's pull (orange) points to the centre. At "go" you let go: the ball leaves along the
+  // tangent in a straight line. From "moon": Earth and the Moon, where gravity is the centripetal force.
+  const s1 = G(p), w = whirl(s1, cx, cy, R, P, { release: tg, pull: tc - .1 });
+  const snap = G(s1, { o: 0 }); for (let k = 0; k < 8; k++) { const q = k * Math.PI / 4, x = cx + R * Math.cos(q), y = cy + R * Math.sin(q); arrowAt(path(snap, '', { stroke: VEL, 'stroke-width': 6, opacity: .35 }), x, y, 80, q * 57.3 + 90, 14); }
+  show(snap, 3.4); hide(snap, tc - .4, .3); show(snap, tc + 3, .4);   // the faint copies step back while 'string pull' rides past them
+  const t1 = G(s1, { o: 0 }); phLabel(t1, 'same speed, but the direction keeps changing:', { x: 800, y: 70, size: 40 }); phLabel(t1, 'the velocity changes, so it is accelerating', { x: 800, y: 122, size: 36, fill: VEL, weight: 600 }); show(t1, 2.4); hide(t1, tc - .3, .3);
+  const t2 = G(s1, { o: 0 }); phLabel(t2, 'Centripetal force', { x: 800, y: 80, size: 60, fill: FORCE }); phLabel(t2, 'always points toward the center of the circle', { x: 800, y: 132, size: 36, weight: 600 }); show(t2, tc + .2); hide(t2, tg - .3, .3);
+  const t3 = G(s1, { o: 0 }); phLabel(t3, 'Let go: no pull, so it goes straight', { x: 800, y: 80, size: 50 }); show(t3, tg + .2);
+  hide(s1, tm - .5, .4);
+  // the Moon around Earth
+  const s2 = G(p, { o: 0 }); show(s2, tm - .3, .5); space(s2, 70, 12);
+  phEarthPolar(s2, { x: cx, y: cy, R: 120 }); const moon = pixDisc(s2, 36, { c: 8, base: '#b9b7ae', craters: 3, seed: 4 });
+  mk('circle', { cx, cy, r: 320, fill: 'none', stroke: COL.faint, 'stroke-width': 2, 'stroke-dasharray': '4 10' }, s2);
+  const mg = forceArrow(s2, { w: 14, size: 32 }), mv = forceArrow(s2, { color: VEL, w: 12, size: 30 });
+  phLabel(s2, 'For the Moon, gravity is the centripetal force', { x: 800, y: 80, size: 46 });
+  clockRun(t => {
+    w.at(t);
+    const q = -Math.PI / 2 - (t - tm) * 2 * Math.PI / 12, x = cx + 320 * Math.cos(q), y = cy + 320 * Math.sin(q);   // counterclockwise, seen from above the North Pole
+    put(moon, { x, y }); mg.set(x - 44 * Math.cos(q), y - 44 * Math.sin(q), 110, q * 57.3 + 180, 'gravity', [Math.sin(q), -Math.cos(q)]);
+    mv.set(x + 44 * Math.sin(q), y - 44 * Math.cos(q), 110, q * 57.3 - 90, '');
+  }, D);
+}, { lead: false }],
+['buoy', 'Buoyant force', (m, D) => {
+  const p = panel(0), tu = m('up'), ta = m('arch'), tr = m('rock'), tdp = m('dip'), tas = m('aside');
+  // Scene 1: a duck floats; weight (down) and the buoyant force (up) are equal. At "arch" the water it pushes aside
+  // (the shape of its underwater part) lifts out beside it: it weighs as much as the duck.
+  const s1 = G(p), WL = 520;
+  const tb = tubScene(s1, 700, WL, 760, 300);
+  const duck = phSprite(s1, 'duck', { s: 3 }), sub = 90; tb.front();                  // 90 px of the duck below the waterline
+  const wA = forceArrow(s1, { w: 16, size: 32 }), bA = forceArrow(s1, { w: 16, size: 32 });
+  const ghost = G(s1, { o: 0 }); mk('rect', { x: -150, y: -sub, width: 300, height: sub, rx: 24, fill: '#7fc3e6', opacity: .85, stroke: COL.chalk, 'stroke-width': 3, 'stroke-dasharray': '8 6' }, ghost);
+  const gl = G(s1, { o: 0 }); phLabel(gl, 'the water it pushes aside', { x: 1300, y: 300, size: 34 }); phLabel(gl, 'weighs as much as the duck', { x: 1300, y: 344, size: 34, fill: FORCE });
+  show(ghost, ta + .2); show(gl, ta + 2.2);
+  const d1 = G(s1, { o: 0 }); phLabel(d1, 'buoyant force', { x: 800, y: 90, size: 60, fill: FORCE }); phLabel(d1, 'the upward push of a fluid on an object in it', { x: 800, y: 142, size: 34, weight: 600 }); show(d1, tu + .3); hide(d1, ta - .3, .3);
+  const d2 = G(s1, { o: 0 }); phLabel(d2, 'buoyant force = weight of the fluid pushed aside', { x: 800, y: 90, size: 46 }); phLabel(d2, 'Archimedes’ principle', { x: 800, y: 142, size: 34, fill: COL.dim, weight: 600 }); show(d2, ta + .3);
+  clockRun(t => {
+    const bob = 4 * Math.sin(t * 2.4), dy = WL + sub + bob;
+    put(duck, { x: 700, y: dy });
+    wA.set(760, dy - 160, t > tu ? 120 : 0, 90, 'weight', 'right'); bA.set(640, dy + 30, t > tu ? 120 : 0, -90, 'buoyant force', 'left');
+    const k = ramp(t, ta + .6, ta + 2.2); put(ghost, { x: 700 + 600 * k * k * (3 - 2 * k) / 1, y: WL + sub - 150 * Math.sin(Math.PI * k) * (k < 1 ? 1 : 0) + bob * (1 - k) });
+  }, D);
+  hide(s1, tr - .4, .4);
+  // Scene 2: a 5 N stone hangs from a spring scale. From "dip" a full overflow can is raised around it on a stand;
+  // the water it pushes aside spills into a cup. Reading = 5 − 3 × (fraction under water); cup water ∝ that fraction.
+  const s2 = G(p, { o: 0 }); show(s2, tr - .2, .5);
+  const CX = 640, CW = 300, CH = 250, PPN = 16, LIFT = 312, CB0 = 870, SH = 6 * PX * 2.4;
+  const lift = t => LIFT * soft(ramp(t, tdp, tdp + 3.2));
+  phBlock(s2, 420, 30, 440, 22, '#7d6a5a', { top: 4, ol: 0 });
+  const sc = springScale(s2, { x: CX, y0: 52, max: 6, every: 1, ppn: PPN }), stone = phSprite(s2, 'stone', { s: 2.4 });
+  phBlock(s2, 0, CB0 + 14, 1600, 30, '#7d6a5a', { top: 4, ol: 0 });       // the bench
+  const can = G(s2), stand = mk('rect', { x: CX - 60, width: 120, fill: '#5e4f42' }, s2);
+  phBlock(can, -CW / 2 - 12, -CH, 12, CH, '#9aa5a8', { top: 0, ol: 2 }); phBlock(can, CW / 2, -CH, 12, CH, '#9aa5a8', { top: 0, ol: 2 }); phBlock(can, -CW / 2 - 12, 0, CW + 24, 14, '#9aa5a8', { top: 0, ol: 2 });
+  path(can, `M${CW / 2 + 12} ${-CH + 31}L${CW / 2 + 80} ${-CH + 55}`, { stroke: '#9aa5a8', 'stroke-width': 14 });
+  const cupX = 1010, cupW = 160, cup = G(s2);
+  path(cup, `M${cupX - cupW / 2} ${CB0 - 180}V${CB0}H${cupX + cupW / 2}V${CB0 - 180}`, { stroke: '#c3ccce', 'stroke-width': 6, fill: 'none' });
+  const cupW8 = mk('rect', { x: cupX - cupW / 2 + 3, width: cupW - 6, fill: '#3f7fb0', opacity: .8 }, cup), stream = path(s2, '', { stroke: '#5fa3d0', 'stroke-width': 8, fill: 'none' });
+  const water = G(s2); mk('rect', { x: -CW / 2, y: -CH + 25, width: CW, height: CH - 25, fill: '#3f7fb0', opacity: .6 }, water);   // in front of the stone
+  const rd = phLabel(s2, '', { x: CX - 70, y: 190, size: 48, anchor: 'end' }), cupL = phLabel(s2, '', { x: cupX, y: CB0 - 200, size: 32 });
+  const wF = forceArrow(s2, { w: 14, size: 30 }), bF = forceArrow(s2, { w: 14, size: 30 }), NPX = 30;
+  const exp = G(s2, { o: 0 }); [['in air: 5 N', COL.chalk], ['in water: 2 N', COL.chalk], ['buoyant force: 3 N', FORCE]].forEach(([s3, f], i) => phLabel(exp, s3, { x: 1180, y: 360 + i * 60, size: 40, fill: f, anchor: 'start' })); show(exp, tas + 2.5);
+  clockRun(t => {
+    const L = lift(t), cb = CB0 - L, sp = cb - CH + 25;                       // can bottom and spout (water) level
+    put(can, { x: CX, y: cb }); put(water, { x: CX, y: cb }); stand.setAttribute('y', cb + 14); stand.setAttribute('height', CB0 + 14 - cb - 14);
+    // the stone's top is the hook; solve F = 5 − 3 f with f from where the stone sits (two passes settle it)
+    let F = 5; for (let k = 0; k < 3; k++) { const top = sc.set(F), f = Math.min(1, Math.max(0, (top + SH - sp) / SH)); F = 5 - 3 * f; }
+    const top = sc.set(F), f = (5 - F) / 3;
+    put(stone, { x: CX, y: top + SH });
+    phText(rd, `${F.toFixed(1)} N`);
+    const wl = 160 * f; cupW8.setAttribute('y', CB0 - wl); cupW8.setAttribute('height', wl);
+    stream.setAttribute('d', f > .01 && f < .99 && t > tdp ? `M${CX + CW / 2 + 80} ${cb - CH + 55}Q${cupX - 40} ${cb - CH + 60} ${cupX - 30} ${CB0 - wl}` : '');
+    phText(cupL, f > .98 ? '3 N of water' : '');
+    const sy = top + SH / 2;
+    wF.set(CX + 120, sy - 20, 5 * NPX, 90, '5 N', 'right'); bF.set(CX - 120, sy + 40, 3 * f * NPX, -90, f > .3 ? `${(3 * f).toFixed(1)} N` : '', 'left');
+  }, D);
+}, { lead: false }],
+['float', 'Float or sink', (m, D) => {
+  const p = panel(0), tw0 = m('wood'), ts = m('stone'), WT = 420, BOT = 740, g = 900;
+  // A tank. Wood (density 0.6 of water) is dropped at "wood": it sinks in only until the water it pushes aside weighs
+  // as much as it does, bobs and floats. Stone (2.5 × water) dropped at "stone": even fully under, the buoyant force is
+  // only 0.4 of its weight, so it sinks to the floor, which then holds up the rest. Arrows: weight and buoyant force.
+  const tank = tubScene(p, 800, WT, 1200, BOT - WT);
+  const fall = (rho, h, t0, y0, c) => integrate(([y, v], t, dt) => {
+    if (t < t0) return [y, 0];
+    const f = Math.min(1, Math.max(0, (y - WT) / h)), a = g * (1 - f / rho) - (f > 0 ? c * v : 0);
+    let ny = y + v * dt, nv = v + a * dt; if (ny >= BOT) { ny = BOT; nv = 0; }
+    return [ny, nv];
+  }, [y0, 0], 0, D);
+  const WH = 120, wood = G(p); phBlock(wood, -110, -WH, 220, WH, '#c99a5a', { top: 10, right: 12, ol: 2.5 }); for (let i = 0; i < 3; i++) path(wood, `M-96 ${-WH + 30 + i * 30}H${80 - i * 20}`, { stroke: '#a87a4f', 'stroke-width': 4 });
+  const SH = 6 * PX * 2.2, stone = phSprite(p, 'stone', { s: 2.2 });
+  const wy = fall(.6, WH, tw0 + .3, 300, 3.2), sy = fall(2.5, SH, ts + .3, 300, 4);
+  tank.front();
+  const arrows = () => [forceArrow(p, { w: 14, size: 30 }), forceArrow(p, { w: 14, size: 30 }), forceArrow(p, { w: 14, size: 30 })];
+  const [ww, wb] = arrows(), [sw, sb, sf] = arrows();
+  const rule = G(p, { o: 0 }); phLabel(rule, 'less dense than the fluid: it floats', { x: 800, y: 110, size: 44 }); phLabel(rule, 'denser than the fluid: it sinks', { x: 800, y: 170, size: 44 }); show(rule, .4);
+  const lw = G(p, { o: 0 }); phLabel(lw, 'wood: less dense', { x: 480, y: 280, size: 38, fill: COL.int }); phLabel(lw, 'floats', { x: 480, y: 326, size: 38, fill: COL.int }); show(lw, tw0 + 3.5);
+  const ls = G(p, { o: 0 }); phLabel(ls, 'stone: denser', { x: 1120, y: 280, size: 38, fill: COL.int }); phLabel(ls, 'sinks', { x: 1120, y: 326, size: 38, fill: COL.int }); show(ls, ts + 3.5);
+  const U = 80;   // the wood's weight arrow; the stone's is 1.6 × longer (heavier block)
+  clockRun(t => {
+    const [y1] = wy(t), [y2] = sy(t), f1 = Math.min(1, Math.max(0, (y1 - WT) / WH)), f2 = Math.min(1, Math.max(0, (y2 - WT) / SH));
+    put(wood, { x: 480, y: y1, o: t > tw0 - .3 ? 1 : 0 }); put(stone, { x: 1120, y: y2, o: t > ts - .3 ? 1 : 0 });
+    ww.set(570, y1 - WH / 2, t > tw0 + .3 ? U : 0, 90, 'weight', 'right'); wb.set(400, y1, f1 > .02 ? U * f1 / .6 : 0, -90, f1 > .3 ? 'buoyant force' : '', 'left');
+    const Ws = 1.6 * U, Bs = Ws * f2 / 2.5, onFloor = y2 >= BOT - .5;
+    sw.set(1210, y2 - SH / 2, t > ts + .3 ? Ws : 0, 90, 'weight', 'right'); sb.set(1030, y2 - 10, f2 > .02 ? Bs : 0, -90, f2 > .3 ? 'buoyant force' : '', 'left');
+    sf.set(1120, BOT + 60, onFloor ? Ws - Bs : 0, -90, 'floor', 'left');
+  }, D);
+}, { lead: false }],
+['q4', 'Quick check', (m, D) => {
+  const p = panel(0), w = whirl(p, 430, 300, 190, 2.2, { pull: 0 }), tub = tubScene(p, 1150, 330, 520, 200), duck = phSprite(p, 'duck', { s: 2.2 }); tub.front();
+  clockRun(t => { w.at(t); put(duck, { x: 1150, y: 330 + 70 + 5 * Math.sin(t * 2.6) }); }, D);
+}, { ask: done => quiz(Q_CARD, [
+  { id: 'c-cent', prompt: ['You whirl a ball on a string. Which way does the ', h('b', '', 'centripetal force'), ' on the ball point?'],
+    build: choice([['toward the center of the circle'], ['away from the center'], ['the way the ball is moving']], 0,
+      'The string pulls the ball inward, toward the center.',
+      [null, 'Let go and the ball flies off straight, not outward: nothing pulls it outward.', 'That is the velocity; the force points to the center.']) },
+  { id: 'c-boat', prompt: ['A toy boat pushes aside 4 newtons of water. What is the ', h('b', '', 'buoyant force'), ' on it?'],
+    build: blanks([{ parts: ['buoyant force = ', { box: '4' }, ' newtons'], why: 'Archimedes’ principle: the buoyant force equals the weight of the water pushed aside.', hint: 'Buoyant force = weight of the fluid pushed aside.' }]) },
+  { id: 'c-dense', prompt: ['An object is ', h('b', '', 'denser'), ' than water. In water, it…'],
+    build: choice([['sinks'], ['floats']], 0, 'Denser than the fluid: it sinks.', [null, 'Only objects less dense than the fluid float.']) },
+], done) }],
+['wrap4', 'Summary · Circles and floating', (m, D) => {
+  summary(panel(0), m, [
+    [['Centripetal force points to the center and keeps', 'things moving in a circle.'], g => { mk('circle', { cx: 260, cy: -10, r: 60, fill: 'none', stroke: COL.faint, 'stroke-width': 3 }, g); put(ballEl(g, 14), { x: 320, y: -10 }); forceArrow(g, { w: 8 }).set(304, -10, 40, 180, ''); }],
+    [['The buoyant force equals the weight of the', 'fluid pushed aside.'], g => { phBlock(g, 150, 0, 220, 50, '#3f7fb0', { top: 0, ol: 0 }); phSprite(g, 'duck', { x: 260, y: 30, s: 1 }); }],
+    [['Less dense than the fluid: it floats;', 'denser: it sinks.'], g => { phBlock(g, 150, -10, 220, 70, '#3f7fb0', { top: 0, ol: 0 }); phBlock(g, 170, -26, 70, 36, '#c99a5a', { top: 4, ol: 2 }); phSprite(g, 'stone', { x: 320, y: 60, s: 1 }); }],
+  ], 'Next: the chapter practice.');
+}],
+/* ---------- chapter practice and finish ---------- */
+['final1', 'Chapter practice: gravity and friction', () => { PRACTICE = panel(0); }, { ask: done => quiz(SCREEN, withPics([
+  { id: 'p-grav', prompt: ['What is the force that attracts masses together?'],
+    build: choice([['gravity'], ['friction'], ['the buoyant force']], 0, 'Gravity is the attraction between all things with mass.', [null, 'Friction opposes motion between touching surfaces.', 'The buoyant force pushes up on things in a fluid.']) },
+  { id: 'p-bowl', prompt: ['Why does a bowling ball have more gravity than a soccer ball?'],
+    build: choice([['it has more mass, and more mass means a stronger pull'], ['it is rounder'], ['it is closer to the ground']], 0,
+      'As mass increases, so does the force of gravity.', [null, 'Shape doesn’t set gravity; mass does.', 'Both sit on the same ground; the difference is mass.']) },
+  { id: 'p-dist', prompt: ['The force of gravity decreases as the ___ between masses increases.'],
+    build: choice([['distance'], ['mass'], ['speed']], 0, 'Farther apart, weaker gravity.', [null, 'More mass makes gravity stronger.', 'Speed doesn’t change the pull of gravity.']) },
+  { id: 'p-cart', prompt: ['When you push a shopping cart, the friction that opposes its motion is mainly ___ friction.'],
+    build: choice([['rolling'], ['static'], ['sliding']], 0, 'The cart rolls on wheels: rolling friction.', [null, 'Static friction acts only while it is still.', 'Its wheels roll; nothing slides.']) },
+  { id: 'p-feather', prompt: ['Why does a feather drift back and forth as it falls?'],
+    build: choice([['air resistance pushes up against its fall'], ['gravity doesn’t act on feathers'], ['it has no mass']], 0,
+      'A feather has a big surface for its tiny weight, so air resistance nearly balances gravity.', [null, 'Gravity pulls on everything with mass, feathers too.', 'It has a little mass; that’s why it does fall.']) },
+]), done, 'Chapter practice, set 1 of 2 · question') }],
+['final2', 'Chapter practice: more forces', () => { PRACTICE = panel(0); }, { ask: done => quiz(SCREEN, withPics([
+  { id: 'p-term', prompt: ['When air resistance equals the force of gravity, a falling object…'],
+    build: choice([['reaches terminal velocity: it falls at a steady speed'], ['stops in midair'], ['speeds up faster']], 0,
+      'Balanced forces, no net force: a steady speed called terminal velocity.', [null, 'Balanced forces keep its speed the same; they don’t stop it.', 'With no net force it can’t speed up.']) },
+  { id: 'p-like', prompt: ['In magnetic and electric forces, likes ___ and opposites attract.'],
+    build: choice([['repel'], ['attract']], 0, 'Like poles and like charges repel.', [null, 'Opposites attract; likes push each other away.']) },
+  { id: 'p-cent', prompt: ['What is ', h('b', '', 'centripetal force'), '?'],
+    build: choice([['the force that keeps an object moving in a circle; it points toward the center'], ['a force that pushes objects away from the center'], ['the upward push of a fluid']], 0,
+      'Centripetal force always points toward the center of the circular path.', [null, 'It points inward, toward the center.', 'That is the buoyant force.']) },
+  { id: 'p-boat', prompt: ['What is the name of the upward force that water exerts on a boat?'],
+    build: choice([['the buoyant force'], ['centripetal force'], ['friction']], 0, 'Buoyancy: the upward push of a fluid.', [null, 'That keeps things moving in circles.', 'Friction opposes motion; it doesn’t hold boats up.']) },
+  { id: 'p-dog', prompt: ['A dog swimming in a lake pushes aside 10 pounds of water. What is the buoyant force on the dog?'],
+    build: blanks([{ parts: ['buoyant force = ', { box: '10' }, ' pounds'], why: 'It equals the weight of the water pushed aside: 10 pounds.', hint: 'Archimedes’ principle.' }]) },
+]), done, 'Chapter practice, set 2 of 2 · question') }],
+['finish', 'Finished', () => {
+  // under the card, the chapter in four small pictures with their names
+  const p = panel(0);
+  [['gravity', 300, g => { pixDisc(g, 26, { c: 6, seed: 2, lump: 1, o: { x: -60, y: -40 } }); pixDisc(g, 26, { c: 6, seed: 7, lump: 1, o: { x: 60, y: -40 } }); }],
+   ['friction', 633, g => { crate(g, { x: 0, y: 0, w: 110, h: 90 }); forceArrow(g, { w: 8 }).set(10, -12, 70, 180, ''); }],
+   ['magnets', 966, g => { const a = magnet(g, 'SN'), b = magnet(g, 'SN'); put(a, { x: -70, y: -40, s: .5 }); put(b, { x: 70, y: -40, s: .5 }); }],
+   ['circles and floating', 1300, g => { phBlock(g, -90, -40, 180, 40, '#3f7fb0', { top: 0, ol: 0 }); phSprite(g, 'duck', { y: -14, s: 1 }); }]]
+    .forEach(([s, x, draw]) => { const g = G(p, { x, y: 800, s: .85 }); draw(g); phLabel(g, s, { y: 56, size: 30, fill: COL.dim, weight: 600 }); });
+}, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+boot();
+</script>
+</body>
+</html>

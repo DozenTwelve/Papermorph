@@ -23,15 +23,16 @@ a { color: inherit; }
 .book-hotspot { position: absolute; display: block; top: 4.9%; height: 23.3%; text-decoration: none; border-radius: 2px; outline-offset: 4px; }
 .algebra-book { left: 10.1%; width: 26.1%; }
 .math-book { left: 39.9%; width: 24.5%; }
+.physics-book { left: 66.8%; width: 25.3%; }
 .book-hotspot:hover { box-shadow: 0 0 0 2px #f7d998b3, 0 0 28px #edc97833; }
 #shelf a:focus-visible { outline: 3px solid #f4d786; outline-offset: 5px; }
 .book-caption { position: absolute; bottom: 0; left: 0; right: 0; display: flex; flex-direction: column; justify-content: center; gap: .35cqw; min-height: 6.45cqw; padding: 1.1cqw 1.2cqw .9cqw; color: #faf7e9; background: linear-gradient(110deg, #263d32f5, #182a23f0); box-shadow: 0 -2px 8px #0003; font: 1.4cqw/1.25 var(--ui); transition: background .2s; }
 .math-book .book-caption { background: linear-gradient(110deg, #704732f7, #503721f0); }
+.physics-book .book-caption { background: linear-gradient(110deg, #1f2f4ef5, #141d33f0); }
 .book-caption strong { font-weight: 600; padding-right: 1.5cqw; }
 .book-caption strong > span { position: absolute; right: 1.2cqw; top: 1.1cqw; color: #e8c68b; }
 .book-caption small { color: #e2dbca; font-size: 1.03cqw; letter-spacing: .03em; }
 .resume-label { position: absolute; padding: .46cqw .74cqw; background: #fcf4df; color: #3c4336; box-shadow: 1px 2px 5px #0003; font: 1.03cqw var(--ui); transform: rotate(-3deg); }
-.physics-pending { position: absolute; left: 71.4%; top: 25.6%; padding: .46cqw .92cqw; border: 1px solid #edcf73; background: #f1d174; color: #302b1f; font: 1.1cqw var(--ui); transform: rotate(-2deg); box-shadow: 1px 2px 4px #0003; }
 .github-drawer { position: absolute; left: 9%; top: 87.5%; width: 68%; height: 8.5%; text-decoration: none; }
 .shelf-noscript { position: absolute; bottom: 0; left: 24px; margin: 0; font: 11px var(--ui); color: #352c21; }
 .shelf-footer { position: absolute; inset: auto 0 0; display: flex; justify-content: center; align-items: center; gap: 3%; height: 3%; padding: 0 3%; color: #594129; font: 500 clamp(10px, .85vw, 14px)/1.4 var(--ui); text-shadow: 0 1px #ffe6bd66; }

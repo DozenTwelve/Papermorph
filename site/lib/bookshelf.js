@@ -18,6 +18,8 @@
     { id: 'elementary-algebra', key: 'progress', chapterBase: 'elementary-algebra/', chapters: 68 },
     { id: 'math-notebook', key: 'animebook:progress:' + new URL('math-notebook/', location.href).pathname,
       chapterBase: 'math-notebook/', chapters: 22 },
+    { id: 'science', key: 'animebook:progress:' + new URL('science/', location.href).pathname,
+      chapterBase: 'science/', chapters: 11 },
   ];
   for (const book of books) {
     const cover = document.querySelector(`[data-book="${book.id}"]`);
@@ -29,7 +31,7 @@
     resume.className = 'resume-label';
     resume.textContent = `Continue · Chapter ${saved.last} →`;
     resume.href = `${book.chapterBase}ch${String(saved.last).padStart(2, '0')}/`;
-    resume.style.left = cover.classList.contains('algebra-book') ? '11%' : '40.8%';
+    resume.style.left = { 'elementary-algebra': '11%', 'math-notebook': '40.8%', science: '67.7%' }[book.id];
     resume.style.top = '5.7%';
     document.getElementById('shelf-books').append(resume);
   }

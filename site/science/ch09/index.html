@@ -1,0 +1,909 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chapter 9: Motion — Science</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/figures.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+// Chapter 9, one page in book order: part 1 (motion; relative motion), part 2 (speed), part 3 (velocity), part 4 (acceleration).
+const CHAPTER = { number: 9, title: 'Motion', minutes: 18, language: 'en', next: '../ch10/' };
+
+/* ---------- chapter helpers ---------- */
+const V = 150;                                   // 30 mph on screen, in world px per second (same scale in every road beat)
+const MPH = v => Math.round(Math.abs(v) / V * 30);
+const speedStr = rel => { const n = MPH(rel); return n === 0 ? '0 mph' : rel > 0 ? `${n} mph →` : `← ${n} mph`; };
+const Q_CARD = { x: 96, y: 586, w: 1408, cls: 'band' };   // a band card under the scenes; it moves up by itself when taller
+const txt = (p, s, x, y, t0, { size = 32, fill = COL.chalk, anchor = 'middle', weight = 600 } = {}) => { const e = T(p, s, { x, y, size, fill, anchor, weight, o: 0 }); show(e, t0); return e; };
+// One line with coloured runs: [[text, colour?], …].
+function runs(p, parts, { x, y, size = 40, anchor = 'middle', weight = 600, o = 0 }) {
+  const t = T(p, '', { x, y, size, anchor, weight, o });
+  parts.forEach(([s, c]) => { const sp = mk('tspan', { fill: c || COL.chalk }, t); sp.textContent = s; });
+  return t;
+}
+function arrowPath(x1, y, x2) { const d = Math.sign(x2 - x1); return `M${x1} ${y}H${x2}M${x2 - 16 * d} ${y - 11}L${x2} ${y}L${x2 - 16 * d} ${y + 11}`; }
+// "Measured from: …" tag at the left, top by default (screen space).
+function fromTag(p, str, t0, dur = .5, y = 136) {
+  const g = G(p, { o: 0 });
+  phPin(g, { x: 112, y: y + 14, s: .8 });
+  runs(g, [['Measured from:  ', COL.dim], [str, PH.ref]], { x: 146, y, size: 34, anchor: 'start', o: 1 });
+  show(g, t0, dur);
+  return g;
+}
+// Earth from above the North Pole, in a camera's world. The overview camera (800, 450, z 1) shows it at (EX, EY).
+const EX = 430, EY = 450, ER = 200, ESPIN = -14;              // spin in degrees per second; negative = counterclockwise
+const rimAngle = t => (-90 + ESPIN * t) * Math.PI / 180;      // where "you" are on the rim at time t
+// A camera locked onto you, rolling with the ground, `lift` world px above it.
+const groundView = (lift, z) => ({ x: t => EX + (ER + lift) * Math.cos(rimAngle(t)), y: t => EY + (ER + lift) * Math.sin(rimAngle(t)), z, r: t => ESPIN * t });
+function earthWorld(cam, D) {
+  const E = phEarthPolar(cam.world, { x: EX, y: EY, R: ER });
+  const rim = deg => G(G(E._spin, { r: deg }), { y: -ER });
+  const gr = ER - 3, ga = .4;   // ±23° of smooth ground under the rim scene (the pixel coast is stepped)
+  path(E._spin, `M${-gr * Math.sin(ga)} ${-gr * Math.cos(ga)}A${gr} ${gr} 0 0 1 ${gr * Math.sin(ga)} ${-gr * Math.cos(ga)}`, { stroke: PH.land, 'stroke-width': 6, 'stroke-linecap': 'butt' });
+  phSprite(rim(-9), 'house', { s: .25 }); phSprite(rim(7), 'tree', { s: .22 });   // the narration's buildings, trees and you
+  const you = rim(0);
+  phPerson(you, { s: .25 });
+  clockRun(t => put(E._spin, { r: ESPIN * t }), D);
+  return { E, you };
+}
+// Split screen: the truck and car drive slower than elsewhere (the views are small) so the truck stays inside the roadside
+// view for the whole beat; both labels are always visible.
+const SPLIT_V = 50, splitX = t => 760 + SPLIT_V * t;
+
+/* ---------- section 2 (speed) helpers ---------- */
+const DIST = COL.rat, TIME = COL.whole;          // distance pink (as "change of position" in part 1), time blue
+const walkTo = (r, x, step = 22) => phPose(r, 'walk', x / step * Math.PI);   // two frames per stride, from x
+// A measured track: a bar with ticks every `every` meters from 0 to `to`, U px per meter.
+function meterTrack(p, { x0, U, y, to, every, size = 26 }) {
+  const g = G(p);
+  phBlock(g, x0 - 20, y, U * to + 40, 14, '#8a6f55', { top: 4, ol: 0 });
+  for (let v = 0; v <= to; v += every) {
+    mk('rect', { x: x0 + U * v - 2, y: y + 14, width: 4, height: 14, fill: COL.dim }, g);
+    T(g, String(v), { x: x0 + U * v, y: y + 56, size, fill: COL.chalk, anchor: 'middle' });
+  }
+  T(g, 'meters', { x: x0 + U * to + 36, y: y + 56, size: size - 2, fill: COL.dim });
+  return g;
+}
+// A fraction in words or numbers (upright text, no math italics), centred on x with its bar at y.
+function wfrac(p, top, bot, x, y, { size = 44, ct = COL.chalk, cb = COL.chalk, o = 0 } = {}) {
+  const g = G(p, { x, y, o }), w = Math.max(uiW(top, size), uiW(bot, size)) + 24;
+  T(g, top, { y: -size * .32, size, fill: ct, anchor: 'middle', weight: 600 });
+  mk('rect', { x: -w / 2, y: -2, width: w, height: 4, rx: 2, fill: COL.chalk }, g);
+  T(g, bot, { y: size * 1.02, size, fill: cb, anchor: 'middle', weight: 600 });
+  g._w = w;
+  return g;
+}
+// A sim clock: stopwatch plus "N s" under it; set(sec) turns the hand (one turn per minute) and writes whole seconds.
+function simClock(p, x, y, r = 46) {
+  const sw = phStopwatch(p, { x, y, r }), lab = T(p, '0 s', { x, y: y + r + 48, size: 32, weight: 700, fill: TIME, anchor: 'middle' });
+  return { sw, lab, set(sec) { put(sw._hand, { r: sec * 6 }); phText(lab, `${Math.floor(sec + 1e-6)} s`); } };
+}
+const ramp = (t, a, b) => Math.min(1, Math.max(0, (t - a) / (b - a)));
+// Sprint model for the 100 m dash: speed rises quickly and levels off; 100 m at 10 s; about 12 m/s at the finish.
+const SK = 1.4, SVM = 100 / (10 - SK * (1 - Math.exp(-10 / SK)));
+const sprintX = tau => SVM * (tau - SK * (1 - Math.exp(-tau / SK))), sprintV = tau => SVM * (1 - Math.exp(-tau / SK));
+// The stop-and-go car: 15 m/s for 10 s, stopped 8 s at a red light, 12.5 m/s for 12 s: 300 m in 30 s.
+const tripX = s => s < 10 ? 15 * s : s < 18 ? 150 : 150 + 12.5 * (Math.min(s, 30) - 18);
+const tripV = s => s < 10 ? 15 : s < 18 ? 0 : s < 30 ? 12.5 : 0;
+
+/* ---------- section 3 (velocity) helpers ---------- */
+const VEL = COL.int;                             // velocity arrows and readouts: yellow
+// Set path el to an arrow from (x, y), len long, at angle a (degrees; 0 = right, −90 = up).
+function arrowAt(el, x, y, len, a, head = 18) {
+  const r = a * Math.PI / 180, c = Math.cos(r), s = Math.sin(r), x2 = x + len * c, y2 = y + len * s;
+  el.setAttribute('d', len < 2 ? '' : `M${x} ${y}L${x2} ${y2}M${x2 - head * c - head * .6 * s} ${y2 - head * s + head * .6 * c}L${x2} ${y2}L${x2 - head * c + head * .6 * s} ${y2 - head * s - head * .6 * c}`);
+  return el;
+}
+const compassWord = a => a > -22.5 ? 'east' : a > -67.5 ? 'north-east' : 'north';
+
+/* ---------- section 4 (acceleration) helpers ---------- */
+const ACC = '#ee6fd0';                           // acceleration arrows and readouts: magenta (velocity stays yellow)
+// The overhead street with an L-shaped corner (parts 3 and 4). pose(d): [x, y, heading°] at distance d along the road.
+function overheadStreet(w) {
+  const R0 = 250, L1 = 1050, ARC = Math.PI / 2 * R0;
+  mk('rect', { x: -200, y: -200, width: 2000, height: 1300, fill: PH.grass }, w);
+  [[180, 260], [420, 260], [660, 260]].forEach(([x, y]) => phBlock(w, x, y, 150, 120, '#a65d4b', { top: 10, right: 12, ol: 0 }));
+  [[1320, 560], [1250, 760], [60, 860]].forEach(([x, y]) => phBlock(w, x, y, 64, 64, '#4e9a5a', { top: 8, right: 8, ol: 0 }));
+  const route = `M-300 620H850A${R0} ${R0} 0 0 0 1100 370V-400`;
+  path(w, route, { stroke: PH.road, 'stroke-width': 130, 'stroke-linecap': 'butt' });
+  path(w, route, { stroke: PH.line, 'stroke-width': 4, 'stroke-dasharray': '40 40', opacity: .6 });
+  const pose = d => d < L1 ? [-200 + d, 620, 0] : d < L1 + ARC ? (th => [850 + R0 * Math.sin(th), 370 + R0 * Math.cos(th), -th * 180 / Math.PI])((d - L1) / R0) : [1100, 370 - (d - L1 - ARC), -90];
+  return { pose, R0, L1, ARC, cx: 850, cy: 370 };
+}
+// "velocity / acceleration" colour key at the top left.
+function vaKey(p, t0, y = 70) {
+  const g = G(p, { o: 0 });
+  arrowAt(path(g, '', { stroke: VEL, 'stroke-width': 7 }), 70, y, 60, 0, 14); T(g, 'velocity', { x: 146, y: y + 10, size: 28, weight: 700, fill: VEL });
+  arrowAt(path(g, '', { stroke: ACC, 'stroke-width': 7 }), 300, y, 60, 0, 14); T(g, 'acceleration', { x: 376, y: y + 10, size: 28, weight: 700, fill: ACC });
+  show(g, t0);
+  return g;
+}
+
+/* ---------- beats ---------- */
+const BEATS = [
+['intro', 'Motion', (m, D) => {
+  const p = panel(0);
+  const cam = camera(p, D, { x: 800, y: 285, z: .9 });
+  const road = phRoad(cam);
+  const carX = t => -260 + 190 * t;
+  const car = phCar(road.vehicles, { y: ROAD.near });
+  cam.to({ x: t => carX(t) + 330 }, 2.4, 2);                 // lock on: from here the camera rides with the car
+  clockRun(t => {
+    const x = carX(t); put(car, { x }); phRoll(car, x);
+  }, D);
+  const g = G(p, { o: 0, y: 24 });
+  T(g, 'Unit 3 · Motion, Forces, and Work · Chapter 9', { x: 800, y: 130, size: 28, fill: COL.dim, anchor: 'middle' });
+  phLabel(g, 'Motion', { x: 800, y: 250, size: 120, weight: 600 });
+  tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+  txt(p, 'Part 1 · Motion and relative motion', 800, 320, m('sub'), { size: 36, fill: COL.dim });
+}],
+['position', 'Motion is a change of position', (m, D) => {
+  const p = panel(0);
+  const cam = camera(p, D, { x: 800, y: 420, z: .55 });
+  cam.to({ x: 800, y: 450, z: 1 }, .1, 1.6);                // wide shot of the park, pushing in to the track
+  const w = cam.world;
+  phHills(w, { y: 470, amp: 30, x0: -1400, x1: 3000, fill: PH.hill2, seed: 2 });
+  phBlock(w, -1400, 520, 4400, 1200, PH.grass, { top: 6, ol: 0 });
+  phSprite(w, 'tree', { x: -200, y: 540 }); phSprite(w, 'tree', { x: 1820, y: 548 });
+  const X0 = 200, U = 120, TY = 600, R = 40, xm = v => X0 + U * v;
+  const track = G(w);
+  phBlock(track, X0 - 30, TY, U * 10 + 60, 16, '#8a6f55', { top: 4, ol: 2 });
+  for (let v = 0; v <= 10; v++) {
+    mk('rect', { x: xm(v) - 2, y: TY + 16, width: 4, height: 16, fill: COL.dim }, track);
+    T(track, String(v), { x: xm(v), y: TY + 68, size: 28, fill: COL.chalk, anchor: 'middle' });
+  }
+  T(track, 'meters', { x: xm(10) + 40, y: TY + 68, size: 26, fill: COL.dim });
+  T(track, 'zero mark', { x: xm(0), y: TY + 104, size: 24, fill: COL.dim, anchor: 'middle' });
+  txt(p, 'Position: where something is, measured from a starting mark', 800, 150, 1.4, { size: 34, fill: COL.dim });
+  const ghost = mk('circle', { cx: xm(2), cy: TY - R, r: R, fill: 'none', stroke: COL.dim, 'stroke-width': 3, 'stroke-dasharray': '8 8' }, w);
+  put(ghost, { o: 0 });
+  const ball = phBall(w, R, { x: xm(2), y: TY - R });
+  const at2 = txt(w, 'position: 2 m', xm(2), TY - 110, m('pos'), { size: 32 });
+  hide(at2, m('roll'), .4); show(ghost, m('roll'), .4);
+  prog(q => { const x = xm(2) + U * 5 * q; put(ball, { x }); put(ball._spin, { r: (x - xm(2)) / R * 180 / Math.PI }); }, m('roll', .1), 2.2, io);
+  txt(w, 'position: 7 m', xm(7), TY - 110, m('now'), { size: 32 });
+  const ch = G(w, { o: 0 });
+  path(ch, arrowPath(xm(2), TY + 150, xm(7)), { stroke: PH.change, 'stroke-width': 5 });
+  T(ch, 'change of position: 5 m', { x: xm(4.5), y: TY + 200, size: 32, fill: PH.change, weight: 700, anchor: 'middle' });
+  show(ch, m('change'));
+  const rule = runs(p, [['Motion', COL.chalk], [' = a ', COL.chalk], ['change of position', PH.change]], { x: 800, y: 270, size: 60 });
+  show(rule, m('rule'));
+  const sw = phStopwatch(p, { x: 1330, y: 400, r: 52, o: 0 });
+  show(sw, m('still'));
+  const clockT = txt(p, '0 s later', 1330, 500, m('still'), { size: 28, fill: COL.dim });
+  prog(q => { put(sw._hand, { r: 90 * q }); clockT.textContent = `${Math.round(3 * q)} s later`; }, m('still', .3), 3, lin);
+  txt(p, 'still at 7 m: not moving', 1330, 540, m('still', 3.4), { size: 28, fill: COL.chalk });
+}],
+['everywhere', 'Motion is everywhere', (m, D) => {
+  const p = panel(0);
+  txt(p, 'Motion is everywhere', 800, 140, .2, { size: 48 });
+  const frame = (cx, t0, cap) => {
+    const g = G(p, { o: 0 });
+    mk('rect', { x: cx - 210, y: 210, width: 420, height: 370, rx: 22, fill: '#22332d', stroke: COL.faint, 'stroke-width': 2 }, g);
+    T(g, cap, { x: cx, y: 640, size: 32, weight: 600, anchor: 'middle' });
+    show(g, t0);
+    return g;
+  };
+  const f1 = frame(300, m('page'), 'turning a page');
+  const book = phNotebook(f1, { x: 300, y: 380, s: 1.05 });
+  const f2 = frame(800, m('earth'), 'Earth orbiting the Sun');
+  mk('circle', { cx: 800, cy: 395, r: 140, fill: 'none', stroke: COL.faint, 'stroke-width': 2, 'stroke-dasharray': '6 10' }, f2);
+  const sun = phSun(f2, { x: 800, y: 395, r: 42 });
+  const earth = phEarthSmall(f2, { r: 22 });
+  const f3 = frame(1300, m('you'), 'you, walking');
+  phBlock(f3, 1092, 540, 416, 38, PH.grass, { top: 5, ol: 0 });
+  const you = phPerson(f3, { x: 1160, y: 540, s: .95 });
+  const tp = m('page'), te = m('earth'), ty = m('you');
+  clockRun(t => {
+    const c = Math.max(0, t - tp - .3) % 2.4;
+    phFlip(book, 180 * soft(Math.min(1, c / 1.4)));
+    const a = (-90 - 40 * Math.max(0, t - te + .5)) * Math.PI / 180;   // counterclockwise, seen from above the North Pole
+    put(earth, { x: 800 + 140 * Math.cos(a), y: 395 + 140 * Math.sin(a) });
+    put(sun._rays, { r: 8 * t });
+    const d = Math.min(260, Math.max(0, t - ty) * 85);
+    put(you, { x: 1160 + d }); phPose(you, d > 0 && d < 260 ? 'walk' : 'stand', d / 22 * Math.PI);
+  }, D);
+}],
+['roadside', 'Standing by the road', (m, D) => {
+  const p = panel(0);
+  const cam = camera(p, D);
+  const road = phRoad(cam);
+  const you = phPerson(road.side, { x: 760, y: ROAD.side, o: 0 });
+  show(you, m('stand'));
+  show(phLabel(road.front, 'you', { x: 760, y: 236, fill: PH.you, o: 0 }), m('stand'));   // above the pin: the truck's label passes below
+  const truck = phTruck(road.vehicles, { y: ROAD.far });
+  const tl = phLabel(road.front, `truck: ${speedStr(V)}`, { y: 350, fill: PH.truck, o: 0 });
+  fromTag(p, 'you, by the road', m('speed'));
+  pop(phPin(road.front, { x: 760, y: 304, s: 0, o: 0 }), m('speed'));
+  show(tl, m('speed'));
+  const t0 = m('truck', -.3);
+  clockRun(t => {
+    const x = -250 + V * Math.max(0, t - t0);
+    put(truck, { x }); phRoll(truck, x); put(tl, { x: x + 10 });
+  }, D);
+}],
+['incar', 'Riding beside the truck', (m, D) => {
+  const p = panel(0);
+  const cam = camera(p, D);
+  const road = phRoad(cam, { trees: [300, 800, 1900] });   // no tree behind the friend (1100) or the friend's label
+  const FR = 1100, tc = m('car', .3), r0 = m('ride');
+  const xw = t => -330 + V * Math.max(0, t - tc);            // world position of the truck and the car (side by side)
+  // Hard cut at "ride": the camera now rides in the car (locked on it, a little closer, with a light road shake).
+  cam.cut({ x: t => xw(t) + 10, y: 600, z: 1.15 }, r0);
+  phPerson(road.side, { role: 'friend', x: FR, y: ROAD.side });
+  const truck = phTruck(road.vehicles, { y: ROAD.far });
+  const car = phCar(road.vehicles, { y: ROAD.near });
+  // Speed labels live in screen space and are kept inside the frame (cam.track); wrappers fade them in.
+  const tag = (fill, t0) => { const g = G(p, { o: 0 }); show(g, t0); return phLabel(g, '', { fill }); };
+  const fl = tag(PH.friend, .4), tl = tag(PH.truck, tc + 1.6), cl = tag(PH.car, tc + 1.6);
+  const sl = phLabel(p, 'road and trees: ← 30 mph', { x: 70, y: 862, size: 30, fill: COL.dim, anchor: 'start', o: 0 });
+  show(sl, m('back'));
+  const pinA = phPin(road.side, { x: FR, y: 304, o: 0 }), pinB = phPin(car, { x: 30, y: -112, s: 0, o: 0 });
+  show(pinA, .3); hide(pinA, r0, 0); pop(pinB, r0 + .3);
+  const tagA = fromTag(p, 'the roadside', .3);
+  hide(tagA, r0, 0); fromTag(p, 'your car', r0, 0, 800);   // bottom: the friend slides through the top
+  clockRun(t => {
+    const x = xw(t), camV = t < r0 ? 0 : V, rel = t < tc ? 0 : V - camV;
+    put(truck, { x }); put(car, { x: x + 10 });
+    phRoll(truck, x + 330); phRoll(car, x + 330);
+    phText(fl, `friend: ${speedStr(-camV)}`); cam.track(fl, FR, 236, t);
+    phText(tl, `truck: ${speedStr(rel)}`); cam.track(tl, x + 10, 350, t);
+    phText(cl, `your car: ${speedStr(rel)}`); cam.track(cl, x + 10, ROAD.bot + 56, t);
+  }, D);
+}],
+['rule', 'Motion is relative', (m, D) => {
+  const p = panel(0);
+  // Split screen: the same street through two cameras at once, one standing by the road, one riding in the car.
+  const view = (box, t0, title, ride) => {
+    const cam = camera(p, D, { box, x: 1200, y: 560, z: .45 });
+    if (ride) cam.cut({ x: t => splitX(t) + 10 }, 0);
+    const r = phRoad(cam, { hills: false });
+    phPerson(r.scenery, { role: 'friend', x: 480, y: ROAD.side });
+    if (!ride) phPin(r.scenery, { x: 480, y: 330, s: 1.1 });
+    const truck = phTruck(r.vehicles, { y: ROAD.far }), car = phCar(r.vehicles, { y: ROAD.near });
+    if (ride) phPin(car, { x: 30, y: -112, s: 1.4 });
+    const lab = phLabel(r.front, ride ? 'truck: 0 mph' : 'truck: 30 mph →', { y: 340, size: 56, fill: PH.truck });
+    clockRun(t => {
+      const x = splitX(t);
+      put(truck, { x }); put(car, { x: x + 10 }); put(lab, { x: x + 10 });
+      phRoll(truck, x); phRoll(car, x);
+    }, D);
+    put(cam.el, { o: 0 }); show(cam.el, t0);
+    show(phLabel(p, title, { x: box[0] + 24, y: box[1] + box[3] - 22, size: 28, fill: PH.ref, anchor: 'start', o: 0 }), t0);
+  };
+  view([80, 120, 700, 380], m('side', -.4), 'from the roadside', false);
+  view([820, 120, 700, 380], m('car', -.4), 'from the car', true);
+  const check = x => { const c = path(p, `M${x} 455l18 18l36 -42`, { stroke: COL.good, 'stroke-width': 9 }, { d: 0 }); draw(c, m('both'), .5); };
+  check(700); check(1440);
+  txt(p, 'Both are correct.', 800, 560, m('both'), { size: 34, fill: COL.good });
+  show(runs(p, [['Motion is ', COL.chalk], ['relative', PH.ref], ['.', COL.chalk]], { x: 800, y: 660, size: 72 }), m('rel'));
+  show(runs(p, [['It is always described in relation to a ', COL.chalk], ['reference point', PH.ref], ['.', COL.chalk]], { x: 800, y: 745, size: 40, weight: 500 }), m('refpt'));
+  txt(p, 'reference point = the place or object you measure from', 800, 808, m('refpt', 3), { size: 30, fill: COL.dim, weight: 500 });
+}],
+['earth', 'Why we don\'t feel Earth spin', (m, D) => {
+  const p = panel(0);
+  const sky = mk('rect', { width: 1600, height: 900, fill: PH.sky }, p);
+  const cam = camera(p, D);
+  // Open on the ground, rolling with it (nothing moves), then pull back into space: the spin appears.
+  cam.cut(groundView(26, 6), 0).to({ x: 800, y: 450, z: 1, r: 0 }, m('earth'), 3.4);
+  const stars = cam.layer(.15);
+  for (let i = 0; i < 40; i++) { const k = 2 + 3 * phHash(i, 5); mk('rect', { x: -1400 + 4400 * phHash(i, 1), y: -1000 + 2900 * phHash(i, 2), width: k, height: k, fill: COL.chalk, opacity: .3 + .5 * phHash(i, 3) }, stars); }
+  const { you } = earthWorld(cam, D);
+  clockRun(t => { const k = Math.min(1, Math.max(0, (cam.at(t).z - 1.6) / 2)); put(sky, { o: k }); put(stars, { o: 1 - k }); }, D);
+  const rimRing = mk('rect', { x: -15, y: -36, width: 30, height: 40, rx: 6, fill: 'none', stroke: PH.ref, 'stroke-width': 2.5 }, you);
+  put(rimRing, { o: 0 });
+  const arcs = G(cam.world, { o: 0 });
+  const arc = (a1, a2) => {
+    const rr = ER + 92, P = a => [EX + rr * Math.cos(a * Math.PI / 180), EY + rr * Math.sin(a * Math.PI / 180)];
+    const [x1, y1] = P(a1), [x2, y2] = P(a2), t = a2 * Math.PI / 180, dx = Math.sin(t), dy = -Math.cos(t);
+    path(arcs, `M${x1} ${y1}A${rr} ${rr} 0 0 0 ${x2} ${y2}`, { stroke: COL.chalk, 'stroke-width': 5 });
+    path(arcs, `M${x2 - 18 * dx - 10 * dy} ${y2 - 18 * dy + 10 * dx}L${x2} ${y2}L${x2 - 18 * dx + 10 * dy} ${y2 - 18 * dy - 10 * dx}`, { stroke: COL.chalk, 'stroke-width': 5 });
+  };
+  arc(215, 145); arc(35, -35);
+  show(arcs, m('earth', 2.8));
+  txt(p, 'Seen from far above the North Pole', 70, 80, m('earth'), { size: 32, fill: COL.dim, anchor: 'start' });
+  txt(p, 'counterclockwise', EX, 772, m('earth', 3.2), { size: 30, fill: COL.chalk });
+  const eq = mk('circle', { cx: EX, cy: EY, r: ER, fill: 'none', stroke: COL.int, 'stroke-width': 7, transform: `rotate(-90 ${EX} ${EY})` }, cam.world);
+  eq.setAttribute('pathLength', 1); eq.setAttribute('stroke-dasharray', '1 1'); put(eq, { d: 0 }); draw(eq, m('fast'), 1.2);
+  runs(p, [['equator (the rim): ', COL.int], ['more than 1,000 mph', COL.chalk]], { x: EX, y: 818, size: 30, o: 0 });
+  show(p.lastChild, m('fast', .4));
+  const rx = 1180;
+  txt(p, 'Why can\'t we feel it?', rx, 200, m('why'), { size: 42 });
+  txt(p, 'Everything near you spins along with Earth.', rx, 260, m('along'), { size: 28, fill: COL.dim, weight: 500 });
+  show(rimRing, m('along', 1));
+  // Picture-in-picture: a second camera that stays with you on the ground.
+  const box = [880, 300, 600, 380];
+  const pip = camera(p, D, { box, bg: PH.sky });
+  pip.cut(groundView(20, 6), 0);
+  phPin(earthWorld(pip, D).you, { y: -34, s: .3 });
+  put(pip.el, { s: 0, o: 0 }); pop(pip.el, m('zoom'));
+  show(phLabel(p, 'from where you stand', { x: box[0] + 24, y: box[1] + box[3] - 22, size: 28, fill: PH.ref, anchor: 'start', o: 0 }), m('zoom', .3));
+  txt(p, 'house, tree, ground: 0 mph', rx, 740, m('zoom', .3), { size: 32 });
+  txt(p, 'Nothing seems to move.', rx, 790, m('zoom', .3), { size: 32, fill: COL.good });
+}, { lead: false }],   // the ground shot is on screen from the first frame
+['q1', 'Quick check', (m, D) => {
+  const p = panel(0);
+  const GY = 430;
+  phBlock(p, 0, GY + 2, 1600, 10, '#6b5a48', { top: 3, ol: 0 });
+  path(p, Array.from({ length: 27 }, (_, i) => `M${i * 60 + 10} ${GY + 12}h34`).join(''), { stroke: '#4a3d31', 'stroke-width': 6 });
+  path(p, [0, 40, 80].map(k => `M${720 - 520} ${GY - 120 - k}H${720 - 620}`).join(''), { stroke: COL.chalk, 'stroke-width': 6, opacity: .6 });
+  const train = phCarriage(p, { x: 720, y: GY, w: 1000 });
+  put(train, { o: 0 }); show(train, .2);
+  const wl = train._wins[2], wx = 720 + wl;
+  phSprite(train, 'maya_seated', { x: wl - 20, y: -144 });
+  phBlock(train, wl - 4, -152, 66, 9, '#8a6a4c', { top: 3, ol: 2 });
+  phBlock(train, wl + 32, -186, 14, 34, '#86c9e8', { top: 0, right: 4, ol: 2 });
+  phBlock(train, wl + 34, -194, 10, 8, COL.whole, { top: 0, ol: 2 });
+  phLabel(p, 'Maya', { x: wx - 22, y: GY - 98, size: 28, fill: COL.int });
+  phLabel(p, 'water bottle', { x: wx + 120, y: GY - 300, size: 24, fill: '#86c9e8' });
+  path(p, `M${wx + 80} ${GY - 292}L${wx + 42} ${GY - 196}`, { stroke: '#86c9e8', 'stroke-width': 3 });
+  phLabel(p, 'train: 60 mph →', { x: 520, y: GY - 300, size: 30, fill: COL.real });
+  phBlock(p, 1260, GY + 8, 340, 110, '#4a524f', { top: 6, ol: 2 });
+  mk('rect', { x: 1260, y: GY + 8, width: 340, height: 6, fill: COL.int }, p);
+  phPerson(p, { role: 'friend', x: 1430, y: GY + 18 });
+  phLabel(p, 'Leo, on the platform', { x: 1430, y: GY - 124, size: 26, fill: COL.nat });
+}, { ask: done => quiz(Q_CARD, [
+  { id: 'c-maya', prompt: ['Measured from ', h('b', '', 'Maya'), ', how fast is the water bottle on her table moving?'],
+    build: choice([['0 mph'], ['60 mph'], ['120 mph']], 0,
+      'Maya and the bottle ride together. From Maya, the bottle stays put.',
+      [null, 'That is the speed measured from the ground. Maya moves along with the bottle.', 'Nothing here adds up to 120. The bottle rides along with Maya.'],
+      () => floatText('0 mph from Maya', 900, 115, COL.int)) },
+  { id: 'c-leo', prompt: ['Measured from ', h('b', '', 'Leo'), ', standing on the platform, how fast is the same bottle moving?'],
+    build: choice([['0 mph'], ['60 mph'], ['120 mph']], 1,
+      'The bottle rides with the train, so it passes Leo at the train’s speed.',
+      ['That is the answer from Maya. Leo stays on the platform; the train carries the bottle past him.', null, 'The bottle only moves as fast as the train carries it.'],
+      () => floatText('60 mph → from Leo', 1150, 270, COL.nat)) },
+], done) }],
+['wrap', 'Summary', (m, D) => {
+  const p = panel(0);
+  txt(p, 'Motion and relative motion', 800, 150, .2, { size: 40, fill: COL.dim });
+  [['Motion is a change of position.', 'w1'],
+   ['Motion is relative: it is described from a reference point.', 'w2'],
+   ['Different reference points can give different answers, and each can be right.', 'w3']].forEach(([s, mark], i) => {
+    const g = G(p, { x: -16, y: 300 + i * 140, o: 0 });
+    mk('rect', { x: 144, y: -38, width: 52, height: 52, rx: 6, fill: PH.ref }, g);
+    T(g, String(i + 1), { x: 170, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+    T(g, s, { x: 230, size: 36, weight: 600 });
+    tw(g, { o: 1, x: 0 }, m(mark), .6);
+  });
+  txt(p, 'Next: how fast things move.', 800, 760, m('end'), { size: 32, fill: COL.dim, weight: 500 });
+}],
+/* ---------- part 2: speed ---------- */
+['part2', 'Part 2 · Speed', (m, D) => {
+  const p = panel(0);
+  const cam = camera(p, D, { x: 800, y: 285, z: .9 });
+  const road = phRoad(cam);
+  const car = phCar(road.vehicles, { y: ROAD.near }), run = phPerson(road.side, { role: 'runner', y: ROAD.side });
+  const t0 = m('both', -.3);
+  clockRun(t => {
+    const u = Math.max(0, t - t0), cx = -200 + 300 * u, rx = 80 + 90 * u;
+    put(car, { x: cx }); phRoll(car, cx); put(run, { x: rx }); if (u > 0) walkTo(run, rx); else phPose(run);
+  }, D);
+  const g = G(p, { o: 0, y: 24 });
+  T(g, 'Chapter 9 · Motion', { x: 800, y: 130, size: 28, fill: COL.dim, anchor: 'middle' });
+  phLabel(g, 'Speed', { x: 800, y: 250, size: 120, weight: 600 });
+  tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+  txt(p, 'Part 2 · How fast is something moving?', 800, 320, m('q'), { size: 36, fill: COL.dim });
+}],
+['speed', 'Speed = distance ÷ time', (m, D) => {
+  const p = panel(0);
+  const X0 = 220, U = 50, TY = 640, xm = v => X0 + U * v, t0 = m('go', .4), t1 = m('f', -.2);
+  txt(p, 'Speed: the distance something travels in a certain amount of time', 800, 100, .2, { size: 32, fill: COL.dim });
+  meterTrack(p, { x0: X0, U, y: TY, to: 24, every: 3 });
+  const run = phPerson(p, { role: 'runner', x: xm(0), y: TY });
+  const clk = simClock(p, 1460, 230);
+  const dist = G(p, { o: 0 }), arrow = path(dist, '', { stroke: DIST, 'stroke-width': 5 });
+  const dLab = T(dist, '', { y: TY + 150, size: 34, weight: 700, fill: DIST, anchor: 'middle' });
+  show(dist, t0);
+  clockRun(t => {
+    const q = ramp(t, t0, t1), sec = 8 * q, d = 3 * sec, x = xm(d);
+    put(run, { x }); if (q > 0 && q < 1) walkTo(run, x); else phPose(run);
+    clk.set(sec);
+    arrow.setAttribute('d', d > .6 ? arrowPath(xm(0), TY + 100, x) : '');
+    put(dLab, { x: (xm(0) + x) / 2 }); phText(dLab, `${Math.round(d)} m`);
+  }, D);
+  const y = 300;
+  show(T(p, 'speed =', { x: 520, y: y + 14, size: 52, weight: 700, anchor: 'end', o: 0 }), m('f'));
+  show(wfrac(p, 'distance', 'time', 660, y, { ct: DIST, cb: TIME }), m('f', .3));
+  show(T(p, '=', { x: 800, y: y + 14, size: 52, weight: 700, anchor: 'middle', o: 0 }), m('calc'));
+  show(wfrac(p, '24 m', '8 s', 900, y, { ct: DIST, cb: TIME }), m('calc'));
+  const ans = runs(p, [['= ', COL.chalk], ['3 m/s', COL.chalk]], { x: 990, y: y + 16, size: 56, anchor: 'start', weight: 700 });
+  pop(put(ans, { s: .6 }), m('ans'));
+}],
+['units', 'Meters per second', (m, D) => {
+  const p = panel(0);
+  const X0 = 220, U = 50, TY = 640, xm = v => X0 + U * v, t0 = m('each', .2), t1 = t0 + 4.8;
+  runs(p, [['distance → ', COL.dim], ['meters (m)', DIST]], { x: 420, y: 150, size: 40 }); show(p.lastChild, .2);
+  runs(p, [['time → ', COL.dim], ['seconds (s)', TIME]], { x: 1180, y: 150, size: 40 }); show(p.lastChild, m('s'));
+  const sp = runs(p, [['speed → ', COL.dim], ['meters per second ', COL.chalk], ['(m/s)', COL.chalk]], { x: 800, y: 250, size: 48 });
+  show(sp, m('ms'));
+  meterTrack(p, { x0: X0, U, y: TY, to: 24, every: 3 });
+  const run = phPerson(p, { role: 'runner', x: xm(0), y: TY });
+  const clk = simClock(p, 1460, 230);
+  const flags = Array.from({ length: 8 }, (_, i) => {
+    const g = G(p, { x: xm(3 * (i + 1)), y: TY, o: 0 });
+    mk('rect', { x: -2, y: -70, width: 4, height: 70, fill: TIME }, g);
+    mk('rect', { x: 2, y: -70, width: 22, height: 14, fill: TIME }, g);
+    T(g, `${i + 1} s`, { y: -82, size: 24, weight: 700, fill: TIME, anchor: 'middle' });
+    return g;
+  });
+  const gap = G(p, { o: 0 });
+  path(gap, `M${xm(0)} ${TY + 96}V${TY + 112}H${xm(3)}V${TY + 96}`, { stroke: DIST, 'stroke-width': 4 });
+  T(gap, '3 m', { x: xm(1.5), y: TY + 150, size: 30, weight: 700, fill: DIST, anchor: 'middle' });
+  show(gap, t0 + .7);
+  txt(p, 'every second: 3 more meters', 800, 360, t0 + 1.2, { size: 36, fill: COL.chalk });
+  clockRun(t => {
+    const q = ramp(t, t0, t1), sec = 8 * q, x = xm(3 * sec);
+    put(run, { x }); if (q > 0 && q < 1) walkTo(run, x); else phPose(run);
+    clk.set(sec);
+    flags.forEach((f, i) => put(f, { o: sec >= i + 1 - 1e-6 ? 1 : 0 }));
+  }, D);
+  txt(p, 'Part 1’s miles per hour (mph) is a speed unit too: miles ÷ hours.', 800, 450, m('mph'), { size: 28, fill: COL.dim, weight: 500 });
+}],
+['average', 'Average speed', (m, D) => {
+  const p = panel(0);
+  const X0 = 170, U = 4.2, xm = v => X0 + U * v, LA = 420, LB = 640;
+  const lane = y => { phBlock(p, 0, y - 70, 1600, 100, PH.road, { top: 0, ol: 0 }); path(p, `M0 ${y - 66}H1600M0 ${y + 26}H1600`, { stroke: PH.line, 'stroke-width': 3, opacity: .5 }); };
+  lane(LA);
+  for (let v = 0; v <= 300; v += 50) T(p, `${v}`, { x: xm(v), y: LA + 66, size: 24, fill: COL.chalk, anchor: 'middle' });
+  T(p, 'meters', { x: xm(300) + 40, y: LA + 66, size: 22, fill: COL.dim });
+  const light = phSprite(p, 'light_red', { x: xm(150) + 92, y: LA - 66 });
+  const car = phCar(p, { x: xm(0), y: LA + 18, s: .5 });
+  const vLab = phLabel(p, '', { y: LA - 112, size: 28, fill: PH.car });
+  const clk = simClock(p, 1460, 190, 40);
+  // First run, time-lapse: drive (sim 0–10 s), wait at the light (10–18 s), drive on (18–30 s), timed to the words.
+  const go = m('go'), st = m('stop'), ag = m('again'), g0 = m('ghost', .3), g1 = g0 + 5;
+  const sim1 = t => t < go ? 0 : t < st ? 10 * ramp(t, go, st) : t < ag ? 10 + 8 * ramp(t, st, ag) : 18 + 12 * ramp(t, ag, ag + 2.2);
+  const ghostG = G(p, { o: 0 });
+  lane(LB); ghostG.append(p.lastChild.previousSibling, p.lastChild);   // the second lane belongs to the replay
+  const ghost = phCar(ghostG, { x: xm(0), y: LB + 18, s: .5, o: .55 });
+  phLabel(ghostG, 'steady 10 m/s, all the way', { x: 150, y: LB + 74, size: 28, fill: COL.chalk, anchor: 'start' });
+  show(ghostG, m('ghost'));
+  clockRun(t => {
+    const s = t < g0 ? sim1(t) : 30 * ramp(t, g0, g1), x = xm(tripX(s));
+    put(car, { x }); phRoll(car, tripX(s) * U / .5); put(vLab, { x });
+    phText(vLab, `${tripV(s)} m/s`); put(vLab, { o: t >= go && s < 30 ? 1 : 0 });   // speed now; hidden once arrived
+    phFrame(light, s >= 10 && s < 18 ? 'light_red' : s >= 18 ? 'light_green' : 'light_red');
+    clk.set(s);
+    const gx = xm(10 * (t < g0 ? 0 : s)); put(ghost, { x: gx }); phRoll(ghost, 10 * s * U / .5);
+  }, D);
+  const tot = G(p, { o: 0 });
+  path(tot, `M${xm(0)} ${LA + 84}V${LA + 100}H${xm(300)}V${LA + 84}`, { stroke: DIST, 'stroke-width': 4 });
+  T(tot, 'total distance: 300 m', { x: xm(150), y: LA + 134, size: 30, weight: 700, fill: DIST, anchor: 'middle' });
+  show(tot, m('total', .8));
+  txt(p, 'total time: 30 s', 1400, 200, m('total', 1.6), { size: 28, fill: TIME, anchor: 'end' });   // beside the clock, clear of the car's speed label
+  const y = 100;
+  show(T(p, 'average speed =', { x: 560, y: y + 14, size: 44, weight: 700, anchor: 'end', o: 0 }), m('avg'));
+  show(wfrac(p, 'total distance', 'total time', 730, y, { size: 38, ct: DIST, cb: TIME }), m('avg', .4));
+  show(T(p, '=', { x: 900, y: y + 14, size: 44, weight: 700, anchor: 'middle', o: 0 }), m('ten'));
+  show(wfrac(p, '300 m', '30 s', 990, y, { size: 38, ct: DIST, cb: TIME }), m('ten'));
+  const ans = T(p, '= 10 m/s', { x: 1070, y: y + 16, size: 48, weight: 700, anchor: 'start', o: 0 });
+  pop(put(ans, { s: .6 }), m('ten', .9));
+}, { lead: false }],   // road and car are on screen from the first frame
+['instant', 'Instantaneous speed', (m, D) => {
+  const p = panel(0);
+  const cam = camera(p, D), w = cam.world;
+  const X0 = 150, U = 12.5, TY = 640, xm = v => X0 + U * v;
+  meterTrack(w, { x0: X0, U, y: TY, to: 100, every: 10, size: 24 });
+  for (let i = 0; i < 16; i++) for (let j = 0; j < 2; j++) mk('rect', { x: xm(100) - 8 + 8 * j, y: TY - 160 + 10 * i, width: 8, height: 10, fill: (i + j) % 2 ? COL.chalk : PH.out }, w);   // finish line
+  T(w, 'finish', { x: xm(100), y: TY + 92, size: 26, weight: 700, fill: COL.chalk, anchor: 'middle' });
+  const run = phPerson(w, { role: 'runner', x: xm(0), y: TY });
+  // Run 1 (time-lapse) after "go"; run 2 from "but" in slower motion, frozen at 90 m for the snapshot, then to the finish.
+  const a0 = m('go', .1), a1 = a0 + 3, b0 = m('but', .2), fz = b0 + 9 * .7, f1 = m('inst', 1.8);
+  const tau = t => t < b0 ? 10 * ramp(t, a0, a1) : t < fz ? (t - b0) / .7 : t < f1 ? 9 : 9 + ramp(t, f1, f1 + .7);
+  const sx = t => xm(sprintX(tau(t)));
+  cam.to({ x: t => sx(t), y: TY - 80, z: 1.9 }, m('fast', .2), 1.4).to({ x: 800, y: 450, z: 1 }, f1 + .9, 1.2);
+  const clk = simClock(p, 1460, 190, 40);
+  const vg = G(p, { o: 0 }), vLab = phLabel(vg, '', { size: 30, fill: COL.task });
+  show(vg, b0);
+  clockRun(t => {
+    const s = tau(t), x = sx(t);
+    const still = t >= fz && t < f1;   // frozen for the snapshot
+    put(run, { x }); if (!still) { if (s > 0 && s < 10) walkTo(run, x, 30); else phPose(run); }
+    clk.set(s);
+    phText(vLab, `now: ${Math.round(sprintV(s))} m/s`); cam.track(vLab, x, TY - 150, t);
+  }, D);
+  runs(p, [['average speed = 100 m ÷ 10 s = ', COL.chalk], ['10 m/s', COL.chalk]], { x: 800, y: 100, size: 40, weight: 700 });
+  show(p.lastChild, m('avg', .9));
+  const snap = G(p, { o: 0 });
+  [[700, 330, 1, 1], [900, 330, -1, 1], [700, 610, 1, -1], [900, 610, -1, -1]].forEach(([x, y, dx, dy]) => path(snap, `M${x} ${y + 40 * dy}V${y}H${x + 40 * dx}`, { stroke: COL.task, 'stroke-width': 6 }));
+  show(snap, fz, .2); hide(snap, f1, .3);
+  runs(p, [['instantaneous speed', COL.task], [': the speed at one moment', COL.chalk]], { x: 800, y: 180, size: 38 });
+  show(p.lastChild, m('inst'));
+}, { lead: false }],   // track and runner are on screen from the first frame
+['q2', 'Quick check', (m, D) => {
+  const p = panel(0);
+  const X0 = 170, U = 20, xm = v => X0 + U * v;
+  phBlock(p, 0, 170, 1600, 250, '#2f6f9e', { top: 6, ol: 0 });
+  path(p, 'M0 295H1600', { stroke: '#e8eef2', 'stroke-width': 4, 'stroke-dasharray': '18 14', opacity: .7 });
+  for (let v = 0; v <= 60; v += 10) { T(p, `${v}`, { x: xm(v), y: 156, size: 24, fill: COL.chalk, anchor: 'middle' }); mk('rect', { x: xm(v) - 2, y: 170, width: 4, height: 250, fill: '#e8eef2', opacity: .18 }, p); }
+  T(p, 'meters', { x: xm(60) + 36, y: 156, size: 22, fill: COL.dim });
+  const dol = phSprite(p, 'dolphin', { x: xm(0), y: 270 }), wal = phSprite(p, 'walrus', { x: xm(0), y: 405 });
+  const dl = phLabel(p, '56 m in 8 s', { y: 200, size: 30, fill: COL.chalk, o: 0 }), wl = phLabel(p, '30 m in 6 s', { y: 325, size: 30, fill: COL.chalk, o: 0 });
+  clockRun(t => {
+    const s = Math.max(0, t - .5) * 1.4, dx = xm(7 * Math.min(s, 8)), wx = xm(5 * Math.min(s, 6));
+    put(dol, { x: dx }); put(wal, { x: wx });
+    put(dl, { x: dx, o: s >= 8 ? 1 : 0 }); put(wl, { x: wx, o: s >= 6 ? 1 : 0 });
+  }, D);
+}, { ask: done => quiz(Q_CARD, [
+  { id: 'c-dw-speed', prompt: ['Speed = ', h('b', '', 'distance ÷ time'), '. Find each speed.'],
+    build: blanks([
+      { parts: ['dolphin:  56 meters ÷ 8 seconds = ', { box: '7' }, ' meters per second'], why: '56 ÷ 8 = 7.', hint: 'Divide the dolphin’s distance by its time: 56 ÷ 8.' },
+      { parts: ['walrus:  30 meters ÷ 6 seconds = ', { box: '5' }, ' meters per second'], why: '30 ÷ 6 = 5.', hint: 'Divide the walrus’s distance by its time: 30 ÷ 6.' },
+    ]) },
+  { id: 'c-dw-faster', prompt: ['Which animal is faster?'],
+    build: choice([['the dolphin'], ['the walrus'], ['both are the same']], 0,
+      'The dolphin covers 7 meters every second; the walrus covers 5.',
+      [null, 'The walrus’s 30 meters took 6 seconds: 5 meters per second, less than the dolphin’s 7.', 'Compare meters per second: 7 for the dolphin, 5 for the walrus.'],
+      () => floatText('dolphin: 7 m/s > 5 m/s', 800, 130, COL.good)) },
+  { id: 'c-car-avg', prompt: ['A car drives 150 meters in 12 seconds. What is its ', h('b', '', 'average speed'), '?'],
+    build: blanks([{ parts: ['150 meters ÷ 12 seconds = ', { box: '12.5' }, ' meters per second'], why: '150 ÷ 12 = 12.5. The answer can be a decimal.', hint: 'Divide the total distance by the total time: 150 ÷ 12. The answer is a decimal.' }]) },
+], done) }],
+['wrap2', 'Summary · Speed', (m, D) => {
+  const p = panel(0);
+  txt(p, 'Speed', 800, 130, .2, { size: 40, fill: COL.dim });
+  [['Speed = distance ÷ time.', 'w1'],
+   ['In science, speed is measured in meters per second (m/s).', 'w2'],
+   ['Average speed = total distance ÷ total time.', 'w3'],
+   ['Instantaneous speed is the speed at one moment.', 'w4']].forEach(([s, mark], i) => {
+    const g = G(p, { x: -16, y: 260 + i * 120, o: 0 });
+    mk('rect', { x: 144, y: -38, width: 52, height: 52, rx: 6, fill: PH.ref }, g);
+    T(g, String(i + 1), { x: 170, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+    T(g, s, { x: 230, size: 36, weight: 600 });
+    tw(g, { o: 1, x: 0 }, m(mark), .6);
+  });
+  txt(p, 'Next: speed with a direction, velocity.', 800, 780, m('end'), { size: 32, fill: COL.dim, weight: 500 });
+}],
+/* ---------- part 3: velocity ---------- */
+['part3', 'Part 3 · Velocity', (m, D) => {
+  const p = panel(0);
+  const cam = camera(p, D, { x: 800, y: 285, z: .9 });
+  const road = phRoad(cam);
+  const a = phCar(road.vehicles, { y: ROAD.near }), b = phCar(road.vehicles, { y: ROAD.far });
+  phFace(b, -1);
+  const arA = path(road.front, '', { stroke: VEL, 'stroke-width': 8 }), arB = path(road.front, '', { stroke: VEL, 'stroke-width': 8 });
+  clockRun(t => {
+    const xa = -150 + 200 * t, xb = 1750 - 200 * t;
+    put(a, { x: xa }); phRoll(a, xa); put(b, { x: xb }); phRoll(b, -xb);
+    arrowAt(arA, xa - 55, ROAD.near - 130, 110, 0); arrowAt(arB, xb + 55, ROAD.far - 222, 110, 180);
+  }, D);
+  const g = G(p, { o: 0, y: 24 });
+  T(g, 'Chapter 9 · Motion', { x: 800, y: 130, size: 28, fill: COL.dim, anchor: 'middle' });
+  phLabel(g, 'Velocity', { x: 800, y: 250, size: 120, weight: 600 });
+  tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+  txt(p, 'Part 3 · Same speed, which way?', 800, 320, m('q'), { size: 36, fill: COL.dim });
+}],
+['velocity', 'Speed in a direction', (m, D) => {
+  const p = panel(0);
+  const XL = 260, XR = 1340, TY = 640, j0 = m('jog'), LEG = (m('minus') - j0) / 5;   // equal legs: right at "plus", left at "minus"
+  txt(p, 'Velocity = speed in a certain direction', 800, 110, .2, { size: 40 });
+  phBlock(p, 160, TY, 1280, 14, '#8a6f55', { top: 4, ol: 0 });
+  const conv = G(p, { o: 0 });
+  path(conv, arrowPath(900, TY + 70, 1400), { stroke: VEL, 'stroke-width': 5 });
+  T(conv, '+ direction', { x: 1150, y: TY + 120, size: 30, weight: 700, fill: VEL, anchor: 'middle' });
+  path(conv, arrowPath(700, TY + 70, 200), { stroke: VEL, 'stroke-width': 5, opacity: .6 });
+  T(conv, '− direction', { x: 450, y: TY + 120, size: 30, weight: 700, fill: VEL, anchor: 'middle', o: 1 });
+  show(conv, m('sign'));
+  const you = phPerson(p, { x: XL, y: TY });
+  const sp = phLabel(p, 'speed: 2 m/s', { size: 30, o: 0 });
+  const vg = G(p, { o: 0 }), vl = phLabel(vg, '', { size: 30, fill: VEL }), va = path(vg, '', { stroke: VEL, 'stroke-width': 7 });
+  show(sp, j0); show(vg, m('diff'));
+  clockRun(t => {
+    let x = XL, dir = 1;
+    if (t > j0) { const k = Math.floor((t - j0) / LEG), u = (t - j0) / LEG - k; dir = k % 2 ? -1 : 1; x = dir > 0 ? XL + (XR - XL) * u : XR - (XR - XL) * u; }
+    put(you, { x }); phFace(you, dir); if (t > j0) walkTo(you, (t - j0) * 300); else phPose(you);
+    put(sp, { x, y: TY - 230 }); put(vl, { x, y: TY - 190 });
+    phText(vl, dir > 0 ? 'velocity: +2 m/s' : 'velocity: −2 m/s');
+    arrowAt(va, x - 55 * dir, TY - 158, 110, dir > 0 ? 0 : 180);
+  }, D);
+  show(T(p, '+2 m/s →', { x: 560, y: 240, size: 60, weight: 700, fill: VEL, anchor: 'middle', o: 0 }), m('plus'));
+  show(T(p, '−2 m/s ←', { x: 1040, y: 240, size: 60, weight: 700, fill: VEL, anchor: 'middle', o: 0 }), m('minus'));
+  txt(p, 'same size (2 m/s), opposite directions: the sign tells which way', 800, 315, m('sign'), { size: 32, fill: COL.chalk, weight: 500 });
+}],
+['change', 'Two ways to change velocity', (m, D) => {
+  const p = panel(0);
+  const LA = 400, LB = 720, sp0 = m('spd'), dr = m('dir', .6);
+  txt(p, 'A change in velocity means a change in…', 800, 110, .2, { size: 40 });
+  [LA, LB].forEach(y => { phBlock(p, 0, y - 70, 1600, 100, PH.road, { top: 0, ol: 0 }); path(p, `M0 ${y - 20}H1600`, { stroke: PH.line, 'stroke-width': 4, 'stroke-dasharray': '50 60', opacity: .5 }); });
+  const a = phCar(p, { y: LA + 18, s: .6 }), b = phCar(p, { y: LB + 18, s: .6 });
+  const arA = path(p, '', { stroke: VEL, 'stroke-width': 8 }), arB = path(p, '', { stroke: VEL, 'stroke-width': 8 });
+  const lA = phLabel(p, '', { size: 28, fill: VEL }), lB = phLabel(p, '', { size: 28, fill: VEL });
+  const ta = phLabel(p, 'speed', { x: 60, y: LA - 110, size: 44, fill: COL.chalk, anchor: 'start', o: 0 });
+  const tb = phLabel(p, 'direction', { x: 60, y: LB - 110, size: 44, fill: COL.chalk, anchor: 'start', o: 0 });
+  show(ta, sp0 - .3); show(tb, m('dir', -.3));
+  clockRun(t => {
+    const u = Math.max(0, t - sp0), acc = Math.min(u, 3), v = 60 + 60 * acc;   // px/s: 4 → 16 m/s
+    const xa = Math.min(1440, 160 + 60 * t + 30 * acc * acc + 240 * Math.max(0, u - 3));
+    put(a, { x: xa }); phRoll(a, xa / .6); arrowAt(arA, xa - v * .3, LA - 80, v * .6, 0);
+    put(lA, { x: xa, y: LA - 118 }); phText(lA, `velocity: +${Math.round(v / 15)} m/s`);
+    const xb = t < dr ? 300 + 100 * t : 300 + 100 * dr - 100 * (t - dr), db = t < dr ? 1 : -1;
+    put(b, { x: xb }); phFace(b, db); phRoll(b, xb / .6 * db); arrowAt(arB, xb - 45 * db, LB - 80, 90, db > 0 ? 0 : 180);
+    put(lB, { x: xb, y: LB - 118 }); phText(lB, `velocity: ${db > 0 ? '+' : '−'}6 m/s`);
+  }, D);
+}],
+['corner', 'Turning a corner', (m, D) => {
+  const p = panel(0);
+  const ab = m('above'), V2 = 150, R0 = 250, L1 = 1050, ARC = Math.PI / 2 * R0, t0 = m('turn') - L1 / V2;
+  // Side shot first, then a cross-fade to an overhead camera: only from above can we see the turn.
+  const side = camera(p, D, { x: 800, y: 285, z: .9 });
+  const road = phRoad(side), sc = phCar(road.vehicles, { y: ROAD.near });
+  const sTag = txt(p, 'seen from the side', 70, 80, .2, { size: 30, fill: COL.dim, anchor: 'start' });
+  hide(sTag, ab, .4);
+  // Only the overhead camera fades (over the side shot), then the side camera stops rendering: one
+  // half-transparent full-screen group at a time is much cheaper in Firefox than two.
+  prog(q => { if (q === 1) side.el.style.display = 'none'; }, ab + .85, 0, lin);
+  const top = camera(p, D);
+  put(top.el, { o: 0 }); show(top.el, ab, .8);
+  const w = top.world;
+  const { pose } = overheadStreet(w);
+  // Faint copies of the arrow where the car was: the direction turns, the length (speed) doesn't.
+  const marks = [L1 - 1, L1 + ARC / 2, L1 + ARC].map(dd => { const [x, y, a] = pose(dd); return arrowAt(path(w, '', { stroke: VEL, 'stroke-width': 6, opacity: 0 }), x, y, 150, a); });
+  const car = phTop(w, 'car_top'), arr = path(w, '', { stroke: VEL, 'stroke-width': 9 });
+  const spd = phLabel(p, 'speed: 10 m/s', { x: 70, y: 90, size: 40, anchor: 'start', o: 0 });
+  const vg = G(p, { o: 0 }), vl = phLabel(vg, '', { size: 30, fill: VEL });
+  show(spd, m('drive')); show(vg, m('drive')); pulse(spd, m('still'), 1.25);
+  const cmp = G(p, { x: 1470, y: 760, o: 0 });   // bottom right: the velocity label passes the top
+  [[0, -1, 'N'], [1, 0, 'E'], [0, 1, 'S'], [-1, 0, 'W']].forEach(([dx, dy, n]) => {
+    path(cmp, `M0 0L${dx * 44} ${dy * 44}`, { stroke: n === 'N' ? COL.chalk : COL.dim, 'stroke-width': 4 });
+    T(cmp, n, { x: dx * 70, y: dy * 70 + 10, size: 26, weight: 700, fill: COL.chalk, anchor: 'middle' });
+  });
+  show(cmp, ab + .4);
+  clockRun(t => {
+    const xs = -150 + 150 * t; put(sc, { x: xs }); phRoll(sc, xs);
+    const d = Math.max(0, V2 * (t - t0)), [x, y, a] = pose(d), r = a * Math.PI / 180;
+    put(car, { x, y, r: a });
+    const bx = x + 80 * Math.cos(r), by = y + 80 * Math.sin(r);
+    arrowAt(arr, bx, by, 150, a);
+    marks.forEach((e, i) => put(e, { o: d > [L1 - 1, L1 + ARC / 2, L1 + ARC][i] && t > ab ? .35 : 0 }));
+    phText(vl, `velocity: 10 m/s ${compassWord(a)}`);
+    top.track(vl, bx + 330 * Math.cos(r), by + 330 * Math.sin(r) - 40 * Math.abs(Math.cos(r)), t);
+  }, D);
+  runs(p, [['Same speed, new direction: the ', COL.chalk], ['velocity', VEL], [' changes.', COL.chalk]], { x: 800, y: 850, size: 38, weight: 700 });
+  show(p.lastChild, m('rule'));
+}],
+['q3', 'Quick check', (m, D) => {
+  const p = panel(0);
+  const X0 = 520, X1 = 1080, Y0 = 110, Y1 = 390, per = 2 * (X1 - X0 + Y1 - Y0);
+  phBlock(p, X0 - 50, Y0 - 50, X1 - X0 + 100, Y1 - Y0 + 100, PH.walk, { top: 0, ol: 0 });
+  phBlock(p, X0 + 30, Y0 + 30, X1 - X0 - 60, Y1 - Y0 - 60, PH.grass, { top: 0, ol: 0 });
+  [[X0 + 80, Y0 + 70], [X0 + 250, Y0 + 70], [X0 + 420, Y0 + 130]].forEach(([x, y]) => phBlock(p, x, y, 110, 90, '#a65d4b', { top: 8, right: 10, ol: 0 }));
+  T(p, 'one square block', { x: 800, y: Y1 + 40, size: 26, fill: COL.dim, anchor: 'middle' });
+  const walker = phTop(p, 'you_top', { s: .9 }), arr = path(p, '', { stroke: VEL, 'stroke-width': 7 });
+  const pose = d => { d = ((d % per) + per) % per; const w = X1 - X0, h = Y1 - Y0;
+    return d < w ? [X0 + d, Y0, 0] : d < w + h ? [X1, Y0 + d - w, 90] : d < 2 * w + h ? [X1 - (d - w - h), Y1, 180] : [X0, Y1 - (d - 2 * w - h), -90]; };
+  clockRun(t => { const [x, y, a] = pose(220 * t); put(walker, { x, y, r: a }); arrowAt(arr, x + 34 * Math.cos(a * Math.PI / 180), y + 34 * Math.sin(a * Math.PI / 180), 70, a, 14); }, D);
+}, { ask: done => quiz(Q_CARD, [
+  { id: 'c-vel-need', prompt: ['What do you need to know to describe an object’s ', h('b', '', 'velocity'), '?'],
+    build: choice([['its speed only'], ['its direction only'], ['its speed and its direction']], 2,
+      'Velocity is speed in a certain direction, so it needs both.',
+      ['Speed alone is not velocity: two cars at the same speed can go opposite ways.', 'Direction alone does not say how fast.', null]) },
+  { id: 'c-uturn', prompt: ['A truck drives at 30 kilometers per hour, makes a U-turn, then drives 30 kilometers per hour the other way. What changed?'],
+    build: choice([['its speed'], ['its velocity'], ['both'], ['neither']], 1,
+      'Same speed, opposite direction: the velocity changed, the speed did not.',
+      ['It is 30 kilometers per hour before and after the U-turn: the speed is the same.', null, 'The speed stayed 30 kilometers per hour; only the direction changed.', 'The direction changed, and velocity includes direction.'],
+      () => floatText('velocity changed', 800, 470, VEL)) },
+  { id: 'c-block', prompt: ['You walk once around a square block at the same pace, turning at each of its four corners.'],
+    build: blanks([
+      { parts: ['Your velocity changes ', { box: '4' }, ' times'], why: 'Each corner is a new direction: 4 changes.', hint: 'Velocity changes whenever the direction changes. How many times do you turn?' },
+      { parts: ['Your speed changes ', { box: '0' }, ' times'], why: 'Same pace the whole way: the speed never changes.', hint: 'You keep the same pace. Does your speed ever change?' },
+    ]) },
+], done) }],
+['wrap3', 'Summary · Velocity', (m, D) => {
+  const p = panel(0);
+  txt(p, 'Velocity', 800, 130, .2, { size: 40, fill: COL.dim });
+  [['Velocity is speed in a certain direction.', 'w1'],
+   ['Same speed, opposite directions: different velocities (+2 and −2 m/s).', 'w2'],
+   ['Velocity changes when the speed or the direction changes.', 'w3']].forEach(([s, mark], i) => {
+    const g = G(p, { x: -16, y: 290 + i * 130, o: 0 });
+    mk('rect', { x: 144, y: -38, width: 52, height: 52, rx: 6, fill: PH.ref }, g);
+    T(g, String(i + 1), { x: 170, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+    T(g, s, { x: 230, size: 36, weight: 600 });
+    tw(g, { o: 1, x: 0 }, m(mark), .6);
+  });
+  txt(p, 'Next: how velocity changes over time, acceleration.', 800, 760, m('end'), { size: 32, fill: COL.dim, weight: 500 });
+}],
+/* ---------- part 4: acceleration ---------- */
+['part4', 'Part 4 · Acceleration', (m, D) => {
+  const p = panel(0);
+  const cam = camera(p, D, { x: 800, y: 285, z: .9 });
+  const road = phRoad(cam), car = phCar(road.vehicles, { y: ROAD.near });
+  const av = path(road.front, '', { stroke: VEL, 'stroke-width': 8 }), aa = path(road.front, '', { stroke: ACC, 'stroke-width': 8 });
+  clockRun(t => {
+    const x = -150 + 40 * t + 30 * t * t, v = 40 + 60 * t;    // speeding up from the left
+    put(car, { x }); phRoll(car, x); arrowAt(av, x - 40, ROAD.near - 130, v * .35, 0); arrowAt(aa, x - 40, ROAD.near - 160, 90, 0);
+  }, D);
+  const g = G(p, { o: 0, y: 24 });
+  T(g, 'Chapter 9 · Motion', { x: 800, y: 130, size: 28, fill: COL.dim, anchor: 'middle' });
+  phLabel(g, 'Acceleration', { x: 800, y: 250, size: 120, weight: 600 });
+  tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+  txt(p, 'Part 4 · Speeding up, slowing down, turning', 800, 320, m('q'), { size: 36, fill: COL.dim });
+}],
+['accel', 'Three ways to accelerate', (m, D) => {
+  const p = panel(0);
+  txt(p, 'Acceleration: the rate at which velocity changes', 800, 140, .2, { size: 40 });
+  vaKey(p, m('ways'));
+  const W = 460, Y = 230, H = 400, xs = [70, 570, 1070];
+  const box = (i, t0, title) => {
+    const cam = camera(p, D, { box: [xs[i], Y, W, H], x: i < 2 ? 760 : 800, y: i < 2 ? 470 : 450, z: .5 });
+    put(cam.el, { o: 0 }); show(cam.el, m('ways') + .2 * i);
+    const lab = phLabel(p, title, { x: xs[i] + W / 2, y: Y + H + 52, size: 34, o: 0 }); show(lab, m('ways') + .2 * i); pulse(lab, t0, 1.25);
+    return cam;
+  };
+  // Each box loops a 3-second clip, so all three keep moving while the narration names them.
+  const side = (cam, f) => {
+    const w = cam.world;
+    phBlock(w, 0, 520, 1600, 120, PH.road, { top: 0, ol: 0 });
+    const car = phCar(w, { y: 600 }), av = path(w, '', { stroke: VEL, 'stroke-width': 14 }), aa = path(w, '', { stroke: ACC, 'stroke-width': 14 });
+    return t => { const [x, v, dir] = f(t % 3); put(car, { x }); phRoll(car, x); arrowAt(av, x - 60, 440, v, 0, 30); arrowAt(aa, x - 60 + (dir < 0 ? 180 : 0), 360, 180, dir > 0 ? 0 : 180, 30); };
+  };
+  const up = side(box(0, m('up'), 'speeding up'), u => [380 + 60 * u + 45 * u * u, 60 + 90 * u, 1]);
+  const down = side(box(1, m('down'), 'slowing down'), u => [380 + 330 * u - 45 * u * u, 330 - 90 * u, -1]);
+  const tc = box(2, m('turn'), 'changing direction'), tw3 = tc.world;
+  mk('rect', { x: 0, y: 0, width: 1600, height: 900, fill: PH.grass }, tw3);
+  mk('circle', { cx: 800, cy: 450, r: 300, fill: 'none', stroke: PH.road, 'stroke-width': 130 }, tw3);
+  const car = phTop(tw3, 'car_top', { s: 1.6 }), av = path(tw3, '', { stroke: VEL, 'stroke-width': 14 }), aa = path(tw3, '', { stroke: ACC, 'stroke-width': 14 });
+  clockRun(t => {
+    up(t); down(t);
+    const th = -t * 1.1, x = 800 + 300 * Math.cos(th), y = 450 + 300 * Math.sin(th), hd = th * 180 / Math.PI - 90;   // counterclockwise
+    put(car, { x, y, r: hd }); arrowAt(av, x, y, 220, hd, 30); arrowAt(aa, x, y, 170, th * 180 / Math.PI + 180, 30);
+  }, D);
+}],
+['formula', 'Acceleration = change in velocity ÷ time', (m, D) => {
+  const p = panel(0);
+  const X0 = 200, U = 20, TY = 660, xm = v => X0 + U * v, e0 = m('ex', .2), e1 = e0 + 5;
+  const y = 170;
+  show(T(p, 'acceleration =', { x: 470, y: y + 14, size: 46, weight: 700, anchor: 'end', fill: ACC, o: 0 }), m('f'));
+  show(wfrac(p, 'final velocity − starting velocity', 'time', 820, y, { size: 38, ct: VEL, cb: TIME }), m('f', .3));
+  show(T(p, '=', { x: 1145, y: y + 14, size: 46, weight: 700, anchor: 'middle', o: 0 }), m('calc'));
+  show(wfrac(p, '25 − 5 m/s', '4 s', 1275, y, { size: 38, ct: VEL, cb: TIME }), m('calc'));
+  const ans = T(p, '= 5 m/s²', { x: 1150, y: y + 110, size: 52, weight: 700, anchor: 'start', fill: ACC, o: 0 });
+  pop(put(ans, { s: .6 }), m('ans'));
+  meterTrack(p, { x0: X0, U, y: TY, to: 60, every: 10 });
+  const car = phCar(p, { x: xm(0), y: TY, s: .6 }), clk = simClock(p, 1460, 360, 40);
+  const vl = phLabel(p, '', { size: 30, fill: VEL, o: 0 }); show(vl, e0 - .3);
+  // A flag every second, at the car's position, with its velocity: 5, 10, 15, 20, 25 m/s. The gaps grow.
+  const flags = [0, 1, 2, 3, 4].map(k => {
+    const g = G(p, { x: xm(5 * k + 2.5 * k * k), y: TY, o: 0 });
+    mk('rect', { x: -2, y: -150, width: 4, height: 150, fill: VEL, opacity: .7 }, g);
+    T(g, `${5 + 5 * k} m/s`, { y: -160, size: 26, weight: 700, fill: VEL, anchor: 'middle' });
+    T(g, `${k} s`, { y: 110, size: 24, weight: 700, fill: TIME, anchor: 'middle' });
+    return g;
+  });
+  txt(p, 'every second: 5 m/s faster', 800, 400, m('unit', .4), { size: 36, fill: ACC });
+  clockRun(t => {
+    const s = 4 * ramp(t, e0, e1), x = xm(5 * s + 2.5 * s * s);
+    put(car, { x }); phRoll(car, (x - X0) / .6); clk.set(s);
+    put(vl, { x, y: TY - 80, o: s < 4 ? 1 : 0 }); phText(vl, `${Math.round(5 + 5 * s)} m/s`);
+    flags.forEach((f, k) => put(f, { o: t >= e0 && s >= k - 1e-6 ? 1 : 0 }));
+  }, D);
+}, { lead: false }],
+['sign', 'Positive and negative acceleration', (m, D) => {
+  const p = panel(0);
+  const g0 = m('gas'), b0 = m('brake'), A = 60;   // px/s²; 12 px/s = 1 m/s on screen, so A = 5 m/s²
+  // Velocity: 60 px/s, gas 3 s up to 240, cruise, brake 4 s down to 0. x(t) is its integral.
+  const v = t => t < g0 ? 60 : t < g0 + 3 ? 60 + A * (t - g0) : t < b0 ? 240 : Math.max(0, 240 - A * (t - b0));
+  const xAt = t => { const a = Math.min(t, g0), b = Math.min(Math.max(t - g0, 0), 3), c = Math.min(Math.max(t - g0 - 3, 0), b0 - g0 - 3), d = Math.min(Math.max(t - b0, 0), 4);
+    return 60 * a + 60 * b + A * b * b / 2 + 240 * c + 240 * d - A * d * d / 2; };
+  const cam = camera(p, D, { x: 800, y: 560, z: 1 });
+  cam.cut({ x: t => 300 + xAt(t) + 150 }, 0);   // follow: the road streams faster or slower behind the car
+  const road = phRoad(cam), car = phCar(road.vehicles, { y: ROAD.near });
+  const av = path(road.front, '', { stroke: VEL, 'stroke-width': 8 }), aa = path(road.front, '', { stroke: ACC, 'stroke-width': 8 });
+  const vg = G(p), vl = phLabel(vg, '', { size: 30, fill: VEL }), ag = G(p), al = phLabel(ag, '', { size: 30, fill: ACC });
+  vaKey(p, .2);
+  const pedal = (x, label, sign, col) => {
+    const g = G(p, { x, y: 820 });
+    phBlock(g, -40, -110, 80, 110, '#59625e', { top: 6, right: 8, ol: 0 });
+    T(g, label, { y: 44, size: 26, weight: 700, fill: COL.chalk, anchor: 'middle' });
+    T(g, sign, { y: -36, size: 54, weight: 700, fill: col, anchor: 'middle' });
+    return g;
+  };
+  const brake = pedal(1300, 'brake', '−', ACC), gas = pedal(1440, 'gas', '+', ACC);
+  clockRun(t => {
+    const x = 300 + xAt(t), vv = v(t), acc = t >= g0 && t < g0 + 3 ? 1 : t >= b0 && vv > 0 ? -1 : 0;
+    put(car, { x }); phRoll(car, x);
+    arrowAt(av, x - 60, ROAD.near - 140, vv * .55, 0); arrowAt(aa, acc > 0 ? x - 60 : x + 60, ROAD.near - 180, acc ? 110 : 0, acc > 0 ? 0 : 180);
+    phText(vl, `velocity: ${Math.round(vv / 12)} m/s →`); cam.track(vl, x, ROAD.near - 210, t);
+    phText(al, acc ? `acceleration: ${acc > 0 ? '+' : '−'}5 m/s²` : 'acceleration: 0'); cam.track(al, x, ROAD.near - 250, t);
+    put(gas, { y: acc > 0 ? 832 : 820 }); put(brake, { y: acc < 0 ? 832 : 820 });
+  }, D);
+  runs(p, [['negative acceleration = ', COL.chalk], ['deceleration', ACC]], { x: 700, y: 870, size: 36, weight: 700 });
+  show(p.lastChild, m('decel'));
+}],
+['turnfeel', 'Turning is accelerating', (m, D) => {
+  const p = panel(0);
+  const cam = camera(p, D), { pose, L1, ARC, cx, cy } = overheadStreet(cam.world), V3 = 70, t0 = m('dir') - L1 / V3;
+  const car = phTop(cam.world, 'car_top'), av = path(cam.world, '', { stroke: VEL, 'stroke-width': 9 }), aa = path(cam.world, '', { stroke: ACC, 'stroke-width': 9 });
+  const feel = path(cam.world, '', { stroke: COL.chalk, 'stroke-width': 6, 'stroke-dasharray': '12 10' });
+  const fg = G(p, { o: 0 }), fl = phLabel(fg, 'you feel pushed outward', { size: 30 });
+  const ugh = phLabel(cam.world, 'UGH!', { size: 34, fill: COL.chalk, o: 0 });
+  vaKey(p, .2);
+  const sp = phLabel(p, 'speed: steady', { x: 70, y: 140, size: 30, anchor: 'start', o: 0 }); show(sp, m('dir'));
+  const tf = m('feel');
+  clockRun(t => {
+    const d = V3 * (t - t0), [x, y, a] = pose(d), r = a * Math.PI / 180, onArc = d > L1 && d < L1 + ARC;
+    put(car, { x, y, r: a }); arrowAt(av, x + 80 * Math.cos(r), y + 80 * Math.sin(r), 140, a);
+    const ia = Math.atan2(cy - y, cx - x) * 180 / Math.PI;      // toward the centre of the turn
+    arrowAt(aa, x, y, onArc ? 120 : 0, ia); arrowAt(feel, x, y, onArc && t > m('feel') ? 110 : 0, ia + 180, 16);
+    cam.track(fl, x - 260 * Math.cos(ia * Math.PI / 180), y - 260 * Math.sin(ia * Math.PI / 180) + 30, t);
+    const on = onArc && t > tf ? 1 : 0; put(fg, { o: on }); put(ugh, { x: x - 110 * Math.cos(r), y: y - 110 * Math.sin(r) + 12, o: on, s: on });   // behind the car, clear of all three arrows
+  }, D);
+}],
+['q4', 'Quick check', (m, D) => {
+  const p = panel(0);
+  const bee = phTop(p, 'bee', { s: 1.2 }), av = path(p, '', { stroke: VEL, 'stroke-width': 7 });
+  mk('circle', { cx: 800, cy: 270, r: 170, fill: 'none', stroke: COL.faint, 'stroke-width': 3, 'stroke-dasharray': '10 12' }, p);
+  T(p, 'a bee flying in a circle at a steady speed', { x: 800, y: 500, size: 26, fill: COL.dim, anchor: 'middle' });
+  clockRun(t => {
+    const th = -.9 * t, x = 800 + 170 * Math.cos(th), y = 270 + 170 * Math.sin(th), hd = th * 180 / Math.PI - 90;
+    put(bee, { x, y }); phFace(bee, Math.cos(hd * Math.PI / 180) < 0 ? -1 : 1); arrowAt(av, x, y, 90, hd, 14);
+  }, D);
+}, { ask: done => quiz(Q_CARD, [
+  { id: 'c-bee', prompt: ['A bee flies in a circle at a steady speed. Is it ', h('b', '', 'accelerating'), '?'],
+    build: choice([['yes: its direction keeps changing'], ['no: its speed stays the same']], 0,
+      'Its velocity keeps changing direction, so it is accelerating all the time.',
+      [null, 'Acceleration is a change in velocity, and velocity includes direction. The bee keeps turning.']) },
+  { id: 'c-3ways', prompt: ['Which of these is ', h('b', '', 'not'), ' acceleration?'],
+    build: choice([['speeding up'], ['slowing down'], ['changing direction'], ['a steady speed in a straight line']], 3,
+      'Same speed, same direction: the velocity does not change, so there is no acceleration.',
+      ['Speeding up changes the velocity: that is acceleration.', 'Slowing down changes the velocity too: negative acceleration.', 'A change of direction changes the velocity: that is acceleration.', null]) },
+  { id: 'c-acc', prompt: ['A runner speeds up from 2 to 8 meters per second in 3 seconds.'],
+    build: blanks([{ parts: ['acceleration = (8 − 2) ÷ 3 = ', { box: '2' }, ' meters per second squared'], why: '8 − 2 = 6, and 6 ÷ 3 = 2.', hint: 'Subtract the starting velocity from the final one, then divide by the time.' }]) },
+], done) }],
+['wrap4', 'Summary · Acceleration', (m, D) => {
+  const p = panel(0);
+  txt(p, 'Acceleration', 800, 120, .2, { size: 40, fill: COL.dim });
+  [['Acceleration is the rate at which velocity changes.', 'w1'],
+   ['It happens when something speeds up, slows down, or changes direction.', 'w2'],
+   ['acceleration = (final velocity − starting velocity) ÷ time, in m/s².', 'w3'],
+   ['Positive speeds up; negative (deceleration) slows down.', 'w4']].forEach(([s, mark], i) => {
+    const g = G(p, { x: -16, y: 250 + i * 120, o: 0 });
+    mk('rect', { x: 144, y: -38, width: 52, height: 52, rx: 6, fill: PH.ref }, g);
+    T(g, String(i + 1), { x: 170, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+    T(g, s, { x: 230, size: 36, weight: 600 });
+    tw(g, { o: 1, x: 0 }, m(mark), .6);
+  });
+  txt(p, 'Next: the chapter practice.', 800, 780, m('w4', 5), { size: 32, fill: COL.dim, weight: 500 });
+}],
+/* ---------- chapter practice and finish (after the last section) ---------- */
+['final1', 'Chapter practice: motion and speed', () => { panel(0); }, { ask: done => quiz(SCREEN, [
+  { id: 'p-formula', prompt: ['What is the formula for ', h('b', '', 'speed'), '?'],
+    build: choice([['distance ÷ time'], ['time ÷ distance'], ['distance × time']], 0,
+      'Speed is the distance traveled in a certain amount of time: distance ÷ time.',
+      [null, 'That would give seconds per meter, not meters per second.', 'Speed divides the distance by the time; it does not multiply them.']) },
+  { id: 'p-relative', prompt: ['Why is motion ', h('b', '', 'relative'), '?'],
+    build: choice([['It is always described from a reference point.'], ['Everything moves at the same speed.'], ['Only things on Earth can move.']], 0,
+      'Motion is measured from a reference point, and different reference points can give different answers.',
+      [null, 'Things move at many speeds; the point is that each speed is measured from something.', 'Earth itself moves. Motion is described from a reference point.']) },
+  { id: 'p-bus', prompt: ['Sam sits on a bus driving at 40 kilometers per hour. Measured from the ', h('b', '', 'bus driver'), ', how fast is Sam moving?'],
+    build: choice([['0 kilometers per hour'], ['40 kilometers per hour'], ['80 kilometers per hour']], 0,
+      'Sam and the driver ride together, so from the driver Sam stays put. From the road, Sam moves 40 kilometers per hour.',
+      [null, 'That is Sam’s speed measured from the road, not from the driver.', 'Nothing adds up to 80 here. Sam rides along with the driver.']) },
+  { id: 'p-cyclist', prompt: ['A cyclist rides 90 meters in 15 seconds. What is her speed?'],
+    build: blanks([{ parts: ['speed = 90 ÷ 15 = ', { box: '6' }, ' meters per second'], why: '90 ÷ 15 = 6.', hint: 'Divide the distance by the time.' }]) },
+], done, 'Chapter practice, set 1 of 2 · question') }],   // the engine appends "k of n"
+['final2', 'Chapter practice: velocity and acceleration', () => { panel(0); }, { ask: done => quiz(SCREEN, [
+  { id: 'p-jog', prompt: ['A jogger runs at +3 meters per second, then turns around and jogs at the same pace. What is her new velocity?'],
+    build: blanks([{ parts: ['velocity = ', { box: '-3' }, ' meters per second'], why: 'Same speed, opposite direction: the sign flips.', hint: 'The speed stays 3; the direction is opposite, so the sign changes.' }]) },
+  { id: 'p-corner', prompt: ['A car drives around a corner at a steady 15 meters per second. Which is true?'],
+    build: choice([['its speed changes'], ['its velocity changes'], ['neither changes']], 1,
+      'Its direction changes, so its velocity changes; the speed stays 15 meters per second.',
+      ['It keeps a steady 15 meters per second.', null, 'Turning changes the direction, and velocity includes direction.']) },
+  { id: 'p-acc', prompt: ['A car speeds up from 4 to 16 meters per second in 3 seconds. What is its acceleration?'],
+    build: blanks([{ parts: ['acceleration = (16 − 4) ÷ 3 = ', { box: '4' }, ' meters per second squared'], why: '16 − 4 = 12, and 12 ÷ 3 = 4.', hint: 'Final velocity minus starting velocity, then divide by the time.' }]) },
+  { id: 'p-dec', prompt: ['A bike slows down from 8 to 2 meters per second in 3 seconds. What is its acceleration?'],
+    build: blanks([{ parts: ['acceleration = (2 − 8) ÷ 3 = ', { box: '-2' }, ' meters per second squared'], why: '2 − 8 = −6, and −6 ÷ 3 = −2: negative, because it slows down.', hint: 'Final minus starting velocity is negative here. Divide it by the time.' }]) },
+], done, 'Chapter practice, set 2 of 2 · question') }],
+['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+boot();
+</script>
+</body>
+</html>

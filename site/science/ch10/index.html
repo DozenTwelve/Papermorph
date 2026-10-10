@@ -1,0 +1,736 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chapter 10: Force and Newton's Laws of Motion — Science</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/figures.js"></script>
+<script src="../lib/actors.js"></script>
+<script src="../lib/physics.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+// Chapter 10, one page in book order: part 1 (force, net force, balanced forces, newtons), part 2 (first law: inertia,
+// momentum), part 3 (second law), part 4 (third law), then the chapter practice.
+const CHAPTER = { number: 10, title: 'Force and Newton’s Laws of Motion', minutes: 13, language: 'en', next: '../ch11/' };
+const Q_CARD = { x: 96, y: 586, w: 1408, cls: 'band' };   // a band card under the scenes; it moves up by itself when taller
+const GY = 560;                                           // ground line in side-view scenes
+const Y1 = 740;                                           // part 1: a lower ground line under big actors
+// A ground band, not a slab: the space below stays free for values and notes.
+const ground = (p, y = GY, x = 0, w = 1600) => { phBlock(p, x, y, w, 70, PH.grass, { top: 8, ol: 0 }); mk('rect', { x, y: y + 70, width: w, height: 6, fill: PH.grass, opacity: .5 }, p); };
+const TY = { title: 100, rule: 40, value: 40, label: 30, note: 26 };   // the type scale: title, rule, key values, labels, notes
+const N = 40;                                             // force arrows: 40 px per newton (scaled per scene where noted)
+
+/* ---------- actors and light context ---------- */
+// Light tufts on the grass band: with a following camera they show the motion.
+const marks = (p, y, x0, x1) => { for (let x = x0; x < x1; x += 140) mk('rect', { x, y: y + 18, width: 24, height: 8, fill: lt(PH.grass, .2) }, p); };
+const park = (p, xs = [90, 1530]) => xs.forEach(x => phSprite(p, 'tree', { x, y: GY + 2 }));
+function rink(p, y = GY, x = 0, w = 1600) {          // an ice rink: boards behind, a red centre line
+  phBlock(p, x, y, w, 110, '#cfe8f3', { top: 8, ol: 0 });
+  phBlock(p, x, y - 64, w, 64, '#eef5f7', { top: 0, ol: 0 });
+  mk('rect', { x, y: y - 70, width: w, height: 8, fill: '#3f6f9e' }, p);
+  mk('rect', { x: 796, y: y + 8, width: 8, height: 102, fill: '#d24b4b', opacity: .5 }, p);
+}
+function goal(p, x) {       // a pixel soccer goal (side view)
+  path(p, `M${x} ${GY}V${GY - 150}H${x + 90}`, { stroke: '#ece8dc', 'stroke-width': 10 });
+  path(p, `M${x + 10} ${GY - 140}L${x + 90} ${GY}M${x + 30} ${GY - 140}L${x + 90} ${GY - 40}`, { stroke: '#ece8dc', 'stroke-width': 2, opacity: .5 });
+}
+// A pusher with a cart (or car) that stays on her hands: at(x, dist) walks her and places the load at her hand.
+function pusher(p, role, load = 'cart') {
+  const a = phActor(p, role, { y: GY, anim: 'push' }), c = load === 'car' ? phCar(p, { y: GY }) : phSprite(p, 'cart', { y: GY });
+  return { a, c, at(x, dist, walk = true) {
+    put(a, { x }); if (walk) a.stride('push', dist); else a.show('push', 0);
+    const [hx] = a.hand('F'); put(c, { x: hx + (load === 'car' ? 126 : 52) }); if (load === 'car') phRoll(c, hx);
+    return hx;
+  } };
+}
+
+// A thought bubble [x0, y0, x1, y1] whose tail points down at x (a head below it), shown at t0.
+function thought(p, [x0, y0, x1, y1], x, lines, t0) {
+  const q = G(p, { o: 0 });
+  mk('rect', { x: x0, y: y0, width: x1 - x0, height: y1 - y0, rx: 40, fill: '#22322d', stroke: COL.dim, 'stroke-width': 3 }, q);
+  path(q, `M${x - 30} ${y1 - 2}L${x + 30} ${y1 - 2}L${x} ${y1 + 66}Z`, { fill: COL.dim });
+  lines.forEach((s, i) => T(q, s, { x: (x0 + x1) / 2, y: y0 + 70 + i * 56, size: 42, anchor: 'middle' }));
+  show(q, t0); return q;
+}
+// A part title beside its picture: the part over the law's name.
+function opener(p, x, y, part, name) {
+  const g = G(p, { o: 0, y: 24 });
+  phLabel(g, part.toUpperCase(), { x, y: y - 80, size: 30, fill: COL.dim, weight: 600 }); phLabel(g, name, { x, y, size: 84, weight: 600 });
+  tw(g, { o: 1, y: 0 }, .2, 1.1, out); return g;
+}
+// A summary: each takeaway beside a small picture of its moment; icon(g) draws into the row (text baseline at y 0).
+function summary(p, m, rows, next) {
+  rows.forEach(([lines, icon], i) => {
+    const g = G(p, { x: -16, y: 250 + i * 220, o: 0 });
+    lines.forEach((s, j) => T(g, s, { x: 430, y: j * 50, size: 38, weight: 600 }));
+    icon(g); tw(g, { o: 1, x: 0 }, m(['w1', 'w2', 'w3'][i]), .6);
+  });
+  txt(p, next, 800, 860, m('end'), { size: 32, fill: COL.dim, weight: 500 });
+}
+
+// Under the practice card, a still diagram of the current question's situation (objects only), swapped per question.
+const PICS = {
+  'p-bal': g => { phBlock(g, 260, 800, 1000, 12, PH.walk, { top: 0, ol: 0 }); [[460, 3, 3], [1060, 5, 2]].forEach(([x, a, b]) => { crate(g, { x, y: 800, w: 160, h: 130 }); forceArrow(g, { w: 12 }).set(x + 84, 730, a * 36, 0, ''); forceArrow(g, { w: 12 }).set(x - 84, 730, b * 36, 180, ''); }); },
+  'p-first': g => { phBlock(g, 300, 800, 900, 30, '#cfe8f3', { top: 6, ol: 0 }); const k = G(g, { x: 600, y: 800 }); mk('rect', { x: -50, y: -40, width: 100, height: 40, rx: 12, fill: '#22282a' }, k); arrowAt(path(g, '', { stroke: VEL, 'stroke-width': 10 }), 660, 780, 130, 0, 22); crate(g, { x: 1000, y: 800, w: 150, h: 120 }); },
+  'p-unit': g => { phBlock(g, 400, 800, 800, 12, PH.walk, { top: 0, ol: 0 }); crate(g, { x: 800, y: 800, w: 170, h: 140, label: '1 kg' }); forceArrow(g, { w: 14, size: 34 }).set(530, 730, 180, 0, '1 N'); forceArrow(g, { color: ACC, w: 12, size: 32 }).set(740, 620, 160, 0, '?'); },
+  'p-net3': g => { phBlock(g, 300, 800, 900, 12, PH.walk, { top: 0, ol: 0 }); crate(g, { x: 700, y: 800, w: 200, h: 170 }); forceArrow(g, { w: 14, size: 34 }).set(806, 690, 6 * 36, 0, '6 N'); forceArrow(g, { w: 14, size: 34 }).set(806, 760, 4 * 36, 0, '4 N', 'below'); forceArrow(g, { w: 14, size: 34 }).set(594, 725, 3 * 36, 180, '3 N'); },
+  'p-second': g => { phBlock(g, 400, 800, 800, 12, PH.walk, { top: 0, ol: 0 }); crate(g, { x: 800, y: 800, w: 170, h: 140, label: 'mass' }); forceArrow(g, { w: 14, size: 32 }).set(470, 730, 240, 0, 'net force'); forceArrow(g, { color: ACC, w: 12, size: 32 }).set(720, 620, 200, 0, 'acceleration'); },
+  'p-car': g => { mk('rect', { x: 200, y: 820, width: 1000, height: 40, fill: '#3a4541' }, g); phCar(g, { x: 700, y: 820, s: 2 }); phLabel(g, '2,000 kg', { x: 700, y: 650, size: 38 }); forceArrow(g, { color: ACC, w: 12, size: 34 }).set(600, 600, 200, 0, '3 m/s²'); },
+  'p-third': g => { phBlock(g, 300, 800, 900, 12, PH.walk, { top: 0, ol: 0 }); crate(g, { x: 660, y: 800, w: 140, h: 120 }); crate(g, { x: 800, y: 800, w: 140, h: 120 }); forceArrow(g, { w: 12 }).set(740, 700, 120, 0, ''); forceArrow(g, { w: 12 }).set(720, 700, 120, 180, ''); },
+  'p-mom': g => { phBlock(g, 300, 820, 900, 12, PH.walk, { top: 0, ol: 0 }); phBall(g, 50, { x: 700, y: 770 }); phLabel(g, '0.5 kg', { x: 700, y: 690, size: 34 }); forceArrow(g, { color: VEL, w: 12, size: 34 }).set(760, 770, 200, 0, '8 m/s'); },
+};
+let PRACTICE;   // the practice beat's panel: its question pictures are drawn there
+const withPics = qs => qs.map(q => ({ ...q, build(body, api) { const old = PRACTICE.querySelector('.pic'); if (old) old.remove(); const g = G(PRACTICE); g.classList.add('pic'); PICS[q.id]?.(g); return q.build(body, api); } }));
+
+/* ---------- beats ---------- */
+const BEATS = [
+/* ---------- part 1: force and net force ---------- */
+// Part 1 is composed as whole frames (books/science/review/ch10_storyboard): big actors on a low ground line (Y1), each
+// value on its arrow, each sentence beside the thing it names.
+['intro', 'Force and Newton’s laws', (m, D) => {
+  const p = panel(0), Y = Y1, S = 3, W = 760, H = 460, tp = 2.1, x0 = -60, v = 440 / (tp + .2);
+  ground(p, Y);
+  // You push the title crate into the frame, then let go: it slides a little and stops.
+  const a = phActor(p, 'you', { y: Y, s: S, anim: 'push' }), c = crate(p, { y: Y, w: W, h: H }), f = forceArrow(p, { w: 14, size: 34 });
+  phLabel(c, 'Unit 3 · Motion, Forces, and Work · Chapter 10', { x: -10, y: -400, size: 26, fill: '#eedec4', weight: 600 });
+  phLabel(c, 'Force &', { x: -10, y: -326, size: 70 }); phLabel(c, 'Newton’s Laws', { x: -10, y: -256, size: 70 });
+  const X = t => t < tp ? x0 + v * t : t < tp + .4 ? x0 + v * tp + v * ((t - tp) - (t - tp) ** 2 / .8) : x0 + v * (tp + .2);
+  clockRun(t => {
+    put(a, { x: X(t) }); a.stride('push', (X(t) - x0) / S);
+    const [hx, hy] = a.hand('F'); put(c, { x: hx + W / 2 - 6 });
+    f.set(hx, hy - 4, t < tp ? 190 : 0, 0, 'push', 'below');
+  }, D);
+  thought(p, [150, 96, 910, 256], 430, ['What makes things start, stop,', 'speed up, or turn?'], m('sub'));   // your thought, right above you
+}, { lead: false }],
+['force', 'A push or a pull', (m, D) => {
+  const p = panel(0), Y = Y1, S = 3, CS = 2.5, CW = 112 * CS;   // the cart handle meets her hands
+  const t1 = m('push'), t2 = m('pull'), td = m('dir'), ts = m('shape'), tg = td + 4.6;   // tg: "the longer the arrow"
+  // One street: you push a cart on the left, your friend pulls one further along. The pushing force is 2 N, then 6 N
+  // (it grows on "the longer the arrow"); each cart speeds up only while it is pushed or pulled. At "shape" the
+  // street freezes and fades, and a can is squeezed in close-up.
+  const c = 7, tk = tg + .5, P0 = 300, Q0 = 3300;   // far enough apart that neither cart peeks into the other's frame
+  const dP = t => { const u = Math.max(0, Math.min(t, ts) - t1), k = Math.max(0, Math.min(t, ts) - tk); return c * (2 * u * u + 4 * k * k) / 2; };
+  const dQ = t => { const u = Math.max(0, Math.min(t, ts) - t2); return 15 * u * u / 2; };
+  const cam = camera(p, D), w = cam.world;
+  cam.cut({ x: t => Math.max(800, P0 + dP(t) + 500) }, 0).to({ x: t => Q0 + dQ(t) - 300 }, t2 - .15, 1.1).to({ x: t => Math.max(800, P0 + dP(t) + 500) }, td, 1.1);
+  // The pushing cart and its labels cover x 450..2450: no tree there, so nothing shows through it. Tufts on the grass show the motion.
+  [2650, 4300, 5000].forEach(x => phSprite(w, 'tree', { x, y: Y + 2, s: 1.6 }));
+  ground(w, Y, -800, 6400); marks(w, Y, -600, 5600);
+  const pa = phActor(w, 'you', { y: Y, s: S, anim: 'push' }), pc = phSprite(w, 'cart', { y: Y, s: CS }), f1 = forceArrow(w, { w: 14 });
+  const lab = phLabel(w, '', { size: 36, fill: FORCE, anchor: 'start' }), note = T(w, 'longer arrow = bigger push', { size: 28, fill: COL.dim, weight: 500, o: 0 });
+  const qa = phActor(w, 'friend', { y: Y, s: S, anim: 'pull' }), qc = phSprite(w, 'cart', { y: Y, s: CS }), rope = path(w, '', { stroke: '#c9b38d', 'stroke-width': 8 }), f2 = forceArrow(w, { w: 14, size: 36 });
+  show(note, tg);
+  clockRun(t => {
+    const d = dP(t); put(pa, { x: P0 + d }); if (d > 0) pa.stride('push', d / S); else pa.show('push', 0);
+    const [hx, hy] = pa.hand('F'); put(pc, { x: hx + CW / 2 - 6 });
+    const F = 2 + 4 * ramp(t, tg, tg + 1), len = t > t1 - .1 ? F * 50 : 0;
+    f1.set(hx, hy - 6, len, 0, '');                            // from the hands, along the top of the cart
+    phText(lab, len ? (t < td ? 'push' : `push · ${Math.round(F)} N`) : ''); put(lab, { x: hx + len + 18, y: hy + 6 });
+    put(note, { x: hx + len + 18, y: hy + 46 });
+    const e = dQ(t); put(qa, { x: Q0 + e }); if (e > 0) qa.stride('pull', e / S); else qa.show('pull', 0);
+    const [rx, ry] = qa.hand('F'), cx = rx - 160 - CW / 2; put(qc, { x: cx });
+    rope.setAttribute('d', `M${cx + CW / 2 - 8} ${Y - 150}L${rx} ${ry}`);
+    f2.set(cx + CW / 2 - 90, Y - 250, t > t2 - .1 ? 150 : 0, 0, 'pull');   // above the rope, short of her body
+  }, D);
+  // Screen text sits over the actor the camera is showing.
+  const s1 = phLabel(p, 'A force is a push…', { x: 150, y: 290, size: 56, anchor: 'start', o: 0 }), s2 = phLabel(p, '…or a pull.', { x: 1100, y: 290, size: 56, o: 0 });
+  const s3 = phLabel(p, 'Every force has a size and a direction.', { x: 150, y: 290, size: 48, anchor: 'start', o: 0 });
+  show(s1, .3); hide(s1, t2 - .3, .3); show(s2, t2 + .7); hide(s2, td - .1, .3); show(s3, td + 1); hide(s3, ts - .3, .3);
+  tw(cam.el, { o: 0 }, ts - .1, .4);
+  // The can: squeezed from above and below, it flattens, then keeps its crushed shape. The arrows touch it only
+  // while it is squeezed.
+  const can = G(p, { o: 0 }), cg = G(can, { x: 640 }), cs = phSprite(cg, 'can', { s: 5 }), sq1 = forceArrow(can, { w: 16, size: 38 }), sq2 = forceArrow(can, { w: 16 });
+  show(can, ts + .1, .4);
+  txt(p, 'A force can change', 860, 440, ts + .5, { size: 50, weight: 700, anchor: 'start' }); txt(p, 'an object’s shape.', 860, 505, ts + .7, { size: 50, weight: 700, anchor: 'start' });
+  clockRun(t => {
+    const k = ramp(t, ts + .8, ts + 1.8), crushed = k >= 1, sy = 1 - .375 * k, sx = 1 + .4 * k, h = crushed ? 200 : 320 * sy;
+    phFrame(cs, crushed ? 'can_crushed' : 'can');
+    cs._in.setAttribute('transform', crushed ? '' : `scale(${sx.toFixed(3)},${sy.toFixed(3)})`);
+    put(cg, { y: 450 + h / 2 });                                 // its centre stays put while it flattens
+    const on = t > ts + .4 && t < ts + 2.3;
+    sq1.set(640, 450 - h / 2 - 150, on ? 130 : 0, 90, 'squeeze', 'left'); sq2.set(640, 450 + h / 2 + 150, on ? 130 : 0, -90, '');
+  }, D);
+}],
+['net', 'Net force', (m, D) => {
+  const p = panel(0), FY = 600, ta = m('add'), ts = m('sub'), U = 70;
+  // One crate the camera keeps in place (the floor slides): 3 N + 2 N push it from "add"; from "sub", 5 N one way and
+  // 3 N the other. It speeds up only while the forces act: 25 px/s² for 5 N, 10 px/s² for 2 N.
+  const te = ts - .4, v1 = 25 * (te - ta);
+  const dX = t => { const u = Math.min(Math.max(0, t - ta), te - ta), k = Math.max(0, t - ts - .1); return 12.5 * u * u + (t > te ? v1 * (t - te) : 0) + 5 * k * k; };
+  const cam = camera(p, D), w = cam.world, fl = cam.layer(1, 160);
+  cam.cut({ x: t => 900 + dX(t) }, 0);
+  phBlock(fl, 0, FY, 1760, 70, '#44564c', { top: 6, ol: 0 });
+  for (let x = 0; x < 1760; x += 160) mk('rect', { x, y: FY + 6, width: 6, height: 64, fill: '#33433a' }, fl);
+  const cr = crate(w, { y: FY, w: 320, h: 260 });
+  const A = forceArrow(w, { w: 16, size: 40 }), B = forceArrow(w, { w: 16, size: 40 });
+  clockRun(t => {
+    const X = 800 + dX(t); put(cr, { x: X });
+    const g1 = t < te ? ramp(t, ta, ta + .4) : 0, g2 = ramp(t, ts, ts + .4);
+    if (t < ts) { A.set(X + 160, 420, 3 * U * g1, 0, '3 N'); B.set(X + 160, 520, 2 * U * g1, 0, '2 N'); }
+    else { A.set(X + 160, 470, 5 * U * g2, 0, '5 N'); B.set(X - 160, 470, 3 * U * g2, 180, '3 N'); }
+  }, D);
+  // The rule above the crate, the sum on one line under it, ending in the net force.
+  const h1 = txt(p, 'Same direction: add', 700, 270, ta, { size: 50, weight: 700 }); hide(h1, te, .3);
+  txt(p, 'Opposite directions: subtract', 700, 270, ts, { size: 50, weight: 700 });
+  const eq1 = runs(p, [['3 N + 2 N = ', COL.chalk], ['5 N', NETF]], { x: 620, y: 780, size: 56, weight: 700 }),
+    eq2 = runs(p, [['5 N − 3 N = ', COL.chalk], ['2 N', NETF]], { x: 620, y: 780, size: 56, weight: 700 });
+  show(eq1, ta + 1.2); hide(eq1, te, .3); show(eq2, ts + 1.6);
+  const NF = forceArrow(p, { color: NETF, w: 18, size: 30 });
+  clockRun(t => NF.set(880, 762, t < te ? 5 * 44 * ramp(t, ta + 2.4, ta + 2.8) : t > ts + 3 ? 2 * 44 * ramp(t, ts + 3, ts + 3.4) : 0, 0, 'net force'), D);
+  txt(p, 'net force: the total of all the forces on an object', 800, 850, m('netw'), { size: 30, fill: COL.dim, weight: 500 });
+}, { lead: false }],
+['balance', 'Balanced and unbalanced', (m, D) => {
+  const p = panel(0), Y = Y1, S = 3, tb = m('bal'), tu = m('unbal'), U = 16;
+  // Equal pulls: nothing moves. From "unbalanced", your pull grows to 15 N and everything speeds up toward you
+  // (net 5 N); the camera follows partway, so the flag drifts past the start line.
+  const dX = t => { const u = Math.max(0, t - tu - .4); return 4 * u * u; };
+  const cam = camera(p, D), w = cam.world; cam.cut({ x: t => 800 + .6 * dX(t) }, 0);
+  [70, 2300].forEach(x => phSprite(w, 'tree', { x, y: Y + 2, s: 1.6 }));
+  ground(w, Y, -400, 3200);
+  path(w, `M800 ${Y + 12}V${Y + 62}`, { stroke: COL.dim, 'stroke-width': 4, 'stroke-dasharray': '6 6' });
+  const L = phActor(w, 'friend', { y: Y, s: S, anim: 'strain' }), R = phActor(w, 'you', { y: Y, s: S, anim: 'strain' }).face(-1);
+  const rope = path(w, '', { stroke: '#c9b38d', 'stroke-width': 10 }), flag = G(w);
+  mk('rect', { x: -9, y: -6, width: 18, height: 50, fill: COL.bad }, flag);
+  const FL = forceArrow(w, { w: 16, size: 40 }), FR = forceArrow(w, { w: 16, size: 40 }), NF = forceArrow(w, { color: NETF, w: 18, size: 34 });
+  const tag = phLabel(w, '', { y: 470, size: 60 }), zero = phLabel(w, 'net force 0', { y: 700, size: 38, o: 0 });
+  show(zero, tb + 1.5); hide(zero, tu, .3);
+  clockRun(t => {
+    const pull = 10 + 5 * ramp(t, tu, tu + .8), d = dX(t), sh = d ? 0 : Math.sin(t * 31) * 3;   // straining: a small shake
+    put(L, { x: 360 + d + sh }); put(R, { x: 1240 + d - sh });
+    if (d > 0) { L.stride('stumble', d / S); R.stride('backstep', d / S); } else { L.show('strain', t * 3); R.show('strain', t * 3 + 1); }
+    const [lx, ly] = L.hand('F'), [rx, ry] = R.hand('F'), mx = (lx + rx) / 2;
+    rope.setAttribute('d', `M${lx} ${ly}L${rx} ${ry}`); put(flag, { x: mx, y: (ly + ry) / 2 });
+    const on = t > .3;
+    FL.set(360 + d + 60, 300, on ? 10 * U : 0, 180, '10 N'); FR.set(1240 + d - 60, 300, on ? pull * U : 0, 0, `${Math.round(pull)} N`);
+    phText(tag, t < tb ? '' : t < tu ? 'balanced' : 'unbalanced'); put(tag, { x: mx }); put(zero, { x: mx });
+    NF.set(mx - 75, 715, t > tu + .9 ? 150 : 0, 0, 'net force 5 N');
+  }, D);
+}, { lead: false }],
+['newton', 'The newton', (m, D) => {
+  const p = panel(0), Y = Y1, ta = m('apple'), td = m('def');
+  // Two frames in one world: an apple caught in your hand (the camera eases in), then a pan to a 1 kg crate pushed with
+  // 1 N, which the camera follows (ticks on the ground show it speeding up). The equation reads under the crate.
+  const tp = td + .8, dC = t => { const u = Math.max(0, t - tp); return 20 * u * u; };   // 1 m/s²
+  const cam = camera(p, D), w = cam.world;
+  cam.to({ x: 900, y: 470, z: 1.12 }, ta + .3, 2.2).to({ x: t => 2400 + dC(t), y: 520, z: 1 }, td, 1.1);
+  ground(w, Y, -400, 6000);
+  for (let x = 1700; x < 5600; x += 120) mk('rect', { x, y: Y + 14, width: 6, height: 26, fill: lt(PH.grass, .25) }, w);
+  // the apple
+  const a = phActor(w, 'you', { x: 520, y: Y, s: 3, anim: 'stand' }), ap = phSprite(w, 'apple', { s: 2 });
+  const up = forceArrow(w, { w: 16, size: 34 }), dn = forceArrow(w, { w: 16, size: 34 });
+  const u1 = phLabel(w, 'Force is measured in', { x: 1160, y: 400, size: 44, weight: 600, o: 0 }), u2 = phLabel(w, 'newtons (N)', { x: 1160, y: 470, size: 66, o: 0 });
+  show(u1, .3); show(u2, .6); hide(u1, ta - .3, .3); hide(u2, ta - .3, .3);
+  const n1 = phLabel(w, '≈ 1 newton', { x: 1160, y: 450, size: 66, o: 0 }), n2 = phLabel(w, 'to hold up an apple', { x: 1160, y: 510, size: 36, fill: COL.dim, weight: 600, o: 0 });
+  show(n1, ta + .3); show(n2, ta + .6);
+  const tf = ta - .6, top = -120;
+  clockRun(t => {
+    const absorb = t > ta && t < ta + .3;
+    if (t < tf - .4) a.show('stand'); else a.show('catch', absorb ? 1 : 0);
+    const [hx, hy] = a.hand('F'), x = hx + 30, yh = hy + 4;
+    const y = t < tf ? top : t < ta ? top + (yh - top) * ((t - tf) / .6) ** 2 : yh;   // falls, then rests in your hand
+    put(ap, { x, y, o: t < tf ? 0 : 1 });
+    dn.set(x, y + 6, t > tf ? 130 : 0, 90, t > ta ? 'gravity 1 N' : '', 'right');
+    up.set(x, y - 100, t > ta ? 130 : 0, -90, 'hand 1 N', 'right');
+  }, D);
+  // the definition
+  const X0 = 2360, cr = crate(w, { y: Y, w: 240, h: 210, label: '1 kg' }), fp = forceArrow(w, { w: 16, size: 42 }), ac = path(w, '', { stroke: ACC, 'stroke-width': 12 });
+  const al = phLabel(w, '1 m/s²', { size: 38, fill: ACC, o: 0 }); show(al, td + 3.6);
+  clockRun(t => {
+    const X = X0 + dC(t); put(cr, { x: X });
+    fp.set(X - 126 - 240, Y - 100, t > tp ? 240 : 0, 0, '1 N');
+    arrowAt(ac, X + 60, Y - 270, t > td + 3.6 ? 220 : 0, 0, 26); put(al, { x: X + 170, y: Y - 296 });
+  }, D);
+  [['1 N', FORCE, 500, 1], ['=', COL.chalk, 620, 2.2], ['1 kg', COL.chalk, 760, 2.2], ['×', COL.chalk, 890, 4], ['1 m/s²', ACC, 1030, 4]]
+    .forEach(([s, fill, x, dt]) => txt(p, s, x, 800, td + dt, { size: 64, fill, weight: 700 }));
+  txt(p, '1 newton gives 1 kilogram an acceleration of 1 m/s²', 800, 862, td + 5, { size: 28, fill: COL.dim, weight: 500 });
+}, { lead: false }],
+['q1', 'Quick check', (m, D) => {
+  const p = panel(0), Y = 500, S = 2.4, U = 20;
+  // The picture fills the top, leaving the band below for the card.
+  ground(p, Y);
+  const L = phActor(p, 'friend', { y: Y, s: S, anim: 'strain' }), R = phActor(p, 'you', { y: Y, s: S, anim: 'strain' }).face(-1), rope = path(p, '', { stroke: '#c9b38d', 'stroke-width': 8 });
+  const fl = forceArrow(p, { w: 14, size: 36 }), fr = forceArrow(p, { w: 14, size: 36 });
+  fl.set(430, 150, 10 * U, 180, 'brother: 10 N'); fr.set(1170, 150, 15 * U, 0, 'you: 15 N');
+  clockRun(t => { const sh = Math.sin(t * 31) * 2.5; put(L, { x: 380 + sh }); put(R, { x: 1220 - sh }); L.show('strain', t * 3); R.show('strain', t * 3 + 1);
+    const [lx, ly] = L.hand('F'), [rx, ry] = R.hand('F'); rope.setAttribute('d', `M${lx} ${ly}L${rx} ${ry}`); }, D);
+}, { ask: done => quiz(Q_CARD, [
+  { id: 'c-tug', prompt: ['Tug-of-war: you pull with 15 newtons, your brother pulls the other way with 10 newtons. What is the ', h('b', '', 'net force'), '?'],
+    build: blanks([{ parts: ['net force = 15 − 10 = ', { box: '5' }, ' newtons'], why: 'Opposite directions subtract: 15 − 10 = 5 newtons, toward you.', hint: 'The forces point in opposite directions, so subtract.' }]) },
+  { id: 'c-tugdir', prompt: ['Which way does the rope start to move?'],
+    build: choice([['toward you'], ['toward your brother'], ['it does not move']], 0,
+      'The net force (5 newtons) points toward you, the stronger pull.',
+      [null, 'Your brother pulls with less force; the net force points toward you.', 'The forces are unbalanced (15 vs 10), so the rope moves.']) },
+  { id: 'c-bal', prompt: ['Two teams each pull with 20 newtons in opposite directions. These forces are…'],
+    build: choice([['balanced: the net force is 0'], ['unbalanced: the net force is 40 newtons']], 0,
+      'Equal and opposite forces cancel: the net force is 0, so nothing changes.',
+      [null, 'They point in opposite directions, so subtract: 20 − 20 = 0.']) },
+], done) }],
+['wrap1', 'Summary · Force', (m, D) => {
+  summary(panel(0), m, [
+    [['A force is a push or a pull, with a size and a direction.'], g => { phSprite(g, 'cart', { x: 260, y: 40, s: 1.6 }); forceArrow(g, { w: 10 }).set(40, -85, 120, 0, ''); }],
+    [['Same way, forces add; opposite ways, they subtract.', 'Their total is the net force.'], g => { crate(g, { x: 220, y: 50, w: 140, h: 120 }); forceArrow(g, { w: 10 }).set(296, -30, 100, 0, ''); forceArrow(g, { w: 10 }).set(296, 15, 64, 0, ''); }],
+    [['Balanced forces cancel; unbalanced forces change motion.'], g => { path(g, 'M150 10H330', { stroke: '#c9b38d', 'stroke-width': 8 }); mk('rect', { x: 234, y: 4, width: 12, height: 44, fill: COL.bad }, g);
+      forceArrow(g, { w: 10 }).set(150, -30, 80, 180, ''); forceArrow(g, { w: 10 }).set(330, -30, 80, 0, ''); }],
+  ], 'Next: Newton’s first law.');
+}],
+/* ---------- part 2: Newton's first law ---------- */
+['part2', 'Part 2 · The first law', (m, D) => {
+  const p = panel(0), Y = Y1;
+  ground(p, Y);
+  const kid = phActor(p, 'you', { x: 380, y: Y, s: 3, anim: 'stand' }); phBall(p, 64, { x: 640, y: Y - 64 });
+  clockRun(t => kid.show('stand'), D);
+  opener(p, 1130, 470, 'Part 2', 'The First Law');
+  thought(p, [80, 90, 900, 250], 420, ['Why do things keep doing', 'what they’re already doing?'], m('q'));
+}, { lead: false }],
+['rest', 'At rest, in motion', (m, D) => {
+  const p = panel(0), Y = Y1, R = 64, X0 = 640, tk = m('kick'), ts = m('space'), V0 = 360, A = 90, T0 = V0 / A;   // grass friction: stops after 4 s, 720 px on
+  const field = camera(p, D), w = field.world;
+  // push in on the kick (wind-up, contact at the word, follow-through), then pull back to watch the ball roll and stop
+  field.to({ x: 600, y: Y - 180, z: 1.6 }, tk - 1.4, .9).to({ x: 800, y: 450, z: 1 }, tk + .7, 1.1);
+  ground(w, Y);
+  const ball = phBall(w, R, { x: X0, y: Y - R }), kid = phActor(w, 'you', { x: X0 - 214, y: Y, s: 3, anim: 'stand' });
+  const vA = path(w, '', { stroke: VEL, 'stroke-width': 12 }), kick = forceArrow(w, { w: 14, size: 30 }), fr = forceArrow(w, { w: 14, size: 32 });
+  // the words ride above the ball
+  const say = (lines, t0, t1) => { const g = G(w, { o: 0 }); lines.forEach((s, i) => phLabel(g, s, { y: i * 52, size: i ? 38 : 44, weight: i ? 600 : 700 })); show(g, t0); if (t1) hide(g, t1, .3); return g; };
+  const s1 = say(['at rest:', 'it stays at rest'], m('stay'), tk - .4), s2 = say(['rolling, it would keep rolling…'], m('roll'), m('stop') - .2),
+    s3 = say(['friction from the grass and air', 'slows it and stops it'], m('stop'), ts - .3);   // gone before deep space fades in
+  const bx = t => { const u = Math.min(Math.max(0, t - tk), T0); return X0 + V0 * u - A * u * u / 2; };
+  clockRun(t => {
+    const x = bx(t), u = t - tk, v = u > 0 && u < T0 ? V0 - A * u : 0;    // at rest until the kick
+    put(ball, { x }); put(ball._spin, { r: (x - X0) / R * 180 / Math.PI });
+    arrowAt(vA, x + R + 8, Y - R, v * .3, 0, 24);
+    kick.set(X0 - R - 150, Y - R + 20, u > -.1 && u < .15 ? 140 : 0, 0, 'kick');           // the kick force only during contact
+    fr.set(x - R - 8, Y - 18, v > 0 && u > .3 ? 100 : 0, 180, 'friction');         // friction only while it rolls
+    kid.show(u < -.55 || u > .7 ? 'stand' : 'kick', u < -.12 ? 0 : u < .12 ? 1 : 2);
+    [s1, s2, s3].forEach(g => put(g, { x: Math.min(x, 1230), y: Y - 2 * R - 130 }));   // kept inside the frame
+  }, D);
+  // deep space: the same ball, no friction, the same velocity for as long as we watch
+  const sky = camera(p, D, { x: 800, y: 450 });
+  put(sky.el, { o: 0 }); show(sky.el, ts, .7);
+  prog(q => { if (q === 1) field.el.style.display = 'none'; }, ts + .75, 0, lin);
+  const stars = sky.layer(1, 2400);
+  for (let i = 0; i < 70; i++) { const k = 2 + 3 * phHash(i, 7); mk('rect', { x: -800 + 4800 * phHash(i, 1), y: 900 * phHash(i, 2), width: k, height: k, fill: COL.chalk, opacity: .3 + .5 * phHash(i, 3) }, stars); }
+  const sb = phBall(sky.world, R, { y: 470 }), sv = path(sky.world, '', { stroke: VEL, 'stroke-width': 12 });
+  const sx = t => 300 + 220 * (t - ts);
+  sky.cut({ x: t => sx(t) + 40 }, 0);
+  const sl = G(p, { o: 0 }); phLabel(sl, 'deep space: no friction', { x: 760, y: 330, size: 50 }); phLabel(sl, 'it just keeps going, same speed', { x: 760, y: 384, size: 34, fill: VEL });
+  show(sl, ts + .4);
+  clockRun(t => { const z = sx(t); put(sb, { x: z }); put(sb._spin, { r: z / R * 180 / Math.PI }); arrowAt(sv, z + R + 8, 470, 150, 0, 24); }, D);
+}, { lead: false }],
+['law1', 'Newton’s first law', (m, D) => {
+  const p = panel(0), tl = m('law'), ti = m('inert');
+  // The law is split over its two pictures: rest over the crate, motion over the gliding puck, the condition under both.
+  phBlock(p, 60, 560, 680, 40, '#3c4a42', { top: 6, ol: 0 }); crate(p, { x: 400, y: 560, w: 260, h: 210 });
+  phBlock(p, 860, 560, 700, 40, '#cfe8f3', { top: 6, ol: 0 });
+  const puck = G(p); mk('rect', { x: -50, y: -40, width: 100, height: 40, rx: 12, fill: '#22282a' }, puck); const pv = path(p, '', { stroke: VEL, 'stroke-width': 12 });
+  const law = G(p);
+  const two = (g, a, b, x, t0) => { const e = G(g, { o: 0 }); phLabel(e, a, { x, y: 230, size: 46 }); phLabel(e, b, { x, y: 290, size: 46 }); show(e, t0); };
+  two(law, 'An object at rest', 'stays at rest,', 400, tl); two(law, 'an object in motion', 'stays in motion,', 1210, tl + 2.6);
+  txt(law, '…unless a net force acts on it.', 800, 720, tl + 5.2, { size: 50, weight: 700 });
+  hide(law, ti - .4, .4);
+  const ig = G(p, { o: 0 });
+  phLabel(ig, 'inertia', { x: 800, y: 230, size: 96 }); phLabel(ig, 'matter resists changes to its motion', { x: 800, y: 296, size: 36, fill: COL.dim, weight: 600 });
+  phLabel(ig, 'the first law is the law of inertia', { x: 800, y: 720, size: 40, weight: 600 });
+  show(ig, ti);
+  // one slow, steady glide across the whole beat: constant velocity, nothing pushing it
+  clockRun(t => { const x = 960 + 26 * t; put(puck, { x, y: 560 }); arrowAt(pv, x + 60, 540, 130, 0, 24); }, D);
+}, { lead: false }],
+['mass', 'More mass, more inertia', (m, D) => {
+  const p = panel(0), S = 2.4, LA = 400, LB = 820, tc = m('catch'), V = 400, X0 = -60;
+  // Two lanes, the same speed: the tennis ball is stopped in the hand; the basketball carries the catcher back.
+  [LA, LB].forEach(y => phBlock(p, 0, y, 1600, 12, PH.walk, { top: 0, ol: 0 }));
+  phLabel(p, 'more mass → more inertia', { x: 800, y: 500, size: 44 });
+  const ct = phActor(p, 'friend', { x: 1300, y: LA, s: S, anim: 'catch' }).face(-1), cb = phActor(p, 'friend', { x: 1300, y: LB, s: S, anim: 'catch' }).face(-1);
+  const [hx] = ct.hand('F'), tCatch = tc + (hx - X0) / V;   // thrown from off-frame left
+  const tb = mk('circle', { r: 22, fill: '#d7e24a', ...phLine(2) }, G(p)).parentNode, bb = mk('circle', { r: 52, fill: '#e07a2e', ...phLine(2.5) }, G(p)).parentNode;
+  path(bb, 'M-52 0H52M0 -52V52', { stroke: '#7a3a12', 'stroke-width': 4 });
+  const vT = path(p, '', { stroke: VEL, 'stroke-width': 10 }), vB = path(p, '', { stroke: VEL, 'stroke-width': 10 }), sT = forceArrow(p, { w: 12 }), sB = forceArrow(p, { w: 12 });
+  const nT = phLabel(p, 'tennis ball · light', { size: 34, weight: 600 }), nB = phLabel(p, 'basketball · heavy', { size: 34, weight: 600 });
+  hide(nT, tCatch, .3); hide(nB, tCatch, .3);
+  txt(p, 'easy to stop', 900, LA - 150, m('easy'), { size: 44, fill: FORCE, weight: 700 });
+  const e2 = G(p, { o: 0 }); phLabel(e2, 'harder to stop:', { x: 900, y: LB - 170, size: 44, fill: FORCE }); phLabel(e2, 'it pushes you back', { x: 900, y: LB - 120, size: 38, fill: FORCE, weight: 600 }); show(e2, m('hard'));
+  clockRun(t => {
+    const u = t - tc, flying = t < tCatch, k = t - tCatch;
+    // tennis: caught at the hand, a short absorb, then it rests in the hand
+    const absorb = k > 0 && k < .35; ct.show('catch', absorb ? 1 : 0); put(ct, { x: 1300 + (absorb ? 8 * Math.sin(Math.PI * k / .35) : 0) });
+    const [ax, ay] = ct.hand('F'), tx = flying ? X0 + V * Math.max(0, u) : ax - 16; put(tb, { x: tx, y: ay + 8 });
+    // basketball: it carries the catcher back (slowing) before she stops it
+    const slide = k <= 0 ? 0 : k < .9 ? 200 * k - 200 / 1.8 * k * k : 90;   // ball and catcher share the speed (200 px/s), then she stops
+    put(cb, { x: 1300 + slide }); if (k > 0 && k < .9) cb.stride('backstep', slide / S); else cb.show('catch', k > 0 && k < 1.3 ? 1 : 0);
+    const [bx2, by2] = cb.hand('F'), bx = flying ? X0 + V * Math.max(0, u) : bx2 - 46; put(bb, { x: bx, y: by2 + 14 });
+    arrowAt(vT, tx + 30, ay + 8, flying && u > 0 ? 110 : 0, 0, 22); arrowAt(vB, bx + 60, by2 + 14, (flying && u > 0) || (k > 0 && k < .9) ? 110 * (flying ? 1 : .5 * (1 - k / .9)) : 0, 0, 22);
+    sT.set(tx - 30, ay - 30, absorb ? 70 : 0, 180, ''); sB.set(bx - 60, by2 - 30, k > 0 && k < .9 ? 70 : 0, 180, '');   // the hands' stopping force, while they stop it
+    put(nT, { x: tx, y: ay - 40 }); put(nB, { x: bx, y: by2 - 56 });
+  }, D);
+}, { lead: false }],
+['momentum', 'Momentum', (m, D) => {
+  const p = panel(0), t0 = m('pool'), V = 90, xHit = 620, R = 44, tHit = t0 + 1;
+  // A close overhead table: the white ball rolls in, hits the red one and stops; the red one carries the momentum on.
+  const xw = t => t < tHit ? xHit - V * (tHit - t) : xHit, xr = t => t < tHit ? xHit + 2 * R : xHit + 2 * R + V * (t - tHit);
+  phBlock(p, 0, 290, 1600, 320, '#6b4a30', { top: 0, ol: 0 }); phBlock(p, 0, 320, 1600, 260, '#2f7d4f', { top: 0, ol: 0 });
+  show(runs(p, [['momentum', COL.chalk], [' = mass × ', COL.chalk], ['velocity', VEL]], { x: 800, y: 250, size: 52, weight: 700 }), m('f'));
+  const wb = mk('circle', { r: R, fill: '#f4f1e8', ...phLine(2) }, G(p)).parentNode, rb = mk('circle', { r: R, fill: '#d24b4b', ...phLine(2) }, G(p)).parentNode;
+  const vw = path(p, '', { stroke: VEL, 'stroke-width': 10 }), vr = path(p, '', { stroke: VEL, 'stroke-width': 10 });
+  const lw = phLabel(p, '', { size: 30, weight: 600, o: 0 }), lr = phLabel(p, '', { size: 30, weight: 600, o: 0 }); show(lw, m('f', 1)); show(lr, m('f', 1));
+  // the totals read under the table: before, then after, then why they match
+  txt(p, 'before:  0.4 + 0 = 0.4 kg·m/s', 800, 690, t0, { size: 44, weight: 700 });
+  txt(p, 'after:  0 + 0.4 = 0.4 kg·m/s', 800, 750, tHit + .6, { size: 44, weight: 700 });
+  txt(p, 'two balls, no outside forces (friction ignored): the total stays the same', 800, 820, m('cons'), { size: 30, fill: COL.dim, weight: 500 });
+  const P = '0.2 kg × 2 m/s = 0.4';
+  clockRun(t => {
+    const a = xw(t), b = xr(t), before = t < tHit;
+    put(wb, { x: a, y: 450 }); put(rb, { x: b, y: 450 });
+    arrowAt(vw, a + R + 8, 400, before ? 100 : 0, 0, 22); arrowAt(vr, b + R + 8, 400, before ? 0 : 100, 0, 22);
+    // the long label reaches away from the other ball, so it never runs into the neighbour's 0
+    if (lw._b !== before) { lw._b = before; lw.setAttribute('text-anchor', before ? 'end' : 'middle'); lr.setAttribute('text-anchor', before ? 'middle' : 'start'); }
+    put(lw, { x: before ? a + 30 : a, y: 540 }); phText(lw, before ? P : '0'); put(lr, { x: before ? b : b - 30, y: 540 }); phText(lr, before ? '0' : P);
+  }, D);
+}, { lead: false }],
+['q2', 'Quick check', (m, D) => {
+  const p = panel(0), Y = 480, R = 56;
+  ground(p, Y);
+  const ball = phBall(p, R, { y: Y - R }), vA = path(p, '', { stroke: VEL, 'stroke-width': 12 }), fr = forceArrow(p, { w: 14, size: 32 });
+  clockRun(t => { const tt = Math.min(t, 3.6), x = 300 + 300 * tt - 42 * tt * tt, v = Math.max(0, 300 - 84 * t);
+    put(ball, { x }); put(ball._spin, { r: x / R * 180 / Math.PI }); arrowAt(vA, x + R + 8, Y - R, v * .35, 0, 24); fr.set(x - R - 8, Y - 18, v > 0 ? 90 : 0, 180, 'friction'); }, D);
+}, { ask: done => quiz(Q_CARD, [
+  { id: 'c-inertia', prompt: ['A bowling ball and a soccer ball are the same size. Which has more ', h('b', '', 'inertia'), '?'],
+    build: choice([['the bowling ball'], ['the soccer ball'], ['they have the same inertia']], 0,
+      'The bowling ball has much more mass, so it resists changes in motion more.',
+      [null, 'The soccer ball is lighter: less mass, less inertia.', 'Inertia depends on mass, not size.']) },
+  { id: 'c-friction', prompt: ['A ball rolling on grass slows down and stops. Why?'],
+    build: choice([['friction pushes against its motion'], ['it runs out of inertia'], ['no force acts on it']], 0,
+      'Friction from the grass and air is a force against the motion: an unbalanced force that slows it down.',
+      [null, 'Inertia is not used up; the ball would keep rolling without friction.', 'With no force at all, it would keep rolling forever (first law).']) },
+  { id: 'c-mom', prompt: ['A 2 kilogram ball rolls at 3 meters per second. What is its ', h('b', '', 'momentum'), '?'],
+    build: blanks([{ parts: ['momentum = 2 × 3 = ', { box: '6' }, ' kilogram meters per second'], why: 'mass × velocity = 2 × 3 = 6.', hint: 'Momentum = mass × velocity.' }]) },
+], done) }],
+['wrap2', 'Summary · First law', (m, D) => {
+  summary(panel(0), m, [
+    [['Objects keep their motion unless a net force acts on them.'], g => { mk('rect', { x: 150, y: -34, width: 90, height: 34, rx: 10, fill: '#22282a' }, g); arrowAt(path(g, '', { stroke: VEL, 'stroke-width': 8 }), 250, -17, 90, 0); }],
+    [['Inertia resists changes in motion;', 'more mass, more inertia.'], g => { mk('circle', { cx: 190, cy: -4, r: 14, fill: '#d7e24a', ...phLine(2) }, g); mk('circle', { cx: 280, cy: 4, r: 36, fill: '#e07a2e', ...phLine(2) }, g); }],
+    [['Momentum = mass × velocity; with no outside', 'forces, the total stays the same.'], g => { mk('circle', { cx: 200, cy: 0, r: 30, fill: '#f4f1e8', ...phLine(2) }, g); mk('circle', { cx: 290, cy: 0, r: 30, fill: '#d24b4b', ...phLine(2) }, g); }],
+  ], 'Next: Newton’s second law.');
+}],
+/* ---------- part 3: Newton's second law ---------- */
+['part3', 'Part 3 · The second law', (m, D) => {
+  const p = panel(0), Y = Y1, S = 3, CW = 112 * 2.5, d = t => 16 * t * t;
+  // You push the cart and it speeds up; the camera keeps you in place, the grass marks slide back.
+  const cam = camera(p, D), w = cam.world; cam.cut({ x: t => 800 + d(t) }, 0);
+  ground(w, Y, -400, 2400); marks(w, Y, -400, 2400);
+  const a = phActor(w, 'you', { y: Y, s: S, anim: 'push' }), c = phSprite(w, 'cart', { y: Y, s: 2.5 }), f = forceArrow(w, { w: 14, size: 36 }), ac = forceArrow(w, { color: ACC, w: 12, size: 34 });
+  clockRun(t => {
+    put(a, { x: 300 + d(t) }); a.stride('push', d(t) / S); const [hx, hy] = a.hand('F'); put(c, { x: hx + CW / 2 - 6 });
+    f.set(hx - 6, hy - 6, 200, 0, 'force'); ac.set(hx + 40, hy - 120, 160, 0, 'acceleration');
+  }, D);
+  opener(p, 1180, 470, 'Part 3', 'The Second Law');
+  thought(p, [60, 70, 860, 230], 330, ['How much does a force change', 'an object’s motion?'], m('q'));
+}, { lead: false }],
+['law2', 'a = F ÷ m', (m, D) => {
+  const p = panel(0), tl = m('law'), tm = m('more');
+  // The law alone and large first; then it moves up as a line and two 2 kg crates show it: 4 N and 8 N, 2 and 4 m/s².
+  const big = G(p, { o: 0 });
+  T(big, 'acceleration', { x: 560, y: 470, size: 64, weight: 700, fill: ACC, anchor: 'end' }); T(big, '=', { x: 640, y: 470, size: 64, weight: 700, anchor: 'middle' });
+  T(big, 'net force', { x: 900, y: 420, size: 60, weight: 700, fill: FORCE, anchor: 'middle' }); mk('rect', { x: 720, y: 446, width: 360, height: 6, fill: COL.chalk }, big);
+  T(big, 'mass', { x: 900, y: 520, size: 60, weight: 700, anchor: 'middle' });
+  show(big, tl); hide(big, tm - .8, .4);
+  show(runs(p, [['acceleration', ACC], [' = ', COL.chalk], ['net force', FORCE], [' ÷ mass', COL.chalk]], { x: 800, y: 110, size: 44, weight: 700 }), tm - .5);
+  show(runs(p, [['net force', FORCE], [' = mass × ', COL.chalk], ['acceleration', ACC]], { x: 800, y: 170, size: 40, weight: 700 }), m('rearr'));
+  const t0 = tm - .4, U = 2 * 1100 / (4 * (D - t0) ** 2);    // the faster crate reaches the far end as the beat ends
+  const lanes = [[440, 4, 2], [760, 8, 4]].map(([y, F, a], i) => {
+    const g = G(p, { o: 0 }); show(g, tm - .5);
+    phBlock(g, 0, y, 1600, 12, PH.walk, { top: 0, ol: 0 });
+    txt(g, `${F} N ÷ 2 kg = ${a} m/s²`, 300, y + 70, tm + .8 + i * .8, { size: 36, weight: 600 });
+    return { c: crate(g, { y, w: 180, h: 150, label: '2 kg' }), f: forceArrow(g, { w: 14, size: 36 }), aa: forceArrow(g, { color: ACC, w: 12, size: 34 }), F, a, y };
+  });
+  clockRun(t => lanes.forEach(({ c, f, aa, F, a, y }) => {
+    const u = Math.max(0, t - t0), x = 200 + U * a * u * u / 2, on = t > t0;
+    put(c, { x }); f.set(x - 96 - F * 30, y - 75, on ? F * 30 : 0, 0, `${F} N`); aa.set(x - 60, y - 190, on ? a * 50 : 0, 0, `${a} m/s²`);
+  }), D);
+  txt(p, 'double the force → double the acceleration', 1100, 860, m('more', .8), { size: 34, weight: 600 });
+}, { lead: false }],
+['cart', 'Same force, different mass', (m, D) => {
+  const p = panel(0), S = 2.2, LA = 400, LB = 820, t0 = m('cart', -.8), tc = .6;
+  // The same 200 N shove for the same 0.6 s on a 20 kg cart and a 1,000 kg car (50 times the mass): the cart leaves
+  // at speed, the car barely creeps. The arrows show only while the hands push.
+  const dx = (a, t) => { const u = Math.max(0, t - t0), k = Math.min(u, tc); return a * k * k / 2 + a * tc * Math.max(0, u - tc); };
+  phBlock(p, 0, LA, 1600, 12, PH.walk, { top: 0, ol: 0 });
+  mk('rect', { x: 0, y: LB, width: 1600, height: 80, fill: '#3a4541' }, p);
+  [300, 700, 1100, 1500].forEach(x => mk('rect', { x, y: LB + 14, width: 8, height: 52, fill: PH.line, opacity: .5 }, p));
+  const A = phActor(p, 'you', { x: 260, y: LA, s: S, anim: 'push' }), cart = phSprite(p, 'cart', { y: LA, s: S });
+  const B = phActor(p, 'friend', { x: 260, y: LB, s: S, anim: 'push' }), car = phCar(p, { y: LB, s: 1.6 });
+  const f1 = forceArrow(p, { w: 14, size: 36 }), f2 = forceArrow(p, { w: 14, size: 36 }), v1 = path(p, '', { stroke: VEL, 'stroke-width': 10 });
+  const m1 = phLabel(p, '20 kg', { size: 36 }), m2 = phLabel(p, '1,000 kg', { size: 36 });
+  const why = G(p, { o: 0 }); show(why, m('why'));
+  phLabel(why, 'a = 200 N ÷ 20 kg = 10 m/s²', { x: 900, y: 270, size: 44, fill: ACC });
+  phLabel(why, 'a = 200 N ÷ 1,000 kg = 0.2 m/s²', { x: 1120, y: 690, size: 44, fill: ACC }); phLabel(why, 'tiny', { x: 1120, y: 740, size: 34, fill: COL.dim, weight: 600 });
+  A.show('push', 0); B.show('push', 0);
+  const xa0 = A.hand('F')[0] + 112 * S / 2 - 6, xb0 = B.hand('F')[0] + 256 * 1.6 / 2 - 6;   // the cart and the car start against the hands
+  clockRun(t => {
+    const u = t - t0, on = u > 0 && u < tc, d1 = dx(1000, t), d2 = dx(20, t);
+    put(A, { x: 260 + Math.min(d1, 1000 * tc * tc / 2) }); if (on) A.stride('push', d1 / S); else A.show(u > 0 ? 'stand' : 'push', 0);
+    const [ha, hya] = A.hand('F'), xa = xa0 + d1; put(cart, { x: xa });
+    f1.set(ha - 6, hya - 6, on ? 180 : 0, 0, '200 N'); arrowAt(v1, xa + 140, LA - 220, u > tc ? 110 : 0, 0, 22);
+    put(m1, { x: xa, y: LA + 50 });   // each mass tag under its object
+    put(B, { x: 260 + Math.min(d2, 20 * tc * tc / 2) }); if (on) B.stride('push', d2 / S); else B.show(u > 0 ? 'stand' : 'push', 0);
+    const [hb, hyb] = B.hand('F'), xb = xb0 + d2; put(car, { x: xb }); phRoll(car, d2 / 1.6);
+    f2.set(hb - 6, hyb - 40, on ? 180 : 0, 0, '200 N'); put(m2, { x: xb, y: LB + 54 });
+  }, D);
+}, { lead: false }],
+['calc', 'Net force = mass × acceleration', (m, D) => {
+  const p = panel(0), RY = 560, t0 = m('ex'), aPx = 40, cx = t => { const u = Math.max(0, t - t0); return 600 + aPx * u * u / 2; };
+  // The worked example on the car itself: the camera follows it (the lane marks slide back), the sum reads under it.
+  const cam = camera(p, D), w = cam.world, road = cam.layer(1, 320); cam.cut({ x: t => cx(t) + 100 }, 0);
+  mk('rect', { x: 0, y: RY, width: 2240, height: 80, fill: '#3a4541' }, road);
+  for (let x = 0; x < 2240; x += 320) mk('rect', { x, y: RY + 36, width: 120, height: 8, fill: PH.line, opacity: .6 }, road);
+  const car = phCar(w, { y: RY, s: 2.4 }), ml = phLabel(w, '2,000 kg', { size: 44 }), aa = forceArrow(w, { color: ACC, w: 12, size: 36 }), f = forceArrow(w, { w: 16, size: 36 });
+  show(runs(p, [['net force', FORCE], [' = mass × ', COL.chalk], ['acceleration', ACC]], { x: 700, y: 720, size: 46, weight: 700 }), m('f'));
+  show(runs(p, [['= 2,000 kg × 3 ', COL.chalk], ['m/s²', ACC]], { x: 640, y: 790, size: 46, weight: 700 }), m('f', 1.6));
+  const ans = T(p, '= 6,000 N', { x: 900, y: 790, size: 56, weight: 700, fill: FORCE, anchor: 'start', o: 0 });
+  pop(put(ans, { s: .6 }), m('ans'));
+  clockRun(t => {
+    const x = cx(t), on = t > t0; put(car, { x }); phRoll(car, (x - 600) / 2.4);
+    put(ml, { x, y: 290 }); aa.set(x - 100, 230, on ? 200 : 0, 0, '3 m/s²');
+    f.set(x + 330, RY - 120, on ? 160 : 0, 0, t > m('ans') ? '6,000 N' : '');   // the net force pushes the whole time it speeds up
+  }, D);
+}, { lead: false }],
+['wind', 'With and against the wind', (m, D) => {
+  const p = panel(0), tw1 = m('with'), ta = m('against');
+  // Follow camera on the bike. With the wind: 4 → 8 m/s; against it: 8 → 2 m/s (30 px/s = 1 m/s).
+  const v = t => t < ta - .3 ? 4 + 4 * ramp(t, tw1, tw1 + 5) : 8 - 6 * ramp(t, ta, ta + 4.5);
+  const xAt = t => { let x = 0; for (let u = 0; u < t; u += .05) x += v(u) * 30 * .05; return x; };   // deterministic sum over fixed steps
+  const cam = camera(p, D, { x: 800, y: 560 }); cam.cut({ x: t => 300 + xAt(t) + 300 }, 0);
+  const road = phRoad(cam), bike = phBike(road.vehicles, 'you', { s: 2 });
+  const vv = forceArrow(road.front, { color: VEL, w: 12, size: 32 }), wf = forceArrow(road.front, { w: 14, size: 32 }), nf = forceArrow(road.front, { color: NETF, w: 18, size: 30 });
+  const streaks = G(p, { o: .5 }), sl = Array.from({ length: 9 }, () => path(streaks, '', { stroke: COL.chalk, 'stroke-width': 4 }));
+  const tag = phLabel(p, '', { x: 1180, y: 460, size: 48 });
+  clockRun(t => {
+    const d = xAt(t), x = 300 + d, sp = v(t), dir = t < ta - .3 ? 1 : -1, windy = t > tw1 - .3;
+    put(bike, { x, y: ROAD.near }); bike.ride(d / 2);
+    vv.set(x - 80, ROAD.near - 360, sp * 30, 0, `velocity ${sp.toFixed(1)} m/s`);
+    wf.set(dir > 0 ? x - 330 : x + 330, ROAD.near - 200, windy ? 140 : 0, dir > 0 ? 0 : 180, 'wind');
+    nf.set(dir > 0 ? x - 60 : x + 100, ROAD.near + 60, windy ? 160 : 0, dir > 0 ? 0 : 180, 'net force', 'below');
+    phText(tag, !windy ? '' : dir > 0 ? 'same way → speed up' : 'opposite → slow down');
+    sl.forEach((e, i) => { const yy = 200 + 70 * i, xx = ((i * 337 + 900 * t * dir) % 1800 + 1800) % 1800 - 100; e.setAttribute('d', `M${xx} ${yy}h${70 * dir}`); });
+  }, D);
+}],
+['q3', 'Quick check', (m, D) => {
+  const p = panel(0), y = 470;
+  phBlock(p, 300, y, 1000, 12, PH.walk, { top: 0, ol: 0 });
+  crate(p, { x: 800, y, w: 240, h: 200, label: '2 kg' });
+  forceArrow(p, { w: 16, size: 40 }).set(434, y - 100, 240, 0, '10 N'); forceArrow(p, { color: ACC, w: 12, size: 38 }).set(720, y - 240, 200, 0, '? m/s²');
+}, { ask: done => quiz(Q_CARD, [
+  { id: 'c-a', prompt: ['A 10 newton net force pushes a 2 kilogram box. What is its ', h('b', '', 'acceleration'), '?'],
+    build: blanks([{ parts: ['acceleration = 10 ÷ 2 = ', { box: '5' }, ' meters per second squared'], why: 'acceleration = net force ÷ mass = 10 ÷ 2 = 5.', hint: 'acceleration = net force ÷ mass.' }]) },
+  { id: 'c-fma', prompt: ['A 50 kilogram skater speeds up at 4 meters per second squared. What net force acts on her?'],
+    build: blanks([{ parts: ['net force = 50 × 4 = ', { box: '200' }, ' newtons'], why: 'net force = mass × acceleration = 50 × 4 = 200.', hint: 'net force = mass × acceleration.' }]) },
+  { id: 'c-more', prompt: ['The same force pushes a bike and a truck. Which accelerates more?'],
+    build: choice([['the bike'], ['the truck'], ['both the same']], 0,
+      'Less mass, more acceleration: a = F ÷ m.',
+      [null, 'The truck has far more mass, so the same force gives it less acceleration.', 'Same force, different masses: different accelerations.']) },
+], done) }],
+['wrap3', 'Summary · Second law', (m, D) => {
+  summary(panel(0), m, [
+    [['acceleration = net force ÷ mass'], g => { crate(g, { x: 220, y: 40, w: 120, h: 100 }); forceArrow(g, { w: 10 }).set(284, -10, 80, 0, ''); forceArrow(g, { color: ACC, w: 8 }).set(180, -90, 70, 0, ''); }],
+    [['net force = mass × acceleration', '(newtons = kilograms × m/s²)'], g => { phLabel(g, 'F = m × a', { x: 240, y: 10, size: 36 }); }],
+    [['Net force with the motion: speed up;', 'against it: slow down.'], g => { phBike(g, 'you', { x: 230, y: 50, s: .8 }); forceArrow(g, { w: 8 }).set(80, -40, 70, 0, ''); }],
+  ], 'Next: Newton’s third law.');
+}],
+/* ---------- part 4: Newton's third law ---------- */
+['part4', 'Part 4 · The third law', (m, D) => {
+  const p = panel(0), Y = Y1, S = 3, tp = 1.1;
+  // Two skaters push palm to palm, then glide apart (slowly easing on the ice); the pair shows only while they touch.
+  rink(p, Y);
+  const a = phActor(p, 'you', { y: Y, s: S, anim: 'skate' }), b = phActor(p, 'friend', { y: Y, s: S, anim: 'skate' }).face(-1), fa = forceArrow(p, { w: 14 }), fb = forceArrow(p, { w: 14 });
+  clockRun(t => {
+    const u = Math.max(0, t - tp), s = 105 * u - 9 * u * u;
+    put(a, { x: 640 - s, r: u ? -4 : 0 }); put(b, { x: 960 + s, r: u ? 4 : 0 }); a.show('skate', u ? 0 : 1); b.show('skate', u ? 0 : 1);   // arms out, palm to palm
+    const on = t < tp;
+    fa.set(790, Y - 420, on ? 150 : 0, 180, ''); fb.set(810, Y - 420, on ? 150 : 0, 0, '');            // the pair, over the joined hands
+  }, D);
+  opener(p, 800, 250, 'Part 4', 'The Third Law');
+  txt(p, 'Forces always come in pairs.', 800, 360, m('q'), { size: 42 });
+}, { lead: false }],
+['law3', 'Action and reaction', (m, D) => {
+  const p = panel(0), Y = Y1, S = 3, tb = m('bowl'), tC = tb - .25, tR = m('equal', -.3), R = 44;   // contact: wind-up to release, 0.25 s
+  // The throw: in close for the contact (the pair only while the hands push the ball), out to watch the light ball fly
+  // fast and you slide back slowly. From "equal" a held, labelled replay of the moment of contact.
+  const cam = camera(p, D), w = cam.world, close = { x: 760, y: Y - 200, z: 1.6 };
+  cam.to(close, tb - 1.3, .8).to({ x: 800, y: 450, z: 1 }, tb + .6, 1).cut(close, tR);
+  rink(w, Y, -1200, 4800);
+  const you = phActor(w, 'you', { x: 640, y: Y, s: S, anim: 'stand' }), ball = G(w);
+  mk('circle', { r: R, fill: '#22282a', ...phLine(2) }, ball); [[-12, -14], [8, -20], [3, 6]].forEach(([x, y]) => mk('circle', { cx: x, cy: y, r: 6, fill: '#5a6266' }, ball));
+  const act = forceArrow(w, { w: 12, size: 26 }), rea = forceArrow(w, { w: 12, size: 26 }), vb = path(w, '', { stroke: VEL, 'stroke-width': 10 }), vy = path(w, '', { stroke: VEL, 'stroke-width': 10 });
+  you.show('throw', 1); put(you, { x: 640 }); const [rx, ry] = you.hand('F');      // the release point: the hand of the release pose
+  const VB = 520, VY = 28;
+  const law = G(p, { o: 0 }); phLabel(law, 'For every action, there is an', { x: 800, y: 210, size: 52 }); phLabel(law, 'equal and opposite reaction.', { x: 800, y: 274, size: 52 });
+  show(law, m('law')); hide(law, tb - 1.4, .4);
+  const tag = G(p, { o: 0 }); mk('rect', { x: 60, y: 56, width: 420, height: 52, rx: 26, fill: 'none', stroke: COL.dim, 'stroke-width': 3 }, tag);
+  phLabel(tag, 'replay · the moment of contact', { x: 270, y: 91, size: 24, fill: COL.dim, weight: 600 }); show(tag, tR, .3);
+  txt(p, 'same size,', 1250, 200, m('equal'), { size: 50, weight: 700 });
+  const op = G(p, { o: 0 }); phLabel(op, 'opposite directions,', { x: 1250, y: 260, size: 44, weight: 600 }); phLabel(op, 'on two objects', { x: 1250, y: 312, size: 44, weight: 600 }); show(op, m('opp'));
+  clockRun(t => {
+    const replay = t >= tR, ts = replay ? tC + .12 : t, u = Math.max(0, ts - tb), contact = ts >= tC && ts < tb;
+    put(you, { x: 640 - VY * u });
+    if (ts < tb - .9) you.show('stand'); else if (ts < tC) you.show('throw', 0); else if (ts < tb + .4) you.show('throw', 1); else you.show('throw', 2);
+    let bx, by;
+    if (ts < tb) { const [hx, hy] = you.hand('F'); bx = hx + 30; by = hy; } else { bx = rx + 30 + VB * u; by = ry; }   // in the hands until release, then straight on
+    put(ball, { x: bx, y: by });
+    act.set(bx + R + 6, by, contact ? 120 : 0, 0, replay ? '50 N' : 'on the ball');
+    rea.set(640 - VY * u - 60, Y - 250, contact ? 120 : 0, 180, replay ? '50 N' : 'on you');
+    arrowAt(vb, bx + R + 8, by - 60, u > 0 ? 110 : 0, 0, 22); arrowAt(vy, 640 - VY * u - 40, Y - 330, u > 0 ? 44 : 0, 180, 16);   // velocities after release
+  }, D);
+}, { lead: false }],
+['pairs', 'Action-reaction pairs', (m, D) => {
+  const p = panel(0), tt = m('tramp'), tr = m('run'), S = 3, BY = 720;
+  // Two full frames in turn: one slow bounce on a trampoline, then a run under a following camera.
+  const L = G(p);
+  txt(L, 'Action-reaction pairs', 800, 150, .2, { size: 52, weight: 700 });
+  path(L, `M300 ${BY}H1300M380 ${BY}V${BY + 110}M1220 ${BY}V${BY + 110}`, { stroke: '#5a6d63', 'stroke-width': 8 });
+  const bed = path(L, '', { stroke: '#6f8a96', 'stroke-width': 12 });
+  const j = phActor(L, 'you', { x: 800, s: S, anim: 'jump' }), down = forceArrow(L, { w: 16, size: 36 }), up = forceArrow(L, { w: 16, size: 36 });
+  const ld = phLabel(L, 'you push it down', { x: 910, y: 700, size: 36, fill: FORCE, anchor: 'start', o: 0 }), lu = phLabel(L, 'it pushes you up', { x: 690, y: 860, size: 36, fill: FORCE, anchor: 'end', o: 0 });
+  // a hop up (from tt − 1.8), then the landing on "tramp": compress, hold so the pair can be read, launch, flight, rest
+  const bounce = t => {
+    const k0 = t - (tt - 1.8);
+    if (k0 < 0) return { y: BY, sag: 0, pose: 'stand' };
+    if (k0 < .3) return { y: BY + 20 * ramp(k0, 0, .3), sag: ramp(k0, 0, .3) * .4, pose: 'crouch', push: true };
+    if (k0 < 1.8) { const q = (k0 - .3) / 1.5; return { y: BY - 280 * 4 * q * (1 - q), sag: 0, pose: 'jump' }; }
+    const k = k0 - 1.8;
+    if (k < .4) return { y: BY + 50 * ramp(k, 0, .4), sag: ramp(k, 0, .4), pose: 'land', push: true };
+    if (k < 1.4) return { y: BY + 50, sag: 1, pose: 'crouch', push: true };
+    if (k < 1.7) return { y: BY + 50 - 50 * ramp(k, 1.4, 1.7), sag: 1 - ramp(k, 1.4, 1.7), pose: 'land', push: true };
+    if (k < 3) { const q = (k - 1.7) / 1.3; return { y: BY - 280 * 4 * q * (1 - q), sag: 0, pose: 'jump' }; }
+    return { y: BY, sag: 0, pose: 'stand' };
+  };
+  show(ld, tt); show(lu, tt + .4); hide(L, tr - .5, .4);
+  // the run
+  const rc = camera(p, D); put(rc.el, { o: 0 }); show(rc.el, tr - .2, .4);
+  const track = rc.layer(1, 600);
+  phBlock(track, 0, Y1, 2200, 30, '#8a6f55', { top: 4, ol: 0 });
+  for (let x = 0; x < 2200; x += 120) mk('rect', { x, y: Y1 + 40, width: 60, height: 6, fill: PH.line, opacity: .5 }, track);
+  const runner = phActor(rc.world, 'friend', { y: Y1, s: S, anim: 'run' }), back = forceArrow(rc.world, { w: 16 }), fwd = forceArrow(rc.world, { w: 16 });
+  const rx = t => 760 + 300 * Math.max(0, t - tr);
+  rc.cut({ x: t => rx(t) + 40 }, 0);
+  const lb = phLabel(p, 'your foot pushes back on the ground', { x: 760, y: Y1 + 130, size: 36, fill: FORCE, o: 0 }), lf = phLabel(p, 'the ground pushes you forward', { x: 1020, y: 572, size: 36, fill: FORCE, anchor: 'start', o: 0 });
+  show(lb, tr + .3); show(lf, tr + 1.2);
+  clockRun(t => {
+    const b = bounce(t);
+    bed.setAttribute('d', `M380 ${BY}Q800 ${BY + 140 * b.sag} 1220 ${BY}`); put(j, { y: b.y }); j.show(b.pose);
+    down.set(880, BY - 60 + 50 * b.sag, b.push ? 110 : 0, 90, ''); up.set(720, BY + 160, b.push ? 110 : 0, -90, '');
+    const x = rx(t); put(runner, { x }); if (t > tr) runner.stride('run', (x - 760) / S); else runner.show('stand');
+    const strike = t > tr && runner._f % 2 === 0;                  // the push only while a foot is on the ground
+    back.set(x, Y1 + 50, strike ? 150 : 0, 180, ''); fwd.set(x + 60, 560, strike ? 170 : 0, 0, '');
+  }, D);
+}, { lead: false }],
+['earth', 'Why Earth doesn’t move', (m, D) => {
+  const p = panel(0), ta = m('mass'), tt = m('tiny'), G0 = 560;
+  // You on top of a huge Earth. The pair at your feet is equal (500 N each way); what differs is the mass. No
+  // acceleration arithmetic for the jumper: on the ground gravity acts too, so the push alone is not the net force.
+  phEarthPolar(p, { x: 800, y: G0 + 1000, R: 1000 });
+  const you = phActor(p, 'you', { x: 800, y: G0, s: 2.6, anim: 'stand' }), dn = forceArrow(p, { w: 16, size: 32 }), up = forceArrow(p, { w: 16, size: 32 });
+  const g1 = G(p, { o: 0 }); phLabel(g1, 'the same 500 N', { x: 580, y: 430, size: 40, fill: FORCE, anchor: 'end' }); phLabel(g1, 'acts on both', { x: 580, y: 480, size: 40, anchor: 'end' }); show(g1, ta);
+  txt(p, 'you: about 50 kg', 1020, 450, ta + 1.2, { size: 40, weight: 700, anchor: 'start' });
+  const plate = (lines, t0, t1) => {
+    const g = G(p, { o: 0 }); mk('rect', { x: 360, y: 700, width: 880, height: 170, rx: 20, fill: '#14201d', opacity: .92 }, g);
+    lines.forEach(([s, size, fill], i) => phLabel(g, s, { x: 800, y: 770 + i * 60, size, fill, weight: i ? 600 : 700 })); show(g, t0); if (t1) hide(g, t1, .3);
+  };
+  plate([['Earth: about 6 × 10²⁴ kg', 44, COL.chalk], ['(a 6 followed by 24 zeros)', 30, COL.dim]], ta + 2.2, tt - .3);
+  plate([['huge mass → tiny acceleration', 48, ACC], ['far too small to notice, but it is there', 32, COL.dim]], tt);
+  // three separate jumps: crouch, push-off (the pair), flight on a parabola, landing and recovery
+  const starts = [.5, ta + .8, tt + 1.2];
+  const jump = t => {
+    for (const s of starts) {
+      const k = t - s;
+      if (k < 0 || k > 2.2) continue;
+      if (k < .35) return { y: G0, pose: 'crouch' };
+      if (k < .5) return { y: G0, pose: 'land', push: true };
+      if (k < 1.6) { const q = (k - .5) / 1.1; return { y: G0 - 220 * 4 * q * (1 - q), pose: 'jump' }; }
+      if (k < 1.9) return { y: G0, pose: 'land' };
+      return { y: G0, pose: 'stand' };
+    }
+    return { y: G0, pose: 'stand' };
+  };
+  clockRun(t => {
+    const j = jump(t); put(you, { y: j.y }); you.show(j.pose);
+    dn.set(870, G0 - 20, j.push ? 120 : 0, 90, 'you push Earth: 500 N', 'right'); up.set(730, G0 + 120, j.push ? 120 : 0, -90, 'Earth pushes you: 500 N', 'left');
+  }, D);
+}, { lead: false }],
+['q4', 'Quick check', (m, D) => {
+  const p = panel(0), Y = 500, S = 2.4, WX = 980;
+  ground(p, Y);
+  phBlock(p, WX, 60, 150, Y - 60, '#7d6a5a', { top: 0, right: 14, ol: 0 });
+  for (let y = 100; y < Y; y += 60) mk('rect', { x: WX, y, width: 136, height: 5, fill: '#5e4f42' }, p);
+  const a = phActor(p, 'you', { y: Y, s: S, anim: 'push' }).show('push', 0), f1 = forceArrow(p, { w: 14, size: 32 }), f2 = forceArrow(p, { w: 14, size: 32 });
+  put(a, { x: 0 }); const off = WX - a.hand('F')[0];
+  clockRun(t => { put(a, { x: off + Math.sin(t * 9) * 1.5 }); a.show('push', 0); }, D);   // leaning in, straining a little
+  put(a, { x: off }); const [hx, hy] = a.hand('F');
+  f1.set(WX + 10, hy - 40, 150, 0, ''); f2.set(WX - 10, hy + 60, 150, 180, '');
+  phLabel(p, 'you push the wall: 30 N', { x: 1170, y: hy - 28, size: 32, fill: FORCE, anchor: 'start' }); phLabel(p, 'the wall pushes you: ?', { x: 700, y: hy + 72, size: 32, fill: FORCE, anchor: 'end' });
+}, { ask: done => quiz(Q_CARD, [
+  { id: 'c-wall', prompt: ['You push on a wall with 30 newtons. How hard does the wall push back on you?'],
+    build: blanks([{ parts: ['the wall pushes back with ', { box: '30' }, ' newtons'], why: 'Action and reaction are equal in size and opposite in direction.', hint: 'Third law: equal and opposite.' }]) },
+  { id: 'c-jump', prompt: ['When you jump, you push down on Earth and Earth pushes up on you with the same force. Why doesn’t Earth move noticeably?'],
+    build: choice([['its huge mass gives it a tiny acceleration'], ['it pushes back with a smaller force'], ['forces only act on people']], 0,
+      'Same force, enormous mass: a = F ÷ m is far too small to notice.',
+      [null, 'The two forces are equal; the difference is the mass.', 'Earth feels the force too; it just barely accelerates.']) },
+  { id: 'c-pair', prompt: ['A swimmer pushes backward on the pool wall. What pushes the swimmer forward?'],
+    build: choice([['the wall'], ['the swimmer’s own push'], ['nothing pushes the swimmer']], 0,
+      'The wall pushes back on the swimmer: an action-reaction pair.',
+      [null, 'Your own push acts on the wall, not on you. The wall’s push acts on you.', 'Something must push the swimmer to speed her up: the wall does.']) },
+], done) }],
+['wrap4', 'Summary · Third law', (m, D) => {
+  summary(panel(0), m, [
+    [['For every action, there is an equal and', 'opposite reaction.'], g => { forceArrow(g, { w: 10 }).set(220, -10, 80, 180, ''); forceArrow(g, { w: 10 }).set(260, -10, 80, 0, ''); }],
+    [['The pair: same size, opposite directions,', 'on two different objects.'], g => { mk('circle', { cx: 290, cy: -6, r: 22, fill: '#22282a', ...phLine(2) }, g); forceArrow(g, { w: 10 }).set(318, -6, 70, 0, ''); forceArrow(g, { w: 10 }).set(220, -6, 70, 180, ''); }],
+    [['The same force moves a small mass a lot', 'and a huge mass hardly at all.'], g => { phEarthPolar(g, { x: 240, y: 200, R: 160 }); phActor(g, 'you', { x: 240, y: 40, s: .8 }); }],
+  ], 'Next: the chapter practice.');
+}],
+/* ---------- chapter practice and finish ---------- */
+['final1', 'Chapter practice: force and the first law', () => { PRACTICE = panel(0); }, { ask: done => quiz(SCREEN, withPics([
+  { id: 'p-bal', prompt: ['What is the difference between ', h('b', '', 'balanced'), ' and ', h('b', '', 'unbalanced'), ' forces?'],
+    build: choice([['Balanced forces cancel (net force 0); unbalanced forces leave a net force that changes motion.'], ['Balanced forces are always bigger than unbalanced ones.'], ['Unbalanced forces cancel; balanced forces change motion.']], 0,
+      'Balanced: the net force is zero, nothing changes. Unbalanced: there is a net force in one direction.',
+      [null, 'It is not about size: it is whether the forces cancel.', 'It is the other way around.']) },
+  { id: 'p-first', prompt: ['What is ', h('b', '', 'Newton’s first law'), '?'],
+    build: choice([['An object at rest stays at rest and an object in motion stays in motion, unless a net force acts on it.'], ['Acceleration equals net force divided by mass.'], ['For every action there is an equal and opposite reaction.']], 0,
+      'That is the law of inertia.', [null, 'That is the second law.', 'That is the third law.']) },
+  { id: 'p-unit', prompt: ['What is the unit of force, and what is one unit equal to?'],
+    build: choice([['the newton: 1 N = 1 kg × 1 m/s²'], ['the newton: 1 N = 1 kg × 1 m/s'], ['the kilogram: 1 kg = 1 N × 1 m/s²']], 0,
+      'One newton gives a 1 kilogram mass an acceleration of 1 meter per second squared.',
+      [null, 'Close: it is meters per second squared, an acceleration.', 'Force is measured in newtons; the kilogram measures mass.']) },
+  { id: 'p-net3', prompt: ['Forces on a box: 6 newtons right, 4 newtons right, and 3 newtons left. What is the net force?'],
+    build: blanks([{ parts: ['net force = 6 + 4 − 3 = ', { box: '7' }, ' newtons, to the right'], why: 'Same direction adds (6 + 4 = 10); the opposite force subtracts (10 − 3 = 7).', hint: 'Add the forces to the right, then subtract the one to the left.' }]) },
+]), done, 'Chapter practice, set 1 of 2 · question') }],
+['final2', 'Chapter practice: the second and third laws', () => { PRACTICE = panel(0); }, { ask: done => quiz(SCREEN, withPics([
+  { id: 'p-second', prompt: ['What is ', h('b', '', 'Newton’s second law'), '?'],
+    build: choice([['The acceleration of an object equals the net force on it divided by its mass.'], ['Objects keep their motion unless a net force acts.'], ['Forces act in pairs.']], 0,
+      'a = net force ÷ mass, or net force = mass × acceleration.', [null, 'That is the first law.', 'That is the third law.']) },
+  { id: 'p-car', prompt: ['A 2,000 kilogram car accelerates at 3 meters per second squared. What force does the engine apply? (Type the number without a comma.)'],
+    build: blanks([{ parts: ['net force = 2000 × 3 = ', { box: '6000' }, ' newtons'], why: 'net force = mass × acceleration = 2,000 × 3 = 6,000 newtons.', hint: 'net force = mass × acceleration. Type 6000.' }]) },
+  { id: 'p-third', prompt: ['What is ', h('b', '', 'Newton’s third law'), '?'],
+    build: choice([['For every action, there is an equal and opposite reaction.'], ['More mass means more inertia.'], ['Momentum equals mass times velocity.']], 0,
+      'Forces act in pairs: equal in size, opposite in direction.', [null, 'That is about inertia (first law).', 'That defines momentum.']) },
+  { id: 'p-mom', prompt: ['A 0.5 kilogram ball moves at 8 meters per second. What is its momentum?'],
+    build: blanks([{ parts: ['momentum = 0.5 × 8 = ', { box: '4' }, ' kilogram meters per second'], why: 'mass × velocity = 0.5 × 8 = 4.', hint: 'momentum = mass × velocity.' }]) },
+]), done, 'Chapter practice, set 2 of 2 · question') }],
+['finish', 'Finished', () => {
+  // under the card, the chapter in four small pictures with their names
+  const p = panel(0);
+  [['force', 300, g => { phSprite(g, 'cart', { x: 20, y: 0, s: 1.4 }); forceArrow(g, { w: 8 }).set(-110, -70, 90, 0, ''); }],
+   ['first law', 633, g => { mk('rect', { x: -70, y: -34, width: 80, height: 30, rx: 10, fill: '#22282a' }, g); arrowAt(path(g, '', { stroke: VEL, 'stroke-width': 8 }), 20, -20, 80, 0); }],
+   ['second law', 966, g => { crate(g, { x: -20, y: 0, w: 110, h: 90 }); forceArrow(g, { w: 8 }).set(40, -40, 70, 0, ''); forceArrow(g, { color: ACC, w: 8 }).set(-70, -110, 70, 0, ''); }],
+   ['third law', 1300, g => { forceArrow(g, { w: 8 }).set(-20, -40, 80, 180, ''); forceArrow(g, { w: 8 }).set(20, -40, 80, 0, ''); }]]
+    .forEach(([s, x, draw]) => { const g = G(p, { x, y: 800, s: .85 }); draw(g); phLabel(g, s, { y: 56, size: 30, fill: COL.dim, weight: 600 }); });
+}, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+boot();
+</script>
+</body>
+</html>
