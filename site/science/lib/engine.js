@@ -72,7 +72,7 @@ document.body.insertAdjacentHTML('afterbegin', `<div id="frame">
 {
   const c = document.createElement('canvas'); c.width = c.height = 256;
   const x = c.getContext('2d'), d = x.createImageData(256, 256);
-  for (let i = 0, s = 7; i < d.data.length; i += 4) { s = s * 16807 % 2147483647; d.data.set([235, 242, 230, s % 36], i); }
+  for (let i = 0, s = 7; i < d.data.length; i += 4) { s = s * 16807 % 2147483647; d.data.set([235, 242, 230, 4 + s % 12], i); }
   x.putImageData(d, 0, 0);
   document.getElementById('stage').style.setProperty('--grain', `url(${c.toDataURL()})`);
 }
