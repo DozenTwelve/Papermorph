@@ -82,7 +82,11 @@ const NS = 'http://www.w3.org/2000/svg';
 const COL = { nat: '#f4a48c', whole: '#86c9e8', int: '#f3c95c', rat: '#e8a0c8', irr: '#8fd6b0', real: '#bba8ee',
   chalk: '#ece8dc', dim: '#9aaba3', faint: '#5d7068', task: '#f0b45a', good: '#8fd6b0', bad: '#f08c7a', board: '#1d2b27' };
 const UI = '"Avenir Next","Segoe UI","Helvetica Neue",Arial,sans-serif';
-const MATH = UI;   // science book: one face for numbers and formulas in demos and questions
+// Book settings (lib/book.css, next to engine.css and imported by it): --math-font for numbers and formulas,
+// --progress-key for the localStorage key the cover and chapters share.
+const BOOK = getComputedStyle(document.documentElement);
+const bookSetting = name => BOOK.getPropertyValue(name).trim().replace(/^(["'])(.*)\1$/, '$2');
+const MATH = bookSetting('--math-font') || '"STIX Two Text","Cambria Math","Iowan Old Style",Palatino,Georgia,serif';
 const NAME = { nat: 'Natural', whole: 'Whole', int: 'Integers', rat: 'Rational', irr: 'Irrational', real: 'Real' };
 // Card positions inside the 1600×900 picture.
 const BAND = { x: 96, y: 686, w: 1408, cls: 'band' };      // bottom band (moves up when taller than the space left)
@@ -134,6 +138,7 @@ const VAR = /(?<![A-Za-z°])(?:(?!(?:of|in|is|to|or|at|on|by|as|an|if|it|be|no|s
 const F = (n, d) => ({ f: [String(n), String(d)] });   // fraction
 const R = (x, i) => ({ r: x && x.f ? x : String(x), i: i && String(i) });   // root of a number or of F(n, d); i = index, e.g. 3 for a cube root
 const E = x => ({ sup: String(x) });                    // exponent, raised after the part before it
+const OV = x => ({ ov: String(x) });                    // digits under a repeat bar: ['0.', OV('3')] is 0.333…
 // Math expression from parts: 'text' | F(n,d) | R(x) | E(exp). Baseline at y; anchor start/middle/end.
 function M(parent, parts, { x = 0, y = 0, size = 36, fill = COL.chalk, anchor = 'middle', o = 1, s = 1 } = {}) {
   const g = G(parent, { x, y, o, s });
@@ -180,6 +185,10 @@ function M(parent, parts, { x = 0, y = 0, size = 36, fill = COL.chalk, anchor = 
       cx = x0 + size * .56 + w + size * .1;
     } else if (p.sup !== undefined) {
       cx += text(p.sup, cx + size * .03, -size * .45, size * .62) + size * .06;
+    } else if (p.ov !== undefined) {
+      const w = text(p.ov, cx, 0, size);
+      rule(cx + size * .04, cx + w - size * .02, -size * .8);
+      cx += w;
     }
   }
   const dx = anchor === 'middle' ? -cx / 2 : anchor === 'end' ? -cx : 0;
@@ -1402,7 +1411,7 @@ const slot = (k, n) => {
   const r = RINGS[k];
   return [r.lx + [-72, 72, 0][n % 3], r.ly + 50 + 56 * Math.floor(n / 2)];
 };
-const plain = parts => parts.map(p => typeof p === 'string' ? p : p.f ? p.f.join('/') : p.sup !== undefined ? '^' + p.sup : (p.i ? p.i : '') + '√' + (p.r.f ? p.r.f.join('/') : p.r)).join('');
+const plain = parts => parts.map(p => typeof p === 'string' ? p : p.ov !== undefined ? p.ov + ' repeating' : p.f ? p.f.join('/') : p.sup !== undefined ? '^' + p.sup : (p.i ? p.i : '') + '√' + (p.r.f ? p.r.f.join('/') : p.r)).join('');
 const sorter = (items, trayXY) => (body, api) => {
   const L = qlayer();
   const bg = mk('rect', { width: 1600, height: 900, fill: 'transparent' }, L);
@@ -1711,7 +1720,7 @@ fit();
 // Start the lesson once the chapter page has defined CHAPTER and BEATS.
 // ?beat=N&t=S opens a paused frame, for reviewing a single moment.
 // Per-book progress shared with the cover/contents at the parent URL folder.
-const BOOK_PROGRESS_KEY = 'animebook:progress:' + new URL('../', location.href).pathname;
+const BOOK_PROGRESS_KEY = bookSetting('--progress-key') || 'animebook:progress:' + new URL('../', location.href).pathname;
 function progress(f) {
   try {
     const saved = JSON.parse(localStorage.getItem(BOOK_PROGRESS_KEY) || '{}');

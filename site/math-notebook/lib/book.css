@@ -1,0 +1,9 @@
+/* This book's own settings, imported by engine.css. The engine files next to this one are the same in every book
+   and are replaced when the engine is updated; this file is not.
+   Settings (uncomment to use):
+:root {
+  --math-font: "Avenir Next", Arial, sans-serif;   face for numbers and formulas (default: a serif, see engine.js)
+  --progress-key: "progress";                      localStorage key shared with the cover (default: one per book folder)
+}
+   Style overrides go here too. They come before the engine's rules, so make each selector more specific than the
+   engine's, e.g. ':root .card.band' for '.card.band'. */

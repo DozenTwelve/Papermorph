@@ -1,0 +1,11 @@
+/* This book's own settings, imported by engine.css; the engine files next to it are shared and replaced on update.
+   Overrides come before the engine's rules, so their selectors must be more specific (e.g. ':root .card.band'). */
+:root {
+  --math-font: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;   /* one face for words, numbers and formulas */
+}
+/* Band card: prompt and buttons on top, answers below at full width, feedback last. A prompt beside the answers
+   lost the width race to long choices or answer rows (it was squeezed to a word per line, worst in Firefox). */
+:root .card.band { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "pic head acts" "pic body body" "pic fb fb"; row-gap: 12px; }
+:root .band .head { align-self: auto; }
+:root .band .fb { align-self: auto; margin-top: 0; }
+:root .band .body { min-width: 0; }

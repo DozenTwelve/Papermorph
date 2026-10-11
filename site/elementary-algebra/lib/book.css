@@ -1,0 +1,5 @@
+/* This book's own settings, imported by engine.css; the engine files next to it are shared and replaced on update.
+   Overrides come before the engine's rules, so their selectors must be more specific (e.g. ':root .card.band'). */
+:root {
+  --progress-key: "progress";   /* the first book on the site kept the original key, so readers keep their progress */
+}

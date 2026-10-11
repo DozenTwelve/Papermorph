@@ -13,7 +13,7 @@
 <script>
 'use strict';
 const CHAPTER = { number: 38, title: 'Solving Systems of Linear Inequalities by Graphing', minutes: 6, next: '../ch39/' };
-const L1 = COL.whole, L2 = COL.rat, OV = COL.real, DASH = '14 10';
+const L1 = COL.whole, L2 = COL.rat, OVERLAP = COL.real, DASH = '14 10';
 
 /* ---------- chapter drawing helpers ---------- */
 const mline = (p, parts, x, y, t0, fill = COL.chalk, size = 48, anchor = 'middle') => { const e = M(p, [].concat(parts), { x, y, size, fill, anchor, o: 0 }); show(e, t0); return e; };
@@ -36,7 +36,7 @@ function mixed(P, t, run = tw) {
   P.line(0, -1, 1, 0, L2, t[1], { run });
   P.half(3, 1, -5, L1, t[2], { run });
   P.half(1, -1, 1, L2, t[3], { run });
-  P.region([[3, 1, -5], [1, -1, 1]], OV, t[4], { run, o: .5 });
+  P.region([[3, 1, -5], [1, -1, 1]], OVERLAP, t[4], { run, o: .5 });
 }
 
 /* ---------- beats ---------- */
@@ -66,9 +66,9 @@ const BEATS = [
     const p = S.qp, P = S.P;
     side(p, ['2(0) − 0 > 10  ✗'], 540, m('t2'), L2, 34);
     P.half(2, -1, 10, L2, m('s2'));
-    P.region([[-1, -1, -2], [2, -1, 10]], OV, m('both'), { o: .5 });
-    note(p, 'solution: the overlap', 610, m('both', 1), OV);
-    P.dot(4, -2, OV, m('corner'), { open: true, label: '(4, −2)', dx: 16, dy: -8 });
+    P.region([[-1, -1, -2], [2, -1, 10]], OVERLAP, m('both'), { o: .5 });
+    note(p, 'solution: the overlap', 610, m('both', 1), OVERLAP);
+    P.dot(4, -2, OVERLAP, m('corner'), { open: true, label: '(4, −2)', dx: 16, dy: -8 });
     note(p, 'corner on dashed lines: not included', 660, m('corner', 2), COL.dim);
   }],
   ['q1', 'Quick check', () => {
@@ -80,7 +80,7 @@ const BEATS = [
     id: 'c-both', prompt: ['Pick any point that is a solution of both inequalities.'],
     build: pickPoint(S.P, [0, 0], (x, y) => `(${num(x)}, ${num(y)}) is in both shaded regions.`,
       (x, y) => y <= -x + 3 ? 'That point satisfies y ≤ −x + 3 only. It must be in both shaded regions.' : y >= x - 3 ? 'That point satisfies y ≥ x − 3 only. It must be in both shaded regions.' : 'That point satisfies neither inequality.',
-      () => S.P.region([[-1, -1, -3], [-1, 1, -3]], OV, 0, { run: fx, into: S.qp, o: .5 }), (x, y) => y <= -x + 3 && y >= x - 3),
+      () => S.P.region([[-1, -1, -3], [-1, 1, -3]], OVERLAP, 0, { run: fx, into: S.qp, o: .5 }), (x, y) => y <= -x + 3 && y >= x - 3),
   }], done) }],
   ['mixed', 'Solid and dashed', (m) => {
     const [p, P] = stage();
@@ -92,7 +92,7 @@ const BEATS = [
     side(p, ['0 > −5  ✓'], 430, m('t', .5), L1, 34);
     side(p, ['0 ≤ −1  ✗'], 490, m('t2', .5), L2, 34);
     note(p, 'solid edge: included.  dashed edge: not.', 570, m('edge'));
-    P.dot(-1, -2, OV, m('corner'), { open: true, label: '(−1, −2)', dx: -16, dy: -10, anchor: 'end' });
+    P.dot(-1, -2, OVERLAP, m('corner'), { open: true, label: '(−1, −2)', dx: -16, dy: -10, anchor: 'end' });
     note(p, 'corner on the dashed line: not included', 620, m('corner', 1.5));
   }],
   ['q2', 'Quick check', () => {

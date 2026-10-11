@@ -5,19 +5,6 @@
 addEventListener('pagereveal', e => e.viewTransition?.ready.catch(() => {}));
 document.body.insertAdjacentHTML('afterbegin', `<div id="frame">
   <svg id="stage" viewBox="0 0 1600 900" role="img" aria-label="Lesson animation">
-    <defs>
-      <filter id="grain" x="0" y="0" width="100%" height="100%">
-        <feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="7" />
-        <feColorMatrix values="0 0 0 0 .92  0 0 0 0 .95  0 0 0 0 .9  0 0 0 .07 0" />
-      </filter>
-      <radialGradient id="vignette" cx=".5" cy=".45" r=".75">
-        <stop offset=".6" stop-color="#000" stop-opacity="0" />
-        <stop offset="1" stop-color="#000" stop-opacity=".35" />
-      </radialGradient>
-    </defs>
-    <rect width="1600" height="900" fill="#1d2b27" />
-    <rect width="1600" height="900" filter="url(#grain)" />
-    <rect width="1600" height="900" fill="url(#vignette)" />
     <g id="scene"></g>
   </svg>
   <div id="ui"></div>
@@ -80,15 +67,29 @@ document.body.insertAdjacentHTML('afterbegin', `<div id="frame">
   </div>
 </div>`);
 
+// Board colour, grain and vignette are a static CSS background of #stage (engine.css). The grain is a small noise
+// texture made once here: an SVG turbulence filter behind animated content is recomputed on every frame in Firefox.
+{
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const x = c.getContext('2d'), d = x.createImageData(256, 256);
+  for (let i = 0, s = 7; i < d.data.length; i += 4) { s = s * 16807 % 2147483647; d.data.set([235, 242, 230, 4 + s % 12], i); }
+  x.putImageData(d, 0, 0);
+  document.getElementById('stage').style.setProperty('--grain', `url(${c.toDataURL()})`);
+}
+
 /* ---------- drawing helpers ---------- */
 const NS = 'http://www.w3.org/2000/svg';
 const COL = { nat: '#f4a48c', whole: '#86c9e8', int: '#f3c95c', rat: '#e8a0c8', irr: '#8fd6b0', real: '#bba8ee',
   chalk: '#ece8dc', dim: '#9aaba3', faint: '#5d7068', task: '#f0b45a', good: '#8fd6b0', bad: '#f08c7a', board: '#1d2b27' };
 const UI = '"Avenir Next","Segoe UI","Helvetica Neue",Arial,sans-serif';
-const MATH = '"STIX Two Text","Cambria Math","Iowan Old Style",Palatino,Georgia,serif';
+// Book settings (lib/book.css, next to engine.css and imported by it): --math-font for numbers and formulas,
+// --progress-key for the localStorage key the cover and chapters share.
+const BOOK = getComputedStyle(document.documentElement);
+const bookSetting = name => BOOK.getPropertyValue(name).trim().replace(/^(["'])(.*)\1$/, '$2');
+const MATH = bookSetting('--math-font') || '"STIX Two Text","Cambria Math","Iowan Old Style",Palatino,Georgia,serif';
 const NAME = { nat: 'Natural', whole: 'Whole', int: 'Integers', rat: 'Rational', irr: 'Irrational', real: 'Real' };
 // Card positions inside the 1600×900 picture.
-const BAND = { x: 96, y: 686, w: 1408, cls: 'band' };      // below the number line
+const BAND = { x: 96, y: 686, w: 1408, cls: 'band' };      // bottom band (moves up when taller than the space left)
 const RIGHT = { x: 1258, y: 546, w: 330, cls: 'side', maxH: 346 };    // right of the number map
 const TOPR = { x: 960, y: 70, w: 624, cls: 'side', maxH: 470 };   // top right, above the number line
 const SCREEN = { x: 0, y: 0, w: 1600, cls: 'screen' };
@@ -105,11 +106,11 @@ function mk(tag, attrs = {}, parent) {
 // Keys: x y s r o (transform/opacity), d (0..1 stroke drawn), a_<attr> numeric attr, c_<attr> hex colour.
 function st(e) { return e._st || (e._st = { x: 0, y: 0, s: 1, r: 0, o: 1 }); }
 function put(e, o) { Object.assign(st(e), o); render(e); return e; }
+// Unchanged transform/opacity are not rewritten: per-frame updates of still elements cost repaints (notably in Firefox).
 function render(e) {
-  const s = e._st;
-  if (s.x || s.y || s.s !== 1 || s.r) e.setAttribute('transform', `translate(${s.x},${s.y}) rotate(${s.r}) scale(${s.s})`);
-  else e.removeAttribute('transform');
-  e.setAttribute('opacity', s.o);
+  const s = e._st, tf = s.x || s.y || s.s !== 1 || s.r ? `translate(${s.x},${s.y}) rotate(${s.r}) scale(${s.s})` : null;
+  if (tf !== e._tf) { if (tf) e.setAttribute('transform', tf); else e.removeAttribute('transform'); e._tf = tf; }
+  if (s.o !== e._o) { e.setAttribute('opacity', s.o); e._o = s.o; }
   if (s.d !== undefined) {
     e.setAttribute('stroke-dashoffset', 1 - s.d);
     e.style.visibility = s.d < .002 ? 'hidden' : '';
@@ -137,6 +138,7 @@ const VAR = /(?<![A-Za-z°])(?:(?!(?:of|in|is|to|or|at|on|by|as|an|if|it|be|no|s
 const F = (n, d) => ({ f: [String(n), String(d)] });   // fraction
 const R = (x, i) => ({ r: x && x.f ? x : String(x), i: i && String(i) });   // root of a number or of F(n, d); i = index, e.g. 3 for a cube root
 const E = x => ({ sup: String(x) });                    // exponent, raised after the part before it
+const OV = x => ({ ov: String(x) });                    // digits under a repeat bar: ['0.', OV('3')] is 0.333…
 // Math expression from parts: 'text' | F(n,d) | R(x) | E(exp). Baseline at y; anchor start/middle/end.
 function M(parent, parts, { x = 0, y = 0, size = 36, fill = COL.chalk, anchor = 'middle', o = 1, s = 1 } = {}) {
   const g = G(parent, { x, y, o, s });
@@ -183,6 +185,10 @@ function M(parent, parts, { x = 0, y = 0, size = 36, fill = COL.chalk, anchor = 
       cx = x0 + size * .56 + w + size * .1;
     } else if (p.sup !== undefined) {
       cx += text(p.sup, cx + size * .03, -size * .45, size * .62) + size * .06;
+    } else if (p.ov !== undefined) {
+      const w = text(p.ov, cx, 0, size);
+      rule(cx + size * .04, cx + w - size * .02, -size * .8);
+      cx += w;
     }
   }
   const dx = anchor === 'middle' ? -cx / 2 : anchor === 'end' ? -cx : 0;
@@ -827,6 +833,83 @@ function evalTo(t, list = TW) {
   }
 }
 
+/* ---------- world clock and camera ---------- */
+const soft = p => (1 - Math.cos(Math.PI * p)) / 2;   // gentle in-out, for camera moves
+// Continuous motion: f(t) runs on every frame of the beat with t in seconds from its start (0..D).
+// Keep f a pure function of t, so pause, seek and ?beat=N&t=S show the same frame.
+const clockRun = (f, D) => { f(0); prog(q => f(q * D), 0, D, lin); };
+// A camera looks at a world group through the stage (or a box, for split screen and picture-in-picture).
+// The view {x, y, z, r} is the world point at the centre, the zoom (screen px per world px) and the roll in degrees.
+// Moves are keyed on the beat clock: to(view, t0, dur, ease) blends each given key from its value at t0; a key may be a
+// function of t (follow). Unspecified keys keep following the earlier moves. dur 0 is a hard cut.
+let camN = 0;
+function camera(p, D, { box, x = 800, y = 450, z, r = 0, bg = COL.board } = {}) {
+  const [bx, by, bw, bh] = box || [0, 0, 1600, 900];
+  const el = G(p, { x: bx + bw / 2, y: by + bh / 2 });
+  let hold = el;
+  if (box) {
+    const id = 'cam' + (++camN);
+    mk('rect', { x: -bw / 2, y: -bh / 2, width: bw, height: bh, rx: 18 }, mk('clipPath', { id }, mk('defs', {}, el)));
+    hold = G(el); hold.setAttribute('clip-path', `url(#${id})`);
+    mk('rect', { x: -bw / 2, y: -bh / 2, width: bw, height: bh, fill: bg }, hold);
+  }
+  const view = mk('g', {}, hold), world = G(view);
+  if (box) mk('rect', { x: -bw / 2, y: -bh / 2, width: bw, height: bh, rx: 18, fill: 'none', stroke: COL.faint, 'stroke-width': 2 }, el);
+  const v0 = { x, y, z: z ?? (box ? Math.min(bw / 1600, bh / 900) : 1), r };
+  const ops = [], shakes = [], layers = [];
+  const val = (v, t) => typeof v === 'function' ? v(t) : v;
+  // The view at time t after the first n moves; each move remembers the view it starts from.
+  function at(t, n = ops.length) {
+    const s = { ...v0 };
+    for (let i = 0; i < n && ops[i].t0 <= t; i++) {
+      const o = ops[i], a = o.from || (o.from = at(o.t0, i));
+      const q = o.dur ? o.ease(Math.min(1, (t - o.t0) / o.dur)) : 1, b = {};
+      for (const k in o.v) b[k] = val(o.v[k], t);
+      if ('z' in b) s.z = a.z * (b.z / a.z) ** q;   // even zoom speed
+      // While zooming, x/y move so that one world point stays put on screen (when start and end allow it).
+      const u = 'z' in b && Math.abs(b.z - a.z) > 1e-6 * a.z ? (1 / s.z - 1 / a.z) / (1 / b.z - 1 / a.z) : q;
+      for (const k of ['x', 'y']) if (k in b) s[k] = a[k] + (b[k] - a[k]) * u;
+      if ('r' in b) s.r = a.r + (b.r - a.r) * q;
+    }
+    return s;
+  }
+  function apply(t) {
+    const s = at(t);
+    let sx = 0, sy = 0;
+    for (const k of shakes) if (t > k.t0 && t < k.t0 + k.dur) {
+      const e = k.amp * Math.min(1, (t - k.t0) / .3, (k.t0 + k.dur - t) / .3), w = 2 * Math.PI * k.hz * t;
+      sx += e * (Math.sin(w) + .5 * Math.sin(2.3 * w + 1)) / 1.5; sy += e * (Math.sin(1.7 * w + 2) + .5 * Math.sin(3.1 * w)) / 1.5;
+    }
+    const tf = `translate(${sx} ${sy}) rotate(${-s.r}) scale(${s.z}) translate(${-s.x} ${-s.y})`;
+    if (tf !== view._tf) view.setAttribute('transform', view._tf = tf);
+    const dx = s.x - v0.x, dy = s.y - v0.y;
+    for (const L of layers) put(L.g, { x: L.wrap ? dx - ((L.k * dx) % L.wrap + L.wrap) % L.wrap : (1 - L.k) * dx, y: (1 - L.k) * dy });
+  }
+  const cam = { el, world, at,
+    to(v, t0, dur = 1, ease = soft) { ops.push({ v, t0, dur, ease }); ops.sort((a, b) => a.t0 - b.t0); ops.forEach(o => delete o.from); return cam; },
+    cut: (v, t0) => cam.to(v, t0, 0),
+    shake(amp, t0, dur, hz = 7) { shakes.push({ amp, t0, dur, hz }); return cam; },
+    // Parallax layer: k < 1 is far (moves slower than the camera), k > 1 near. With wrap = W the layer's content
+    // repeats every W world px: draw one period plus the widest view, and the layer never runs out.
+    layer(k = 1, wrap) { const g = G(world); layers.push({ g, k, wrap }); return g; },
+    // Screen position of a world point at time t (k = 1 layers, no shake): for labels that track an object.
+    screen(wx, wy, t) {
+      const s = at(t), a = -s.r * Math.PI / 180, ux = (wx - s.x) * s.z, uy = (wy - s.y) * s.z;
+      return [bx + bw / 2 + ux * Math.cos(a) - uy * Math.sin(a), by + bh / 2 + ux * Math.sin(a) + uy * Math.cos(a)];
+    },
+    // Put a screen-space label (text, anchor middle, outside the camera) over world point (wx, wy) at time t, kept
+    // inside the frame or box by margin m; it fades out once the point itself leaves. Fade it in with a wrapper group.
+    track(el, wx, wy, t, m = 24) {
+      const [sx, sy] = cam.screen(wx, wy, t), str = el.textContent;
+      if (el._tw?.[0] !== str) el._tw = [str, el.getComputedTextLength() / 2];
+      const h = el._tw[1], away = Math.max(bx - sx, sx - bx - bw, 0);
+      put(el, { x: Math.min(bx + bw - m - h, Math.max(bx + m + h, sx)), y: sy, o: Math.max(0, 1 - away / 80) });
+    },
+  };
+  clockRun(apply, D);
+  return cam;
+}
+
 /* ---------- scene ---------- */
 const scene = document.getElementById('scene');
 const S = {};
@@ -852,8 +935,20 @@ function dot(key, v, r = 9, name = v) {
 const arrow = (x, dir) => `M${x - 15 * dir} ${Y0 - 10}L${x} ${Y0}L${x - 15 * dir} ${Y0 + 10}`;
 function panel(t0) {
   if (t0 < .5) S.cleared = true;   // the old panel fades, or this is the first panel after the title
-  if (S.panel) hide(S.panel, t0, .4);
+  const old = S.panel;
+  if (old && t0 < .5) retire(old);
+  else if (old) {   // a panel change later in the beat stays on the beat clock
+    hide(old, t0, .4);
+    prog(q => { if (q === 1) old.style.display = 'none'; }, t0 + .4, 0, lin);
+  }
   return (S.panel = G(scene));
+}
+// Take a beat's old picture away on wall time: a 150 ms fade, then out of rendering. On the beat clock the fade would
+// wait for the new clip's audio to start (a few hundred ms in Firefox) with the old, frozen scene still showing.
+function retire(e) {
+  e.style.transition = 'opacity .15s linear';
+  e.style.opacity = '0';
+  setTimeout(() => { e.style.display = 'none'; }, 160);
 }
 function header(p, str, t0, x = 1000, y = 170) {
   const h = T(p, str, { x, y, size: 30, fill: COL.dim, weight: 600, o: 0 });
@@ -935,11 +1030,19 @@ function rich(parts, size = 28) {
   for (const p of [].concat(parts)) s.append(typeof p === 'string' || p instanceof Node ? p : mathEl(p.m, size));
   return s;
 }
+// A card at pos; a band card keeps its bottom on the stage: when its content grows (a long question, feedback),
+// it moves up rather than running under the player bar.
 function card(pos, cls) {
   const c = h('div', `card ${pos.cls} ${cls}`);
   Object.assign(c.style, { left: pos.x + 'px', top: pos.y + 'px', width: pos.w + 'px' });
   if (pos.maxH) c.style.maxHeight = pos.maxH + 'px';
   $('ui').append(c);
+  if (pos.cls === 'band') {
+    const fit = () => { c.style.top = Math.max(16, Math.min(pos.y, 900 - 16 - c.offsetHeight)) + 'px'; };
+    const ro = new ResizeObserver(fit);
+    ro.observe(c); fit();
+    P.cleanup.push(() => ro.disconnect());
+  }
   return c;
 }
 // The guide: an infinity sign whose two loops are its eyes. Drawn in SVG so it can blink, hop and wobble.
@@ -1308,7 +1411,7 @@ const slot = (k, n) => {
   const r = RINGS[k];
   return [r.lx + [-72, 72, 0][n % 3], r.ly + 50 + 56 * Math.floor(n / 2)];
 };
-const plain = parts => parts.map(p => typeof p === 'string' ? p : p.f ? p.f.join('/') : p.sup !== undefined ? '^' + p.sup : (p.i ? p.i : '') + '√' + (p.r.f ? p.r.f.join('/') : p.r)).join('');
+const plain = parts => parts.map(p => typeof p === 'string' ? p : p.ov !== undefined ? p.ov + ' repeating' : p.f ? p.f.join('/') : p.sup !== undefined ? '^' + p.sup : (p.i ? p.i : '') + '√' + (p.r.f ? p.r.f.join('/') : p.r)).join('');
 const sorter = (items, trayXY) => (body, api) => {
   const L = qlayer();
   const bg = mk('rect', { width: 1600, height: 900, fill: 'transparent' }, L);
@@ -1479,10 +1582,13 @@ function start(i, play) {
   Object.assign(P, { i, t: 0, waiting: false, done: false, afail: false, stall: 0 });
   P.end = runBeat(i);
   evalTo(0);
-  const a = P.audio = new Audio(`audio/en/${BEATS[i].id}.mp3`);
+  const a = P.audio = new Audio(`audio/${CHAPTER.language || 'en'}/${BEATS[i].id}.mp3`);
   a.preload = 'auto';
   a.volume = +($('volume')?.value ?? 1);
-  a.onerror = () => { if (P.audio === a) soundFailed(); };
+  // An aborted or superseded load (fast stepping, a reload) is not a failure: only a real error for the current clip
+  // shows the note, and the note goes away as soon as a clip plays.
+  a.onerror = () => { if (P.audio === a && a.error && a.error.code !== MediaError.MEDIA_ERR_ABORTED) soundFailed(); };
+  a.onplaying = () => { if (P.audio === a) $('soundNote').hidden = true; };
   const b = BEATS[i];
   if (b.ask) b.ask(() => { if (P.i === i) { evalTo(Infinity); start(i + 1, true); } });
   setPlaying(play);
@@ -1513,7 +1619,7 @@ function frame(now) {
     // While the clip plays, its clock drives the picture; before it starts or after it ends, wall time does.
     if (a && !P.afail && !a.ended) {
       if (a.currentTime > 0) { P.t = Math.max(P.t, a.currentTime); P.stall = 0; }
-      else if ((P.stall += dt) > 4) soundFailed();
+      else if ((P.stall += dt) > 8 && a.readyState < 2) soundFailed();   // still nothing to play after 8 s
     } else P.t += dt;
     evalTo(P.t);
     if (P.t >= P.end) beatDone();
@@ -1613,13 +1719,14 @@ fit();
 
 // Start the lesson once the chapter page has defined CHAPTER and BEATS.
 // ?beat=N&t=S opens a paused frame, for reviewing a single moment.
-// Per-browser progress shared with the contents page: last chapter opened, chapters finished.
+// Per-book progress shared with the cover/contents at the parent URL folder.
+const BOOK_PROGRESS_KEY = bookSetting('--progress-key') || 'animebook:progress:' + new URL('../', location.href).pathname;
 function progress(f) {
   try {
-    const saved = JSON.parse(localStorage.getItem('progress') || '{}');
+    const saved = JSON.parse(localStorage.getItem(BOOK_PROGRESS_KEY) || '{}');
     const p = saved && typeof saved === 'object' && !Array.isArray(saved) ? saved : {};
     p.done = Array.isArray(p.done) ? p.done.filter(n => Number.isInteger(n) && n > 0) : [];
-    f(p); localStorage.setItem('progress', JSON.stringify(p));
+    f(p); localStorage.setItem(BOOK_PROGRESS_KEY, JSON.stringify(p));
   } catch {}
 }
 function boot() {

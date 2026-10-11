@@ -1,4 +1,5 @@
 @import url(volume.css);
+@import url(book.css);   /* this book's own settings and overrides (not shared), before the rules below */
 :root {
   --page: #0f1613; --board: #1d2b27; --panel: #22322d; --edge: #3a5047;
   --chalk: #ece8dc; --dim: #9aaba3; --faint: #5d7068;
@@ -16,7 +17,8 @@ button[hidden] { display: none; }
 /* One fixed 1600×960 frame (900 stage + 60 controls), scaled to fit the window. */
 #frame { position: absolute; left: 50%; top: 50%; width: 1600px; height: 960px; transform: translate(-50%, -50%) scale(var(--k, .5));
   border-radius: 20px; overflow: hidden; background: var(--board); box-shadow: 0 0 0 1px var(--edge), 0 30px 80px rgba(0, 0, 0, .45); }
-#stage { position: absolute; left: 0; top: 0; width: 1600px; height: 900px; display: block; }
+#stage { position: absolute; left: 0; top: 0; width: 1600px; height: 900px; display: block;
+  background: radial-gradient(75% 75% at 50% 45%, rgba(0,0,0,0) 60%, rgba(0,0,0,.35)), var(--grain, none), #1d2b27; }
 #ui { position: absolute; left: 0; top: 0; width: 1600px; height: 900px; pointer-events: none; }
 #ui > * { pointer-events: auto; }
 
@@ -156,6 +158,7 @@ kbd { display: inline-block; min-width: 1.5em; padding: 0 .4em; margin-left: .5e
 .icon.cc[aria-pressed="true"] { background: var(--chalk); border-color: var(--chalk); color: var(--board); }
 .card.side { overflow: auto; }
 svg.m { display: inline-block; overflow: visible; }
+.card b { font-weight: 700; }   /* not 'bolder' (900 under a 600 prompt) */
 .card { animation: card-in .45s cubic-bezier(.2, .9, .3, 1.15); }
 .fb:not(:empty) { animation: fb-in .3s ease-out; }
 .opt.bad, .grid .mark.bad { animation: shake .4s; }
@@ -169,7 +172,9 @@ svg.m { display: inline-block; overflow: visible; }
 .screen .kicker { font-size: 22px; }
 .screen .prompt { font-size: 40px; font-weight: 600; }
 .screen .body { margin-top: 30px; }
-.screen .fb { position: absolute; left: 70px; bottom: 56px; max-width: 1080px; margin: 0; font-size: 24px; }
+.card.screen { display: flex; flex-direction: column; }
+.screen .head { order: 1; } .screen .body { order: 2; }
+.screen .fb { order: 3; max-width: 1080px; margin: 26px 0 0; font-size: 24px; }   /* feedback right under the answers */
 .screen .acts { position: absolute; right: 70px; bottom: 48px; }
 .screen .grid .row { grid-template-columns: 200px minmax(0, 1fr) 40px; padding: 9px 0 9px 12px; }
 .screen .grid.text .row { grid-template-columns: minmax(0, 1fr) auto 40px; }
@@ -180,11 +185,12 @@ svg.m { display: inline-block; overflow: visible; }
 .screen.sort > * { pointer-events: auto; }
 .screen.sort .head { position: absolute; right: 34px; top: 40px; width: 330px; }
 .screen.sort .prompt { font-size: 28px; }
-.screen.sort .fb { left: auto; right: 34px; bottom: 116px; width: 330px; max-height: 240px; overflow: auto; font-size: 20px; }
+.screen.sort .fb { position: absolute; margin: 0; left: auto; right: 34px; bottom: 116px; width: 330px; max-height: 240px; overflow: auto; font-size: 20px; }
 .screen.sort .acts { right: 34px; }
 .fin .finwrap { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; padding-bottom: 60px; }
 .fin .mascot { margin-bottom: 28px; }
 .fin .fb, .fin .acts { position: static; }
+.fin .fb { order: 0; margin: 0; }   /* result lines, not answer feedback: keep them above the buttons */
 .fin .acts { margin-top: 30px; }
 @keyframes screen-in { from { opacity: 0; } }
 
