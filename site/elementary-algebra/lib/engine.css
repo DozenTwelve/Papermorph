@@ -175,6 +175,11 @@ svg.m { display: inline-block; overflow: visible; }
 .card.screen { display: flex; flex-direction: column; }
 .screen .head { order: 1; } .screen .body { order: 2; }
 .screen .fb { order: 3; max-width: 1080px; margin: 26px 0 0; font-size: 24px; }   /* feedback right under the answers */
+/* Practice screens: the bottom 130 px hold the buttons. Long answers scroll inside the body, so the feedback under
+   them stays in view after a wrong answer adds a 'why' line to each row. */
+.card.screen:not(.sort):not(.fin) { padding-bottom: 130px; }
+.card.screen:not(.sort):not(.fin) > .head, .card.screen:not(.sort):not(.fin) > .fb { flex: none; }
+.card.screen:not(.sort):not(.fin) > .body { flex: 0 1 auto; min-height: 0; overflow-y: auto; }
 .screen .acts { position: absolute; right: 70px; bottom: 48px; }
 .screen .grid .row { grid-template-columns: 200px minmax(0, 1fr) 40px; padding: 9px 0 9px 12px; }
 .screen .grid.text .row { grid-template-columns: minmax(0, 1fr) auto 40px; }

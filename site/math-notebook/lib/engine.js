@@ -85,7 +85,7 @@ const UI = '"Avenir Next","Segoe UI","Helvetica Neue",Arial,sans-serif';
 // Book settings (lib/book.css, next to engine.css and imported by it): --math-font for numbers and formulas,
 // --progress-key for the localStorage key the cover and chapters share.
 const BOOK = getComputedStyle(document.documentElement);
-const bookSetting = name => BOOK.getPropertyValue(name).trim().replace(/^(["'])(.*)\1$/, '$2');
+const bookSetting = name => BOOK.getPropertyValue(name).trim().replace(/^(["'])([^"']*)\1$/, '$2');   // unquote a lone string only
 const MATH = bookSetting('--math-font') || '"STIX Two Text","Cambria Math","Iowan Old Style",Palatino,Georgia,serif';
 const NAME = { nat: 'Natural', whole: 'Whole', int: 'Integers', rat: 'Rational', irr: 'Irrational', real: 'Real' };
 // Card positions inside the 1600×900 picture.
@@ -139,7 +139,7 @@ const F = (n, d) => ({ f: [String(n), String(d)] });   // fraction
 const R = (x, i) => ({ r: x && x.f ? x : String(x), i: i && String(i) });   // root of a number or of F(n, d); i = index, e.g. 3 for a cube root
 const E = x => ({ sup: String(x) });                    // exponent, raised after the part before it
 const OV = x => ({ ov: String(x) });                    // digits under a repeat bar: ['0.', OV('3')] is 0.333…
-// Math expression from parts: 'text' | F(n,d) | R(x) | E(exp). Baseline at y; anchor start/middle/end.
+// Math expression from parts: 'text' | F(n,d) | R(x) | E(exp) | OV(digits). Baseline at y; anchor start/middle/end.
 function M(parent, parts, { x = 0, y = 0, size = 36, fill = COL.chalk, anchor = 'middle', o = 1, s = 1 } = {}) {
   const g = G(parent, { x, y, o, s });
   const inner = mk('g', {}, g);
@@ -945,7 +945,10 @@ function panel(t0) {
 }
 // Take a beat's old picture away on wall time: a 150 ms fade, then out of rendering. On the beat clock the fade would
 // wait for the new clip's audio to start (a few hundred ms in Firefox) with the old, frozen scene still showing.
+// While seeking, the pictures passed on the way were never seen: they go at once.
+let seeking = false;
 function retire(e) {
+  if (seeking) { e.style.display = 'none'; return; }
   e.style.transition = 'opacity .15s linear';
   e.style.opacity = '0';
   setTimeout(() => { e.style.display = 'none'; }, 160);
@@ -1280,7 +1283,11 @@ const grid = (items, cols, { multi = true, text = false } = {}) => (body, api) =
     return { it, bs, mark, why, picked, el, played: false };
   });
   const single = rows.length === 1;
-  const showCur = () => rows.forEach((r, i) => r.el.classList.toggle('cur', !single && !locked && i === cur));
+  const showCur = () => rows.forEach((r, i) => {
+    const on = !single && !locked && i === cur;
+    r.el.classList.toggle('cur', on);
+    if (on && r.el.isConnected) r.el.scrollIntoView({ block: 'nearest' });   // a long practice list scrolls
+  });
   showCur();
   body.append(wrap);
   const judge = r => {
@@ -1574,8 +1581,11 @@ function clearCards() {
 // Rebuild the scene from scratch and fast-forward every earlier beat, so any step starts from its exact picture.
 function seek(i, play = P.playing) {
   stopAudio(); clearCards(); reset();
-  for (let k = 0; k < i; k++) { runBeat(k); evalTo(Infinity); }
-  start(i, play);
+  seeking = true;
+  try {
+    for (let k = 0; k < i; k++) { runBeat(k); evalTo(Infinity); }
+    start(i, play);
+  } finally { seeking = false; }
 }
 function start(i, play) {
   stopAudio(); clearCards();
@@ -1588,7 +1598,11 @@ function start(i, play) {
   // An aborted or superseded load (fast stepping, a reload) is not a failure: only a real error for the current clip
   // shows the note, and the note goes away as soon as a clip plays.
   a.onerror = () => { if (P.audio === a && a.error && a.error.code !== MediaError.MEDIA_ERR_ABORTED) soundFailed(); };
-  a.onplaying = () => { if (P.audio === a) $('soundNote').hidden = true; };
+  a.onplaying = () => {
+    if (P.audio !== a) return;
+    $('soundNote').hidden = true;
+    if (P.afail) { P.afail = false; a.currentTime = P.t; }   // sound came back late: rejoin the picture where it is
+  };
   const b = BEATS[i];
   if (b.ask) b.ask(() => { if (P.i === i) { evalTo(Infinity); start(i + 1, true); } });
   setPlaying(play);
@@ -1619,7 +1633,7 @@ function frame(now) {
     // While the clip plays, its clock drives the picture; before it starts or after it ends, wall time does.
     if (a && !P.afail && !a.ended) {
       if (a.currentTime > 0) { P.t = Math.max(P.t, a.currentTime); P.stall = 0; }
-      else if ((P.stall += dt) > 8 && a.readyState < 2) soundFailed();   // still nothing to play after 8 s
+      else if ((P.stall += dt) > (a.readyState < 2 ? 8 : 15)) soundFailed();   // nothing to play after 8 s, or stuck for 15
     } else P.t += dt;
     evalTo(P.t);
     if (P.t >= P.end) beatDone();
