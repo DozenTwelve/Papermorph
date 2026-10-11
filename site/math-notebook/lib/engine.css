@@ -129,7 +129,7 @@ button[hidden] { display: none; }
 .blanks .mark.bad { color: var(--bad); }
 .blanks .why { font-size: 19px; color: var(--dim); line-height: 1.35; }
 .blanks .why:empty { display: none; }
-.box { height: 52px; margin: 0 6px; padding: 0 6px; border: 0; border-bottom: 3px solid var(--quiz); border-radius: 8px 8px 0 0; background: rgba(236, 232, 220, .07); color: var(--chalk); font: 32px "STIX Two Text", "Cambria Math", "Iowan Old Style", Palatino, Georgia, serif; text-align: center; vertical-align: -6px; }
+.box { height: 52px; margin: 0 6px; padding: 0 6px; border: 0; border-bottom: 3px solid var(--quiz); border-radius: 8px 8px 0 0; background: rgba(236, 232, 220, .07); color: var(--chalk); font: 32px var(--math-font, "STIX Two Text", "Cambria Math", "Iowan Old Style", Palatino, Georgia, serif); text-align: center; vertical-align: -6px; }
 .box:focus { outline: none; background: rgba(134, 201, 232, .16); }
 .box.good { border-color: var(--good); }
 .box.bad { border-color: var(--bad); }
