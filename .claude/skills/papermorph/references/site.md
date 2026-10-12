@@ -40,7 +40,7 @@ One page: no hash or `#book` shows the cover, `#contents` or `#chNN` the content
 
 ## Unit sketches (`unit-art.js`)
 
-Give each unit a small sketch of its own ideas, drawn in the unit colour, with one gentle topic-related loop. Use the agreed asset approach. Keep the left third light for the title on phones; check the finished contents at 1440 px and 390 px once. The template handles reduced motion; classes and loop examples are in `unit-art.js` and the `.unit-art` CSS.
+Give each unit a small sketch of its own ideas, drawn in the unit colour, with one gentle topic-related loop. Use the agreed asset approach. Keep the left third light for the title on phones; check the finished contents at 1440 px and 390 px once. Classes and loop examples are in `unit-art.js`; the shared header styles, off-screen pausing and reduced motion live in the engine's `lib/units.css` and `lib/units.js` (`Units.header`, `Units.watch`).
 
 ## Guide character
 

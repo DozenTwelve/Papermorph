@@ -1,6 +1,6 @@
 // Chalk sketches for the unit headers on the contents page, one per unit, drawn in the unit's colour.
 // Each entry is the inside of an SVG with viewBox 0 0 600 180; keep the left ~200 px light (the unit title sits there
-// on narrow screens). Classes, styled in book.html:
+// on narrow screens). Classes, styled in lib/units.css:
 //   d  a stroke that draws itself in when the unit scrolls into view (--k orders the strokes)
 //   t  text or a filled shape that fades in
 //   a  faint chalk white instead of the unit colour;  faint  even fainter
