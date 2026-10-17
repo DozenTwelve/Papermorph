@@ -28,5 +28,8 @@
       P('M560 92A140 46 0 1 1 280 92A140 46 0 1 1 560 92', 'a') +
       `<g class="t orbit" style="--k:${k++};offset-path:path('M560 92A140 46 0 1 0 280 92A140 46 0 1 0 560 92')"><circle r="11" fill="currentColor" stroke="none"/><circle cx="20" cy="-6" r="4" fill="currentColor" stroke="none" opacity=".7"/></g>` +
       Tx(420, 30, 'sun · earth · moon', 22, 'a', 'middle')),
+    // Unit 4 sample (the light notebook edition of chapter 13): a ruled page with a margin and a doodled lightning bolt.
+    reset([60, 100, 140].map(y => P(`M228 ${y}H572`, 'faint')).join('') + P('M262 30V170', 'a') +
+      P('M430 34L398 98H428L404 160L470 82H438L462 34Z') + Tx(500, 60, 'notebook', 22, 'a', 'middle')),
   ];
 })();

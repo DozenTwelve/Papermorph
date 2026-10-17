@@ -12,7 +12,7 @@ const Contents = (() => {
     en: {
       open: 'Open the book', toCover: 'Back to the cover', resume: 'Continue · Chapter {n}', unit: 'Unit {n}', minutes: '{n} min',
       meta: '{chapters}{samples} · {units} · with sound', metaChapters: { one: '{n} chapter', other: '{n} chapters' },
-      metaUnits: { one: '{n} unit', other: '{n} units' }, metaSamples: ' + {n} sample', sampleUnit: ' · Sample chapter, another look',
+      metaUnits: { one: '{n} unit', other: '{n} units' }, metaSamples: { one: ' + {n} sample', other: ' + {n} samples' }, sampleUnit: ' · Sample chapter, another look',
       chapterCount: { one: '{n} chapter', other: '{n} chapters' }, finished: '{done} of {n} finished',
       doneMark: '✓ Finished · ', lastMark: ' · Last opened',
     },
@@ -77,15 +77,18 @@ const Contents = (() => {
   }
 
   // The chapter cards, unit by unit, with progress, the header count, the cover's meta line and its resume button.
-  // A unit's optional third entry { unit, chapter, sample } numbers it from elsewhere in the book; a sample chapter,
-  // made to show another look, is not counted with the book's chapters.
+  // A unit's optional third entry { unit, chapter, sample, href } numbers it from elsewhere in the book; a sample chapter,
+  // made to show another look, is not counted with the book's chapters. With href, the sample lives in another book
+  // folder (its own progress): its card links there and leaves this book's numbering and progress alone.
   function contents(units, start, hues, P) {
-    let n = start.chapter - 1, total = 0, i = 0;   // i staggers the entrance, in reading order
+    let n = start.chapter - 1, total = 0, i = 0, away = 0;   // i staggers the entrance, in reading order
     const samples = new Set();
     $('units').innerHTML = units.map(([name, chs, o = {}], u) => {
-      if (o.chapter) n = o.chapter - 1;
+      if (o.chapter && !o.href) n = o.chapter - 1;
       return `<section class="unit" style="--c:${hues[u % hues.length]};--i:${i++}">${Units.header(u, translate('unit', { n: o.unit ?? u + start.unit }) + (o.sample ? translate('sampleUnit') : ''), name)}<div class="grid">` +
-        chs.map(([t, min]) => { n++; if (o.sample) samples.add(n); else total++;
+        chs.map(([t, min], k) => {
+          if (o.href) { away++; return `<a class="ch" href="${o.href}" style="--i:${i++}"><b>${(o.chapter ?? 1) + k}</b><span>${esc(t)}</span><small>${translate('minutes', { n: min })}</small></a>`; }
+          n++; if (o.sample) samples.add(n); else total++;
           const cls = 'ch' + (P.done.has(n) ? ' done' : '') + (P.last === n ? ' last' : '');
           return `<a class="${cls}" id="${id(n)}" href="${id(n)}/" style="--i:${i++}"><b>${n}</b><span>${esc(t)}</span><small>${translate('minutes', { n: min })}</small></a>`;
         }).join('') + '</div></section>';
@@ -96,7 +99,7 @@ const Contents = (() => {
     $('prog').innerHTML = finished ? translate('finished', { done: `<b>${finished}</b>`, n: total }) : translate('chapterCount', { n: total });
     $('meta').textContent = translate('meta', {
       chapters: translate('metaChapters', { n: total }),
-      samples: samples.size ? translate('metaSamples', { n: samples.size }) : '',
+      samples: samples.size + away ? translate('metaSamples', { n: samples.size + away }) : '',
       units: translate('metaUnits', { n: units.filter(x => !x[2]?.sample).length }) });
     const last = Number.isInteger(P.last) && $(id(P.last));
     if (last) {
@@ -171,7 +174,7 @@ const Contents = (() => {
     });
   }
 
-  // units: [[unit title, [[chapter title, minutes], ...], { unit, chapter, sample }?], ...]. Chapters are numbered in
+  // units: [[unit title, [[chapter title, minutes], ...], { unit, chapter, sample, href }?], ...]. Chapters are numbered in
   // order from start (a book whose scope starts mid-way keeps the original numbers). hues: one colour per unit, cycling.
   function book({ units, start = { unit: 1, chapter: 1 }, hues = HUES, progressKey, ink } = {}) {
     translatePage();

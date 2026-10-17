@@ -33,10 +33,7 @@ a { color: inherit; }
 .book-caption strong > span { position: absolute; right: 1.2cqw; top: 1.1cqw; color: #e8c68b; }
 .book-caption small { color: #e2dbca; font-size: 1.03cqw; letter-spacing: .03em; }
 .resume-label { position: absolute; padding: .46cqw .74cqw; background: #fcf4df; color: #3c4336; box-shadow: 1px 2px 5px #0003; font: 1.03cqw var(--ui); transform: rotate(-3deg); }
-.also-label { position: absolute; left: 70.5%; top: 28.75%; padding: .4cqw .8cqw; background: #fcf9ef; color: #2e2a24; box-shadow: 1px 2px 5px #0003;
   font: 1.03cqw var(--ui); text-decoration: none; white-space: nowrap; transform: rotate(-1.5deg); border-left: .3cqw solid #f2a7b5; }
-.also-label b { font-weight: 600; color: #e0457b; }
-.also-label:hover { box-shadow: 1px 3px 9px #0005; }
 .github-drawer { position: absolute; left: 9%; top: 87.5%; width: 68%; height: 8.5%; text-decoration: none; }
 .shelf-noscript { position: absolute; bottom: 0; left: 24px; margin: 0; font: 11px var(--ui); color: #352c21; }
 .shelf-footer { position: absolute; inset: auto 0 0; display: flex; justify-content: center; align-items: center; gap: 3%; height: 3%; padding: 0 3%; color: #594129; font: 500 clamp(10px, .85vw, 14px)/1.4 var(--ui); text-shadow: 0 1px #ffe6bd66; }
