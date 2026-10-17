@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chapter 14: Thermal Energy — Science</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/figures.js"></script>
+<script src="../lib/actors.js"></script>
+<script src="../lib/physics.js"></script>
+<script src="../lib/machines.js"></script>
+<script src="../lib/energy.js"></script>
+<script src="../lib/thermal.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+// Chapter 14, one page in book order: part 1 (temperature, thermometers, the three scales, absolute zero, converting),
+// part 2 (thermal energy and heat), part 3 (conduction, convection, radiation), then the chapter practice. Molecules
+// are dots whose speed lines grow with their speed; heat is red, cool is blue-grey; heat moves as red energy blocks.
+// Notes, storyboard and errata: books/science/chapters/ch14.md.
+const CHAPTER = { number: 14, title: 'Thermal Energy', minutes: 11, language: 'en' };
+const Q_CARD = { x: 96, y: 586, w: 1408, cls: 'band' };   // a band card under the scenes; it moves up by itself when taller
+const GY = 560;                                           // ground line in quick-check pictures
+const Y1 = 740;                                           // floor line under big actors
+const ground = (p, y = GY, x = 0, w = 1600) => { phBlock(p, x, y, w, 70, PH.grass, { top: 8, ol: 0 }); mk('rect', { x, y: y + 70, width: w, height: 6, fill: PH.grass, opacity: .5 }, p); };
+const floorIn = (p, y = Y1, x = 0, w = 1600) => { phBlock(p, x, y, w, 90, '#6b5a48', { top: 8, ol: 0 }); };
+const sm = (t, a, b) => io(ramp(t, a, b));
+const lerp = (a, b, k) => a + (b - a) * k;
+const SKIN = '#c98d63', ENAMEL = '#e4e0d4', WATER = '#3f7fb0';
+const SC = { F: '#f0b86e', C: '#6fd0c4', K: '#e8a0c8' };   // the three scales: Fahrenheit amber, Celsius teal, Kelvin pink
+const say = (p, s, x, y, t0, o = {}) => { const e = phLabel(p, s, { x, y, size: 32, ...o, o: 0 }); show(e, t0); return e; };
+const line = (p, parts, x, y, t0, o = {}) => { const e = runs(p, parts, { x, y, size: 40, ...o }); show(e, t0); return e; };
+
+/* ---------- shared pictures ---------- */
+// The same shapes as ch10–13: a thought bubble over a head, a part title, and a three-row summary with small pictures.
+function thought(p, [x0, y0, x1, y1], x, lines, t0) {
+  const q = G(p, { o: 0 });
+  mk('rect', { x: x0, y: y0, width: x1 - x0, height: y1 - y0, rx: 40, fill: '#22322d', stroke: COL.dim, 'stroke-width': 3 }, q);
+  path(q, `M${x - 30} ${y1 - 2}L${x + 30} ${y1 - 2}L${x} ${y1 + 66}Z`, { fill: COL.dim });
+  lines.forEach((s, i) => T(q, s, { x: (x0 + x1) / 2, y: y0 + 70 + i * 56, size: 42, anchor: 'middle' }));
+  show(q, t0); return q;
+}
+function opener(p, x, y, part, name, name2) {
+  const g = G(p, { o: 0, y: 24 });
+  phLabel(g, part.toUpperCase(), { x, y: y - 80, size: 30, fill: COL.dim, weight: 600 }); phLabel(g, name, { x, y, size: 80, weight: 600 });
+  if (name2) phLabel(g, name2, { x, y: y + 86, size: 80, weight: 600 });
+  tw(g, { o: 1, y: 0 }, .2, 1.1, out); return g;
+}
+function summary(p, m, rows, next) {
+  rows.forEach(([lines, icon], i) => {
+    const g = G(p, { x: -16, y: 250 + i * 220, o: 0 });
+    lines.forEach((s, j) => T(g, s, { x: 430, y: j * 50, size: 38, weight: 600 }));
+    icon(g); tw(g, { o: 1, x: 0 }, m(['w1', 'w2', 'w3'][i]), .6);
+  });
+  txt(p, next, 800, 860, m('end'), { size: 32, fill: COL.dim, weight: 500 });
+}
+
+/* ---------- props: origin at the bottom centre unless noted ---------- */
+function mug(p, o = {}) {   // a mug of hot cocoa, 110 wide and 100 tall, handle on the right
+  const g = G(p, o);
+  path(g, 'M50 -82h16q24 0 24 26v8q0 26 -24 26h-16', { stroke: ENAMEL, 'stroke-width': 13, fill: 'none' });
+  phBlock(g, -55, -100, 110, 100, ENAMEL, { top: 0, right: 10 });
+  mk('rect', { x: -49, y: -96, width: 98, height: 14, fill: '#6b3f2a' }, g);
+  return g;
+}
+function milkGlass(p, o = {}) {   // a glass of cold chocolate milk, 84 wide and 130 tall
+  const g = G(p, o);
+  path(g, 'M-37 -110L-32 0H32L37 -110Z', { fill: '#c9a27e' });
+  path(g, 'M-42 -130L-34 0H34L42 -130', { stroke: GLASS, 'stroke-width': 5, fill: 'none', 'stroke-linejoin': 'round' });
+  [[-24, -64], [18, -92], [24, -38]].forEach(([x, y]) => mk('ellipse', { cx: x, cy: y, rx: 3, ry: 5, fill: '#fff', opacity: .7 }, g));
+  return g;
+}
+function iceCube(p, sz = 120, o = {}) {
+  const g = G(p, o);
+  mk('rect', { x: -sz / 2, y: -sz, width: sz, height: sz, rx: sz * .16, fill: '#cfe8f5', opacity: .93, ...phLine(2.5) }, g);
+  mk('rect', { x: -sz * .34, y: -sz * .84, width: sz * .3, height: sz * .12, rx: 4, fill: '#fff', opacity: .8 }, g);
+  path(g, `M${sz * .16} ${-sz * .3}l${sz * .16} ${-sz * .16}`, { stroke: '#fff', 'stroke-width': 4, opacity: .7 });
+  return g;
+}
+function table(p, x0, x1, top, legTo = Y1) {
+  phBlock(p, x0 + 20, top + 16, 16, legTo - top - 16, '#7a5c40', { top: 0 }); phBlock(p, x1 - 36, top + 16, 16, legTo - top - 16, '#7a5c40', { top: 0 });
+  phBlock(p, x0, top, x1 - x0, 18, WOOD, { top: 4 });
+}
+function beaker(p, x, hot, o = {}) {   // a beaker of hot (red-tinted) or iced water, 230 wide and 220 tall, at x on the table at 700
+  const g = G(p, { x, y: 700, ...o });
+  mk('rect', { x: -110, y: -180, width: 220, height: 180, fill: hot ? '#b0564a' : '#4a7fa8', opacity: .55 }, g);
+  if (!hot) [[-60, -150, 12], [40, -160, -10]].forEach(([cx, cy, r]) => put(iceCube(g, 46), { x: cx, y: cy + 46, r }));
+  path(g, 'M-115 -220V0H115V-220', { stroke: GLASS, 'stroke-width': 6, fill: 'none', 'stroke-linejoin': 'round' });
+  return g;
+}
+// The scale ticks of a thermometer tube (fraction steps), drawn into its group so they travel with it.
+function tubeTicks(t, n, len, w = 34) { let d = ''; for (let i = 1; i <= n; i++) d += `M${-w / 2 - 16} ${t.yAt(i / n)}h14`; return path(t, d, { stroke: COL.chalk, 'stroke-width': 3 }); }
+function stove(p, x0, top) {   // a stove from the floor to `top`, a red-hot coil on the left, a cold one on the right
+  const g = G(p);
+  phBlock(g, x0, top + 14, 300, Y1 - top - 14, ENAMEL, { top: 6, right: 10 });
+  phBlock(g, x0 + 30, top + 70, 240, Y1 - top - 100, '#3a4448', { top: 0 });
+  [x0 + 60, x0 + 240].forEach(x => mk('circle', { cx: x, cy: top + 42, r: 9, fill: '#4a5458' }, g));
+  const hot = mk('rect', { x: x0 + 15, y: top, width: 110, height: 14, rx: 7, fill: LIQ, ...phLine(2) }, g);
+  mk('rect', { x: x0 + 175, y: top, width: 110, height: 14, rx: 7, fill: '#3a4448', ...phLine(2) }, g);
+  return Object.assign(g, { hot, coilX: x0 + 70 });
+}
+function heater(p, x, o = {}) {   // a radiator standing on the floor at x, 180 wide and 150 tall; g.glow fades in red
+  const g = G(p, { x, y: Y1, ...o });
+  phBlock(g, -90, -20, 180, 20, '#9a958a', { top: 3 });
+  for (let i = 0; i < 6; i++) phBlock(g, -86 + i * 30, -150, 22, 132, '#d9d4c8', { top: 5, right: 4 });
+  const glow = mk('rect', { x: -90, y: -150, width: 180, height: 130, fill: HEAT, opacity: 0 }, g); put(glow, { o: 0 });
+  return Object.assign(g, { glow });
+}
+function brick(p, x, y) { phBlock(p, x - 60, y - 40, 120, 40, '#b5523b', { top: 5, right: 6 }); }
+function stars(p, n = 120) {
+  let d = ''; for (let i = 0; i < n; i++) { const x = phHash(i, 1) * 1600, y = phHash(i, 2) * 900, r = .8 + 1.6 * phHash(i, 3); d += `M${(x - r).toFixed(1)} ${y.toFixed(1)}a${r} ${r} 0 1 0 ${2 * r} 0a${r} ${r} 0 1 0 ${-2 * r} 0`; }
+  return path(p, d, { fill: '#dfe6ff', opacity: .8 });
+}
+// A ceiling fan hanging at (x, y): f.spin(angle) turns its two blade pairs (seen from the side).
+function ceilingFan(p, x, y) {
+  const g = G(p, { x, y });
+  phBlock(g, -4, 0, 8, 44, '#7d8a86', { top: 0 }); phBlock(g, -22, 44, 44, 20, '#4a5458', { top: 3 });
+  const a = path(g, '', { stroke: '#c9a36a', 'stroke-width': 10, 'stroke-linecap': 'round' }), b = path(g, '', { stroke: '#a8844f', 'stroke-width': 10, 'stroke-linecap': 'round' });
+  return Object.assign(g, { spin(th) { const L = 150; thAtt(a, 'd', `M${-L * Math.cos(th)} 60H${L * Math.cos(th)}`); thAtt(b, 'd', `M${-L * Math.sin(th)} 62H${L * Math.sin(th)}`); } });
+}
+
+/* ---------- the scales picture: three thermometers, one liquid level, Celsius → world y ---------- */
+const YC = c => 640 - 4.4 * c;
+const TUBE_TOP = 170, BULB_TOP = YC(-280);
+const TUBES = [['F', 470], ['C', 780], ['K', 1090]];
+const toF = c => c * 9 / 5 + 32, toK = c => c + 273.15;
+const fmtT = v => String(Math.round(v * 100) / 100).replace('-', '−');
+const unitOf = u => (u === 'K' ? ' K' : ' °' + u);
+const ROWS = [['boil', 100, 'water boils'], ['body', 37, 'body temperature'], ['room', 25, 'room temperature'], ['freeze', 0, 'water freezes'], ['zero', -273.15, 'absolute zero']];
+function scalesWorld(W) {
+  const rows = {}, tubes = {}, heads = {};
+  ROWS.forEach(([k, c]) => { rows[k] = G(W, { o: 0 }); path(rows[k], `M430 ${YC(c)}H1270`, { stroke: COL.dim, 'stroke-width': 2, 'stroke-dasharray': '8 8' }); });
+  TUBES.forEach(([u, x]) => {
+    const step = { F: [-460, 220, 20, v => (v - 32) * 5 / 9], C: [-270, 100, 10, v => v], K: [0, 380, 10, v => v - 273.15] }[u];
+    let d = ''; for (let v = step[0]; v <= step[1]; v += step[2]) d += `M${x - 34} ${YC(step[3](v)).toFixed(1)}h14`;
+    path(W, d, { stroke: COL.dim, 'stroke-width': 2.5 });
+    tubes[u] = thermoTube(W, { x, y: BULB_TOP + 30, len: BULB_TOP - TUBE_TOP, w: 34, bulb: 30 });
+    heads[u] = phLabel(W, { F: 'Fahrenheit', C: 'Celsius', K: 'Kelvin' }[u], { x, y: 120, size: 36, fill: SC[u], o: 0 });
+  });
+  ROWS.forEach(([k, c, name]) => {
+    TUBES.forEach(([u, x]) => { if (k !== 'zero' || u !== 'F') phLabel(rows[k], fmtT(u === 'F' ? toF(c) : u === 'K' ? toK(c) : c) + unitOf(u), { x: x + 28, y: YC(c) - 8, size: 28, fill: SC[u], anchor: 'start' }); });
+    if (k !== 'zero') phLabel(rows[k], name, { x: 1290, y: YC(c) + 10, size: 30, anchor: 'start' });
+  });
+  return { rows, tubes, heads, setC(c) { const f = (BULB_TOP - YC(c)) / (BULB_TOP - TUBE_TOP); TUBES.forEach(([u]) => tubes[u].set(f)); } };
+}
+
+/* ---------- beats ---------- */
+const BEATS = [
+/* ---------- part 1: temperature and its scales ---------- */
+['intro', 'Thermal energy', (m, D) => {
+  const p = panel(0), tq = m('q'), TH = 10.9;   // TH: "wrap your hands around the mug"
+  // You at a table with a steaming mug of cocoa and a glass of cold chocolate milk; you wrap your hands round the mug.
+  floorIn(p); table(p, 330, 900, 600);
+  const you = phActor(p, 'you', { x: 300, y: Y1, s: 2.4, anim: 'catch' }).show('stand');
+  mug(p, { x: 410, y: 600 }); milkGlass(p, { x: 700, y: 600 });
+  const steam = riseLines(p, 410, 470, { n: 3, c: COL.chalk }); put(steam, { o: 0 }); show(steam, .4);
+  clockRun(t => { put(steam, { y: 470 - 10 * ((t * .9) % 1) }); if (t > TH) you.show('catch', 1); else you.show('stand'); }, D);
+  const ttl = G(p, { o: 0, y: 24 });
+  phLabel(ttl, 'Unit 4 · Energy · Chapter 14', { x: 1230, y: 330, size: 26, fill: COL.dim, weight: 600 });
+  phLabel(ttl, 'Thermal', { x: 1230, y: 420, size: 76 }); phLabel(ttl, 'Energy', { x: 1230, y: 500, size: 76 });
+  tw(ttl, { o: 1, y: 0 }, .3, 1.1, out);
+  say(p, 'hot cocoa', 392, 728, 2.9, { size: 28, fill: HEAT, anchor: 'start' }); say(p, 'cold milk', 700, 728, 4.6, { size: 28, fill: COLD });
+  thought(p, [60, 60, 900, 220], 300, ['What makes one hot and one cold?', 'Where does the heat go?'], tq);
+}, { lead: false }],
+['temp', 'Temperature', (m, D) => {
+  const p = panel(0), th = m('hot'), tc = m('cold'), tk = m('kin'), ta = m('avg'), ts = m('same');
+  // Two magnifier circles open over the drinks: fast red molecules in the cocoa, slow blue ones in the milk. Their speed
+  // lines turn kinetic yellow; temperature is the average; thermometers beside them read high and low.
+  table(p, 280, 1320, 770, 900);
+  mug(p, { x: 480, y: 770 }); milkGlass(p, { x: 1120, y: 770 });
+  phLabel(p, 'hot cocoa', { x: 480, y: 850, size: 30, fill: HEAT }); phLabel(p, 'cold milk', { x: 1120, y: 850, size: 30, fill: COLD });
+  const lens = (cx, mx, my, t0, color, n) => {
+    const g = G(p, { o: 0 });
+    path(g, `M${mx - 50} ${my}L${cx - 190} ${540}M${mx + 50} ${my}L${cx + 190} ${540}`, { stroke: COL.faint, 'stroke-width': 3, 'stroke-dasharray': '8 8' });
+    mk('circle', { cx, cy: 400, r: 232, fill: '#16221f', stroke: COL.chalk, 'stroke-width': 5 }, g);
+    const f = molField(g, { x: cx - 160, y: 240, w: 320, h: 320, n, r: 11, color, trail: COL.chalk, seed: cx });
+    tw(g, { o: 1 }, t0, .6); return f;
+  };
+  const fh = lens(480, 480, 676, .3, HEAT, 16), fc = lens(1120, 1120, 646, tc - .2, COLD, 16);
+  clockRun(t => { fh.set(300 * t, 300); fc.set(70 * t, 70); }, D);
+  say(p, 'fast', 480, 110, th, { size: 40, fill: HEAT }); say(p, 'slow', 1120, 110, tc + .3, { size: 40, fill: COLD });
+  tw(fh.trails, { c_stroke: KIN }, tk, .6); tw(fc.trails, { c_stroke: KIN }, tk, .6);
+  say(p, 'more kinetic energy', 480, 150, tk + .6, { size: 30, fill: KIN }); say(p, 'less kinetic energy', 1120, 150, tk + 2.4, { size: 30, fill: KIN });
+  line(p, [['temperature', HEAT], [' = the '], ['average kinetic energy', KIN], [' of the molecules']], 800, 60, ta, { size: 40 });
+  [[160, .8, HEAT, 'higher'], [1440, .25, COLD, 'lower']].forEach(([x, f, c, s]) => {
+    const g = G(p, { o: 0 }); thermoTube(g, { x, y: 600, len: 300, w: 28, bulb: 26 }).set(f);
+    phLabel(g, s, { x, y: 680, size: 30, fill: c }); phLabel(g, 'temperature', { x, y: 716, size: 26, fill: c }); show(g, ts + (x > 800 ? .5 : 0));
+  });
+}, { lead: false }],
+['thermo', 'Thermometers', (m, D) => {
+  const p = panel(0), th = m('hot'), tr = m('rise'), tc = m('cool'), trd = m('read');
+  // A thermometer dips into hot water: the liquid's molecules speed up and spread, the column climbs. Moved into iced
+  // water, it sinks. On the right, the liquid in the tube close up: its molecules and the column's height.
+  table(p, 200, 1130, 700, 900);
+  beaker(p, 430, true); beaker(p, 900, false);
+  const steam = riseLines(p, 430, 470, { n: 3, c: COL.chalk }); put(steam, { o: .8 });
+  const tube = thermoTube(p, { len: 260, w: 34, bulb: 30 }), tk = tubeTicks(tube, 8, 260); put(tk, { o: 0 }); show(tk, trd);
+  // where the thermometer is: lifted at the hot beaker, dipped, lifted, carried over, dipped in the iced one
+  const UP = 450, IN = 650, xAt = t => lerp(430, 900, sm(t, tc + .7, tc + 1.6)), yAt = t => lerp(UP, IN, sm(t, th, th + 1)) - (IN - UP) * sm(t, tc, tc + .7) + (IN - UP) * sm(t, tc + 1.6, tc + 2.3);
+  const lev = t => .3 + .5 * sm(t, th + 2.4, tr + 1.2) - .62 * sm(t, tc + 2.3, tc + 4.3);   // the column follows the molecules
+  const spd = t => 140 + 180 * sm(t, th + 1, th + 3.2) - 260 * sm(t, tc + 2.1, tc + 3.4);
+  const keys = [[th + 1, 140], [th + 3.2, 320], [tc + 2.1, 320], [tc + 3.4, 60]];
+  // the close-up: a tall tube; the liquid column's top and its molecules
+  const zx = 1250, zw = 220, zb = 640, zt = 130;
+  const zg = G(p);
+  mk('rect', { x: zx, y: zt, width: zw, height: zb - zt, rx: 24, fill: '#16221f', stroke: GLASS, 'stroke-width': 5 }, zg);
+  const col = mk('rect', { x: zx + 8, width: zw - 16, fill: LIQ, opacity: .35 }, zg);
+  const f = molField(zg, { x: zx + 8, y: zb - 200, w: zw - 16, h: 200, n: 12, r: 11, color: LIQ, trail: KIN, seed: 3 });
+  phLabel(zg, 'the liquid, close up', { x: zx + zw / 2, y: 690, size: 28, fill: COL.dim });
+  const ztop = t => zb - 8 - (100 + 380 * lev(t));
+  const link = path(p, '', { stroke: COL.faint, 'stroke-width': 3, 'stroke-dasharray': '8 8' });
+  clockRun(t => {
+    const x = xAt(t), y = yAt(t), L = lev(t); put(tube, { x, y }); tube.set(L);
+    put(steam, { y: 470 - 10 * ((t * .9) % 1) });
+    const top = ztop(t); thAtt(col, 'y', top); thAtt(col, 'height', zb - 8 - top);
+    f.set(phaseOf(t, keys), spd(t), [zx + 8, top, zw - 16, zb - 8 - top]);
+    thAtt(link, 'd', `M${x + 26} ${(y + tube.yAt(L)).toFixed(1)}L${zx} ${top.toFixed(1)}`);
+  }, D);
+  line(p, [['heat up', HEAT], [': most things expand · '], ['cool down', COLD], [': they contract']], 800, 80, 1.8, { size: 38 });
+  hide(say(p, 'molecules speed up, spread apart', 1340, 735, th + 2.2, { size: 26, fill: KIN }), tc + 1.6);
+  say(p, 'molecules slow down, move closer', 1340, 735, tc + 2.3, { size: 26, fill: COLD });
+  hide(say(p, 'expands ↑', 560, 270, tr + .3, { size: 36, fill: HEAT, anchor: 'start' }), tc);
+  const ct = say(p, 'contracts ↓', 1030, 440, tc + 3, { size: 36, fill: COLD, anchor: 'start' });
+  say(p, 'the height shows the temperature', 690, 200, trd + .3, { size: 32, anchor: 'start' });
+  hide(ct, trd);
+}, { lead: false }],
+['scales', 'Three temperature scales', (m, D) => {
+  const p = panel(0), cam = camera(p, D), S_ = scalesWorld(cam.world);
+  // Three thermometers read the same hotness on three scales; the liquid moves to each reference row as it is named.
+  const tf = m('f'), tcl = m('c'), tk = m('k'), tb = m('boil'), tbo = m('body'), tr = m('room'), tfr = m('freeze');
+  [['F', tf], ['C', tcl], ['K', tk]].forEach(([u, t0]) => show(S_.heads[u], t0));
+  [['boil', tb], ['body', tbo], ['room', tr], ['freeze', tfr]].forEach(([k, t0]) => show(S_.rows[k], t0 + .2));
+  const cAt = t => [[tb, 100], [tbo, 37], [tr, 25], [tfr, 0]].reduce((c, [t0, v]) => lerp(c, v, sm(t, t0 + .2, t0 + 1.6)), 25);
+  clockRun(t => S_.setC(cAt(t)), D);
+  say(p, 'same hotness, different numbers', 1390, 790, 28, { size: 26, fill: COL.dim });
+}, { lead: false }],
+['kelvin', 'Absolute zero', (m, D) => {
+  const p = panel(0), cam = camera(p, D), S_ = scalesWorld(cam.world), tz = m('zero'), tsl = m('slow'), tst = m('stop'), tsi = m('si');
+  // The camera pans down the same evenly ticked tubes, past freezing, to the very bottom of the Kelvin and Celsius
+  // tubes, close enough to read the ticks and the 0 K row. Close up on the right, molecules slow as the liquid sinks
+  // into view and down to 0 K; their speed sets the reading.
+  Object.values(S_.heads).forEach(h => put(h, { o: 1 })); ['boil', 'body', 'room', 'freeze'].forEach(k => put(S_.rows[k], { o: 1 }));
+  show(S_.rows.zero, tz);
+  const Z = .9, CY = YC(-273.15) - 310 / Z, CX = 1090 + 320 / Z;   // 0 K row at screen y 760, Kelvin tube at x 480
+  cam.to({ x: CX, y: CY, z: Z }, .3, 2.6);
+  const keys = [[tsl + .6, 260], [tst + .4, 6]], v = t => keys[0][1] + (keys[1][1] - keys[0][1]) * ramp(t, keys[0][0], keys[1][0]);
+  const TK = t => 273.15 * (v(t) / 260) ** 2;
+  const ig = G(p, { o: 0 });
+  mk('rect', { x: 920, y: 170, width: 380, height: 380, rx: 20, fill: '#16221f', stroke: COL.chalk, 'stroke-width': 4 }, ig);
+  const f = molField(ig, { x: 930, y: 180, w: 360, h: 360, n: 14, r: 12, color: COLD, trail: KIN, seed: 9 });
+  phLabel(ig, 'molecules', { x: 1110, y: 140, size: 30, fill: COL.dim });
+  const rd = phLabel(ig, '', { x: 1110, y: 630, size: 60, fill: SC.K });
+  pop(ig, tsl - .1); put(ig, { s: .9 });
+  clockRun(t => { const k = TK(t); S_.setC(k - 273.15); f.set(phaseOf(t, keys), v(t)); phText(rd, `${Math.round(k)} K`); }, D);
+  const [zx, zy] = cam.screen(1090, YC(-273.15), 4);
+  say(p, 'absolute zero', zx + 110, zy - 8, tz + .3, { size: 44, anchor: 'start' });
+  line(p, [['0 K', SC.K], [' = '], ['−273.15 °C', SC.C]], zx + 110, zy + 44, tz + 3, { size: 34, anchor: 'start' });
+  say(p, 'colder: slower molecules', 1110, 700, tsl + .4, { size: 30, fill: COLD });
+  say(p, 'as little motion as possible', 1110, 745, tst + .4, { size: 30, fill: COLD });
+  const si = G(p, { o: 0 });
+  mk('rect', { x: 1380, y: 120, width: 200, height: 110, rx: 16, fill: '#22322d', stroke: SC.K, 'stroke-width': 3 }, si);
+  phLabel(si, 'Kelvin', { x: 1480, y: 165, size: 32, fill: SC.K }); phLabel(si, 'the SI unit', { x: 1480, y: 205, size: 26 });
+  show(si, tsi);
+}, { lead: false }],
+['convert', 'Converting between scales', (m, D) => {
+  const p = panel(0), tcf = m('ctof'), tfc = m('ftoc'), tck = m('ctok'), tkc = m('ktoc');
+  // Four formula cards fill in as they are said; the thermometer on the left shows 25 °C read three ways.
+  const tube = thermoTube(p, { x: 190, y: 770, len: 520, w: 34, bulb: 30 }); tube.set(.45);
+  const ly = 770 + tube.yAt(.45);
+  path(p, `M215 ${ly}H250`, { stroke: COL.chalk, 'stroke-width': 3 });
+  line(p, [['25 °C', SC.C]], 262, ly + 12, 8.7, { size: 36, anchor: 'start' });
+  line(p, [['= 77 °F', SC.F]], 262, ly + 62, 13.2, { size: 36, anchor: 'start' });
+  line(p, [['= 298.15 K', SC.K]], 262, ly + 112, 30.3, { size: 36, anchor: 'start' });
+  const card = (y, h, t0) => { const r = mk('rect', { x: 470, y, width: 1040, height: h, rx: 18, fill: '#22322d', stroke: COL.faint, 'stroke-width': 3 }, p); put(r, { o: 0 }); show(r, t0, .4); };
+  card(120, 230, tcf); card(370, 100, tfc); card(490, 170, tck + 2.6); card(680, 100, tkc);
+  line(p, [['°F', SC.F], [' = '], ['°C', SC.C], [' × 9/5 + 32']], 990, 190, tcf + .1, { size: 46 });
+  line(p, [['25', SC.C], [' × 9/5 = 45']], 990, 262, 10.3, { size: 38, weight: 500 });
+  line(p, [['45 + 32 = '], ['77 °F', SC.F]], 990, 322, 12.4, { size: 38, weight: 500 });
+  line(p, [['°C', SC.C], [' = ('], ['°F', SC.F], [' − 32) × 5/9']], 990, 436, tfc + .1, { size: 46 });
+  line(p, [['K', SC.K], [' = '], ['°C', SC.C], [' + 273.15']], 990, 556, 25.3, { size: 46 });
+  line(p, [['25', SC.C], [' + 273.15 = '], ['298.15 K', SC.K]], 990, 628, 29.3, { size: 38, weight: 500 });
+  line(p, [['°C', SC.C], [' = '], ['K', SC.K], [' − 273.15']], 990, 746, tkc + .1, { size: 46 });
+}, { lead: false }],
+['q1', 'Quick check', (m, D) => {
+  const p = panel(0);
+  [[560, .45, 'F'], [800, .45, 'C'], [1040, .45, 'K']].forEach(([x, f, u]) => { thermoTube(p, { x, y: 500, len: 340, w: 30, bulb: 28 }).set(f); phLabel(p, u === 'K' ? 'K' : '°' + u, { x, y: 110, size: 40, fill: SC[u] }); });
+}, { ask: done => quiz(Q_CARD, [
+  { id: 'c-temp', prompt: ['Temperature is the average ______ energy of the molecules in a substance.'],
+    build: choice([['kinetic'], ['potential'], ['chemical']], 0,
+      'Faster molecules, higher temperature: temperature is about their motion.',
+      [null, 'Potential energy is stored energy; temperature is about motion.', 'Chemical energy is stored in bonds; temperature is about how fast molecules move.']) },
+  { id: 'c-therm', prompt: ['A thermometer’s liquid rises when it is heated, because the liquid…'],
+    build: choice([['expands'], ['evaporates'], ['gets heavier']], 0,
+      'Its molecules speed up and spread apart, so it takes up more room and climbs the tube.',
+      [null, 'It stays in the tube as a liquid; it expands.', 'Its mass doesn’t change; it takes up more room.']) },
+  { id: 'c-ctok', prompt: ['Water freezes at 0 °C. What is that in kelvin?'],
+    build: blanks([{ parts: ['0 °C = ', { box: '273.15' }, ' K'], test: ([v]) => Math.abs(v - 273.15) < .01 || v === 273,
+      why: 'Add 273.15 to the Celsius temperature: 0 + 273.15 = 273.15 K.', hint: 'To get kelvin from Celsius, add 273.15.' }]) },
+], done) }],
+['wrap1', 'Summary · Temperature', (m, D) => {
+  summary(panel(0), m, [
+    [['Temperature is the average kinetic', 'energy of the molecules.'], g => { molField(g, { x: 170, y: -50, w: 180, h: 100, n: 7, r: 9, color: HEAT, seed: 2 }).set(40, 260); }],
+    [['Thermometers work because liquids expand', 'when warm and contract when cool.'], g => { thermoTube(g, { x: 260, y: 80, len: 130, w: 22, bulb: 20 }).set(.7); }],
+    [['Kelvin starts at absolute zero; formulas', 'convert between °F, °C and K.'], g => { phLabel(g, '0 K', { x: 260, y: 20, size: 48, fill: SC.K }); }],
+  ], 'Next: thermal energy, and heat.');
+}],
+/* ---------- part 2: thermal energy and heat ---------- */
+['part2', 'Part 2 · Thermal energy and heat', (m, D) => {
+  const p = panel(0);
+  // An ice cube melts on a plate, a warm mug steams beside it.
+  floorIn(p); table(p, 140, 720, 600);
+  mug(p, { x: 300, y: 600 }); const st = riseLines(p, 300, 470, { n: 3, c: COL.chalk }); put(st, { o: .9 });
+  const ice = iceCube(p, 90, { x: 540, y: 600 });
+  clockRun(t => { put(st, { y: 470 - 10 * ((t * .9) % 1) }); put(ice, { s: 1 - .05 * t }); }, D);
+  opener(p, 1180, 300, 'Part 2', 'Thermal Energy', 'and Heat');
+}, { lead: false }],
+['tenergy', 'Thermal energy', (m, D) => {
+  const p = panel(0), tcu = m('cup'), ttu = m('tub'), tco = m('count'), tsu = m('sum'), tmo = m('more'), tbr = m('brick');
+  // A cup and a bathtub of water at the same temperature: same molecule speed, far more molecules in the tub. Thermal
+  // energy bars (kinetic + potential) show the total. Then the camera pans to one brick and a stack of bricks.
+  const cam = camera(p, D), W = cam.world;
+  phBlock(W, -400, Y1, 4000, 200, '#55625b', { top: 6, ol: 0 });
+  phBlock(W, 190, 640, 120, 100, WOOD, { top: 5, right: 6 });
+  const cupG = G(W, { o: 0 });
+  mk('rect', { x: 212, y: 556, width: 76, height: 80, fill: WATER, opacity: .55 }, cupG);
+  const fCup = molField(cupG, { x: 212, y: 556, w: 76, h: 80, n: 5, r: 8, color: COLD, trail: KIN, seed: 4 });
+  path(cupG, 'M206 530V640H294V530M294 560h12q18 0 18 22v10q0 22 -18 22h-12', { stroke: ENAMEL, 'stroke-width': 10, fill: 'none' });
+  const tubG = G(W, { o: 0 });
+  mk('rect', { x: 500, y: 560, width: 580, height: 160, fill: WATER, opacity: .55 }, tubG);
+  const fTub = molField(tubG, { x: 500, y: 560, w: 580, h: 160, n: 64, r: 8, color: COLD, trail: KIN, seed: 5 });
+  path(tubG, 'M484 500V690Q484 726 520 726H1060Q1096 726 1096 690V500', { stroke: ENAMEL, 'stroke-width': 16, fill: 'none', 'stroke-linejoin': 'round' });
+  [540, 1040].forEach(x => phBlock(tubG, x - 12, 724, 24, 16, '#9a958a', { top: 0 }));
+  show(cupG, tcu); show(tubG, ttu);
+  [[250, 'cup of water'], [790, 'bathtub of water']].forEach(([x, s]) => phLabel(W, s, { x, y: 800, size: 30, fill: COL.dim }));
+  const t40 = G(W, { o: 0 }); [[250, 500], [790, 460]].forEach(([x, y]) => phLabel(t40, '40 °C', { x, y, size: 34, fill: HEAT })); show(t40, 8.3);
+  const cnt = G(W, { o: 0 }); phLabel(cnt, 'a few molecules', { x: 250, y: 850, size: 28, fill: COLD }); phLabel(cnt, 'far more molecules', { x: 790, y: 850, size: 28, fill: COLD }); show(cnt, tco);
+  const eb = energyBars(W, { x: 1240, y: 700, cols: [['', KIN], ['', KIN]], unit: 30, w: 90, gap: 70 });
+  const ebl = G(W, { o: 0 });
+  phLabel(ebl, 'cup', { x: 1285, y: 740, size: 28 }); phLabel(ebl, 'bathtub', { x: 1445, y: 740, size: 28 });
+  phLabel(ebl, 'thermal energy', { x: 1365, y: 330, size: 34, fill: HEAT });
+  runs(ebl, [['kinetic', KIN], [' + '], ['potential', POT]], { x: 1365, y: 372, size: 28, o: 1 });
+  show(ebl, tsu); put(eb, { o: 0 }); show(eb, tsu);
+  // the bricks, one camera-width to the right
+  brick(W, 1960, Y1); for (let r = 0; r < 4; r++) for (let c = 0; c < 3; c++) brick(W, 2380 + c * 124 + (r % 2) * 30, Y1 - r * 42);
+  const ebB = energyBars(W, { x: 2840, y: 700, cols: [['', KIN], ['', KIN]], unit: 30, w: 90, gap: 70 });
+  phLabel(W, 'one brick', { x: 1960, y: 800, size: 30, fill: COL.dim }); phLabel(W, 'a stack of bricks', { x: 2530, y: 800, size: 30, fill: COL.dim });
+  phLabel(W, 'one', { x: 2885, y: 740, size: 28 }); phLabel(W, 'stack', { x: 3045, y: 740, size: 28 });
+  phLabel(W, 'same temperature', { x: 2250, y: 520, size: 34, fill: HEAT });
+  phLabel(W, 'the stack holds more thermal energy', { x: 2500, y: 860, size: 30, fill: HEAT });
+  clockRun(t => {
+    fCup.set(150 * t, 150); fTub.set(150 * t, 150);
+    const q1 = sm(t, tsu + .6, tsu + 2.4), q2 = sm(t, tsu + 2, tsu + 4);
+    eb.set([.35 * q1, .25 * q2, POT], [5.5 * q1, 4 * q2, POT]);
+    const qb = sm(t, tbr + 1.6, tbr + 3);
+    ebB.set([.5 * qb, .3 * qb, POT], [6 * qb, 3.6 * qb, POT]);
+  }, D);
+  cam.to({ x: 2400 }, tbr - .2, 1.6);
+  const q0 = txt(p, 'Is temperature the same as thermal energy?', 800, 110, .3, { size: 46, weight: 700 }); hide(q0, tsu - .4);
+  line(p, [['thermal energy', HEAT], [' = the total '], ['kinetic', KIN], [' and '], ['potential', POT], [' energy']], 800, 100, tsu, { size: 42 });
+  txt(p, 'of all the molecules in a substance', 800, 152, tsu + 1.5, { size: 32, fill: COL.dim });
+  const mo = say(p, 'same temperature, more molecules: more thermal energy', 800, 220, tmo, { size: 32, fill: HEAT }); hide(mo, tbr - .2);
+}, { lead: false }],
+['heat', 'Heat', (m, D) => {
+  const p = panel(0), th = m('hand'), tf = m('flow'), te = m('eq'), tfe = m('feel'), td = m('dir');
+  // Close up, large: an ice cube on your palm. Red energy blocks hop from your hand into the ice, which shrinks; beside
+  // it two big thermometers (hand, ice) step closer with each block and meet at one level. Above them the rule:
+  // warmer to cooler, never the reverse on its own.
+  const K = 1.7, HX = -220, HY = -330, sc = (x, y) => [HX + K * x, HY + K * y];   // the hand drawn at 1.7×; sc: its screen point
+  const hg = G(p, { x: HX, y: HY, s: K });
+  phBlock(hg, -20, 560, 230, 104, PH.you, { top: 6, right: 8 });
+  phBlock(hg, 200, 575, 330, 72, SKIN, { top: 6 }); phBlock(hg, 520, 565, 190, 84, SKIN, { top: 6 }); phBlock(hg, 700, 500, 52, 140, SKIN, { top: 6, right: 6 }); path(hg, 'M700 530h40M700 562h40M700 594h40', { stroke: '#a8704c', 'stroke-width': 3 });
+  const ICE = [615, 565], ice = iceCube(hg, 124, { x: ICE[0], y: ICE[1] });
+  const pud = mk('ellipse', { cx: ICE[0], cy: ICE[1] - 2, rx: 0, ry: 0, fill: '#a9d4ec', opacity: .7 }, hg);
+  const blk = eBlocks(hg, 6, HEAT, { size: 28 }), arrive = i => tf + 1.9 + i * 1.9;
+  const TX = [1210, 1390], TB = 740, TL = 360, TBU = 34;
+  const tH = thermoTube(p, { x: TX[0], y: TB, len: TL, w: 40, bulb: TBU }), tI = thermoTube(p, { x: TX[1], y: TB, len: TL, w: 40, bulb: TBU });
+  phLabel(p, 'hand', { x: TX[0], y: 820, size: 34, fill: HEAT }); phLabel(p, 'ice', { x: TX[1], y: 820, size: 34, fill: COLD });
+  const meetY = TB - TBU - .5 * TL, meet = path(p, `M${TX[0] - 40} ${meetY}H${TX[1] + 40}`, { stroke: COL.chalk, 'stroke-width': 3, 'stroke-dasharray': '10 8' }); put(meet, { o: 0 }); show(meet, te + 2.8);
+  clockRun(t => {
+    const gone = [0, 1, 2, 3].reduce((a, i) => a + sm(t, arrive(i) - .2, arrive(i) + .6), 0), s = 1 - .42 * gone / 4;
+    put(ice, { s }); thAtt(pud, 'rx', 30 * gone); thAtt(pud, 'ry', 4 * gone);
+    blk.forEach((b, i) => {
+      const [hx, hy] = heapAt(i, 360, 575, { cols: 3, size: 28, gap: 6 });
+      if (i > 3) { put(b, { x: hx, y: hy, o: 1 }); return; }
+      const k = sm(t, arrive(i) - 1.1, arrive(i)), [ix, iy] = heapAt(i, ICE[0], ICE[1] - 6, { cols: 2, size: 28, gap: 4 });
+      put(b, { x: lerp(hx, ix, k), y: lerp(hy, iy, k) - 120 * Math.sin(Math.PI * k), o: 1 });
+    });
+    const q = .7 * gone / 4 + .3 * sm(t, te + .2, te + 2.8); tH.set(lerp(.85, .5, q)); tI.set(lerp(.1, .5, q));   // each block brings them closer
+  }, D);
+  const [wx, wy] = sc(360, 575), [cx, cy] = sc(ICE[0], ICE[1] - 124);
+  say(p, 'warmer', wx, wy - 150, th + 1.9, { size: 40, fill: HEAT }); say(p, 'cooler', cx, cy - 36, th + 2.4, { size: 40, fill: COLD });
+  line(p, [['heat', HEAT], [': thermal energy moving from warmer to cooler']], 800, 100, tf, { size: 42 });
+  say(p, 'same temperature', (TX[0] + TX[1]) / 2, 864, te + 2.8, { size: 32 });
+  line(p, [['ice feels cold: '], ['energy is leaving your hand', HEAT]], 480, 864, tfe, { size: 32 });
+  const dg = G(p, { o: 0 }), DX = 1300 - 700;   // the rule, centred over the thermometers
+  phLabel(dg, 'warmer', { x: 560 + DX, y: 222, size: 34, fill: HEAT, anchor: 'end' }); path(dg, arrowPath(580 + DX, 210, 820 - 80 + DX), { stroke: COL.chalk, 'stroke-width': 6, fill: 'none' }); phLabel(dg, 'cooler', { x: 840 - 80 + DX, y: 222, size: 34, fill: COLD, anchor: 'start' });
+  phLabel(dg, 'cooler', { x: 560 + DX, y: 282, size: 34, fill: COL.dim, anchor: 'end' }); path(dg, arrowPath(580 + DX, 270, 820 - 80 + DX), { stroke: COL.faint, 'stroke-width': 6, fill: 'none' }); phLabel(dg, 'warmer', { x: 840 - 80 + DX, y: 282, size: 34, fill: COL.dim, anchor: 'start' });
+  path(dg, `M${640 + DX} 248L${680 + DX} 292M${680 + DX} 248L${640 + DX} 292`, { stroke: COL.bad, 'stroke-width': 7, 'stroke-linecap': 'round' });
+  show(dg, td);
+}, { lead: false }],
+['q2', 'Quick check', (m, D) => {
+  const p = panel(0);
+  phBlock(p, 260, 440, 330, 72, SKIN, { top: 6 }); phBlock(p, 580, 430, 190, 84, SKIN, { top: 6 }); phBlock(p, 760, 370, 52, 140, SKIN, { top: 6, right: 6 });
+  iceCube(p, 110, { x: 675, y: 430 });
+  [[1120, 470, 70, 'cup'], [1340, 470, 190, 'bathtub']].forEach(([x, y, w, s]) => { mk('rect', { x: x - w / 2, y: y - 70, width: w, height: 70, fill: WATER, opacity: .55 }, p); path(p, `M${x - w / 2} ${y - 90}V${y}H${x + w / 2}V${y - 90}`, { stroke: ENAMEL, 'stroke-width': 8, fill: 'none' }); phLabel(p, s, { x, y: y + 40, size: 26, fill: COL.dim }); });
+}, { ask: done => quiz(Q_CARD, [
+  { id: 'c-tub', prompt: ['A cup and a bathtub of water are both at 40 °C. Which has more thermal energy?'],
+    build: choice([['the bathtub'], ['the cup'], ['they have the same']], 0,
+      'More molecules, more total energy: the bathtub.',
+      [null, 'Same temperature, but the cup has far fewer molecules.', 'Their temperatures match, but thermal energy is a total: the bathtub has far more molecules.']) },
+  { id: 'c-dir', prompt: ['You hold an ice cube. Which way does heat flow?'],
+    build: choice([['from your hand to the ice'], ['from the ice to your hand'], ['neither way']], 0,
+      'Heat goes from warmer to cooler, so energy leaves your hand and melts the ice.',
+      [null, 'Heat goes from warmer to cooler; your hand is the warmer one.', 'They are at different temperatures, so heat flows until they match.']) },
+  { id: 'c-heatdef', prompt: ['Heat is…'],
+    build: choice([['thermal energy moving from warmer to cooler'], ['the average kinetic energy of molecules'], ['the total number of molecules']], 0,
+      'Heat is thermal energy on the move, from a warmer thing to a cooler one.',
+      [null, 'That is temperature.', 'Counting molecules isn’t heat; heat is energy moving.']) },
+], done) }],
+['wrap2', 'Summary · Thermal energy and heat', (m, D) => {
+  summary(panel(0), m, [
+    [['Thermal energy is the total energy', 'of all the molecules.'], g => { molField(g, { x: 150, y: -50, w: 230, h: 100, n: 16, r: 7, color: COLD, seed: 6 }).set(40, 0); }],
+    [['Temperature is only their average.'], g => { thermoTube(g, { x: 260, y: 60, len: 110, w: 22, bulb: 20 }).set(.5); }],
+    [['Heat is thermal energy moving from warmer', 'to cooler, until the temperatures match.'], g => { eBlock(g, HEAT, { x: 200, y: 0, size: 28 }); path(g, arrowPath(222, 0, 290), { stroke: COL.chalk, 'stroke-width': 4, fill: 'none' }); iceCube(g, 50, { x: 330, y: 25 }); }],
+  ], 'Next: three ways heat travels.');
+}],
+/* ---------- part 3: how heat travels ---------- */
+['part3', 'Part 3 · How heat travels', (m, D) => {
+  const p = panel(0);
+  // A campfire's heat waves reach out across the dark.
+  ground(p, Y1);
+  const cf = campfire(p, { x: 330, y: Y1, s: 1.5 }); put(cf.flame, { s: 1 });
+  const rays = waveRays(p, { x0: 420, y0: 560, x1: 760, y1: 520, n: 3, spread: 160 });
+  clockRun(t => { put(cf.flame, { s: 1 + .07 * Math.sin(t * 9) }); rays.set(t * 6, 1); }, D);
+  opener(p, 1180, 300, 'Part 3', 'How Heat', 'Travels');
+}, { lead: false }],
+['cond', 'Conduction', (m, D) => {
+  const p = panel(0), tt = m('touch'), tc = m('collide'), to = m('ouch'), tct = m('contact');
+  // You step up to the stove and lay your hand on the hot coil. The camera pushes in; close up, the coil's fast
+  // molecules jostle the skin's, row by row from the contact. "OUCH!": you snatch your hand back.
+  const cam = camera(p, D), W = cam.world;
+  floorIn(W, Y1, -400, 2400);
+  const st = stove(W, 780, 566), heatUp = riseLines(W, st.coilX, 540, { n: 3 }); put(heatUp, { o: .9 });
+  const you = phActor(W, 'you', { x: 560, y: Y1, s: 2.8, anim: 'walk' });
+  const xAt = t => t < to ? lerp(560, 700, sm(t, .3, 1.9)) : 700 - 80 * sm(t, to, to + .6);
+  clockRun(t => {
+    const x = xAt(t); put(you, { x });
+    if (t < 1.9) you.stride('walk', x - 560); else if (t < tt + .2) you.show('stand'); else if (t < to) you.show('push', 0);
+    else if (t < to + .6) you.show('backstep', (t - to) / .15); else you.show('stand');
+    put(heatUp, { y: 540 - 10 * ((t * 1.2) % 1) });
+  }, D);
+  cam.to({ x: 900, y: 520, z: 1.5 }, tc - .2, 1.4); cam.shake(6, to, .4); cam.to({ x: 800, y: 450, z: 1 }, to + .3, 1.2);
+  // the close-up: two skin rows warm one after the other above the coil
+  const ig = G(p, { o: 0 });
+  mk('rect', { x: 1090, y: 150, width: 380, height: 380, rx: 18, fill: '#16221f', stroke: COL.chalk, 'stroke-width': 4 }, ig);
+  path(ig, 'M1090 375H1470', { stroke: COL.dim, 'stroke-width': 3, 'stroke-dasharray': '8 8' });
+  const rowsS = [0, 1, 2].map(r => molField(ig, { x: 1100, y: 160 + r * 72, w: 360, h: 72, n: 7, cols: 7, r: 12, color: SKIN, lattice: true, seed: r + 1 }));
+  const coil = molField(ig, { x: 1100, y: 385, w: 360, h: 140, n: 14, cols: 7, r: 12, color: LIQ, lattice: true, seed: 7 });
+  phLabel(ig, 'skin', { x: 1075, y: 278, size: 30, fill: SKIN, anchor: 'end' }); phLabel(ig, 'burner', { x: 1075, y: 466, size: 30, fill: LIQ, anchor: 'end' });
+  const lk = path(p, 'M1090 375L724 530', { stroke: COL.faint, 'stroke-width': 3, 'stroke-dasharray': '8 8' }); put(lk, { o: 0 });
+  show(ig, tc + 1.2); show(lk, tc + 1.2); hide(lk, to);
+  const warm = r => tc + 1.8 + (2 - r) * 1.5;   // the row nearest the coil first
+  clockRun(t => {
+    coil.set(t, 8);
+    rowsS.forEach((f, r) => { const q = sm(t, warm(r), warm(r) + 1.2); f.set(t, 2 + 6 * q); thAtt(f.dots, 'fill', mix(SKIN, HEAT, q)); });
+  }, D);
+  const ouch = phLabel(p, 'OUCH!', { x: 560, y: 260, size: 70, fill: HEAT, o: 0 }); put(ouch, { s: .5 }); pop(ouch, to);
+  hide(ouch, to + 2.2);
+  line(p, [['conduction', HEAT], [': heat moves through direct contact']], 800, 100, tct, { size: 42 });
+  say(p, 'energy hops from', 1330, 590, 15.2, { size: 28, fill: KIN }); say(p, 'molecule to molecule', 1330, 626, 15.2, { size: 28, fill: KIN });
+}, { lead: false }],
+['conv', 'Convection', (m, D) => {
+  const p = panel(0), th = m('heater'), tr = m('rise'), tc = m('cool'), ts = m('sink'), tl = m('loop'), tf = m('fan');
+  // A room in cross-section: the heater warms the air above it; red chevrons rise, turn blue along the ceiling, sink
+  // down the far side and return along the floor. The loop is named; a ceiling fan spins and the flow speeds up.
+  phBlock(p, 100, 100, 1400, 30, '#55625b', { top: 0 }); phBlock(p, 100, 130, 20, Y1 - 130, '#55625b', { top: 0 }); phBlock(p, 1480, 130, 20, Y1 - 130, '#55625b', { top: 0 });
+  floorIn(p, Y1, 100, 1400);
+  const ht = heater(p, 310); tw(ht.glow, { o: .45 }, th, .8);
+  const shimmer = riseLines(p, 310, 560, { n: 3 }); show(shimmer, th + .5);
+  const fan = ceilingFan(p, 690, 130);
+  const L = rrLoop(310, 230, 1070, 680, 90), H = 680 - 230 - 180, A = Math.PI * 45, Wd = 1070 - 310 - 180;
+  const colorAt = s => s < H ? HEAT : s < H + 2 * A + Wd ? mix(HEAT, COLD, (s - H) / (2 * A + Wd)) : s < L.len - A ? COLD : mix(COLD, HEAT, (s - L.len + A) / A);
+  const lp = path(p, L.d, { stroke: COL.faint, 'stroke-width': 4, fill: 'none', 'stroke-dasharray': '10 12' }); put(lp, { o: 0 }); show(lp, tl);
+  const flow = loopFlow(p, L, { n: 16, colorAt });
+  const keys = [[tr, 200], [tf + .3, 200], [tf + 1.8, 420]];
+  clockRun(t => {
+    flow.set(t < tr ? -1 : phaseOf(t, keys) - phaseOf(tr, keys));
+    fan.spin(t < tf ? .5 : .5 + phaseOf(t, [[tf, 0], [tf + 1.2, 14]]));
+    put(shimmer, { y: 560 - 8 * ((t * 1.3) % 1) });
+  }, D);
+  line(p, [['fluids', COL.chalk], [': liquids and gases']], 1290, 340, 2.3, { size: 32 });
+  say(p, 'the heater warms the air', 330, 800, th + .3, { size: 28, fill: HEAT });
+  say(p, 'warm air rises', 340, 420, tr + .3, { size: 32, fill: HEAT, anchor: 'start' });
+  say(p, 'cools near the ceiling', 790, 288, tc + .3, { size: 30, fill: COLD });
+  say(p, 'cool air sinks', 1100, 470, ts + .3, { size: 32, fill: COLD, anchor: 'start' });
+  say(p, 'convection current', 690, 470, tl + .3, { size: 46 });
+  say(p, 'a fan speeds it up', 640, 335, tf + .4, { size: 30, fill: KIN });
+}, { lead: false }],
+['rad', 'Radiation', (m, D) => {
+  const p = panel(0), tfi = m('fire'), tg = m('gap'), tra = m('rays'), tsu = m('sun'), tsp = m('space');
+  // You sit by a campfire roasting a marshmallow. Nothing touches your face and the air isn't carrying the warmth:
+  // wavy yellow rays are. Then the same rays cross empty, starry space from the Sun to Earth.
+  ground(p, Y1);
+  phBlock(p, 840, Y1 - 46, 200, 46, '#7a5236', { top: 6, right: 8 });
+  const cf = campfire(p, { x: 600, y: Y1, s: 1.4 });
+  const you = phActor(p, 'you', { x: 940, y: Y1 - 40, s: 2.6, anim: 'pedal' }).show('pedal', 0).face(-1);
+  const [hx, hy] = you.hand('F');
+  path(p, `M${hx} ${hy}L640 560`, { stroke: '#9a6a46', 'stroke-width': 6, 'stroke-linecap': 'round' });
+  mk('rect', { x: 624, y: 546, width: 30, height: 26, rx: 8, fill: PAPER, ...phLine(2) }, p);
+  const air = molField(p, { x: 660, y: 330, w: 170, h: 180, n: 9, r: 6, color: COL.dim, trail: COL.dim, seed: 11 }); put(air, { o: 0 }); show(air, tg + 1.6);
+  const rays = waveRays(p, { x0: 640, y0: 600, x1: 885, y1: 345, n: 3, spread: 100 });
+  clockRun(t => { put(cf.flame, { s: 1 + .07 * Math.sin(t * 9) }); air.set(40 * t, 40); rays.set(t * 7, sm(t, tra, tra + 1.4)); }, D);
+  hide(say(p, 'your face feels warm', 1060, 330, tfi + 1.6, { size: 32, fill: HEAT, anchor: 'start' }), tsu - .4);   // gone before space fades in
+  const gp = G(p, { o: 0 });
+  path(gp, 'M650 300v-20H850v20', { stroke: COL.chalk, 'stroke-width': 4, fill: 'none' });
+  phLabel(gp, 'not touching', { x: 750, y: 262, size: 30 }); show(gp, tg);
+  say(p, 'the air isn’t carrying it', 750, 850, tg + 1.6, { size: 30, fill: COL.dim });
+  line(p, [['radiation', HEAT], [': heat carried by electromagnetic rays']], 800, 100, tra, { size: 42 });
+  // the Sun and Earth across empty space
+  const sp = G(p, { o: 0, x: 800, y: 450, s: 1.12 }), si = G(sp, { x: -800, y: -450 });
+  mk('rect', { x: -40, y: -40, width: 1680, height: 980, fill: '#0b1226' }, si); stars(si);
+  const sun = phSun(si, { x: 230, y: 450, r: 110 }); phEarthSmall(si, { x: 1380, y: 450, r: 46 });
+  const sray = waveRays(si, { x0: 370, y0: 450, x1: 1320, y1: 450, n: 3, spread: 70, amp: 10, wl: 60 });
+  clockRun(t => { sray.set(t * 7, sm(t, tsu + .6, tsp + .2)); put(sun._rays, { r: t * 8 }); }, D);
+  tw(sp, { o: 1, s: 1 }, tsu - .2, 1.2);
+  phLabel(si, 'Sun', { x: 230, y: 610, size: 32, fill: LIGHT }); phLabel(si, 'Earth', { x: 1380, y: 540, size: 32, fill: PH.ocean });
+  say(p, 'millions of kilometers of empty space', 850, 330, tsp + .3, { size: 34 });
+  say(p, 'no contact, no fluid needed', 850, 640, 22.1, { size: 34, fill: HEAT });
+}, { lead: false }],
+['q3', 'Quick check', (m, D) => {
+  const p = panel(0);
+  ground(p);
+  // three scenes, each drawn at 1.25× about its foot and named like its row: a spoon in hot soup, a heater with
+  // rising air, a campfire's rays
+  const big = cx => G(G(p, { x: cx, y: GY, s: 1.25 }), { x: -cx, y: -GY });
+  const s1 = big(300), s2 = big(860), s3 = big(1360);
+  path(s1, `M180 ${GY - 70}Q300 ${GY + 10} 420 ${GY - 70}`, { fill: '#c0504d', ...phLine() }); path(s1, `M330 ${GY - 70}L420 ${GY - 190}`, { stroke: '#c3ccce', 'stroke-width': 10, 'stroke-linecap': 'round' });
+  put(riseLines(s1, 280, GY - 90, { n: 2 }), { o: 1 });
+  heater(s2, 800, { y: GY }); const QL = rrLoop(760, 240, 1000, 400, 50); path(s2, QL.d, { stroke: COL.faint, 'stroke-width': 3, fill: 'none', 'stroke-dasharray': '8 10' }); loopFlow(s2, QL, { n: 6, size: 16, colorAt: s => (s < 170 ? HEAT : COLD) }).set(1000);
+  const cf = campfire(s3, { x: 1260, y: GY }); put(cf.flame, { s: 1 });
+  const r = waveRays(s3, { x0: 1320, y0: GY - 80, x1: 1500, y1: GY - 160, n: 2, spread: 60 }); r.set(0, 1);
+  [[300, 'spoon in hot soup'], [860, 'air over a heater'], [1330, 'campfire warmth']].forEach(([x, s]) => phLabel(p, s, { x, y: 92, size: 36, weight: 600 }));
+  clockRun(t => { put(cf.flame, { s: 1 + .06 * Math.sin(t * 9) }); r.set(t * 7, 1); }, D);
+}, { ask: done => quiz(Q_CARD, [
+  { id: 'c-sort', prompt: ['How does the heat travel in each one?'],
+    build: grid([
+      { parts: ['a metal spoon warming in hot soup'], ans: ['d'], why: 'The soup touches the spoon: conduction.' },
+      { parts: ['warm air rising from a heater'], ans: ['v'], why: 'The air itself moves and carries the heat: convection.' },
+      { parts: ['warmth from a campfire on your face'], ans: ['r'], why: 'Nothing touches you and the air isn’t carrying it: radiation.' },
+    ], [['d', 'conduction', HEAT, 'd'], ['v', 'convection', COLD, 'v'], ['r', 'radiation', LIGHT, 'r']], { multi: false, text: true }) },
+  { id: 'c-sun', prompt: ['How does the Sun’s heat reach Earth across empty space?'],
+    build: choice([['radiation'], ['conduction'], ['convection']], 0,
+      'Electromagnetic rays need no contact and no fluid, so they cross empty space.',
+      [null, 'Conduction needs direct contact, and space is empty.', 'Convection needs a fluid to move, and space is empty.']) },
+], done) }],
+['wrap3', 'Summary · How heat travels', (m, D) => {
+  summary(panel(0), m, [
+    [['Conduction moves heat through', 'direct contact.'], g => { phBlock(g, 190, 10, 140, 16, LIQ, { top: 0 }); phBlock(g, 220, -50, 70, 56, SKIN, { top: 4 }); }],
+    [['Convection moves heat as a fluid flows.'], g => { loopFlow(g, rrLoop(190, -50, 340, 50, 30), { n: 6, size: 14, colorAt: s => (s < 140 ? HEAT : COLD) }).set(600); }],
+    [['Radiation moves heat as electromagnetic', 'rays, even through empty space.'], g => { phSun(g, { x: 210, y: 10, r: 26 }); waveRays(g, { x0: 250, y0: 10, x1: 360, y1: 10, n: 1, amp: 7, wl: 30 }).set(0, 1); }],
+  ], 'Next: the chapter practice.');
+}],
+/* ---------- chapter practice and finish ---------- */
+['final1', 'Chapter practice: temperature and heat', () => { PRACTICE = panel(0); }, { ask: done => quiz(SCREEN, withPics([
+  { id: 'p-tt', prompt: ['Which statement is correct?'],
+    build: choice([['Temperature is the average kinetic energy of the molecules; thermal energy is the total energy of all of them.'],
+                   ['Temperature is the total energy of all the molecules; thermal energy is their average kinetic energy.'],
+                   ['Temperature and thermal energy are the same thing.']], 0,
+      'Temperature is an average; thermal energy is a total.',
+      [null, 'Swapped: temperature is the average, thermal energy the total.', 'A bathtub and a cup at the same temperature hold very different amounts of thermal energy.']) },
+  { id: 'p-juice', prompt: ['A large and a small glass of juice are both at room temperature. Which has more thermal energy?'],
+    build: choice([['the large glass'], ['the small glass'], ['they have the same']], 0,
+      'More molecules, more thermal energy: more kinetic and potential energy in total.',
+      [null, 'The small glass has fewer molecules, so less in total.', 'Same temperature, but the large glass has more molecules.']) },
+  { id: 'p-conv', prompt: ['______ is the transfer of heat through the movement of a fluid, such as water or air.'],
+    build: choice([['Convection'], ['Conduction'], ['Radiation']], 0,
+      'Convection: the fluid itself moves and carries the heat.',
+      [null, 'Conduction needs direct contact; nothing flows.', 'Radiation travels as electromagnetic rays, with no fluid needed.']) },
+  { id: 'p-micro', prompt: ['What kind of heat transfer happens in a microwave oven?'],
+    build: choice([['radiation'], ['conduction'], ['convection']], 0,
+      'Microwaves are electromagnetic waves: radiation.',
+      [null, 'Nothing hot touches the food; the oven sends electromagnetic waves.', 'The air doesn’t carry it; microwaves are electromagnetic waves.']) },
+]), done, 'Chapter practice, set 1 of 2 · question') }],
+['final2', 'Chapter practice: how heat moves', () => { PRACTICE = panel(0); }, { ask: done => quiz(SCREEN, withPics([
+  { id: 'p-pop', prompt: ['You lick a Popsicle.'],
+    build: grid([
+      { parts: ['Heat moves from'], ans: ['t'], why: 'Your tongue is warmer, so energy goes to the Popsicle and melts it.' },
+      { parts: ['This kind of transfer is'], ans: ['c'], why: 'Tongue and Popsicle touch: conduction.' },
+    ], [['t', 'tongue → Popsicle', HEAT, 't'], ['p', 'Popsicle → tongue', COLD, 'p'], ['c', 'conduction', HEAT, 'c'], ['r', 'radiation', LIGHT, 'r']], { multi: false, text: true }) },
+  { id: 'p-k', prompt: ['Converting Celsius to kelvin.'],
+    build: blanks([
+      { parts: ['T(K) = T(°C) + ', { box: '273.15' }], why: 'Kelvin is Celsius plus 273.15.', hint: 'Kelvin is Celsius plus 273.15; subtract only to go back.' },
+      { parts: ['25 °C = ', { box: '298.15' }, ' K'], why: '25 + 273.15 = 298.15 K.', hint: 'Add 273.15 to 25.' },
+    ]) },
+  { id: 'p-flow', prompt: ['Heat always moves from a ______ object to a ______ object.'],
+    build: choice([['warmer, cooler'], ['cooler, warmer'], ['bigger, smaller']], 0,
+      'From warmer to cooler, until the temperatures match.',
+      [null, 'Backwards: heat never flows from cooler to warmer on its own.', 'Size doesn’t decide it; temperature does.']) },
+  { id: 'p-exp', prompt: ['What happens to most objects?'],
+    build: grid([
+      { parts: ['When an object heats up, it'], ans: ['e'], why: 'Its molecules speed up and spread apart: it expands.' },
+      { parts: ['When an object cools down, it'], ans: ['c'], why: 'Its molecules slow down and pull together: it contracts.' },
+    ], [['e', 'expands', HEAT, 'e'], ['c', 'contracts', COLD, 'c']], { multi: false, text: true }) },
+]), done, 'Chapter practice, set 2 of 2 · question') }],
+['finish', 'Finished', () => {
+  // under the card, the chapter in four small pictures with their names
+  const p = panel(0);
+  [['temperature', 300, g => { thermoTube(g, { y: -10, len: 90, w: 22, bulb: 18 }).set(.6); }],
+   ['thermal energy', 633, g => { mug(g, { y: 10, s: .8 }); }],
+   ['conduction', 966, g => { phBlock(g, -70, -4, 140, 16, LIQ, { top: 0 }); phBlock(g, -36, -60, 72, 56, SKIN, { top: 4 }); }],
+   ['radiation', 1300, g => { const c = campfire(g, { s: .7 }); put(c.flame, { s: 1 }); }]]
+    .forEach(([s, x, draw]) => { const g = G(p, { x, y: 800, s: .85 }); draw(g); phLabel(g, s, { y: 56, size: 30, fill: COL.dim, weight: 600 }); });
+}, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+let PRACTICE;   // the practice beat's panel: its question pictures are drawn there
+const PAPER = '#f4f1e8';
+const glassOf = (g, x, w, h, c = '#f0a040') => { path(g, `M${x - w / 2 + 4} ${870 - h * .85}L${x - w / 2 + 6} 870H${x + w / 2 - 6}L${x + w / 2 - 4} ${870 - h * .85}Z`, { fill: c }); path(g, `M${x - w / 2} ${870 - h}L${x - w / 2 + 6} 870H${x + w / 2 - 6}L${x + w / 2} ${870 - h}`, { stroke: GLASS, 'stroke-width': 4, fill: 'none' }); };
+const PICS = {
+  'p-tt': g => { mk('rect', { x: 640, y: 770, width: 220, height: 100, rx: 10, fill: 'none', stroke: COL.dim, 'stroke-width': 3 }, g); molField(g, { x: 645, y: 775, w: 210, h: 90, n: 8, r: 9, color: HEAT, seed: 3 }).set(60, 200); thermoTube(g, { x: 920, y: 850, len: 80, w: 20, bulb: 18 }).set(.6); },
+  'p-juice': g => { glassOf(g, 740, 110, 120); glassOf(g, 880, 60, 60); },
+  'p-conv': g => { loopFlow(g, rrLoop(680, 770, 920, 870, 40), { n: 8, size: 14, colorAt: s => (s < 200 ? HEAT : COLD) }).set(2000); },
+  'p-micro': g => { phBlock(g, 660, 760, 280, 120, '#d9d4c8', { top: 5, right: 8 }); phBlock(g, 680, 778, 180, 84, '#2c3337', { top: 0 }); waveRays(g, { x0: 690, y0: 820, x1: 850, y1: 820, n: 2, spread: 40, amp: 8, wl: 30 }).set(0, 1); },
+  'p-pop': g => { phBlock(g, 790, 830, 20, 50, '#c9a36a', { top: 0 }); mk('rect', { x: 760, y: 740, width: 80, height: 100, rx: 30, fill: '#ef7aa8', ...phLine(2) }, g); },
+  'p-k': g => { thermoTube(g, { x: 800, y: 860, len: 90, w: 22, bulb: 18 }).set(.5); phLabel(g, 'K', { x: 850, y: 820, size: 40, fill: SC.K, anchor: 'start' }); },
+  'p-flow': g => { eBlock(g, HEAT, { x: 720, y: 820, size: 32 }); path(g, arrowPath(750, 820, 850), { stroke: COL.chalk, 'stroke-width': 5, fill: 'none' }); iceCube(g, 60, { x: 900, y: 850 }); },
+  'p-exp': g => { thermoTube(g, { x: 800, y: 860, len: 90, w: 22, bulb: 18 }).set(.8); path(g, 'M850 860V770M836 786L850 770L864 786', { stroke: HEAT, 'stroke-width': 5, fill: 'none' }); },
+};
+const withPics = qs => qs.map(q => ({ ...q, build(body, api) { const old = PRACTICE.querySelector('.pic'); if (old) old.remove(); const g = G(PRACTICE, { x: 800, y: 870, s: 1.8 }); g.classList.add('pic'); PICS[q.id]?.(G(g, { x: -800, y: -870 })); return q.build(body, api); } }));
+
+boot();
+</script>
+</body>
+</html>
