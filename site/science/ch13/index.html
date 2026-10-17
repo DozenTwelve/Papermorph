@@ -1,0 +1,738 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chapter 13: Forms of Energy — Science</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/figures.js"></script>
+<script src="../lib/actors.js"></script>
+<script src="../lib/physics.js"></script>
+<script src="../lib/machines.js"></script>
+<script src="../lib/energy.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+// Chapter 13, one page in book order: part 1 (forms of energy, transfer, conservation), part 2 (potential and kinetic
+// energy), part 3 (how much energy; moving and stored forms), then the chapter practice. Energy is drawn as blocks that
+// move and change colour with their form but never appear or vanish, and as energy bars with a fixed total line.
+// Notes, storyboard and errata: books/science/chapters/ch13.md.
+const CHAPTER = { number: 13, title: 'Forms of Energy', minutes: 11, language: 'en' };
+const Q_CARD = { x: 96, y: 586, w: 1408, cls: 'band' };   // a band card under the scenes; it moves up by itself when taller
+const GY = 560;                                           // ground line in quick-check pictures
+const Y1 = 740;                                           // ground line under big actors
+const ground = (p, y = GY, x = 0, w = 1600) => { phBlock(p, x, y, w, 70, PH.grass, { top: 8, ol: 0 }); mk('rect', { x, y: y + 70, width: w, height: 6, fill: PH.grass, opacity: .5 }, p); };
+const floorIn = (p, y = Y1, x = 0, w = 1600) => { phBlock(p, x, y, w, 90, '#6b5a48', { top: 8, ol: 0 }); };
+const sm = (t, a, b) => io(ramp(t, a, b));
+const lerp = (a, b, k) => a + (b - a) * k;
+const PAPER = '#f4f1e8';
+const SAND = '#d8c08a';
+
+/* ---------- shared pictures ---------- */
+// The same shapes as ch10–12: a thought bubble over a head, a part title, and a three-row summary with small pictures.
+function thought(p, [x0, y0, x1, y1], x, lines, t0) {
+  const q = G(p, { o: 0 });
+  mk('rect', { x: x0, y: y0, width: x1 - x0, height: y1 - y0, rx: 40, fill: '#22322d', stroke: COL.dim, 'stroke-width': 3 }, q);
+  path(q, `M${x - 30} ${y1 - 2}L${x + 30} ${y1 - 2}L${x} ${y1 + 66}Z`, { fill: COL.dim });
+  lines.forEach((s, i) => T(q, s, { x: (x0 + x1) / 2, y: y0 + 70 + i * 56, size: 42, anchor: 'middle' }));
+  show(q, t0); return q;
+}
+function opener(p, x, y, part, name, name2) {
+  const g = G(p, { o: 0, y: 24 });
+  phLabel(g, part.toUpperCase(), { x, y: y - 80, size: 30, fill: COL.dim, weight: 600 }); phLabel(g, name, { x, y, size: 80, weight: 600 });
+  if (name2) phLabel(g, name2, { x, y: y + 86, size: 80, weight: 600 });
+  tw(g, { o: 1, y: 0 }, .2, 1.1, out); return g;
+}
+function summary(p, m, rows, next) {
+  rows.forEach(([lines, icon], i) => {
+    const g = G(p, { x: -16, y: 250 + i * 220, o: 0 });
+    lines.forEach((s, j) => T(g, s, { x: 430, y: j * 50, size: 38, weight: 600 }));
+    icon(g); tw(g, { o: 1, x: 0 }, m(['w1', 'w2', 'w3'][i]), .6);
+  });
+  txt(p, next, 800, 860, m('end'), { size: 32, fill: COL.dim, weight: 500 });
+}
+
+/* ---------- props: origin at the bottom centre unless noted ---------- */
+// A golf club held at the hands: c.set(hx, hy, ang) points it at ang degrees (0 straight down, +90 forward, ±180 up)
+// and returns the club head's position.
+function golfClub(p, L) {
+  const g = G(p), sh = path(g, '', { stroke: '#c3ccce', 'stroke-width': 7, 'stroke-linecap': 'round' }), hd = path(g, '', { stroke: '#4a5458', 'stroke-width': 16, 'stroke-linecap': 'round' });
+  return Object.assign(g, {
+    set(hx, hy, ang) {
+      const r = ang * Math.PI / 180, s = Math.sin(r), c = Math.cos(r), x = hx + L * s, y = hy + L * c;
+      sh.setAttribute('d', `M${hx.toFixed(1)} ${hy.toFixed(1)}L${x.toFixed(1)} ${y.toFixed(1)}`);
+      hd.setAttribute('d', `M${(x - 4 * s).toFixed(1)} ${(y - 4 * c).toFixed(1)}L${(x + 22 * c).toFixed(1)} ${(y - 22 * s).toFixed(1)}`);
+      return [x, y];
+    },
+  });
+}
+function golfBall(p, r = 12, o = {}) {   // centred on the origin
+  const g = G(p, o);
+  mk('circle', { r, fill: '#f8f6f0', ...phLine(2) }, g);
+  mk('circle', { cx: -r * .3, cy: -r * .3, r: r * .28, fill: '#fff' }, g);
+  return g;
+}
+function flagHole(p, x, y) {
+  mk('ellipse', { cx: x, cy: y + 4, rx: 26, ry: 7, fill: '#14201c' }, p);
+  phBlock(p, x - 3, y - 200, 6, 200, '#e8e4d8', { top: 0, ol: 0 });
+  path(p, `M${x + 3} ${y - 200}L${x + 90} ${y - 172}L${x + 3} ${y - 144}Z`, { fill: '#e2553f', ...phLine(2) });
+}
+function lamp(p, o = {}) {   // a floor lamp; g.glow is the light cone (fade it in)
+  const g = G(p, o);
+  phBlock(g, -40, -14, 80, 14, '#4a5458', { top: 3 }); phBlock(g, -5, -250, 10, 236, '#7d8a86', { top: 0 });
+  const glow = path(g, 'M-40 -250L-150 0H150L40 -250Z', { fill: LIGHT, opacity: 0 }); put(glow, { o: 0 });
+  path(g, 'M-40 -250L-70 -320H70L40 -250Z', { fill: '#e8c46a', ...phLine() });
+  return Object.assign(g, { glow });
+}
+function radio(p, o = {}) {   // a radio on a little table; speaker centre at (−40, −150)
+  const g = G(p, o);
+  phBlock(g, -90, -90, 180, 14, '#8a6f55', { top: 4 }); phBlock(g, -80, -76, 12, 76, '#6f5843', { top: 0 }); phBlock(g, 68, -76, 12, 76, '#6f5843', { top: 0 });
+  path(g, 'M50 -200L90 -280', { stroke: '#9aa5a8', 'stroke-width': 5 });
+  phBlock(g, -90, -200, 180, 110, '#c0504d', { top: 6, right: 8 });
+  mk('circle', { cx: -40, cy: -145, r: 36, fill: '#3a3a3a', ...phLine(2) }, g); mk('circle', { cx: -40, cy: -145, r: 12, fill: '#5a5a5a' }, g);
+  phBlock(g, 20, -180, 52, 20, '#f4f1e8', { top: 0, ol: 2 }); mk('circle', { cx: 46, cy: -125, r: 13, fill: '#3a3a3a', ...phLine(2) }, g);
+  return g;
+}
+function stove(p, o = {}) {   // a stove with a kettle; g.plate glows red when hot
+  const g = G(p, o);
+  phBlock(g, -110, -190, 220, 190, '#e4e0d4', { top: 6, right: 10 });
+  phBlock(g, -90, -150, 180, 120, '#3a4448', { top: 0 });
+  const plate = mk('rect', { x: -70, y: -204, width: 140, height: 14, rx: 4, fill: '#4a5458', ...phLine(2) }, g);
+  path(g, 'M-60 -204C-70 -300 70 -300 60 -204Z', { fill: '#9aa5a8', ...phLine() });
+  path(g, 'M58 -250L110 -280L104 -266L58 -230Z', { fill: '#9aa5a8', ...phLine(2) });
+  path(g, 'M-34 -280C-30 -320 30 -320 34 -280', { stroke: '#3a3a3a', 'stroke-width': 8, fill: 'none' });
+  return Object.assign(g, { plate });
+}
+function pen(p, o = {}) {   // a ballpoint pen centred on the origin, lying along x
+  const g = G(p, o);
+  path(g, 'M-50 -8H38L54 0L38 8H-50Z', { fill: '#5f8fb5', ...phLine(2) });
+  phBlock(g, -56, -9, 26, 18, '#2f4f73', { top: 0, ol: 2 }); path(g, 'M54 0L60 0', { stroke: PH.out, 'stroke-width': 4 });
+  return g;
+}
+function bumperCar(p, color, o = {}) {   // body and rubber bumper; a seated actor goes inside (drawn before the car)
+  const g = G(p, o);
+  phBlock(g, -40, -150, 20, 70, dk(color, .2), { top: 0 });
+  path(g, 'M-125 -26V-80Q-125 -118 -80 -118H60Q118 -118 125 -70V-26Z', { fill: color, ...phLine() });
+  path(g, 'M-110 -96H96', { stroke: lt(color, .35), 'stroke-width': 6 });
+  mk('rect', { x: -140, y: -36, width: 280, height: 34, rx: 17, fill: '#2c3337', ...phLine(2) }, g);
+  path(g, 'M58 -118L70 -146', { stroke: '#4a5458', 'stroke-width': 6 }); mk('ellipse', { cx: 72, cy: -150, rx: 18, ry: 6, fill: '#4a5458' }, g);
+  return g;
+}
+function seated(p, role, o = {}) { return phActor(p, role, { anim: 'pedal', ...o }).show('pedal', 0); }
+function ladder(p, x, top, w = 90) {   // a stepladder from the floor at Y1 up to `top`, with a standing board
+  path(p, `M${x - w / 2} ${Y1}L${x - w / 2 + 14} ${top}M${x + w / 2} ${Y1}L${x + w / 2 - 14} ${top}`, { stroke: '#c9a36a', 'stroke-width': 12 });
+  let d = ''; for (let y = top + 70; y < Y1; y += 70) d += `M${x - w / 2 + 4} ${y}H${x + w / 2 - 4}`;
+  path(p, d, { stroke: '#c9a36a', 'stroke-width': 8 });
+  phBlock(p, x - w / 2 - 10, top - 12, w + 20, 14, '#a8844f', { top: 3 });
+}
+function pit(p, cx, w = 240) {   // a sand pit dug into the ground at Y1; returns {dent(depth, r)} drawing a hollow
+  phBlock(p, cx - w / 2 - 14, Y1 - 6, w + 28, 70, '#8a6f55', { top: 4 });
+  phBlock(p, cx - w / 2, Y1, w, 56, SAND, { top: 0, ol: 0 });
+  const hole = mk('ellipse', { cx, cy: Y1, rx: 0, ry: 0, fill: dk(SAND, .25) }, p);
+  return { dent(depth, r) { hole.setAttribute('rx', depth > .5 ? r + 8 : 0); hole.setAttribute('ry', depth > .5 ? depth + 4 : 0); } };
+}
+function bowlingBall(p, r = 40, o = {}) {
+  const g = G(p, o), sp = G(g);
+  mk('circle', { r, fill: '#3b3f6e', ...phLine(3) }, sp);
+  [[-.25, -.35], [.08, -.42], [-.05, -.12]].forEach(([x, y]) => mk('circle', { cx: x * r, cy: y * r, r: r * .1, fill: '#1c1f3a' }, sp));
+  mk('circle', { cx: -r * .4, cy: r * .3, r: r * .16, fill: '#fff', opacity: .25 }, g);
+  return Object.assign(g, { _spin: sp });
+}
+function tennisBall(p, r = 16, o = {}) {
+  const g = G(p, o), sp = G(g);
+  mk('circle', { r, fill: '#d4e04a', ...phLine(2) }, sp);
+  path(sp, `M${-r * .9} ${-r * .3}Q0 ${r * .3} ${r * .9} ${-r * .3}`, { stroke: '#fff', 'stroke-width': 2.5, fill: 'none' });
+  return Object.assign(g, { _spin: sp });
+}
+function bookcase(p, x, shelves, w = 340) {   // shelves: y of each board's top; sides from the floor up past the first
+  const top = shelves[0] - 160;
+  phBlock(p, x - w / 2 - 16, top, 16, Y1 - top, '#8a6f55', { top: 0 }); phBlock(p, x + w / 2, top, 16, Y1 - top, '#8a6f55', { top: 0, right: 5 });
+  phBlock(p, x - w / 2 - 16, top - 14, w + 32, 16, '#8a6f55', { top: 4 });
+  shelves.forEach(y => phBlock(p, x - w / 2, y, w, 16, '#a8844f', { top: 4 }));
+}
+function bookUp(p, { w = 44, h = 120, c = '#c0504d', o = 1 } = {}) {   // a book standing on end, origin at its bottom centre
+  const g = G(p, { o });
+  phBlock(g, -w / 2, -h, w, h, c, { top: 0, right: 6 });
+  mk('rect', { x: -w / 2 + 6, y: -h + 18, width: w - 18, height: 8, fill: PAPER, opacity: .8 }, g);
+  mk('rect', { x: -w / 2 + 6, y: -30, width: w - 18, height: 8, fill: PAPER, opacity: .8 }, g);
+  return g;
+}
+function campfire(p, o = {}) {   // logs; g.flame (scale it in from 0) sits on them
+  const g = G(p, o);
+  path(g, 'M-80 -6L70 -40M-70 -40L80 -6', { stroke: '#7a5236', 'stroke-width': 22, 'stroke-linecap': 'round' });
+  path(g, 'M-80 -6L70 -40M-70 -40L80 -6', { stroke: '#9a6a46', 'stroke-width': 8, 'stroke-linecap': 'round' });
+  const flame = G(g, { y: -30, s: 0 });
+  path(flame, 'M0 0C-60 0 -50 -60 -20 -90C-20 -60 0 -60 0 -120C30 -80 60 -60 40 -20C60 -40 50 0 0 0Z', { fill: '#f08c3a', ...phLine(2) });
+  path(flame, 'M0 0C-30 0 -26 -34 -8 -56C-6 -38 8 -40 10 -66C26 -40 32 -20 0 0Z', { fill: '#f6d36a' });
+  return Object.assign(g, { flame });
+}
+function plant(p, o = {}) {   // a leafy vegetable in a soil bed patch; leaves reach up to about −150
+  const g = G(p, o);
+  [[-50, -70, -30], [50, -70, 30], [-26, -110, -12], [26, -110, 12], [0, -140, 0]].forEach(([x, y, r]) =>
+    mk('ellipse', { cx: x, cy: y, rx: 28, ry: 52, fill: x ? '#5aa05a' : '#6fbf62', ...phLine(2), transform: `rotate(${r} ${x} ${y})` }, g));
+  path(g, 'M0 0V-120', { stroke: '#3e7a42', 'stroke-width': 6 });
+  return g;
+}
+function nucleus(p, seed = 1, n = 9, o = {}) {   // a cluster of protons (red) and neutrons (grey), centred on the origin
+  const g = G(p, o);
+  for (let i = 0; i < n; i++) { const a = i * 2.4 + seed, r = 12 * Math.sqrt(i); mk('circle', { cx: r * Math.cos(a), cy: r * Math.sin(a), r: 12, fill: i % 2 ? '#e2553f' : '#b9c3c6', ...phLine(2) }, g); }
+  return g;
+}
+// The pace of a golf swing: the swing position u along address 0, half back 1, top 2, impact 3, follow-through 4,
+// mapped to the sprite frame and the club angle. Downswing passes the half-back frame again.
+const SWING_ANG = [0, -180, -262, 0, 216];   // the club's angle at each key; 0 and 3 are replaced by the angle to the ball
+function swingPose(u, a0) {
+  const keys = SWING_ANG.map((a, i) => (i === 0 || i === 3 ? a0 : a)), i = Math.min(3, Math.floor(u)), k = u - i;
+  const frame = u < .5 ? 0 : u < 1.5 ? 1 : u < 2.45 ? 2 : u < 2.8 ? 1 : u < 3.3 ? 3 : 4;
+  return [frame, lerp(keys[i], keys[i + 1], k)];
+}
+// A golfer: actor + club. g.pose(u) sets the swing position; returns the club head's position.
+// The ball sits where the club head reaches the ground at address: g.ballX, g.ballY (r = the ball's radius).
+function golfer(p, { x, s, r = 12 }) {
+  const a = phActor(p, 'you', { x, y: Y1, s, anim: 'swing' }), L = 7.4 * PX * s, cl = golfClub(p, L);
+  a.show('swing', 0); const [hx, hy] = a.hand('F'), ballY = Y1 - r, ballX = hx + Math.sqrt(L * L - (ballY - hy) ** 2);
+  const a0 = Math.asin((ballX - hx) / L) * 180 / Math.PI;
+  return Object.assign(a, { club: cl, ballX, ballY, pose(u) { const [f, ang] = swingPose(u, a0); a.show('swing', f); const [h1, h2] = a.hand('F'); return cl.set(h1, h2, ang); } });
+}
+
+/* ---------- the two columns of forms: moving (kinetic) on the left, stored (potential) on the right ---------- */
+function headers(p, t0) {
+  const left = G(p, { o: 0 }), right = G(p, { o: 0 });
+  runs(left, [['moving', KIN], [' · kinetic']], { x: 420, y: 210, size: 46, o: 1 });
+  runs(right, [['stored', POT], [' · potential']], { x: 1180, y: 210, size: 46, o: 1 });
+  path(p, 'M800 250V860', { stroke: COL.faint, 'stroke-width': 3 }); put(p.lastChild, { o: 0 }); show(p.lastChild, t0);
+  show(left, t0); show(right, t0); return { left, right };
+}
+// A row: a live picture centred on (ix, yc) and its name and description at x. Returns the picture's update(t).
+function formRow(p, yc, ix, x, name, c, lines, t0, pic) {
+  const g = G(p, { o: 0 });
+  phLabel(g, name, { x, y: yc - 22, size: 32, fill: c, anchor: 'start' });
+  lines.forEach(([s, tl], i) => { const e = phLabel(g, s, { x, y: yc + 16 + i * 34, size: 26, fill: COL.dim, anchor: 'start', weight: 600 }); if (tl) { put(e, { o: 0 }); show(e, tl); } });
+  const up = pic(g, ix, yc); show(g, t0); return up;
+}
+function kineticRows(p, ts) {
+  const ups = [
+    ['mechanical energy', 'moving objects', (g, cx, cy) => {
+      path(g, `M${cx - 100} ${cy + 32}H${cx + 100}`, { stroke: COL.dim, 'stroke-width': 4 });
+      const b = phBall(g, 22); return t => { const x = cx + 70 * Math.sin(1.6 * t); put(b, { x, y: cy + 10 }); put(b._spin, { r: x * 2.6 }); };
+    }],
+    ['thermal energy', 'jiggling molecules set the temperature', (g, cx, cy) => {
+      mk('rect', { x: cx - 90, y: cy - 44, width: 180, height: 88, rx: 10, fill: 'none', stroke: COL.dim, 'stroke-width': 3 }, g);
+      const ms = Array.from({ length: 8 }, () => mk('circle', { r: 10, fill: HEAT, ...phLine(2) }, g));
+      return t => ms.forEach((c, i) => { c.setAttribute('cx', (cx - 60 + (i % 4) * 40 + 7 * Math.sin(13.7 * t + i * 2.1)).toFixed(1)); c.setAttribute('cy', (cy - 16 + Math.floor(i / 4) * 32 + 7 * Math.cos(11.3 * t + i * 1.3)).toFixed(1)); });
+    }],
+    ['electromagnetic energy', 'light, visible and invisible', (g, cx, cy) => {
+      mk('circle', { cx: cx - 84, cy: cy - 4, r: 18, fill: LIGHT, ...phLine(2) }, g); phBlock(g, cx - 92, cy + 12, 16, 14, '#9aa5a8', { top: 0, ol: 2 });
+      const w1 = path(g, '', { stroke: LIGHT, 'stroke-width': 4, fill: 'none' }), w2 = path(g, '', { stroke: COL.dim, 'stroke-width': 3, fill: 'none', 'stroke-dasharray': '6 6' });
+      const wave = (y0, A, L, t) => { let d = ''; for (let x = cx - 56; x <= cx + 100; x += 4) d += `${d ? 'L' : 'M'}${x} ${(y0 + A * Math.sin(2 * Math.PI * (x - cx) / L - 6 * t)).toFixed(1)}`; return d; };
+      return t => { w1.setAttribute('d', wave(cy - 14, 14, 40, t)); w2.setAttribute('d', wave(cy + 26, 8, 80, t)); };
+    }],
+    ['sound energy', 'molecules bump to pass sound on', (g, cx, cy) => {
+      path(g, `M${cx - 104} ${cy - 14}h14l20 -18v64l-20 -18h-14Z`, { fill: '#4a5458', ...phLine(2) });
+      const ds = Array.from({ length: 8 }, () => mk('circle', { r: 8, fill: SOUND, ...phLine(2) }, g));
+      return t => ds.forEach((c, i) => c.setAttribute('cx', (cx - 60 + i * 22 + 7 * Math.sin(2 * Math.PI * i / 5 - 5 * t)).toFixed(1))) || ds.forEach(c => c.setAttribute('cy', cy));
+    }],
+    ['electric energy', 'the flow of electrons', (g, cx, cy) => {
+      path(g, `M${cx - 96} ${cy}H${cx + 100}`, { stroke: '#c08040', 'stroke-width': 12, 'stroke-linecap': 'round' });
+      phBlock(g, cx - 120, cy - 22, 30, 44, '#4a5458', { top: 0, ol: 2 }); phLabel(g, '+', { x: cx - 105, y: cy + 10, size: 26 });
+      const es = Array.from({ length: 6 }, () => mk('circle', { r: 6, cy, fill: COL.chalk }, g));
+      return t => es.forEach((c, i) => c.setAttribute('cx', (cx - 86 + ((i * 31 + 60 * t) % 186)).toFixed(1)));
+    }],
+  ].map(([name, line, pic], i) => formRow(p, 300 + i * 120, 190, 320, name, KIN, [[line]], ts[i], pic));
+  return t => ups.forEach(u => u(t));
+}
+function storedRows(p, m) {
+  const tel = m('elas'), tb = m('burn'), tf = m('fis');
+  const ups = [
+    ['gravitational potential energy', [['stored in height']], m('grav'), (g, cx, cy) => {
+      phBlock(g, cx - 70, cy - 40, 140, 10, '#a8844f', { top: 0 }); put(bookUp(g, { h: 56, w: 26 }), { x: cx - 20, y: cy - 40 });
+      path(g, `M${cx - 20} ${cy - 20}V${cy + 54}`, { stroke: POT, 'stroke-width': 4, 'stroke-dasharray': '8 7' });
+      path(g, `M${cx - 32} ${cy + 42}L${cx - 20} ${cy + 58}L${cx - 8} ${cy + 42}`, { stroke: POT, 'stroke-width': 4, fill: 'none' });
+      path(g, `M${cx - 90} ${cy + 62}H${cx + 90}`, { stroke: COL.dim, 'stroke-width': 4 });
+      return () => {};
+    }],
+    ['elastic energy', [['stored by stretching or squeezing']], tel, (g, cx, cy) => {
+      path(g, `M${cx + 10} ${cy - 62}Q${cx + 70} ${cy} ${cx + 10} ${cy + 62}`, { stroke: WOOD, 'stroke-width': 9, fill: 'none', 'stroke-linecap': 'round' });
+      const str = path(g, '', { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' }), ar = G(g);
+      path(ar, 'M0 0H120', { stroke: '#c9a36a', 'stroke-width': 5 }); path(ar, 'M120 -8L136 0L120 8Z', { fill: '#9aa5a8', ...phLine(2) });
+      return t => { const pl = 54 * sm(t, tel + .8, tel + 2.4), nx = cx + 10 - pl; str.setAttribute('d', `M${cx + 10} ${cy - 62}L${nx} ${cy}L${cx + 10} ${cy + 62}`); put(ar, { x: nx, y: cy }); };
+    }],
+    ['chemical energy', [['stored in the bonds between atoms'], ['burning releases it as heat and light', tb]], m('chem'), (g, cx, cy) => {
+      const cf = campfire(g, { x: cx - 20, y: cy + 58, s: .6 });
+      const mol = G(g, { x: cx + 66, y: cy - 40 });
+      path(mol, 'M-22 10L0 -8L22 10', { stroke: CHEM, 'stroke-width': 6 }); [[-22, 10], [0, -8], [22, 10]].forEach(([x, y], i) => mk('circle', { cx: x, cy: y, r: i === 1 ? 12 : 8, fill: i === 1 ? '#e2553f' : PAPER, ...phLine(2) }, mol));
+      const bl = eBlocks(g, 3, CHEM, { size: 22 }), to = [HEAT, LIGHT, HEAT];
+      return t => {
+        const f = sm(t, tb, tb + 1); put(cf.flame, { s: f * (1 + .07 * Math.sin(t * 9)) });
+        bl.forEach((b, i) => { const q = sm(t, tb + .4 + .3 * i, tb + 1.6 + .3 * i); put(b, { x: cx - 50 + i * 30 + (i - 1) * 30 * q, y: cy + 14 - 70 * q }); b.set(mix(CHEM, to[i], q)); });
+      };
+    }],
+    ['nuclear energy', [['stored in the nucleus of an atom'], ['splitting heavy atoms (fission) releases it', tf], ['power plants make electricity with it', tf + 3.5]], m('nuc'), (g, cx, cy) => {
+      const a = nucleus(g, 1, 7), b = nucleus(g, 4, 7), n = mk('circle', { r: 9, fill: '#b9c3c6', ...phLine(2) }, g);
+      const fl = mk('circle', { cx, cy, r: 0, fill: 'none', stroke: LIGHT, 'stroke-width': 5 }, g), bl = [eBlock(g, HEAT, { size: 22 }), eBlock(g, LIGHT, { size: 22 })];
+      return t => {
+        const tk = tf + .8, q = sm(t, tk, tk + 1.2), nk = ramp(t, tf, tk);
+        put(a, { x: cx - 14 - 46 * q, y: cy + 4 * q }); put(b, { x: cx + 14 + 46 * q, y: cy - 4 * q });
+        n.setAttribute('cx', lerp(cx - 120, cx - 10, nk)); n.setAttribute('cy', cy - 50 + 50 * nk); n.setAttribute('opacity', t < tf || t > tk ? 0 : 1);
+        const fq = ramp(t, tk, tk + .7); fl.setAttribute('r', 10 + 70 * fq); fl.setAttribute('opacity', t > tk ? (1 - fq).toFixed(2) : 0);
+        bl.forEach((e, i) => put(e, { x: cx, y: cy + (i ? 1 : -1) * 60 * q, o: t > tk ? 1 : 0 }));
+      };
+    }],
+  ].map(([name, lines, t0, pic], i) => formRow(p, 300 + i * 150, 930, 1040, name, POT, lines, t0, pic));
+  return t => ups.forEach(u => u(t));
+}
+
+/* ---------- beats ---------- */
+const BEATS = [
+/* ---------- part 1: energy, its forms, and conservation ---------- */
+['intro', 'Forms of energy', (m, D) => {
+  const p = panel(0), tq = m('q'), TH = 3.9;
+  // You swing a golf club on the green; the ball flies off over the title.
+  ground(p, Y1); flagHole(p, 1480, Y1);
+  const gf = golfer(p, { x: 330, s: 2.4 }), bx = gf.ballX + 18, ball = golfBall(p, 12);
+  clockRun(t => {
+    const u = t < 1.6 ? 0 : t < TH - .45 ? 2 * sm(t, 1.6, TH - .7) : t < TH ? lerp(2, 3, ramp(t, TH - .45, TH) ** 2) : 3 + sm(t, TH, TH + .45);
+    gf.pose(u);
+    const f = Math.max(0, t - TH);
+    put(ball, { x: bx + 760 * f, y: Y1 - 12 - 1100 * f + 330 * f * f });
+  }, D);
+  const ttl = G(p, { o: 0, y: 24 });
+  phLabel(ttl, 'Unit 4 · Energy · Chapter 13', { x: 1180, y: 330, size: 26, fill: COL.dim, weight: 600 });
+  phLabel(ttl, 'Forms of', { x: 1180, y: 420, size: 76 }); phLabel(ttl, 'Energy', { x: 1180, y: 500, size: 76 });
+  tw(ttl, { o: 1, y: 0 }, .3, 1.1, out);
+  thought(p, [60, 60, 900, 220], 330, ['Where did the ball’s energy come from?', 'Where does energy go?'], tq);
+}, { lead: false }],
+['forms', 'Many forms of energy', (m, D) => {
+  const p = panel(0), tl = m('light'), ts = m('sound'), th = m('heat'), tm = m('motion'), tsa = m('same');
+  // One room: a lamp lights up, a radio plays, a stove heats a kettle, a ball rolls in. Each label beside its object.
+  floorIn(p);
+  txt(p, 'Energy comes in many forms', 800, 110, .3, { size: 50, weight: 700 });
+  const L = lamp(p, { x: 230, y: Y1 }), R = radio(p, { x: 640, y: Y1 }), S = stove(p, { x: 1030, y: Y1 });
+  const arcs = soundArcs(p, 640 - 40 - 44, Y1 - 145, { dir: -1 }); put(arcs, { o: 0 });
+  const heat = riseLines(p, 1030, Y1 - 318, { n: 3 }), steam = riseLines(p, 1124, Y1 - 292, { n: 1, c: COL.chalk });
+  const ball = phBall(p, 40);
+  tw(L.glow, { o: .32 }, tl, .5); show(arcs, ts, .3); tw(S.plate, { c_fill: '#e2553f' }, th, 1); show(heat, th + .6); show(steam, th + 1.4);
+  phLabel(p, 'light', { x: 230, y: 392, size: 36, fill: LIGHT }); show(p.lastChild, tl);
+  phLabel(p, 'sound', { x: 560, y: 440, size: 36, fill: SOUND }); show(p.lastChild, ts);
+  phLabel(p, 'heat', { x: 1030, y: 330, size: 36, fill: HEAT }); show(p.lastChild, th + .3);
+  const ml = phLabel(p, 'motion', { size: 36, fill: KIN }); put(ml, { o: 0 }); show(ml, tm + 1.2);
+  clockRun(t => {
+    arcs.set((t * .9) % 1);
+    put(heat, { y: Y1 - 318 - 6 * ((t * 1.3) % 1) }); put(steam, { y: Y1 - 292 - 10 * ((t * .9) % 1) });
+    const x = lerp(1700, 1260, out(ramp(t, tm, tm + 5)));   // rolls in and slows to a stop
+    put(ball, { x, y: Y1 - 40 }); put(ball._spin, { r: -(1700 - x) / 40 * 180 / Math.PI });
+    put(ml, { x, y: Y1 - 108 });
+  }, D);
+  runs(p, [['different forms of the same thing: '], ['energy', WORK]], { x: 800, y: 180, size: 38 }); show(p.lastChild, tsa);
+}, { lead: false }],
+['golf', 'Energy moves', (m, D) => {
+  const p = panel(0), tsw = m('swing'), th = m('hit'), tk = m('keep'), ts = m('snd'), tc = m('count');
+  const F0 = th + .12, F1 = tc + 3.4;   // the replay pauses just after the hit and resumes after the count
+  // Slow-motion close-up: energy blocks flow from you into the club as it speeds up; at the hit four go into the ball,
+  // one stays with the club, one becomes the sound. The replay pauses while the blocks are counted.
+  ground(p, Y1);
+  const gf = golfer(p, { x: 380, s: 3.2 }), bx = gf.ballX + 18, by = gf.ballY, ball = golfBall(p, 13);
+  const rings = G(p, { x: gf.ballX + 6, y: by, o: 0 });
+  [50, 90, 130].forEach((r, i) => path(rings, `M${-r * .94} ${-r * .34}A${r} ${r} 0 0 1 ${r * .94} ${-r * .34}`, { stroke: SOUND, 'stroke-width': 5, fill: 'none', 'stroke-linecap': 'round', opacity: 1 - i * .28 }));
+  const blk = eBlocks(p, 6, CHEM, { o: 0 }), body = [380, Y1 - 230];
+  const tag = txt(p, 'slow motion', 200, 150, .3, { size: 32, fill: COL.dim }); hide(tag, F0);
+  const tag2 = txt(p, 'paused', 200, 150, F0, { size: 32, fill: COL.dim }); hide(tag2, F1);
+  // swing position u from the beat time, and the beat time the picture shows (frozen between F0 and F1)
+  const U = t => t < 1 ? 0 : t < tsw ? 2 * sm(t, 1, tsw - .3) : t < th ? 2 + ((t - tsw) / (th - tsw)) ** 2 : 3 + .9 * ramp(t, th, th + .5);
+  const born = i => tsw + (th - tsw) * Math.sqrt((i + .5) / 6);   // block i joins when the club's energy (∝ speed²) reaches it
+  clockRun(t => {
+    const tt = t < F0 ? t : t < F1 ? F0 : t - (F1 - F0), [cx, cy] = gf.pose(U(tt));
+    const f = Math.max(0, tt - th), bxx = bx + 1100 * f, byy = by - 520 * f + 300 * f * f; put(ball, { x: bxx, y: byy });
+    put(rings, { o: t > ts ? 1 : 0, s: 1 });
+    blk.forEach((b, i) => {
+      const t0 = born(i), k = sm(tt, t0, t0 + .5), [hx, hy] = heapAt(i % 3 + 3 * Math.floor(i / 3), cx, cy - 26, { cols: 3, size: 26, gap: 4 });
+      let x = lerp(body[0], hx, k), y = lerp(body[1], hy, k) - 60 * Math.sin(Math.PI * k), c = mix(CHEM, KIN, k);
+      if (i < 4) { const q = sm(t, th, th + .8), [px, py] = heapAt(i, bxx, byy - 24, { cols: 2, size: 26, gap: 4 }); x = lerp(x, px, q); y = lerp(y, py, q) - 50 * Math.sin(Math.PI * q); }
+      if (i === 5) { const q = sm(t, ts + .3, ts + 1.3); x = lerp(x, gf.ballX + 6, q); y = lerp(y, by - 150, q); c = mix(c, SOUND, q); }
+      put(b, { x, y, o: tt > t0 ? 1 : 0, s: i === 4 ? 1 + .25 * Math.sin(Math.PI * ramp(t, tk, tk + .8)) : 1 }); b.set(c);
+    });
+  }, D);
+  // the count, in screen space above the scene
+  const led = G(p, { o: 0 });
+  phLabel(led, 'before the hit', { x: 560, y: 120, size: 32, anchor: 'end' });
+  for (let i = 0; i < 6; i++) eBlock(led, KIN, { x: 600 + i * 34, y: 108, size: 26 });
+  phLabel(led, 'after', { x: 560, y: 190, size: 32, anchor: 'end' });
+  [[4, KIN, 'ball'], [1, KIN, 'club'], [1, SOUND, 'sound']].reduce((x, [n, c, s]) => {
+    for (let i = 0; i < n; i++) eBlock(led, c, { x: x + i * 34, y: 178, size: 26 });
+    phLabel(led, s, { x: x + n * 34 - 6, y: 190, size: 28, fill: c, anchor: 'start' }); return x + n * 34 + 110;
+  }, 600);
+  show(led, tc);
+  txt(p, 'none was lost', 1240, 156, tc + 2.2, { size: 36, fill: WORK });
+}, { lead: false }],
+['sun', 'Energy is conserved', (m, D) => {
+  const p = panel(0), tl = m('law'), tsu = m('sun'), tle = m('leaf'), te = m('eat'), tr = m('run'), tw0 = m('warm'), tsa = m('same'), tso = m('solar');
+  // Follow six blocks: sunlight into a plant's leaves (chemical), into the salad bowl, into you; you run (motion) and
+  // warm up (heat). The camera follows the blocks, then pulls back over the whole chain.
+  const cam = camera(p, D, { x: 800, y: 450, z: 1 }), W = cam.world;
+  phBlock(W, -2000, Y1, 9000, 900, PH.grass, { top: 8, ol: 0 });
+  const sun = phSun(W, { x: 200, y: 270, r: 70 });
+  phBlock(W, 770, Y1 - 22, 420, 22, '#6b4a34', { top: 4 });
+  [850, 980, 1110].forEach(x => plant(W, { x, y: Y1 - 22 }));
+  phBlock(W, 1890, 600, 300, 18, WOOD, { top: 4 }); phBlock(W, 1910, 618, 14, Y1 - 618, dk(WOOD, .3), { top: 0 }); phBlock(W, 2156, 618, 14, Y1 - 618, dk(WOOD, .3), { top: 0 });
+  path(W, 'M1960 560Q2040 620 2120 560Z', { fill: PAPER, ...phLine() }); [1990, 2040, 2090].forEach(x => mk('ellipse', { cx: x, cy: 560, rx: 26, ry: 14, fill: '#5aa05a', ...phLine(2) }, W));
+  const you = phActor(W, 'you', { x: 2270, y: Y1, s: 2 });
+  const blk = eBlocks(W, 6, LIGHT, { o: 0 });
+  const heat = riseLines(W, 0, 0, { n: 2 });
+  const cg = G(p, { o: 0 }), cnt = Array.from({ length: 6 }, (_, i) => eBlock(cg, LIGHT, { x: 1240 + i * 34, y: 214, size: 26 }));
+  phLabel(cg, 'same amount:', { x: 1210, y: 225, size: 30, anchor: 'end' }); show(cg, tsu + .4);
+  const RUN = 260, youX = t => 2270 + (t < tr ? 0 : RUN * (t - tr - .3 + .3 * Math.exp(-(t - tr) / .3)));
+  const plantAt = i => heapAt(i, 980, Y1 - 196), bowlAt = i => heapAt(i, 2040, 540);
+  clockRun(t => {
+    put(sun._rays, { r: t * 8 });
+    const x = youX(t); put(you, { x });
+    you.face(t < tr ? -1 : 1);   // at the table facing the bowl, then off to the right
+    if (t < te) you.show('stand'); else if (t < tr) you.show('catch', t < te + 2 ? (t - te) * 2.5 : 1); else you.stride('run', x - 2270);
+    const head = [x, Y1 - 290];
+    blk.forEach((b, i) => {
+      const k1 = sm(t, tle + .25 * i, tle + 1.6 + .25 * i), k2 = sm(t, tle + 4.3 + .1 * i, tle + 5.6 + .1 * i), k3 = sm(t, te + .3 + .12 * i, te + 1.4 + .12 * i);
+      const [sx, sy] = [200 + 150 * Math.cos(i * 1.05 - .3), 270 + 150 * Math.sin(i * 1.05 - .3)], [px, py] = plantAt(i), [bx, by] = bowlAt(i), [yx, yy] = heapAt(i, head[0], head[1], { cols: 3 });
+      let X = lerp(sx, px, k1), Y = lerp(sy, py, k1) - 120 * Math.sin(Math.PI * k1);
+      X = lerp(X, bx, k2); Y = lerp(Y, by, k2) - 160 * Math.sin(Math.PI * k2);
+      X = lerp(X, yx, k3); Y = lerp(Y, yy, k3) - 60 * Math.sin(Math.PI * k3);
+      let c = mix(LIGHT, CHEM, sm(t, tle + 1.4 + .25 * i, tle + 2.2 + .25 * i));
+      if (i < 4) c = mix(c, KIN, sm(t, tr + .4 + .2 * i, tr + 1.2 + .2 * i));
+      else {   // heat: turns red, then leaves you and drifts up into the air, where it stays
+        const j = i - 4, t1 = tw0 + 1.2 + .4 * j; c = mix(c, HEAT, sm(t, tw0 + .3 * j, tw0 + 1 + .3 * j));
+        if (t > t1) { const [rx, ry] = heapAt(i, youX(t1), head[1], { cols: 3 }), q = sm(t, t1, t1 + 2.5); X = rx - (80 + 50 * j) * q; Y = ry - 200 * q; }
+      }
+      put(b, { x: X, y: Y, o: t > tsu ? 1 : 0 }); b.set(c);
+    });
+    put(heat, { x: x - 10, y: Y1 - 250 - 8 * ((t * 1.4) % 1), o: t > tw0 + .4 ? 1 : 0 });
+    // the screen counter mirrors the blocks' forms
+    cnt.forEach((b, i) => b.set(blk[i].color()));
+  }, D);
+  cam.to({ x: 1980 }, tle + 4, 2.2);
+  cam.to({ x: t => youX(t) + 260 }, tr, 1.4);
+  cam.to({ x: 2900, y: 26, z: .28 }, tso - .4, 2.4);
+  txt(p, 'Energy can neither be created nor destroyed', 800, 92, tl, { size: 44, weight: 700 });
+  txt(p, 'it only changes form, or moves from one thing to another', 800, 146, tl + 2.5, { size: 32, fill: COL.dim });
+  tw(cg, { s: 1.12, x: -150, y: -26 }, tsa, .4, back); tw(cg, { s: 1, x: 0, y: 0 }, tsa + 1.2, .4);
+  phLabel(p, 'So, technically, we’re solar-powered!', { x: 800, y: 300, size: 50, fill: LIGHT }); put(p.lastChild, { o: 0 }); show(p.lastChild, tso + 1);
+}, { lead: false }],
+['q1', 'Quick check', (m, D) => {
+  const p = panel(0);
+  ground(p);
+  const sun = phSun(p, { x: 260, y: 170, r: 56 }); plant(p, { x: 700, y: GY }); const you = phActor(p, 'you', { x: 1100, y: GY, s: 1.6 });
+  eBlocks(p, 3, CHEM).forEach((b, i) => put(b, { x: heapAt(i, 700, GY - 170)[0], y: heapAt(i, 700, GY - 170)[1] }));
+  eBlocks(p, 3, KIN).forEach((b, i) => put(b, { x: heapAt(i, 1100, GY - 230)[0], y: heapAt(i, 1100, GY - 230)[1] }));
+  clockRun(t => { put(sun._rays, { r: t * 8 }); }, D);
+}, { ask: done => quiz(Q_CARD, [
+  { id: 'c-law', prompt: ['Which sentence is the law of conservation of energy?'],
+    build: choice([['Energy is never created or destroyed; it only changes form.'], ['Energy gets used up when things move.'], ['Eating creates new energy in your body.']], 0,
+      'The amount of energy stays the same; it only changes form or moves to something else.',
+      [null, 'It isn’t used up: it changes into other forms, such as heat.', 'Food stores chemical energy that came from sunlight; eating moves it into you.']) },
+  { id: 'c-golf', prompt: ['A swinging club hits a golf ball. Where does the ball’s energy come from?'],
+    build: choice([['the moving club'], ['the ground under the ball'], ['nowhere: it appears at the hit']], 0,
+      'The club’s energy passes into the ball when they hit.',
+      [null, 'The ball sat still on the ground; the club gave it its energy.', 'Energy is never created: it moved from the club into the ball.']) },
+  { id: 'c-leaf', prompt: ['A plant’s leaves take in sunlight. The plant stores that energy as…'],
+    build: choice([['chemical energy'], ['sound energy'], ['nuclear energy']], 0,
+      'It is stored as chemical energy in the food the plant makes.',
+      [null, 'Plants don’t store sound.', 'Nuclear energy is in the nucleus of atoms; plants don’t make it.']) },
+], done) }],
+['wrap1', 'Summary · Energy is conserved', (m, D) => {
+  summary(panel(0), m, [
+    [['Energy comes in many forms: light, sound,', 'heat, motion, and more.'], g => { const l = lamp(g, { x: 260, y: 80, s: .32 }); put(l.glow, { o: .35 }); put(riseLines(g, 340, 40, { n: 2 }), { o: 1 }); }],
+    [['Energy can move from one object to another.'], g => { golfBall(g, 14, { x: 340, y: 40 }); eBlock(g, KIN, { x: 230, y: 20, size: 26 }); path(g, 'M252 20H310', { stroke: COL.chalk, 'stroke-width': 4 }); }],
+    [['It is never created or destroyed;', 'it only changes form.'], g => { [CHEM, CHEM, KIN, KIN, KIN, HEAT].forEach((c, i) => eBlock(g, c, { x: 210 + (i % 3) * 32, y: (i < 3 ? -12 : 20), size: 28 })); }],
+  ], 'Next: energy that moves, and energy that waits.');
+}],
+/* ---------- part 2: potential and kinetic energy ---------- */
+['part2', 'Part 2 · Kinetic and potential energy', (m, D) => {
+  const p = panel(0), dip = x => Y1 - .0012 * (x - 480) ** 2;
+  // A ball rolls back and forth in a dip: fast at the bottom, stopping for a moment high on each side.
+  path(p, `M0 ${dip(0)}Q480 ${2 * Y1 - dip(0)} 960 ${dip(960)}V900H0Z`, { fill: PH.grass });
+  const ball = phBall(p, 36);
+  clockRun(t => { const x = 480 + 330 * Math.cos(t * 1.7), y = dip(x); put(ball, { x, y: y - 36 }); put(ball._spin, { r: x * 1.6 }); }, D);
+  opener(p, 1180, 300, 'Part 2', 'Kinetic and', 'Potential Energy');
+}, { lead: false }],
+['drop', 'Potential becomes kinetic', (m, D) => {
+  const p = panel(0), tp = m('pot'), td = m('drop'), tk = m('kin'), tf = m('floor'), tm = m('mech');
+  // You hold a pen up high; it falls in slow motion. Bars: potential (∝ height) drains into kinetic, the total line
+  // never moves; on landing the kinetic energy becomes heat and sound.
+  floorIn(p);
+  const a = phActor(p, 'you', { x: 340, y: Y1, s: 3.4, anim: 'catch' }), [hx, hy] = a.hand('F');
+  const x0 = hx + 22, y0 = hy - 4, yL = Y1 - 9, t0 = td + .6, t1 = tf + 1, pn = pen(p);
+  const hb = distBar(p, { size: 30 }); put(hb, { o: 0 }); show(hb, tp);
+  const tap = soundArcs(p, x0 + 70, Y1 - 20, { n: 2 }); put(tap, { o: 0 });
+  const eb = energyBars(p, { x: 980, y: 700, cols: [['potential', POT], ['kinetic', KIN], ['heat, sound', HEAT]], total: 9, unit: 36, w: 90, gap: 76 });
+  put(eb, { o: 0 }); show(eb, tp);
+  clockRun(t => {
+    const k = ramp(t, t0, t1), y = lerp(y0, yL, k * k), pe = 9 * (yL - y) / (yL - y0), q = sm(t, t1, t1 + .4);
+    put(pn, { x: x0, y, r: -180 * k });
+    hb.set(x0 + 120, Y1, x0 + 120, y < yL - 30 ? y : Y1, 'height', 'right');   // gone once the pen is down
+    eb.set(pe, (9 - pe) * (1 - q), (9 - pe) * q);
+    tap.set((t * 1.5) % 1); put(tap, { o: t > t1 && t < t1 + 1.6 ? 1 : 0 });
+  }, D);
+  txt(p, 'slow motion', 340, 200, td + .3, { size: 32, fill: COL.dim });
+  runs(p, [['potential energy', POT], [': stored energy']], { x: 1160, y: 130, size: 40 }); show(p.lastChild, tp);
+  runs(p, [['gravitational', POT], [': gravity can release it']], { x: 1160, y: 182, size: 30 }); show(p.lastChild, tp + 1.8);
+  runs(p, [['kinetic energy', KIN], [': the energy of motion']], { x: 1160, y: 250, size: 40 }); show(p.lastChild, tk + 1.5);
+  const mg = G(p, { o: 0 });
+  path(mg, 'M980 768V780H1236V768', { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' });
+  phLabel(mg, 'mechanical energy', { x: 1108, y: 818, size: 30 }); show(mg, tm);
+}, { lead: false }],
+['hill', 'Up and down a hill', (m, D) => {
+  const p = panel(0), tk = m('kick'), ts = m('stop'), tt = m('total');
+  // You kick a ball up a frictionless hill (slow motion): it slows, stops, rolls back and away under your jump. The bars
+  // trade potential (∝ height) and kinetic; the total line stays put.
+  const C = 800 / Math.hypot(800, 300), S = 300 / Math.hypot(800, 300), R = 36, X0 = 420, FLAT = 140, SMAX = 640;
+  path(p, `M0 ${Y1}H560L1360 440H1600V900H0Z`, { fill: PH.grass });
+  path(p, `M0 ${Y1}H560L1360 440H1600`, { stroke: lt(PH.grass, .25), 'stroke-width': 8, fill: 'none' });
+  const you = phActor(p, 'you', { x: 300, y: Y1, s: 2.4 }), ball = phBall(p, R);
+  const TK = .9, V0 = (2 * SMAX + FLAT) / (ts - TK), TF = TK + FLAT / V0, TS = 2 * SMAX / V0, A = V0 / TS;   // stop exactly on "stop"
+  // d: distance along the ground from the ball's start (negative once it rolls back past it)
+  const D_ = t => t < TK ? 0 : t < TF ? V0 * (t - TK) : t < TF + 2 * TS ? FLAT + V0 * (t - TF) - A * (t - TF) ** 2 / 2 : FLAT - V0 * (t - TF - 2 * TS);
+  const eb = energyBars(p, { x: 1170, y: 330, cols: [['potential', POT], ['kinetic', KIN]], total: 7, unit: 30 }); put(eb, { o: 0 }); show(eb, TK);
+  const TJ = TF + 2 * TS + (FLAT + X0 - 330) / V0;   // the ball reaches you
+  clockRun(t => {
+    const d = D_(t), s = d - FLAT;
+    const [x, y] = s > 0 ? [560 + s * C - R * S, Y1 - s * S - R * C] : [X0 + d, Y1 - R];
+    put(ball, { x, y }); put(ball._spin, { r: d / R * 180 / Math.PI });
+    const pe = s > 0 ? 7 * s / SMAX : 0; eb.set(pe, t > TK ? 7 - pe : 0);
+    const kf = t < TK - .45 ? -1 : t < TK - .15 ? 0 : t < TK + .05 ? 1 : t < TK + .45 ? 2 : -1, jq = ramp(t, TJ - .6, TJ + .6);
+    if (kf >= 0) you.show('kick', kf); else if (jq > 0 && jq < 1) you.show('jump'); else you.show('stand');
+    put(you, { y: Y1 - 110 * Math.sin(Math.PI * jq) });
+  }, D);
+  txt(p, 'slow motion · no friction', 330, 200, .3, { size: 30, fill: COL.dim });
+  txt(p, 'the total stays the same', 1290, 420, tt, { size: 32, fill: WORK });
+}, { lead: false }],
+['bump', 'Bumper cars', (m, D) => {
+  const p = panel(0), th = m('hit');
+  // Your bumper car hits your friend's: yours stops, hers rolls away at your speed (an ideal bump). Two kinetic bars swap.
+  phBlock(p, 0, Y1, 1600, 90, '#4a5560', { top: 8, ol: 0 }); phBlock(p, 0, 640, 1600, 20, '#c0504d', { top: 5 });
+  for (let x = 40; x < 1600; x += 260) phBlock(p, x, 660, 14, Y1 - 660, '#8d8a80', { top: 0 });
+  const V = 110, XC = 820, xa = t => t < th ? XC - 284 - V * (th - t) : XC - 284, xb = t => t < th ? XC : XC + V * (t - th);
+  const ya = seated(p, 'you', { s: 1.8 }), ca = bumperCar(p, '#5f8fb5'), yb = seated(p, 'friend', { s: 1.8 }), cb = bumperCar(p, '#4f8a5b');
+  const eb = energyBars(p, { x: 620, y: 400, cols: [['your car', KIN], ['her car', KIN]], total: 6, unit: 36, w: 110, gap: 60, title: 'kinetic energy' });
+  const bang = phLabel(p, 'Bump!', { x: XC - 150, y: 540, size: 44, fill: COL.chalk }); put(bang, { o: 0 }); show(bang, th, .1); hide(bang, th + 1.2);
+  clockRun(t => {
+    const j = Math.exp(-(t - th) * 6) * (t > th ? 1 : 0), A = xa(t), B = xb(t), bob = 2 * Math.sin(t * 9);
+    put(ca, { x: A, y: Y1 + bob }); put(ya, { x: A - 34 + 14 * j, y: Y1 - 40 + bob });
+    put(cb, { x: B, y: Y1 - bob }); put(yb, { x: B - 34 - 14 * j, y: Y1 - 40 - bob });
+    const q = sm(t, th, th + .25); eb.set(6 * (1 - q), 6 * q);
+  }, D);
+}, { lead: false }],
+['q2', 'Quick check', (m, D) => {
+  const p = panel(0);
+  path(p, `M0 ${GY}H500L1100 330H1600V900H0Z`, { fill: PH.grass });
+  phActor(p, 'you', { x: 360, y: GY, s: 1.6 });
+  path(p, 'M520 520L960 357', { stroke: COL.dim, 'stroke-width': 3, 'stroke-dasharray': '10 10' });
+  const ball = phBall(p, 30, { x: 1000 - 30 * .36, y: 368 - 30 * .934 });
+  clockRun(t => {}, D);
+}, { ask: done => quiz(Q_CARD, [
+  { id: 'c-half', prompt: ['A pen falls from your hand. Halfway down, its energy is…'],
+    build: choice([['half potential, half kinetic'], ['all potential'], ['all kinetic']], 0,
+      'It has fallen half its height: half the potential energy has become kinetic.',
+      [null, 'It is moving, so some energy is already kinetic.', 'It is still above the floor, so some energy is still potential.']) },
+  { id: 'c-top', prompt: ['A ball rolls up a hill and stops for a moment at the top of its path. There, its energy is…'],
+    build: choice([['all potential'], ['all kinetic'], ['gone']], 0,
+      'It isn’t moving, so it has no kinetic energy: it is all stored in its height.',
+      [null, 'Kinetic energy is the energy of motion, and it has stopped.', 'Energy is never destroyed: it is stored as potential energy.']) },
+  { id: 'c-kin', prompt: ['Which of these have kinetic energy?'],
+    build: grid([
+      { parts: ['a ball rolling across the floor'], ans: ['k'], why: 'It is moving.' },
+      { parts: ['a book resting on a shelf'], ans: ['n'], why: 'It isn’t moving: its energy is potential.' },
+      { parts: ['a bird flying'], ans: ['k'], why: 'It is moving.' },
+      { parts: ['a parked car'], ans: ['n'], why: 'It isn’t moving.' },
+    ], [['k', 'kinetic energy', KIN, 'k'], ['n', 'none', COL.dim, 'n']], { multi: false, text: true }) },
+], done) }],
+['wrap2', 'Summary · Kinetic and potential energy', (m, D) => {
+  summary(panel(0), m, [
+    [['Kinetic energy is the energy of motion.'], g => { phBall(g, 30, { x: 230, y: 20 }); forceArrow(g, { color: KIN, w: 8 }).set(270, 20, 80, 0, ''); }],
+    [['Potential energy is stored energy,', 'like a pen held up high.'], g => { pen(g, { x: 250, y: -20, s: .9 }); phBlock(g, 340, -50, 34, 90, POT, { top: 0, ol: 0 }); }],
+    [['The two keep changing into each other;', 'a collision can pass kinetic energy on.'], g => { phBlock(g, 200, -30, 34, 60, POT, { top: 0, ol: 0 }); phBlock(g, 300, -10, 34, 40, KIN, { top: 0, ol: 0 }); phLabel(g, '⇄', { x: 267, y: 10, size: 44 }); }],
+  ], 'Next: how much energy, and its many forms.');
+}],
+/* ---------- part 3: how much energy; moving and stored forms ---------- */
+['part3', 'Part 3 · How much energy, and its many forms', (m, D) => {
+  const p = panel(0);
+  // A tennis ball and a bowling ball drop into sand, again and again.
+  ground(p, Y1);
+  const pa = pit(p, 280), pb = pit(p, 620), tb = tennisBall(p, 16), bb = bowlingBall(p, 40);
+  clockRun(t => {
+    const k = (t % 2.4) / 1.6, kk = Math.min(1, k) ** 2, d = Math.min(1, Math.max(0, (k - 1) * 6));
+    put(tb, { x: 280, y: lerp(300, Y1 - 16, kk) + 6 * d }); put(bb, { x: 620, y: lerp(300, Y1 - 40, kk) + 30 * d });
+    pa.dent(6 * d, 16); pb.dent(30 * d, 40);
+  }, D);
+  opener(p, 1180, 300, 'Part 3', 'How Much Energy,', 'and Which Kind');
+}, { lead: false }],
+['mass', 'Mass and velocity', (m, D) => {
+  const p = panel(0), tma = m('mass'), td = m('drop'), thi = m('high');
+  // Same height: a tennis ball and a bowling ball land at the same speed; the heavier one has more kinetic energy and
+  // digs deeper. Then a tennis ball from high up lands faster and digs deeper than from low. Each column is the ball's
+  // kinetic energy; on landing it turns into heat and moving sand (red), and the dent's depth follows it.
+  ground(p, Y1);
+  runs(p, [['kinetic energy', KIN], [' depends on mass and velocity']], { x: 800, y: 110, size: 46 }); show(p.lastChild, tma);
+  runs(p, [['■ ', KIN], ['kinetic energy      '], ['■ ', HEAT], ['heat, moving sand']], { x: 800, y: 170, size: 28 }); show(p.lastChild, td);
+  // a drop: ball b of radius r from (x, y0) into pit P at t0, T seconds of slow-motion fall, e units of energy, depth dd
+  const drop = (b, P, col, x, y0, r, t0, T, e, dd) => t => {
+    const k = ramp(t, t0, t0 + T), q = sm(t, t0 + T, t0 + T + .3), yS = Y1 - r;
+    put(b, { x, y: lerp(y0, yS, k * k) + dd * q }); P.dent(dd * q, r);
+    col.set([e * k * k * (1 - q), e * k * k * q, HEAT]);
+  };
+  const youA = phActor(p, 'you', { x: 300, y: Y1, s: 2.4, anim: 'catch' }), [ax, ay] = youA.hand('F');
+  const pA = pit(p, ax, 130), cA = energyBars(p, { x: ax + 140, y: Y1, cols: [['', KIN]], unit: 40, w: 44 }), bA = tennisBall(p, 16);
+  const g1 = G(p), fr = phActor(g1, 'friend', { x: 880, y: Y1, s: 2.4, anim: 'catch' }), [bxh, byh] = fr.hand('F');
+  const pB = pit(g1, bxh, 130), cB = energyBars(g1, { x: bxh + 140, y: Y1, cols: [['', KIN]], unit: 40, w: 44 }), bB = bowlingBall(g1, 40);
+  const g2 = G(p, { o: 0 }); ladder(g2, 930, 560, 80);
+  const you2 = phActor(g2, 'you', { x: 930, y: 548, s: 2.4, anim: 'catch' }), [cx, cy] = you2.hand('F');
+  const pC = pit(g2, cx, 110), cC = energyBars(g2, { x: cx + 140, y: Y1, cols: [['', KIN]], unit: 40, w: 44 }), bC = tennisBall(g2, 16);
+  const HA = Y1 - 16 - (ay - 14), HC = Y1 - 16 - (cy - 14), T = 2.6;
+  const dA = drop(bA, pA, cA, ax + 6, ay - 14, 16, td + .3, T, 1, 10), dB = drop(bB, pB, cB, bxh + 6, byh - 36, 40, td + .3, T, 5, 50);
+  const dC = drop(bC, pC, cC, cx + 6, cy - 14, 16, thi + 1, T * Math.sqrt(HC / HA), HC / HA, 10 * HC / HA);
+  clockRun(t => { dA(t); dB(t); dC(t); }, D);
+  hide(g1, thi - .3, .5); hide(youA, thi - .3, .5); show(g2, thi + .3);
+  [['tennis ball', ax, p], ['bowling ball', bxh, g1], ['tennis ball, from high up', cx, g2]].forEach(([s, x, g]) => phLabel(g, s, { x, y: 860, size: 30, fill: COL.dim }));
+}, { lead: false }],
+['shelf', 'Mass and height', (m, D) => {
+  const p = panel(0), tt = m('top'), tb = m('bot'), th = m('heavy'), tf = m('fall');
+  // A bookcase: the same book high and low, then a heavier book up high; potential-energy columns beside. The top
+  // book falls: its column keeps its height while potential (blue) turns into kinetic (yellow), then heat and sound.
+  floorIn(p); bookcase(p, 600, [300, 500, 660]);
+  const A = bookUp(p), B = bookUp(p, { o: 1 }), H = bookUp(p, { w: 84, h: 150, c: '#3f6f8f', o: 0 });
+  put(B, { x: 560, y: 660 }); put(H, { x: 690, y: 300 }); show(H, th);
+  const hA = distBar(p, { size: 30 }), hB = distBar(p, { size: 30 }), thud = soundArcs(p, 960, Y1 - 30, { n: 2 }); put(thud, { o: 0 });
+  const eb = energyBars(p, { x: 1000, y: 700, cols: [['top book', POT], ['bottom book', POT], ['heavy book', POT]], unit: 34, w: 90, gap: 96, size: 26 });
+  phLabel(p, 'potential energy', { x: 1231, y: 340, size: 34, fill: POT }); show(p.lastChild, tt);
+  const G_ = 600, T1 = tf + .9, TL = T1 + Math.sqrt(2 * (Y1 - 22 - 300) / G_);
+  clockRun(t => {
+    const sx = lerp(560, 792, sm(t, tf, T1)), k = ramp(t, T1, TL), y = t < T1 ? 300 : lerp(300, Y1 - 22, k * k), q = sm(t, TL, TL + .4);
+    put(A, { x: sx + 60 * k, y, r: 90 * Math.min(1, k * 1.15) });
+    hA.set(380, Y1, 380, 300, t > tt ? 'high' : '', 'left'); hB.set(320, Y1, 320, 660, t > tb ? 'low' : '', 'left');
+    put(hA, { o: t > tt && t < tf ? 1 : 0 }); put(hB, { o: t > tb && t < tf ? 1 : 0 });
+    const pe = 4.4 * (Y1 - 22 - y) / (Y1 - 22 - 300) * sm(t, tt, tt + .6);
+    eb.set(t < T1 ? pe : [pe, 4.4 - pe, mix(KIN, HEAT, q)], .8 * sm(t, tb, tb + .6), 8.8 * sm(t, th, th + .6));
+    thud.set((t * 1.5) % 1); put(thud, { o: t > TL && t < TL + 1.6 ? 1 : 0 });
+  }, D);
+}, { lead: false }],
+['moving', 'Moving energy: kinetic', (m, D) => {
+  const p = panel(0), t2 = m('two'), tmv = m('mov');
+  // "Two? Seven? Nine?" Then two headings, moving (kinetic) and stored (potential), and the five moving forms, each
+  // with a small live picture beside its name.
+  [['2?', 560, m('n2')], ['7?', 800, m('n7')], ['9?', 1040, m('n9')]].forEach(([s, x, t0]) => { const e = phLabel(p, s, { x, y: 500, size: 140, fill: COL.dim }); put(e, { o: 0, s: .6 }); tw(e, { o: 1, s: 1 }, t0, .4, back); hide(e, t2 - .3); });
+  const ask = txt(p, 'How many kinds of energy are there?', 800, 300, .3, { size: 50, weight: 700 }); hide(ask, t2 - .3);
+  const hd = headers(p, t2); tw(hd.right, { o: .35 }, tmv, .5);
+  const up = kineticRows(p, ['mech', 'therm', 'em', 'snd', 'elec'].map(k => m(k)));
+  clockRun(up, D);
+}, { lead: false }],
+['stored', 'Stored energy: potential', (m, D) => {
+  const p = panel(0), tc = m('chg');
+  // The moving column stays, dimmed; the four stored forms fill the right. Wood burns (its blocks turn into heat and
+  // light); a nucleus splits. Then an arrow between the columns: energy keeps changing form.
+  const hd = headers(p, 0); put(hd.left, { o: .4 });
+  const dim = G(p, { o: .4 }); kineticRows(dim, [0, 0, 0, 0, 0])(0);
+  const up = storedRows(p, m);
+  clockRun(up, D);
+  const ch = G(p, { o: 0 });
+  path(ch, 'M560 156Q800 70 1040 156', { stroke: WORK, 'stroke-width': 5, fill: 'none' });
+  path(ch, 'M540 132L560 156L590 150M1010 150L1040 156L1020 132', { stroke: WORK, 'stroke-width': 5, fill: 'none', 'stroke-linejoin': 'round' });
+  phLabel(ch, 'always changing', { x: 800, y: 96, size: 32, fill: WORK }); show(ch, tc);
+}, { lead: false }],
+['q3', 'Quick check', (m, D) => {
+  const p = panel(0);
+  ground(p);
+  phBlock(p, 200, 330, 220, 14, '#a8844f', { top: 4 }); put(bookUp(p, { h: 90 }), { x: 300, y: 330 });
+  tennisBall(p, 16, { x: 640, y: GY - 16 }); bowlingBall(p, 40, { x: 760, y: GY - 40 });
+  const cf = campfire(p, { x: 1180, y: GY });
+  clockRun(t => put(cf.flame, { s: 1 + .06 * Math.sin(t * 9) }), D);
+}, { ask: done => quiz(Q_CARD, [
+  { id: 'c-ke', prompt: ['A tennis ball and a bowling ball move at the same speed. Which has more kinetic energy?'],
+    build: choice([['the bowling ball'], ['the tennis ball'], ['they have the same']], 0,
+      'Same speed, more mass: more kinetic energy.',
+      [null, 'The tennis ball has less mass, so less kinetic energy at the same speed.', 'Kinetic energy depends on mass too, not only speed.']) },
+  { id: 'c-sort', prompt: ['Is each one moving energy or stored energy?'],
+    build: grid([
+      { parts: ['sound'], ans: ['m'], why: 'Molecules bumping into each other: moving.' },
+      { parts: ['light'], ans: ['m'], why: 'Electromagnetic energy travels: moving.' },
+      { parts: ['a stretched rubber band'], ans: ['s'], why: 'Elastic energy is stored.' },
+      { parts: ['a sandwich'], ans: ['s'], why: 'Chemical energy is stored in food.' },
+    ], [['m', 'moving (kinetic)', KIN, 'm'], ['s', 'stored (potential)', POT, 's']], { multi: false, text: true }) },
+  { id: 'c-fuel', prompt: ['Food, wood, and gasoline all store which form of energy?'],
+    build: choice([['chemical energy'], ['elastic energy'], ['sound energy']], 0,
+      'Fuels store chemical energy in the bonds between their atoms.',
+      [null, 'Elastic energy is stored by stretching or squeezing.', 'Sound is moving energy, not stored.']) },
+], done) }],
+['wrap3', 'Summary · Forms of energy', (m, D) => {
+  summary(panel(0), m, [
+    [['More mass or more speed means', 'more kinetic energy.'], g => { bowlingBall(g, 34, { x: 240, y: 20 }); phBlock(g, 300, -50, 34, 90, KIN, { top: 0, ol: 0 }); }],
+    [['More mass or more height means', 'more potential energy.'], g => { phBlock(g, 180, -50, 110, 10, '#a8844f', { top: 0 }); put(bookUp(g, { h: 70, w: 30 }), { x: 230, y: -50 }); phBlock(g, 320, -60, 34, 100, POT, { top: 0, ol: 0 }); }],
+    [['Energy is either moving or stored,', 'and it keeps changing form.'], g => { phLabel(g, 'moving', { x: 300, y: -6, size: 30, fill: KIN }); phLabel(g, 'stored', { x: 300, y: 36, size: 30, fill: POT }); }],
+  ], 'Next: the chapter practice.');
+}],
+/* ---------- chapter practice and finish ---------- */
+['final1', 'Chapter practice: energy and its forms', () => { PRACTICE = panel(0); }, { ask: done => quiz(SCREEN, withPics([
+  { id: 'p-match', prompt: ['Match each term with its meaning.'],
+    build: grid([
+      { parts: ['conservation of energy'], ans: ['b'], why: 'Energy is never created or destroyed; the amount in a system stays the same.' },
+      { parts: ['potential energy'], ans: ['a'], why: 'Potential energy is stored energy.' },
+      { parts: ['kinetic energy'], ans: ['c'], why: 'Kinetic energy is the energy of motion.' },
+    ], [['a', 'stored energy', POT, 'a'], ['b', 'never created or destroyed', WORK, 'b'], ['c', 'the energy of motion', KIN, 'c']], { multi: false, text: true }) },
+  { id: 'p-cow', prompt: ['When a cow digests grass, the chemical energy stored in it is released as thermal and kinetic ______.'],
+    build: choice([['energy'], ['matter'], ['gravity']], 0,
+      'Digestion releases the grass’s chemical energy as heat and motion: thermal and kinetic energy.',
+      [null, 'The grass’s matter stays matter; what changes form is its energy.', 'Gravity is a force, not something released by digestion.']) },
+  { id: 'p-chem', prompt: ['What is chemical energy?'],
+    build: choice([['energy stored in the bonds between atoms'], ['energy stored in an object’s height'], ['the flow of electrons']], 0,
+      'Chemical energy is stored in the bonds that hold atoms together, as in food and fuel.',
+      [null, 'That is gravitational potential energy.', 'That is electric energy.']) },
+  { id: 'p-pe', prompt: ['Which two things decide how much potential energy a book on a shelf has?'],
+    build: choice([['its mass and its height'], ['its color and its height'], ['its speed and its temperature']], 0,
+      'More mass or more height: more potential energy.',
+      [null, 'Color doesn’t matter; mass does.', 'Speed is about kinetic energy; the book isn’t moving.']) },
+]), done, 'Chapter practice, set 1 of 2 · question') }],
+['final2', 'Chapter practice: energy changes form', () => { PRACTICE = panel(0); }, { ask: done => quiz(SCREEN, withPics([
+  { id: 'p-change', prompt: ['Energy is constantly ________ from one form to another.'],
+    build: choice([['changing'], ['disappearing'], ['being created']], 0,
+      'Energy keeps changing form, and the amount stays the same.',
+      [null, 'Energy never disappears: it changes form.', 'Energy is never created: it only changes form.']) },
+  { id: 'p-bump', prompt: ['Your bumper car hits your friend’s, and hers moves forward. What kind of energy passed to her car?'],
+    build: choice([['kinetic energy'], ['potential energy'], ['nuclear energy']], 0,
+      'The energy of motion passed from your car to hers in the collision.',
+      [null, 'Potential energy is stored; this energy was moving with your car.', 'Nuclear energy is stored in the nucleus of atoms.']) },
+  { id: 'p-fall', prompt: ['As a book falls from a high shelf, its potential energy turns into…'],
+    build: choice([['kinetic energy'], ['chemical energy'], ['elastic energy']], 0,
+      'Falling, it loses height and gains speed: potential becomes kinetic.',
+      [null, 'Chemical energy is stored in bonds; falling doesn’t make it.', 'Elastic energy is stored by stretching or squeezing.']) },
+  { id: 'p-ke', prompt: ['Which has the most kinetic energy?'],
+    build: choice([['a bowling ball rolling fast'], ['a bowling ball rolling slowly'], ['a tennis ball rolling slowly']], 0,
+      'The most mass and the most speed: the most kinetic energy.',
+      [null, 'The same ball rolling faster has more.', 'Less mass and less speed: the least of the three.']) },
+]), done, 'Chapter practice, set 2 of 2 · question') }],
+['finish', 'Finished', () => {
+  // under the card, the chapter in four small pictures with their names
+  const p = panel(0);
+  [['conserved', 300, g => { [LIGHT, CHEM, KIN, HEAT].forEach((c, i) => eBlock(g, c, { x: -54 + i * 36, y: -30, size: 30 })); }],
+   ['potential, kinetic', 633, g => { phBlock(g, -60, -90, 44, 90, POT, { top: 0, ol: 0 }); phBlock(g, 16, -50, 44, 50, KIN, { top: 0, ol: 0 }); }],
+   ['collisions', 966, g => { bumperCar(g, '#5f8fb5', { s: .5, x: -40 }); bumperCar(g, '#4f8a5b', { s: .5, x: 100 }); }],
+   ['moving and stored', 1300, g => { const c = campfire(g, { s: .7 }); put(c.flame, { s: 1 }); }]]
+    .forEach(([s, x, draw]) => { const g = G(p, { x, y: 800, s: .85 }); draw(g); phLabel(g, s, { y: 56, size: 30, fill: COL.dim, weight: 600 }); });
+}, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+let PRACTICE;   // the practice beat's panel: its question pictures are drawn there
+const PICS = {
+  'p-match': g => { [CHEM, KIN, KIN, HEAT].forEach((c, i) => eBlock(g, c, { x: 740 + i * 40, y: 820, size: 32 })); },
+  'p-cow': g => { plant(g, { x: 800, y: 870, s: .7 }); },
+  'p-chem': g => { const c = campfire(g, { x: 800, y: 860, s: .8 }); put(c.flame, { s: 1 }); },
+  'p-pe': g => { phBlock(g, 700, 760, 200, 12, '#a8844f', { top: 3 }); put(bookUp(g, { h: 80, w: 34 }), { x: 800, y: 760 }); path(g, 'M800 790V860', { stroke: POT, 'stroke-width': 4, 'stroke-dasharray': '8 7' }); },
+  'p-change': g => { [LIGHT, CHEM, KIN, HEAT].forEach((c, i) => eBlock(g, c, { x: 740 + i * 40, y: 820, size: 32 })); },
+  'p-bump': g => { bumperCar(g, '#5f8fb5', { x: 700, y: 870, s: .6 }); bumperCar(g, '#4f8a5b', { x: 880, y: 870, s: .6 }); },
+  'p-fall': g => { put(bookUp(g, { h: 80, w: 34 }), { x: 800, y: 790, r: 30 }); forceArrow(g, { color: KIN, w: 8 }).set(860, 760, 80, 90, ''); },
+  'p-ke': g => { bowlingBall(g, 40, { x: 760, y: 820 }); forceArrow(g, { color: KIN, w: 10 }).set(810, 820, 120, 0, ''); },
+};
+const withPics = qs => qs.map(q => ({ ...q, build(body, api) { const old = PRACTICE.querySelector('.pic'); if (old) old.remove(); const g = G(PRACTICE); g.classList.add('pic'); PICS[q.id]?.(g); return q.build(body, api); } }));
+
+boot();
+</script>
+</body>
+</html>

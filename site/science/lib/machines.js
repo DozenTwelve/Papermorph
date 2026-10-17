@@ -20,7 +20,7 @@ function distBar(p, { color = DIST, w = 5, size = 30, head = false } = {}) {
   return Object.assign(g, {
     set(x0, y0, x1, y1, text = '', side) {
       const L = Math.hypot(x1 - x0, y1 - y0), a = Math.atan2(y1 - y0, x1 - x0), c = Math.cos(a), s = Math.sin(a), k = 12;
-      if (L < 2) { ln.setAttribute('d', ''); phText(lab, ''); return g; }
+      if (L < 2) { ln.setAttribute('d', ''); phText(lab, ''); put(lab, { x: x0, y: y0 }); return g; }   // a fixed spot, so replays match
       if (head) arrowAt(ln, x0, y0, L, a * 180 / Math.PI, 12 + w);
       else ln.setAttribute('d', `M${x0} ${y0}L${x1} ${y1}M${x0 - k * s} ${y0 + k * c}L${x0 + k * s} ${y0 - k * c}M${x1 - k * s} ${y1 + k * c}L${x1 + k * s} ${y1 - k * c}`);
       phText(lab, text);
