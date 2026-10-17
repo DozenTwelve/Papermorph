@@ -1,0 +1,1211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chapter 15: Light and Sound Waves — Science</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/figures.js"></script>
+<script src="../lib/actors.js"></script>
+<script src="../lib/physics.js"></script>
+<script src="../lib/machines.js"></script>
+<script src="../lib/energy.js"></script>
+<script src="../lib/thermal.js"></script>
+<script src="../lib/waves.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+// Chapter 15, one page in book order: part 1 (waves and their measurements), part 2 (what waves do), part 3 (light
+// and the electromagnetic spectrum), part 4 (sound), then the chapter practice. Amplitude green (energy), wavelength
+// pink (distance), frequency blue (time), wave speed yellow; light pale gold, sound grey-white.
+// Notes, storyboard and errata: books/science/chapters/ch15.md.
+const CHAPTER = { number: 15, title: 'Light and Sound Waves', minutes: 15, language: 'en' };
+const Q_CARD = { x: 96, y: 586, w: 1408, cls: 'band' };   // a band card under the scenes; it moves up by itself when taller
+const Y1 = 740;                                           // floor line under big actors
+const floorIn = (p, y = Y1, x = 0, w = 1600) => { phBlock(p, x, y, w, 90, '#6b5a48', { top: 8, ol: 0 }); };
+const sm = (t, a, b) => io(ramp(t, a, b));
+const lerp = (a, b, k) => a + (b - a) * k;
+const SKIN = '#c98d63', ENAMEL = '#e4e0d4', WATER = '#3f7fb0', SPACE = '#0b1226', BOX = '#16221f';
+const ELEC = '#86e0f0', MAG = '#f08cc8', WAVE2 = '#bba8ee';   // electric and magnetic fields; a second wave
+const say = (p, s, x, y, t0, o = {}) => { const e = phLabel(p, s, { x, y, size: 32, ...o, o: 0 }); show(e, t0); return e; };
+const line = (p, parts, x, y, t0, o = {}) => { const e = runs(p, parts, { x, y, size: 40, ...o }); show(e, t0); return e; };
+const later = (e, t0, dur = .5) => { put(e, { o: 0 }); show(e, t0, dur); return e; };
+
+/* ---------- shared pictures ---------- */
+// The same shapes as ch10–14: a part title and a three-row summary with small pictures.
+function opener(p, x, y, part, name, name2) {
+  const g = G(p, { o: 0, y: 24 });
+  phLabel(g, part.toUpperCase(), { x, y: y - 80, size: 30, fill: COL.dim, weight: 600 }); phLabel(g, name, { x, y, size: 80, weight: 600 });
+  if (name2) phLabel(g, name2, { x, y: y + 86, size: 80, weight: 600 });
+  tw(g, { o: 1, y: 0 }, .2, 1.1, out); return g;
+}
+function summary(p, m, rows, next) {
+  rows.forEach(([lines, icon], i) => {
+    const g = G(p, { x: -16, y: 250 + i * 220, o: 0 });
+    lines.forEach((s, j) => T(g, s, { x: 430, y: j * 50, size: 38, weight: 600 }));
+    icon(g); tw(g, { o: 1, x: 0 }, m(['w1', 'w2', 'w3'][i]), .6);
+  });
+  txt(p, next, 800, 860, m('end'), { size: 32, fill: COL.dim, weight: 500 });
+}
+const frameBox = (p, x, y, w, h, fill = BOX, stroke = COL.faint) => mk('rect', { x, y, width: w, height: h, rx: 18, fill, stroke, 'stroke-width': 3 }, p);
+function starsIn(p, x, y, w, h, n = 60, seed = 1) {
+  let d = ''; for (let i = 0; i < n; i++) { const sx = x + phHash(i, seed) * w, sy = y + phHash(i, seed + 1) * h, r = .8 + 1.6 * phHash(i, seed + 2); d += `M${(sx - r).toFixed(1)} ${sy.toFixed(1)}a${r} ${r} 0 1 0 ${2 * r} 0a${r} ${r} 0 1 0 ${-2 * r} 0`; }
+  return path(p, d, { fill: '#dfe6ff', opacity: .8 });
+}
+const spaceBox = (p, x, y, w, h, seed = 3) => { const g = G(p); frameBox(g, x, y, w, h, SPACE, '#2a3a66'); starsIn(g, x + 10, y + 10, w - 20, h - 20, Math.round(w * h / 6000), seed); return g; };
+// Arcs of a sound or radio wave around (cx, cy) facing dir (1 right, −1 left), one path each: a.set(radii, opacities).
+function arcSet(p, n, { color = SOUND, w = 5, span: sp = .6, maxH = Infinity } = {}) {
+  const els = Array.from({ length: n }, () => path(p, '', { stroke: color, 'stroke-width': w, fill: 'none' }));
+  return {
+    els,
+    set(cx, cy, rs, os, dir = 1) {
+      els.forEach((e, i) => {
+        const r = rs[i] ?? 0, o = os[i] ?? 0;
+        if (r <= 1 || o <= .01) { thAtt(e, 'opacity', 0); return; }
+        const span = Math.min(sp, Math.asin(Math.min(1, maxH / r))), s = Math.sin(span), c = Math.cos(span);
+        thAtt(e, 'd', `M${(cx + dir * r * c).toFixed(1)} ${(cy - r * s).toFixed(1)}A${r.toFixed(1)} ${r.toFixed(1)} 0 0 ${dir > 0 ? 1 : 0} ${(cx + dir * r * c).toFixed(1)} ${(cy + r * s).toFixed(1)}`);
+        thAtt(e, 'opacity', Math.min(1, o));
+      });
+    },
+  };
+}
+// Arcs leaving (cx, cy) every `gap` seconds from t0, at speed v px/s, fading out by R.
+// The n most recent arcs are drawn; an arc fades out as it reaches R.
+function arcsFrom(a, t, t0, cx, cy, { v = 260, gap = .45, R = 600, dir = 1, until = Infinity, n = a.els.length } = {}) {
+  const rs = [], os = [], last = Math.min(Math.floor((t - t0) / gap), Math.floor((until - t0) / gap));
+  for (let i = 0; i < n; i++) {
+    const j = last - i, age = t - (t0 + j * gap), r = 18 + v * age;
+    rs.push(r); os.push(t < t0 || j < 0 ? 0 : Math.max(0, 1 - r / R) * Math.min(1, age * 6));
+  }
+  a.set(cx, cy, rs, os, dir);
+}
+
+/* ---------- props: origin at the bottom centre unless noted ---------- */
+function floorLamp(p, x, o = {}) {   // a floor lamp at x on the floor; g.glow is its light cone (fade it in)
+  const g = G(p, { x, y: Y1, ...o });
+  const glow = path(g, 'M-50 -350L-210 0H210L50 -350Z', { fill: LIGHT, 'fill-opacity': .16 }); put(glow, { o: 0 });
+  phBlock(g, -40, -14, 80, 14, '#4a5458', { top: 3 }); phBlock(g, -5, -350, 10, 336, '#7d8a86', { top: 0 });
+  const shade = path(g, 'M-50 -350L-80 -420H80L50 -350Z', { fill: '#d8c79a', ...phLine() });
+  return Object.assign(g, { glow, shade });
+}
+function duck(p, o = {}) {   // a duck floating, origin at the waterline under its body
+  const g = G(p, o);
+  path(g, 'M-46 -6C-50 -40 -10 -44 18 -34C30 -30 44 -30 50 -40L54 -20C50 0 20 6 -10 4C-30 2 -44 0 -46 -6Z', { fill: '#f4f1e8', ...phLine() });
+  mk('circle', { cx: -30, cy: -52, r: 20, fill: '#f4f1e8', ...phLine() }, g);
+  path(g, 'M-50 -52L-70 -46L-50 -42Z', { fill: '#f0a040', ...phLine(2) });
+  mk('circle', { cx: -34, cy: -57, r: 3.5, fill: PH.out }, g);
+  return g;
+}
+function speedboat(p, o = {}) {   // a speedboat facing right, origin at the waterline middle
+  const g = G(p, o);
+  path(g, 'M-120 -40H90L130 -40L100 4H-110Z', { fill: '#f4f1e8', ...phLine() });
+  mk('rect', { x: -110, y: -24, width: 210, height: 10, fill: '#e2553f' }, g);
+  path(g, 'M-40 -40L-10 -76H40L60 -40Z', { fill: '#86c9e8', opacity: .8, ...phLine(2) });
+  return g;
+}
+function tuningFork(p, x, y, s = 1) {   // a fork standing on (x, y); f.ring(dx) spreads its prongs by dx
+  const g = G(p, { x, y, s });
+  phBlock(g, -8, -130, 16, 130, '#9aa5a8', { top: 0 });
+  const L = path(g, '', { stroke: '#c3ccce', 'stroke-width': 16, fill: 'none', 'stroke-linecap': 'butt' }), R = path(g, '', { stroke: '#c3ccce', 'stroke-width': 16, fill: 'none', 'stroke-linecap': 'butt' });
+  path(g, 'M-30 -130Q-30 -150 0 -150Q30 -150 30 -130', { stroke: '#c3ccce', 'stroke-width': 16, fill: 'none' });
+  return Object.assign(g, { ring(dx) { thAtt(L, 'd', `M-30 -132L${(-30 - dx).toFixed(1)} -360`); thAtt(R, 'd', `M30 -132L${(30 + dx).toFixed(1)} -360`); return g; } }).ring(0);
+}
+function alarmClock(p, o = {}) {   // centred on the face; g.bells shake
+  const g = G(p, o), bells = G(g);
+  [-1, 1].forEach(s => mk('circle', { cx: 44 * s, cy: -62, r: 26, fill: '#e2553f', ...phLine() }, bells));
+  path(g, 'M-50 70L-66 96M50 70L66 96', { stroke: '#7d8a86', 'stroke-width': 10 });
+  mk('circle', { r: 80, fill: '#e2553f', ...phLine() }, g); mk('circle', { r: 62, fill: '#f4f1e8', ...phLine(2) }, g);
+  path(g, 'M0 0V-44M0 0L30 10', { stroke: PH.out, 'stroke-width': 6 });
+  return Object.assign(g, { bells });
+}
+function radioTower(p, x, y) {
+  const g = G(p, { x, y });
+  path(g, 'M-70 0L0 -380L70 0M-52 -100H52M-34 -200H34M-18 -290H18M-52 -100L34 -200M-34 -200L18 -290M52 -100L-34 -200', { stroke: '#c3ccce', 'stroke-width': 6, fill: 'none' });
+  mk('circle', { cy: -388, r: 10, fill: '#e2553f' }, g);
+  return g;
+}
+function eyeIcon(p, x, y, s = 1) {
+  const g = G(p, { x, y, s });
+  path(g, 'M-40 0Q0 -32 40 0Q0 32 -40 0Z', { fill: '#f4f1e8', ...phLine(2) }); mk('circle', { r: 14, fill: '#4a7fa8' }, g); mk('circle', { r: 6, fill: PH.out }, g);
+  return g;
+}
+
+/* ---------- shared wave pictures ---------- */
+// The measured water wave of part 1 (shape, wavelen): rest line at y 480, crests at 190, 710 and 1230.
+const WV = { x0: 60, x1: 1300, y: 480, wl: 520 };
+const crestX = k => WV.x0 + WV.wl * (.25 + k), troughX = k => WV.x0 + WV.wl * (.75 + k);
+// The water wave travels right at WVS px/s, and red and blue light travel at that same speed too. wvPh(t, wl) is the
+// phase for waveLine.set; wvRide(f0, lo, t, wl) rides a feature that sat at x f0 at t = 0 (a crest, a trough…) along
+// with the wave, kept within [lo, lo + wl): x is where it is, o dips to 0 at the hop to the next crest so a marker
+// slides along with its crest and then hands over.
+const WVS = 120, wvMod = (a, n) => ((a % n) + n) % n;
+const wvPh = (t, wl = WV.wl) => TAU * WVS * t / wl;
+const wvRide = (f0, lo, t, wl = WV.wl, e = 45) => { const u = wvMod(f0 + WVS * t - lo, wl); return { x: lo + u, o: Math.min(1, u / e, (wl - u) / e) }; };
+// The prism and the raindrop: rays traced with Snell's law, one per colour (the spread exaggerated to be seen).
+const NPRISM = ROYGBIV.map((c, i) => 1.47 + .03 * i), NDROP = ROYGBIV.map((c, i) => 1.31 + .014 * i);
+function hitLine([px, py], [dx, dy], [ax, ay], [bx, by]) {   // ray p + s·d against segment a–b: [s, point] or null
+  const ex = bx - ax, ey = by - ay, den = dx * ey - dy * ex; if (Math.abs(den) < 1e-9) return null;
+  const s = ((ax - px) * ey - (ay - py) * ex) / den, u = ((ax - px) * dy - (ay - py) * dx) / den;
+  return s > 1e-6 && u >= 0 && u <= 1 ? [s, [px + s * dx, py + s * dy]] : null;
+}
+function prismPaths(P, start, dir) {   // P: triangle [[x, y] ×3]; returns per colour [entry, exit, far]
+  const edges = [[P[0], P[1]], [P[1], P[2]], [P[2], P[0]]], cx = (P[0][0] + P[1][0] + P[2][0]) / 3, cy = (P[0][1] + P[1][1] + P[2][1]) / 3;
+  const outN = ([a, b]) => { let nx = b[1] - a[1], ny = a[0] - b[0]; const L = Math.hypot(nx, ny); nx /= L; ny /= L; if ((a[0] - cx) * nx + (a[1] - cy) * ny < 0) { nx = -nx; ny = -ny; } return [nx, ny]; };
+  const first = edges.map(e => [hitLine(start, dir, ...e), e]).filter(([h]) => h).sort((a, b) => a[0][0] - b[0][0])[0];
+  const A = first[0][1], nA = outN(first[1]);
+  return NPRISM.map(n => {
+    const d1 = refractDir(dir, nA, 1, n), hit = edges.filter(e => e !== first[1]).map(e => [hitLine(A, d1, ...e), e]).filter(([h]) => h)[0];
+    const B = hit[0][1], nB = outN(hit[1]), d2 = refractDir(d1, [-nB[0], -nB[1]], n, 1) || d1;
+    return [A, B, [B[0] + d2[0] * 520, B[1] + d2[1] * 520]];
+  });
+}
+function dropPaths(C, R, b) {   // a horizontal ray b px above the centre enters, reflects off the back, leaves
+  const y = C[1] - b, x = C[0] - Math.sqrt(R * R - b * b), A = [x, y], nA = [(x - C[0]) / R, (y - C[1]) / R];
+  return NDROP.map(n => {
+    const d1 = refractDir([1, 0], nA, 1, n);
+    const back = s => [A[0] + d1[0] * s, A[1] + d1[1] * s];
+    const s1 = -2 * ((A[0] - C[0]) * d1[0] + (A[1] - C[1]) * d1[1]), B = back(s1), nB = [(B[0] - C[0]) / R, (B[1] - C[1]) / R];
+    const d2 = reflectDir(d1, nB), s2 = -2 * ((B[0] - C[0]) * d2[0] + (B[1] - C[1]) * d2[1]), E = [B[0] + d2[0] * s2, B[1] + d2[1] * s2];
+    const nE = [(E[0] - C[0]) / R, (E[1] - C[1]) / R], d3 = refractDir(d2, [-nE[0], -nE[1]], n, 1) || d2;
+    return [A, B, E, [E[0] + d3[0] * 330, E[1] + d3[1] * 330]];
+  });
+}
+
+/* ---------- beats ---------- */
+const BEATS = [
+/* ---------- part 1: waves and their measurements ---------- */
+['intro', 'Light and sound waves', (m, D) => {
+  const p = panel(0), tq = m('q'), tb = m('both'), TC = 7.6;   // TC: "You clap"
+  // A room: you flip the wall switch and the lamp lights; you clap and your friend across the room hears it. Then
+  // the two questions: a wavy light path from the lamp to your eyes, and sound arcs from your hands to her ear.
+  floorIn(p);
+  const lamp = floorLamp(p, 150);
+  phBlock(p, 352, 548, 28, 46, ENAMEL, { top: 0 }); const knob = mk('rect', { x: 361, y: 556, width: 10, height: 14, fill: '#7d8a86' }, p);
+  const you = phActor(p, 'you', { x: 460, y: Y1, s: 2.4 }).face(-1), friend = phActor(p, 'friend', { x: 1250, y: Y1, s: 2.4 }).face(-1);
+  const arcs = arcSet(p, 4);
+  const eye = waveRays(p, { x0: 190, y0: 410, x1: 418, y1: 492, n: 1, amp: 9, wl: 40 });
+  clockRun(t => {
+    you.face(t > TC - .5 && t < tb - .3 ? 1 : -1);
+    if (t > tq - .4 && t < tq + .6) you.show('catch', 0); else if (t > TC - .5 && t < TC + 1.2) you.show('catch', Math.floor((t - TC + .5) * 5) % 2); else you.show('stand');
+    thAtt(knob, 'y', t > tq ? 574 : 556);
+    arcsFrom(arcs, t, TC, 530, 576, { v: 300, gap: .5, R: 760, until: TC + 1.1 });
+    if (t > tb) arcsFrom(arcs, t, tb, 530, 576, { v: 300, gap: .5, R: 760 });
+    eye.set(t * 7, sm(t, tb, tb + 1.2));
+  }, D);
+  tw(lamp.glow, { o: 1 }, tq + .25, .3); tw(lamp.shade, { c_fill: LIGHT }, tq + .25, .3);
+  const ttl = G(p, { o: 0, y: 24 });
+  phLabel(ttl, 'Unit 4 · Energy · Chapter 15', { x: 1050, y: 150, size: 26, fill: COL.dim, weight: 600 });
+  phLabel(ttl, 'Light and', { x: 1050, y: 240, size: 76 }); phLabel(ttl, 'Sound Waves', { x: 1050, y: 320, size: 76 });
+  tw(ttl, { o: 1, y: 0 }, .3, 1.1, out); hide(ttl, tb - .4);
+  say(p, 'light?', 300, 420, tb + .6, { size: 40, fill: LIGHT });
+  say(p, 'sound?', 880, 470, tb + 1.4, { size: 40, fill: SOUND });
+  say(p, 'What travels?', 800, 200, tb + 2.4, { size: 54 });
+}, { lead: false }],
+['waves', 'Waves carry energy', (m, D) => {
+  const p = panel(0), to = m('osc'), tbt = m('boat'), td = m('duck'), te = m('energy');
+  // A lake seen from the side. A speedboat zooms past on the far water; its ripples run right across the lake and
+  // lift the duck up and down as they pass. A green arrow travels with the ripples; the duck's pin stays put.
+  const REST = 560, V = 260, T0 = tbt - .2, front = t => V * (t - T0), DX = 1000;
+  mk('rect', { x: 0, y: 520, width: 1600, height: 380, fill: WATER, opacity: .3 }, p);
+  const boat = speedboat(p, { x: -300, y: 522, s: .8 });
+  const w = waveLine(p, { x0: 0, x1: 1600, y: REST, color: '#a9d4ec', w: 5, fill: WATER, depth: 340 });
+  const dk = duck(p, { x: DX, y: REST });
+  const bob = G(p, { o: 0 }); path(bob, 'M1078 500V600M1066 514L1078 498L1090 514M1066 586L1078 602L1090 586', { stroke: COL.chalk, 'stroke-width': 5, fill: 'none' }); show(bob, td + .8);
+  const pin = G(p, { o: 0 }); path(pin, `M${DX} 360V700`, { stroke: COL.chalk, 'stroke-width': 3, 'stroke-dasharray': '10 10' }); phLabel(pin, 'the duck stays here', { x: DX, y: 340, size: 30 }); show(pin, te);
+  const ea = path(p, '', { stroke: AMP, 'stroke-width': 9, fill: 'none' }), el = phLabel(p, 'energy', { size: 34, fill: AMP, o: 0 });
+  // the oscillation demo: one dot bobs up and down, one swings back and forth
+  const od = G(p, { o: 0 }), d1 = mk('circle', { r: 16, fill: COL.chalk }, od), d2 = mk('circle', { r: 16, fill: COL.chalk }, od);
+  path(od, 'M1250 160V270M1340 300H1480', { stroke: COL.faint, 'stroke-width': 3, 'stroke-dasharray': '6 8' });
+  show(od, to + .3);
+  clockRun(t => {
+    const env = x => Math.max(.25, Math.min(1, (front(t) - x) / 140));   // a gentle swell before the wake arrives
+    w.set(26, 220, TAU * V * (t - T0) / 220, { env });   // phase runs from before the boat: the swell already travels
+    put(boat, { x: lerp(-300, 1900, ramp(t, tbt - .3, tbt + 2.6)) });
+    const y = w.at(DX); put(dk, { y, r: Math.atan2(w.at(DX + 30) - w.at(DX - 30), 60) * 57 });
+    put(d1, { x: 1250, y: 215 + 50 * Math.sin(t * 4) }); put(d2, { x: 1410 + 60 * Math.sin(t * 4), y: 300 });
+    const ex = 300 + 200 * Math.max(0, t - te);   // energy moves on with the ripples
+    if (t > te) { thAtt(ea, 'd', `M${ex - 220} 470H${ex}M${ex - 22} 452L${ex} 470L${ex - 22} 488`); put(el, { x: ex - 110, y: 450, o: 1 }); }
+  }, D);
+  line(p, [['wave', COL.chalk], [': an oscillation that carries '], ['energy', AMP]], 800, 100, .4, { size: 44 });
+  line(p, [['oscillation: up-and-down or back-and-forth motion']], 120, 230, to, { size: 34, anchor: 'start', weight: 500 });
+  hide(say(p, 'speedboat', 260, 440, tbt + .4, { size: 30, fill: COL.dim }), tbt + 2.4);
+  say(p, 'ripples', 330, 650, tbt + 2, { size: 32, fill: '#a9d4ec' });
+}, { lead: false }],
+['medium', 'Mechanical and electromagnetic', (m, D) => {
+  const p = panel(0), tw_ = m('water'), ts = m('sound'), tsp = m('space'), te = m('em'), tsu = m('sun');
+  // Left: mechanical waves need matter. A bump passes along a row of water molecules; sound passes through air
+  // molecules from your mouth to a friend's ear, until the air is taken away (outer space): silence. Right:
+  // electromagnetic waves cross empty space; the Sun's light reaches Earth.
+  path(p, 'M800 90V840', { stroke: COL.faint, 'stroke-width': 3, 'stroke-dasharray': '10 12' });
+  line(p, [['mechanical waves']], 410, 110, .2, { size: 44 }); txt(p, 'need matter', 410, 156, 2.6, { size: 30, fill: COL.dim });
+  // water row
+  const wg = G(p, { o: 0 });
+  mk('rect', { x: 80, y: 230, width: 660, height: 110, rx: 14, fill: WATER, opacity: .3 }, wg);
+  phLabel(wg, 'water', { x: 90, y: 220, size: 28, fill: '#a9d4ec', anchor: 'start' });
+  const NW = 14, wdots = Array.from({ length: NW }, () => mk('circle', { r: 14, fill: '#a9d4ec' }, wg));
+  show(wg, tw_);
+  // sound row
+  const sg = G(p, { o: 0 }), space = G(sg, { o: 0 });
+  frameBox(space, 70, 380, 680, 260, SPACE, '#2a3a66'); starsIn(space, 80, 390, 660, 240, 40, 5);
+  const me = phActor(sg, 'you', { x: 140, y: 600, s: 1.5 }), fr = phActor(sg, 'friend', { x: 690, y: 600, s: 1.5 }).face(-1);
+  const air = longField(sg, { x: 230, y: 420, w: 380, h: 130, cols: 20, rows: 5, r: 5 });
+  const mouth = arcSet(sg, 3, { w: 4 });
+  phLabel(sg, 'air', { x: 420, y: 400, size: 28, fill: SOUND });
+  show(sg, ts);
+  later(space, tsp); hide(air, tsp + .2, .8);
+  say(p, 'outer space: no air, no sound', 410, 690, tsp + .6, { size: 32 });
+  say(p, '…', 640, 470, tsp + 1.4, { size: 44, fill: COL.dim });
+  clockRun(t => {
+    const xp = 60 + ((t - tw_) * 230) % 800;
+    wdots.forEach((d, i) => { const x = 110 + i * 46, q = Math.exp(-(((x - xp) / 60) ** 2)); put(d, { x, y: 300 - 50 * q }); thAtt(d, 'fill', mix('#a9d4ec', AMP, q)); });
+    air.set(TAU * 1.2 * (t - ts), t > ts ? 12 : 0, 120, 230 + 300 * Math.max(0, t - ts));
+    arcsFrom(mouth, t, ts, 160, 468, { v: 120, gap: .5, R: 160 });
+    me.show(t > ts && t < tsp + 3 && (t * 4 | 0) % 2 ? 'catch' : 'stand', 1);
+  }, D);
+  // right: electromagnetic waves in empty space
+  const eg = G(p, { o: 0 });
+  spaceBox(eg, 830, 200, 720, 600, 9);
+  const rows = [['light', LIGHT, 500, 46], ['X-rays', '#c9b8ff', 330, 20], ['radio waves', '#d8c9a0', 670, 150]];
+  const rays = rows.map(([s, c, y, wl]) => { const r = waveRays(eg, { x0: 990, y0: y, x1: 1440, y1: y, n: 1, amp: s === 'radio waves' ? 20 : 12, wl, color: c }); phLabel(eg, s, { x: 1215, y: y - 40, size: 30, fill: c }); return r; });
+  show(eg, te);
+  line(p, [['electromagnetic waves']], 1190, 110, te, { size: 44 }); txt(p, 'need no matter', 1190, 156, te + 2.6, { size: 30, fill: COL.dim });
+  const sun = phSun(eg, { x: 910, y: 500, r: 56 }), earth = phEarthSmall(eg, { x: 1490, y: 500, r: 34 });
+  put(sun, { o: 0, s: .5 }); put(earth, { o: 0, s: .5 }); pop(sun, tsu - .3); pop(earth, tsu);
+  say(p, 'a vacuum: a space with nothing in it', 1190, 762, te + 7.5, { size: 32 });
+  clockRun(t => rays.forEach((r, i) => r.set(t * 7, sm(t, te + 2.7 + i * .5, te + 4 + i * .5))), D);
+}, { lead: false }],
+['shape', 'Crest, trough and amplitude', (m, D) => {
+  const p = panel(0), tr = m('rest'), tc = m('crest'), tt = m('trough'), ta = m('amp'), tb = m('big'), TH = 16.4;   // TH: "half the distance"
+  // One big water wave on its resting level. Crest and trough marked; amplitude is the green bar from rest to crest;
+  // half of crest-to-trough. Then the wave grows and its energy bar (∝ amplitude²) climbs.
+  const w = waveLine(p, { x0: WV.x0, x1: WV.x1, y: WV.y, color: '#a9d4ec', w: 6, fill: WATER, depth: 420 });
+  const rest = path(p, `M40 ${WV.y}H1320`, { stroke: COL.chalk, 'stroke-width': 3, 'stroke-dasharray': '12 10' }); put(rest, { o: 0 }); show(rest, tr);
+  say(p, 'resting level', 70, WV.y + 44, tr + .3, { size: 30, anchor: 'start' });
+  const mg = G(p), mg2 = G(p);   // markers that ride the crest / the trough; their groups dip out at the hop to the next one
+  const cd = mk('circle', { r: 12, fill: COL.chalk }, mg), td = mk('circle', { r: 12, fill: COL.chalk }, mg2); put(cd, { o: 0 }); put(td, { o: 0 }); show(cd, tc); show(td, tt);
+  const cl = phLabel(mg, 'crest', { size: 36, o: 0 }), tl = phLabel(mg2, 'trough', { size: 36, o: 0 }); show(cl, tc); show(tl, tt);
+  const amp = distBar(mg, { color: AMP, w: 7, size: 34 }); put(amp, { o: 0 }); show(amp, ta);
+  const ct = distBar(p, { color: COL.dim, w: 4, size: 30 }); put(ct, { o: 0 }); show(ct, TH);
+  const guide = path(mg, '', { stroke: COL.faint, 'stroke-width': 3, 'stroke-dasharray': '6 8' }); put(guide, { o: 0 }); show(guide, TH);
+  const guide2 = path(mg2, '', { stroke: COL.faint, 'stroke-width': 3, 'stroke-dasharray': '6 8' }); put(guide2, { o: 0 }); show(guide2, TH);
+  const eb = mk('rect', { x: 1420, width: 70, fill: AMP }, p); put(eb, { o: 0 }); show(eb, tb);
+  say(p, 'energy', 1455, 870, tb, { size: 30, fill: AMP });
+  clockRun(t => {
+    const A = 110 + 60 * sm(t, tb + .4, tb + 2.2), wl = WV.wl;
+    w.set(A, wl, wvPh(t));
+    const cy = WV.y - A, ty = WV.y + A, c = wvRide(crestX(0), 150, t), r = wvRide(troughX(0), 150, t), cx = c.x, tx = r.x;
+    put(mg, { o: c.o }); put(mg2, { o: r.o });
+    put(cd, { x: cx, y: cy }); put(td, { x: tx, y: ty }); put(cl, { x: cx, y: cy - 30 }); put(tl, { x: tx, y: ty + 58 });
+    amp.set(cx, WV.y, cx, cy, 'amplitude', 'right');
+    ct.set(1350, cy, 1350, ty, 'crest to trough', 'right');
+    thAtt(guide, 'd', `M${cx + 20} ${cy}H1350`); thAtt(guide2, 'd', `M${tx + 20} ${ty}H1350`);
+    const h = .009 * A * A; thAtt(eb, 'y', 830 - h); thAtt(eb, 'height', h);
+  }, D);
+  line(p, [['amplitude', AMP], [' = half of crest to trough']], 800, 110, TH + .4, { size: 40 });
+  line(p, [['more energy: larger '], ['amplitude', AMP]], 800, 170, tb + .4, { size: 36 });
+}, { lead: false }],
+['wavelen', 'Wavelength', (m, D) => {
+  const p = panel(0), tl = m('wl'), tt = m('tt'), tz = m('zz'), tc = m('color'), TL = 10.85, TR = 17.1;   // "lambda", "Red has a longer…"
+  // The same wave measured three ways: crest to crest, trough to trough, between two matching points on the rest
+  // line. Then the water drains away and the wave becomes red light; a blue wave below it is shorter.
+  const g = G(p);
+  const w = waveLine(g, { x0: WV.x0, x1: WV.x1, y: WV.y, color: '#a9d4ec', w: 6, fill: WATER, depth: 420 });
+  path(g, `M40 ${WV.y}H1320`, { stroke: COL.faint, 'stroke-width': 3, 'stroke-dasharray': '12 10' });
+  // the measuring bars ride on the travelling wave; each sits in a group that dips out at its hop to the next crest
+  const w1 = G(p), w2 = G(p), w3 = G(p), wz = G(p), wb = G(p);
+  const b1 = distBar(w1, { color: WLEN, w: 7, size: 36 }), b2 = distBar(w2, { color: WLEN, w: 7, size: 32 }), b3 = distBar(w3, { color: WLEN, w: 7, size: 32 });
+  const z = G(wz, { o: 0 }); [0, WV.wl].forEach(x => mk('circle', { cx: x, cy: WV.y, r: 11, fill: WLEN }, z));
+  [b2, b3].forEach(b => put(b, { o: 0 })); show(b2, tt); show(b3, tz); show(z, tz);
+  hide(b2, tc); hide(b3, tc); hide(z, tc);
+  hide(say(p, 'any two matching points', 840, WV.y + 56, tz + .3, { size: 30, fill: WLEN }), tc);
+  // red and blue light
+  const blue = waveLine(p, { x0: WV.x0, x1: WV.x1, y: 760, color: ROYGBIV[4], w: 6 }); put(blue, { o: 0 }); show(blue, TR - 1.4);
+  const bb = distBar(wb, { color: WLEN, w: 6, size: 30 }); put(bb, { o: 0 }); show(bb, TR);
+  tw(w.body, { o: 0 }, tc, .8); tw(w.el, { c_stroke: ROYGBIV[0] }, tc + .3, .8);
+  const rl = say(p, 'red light', 1320, 330, tc + 1, { size: 32, fill: ROYGBIV[0], anchor: 'start' }), bl = say(p, 'blue light', 1320, 700, TR - 1.2, { size: 32, fill: ROYGBIV[4], anchor: 'start' });
+  const BWL = WV.wl * 450 / 700;
+  clockRun(t => {
+    const q = sm(t, tc, tc + 1.2), A = lerp(110, 70, q), y = lerp(0, -60, q);
+    put(g, { y }); w.set(A, WV.wl, wvPh(t));
+    const c = wvRide(crestX(0), 130, t), r = wvRide(troughX(0), 130, t), q3 = wvRide(WV.x0 + WV.wl, 130, t), bc = wvRide(WV.x0 + BWL * .25, 130, t, BWL, 30);
+    put(w1, { o: c.o }); put(w2, { o: r.o }); put(w3, { o: q3.o }); put(wz, { x: q3.x, o: q3.o }); put(wb, { o: bc.o });
+    b1.set(c.x, WV.y + y - A - 40, c.x + WV.wl, WV.y + y - A - 40, t < TL ? 'crest to crest' : t < TR ? 'wavelength λ' : 'longer', 'above');
+    b2.set(r.x, 650, r.x + WV.wl, 650, 'trough to trough', 'below'); b3.set(q3.x, WV.y, q3.x + WV.wl, WV.y, '');
+    blue.set(70, BWL, wvPh(t, BWL));
+    bb.set(bc.x, 760 - 110, bc.x + BWL, 760 - 110, 'shorter', 'above');
+  }, D);
+  put(b1, { o: 0 }); show(b1, tl + .2);
+}, { lead: false }],
+['freq', 'Frequency', (m, D) => {
+  const p = panel(0), td = m('dock'), tt = m('ten'), t2 = m('two'), ti = m('inv'), TF = 13;   // TF: "Frequency is the number…"
+  // Two lanes of water pass a dock post. A stopwatch runs ten seconds (sped up) for each: ten crests pass the
+  // top post, two pass the bottom one. Same speed, so the many waves must be short and the few long.
+  const lanes = [{ y: 330, wl: 120, f: 1, A: 30, run: [3.4, 6.4], n: 10 }, { y: 650, wl: 600, f: .2, A: 60, run: [t2 + .2, t2 + 3.2], n: 2 }];
+  const sw = simClock(p, 1460, 120, 40);
+  lanes.forEach((L, i) => {
+    L.x0 = 800 - L.wl * .75;
+    L.w = waveLine(p, { x0: L.x0, x1: 1480, y: L.y, color: '#a9d4ec', w: 5, fill: WATER, depth: 110 });
+    L.w.set(L.A, L.wl, 0, { from: 120 });
+    phBlock(p, 560, L.y - 92, 260, 18, WOOD, { top: 4 }); phBlock(p, 790, L.y - 74, 22, 190, '#7a5c40', { top: 0 }); phBlock(p, 590, L.y - 74, 18, 120, '#7a5c40', { top: 0 });
+    L.cnt = phLabel(p, '', { x: 130, y: L.y - 110, size: 40, fill: FREQ, anchor: 'start' });
+    L.s = t => Math.max(0, Math.min(10, (t - L.run[0]) / (L.run[1] - L.run[0]) * 10));
+    // wave clock: sped up during the ten counted seconds, real time (1 s per s, the same wave speed in both lanes) around them
+    L.S = t => t < L.run[0] ? t - L.run[0] : t < L.run[1] ? L.s(t) : 10 + t - L.run[1];
+  });
+  phLabel(p, 'dock', { x: 690, y: 210, size: 26, fill: COL.dim, o: 1 });
+  const g0 = G(p, { o: 0 }); show(g0, td);
+  clockRun(t => {
+    lanes.forEach(L => {
+      const s = L.s(t); L.w.set(L.A, L.wl, TAU * L.f * L.S(t), { from: 120 });
+      const k = Math.min(L.n, Math.floor(Math.min(s, 10) * L.f + .5));
+      phText(L.cnt, t < L.run[0] ? '' : `${k} wave${k === 1 ? '' : 's'} in ${Math.floor(Math.min(s, 10) + 1e-6)} s`);
+    });
+    sw.set(t < t2 ? lanes[0].s(t) : lanes[1].s(t));
+  }, D);
+  say(p, 'high frequency', 130, 480, tt + .4, { size: 34, anchor: 'start' });
+  say(p, 'low frequency', 130, 800, t2 + 3.3, { size: 34, anchor: 'start' });
+  line(p, [['frequency', FREQ], [': waves passing a point each second, in '], ['hertz (Hz)', FREQ]], 700, 70, TF, { size: 34 });
+  const sg = [G(p), G(p)], s1 = distBar(sg[0], { color: WLEN, w: 6, size: 28 }), s2 = distBar(sg[1], { color: WLEN, w: 6, size: 28 });   // sg: dip out at each hop
+  [s1, s2].forEach(b => put(b, { o: 0 })); show(s1, ti + 1); show(s2, ti + 1.6);
+  clockRun(t => { [s1, s2].forEach((b, i) => { const L = lanes[i], base = L.x0 + L.wl * (.25 + L.f * L.S(t)), x = base + L.wl * Math.ceil(([880, 400][i] - base) / L.wl), y = i ? L.y - 120 : L.y - L.A - 26, u = x - [880, 400][i]; put(sg[i], { o: Math.min(1, u / (L.wl * .2), (L.wl - u) / (L.wl * .2)) }); b.set(x, y, x + L.wl, y, i ? 'long wavelength' : 'short wavelength', 'above'); }); }, D);
+  line(p, [['higher frequency', FREQ], [' = '], ['shorter wavelength', WLEN]], 800, 860, 25.3, { size: 40 });
+}, { lead: false }],
+['speed', 'Wave speed', (m, D) => {
+  const p = panel(0), te = m('eq'), tx = m('ex'), tm = m('medium'), tl = m('light'), TS = 15.7;   // TS: "Sound is a mechanical wave…"
+  // The formula in its colours; then a wave of 2 m crests runs along a 10 m track in slow motion: the marked crest
+  // covers 10 m in one second. Then two races each: sound (water beats air), light (air beats water).
+  line(p, [['wave speed', WSPD], [' = '], ['frequency', FREQ], [' × '], ['wavelength', WLEN]], 800, 110, te, { size: 46 });
+  line(p, [['v', WSPD], [' = '], ['f', FREQ], [' × '], ['λ', WLEN]], 800, 172, te + 1.6, { size: 40 });
+  const ex = G(p, { o: 0 }); show(ex, .2); hide(ex, tm - .4, .4);
+  hide(say(p, 'How fast?', 800, 230, .4, { size: 44, fill: WSPD }), te - .2);
+  meterTrack(ex, { x0: 250, U: 110, y: 520, to: 10, every: 1 });
+  const U = 110, w = waveLine(ex, { x0: 250 - 55, x1: 1350, y: 420, color: LIGHT, w: 5 });
+  const dot = mk('circle', { r: 13, fill: WSPD, ...phLine(2) }, ex); put(dot, { o: 0 }); show(dot, tx);
+  const ro = readout(ex, [FREQ, COL.chalk, WLEN, COL.chalk, WSPD], { x: 800, y: 700, size: 44 }); ro.set('5 waves/s', ' × ', '2 m', ' = ', '10 m/s'); later(ro, tx + .4);
+  const clk = phLabel(ex, '', { x: 1480, y: 300, size: 34, fill: TIME, anchor: 'end' });
+  txt(ex, 'slow motion', 1480, 340, tx, { size: 24, fill: COL.dim, anchor: 'end' });
+  clockRun(t => {
+    const s = Math.max(0, Math.min(1, (t - tx - .6) / 4));   // one second of the wave in four
+    w.set(36, 2 * U, 1.5 * Math.min(t, tx + .6) + TAU * 5 * s, { from: 250 }); put(dot, { x: 250 + 10 * U * s, y: w.at(250 + 10 * U * s) });
+    phText(clk, t < tx ? '' : `${s.toFixed(2)} s`);
+  }, D);
+  // the races
+  const race = (x0, title, col, lanes, t0, tShow = t0 - 1) => {
+    const g = G(p, { o: 0 }); show(g, tShow);
+    phLabel(g, title, { x: x0 + 330, y: 320, size: 40, fill: col });
+    const ms = lanes.map(([name, y, v, bg]) => {
+      if (bg) mk('rect', { x: x0 + 110, y: y - 40, width: 560, height: 80, rx: 10, fill: WATER, opacity: .35 }, g);
+      phLabel(g, name, { x: x0 + 96, y: y + 10, size: 30, anchor: 'end' });
+      path(g, `M${x0 + 120}${' '}${y}H${x0 + 660}`, { stroke: COL.faint, 'stroke-width': 3, 'stroke-dasharray': '6 8' });
+      const tr = path(g, '', { stroke: col, 'stroke-width': 8, opacity: .6 }), d = mk('circle', { r: 15, fill: col, ...phLine(2) }, g);
+      const rip = waveLine(g, { x0: x0 + 120, x1: x0 + 660, y, color: col, w: 4, o: .9 });   // the wave itself keeps travelling at the lane's speed
+      return { y, v, tr, d, rip };
+    });
+    clockRun(t => ms.forEach(({ y, v, tr, d, rip }) => { const x = x0 + 120 + 540 * v * ramp(t, t0, t0 + 3); put(d, { x, y }); thAtt(tr, 'd', `M${x0 + 120} ${y}H${x}`); rip.set(12 * sm(t, t0, t0 + .6), 120, TAU * 180 * v * (t - t0) / 120, { from: x0 + 130, to: x0 + 650 }); }), D);
+    return g;
+  };
+  race(60, 'sound', SOUND, [['air', 440, 343 / 1480], ['water', 560, 1, true]], tm + .9, tm);
+  race(840, 'light', LIGHT, [['air', 440, 1], ['water', 560, .75, true]], tl + 1.6);
+  say(p, 'faster in water', 390, 660, TS + 1.2, { size: 32, fill: SOUND });
+  say(p, 'faster in air', 1170, 660, tl + 4.4, { size: 32, fill: LIGHT });
+}, { lead: false }],
+['q1', 'Quick check', (m, D) => {
+  const p = panel(0);
+  const w = waveLine(p, { x0: 200, x1: 1400, y: 300, color: '#a9d4ec', w: 6 });
+  path(p, 'M180 300H1420', { stroke: COL.faint, 'stroke-width': 3, 'stroke-dasharray': '10 10' });
+  clockRun(t => w.set(90, 400, t * 1.5), D);
+  txt(p, 'Waves and their measurements', 800, 110, .2, { size: 40 });
+}, { ask: done => quiz(Q_CARD, [
+  { id: 'c-mech', prompt: ['Which wave can travel through empty space?'],
+    build: choice([['sound'], ['ripples on water'], ['light']], 2,
+      'Light is an electromagnetic wave: it needs no matter.',
+      ['Sound needs molecules to pass along; space has none.', 'Ripples need water to travel in.', null]) },
+  { id: 'c-amp', prompt: ['The amplitude of a wave is measured from…'],
+    build: choice([['one crest to the next crest'], ['the resting level to the crest'], ['how many waves pass each second']], 1,
+      'Amplitude is the height above rest: half of crest to trough.',
+      ['That is the wavelength.', null, 'That is the frequency.']) },
+  { id: 'c-freq', prompt: ['Two waves travel at the same speed. The one with the higher frequency has a ______ wavelength.'],
+    build: choice([['longer'], ['shorter'], ['the same']], 1,
+      'More waves pass each second, so they must be packed closer together.',
+      ['More waves each second at the same speed means each one is shorter.', null, 'Speed = frequency × wavelength: if frequency goes up at the same speed, wavelength goes down.']) },
+], done) }],
+['wrap1', 'Summary · Waves', (m, D) => {
+  summary(panel(0), m, [
+    [['Waves carry energy. Mechanical waves need', 'matter; electromagnetic waves do not.'], g => { waveLine(g, { x0: 160, x1: 360, y: 0, color: '#a9d4ec', w: 5 }).set(20, 80, 0); path(g, arrowPath(200, 40, 340), { stroke: AMP, 'stroke-width': 6, fill: 'none' }); }],
+    [['Amplitude: height above rest. Wavelength:', 'one wave’s length. Frequency: waves per second.'], g => { waveLine(g, { x0: 160, x1: 380, y: 10, color: '#a9d4ec', w: 5 }).set(34, 150, 0); path(g, 'M197 10V-24', { stroke: AMP, 'stroke-width': 6 }); path(g, 'M197 -50H347', { stroke: WLEN, 'stroke-width': 5 }); }],
+    [['speed = frequency × wavelength: at one speed,', 'higher frequency means shorter waves.'], g => { runs(g, [['v', WSPD], [' = '], ['f', FREQ], [' × '], ['λ', WLEN]], { x: 270, y: 14, size: 44, o: 1 }); }],
+  ], 'Next: what waves do.');
+}],
+/* ---------- part 2: what waves do ---------- */
+['part2', 'Part 2 · What waves do', (m, D) => {
+  const p = panel(0);
+  // A ray bounces off a mirror.
+  phBlock(p, 120, 640, 640, 18, '#c8e0ff', { top: 0 });
+  const r = lightRay(p, [[200, 230], [440, 640], [680, 230]]); draw(r.line, .4, 1.4); put(r.head, { o: 0 }); show(r.head, 1.4);
+  opener(p, 1180, 300, 'Part 2', 'What Waves', 'Do');
+}, { lead: false }],
+['reflect', 'Reflection', (m, D) => {
+  const p = panel(0), tmi = m('mirror'), tec = m('echo'), ti = m('inc'), tn = m('normal'), to = m('out'), tl = m('law'), tb = m('back');
+  // You at a mirror, your reflection inside it; a cliff throws your friend's shout back. Then the close-up: a ray
+  // comes in, the normal is drawn, the ray leaves at the same angle on the other side; straight in, straight back.
+  const A = G(p); hide(A, ti - .3, .5);
+  floorIn(A);
+  const you = phActor(A, 'you', { x: 260, y: Y1, s: 2.6 });
+  frameBox(A, 470, 300, 260, 440, '#2a4a5a', '#c8e0ff');
+  const img = G(A, { o: .55 }), ia = phActor(img, 'you', { x: 640, y: Y1, s: 2.2 }).face(-1);
+  mk('rect', { x: 470, y: 300, width: 260, height: 440, rx: 18, fill: '#c8e0ff', opacity: .12 }, A);
+  const rr = lightRay(A, [[300, 470], [470, 500], [300, 530]], { w: 5 }); draw(rr.line, tmi + 1.5, 1); put(rr.head, { o: 0 }); show(rr.head, tmi + 2.2);
+  const fr = phActor(A, 'friend', { x: 880, y: Y1, s: 2.4 }); put(fr, { o: 0 }); show(fr, tec - .4);
+  const cliff = G(A, { o: 0 }); path(cliff, 'M1260 740V260L1320 230L1380 280L1440 240L1500 270V740Z', { fill: '#6b5a48', ...phLine() }); show(cliff, tec - .4);
+  const out = arcSet(A, 3, { w: 6 }), back = arcSet(A, 3, { w: 6, color: '#e7ece9' });
+  clockRun(t => {
+    // out to the cliff face (x 1260): an arc fades as it reaches the rock; the echo comes back from there
+    arcsFrom(out, t, tec + .3, 960, 560, { v: 300, gap: .4, R: 330, until: tec + 1.1 });
+    const T2 = tec + .3 + 280 / 300;
+    if (t > T2) arcsFrom(back, t, T2, 1260, 560, { v: 300, gap: .4, R: 700, dir: -1, until: T2 + .8 });
+    fr.show(t > tec && t < tec + 1.3 ? 'catch' : 'stand', 1);
+    // you move and your reflection moves with you, frame for frame
+    const mv = t > tmi + 1 && t < tec - .6 ? 'catch' : 'stand', k = (t * 3) | 0; you.show(mv, k); ia.show(mv, k);
+  }, D);
+  say(A, 'echo', 1110, 400, tec + 2.2, { size: 40, fill: SOUND });
+  line(A, [['reflection', LIGHT], [': a wave bounces off a surface']], 800, 120, tmi + .3, { size: 42 });
+  // the close-up
+  const B = G(p, { o: 0 }); show(B, ti - .2);
+  const O = [800, 640], H = 350, DX = H * Math.tan(40 * Math.PI / 180);
+  phBlock(B, 300, 640, 1100, 20, '#c8e0ff', { top: 0 }); path(B, 'M300 680' + Array.from({ length: 22 }, (_, i) => `M${310 + i * 50} 662l-26 30`).join(''), { stroke: COL.faint, 'stroke-width': 3 });
+  phLabel(B, 'mirror', { x: 380, y: 720, size: 28, fill: COL.dim });
+  const inc = lightRay(B, [[O[0] - DX, O[1] - H], O]); draw(inc.line, ti + .2, 1); put(inc.head, { o: 0 }); show(inc.head, ti + .9);
+  say(B, 'incident ray', O[0] - DX - 20, O[1] - H - 24, ti + .6, { size: 32, fill: LIGHT, anchor: 'start' });
+  const nl = path(B, `M800 640V230`, { stroke: COL.chalk, 'stroke-width': 4, 'stroke-dasharray': '12 10' }); put(nl, { o: 0 }); show(nl, tn + .2);
+  say(B, 'normal', 800, 210, tn + .5, { size: 30 });
+  const ref = lightRay(B, [O, [O[0] + DX, O[1] - H]]); draw(ref.line, to + .2, 1); put(ref.head, { o: 0 }); show(ref.head, to + .9);
+  say(B, 'reflected ray', O[0] + DX + 20, O[1] - H - 24, to + .6, { size: 32, fill: LIGHT, anchor: 'end' });
+  // a pulse of light runs in along the incident ray and out along the reflected one, again and again
+  const pu = mk('circle', { r: 12, fill: '#fff6c8' }, B); put(pu, { o: 0 });
+  const PA = [O[0] - DX, O[1] - H], PB = [O[0] + DX, O[1] - H];
+  const ang = G(B, { o: 0 }); angleArc(ang, 800, 640, 120, -130, -90, { color: COL.task, w: 5 }); angleArc(ang, 800, 640, 120, -90, -50, { color: COL.task, w: 5 });
+  phLabel(ang, '40°', { x: 740, y: 490, size: 30, fill: COL.task }); phLabel(ang, '40°', { x: 860, y: 490, size: 30, fill: COL.task }); show(ang, tl - .2);
+  line(B, [['angle in', COL.task], [' = '], ['angle out', COL.task]], 800, 120, tl, { size: 44 });
+  const st = G(B, { o: 0 });
+  lightRay(st, [[1250, 290], [1250, 636]], { drawn: true }); lightRay(st, [[1280, 636], [1280, 290]], { drawn: true });
+  phLabel(st, 'straight in,', { x: 1265, y: 230, size: 30 }); phLabel(st, 'straight back', { x: 1265, y: 266, size: 30 });
+  show(st, tb);
+  const pu2 = mk('circle', { r: 12, fill: '#fff6c8' }, st), pu3 = mk('circle', { r: 12, fill: '#fff6c8' }, st);
+  clockRun(t => {
+    const u = ((t - ti - 1) / 2.2) % 1;   // 0..1: in along the ray, then out
+    if (t < ti + 1 || t >= tb) put(pu, { x: PA[0], y: PA[1], o: 0 });
+    else { const a = u < .5, v = a ? u * 2 : u * 2 - 1, [sx, sy] = a ? PA : O, [ex, ey] = a ? O : PB; put(pu, { x: sx + (ex - sx) * v, y: sy + (ey - sy) * v, o: a || t > to ? 1 : 0 }); }
+    const w = Math.max(0, (t - tb) / 1.8) % 1; put(pu2, { x: 1250, y: 290 + 346 * w }); put(pu3, { x: 1280, y: 636 - 346 * w });
+  }, D);
+}, { lead: false }],
+['refract', 'Refraction', (m, D) => {
+  const p = panel(0), tp = m('pencil'), ts = m('slow'), tb = m('bend'), tlg = m('leg'), TR = 13.5;   // TR: "This bending is called refraction."
+  // Left: a pencil in a glass of water looks broken at the surface. Right: a beam of wavefronts crosses from air into
+  // water; the fronts crowd together where the light is slower, and the beam turns at the boundary.
+  const gl = G(p); hide(gl, tlg - .2);
+  mk('rect', { x: 150, y: 450, width: 300, height: 260, fill: WATER, opacity: .45 }, gl);
+  path(gl, 'M140 250V710H460V250', { stroke: '#c8e0ff', 'stroke-width': 7, fill: 'none' });
+  path(gl, 'M410 200L300 450', { stroke: '#f2c94c', 'stroke-width': 22, 'stroke-linecap': 'butt' }); path(gl, 'M410 200L422 172', { stroke: '#ef7aa8', 'stroke-width': 22, 'stroke-linecap': 'butt' });
+  path(gl, 'M276 452L196 650', { stroke: '#d9b54a', 'stroke-width': 22, 'stroke-linecap': 'butt' }); path(gl, 'M196 650L186 676', { stroke: '#3a2a22', 'stroke-width': 10 });
+  say(gl, 'looks bent', 300, 780, tp + 1.2, { size: 34 });
+  // the beam
+  const O = [1080, 470], th1 = 45 * Math.PI / 180, th2 = Math.asin(Math.sin(th1) / 1.33), L1 = 70, L2 = L1 * Math.sin(th2) / Math.sin(th1);
+  const d1 = [Math.sin(th1), Math.cos(th1)], d2 = [Math.sin(th2), Math.cos(th2)], W1 = 110, W2 = W1 * Math.cos(th2) / Math.cos(th1);
+  const bg = G(p, { o: 0 }); show(bg, ts - .6);
+  mk('rect', { x: 620, y: 470, width: 940, height: 360, fill: WATER, opacity: .4 }, bg);
+  path(bg, 'M620 470H1560', { stroke: '#a9d4ec', 'stroke-width': 4 });
+  phLabel(bg, 'air', { x: 650, y: 440, size: 32, anchor: 'start' }); phLabel(bg, 'water', { x: 650, y: 520, size: 32, anchor: 'start', fill: '#a9d4ec' });
+  const fronts = path(bg, '', { stroke: LIGHT, 'stroke-width': 4, opacity: .85 });
+  const seg = (c, d, w, keep) => {   // a front through c perpendicular to d, half-width w, clipped to keep(y)
+    const n = [-d[1], d[0]]; let a = [c[0] - n[0] * w, c[1] - n[1] * w], b = [c[0] + n[0] * w, c[1] + n[1] * w];
+    const ka = keep(a[1]), kb = keep(b[1]); if (!ka && !kb) return '';
+    if (ka !== kb) { const q = (O[1] - a[1]) / (b[1] - a[1]), x = [a[0] + (b[0] - a[0]) * q, O[1]]; if (ka) b = x; else a = x; }
+    return `M${a[0].toFixed(1)} ${a[1].toFixed(1)}L${b[0].toFixed(1)} ${b[1].toFixed(1)}`;
+  };
+  clockRun(t => {
+    const ph = (t * 1.1) % 1; let d = '';
+    for (let k = -5; k <= 0; k++) { const s = (k + ph) * L1; d += seg([O[0] + d1[0] * s, O[1] + d1[1] * s], d1, W1, y => y <= O[1] + .01); }
+    for (let k = -1; k <= 8; k++) { const s = (k + ph) * L2; if (s > 330) continue; d += seg([O[0] + d2[0] * s, O[1] + d2[1] * s], d2, W2, y => y >= O[1] - .01); }
+    thAtt(fronts, 'd', d);
+  }, D);
+  say(p, 'faster: fronts far apart', 1250, 250, ts + 1.4, { size: 30, fill: LIGHT });
+  say(p, 'slower: fronts closer', 1300, 800, ts + 2.4, { size: 30, fill: LIGHT });
+  const nl = path(p, `M${O[0]} 240V820`, { stroke: COL.chalk, 'stroke-width': 3, 'stroke-dasharray': '12 10' }); put(nl, { o: 0 }); show(nl, tb + 1.5);
+  const r = lightRay(p, [[O[0] - d1[0] * 420, O[1] - d1[1] * 420], O, [O[0] + d2[0] * 340, O[1] + d2[1] * 340]], { w: 7, color: COL.task });
+  draw(r.line, tb + 2, 1.6); put(r.head, { o: 0 }); show(r.head, tb + 3.2);
+  say(p, 'the path bends', 960, 650, tb + 3.4, { size: 32, fill: COL.task, anchor: 'end' });
+  line(p, [['refraction', COL.task], [': a wave bends when its speed changes']], 800, 110, TR, { size: 42 });
+  // legs in a pool: the part under water looks squashed
+  const lg = G(p, { o: 0 }); show(lg, tlg);
+  mk('clipPath', { id: 'ch15up' }, lg).append(mk('rect', { x: 0, y: 0, width: 800, height: 560 }));
+  mk('clipPath', { id: 'ch15dn' }, lg).append(mk('rect', { x: 0, y: 560, width: 800, height: 400 }));
+  const up = G(lg); up.setAttribute('clip-path', 'url(#ch15up)'); phActor(up, 'you', { x: 300, y: 780, s: 2.4 });
+  const dn2 = G(lg); dn2.setAttribute('clip-path', 'url(#ch15dn)');
+  const sq = G(dn2); sq.setAttribute('transform', 'translate(0 560) scale(1 .6) translate(0 -560)'); phActor(sq, 'you', { x: 300, y: 780, s: 2.4 });
+  mk('rect', { x: 80, y: 560, width: 460, height: 160, fill: WATER, opacity: .45 }, lg); path(lg, 'M80 560H540', { stroke: '#a9d4ec', 'stroke-width': 4 });
+  phLabel(lg, 'legs look short', { x: 310, y: 790, size: 32 });
+}, { lead: false }],
+['meet', 'Diffraction and interference', (m, D) => {
+  const p = panel(0), tg = m('gap'), tj = m('jetty'), t2 = m('two'), tc = m('con'), td = m('des');
+  // Left, from above: straight wavefronts reach a pier with a gap and spread out in circles beyond it. Right: two
+  // waves overlap and add; the green sum is taller when crest meets crest and flat when crest meets trough.
+  const L = G(p, { o: 0 }); show(L, .3);
+  mk('rect', { x: 60, y: 160, width: 700, height: 660, rx: 16, fill: WATER, opacity: .35 }, L);
+  const GX = 410, GY = 420, LW = 46;
+  const fr = path(L, '', { stroke: '#cfe8f5', 'stroke-width': 5, fill: 'none' });
+  phBlock(L, 60, GY - 14, GX - 40 - 60, 28, WOOD, { top: 5 }); phBlock(L, GX + 40, GY - 14, 760 - GX - 40, 28, WOOD, { top: 5 });
+  clockRun(t => {
+    const ph = (t * .9) % 1; let d = '';
+    for (let k = 0; k < 6; k++) { const y = GY - 14 - (k + 1 - ph) * LW; if (y > 170) d += `M64 ${y.toFixed(1)}H756`; }
+    if (t > tg - .4) for (let k = 0; k < 9; k++) { const r = (k + ph) * LW; if (r > 6 && r < 380 && r < (t - tg + .4) * 41) d += `M${(GX - r).toFixed(1)} ${GY + 14}A${r.toFixed(1)} ${r.toFixed(1)} 0 0 0 ${(GX + r).toFixed(1)} ${GY + 14}`; }
+    thAtt(fr, 'd', d);
+  }, D);
+  line(p, [['diffraction', '#cfe8f5'], [': spreading past an opening']], 410, 110, tg + 4.4, { size: 34 });
+  say(p, 'pier', 200, GY - 30, tj, { size: 30, fill: '#ffe2b0' }); say(p, 'gap', GX, GY - 30, tj + .3, { size: 30 });
+  say(p, 'ocean waves', 410, 150, tj + .6, { size: 30, fill: '#cfe8f5' });
+  path(p, 'M800 90V840', { stroke: COL.faint, 'stroke-width': 3, 'stroke-dasharray': '10 12' });
+  // interference
+  const R = G(p, { o: 0 }); show(R, t2);
+  const X0 = 880, X1 = 1520, WL = 240, A = 46, ys = [260, 420, 650];
+  const wa = waveLine(R, { x0: X0, x1: X1, y: ys[0], color: COL.chalk, w: 5 }), wb = waveLine(R, { x0: X0, x1: X1, y: ys[1], color: WAVE2, w: 5 }), ws = waveLine(R, { x0: X0, x1: X1, y: ys[2], color: AMP, w: 7 });
+  phLabel(R, '+', { x: 860, y: 355, size: 50 }); phLabel(R, '=', { x: 860, y: 555, size: 50 });
+  phLabel(R, 'sum', { x: X1, y: ys[2] - 120, size: 28, fill: AMP, anchor: 'end' });
+  const guide = path(R, '', { stroke: COL.dim, 'stroke-width': 3, 'stroke-dasharray': '8 8' });
+  const del = t => lerp(lerp(lerp(-Math.PI * 1.5, Math.PI / 2, sm(t, t2 + .3, t2 + 3)), 0, sm(t, tc, tc + 1.6)), Math.PI, sm(t, td, td + 1.6));
+  clockRun(t => {
+    const d = del(t);
+    const P = TAU * WVS * t / WL;   // both inputs travel right together at the same speed; the sum is their true sum
+    wa.set(A, WL, P); wb.set(A, WL, P + d);
+    let path_ = ''; for (let x = X0; x <= X1; x += 5) path_ += `${x === X0 ? 'M' : 'L'}${x} ${(ys[2] + waveY(x, X0, A, WL, P) + waveY(x, X0, A, WL, P + d)).toFixed(1)}`;
+    thAtt(ws.el, 'd', path_);
+    const r = wvRide(X0 + WL * .25, X0 + 40, t, WL, 30), cx = r.x; put(guide, { o: r.o }); thAtt(guide, 'd', `M${cx} ${ys[0] - 70}V${ys[2] + 110}`);   // the guide rides the first wave's crest
+  }, D);
+  line(p, [['interference', AMP], [': overlapping waves add']], 1190, 110, t2 + 3.6, { size: 34 });
+  hide(say(p, 'crest meets crest: constructive', 1190, 800, tc + .4, { size: 30, fill: AMP }), td);
+  say(p, 'crest meets trough: destructive', 1190, 800, td + .6, { size: 30, fill: AMP });
+}, { lead: false }],
+['absorb', 'Absorption', (m, D) => {
+  const p = panel(0), ta = m('abs'), to = m('ocean'), tp = m('apple'), th = m('heat');
+  // Four pictures in a row, each as it is said: a wave dying out inside a block that warms; sunlight fading down the
+  // ocean; a red apple taking in every colour but red; dark pavement in the sun giving off heat.
+  line(p, [['absorption', HEAT], [': a wave gives its '], ['energy', AMP], [' to the matter it passes through']], 800, 100, ta + .3, { size: 36 });
+  const cols = [230, 610, 990, 1370], panes = cols.map((x, i) => { const g = G(p, { o: 0 }); frameBox(g, x - 170, 170, 340, 520); return g; });
+  [ta + .2, to, tp, th].forEach((t0, i) => show(panes[i], t0));
+  // 1: a wave into a block
+  const g1 = panes[0], blk = mk('rect', { x: 210, y: 300, width: 120, height: 260, fill: '#5a6560', ...phLine() }, g1);
+  const w1 = waveLine(g1, { x0: 80, x1: 380, y: 430, color: LIGHT, w: 5 });
+  const warm = riseLines(g1, 270, 290, { n: 3 });
+  phLabel(g1, 'the block warms', { x: 230, y: 650, size: 32, fill: HEAT });
+  // 2: the ocean
+  const g2 = panes[1];
+  const grad = mk('linearGradient', { id: 'ch15sea', x1: 0, y1: 0, x2: 0, y2: 1 }, g2);
+  [['0', '#5fa8d8'], ['1', '#071018']].forEach(([o, c]) => grad.append(mk('stop', { offset: o, 'stop-color': c })));
+  mk('rect', { x: 450, y: 250, width: 320, height: 430, fill: 'url(#ch15sea)' }, g2);
+  const lg = mk('linearGradient', { id: 'ch15sun', x1: 0, y1: 0, x2: 0, y2: 1 }, g2);
+  [['0', LIGHT, 1], ['1', LIGHT, 0]].forEach(([o, c, a]) => lg.append(mk('stop', { offset: o, 'stop-color': c, 'stop-opacity': a })));
+  [500, 570, 640, 710].forEach(x => mk('rect', { x: x - 5, y: 200, width: 10, height: 380, fill: 'url(#ch15sun)' }, g2));
+  // a fish swims down into the dark; it dims as less light reaches it
+  const fish = G(g2, { x: 610, y: 400 });
+  path(fish, 'M34 0L66 -24V24Z', { fill: '#f0a040', ...phLine(2) });
+  mk('ellipse', { rx: 48, ry: 26, fill: '#f0a040', ...phLine(2) }, fish); mk('circle', { cx: -26, cy: -6, r: 5, fill: PH.out }, fish);
+  phLabel(g2, 'deeper: darker', { x: 610, y: 650, size: 32 });
+  // 3: the apple
+  const g3 = panes[2];
+  ROYGBIV.slice(1).forEach((c, i) => lightRay(g3, [[850, 230 + i * 26], [944, 400 - 6 * (5 - i)]], { color: c, w: 5, drawn: true }));
+  mk('circle', { cx: 990, cy: 470, r: 80, fill: '#c0392b', ...phLine() }, g3); path(g3, 'M990 392Q996 360 1014 350', { stroke: '#6b4a2a', 'stroke-width': 7 });
+  mk('ellipse', { cx: 1012, cy: 368, rx: 22, ry: 10, fill: '#4ea05a', transform: 'rotate(-20 1012 368)' }, g3);
+  const rOut = lightRay(g3, [[1040, 410], [1120, 260]], { color: ROYGBIV[0] }); draw(rOut.line, tp + 2.2, .7); put(rOut.head, { o: 0 }); show(rOut.head, tp + 2.6);
+  eyeIcon(g3, 1110, 220, .8);
+  phLabel(g3, 'absorbed', { x: 880, y: 210, size: 30 }); say(g3, 'reflected: red', 990, 620, tp + 2.6, { size: 32, fill: ROYGBIV[0] });
+  // 4: pavement
+  const g4 = panes[3];
+  phSun(g4, { x: 1370, y: 260, r: 44 });
+  const sunR = [1270, 1470].map(x => waveRays(g4, { x0: x, y0: 320, x1: x, y1: 550, n: 1, amp: 8, wl: 36 }));
+  phBlock(g4, 1220, 560, 300, 70, '#2c3337', { top: 4 });
+  const hot = riseLines(g4, 1370, 540, { n: 4 });
+  phLabel(g4, 'light → heat', { x: 1370, y: 670, size: 32, fill: HEAT });
+  [['a wave in a block', 230], ['sunlight in the ocean', 610], ['a red apple', 990], ['dark pavement', 1370]].forEach(([s, x], i) => phLabel(panes[i], s, { x, y: 745, size: 34, fill: COL.chalk, weight: 600 }));
+  show(warm, ta + 3); show(hot, th + 2);
+  clockRun(t => {
+    sunR.forEach(r => r.set(t * 7, 1));
+    w1.set(40, 90, t * 6, { env: x => (x < 210 ? 1 : x < 330 ? Math.exp(-(x - 210) / 50) : .09) });
+    thAtt(blk, 'fill', mix('#5a6560', '#8a4a40', sm(t, ta + 1, ta + 4)));
+    put(warm, { y: 290 - 10 * ((t * .9) % 1) }); put(hot, { y: 540 - 10 * ((t * 1.1) % 1) });
+    const q = sm(t, to + 1, to + 4); put(fish, { y: 360 + 200 * q, x: 610 + 8 * Math.sin(t * 2), o: 1 - .55 * q });
+  }, D);
+}, { lead: false }],
+['q2', 'Quick check', (m, D) => {
+  const p = panel(0);
+  phBlock(p, 120, 470, 420, 16, '#c8e0ff', { top: 0 });
+  path(p, 'M330 470V230', { stroke: COL.chalk, 'stroke-width': 3, 'stroke-dasharray': '10 8' });
+  lightRay(p, [[180, 230], [330, 470], [480, 230]], { drawn: true });
+  mk('rect', { x: 680, y: 330, width: 240, height: 180, fill: WATER, opacity: .45 }, p); path(p, 'M670 160V510H930V160', { stroke: '#c8e0ff', 'stroke-width': 6, fill: 'none' });
+  path(p, 'M880 140L800 330', { stroke: '#f2c94c', 'stroke-width': 18, 'stroke-linecap': 'butt' }); path(p, 'M780 332L730 470', { stroke: '#d9b54a', 'stroke-width': 18, 'stroke-linecap': 'butt' });
+  mk('circle', { cx: 1250, cy: 380, r: 90, fill: '#c0392b', ...phLine() }, p); path(p, 'M1250 290Q1256 256 1276 246', { stroke: '#6b4a2a', 'stroke-width': 7 });
+}, { ask: done => quiz(Q_CARD, [
+  { id: 'c-law', prompt: ['A ray hits a mirror at 30° from the normal. It leaves at…'],
+    build: choice([['60° from the normal'], ['30° from the normal'], ['90° from the normal']], 1,
+      'Angle in equals angle out, measured from the normal.',
+      ['60° is the angle from the mirror’s surface, not from the normal.', null, 'Only a ray that comes in straight along the normal goes straight back.']) },
+  { id: 'c-sort2', prompt: ['What is the wave doing in each one?'],
+    build: grid([
+      { parts: ['an echo from a cliff'], ans: ['f'], why: 'The sound bounces back: reflection.' },
+      { parts: ['a pencil that looks bent in water'], ans: ['r'], why: 'Light changes speed at the water and bends: refraction.' },
+      { parts: ['dark pavement getting hot in the sun'], ans: ['a'], why: 'The light’s energy goes into the pavement: absorption.' },
+    ], [['f', 'reflection', LIGHT, 'f'], ['r', 'refraction', COL.task, 'r'], ['a', 'absorption', HEAT, 'a']], { multi: false, text: true }) },
+  { id: 'c-apple', prompt: ['Why does a red apple look red?'],
+    build: choice([['It absorbs red light.'], ['It makes its own red light.'], ['It reflects red and absorbs the other colors.']], 2,
+      'Red bounces back to your eyes; the other colors are absorbed.',
+      ['Then no red would reach your eyes.', 'An apple gives off no light of its own; it reflects light that falls on it.', null]) },
+], done) }],
+['wrap2', 'Summary · What waves do', (m, D) => {
+  summary(panel(0), m, [
+    [['Reflection bounces a wave back,', 'at the same angle it came in.'], g => { phBlock(g, 170, 36, 200, 10, '#c8e0ff', { top: 0 }); lightRay(g, [[190, -50], [270, 36], [350, -50]], { w: 5, drawn: true }); }],
+    [['Refraction bends a wave when its speed', 'changes; diffraction spreads it past an opening.'], g => { mk('rect', { x: 170, y: 0, width: 200, height: 50, fill: WATER, opacity: .5 }, g); lightRay(g, [[190, -60], [270, 0], [310, 50]], { w: 5, color: COL.task, drawn: true }); }],
+    [['Interference adds waves; absorption turns', 'wave energy into other energy.'], g => { waveLine(g, { x0: 170, x1: 370, y: 0, color: AMP, w: 6 }).set(36, 100, 0); }],
+  ], 'Next: light and the spectrum.');
+}],
+/* ---------- part 3: light and the electromagnetic spectrum ---------- */
+['part3', 'Part 3 · Light and the spectrum', (m, D) => {
+  const p = panel(0);
+  // A rainbow rises over the left of the title.
+  ROYGBIV.forEach((c, i) => { const r = 330 - i * 22, e = path(p, `M${400 - r} 720A${r} ${r} 0 0 1 ${400 + r} 720`, { stroke: c, 'stroke-width': 22, fill: 'none', 'stroke-linecap': 'butt' }, { d: 0 }); draw(e, .3 + i * .08, 1.4); });
+  opener(p, 1180, 300, 'Part 3', 'Light and the', 'Spectrum');
+}, { lead: false }],
+['transverse', 'Transverse waves', (m, D) => {
+  const p = panel(0), tr = m('rope'), tf = m('fields'), tl = m('light');
+  // You shake a rope up and down; the wave runs along it to a post. A marked bit of rope only moves up and down,
+  // at right angles to the arrow of travel. Then inside light: an electric and a magnetic field at right angles.
+  const A = G(p); hide(A, tf - .3, .6);
+  floorIn(A);
+  const you = phActor(A, 'you', { x: 200, y: Y1, s: 2.4 });
+  phBlock(A, 1440, 520, 30, 220, '#7a5c40', { top: 4 });
+  const rope = waveLine(A, { x0: 280, x1: 1440, y: 579, color: '#d8b56a', w: 9 }), lead = path(A, '', { stroke: '#d8b56a', 'stroke-width': 9 });
+  const mk_ = G(A, { o: 0 }), dot = mk('circle', { r: 13, fill: COL.task, ...phLine(2) }, mk_), ud = path(mk_, '', { stroke: COL.chalk, 'stroke-width': 5, fill: 'none' });
+  show(mk_, tr + 5.4);
+  const dir = G(A, { o: 0 }); path(dir, arrowPath(700, 420, 1150), { stroke: COL.chalk, 'stroke-width': 6, fill: 'none' }); phLabel(dir, 'direction of the wave', { x: 925, y: 395, size: 30 }); show(dir, tr + 6.6);
+  say(A, 'up and down', 1010, 700, tr + 5.8, { size: 30, fill: COL.task, anchor: 'start' });
+  const W = 2 * Math.PI * .8, V = 240, Am = 38;
+  clockRun(t => {
+    const s = Math.max(0, t - tr - .3), src = -Am * Math.sin(W * s);
+    put(you, { y: Y1 - .08 * (Am - src) }); you.show('catch', 1);   // the whole body pumps with the hand
+    const [hx, hy] = you.hand('F');
+    rope.set(-Am, V / .8, W * s, { env: x => (x - 280 < V * s ? 1 : 0) });
+    thAtt(lead, 'd', `M${hx.toFixed(1)} ${hy.toFixed(1)}L280 ${rope.at(280).toFixed(1)}`);
+    const y = rope.at(900); put(dot, { x: 900, y }); thAtt(ud, 'd', 'M940 520V640M928 534L940 518L952 534M928 626L940 642L952 626');
+  }, D);
+  line(A, [['transverse', COL.task], [': wiggles at right angles to its direction of travel']], 800, 110, tr + 1, { size: 38 });
+  // the fields
+  const B = G(p, { o: 0 }); show(B, tf - .3);
+  const AX = [180, 1420], Y0 = 470, EA = 140, BA = 140, WL = 420, DV = [-.42, .32];
+  path(B, `M${AX[0]} ${Y0}H${AX[1]}`, { stroke: COL.dim, 'stroke-width': 4 });
+  path(B, arrowPath(AX[1] - 10, Y0, AX[1] + 60), { stroke: COL.dim, 'stroke-width': 4, fill: 'none' });
+  const eS = path(B, '', { stroke: ELEC, 'stroke-width': 2, opacity: .6 }), eL = path(B, '', { stroke: ELEC, 'stroke-width': 6, fill: 'none' });
+  const bS = path(B, '', { stroke: MAG, 'stroke-width': 2, opacity: .6 }), bL = path(B, '', { stroke: MAG, 'stroke-width': 6, fill: 'none' });
+  phLabel(B, 'electric field', { x: 300, y: 260, size: 32, fill: ELEC }); phLabel(B, 'magnetic field', { x: 300, y: 690, size: 32, fill: MAG });
+  phLabel(B, 'travel', { x: 1500, y: 525, size: 30, fill: COL.dim });
+  const ra = G(B, { o: 0 }); path(ra, `M${AX[0] + 26} ${Y0}V${Y0 - 26}M${AX[0]} ${Y0 - 26}`, { stroke: COL.chalk, 'stroke-width': 3 });
+  path(ra, `M${AX[0]} ${Y0 - 170}V${Y0 + 10}M${AX[0]} ${Y0}L${AX[0] + DV[0] * 180} ${Y0 + DV[1] * 180}`, { stroke: COL.chalk, 'stroke-width': 3, 'stroke-dasharray': '8 6' });
+  phLabel(ra, '90°', { x: AX[0] - 30, y: Y0 - 40, size: 28, anchor: 'end' }); show(ra, tf + 3);
+  clockRun(t => {
+    const ph = W * .75 * t; let e = '', es = '', b = '', bs = '';
+    for (let x = AX[0]; x <= AX[1]; x += 6) { const v = Math.sin(TAU * (x - AX[0]) / WL - ph), ey = Y0 - EA * v, bx = x + DV[0] * BA * v, by = Y0 + DV[1] * BA * v;
+      e += `${x === AX[0] ? 'M' : 'L'}${x} ${ey.toFixed(1)}`; b += `${x === AX[0] ? 'M' : 'L'}${bx.toFixed(1)} ${by.toFixed(1)}`;
+      if ((x - AX[0]) % 24 === 0) { es += `M${x} ${Y0}V${ey.toFixed(1)}`; bs += `M${x} ${Y0}L${bx.toFixed(1)} ${by.toFixed(1)}`; } }
+    thAtt(eL, 'd', e); thAtt(eS, 'd', es); thAtt(bL, 'd', b); thAtt(bS, 'd', bs);
+  }, D);
+  line(B, [['electric', ELEC], [' and '], ['magnetic', MAG], [' fields, at right angles']], 800, 110, tf + .4, { size: 40 });
+  line(p, [['light waves', LIGHT], [': most of them invisible to our eyes']], 800, 820, tl + .3, { size: 38 });
+}, { lead: false }],
+['spectrum', 'The electromagnetic spectrum', (m, D) => {
+  const p = panel(0), tb = m('band'), tv = m('vis'), tlo = m('low'), thi = m('high'), TN = 16.2;   // "A nanometer is…"
+  // The spectrum bar on a true log scale, a wave above it shrinking from long to short. The visible slice is lit and
+  // pulled out into a wide strip, 700 to 400 nm. Then the two ends are named: long, low frequency, low energy on
+  // the left; short, high frequency, high energy on the right.
+  const bar = spectrumBar(p, { x: 100, y: 430, w: 1400, h: 80 });
+  Object.values(bar.bands).forEach((b, i) => { put(b, { o: 0 }); show(b, tb + .4 + i * .25); });
+  put(bar.ticks, { o: 0 }); show(bar.ticks, 4.5);
+  const ch = chirp(p, { x0: 100, x1: 1500, y: 300, A: 36, wl0: 340, wl1: 7, color: COL.chalk }); put(ch, { o: 0 }); show(ch, tb + .8, 1.2);
+  say(p, 'thousands of meters', 160, 412, 6.2, { size: 26, fill: WLEN, anchor: 'start' });
+  say(p, 'a trillionth of a meter', 1500, 412, 8.2, { size: 26, fill: WLEN, anchor: 'end' });
+  const vx0 = bar.xOf(-6.155), vx1 = bar.xOf(-6.398), cg = G(p, { o: 0 });
+  path(cg, `M${vx0} 430L640 222M${vx1} 430L1360 222`, { stroke: COL.dim, 'stroke-width': 2, 'stroke-dasharray': '6 6' });
+  ROYGBIV.forEach((c, i) => mk('rect', { x: 640 + i * 720 / 7, y: 170, width: 720 / 7 + .5, height: 52, fill: c }, cg));
+  phLabel(cg, 'visible light', { x: 1000, y: 150, size: 34 }); phLabel(cg, '700 nm', { x: 620, y: 206, size: 28, anchor: 'end' }); phLabel(cg, '400 nm', { x: 1380, y: 206, size: 28, anchor: 'start' });
+  const cz = chirp(cg, { x0: 640, x1: 1360, y: 280, A: 18, wl0: 90, wl1: 52, color: COL.chalk, w: 4 });   // red's long waves to violet's short ones
+  show(cg, tv + .3); hide(cg, tlo - .3);
+  hide(say(p, '1 nanometer = a billionth of a meter', 1000, 100, TN, { size: 28, fill: COL.dim }), tlo - .3);
+  Object.entries(bar.bands).forEach(([k, b]) => { if (k !== 'vis') { tw(b, { o: .3 }, tv + .2, .5); tw(b, { o: 1 }, tlo - .3, .5); } });
+  hide(ch, tv + .2); show(ch, tlo - .3);
+  const lo = G(p, { o: 0 }), hi = G(p, { o: 0 });
+  [[lo, 120, 'start', '←', [['longer wavelength', WLEN], ['lower frequency', FREQ], ['lower energy', AMP]]], [hi, 1480, 'end', '→', [['shorter wavelength', WLEN], ['higher frequency', FREQ], ['higher energy', AMP]]]]
+    .forEach(([g, x, anchor, ar, rows]) => { phLabel(g, ar, { x, y: 680, size: 60, anchor }); rows.forEach(([s, c], i) => phLabel(g, s, { x: x + (anchor === 'start' ? 80 : -80), y: 670 + i * 46, size: 34, fill: c, anchor })); });
+  show(lo, tlo + .2); show(hi, thi + .2);
+  clockRun(t => { ch.set(t * 2.5); cz.set(t * 4); }, D);
+}, { lead: false }],
+['lowend', 'Radio, microwaves, infrared', (m, D) => {
+  const p = panel(0), tr = m('radio'), tm = m('micro'), ti = m('ir');
+  // The spectrum bar rises to the top; one band at a time lights up over its picture: a radio tower and a radio,
+  // a microwave oven shaking water molecules, a warm person seen in the dark through night vision.
+  const bar = spectrumBar(p, { x: 100, y: 430, w: 1400, h: 80, ticks: false });
+  tw(bar, { y: -320 }, .1, 1.1);
+  const lit = (k, t0, t1) => Object.entries(bar.bands).forEach(([b, g]) => { if (b !== k) tw(g, { o: .3 }, t0, .4); else tw(g, { o: 1 }, t0, .4); });
+  lit('radio', tr + .4); lit('micro', tm); lit('ir', ti);
+  const pointer = (k, x, t0) => { const [bx, , bw] = bar.box(k), g = G(p, { o: 0 }); path(g, `M${bx + bw / 2} 200L${x} 290`, { stroke: COL.dim, 'stroke-width': 3, 'stroke-dasharray': '6 6' }); show(g, t0); };
+  pointer('radio', 300, tr + .8); pointer('micro', 800, tm + .3); pointer('ir', 1300, ti + .3);
+  // radio
+  const r = G(p, { o: 0 }); show(r, tr + .8);
+  radioTower(r, 260, 700);
+  const ra = arcSet(r, 3, { color: '#d8c9a0', w: 5 });
+  phBlock(r, 380, 620, 120, 80, '#9a6a46', { top: 5 }); mk('circle', { cx: 415, cy: 660, r: 22, fill: '#2c3337' }, r);
+  const notes = phLabel(r, '♪ ♫', { x: 470, y: 600, size: 36, fill: COL.task });
+  phLabel(r, 'radio waves', { x: 300, y: 770, size: 34 }); phLabel(r, 'longest, lowest energy', { x: 300, y: 810, size: 26, fill: COL.dim });
+  // microwave oven
+  const mo = G(p, { o: 0 }); show(mo, tm + .3);
+  phBlock(mo, 610, 420, 380, 280, ENAMEL, { top: 6, right: 10 }); phBlock(mo, 630, 445, 260, 230, '#2c3337', { top: 0 });
+  mk('rect', { x: 908, y: 460, width: 56, height: 200, fill: '#cfcac0' }, mo);
+  const mols = [[700, 560], [760, 610], [820, 545]].map(([x, y]) => { const g = G(mo, { x, y }); mk('circle', { r: 16, fill: '#e2553f' }, g); mk('circle', { cx: -16, cy: 12, r: 10, fill: '#f4f1e8' }, g); mk('circle', { cx: 16, cy: 12, r: 10, fill: '#f4f1e8' }, g); return g; });
+  phLabel(mo, 'microwaves', { x: 800, y: 770, size: 34 }); phLabel(mo, 'shake water molecules', { x: 800, y: 810, size: 26, fill: COL.dim });
+  // infrared
+  const ir = G(p, { o: 0 }); show(ir, ti + .3);
+  frameBox(ir, 1090, 390, 420, 320, '#06100c', '#3a6a4a');
+  path(ir, 'M1160 700V560L1190 520L1220 560V700Z', { fill: '#163a2a' });
+  const glow = G(ir); mk('circle', { cx: 1330, cy: 500, r: 34, fill: HEAT }, glow); mk('rect', { x: 1290, y: 540, width: 80, height: 130, rx: 30, fill: HEAT }, glow); mk('circle', { cx: 1330, cy: 500, r: 18, fill: COL.task }, glow); mk('rect', { x: 1308, y: 560, width: 44, height: 80, rx: 18, fill: COL.task }, glow);
+  phLabel(ir, 'infrared', { x: 1300, y: 770, size: 34 }); phLabel(ir, 'warm things give it off', { x: 1300, y: 810, size: 26, fill: COL.dim });
+  say(p, 'night vision', 1300, 370, ti + 3.6, { size: 28, fill: '#8fd6b0' });
+  clockRun(t => {
+    arcsFrom(ra, t, tr + 1, 260, 312, { v: 120, gap: .6, R: 260 });
+    put(notes, { y: -8 * ((t * .8) % 1) });
+    mols.forEach((g, i) => put(g, { r: t > tm ? 28 * Math.sin(t * 18 + i * 2) : 0 }));
+  }, D);
+}, { lead: false }],
+['highend', 'Visible light to gamma rays', (m, D) => {
+  const p = panel(0), tv = m('vis'), tu = m('uv'), tx = m('x'), tg = m('gamma'), tm = m('mnem'), TR = 5.85;   // TR: "Roy G Biv"
+  // The bar again, now lit from visible light rightwards. Pictures: the rainbow with Roy G Biv; the sun's ultraviolet
+  // and a sunburn; an X-ray of a hand; a gamma burst and a warning sign. Then the whole order as a mnemonic.
+  const bar = spectrumBar(p, { x: 100, y: 430, w: 1400, h: 80, ticks: false });
+  put(bar, { y: -320 });
+  const lit = (k, t0) => Object.entries(bar.bands).forEach(([b, g]) => tw(g, { o: b === k ? 1 : .3 }, t0, .4));
+  lit('vis', tv + .2); lit('uv', tu); lit('x', tx); lit('gamma', tg);
+  Object.values(bar.bands).forEach(g => tw(g, { o: .3 }, tm, .4));
+  const pointer = (k, x, t0) => { const [bx, , bw] = bar.box(k), g = G(p, { o: 0 }); path(g, `M${bx + bw / 2} 200L${x} 270`, { stroke: COL.dim, 'stroke-width': 3, 'stroke-dasharray': '6 6' }); show(g, t0); return g; };
+  const pics = [];
+  // visible
+  const v = G(p, { o: 0 }); show(v, tv, .3); pics.push(v, pointer('vis', 250, tv));
+  const LET = 'ROYGBIV';
+  ROYGBIV.forEach((c, i) => { mk('rect', { x: 100 + i * 44, y: 380, width: 44, height: 110, fill: c }, v); const l = phLabel(v, LET[i], { x: 122 + i * 44, y: 360, size: 34, fill: c, o: 0 }); show(l, TR + .9 + i * .62, .3); });
+  const vw = chirp(v, { x0: 100, x1: 408, y: 300, A: 20, wl0: 76, wl1: 44, color: COL.chalk, w: 4 });   // long red waves to short violet ones
+  phLabel(v, 'red: longest', { x: 100, y: 540, size: 26, fill: ROYGBIV[0], anchor: 'start' }); phLabel(v, 'violet: shortest', { x: 408, y: 580, size: 26, fill: ROYGBIV[6], anchor: 'end' });
+  // ultraviolet
+  const u = G(p, { o: 0 }); show(u, tu + .3); pics.push(u, pointer('uv', 640, tu + .3));
+  phSun(u, { x: 560, y: 330, r: 44 });
+  // two rays land on the bather's skin, one on the face and one on the arm; the burn reddens both spots
+  const bather = phActor(u, 'you', { x: 680, y: 700, s: 2 }).face(-1);
+  const burn = G(u, { o: 0 }); mk('ellipse', { cx: 684, cy: 502, rx: 18, ry: 12, fill: '#ff5a5a' }, burn); mk('ellipse', { cx: 666, cy: 594, rx: 12, ry: 22, fill: '#ff5a5a' }, burn); tw(burn, { o: .7 }, 17.2, 1.2);
+  const uvr = waveRays(u, { x0: 590, y0: 368, x1: 670, y1: 550, n: 2, spread: 100, amp: 7, wl: 22, color: '#b48cff' });
+  phLabel(u, 'ultraviolet', { x: 640, y: 770, size: 32 }); phLabel(u, 'sunburn', { x: 640, y: 810, size: 26, fill: COL.dim });
+  // X-rays
+  const xr = G(p, { o: 0 }); show(xr, tx + .3); pics.push(xr, pointer('x', 1030, tx + .3));
+  frameBox(xr, 900, 290, 260, 420, '#101a2a', '#4a5a7a');
+  const flesh = G(xr, { o: .35 }); mk('rect', { x: 960, y: 520, width: 140, height: 160, rx: 40, fill: '#9ab0c8' }, flesh);
+  [[968, 340], [1002, 320], [1036, 326], [1070, 350]].forEach(([x, y]) => mk('rect', { x, y, width: 28, height: 200, rx: 14, fill: '#9ab0c8' }, flesh));
+  mk('rect', { x: 1080, y: 470, width: 60, height: 30, rx: 14, fill: '#9ab0c8', transform: 'rotate(-30 1080 470)' }, flesh);
+  path(xr, 'M982 360V505M1016 340V505M1050 346V505M1084 370V505M985 530L1000 660M1030 530V660M1075 530L1060 660M1100 500L1130 470', { stroke: '#eef3ff', 'stroke-width': 12, 'stroke-dasharray': '50 8' });
+  const xin = waveRays(xr, { x0: 770, y0: 480, x1: 895, y1: 480, n: 1, amp: 9, wl: 16, color: '#eef3ff' }), xout = waveRays(xr, { x0: 1170, y0: 480, x1: 1280, y1: 480, n: 1, amp: 5, wl: 16, color: '#eef3ff' });   // a beam through the hand
+  phLabel(xr, 'X-rays', { x: 1030, y: 770, size: 32 }); phLabel(xr, 'bones absorb more', { x: 1030, y: 810, size: 26, fill: COL.dim });
+  // gamma
+  const gm = G(p, { o: 0 }); show(gm, tg + .3); pics.push(gm, pointer('gamma', 1400, tg + .3));
+  const burst = G(gm, { x: 1400, y: 430 });
+  path(burst, Array.from({ length: 24 }, (_, i) => { const a = i * Math.PI / 12, r = i % 2 ? 40 : 110; return `${i ? 'L' : 'M'}${(r * Math.cos(a)).toFixed(1)} ${(r * Math.sin(a)).toFixed(1)}`; }).join('') + 'Z', { fill: '#c6f58a', ...phLine() });
+  path(gm, 'M1400 580L1460 690H1340Z', { fill: COL.task, ...phLine() }); phLabel(gm, '!', { x: 1400, y: 680, size: 60, fill: PH.out });
+  phLabel(gm, 'gamma rays', { x: 1400, y: 770, size: 32 }); phLabel(gm, 'can damage living cells', { x: 1400, y: 810, size: 26, fill: COL.dim });
+  clockRun(t => { vw.set(t * 3); xin.set(t * 9, 1); xout.set(t * 9, 1); put(burst, { r: t * 20, s: 1 + .06 * Math.sin(t * 5) }); bather.show('stand'); uvr.set(t * 6, sm(t, tu + .3, tu + 1.6)); }, D);
+  pics.forEach(g => tw(g, { o: .2 }, tm, .5));
+  // the mnemonic
+  const WORDS = [['Roger', 'radio'], ['Makes', 'micro'], ['Instruments:', 'ir'], ['Violins,', 'vis'], ['Ukuleles,', 'uv'], ['Xylophones,', 'x'], ['and Guitars', 'gamma']];
+  const mg = G(p); let x = 120;
+  WORDS.forEach(([w, k], i) => {
+    const t0 = tm + 2.2 + i * .78, s = 40, c = COL.task;
+    const lab = runs(mg, [[w.startsWith('and') ? 'and ' : '', COL.chalk], [w.replace('and ', '')[0], c], [w.replace('and ', '').slice(1)]], { x, y: 850, size: s, anchor: 'start' });
+    show(lab, t0, .3); x += uiW(w + ' ', s) + 4;
+    const [bx, , bw] = bar.box(k), L = phLabel(mg, (k === 'gamma' ? 'G' : w[0]), { x: bx + bw / 2, y: 240, size: 34, fill: c, o: 0 }); show(L, t0, .3);
+    tw(bar.bands[k], { o: 1 }, t0, .3);
+  });
+}, { lead: false }],
+['prism', 'A prism and a rainbow', (m, D) => {
+  const p = panel(0), tw_ = m('white'), tp = m('prism'), tr = m('rain'), tf = m('fast'), T8 = 23.7;   // T8: "Sunlight reaches Earth…"
+  // White light enters a glass prism and fans out, red bent least and violet most (Snell's law per colour). Then a
+  // raindrop does the same with a bounce off its back. Then light crosses from the Sun to Earth in about 8 minutes.
+  const A = G(p); hide(A, tr - .3);
+  const P = [[720, 250], [520, 600], [920, 600]];
+  path(A, `M${P[0]}L${P[1]}L${P[2]}Z`, { fill: '#c8e0ff', opacity: .18 }); path(A, `M${P[0]}L${P[1]}L${P[2]}Z`, { stroke: '#c8e0ff', 'stroke-width': 5, fill: 'none' });
+  phLabel(A, 'glass prism', { x: 720, y: 660, size: 30, fill: '#c8e0ff' });
+  const start = [80, 620], dir = [Math.cos(-.42), Math.sin(-.42)], cols = prismPaths(P, start, dir);
+  const white = lightRay(A, [start, cols[0][0]], { color: '#ffffff', w: 8 }); draw(white.line, tw_ + .2, 1.2); put(white.head, { o: 0 }); show(white.head, tw_ + 1);
+  say(A, 'white light', 250, 430, tw_ + .6, { size: 34, fill: '#ffffff' });
+  cols.forEach(([a, b, c], i) => {
+    const r = lightRay(A, [a, b, c], { color: ROYGBIV[i], w: 5, heads: false }); draw(r.line, tp + .6 + i * .12, 1.6);
+  });
+  say(A, 'red', cols[0][2][0] - 10, cols[0][2][1] - 20, tp + 2.4, { size: 30, fill: ROYGBIV[0], anchor: 'end' });
+  say(A, 'violet', cols[6][2][0] - 10, cols[6][2][1] + 44, tp + 2.6, { size: 30, fill: ROYGBIV[6], anchor: 'end' });
+  say(A, 'each wavelength bends a different amount', 800, 120, tp + 2, { size: 36 });
+  // pulses of light run through the prism together as white, then fan out by colour at their own angles
+  const trk = cols.map(([a, b, c]) => [start, a, b, c]), seg = trk.map(P => P.slice(1).map((q, i) => Math.hypot(q[0] - P[i][0], q[1] - P[i][1]))), pul = trk.map((_, i) => mk('circle', { r: 8, fill: '#fff', ...phLine(1.5) }, A));
+  clockRun(t => pul.forEach((d, i) => {
+    const P = trk[i], L = seg[i], tot = L[0] + L[1] + L[2], u = ((t - tw_ - 1.4) / 3.4) % 1, s = u * tot;
+    const k = s < L[0] ? 0 : s < L[0] + L[1] ? 1 : 2, e = s - (k ? L[0] + (k > 1 ? L[1] : 0) : 0), f = e / L[k];
+    put(d, { x: P[k][0] + (P[k + 1][0] - P[k][0]) * f, y: P[k][1] + (P[k + 1][1] - P[k][1]) * f, o: t < tw_ + 1.4 || (k && t < tp + 2.2) ? 0 : 1 });
+    thAtt(d, 'fill', k < 1 ? '#fff' : ROYGBIV[i]);
+  }), D);
+  // the raindrop
+  const B = G(p, { o: 0 }); show(B, tr - .2); hide(B, tf - .3);
+  const C = [760, 380], R = 210, dps = dropPaths(C, R, 100);
+  mk('circle', { cx: C[0], cy: C[1], r: R, fill: '#a9d4ec', opacity: .2, stroke: '#a9d4ec', 'stroke-width': 5 }, B);
+  phLabel(B, 'a raindrop', { x: C[0] + R + 20, y: C[1] + R - 20, size: 30, fill: '#a9d4ec', anchor: 'start' });
+  const din = lightRay(B, [[160, C[1] - 160], dps[0][0]], { color: '#ffffff', w: 7 }); draw(din.line, tr + .4, 1.2); put(din.head, { o: 0 }); show(din.head, tr + 1.2);
+  dps.forEach(([a, b, e, f], i) => { const r = lightRay(B, [a, b, e, f], { color: ROYGBIV[i], w: 4, heads: false }); draw(r.line, tr + 2.2 + i * .1, 3.2, lin); });
+  const lab = (s, [x, y], t0, anchor = 'middle') => say(B, s, x, y, t0, { size: 30, anchor });
+  lab('bends in', [dps[0][0][0] - 30, dps[0][0][1] - 30], 12.2, 'end'); lab('bounces off the back', [dps[0][1][0] + 30, dps[0][1][1] + 10], 13.6, 'start'); lab('bends out', [dps[0][2][0] - 30, dps[0][2][1] - 24], 15.2, 'end');
+  const rb = G(B, { o: 0 }); ROYGBIV.forEach((c, i) => { const r = 150 - i * 12; path(rb, `M${1320 - r} 720A${r} ${r} 0 0 1 ${1320 + r} 720`, { stroke: c, 'stroke-width': 12, fill: 'none', 'stroke-linecap': 'butt' }); }); show(rb, 16);
+  // the Sun and Earth
+  const Cg = G(p, { o: 0 }); show(Cg, tf - .2);
+  spaceBox(Cg, 40, 200, 1520, 520, 11);
+  phSun(Cg, { x: 180, y: 460, r: 90 }); phEarthSmall(Cg, { x: 1440, y: 460, r: 40 });
+  phLabel(Cg, 'Sun', { x: 180, y: 600, size: 30, fill: LIGHT }); phLabel(Cg, 'Earth', { x: 1440, y: 540, size: 30, fill: PH.ocean });
+  const pulseDot = waveRays(Cg, { x0: 290, y0: 460, x1: 1390, y1: 460, n: 1, amp: 10, wl: 46 });
+  const clk = phLabel(Cg, '', { x: 800, y: 680, size: 40, fill: TIME });
+  clockRun(t => { const q = ramp(t, tf + 1.2, T8 + 1.2); pulseDot.set(t * 8, q); phText(clk, t < tf + 1.2 ? '' : `${(8.3 * q).toFixed(1)} minutes`); }, D);
+  line(p, [['light: about '], ['300,000 km', COL.chalk], [' every '], ['second', TIME]], 800, 140, tf + 1, { size: 40 });
+  say(p, 'about 150 million km', 800, 410, T8 - 1.4, { size: 30, fill: COL.dim });
+}, { lead: false }],
+['q3', 'Quick check', (m, D) => {
+  const p = panel(0), bar = spectrumBar(p, { x: 100, y: 300, w: 1400, h: 90 });
+  S.q3bar = bar;
+  phLabel(p, '← lower energy', { x: 100, y: 250, size: 30, fill: COL.dim, anchor: 'start' }); phLabel(p, 'higher energy →', { x: 1500, y: 250, size: 30, fill: COL.dim, anchor: 'end' });
+  phLabel(p, 'visible', { x: bar.xOf(-6.28), y: 290, size: 24, fill: COL.chalk });
+}, { ask: done => quiz(Q_CARD, [
+  { id: 'c-tap', prompt: ['Click the part of the spectrum with the highest energy.'],
+    build: pickEls([['radio', 'radio waves'], ['vis', 'visible light'], ['gamma', 'gamma rays']].map(([k, label]) => { const [x, y, w, h] = S.q3bar.box(k), pad = Math.max(0, 50 - w) / 2; return { el: S.q3bar.bands[k], box: [x - pad - 6, y - 8, w + 2 * pad + 12, h + 16], label }; }), 2,
+      'Gamma rays: the shortest waves, the highest frequency, the most energy.',
+      i => ['Radio waves have the lowest energy: the far left end.', 'Visible light is in the middle; the energy keeps rising to the right.'][i]) },
+  { id: 'c-uv', prompt: ['Compared with visible light, ultraviolet has…'],
+    build: choice([['a lower frequency'], ['a longer wavelength'], ['a higher frequency and more energy']], 2,
+      'Ultraviolet sits just past violet: shorter waves, higher frequency, more energy.',
+      ['To the right of violet, frequency goes up.', 'Higher frequency means a shorter wavelength.', null]) },
+  { id: 'c-prism', prompt: ['A prism splits white light because each color…'],
+    build: choice([['bends by a different amount'], ['travels at a different speed in empty space'], ['is absorbed by the glass']], 0,
+      'In glass each wavelength bends a different amount, so the colors fan out.',
+      [null, 'In empty space every color travels at the same speed; they bend differently in glass.', 'The colors come out of the prism; they are not absorbed.']) },
+], done) }],
+['wrap3', 'Summary · The spectrum', (m, D) => {
+  summary(panel(0), m, [
+    [['Electromagnetic waves are transverse,', 'and they cross empty space.'], g => { waveLine(g, { x0: 170, x1: 370, y: 0, color: ELEC, w: 5 }).set(34, 100, 0); }],
+    [['From radio to gamma rays, wavelength', 'shrinks; frequency and energy grow.'], g => { chirp(g, { x0: 160, x1: 380, y: 0, A: 24, wl0: 90, wl1: 12, color: COL.chalk }); }],
+    [['We see only visible light; a prism', 'spreads white light into its colors.'], g => { ROYGBIV.forEach((c, i) => mk('rect', { x: 170 + i * 28, y: -30, width: 28, height: 60, fill: c }, g)); }],
+  ], 'Next: sound.');
+}],
+/* ---------- part 4: sound ---------- */
+['part4', 'Part 4 · Sound waves', (m, D) => {
+  const p = panel(0);
+  const f = tuningFork(p, 300, 720, 1.3), a = arcSet(p, 4, { w: 6 });
+  clockRun(t => { f.ring(3 * Math.sin(t * 50)); arcsFrom(a, t, .3, 340, 410, { v: 160, gap: .5, R: 420 }); }, D);
+  opener(p, 1180, 300, 'Part 4', 'Sound Waves');
+}, { lead: false }],
+['sound', 'Sound is longitudinal', (m, D) => {
+  const p = panel(0), tf = m('fork'), tp = m('push'), tc = m('comp'), te = m('exp'), tl = m('long'), tv = m('vac');
+  // A tuning fork rings; the molecules beside it crowd together and spread apart, and the crowding runs to the
+  // right. Brackets ride with a compression and an expansion. One marked molecule swings back and forth along the
+  // travel arrow. Then space: the alarm clock rings with nothing around it to carry the sound.
+  const A = G(p); hide(A, tv - .3, .6);
+  const f = tuningFork(A, 160, 740, 1.2), fa = arcSet(A, 3, { w: 6, span: .9 });
+  const X = 260, WL = 230, V = 120, AMPL = 18, fld = longField(A, { x: X, y: 300, w: 1240, h: 280, cols: 58, rows: 8, r: 6 });
+  const phase = t => TAU * V / WL * Math.max(0, t - tp), reach = t => X + V * Math.max(0, t - tp) + 10;
+  const box = (t0, lab, yLab) => { const g = G(A, { o: 0 }); const r = mk('rect', { y: 286, width: 70, height: 308, rx: 12, fill: 'none', stroke: COL.task, 'stroke-width': 4 }, g); const l = phLabel(g, lab, { y: yLab, size: 32, fill: COL.task }); show(g, t0); return [r, l]; };
+  const [cr, cl] = box(tc, 'compression', 270), [er, el] = box(te, 'expansion', 640);
+  const mark = G(A, { o: 0 }), md = mk('circle', { r: 13, fill: 'none', stroke: COL.task, 'stroke-width': 4 }, mark), ma = path(mark, '', { stroke: COL.task, 'stroke-width': 5, fill: 'none' });
+  show(mark, tl + .3);
+  const dir = G(A, { o: 0 }); path(dir, arrowPath(700, 700, 1150), { stroke: COL.chalk, 'stroke-width': 6, fill: 'none' }); phLabel(dir, 'direction of travel', { x: 925, y: 750, size: 30 }); show(dir, tl + 1.2);
+  clockRun(t => {
+    const ph = phase(t), a = AMPL * sm(t, tp - .2, tp + .6), R = reach(t);
+    f.ring(t > tf ? 10 * Math.sin(t * 22) : 0);
+    arcsFrom(fa, t, tf + .3, 190, 400, { v: 200, gap: .6, R: 330, until: tp + .4 });   // the ringing fork pushes the air a little
+    fld.set(ph, a, WL, R);
+    const cx = fld.comp(ph, WL, 2), ex = cx + WL / 2;
+    thAtt(cr, 'x', cx - 35); put(cl, { x: cx }); thAtt(er, 'x', ex - 35); put(el, { x: ex });
+    const [mx, my] = fld.xAt(24, 3, ph, a, WL, R); put(md, { x: mx, y: my });
+    const bx = fld.xAt(24, 3, 0, 0, WL)[0]; thAtt(ma, 'd', `M${bx - 26} ${my + 40}H${bx + 26}M${bx - 14} ${my + 30}L${bx - 26} ${my + 40}L${bx - 14} ${my + 50}M${bx + 14} ${my + 30}L${bx + 26} ${my + 40}L${bx + 14} ${my + 50}`);
+  }, D);
+  line(A, [['longitudinal', COL.task], [': molecules move back and forth along the direction of travel']], 800, 110, tl + 4.8, { size: 34 });
+  hide(cl, tl); hide(el, tl); hide(cr, tl); hide(er, tl);
+  // space
+  const B = G(p, { o: 0 }); show(B, tv - .2);
+  spaceBox(B, 260, 190, 1080, 520, 21);
+  const clock = alarmClock(B, { x: 800, y: 450 });
+  phLabel(B, 'no molecules: no sound', { x: 800, y: 790, size: 40 });
+  const ca = arcSet(B, 3, { w: 6, span: .9 });
+  clockRun(t => { put(clock.bells, { r: t > tv ? 8 * Math.sin(t * 30) : 0 }); if (t > tv) arcsFrom(ca, t, tv + .3, 800, 450, { v: 170, gap: .7, R: 230 }); }, D);   // each ring dies at once: nothing carries it
+}, { lead: false }],
+['sspeed', 'The speed of sound', (m, D) => {
+  const p = panel(0), ta = m('air'), tl = m('light'), ts = m('storm'), to = m('solid');
+  // A clap's sound covers 340 m in one second (slowed down); a light flash crosses the same track at once. A storm:
+  // the flash is seen at once, the thunder arrives later. Then three lanes: air, water and steel, steel fastest.
+  const A = G(p); hide(A, ts - .3);
+  const U = 3.4, X0 = 300;
+  meterTrack(A, { x0: X0, U, y: 620, to: 340, every: 50 });
+  const you = phActor(A, 'you', { x: 200, y: 640, s: 2 });
+  const sa = arcSet(A, 1, { w: 8, maxH: 130 }), front = path(A, '', { stroke: SOUND, 'stroke-width': 4, 'stroke-dasharray': '8 8' });
+  const flash = path(A, `M${X0} 470H${X0 + U * 340}`, { stroke: LIGHT, 'stroke-width': 10 }); put(flash, { o: 0 }); tw(flash, { o: 1 }, tl + .5, .05); hide(flash, tl + 1.4, .8);
+  const clk = phLabel(A, '', { x: 1500, y: 300, size: 36, fill: TIME, anchor: 'end' });
+  txt(A, 'slow motion', 1500, 340, ta + .6, { size: 24, fill: COL.dim, anchor: 'end' });
+  clockRun(t => {
+    const s = ramp(t, ta + .8, ta + 3.8), x = X0 + U * 340 * s; you.show(t > ta && t < ta + 1 ? 'catch' : 'stand', 1);
+    sa.set(X0 - 100, 500, [x - X0 + 100], [t > ta + .8 && s < 1 ? 1 : 0]); thAtt(front, 'd', t > ta + .8 ? `M${x} 470V600` : '');
+    phText(clk, t < ta + .8 ? '' : `${s.toFixed(2)} s`);
+  }, D);
+  say(A, 'sound: about 340 m in one second', 800, 200, ta + 3.9, { size: 36, fill: SOUND });
+  say(A, 'light: almost a million times faster', 800, 400, tl + .6, { size: 36, fill: LIGHT });
+  // the storm
+  const B = G(p, { o: 0 }); show(B, ts - .3); hide(B, to - .3);
+  floorIn(B);
+  const cloud = G(B); [[200, 200, 80], [290, 170, 100], [390, 210, 80]].forEach(([x, y, r]) => mk('circle', { cx: x, cy: y, r, fill: '#55625b' }, cloud));
+  const bolt = path(B, 'M300 260L250 420L300 420L240 620', { stroke: LIGHT, 'stroke-width': 10, fill: 'none' }); put(bolt, { o: 0 });
+  tw(bolt, { o: 1 }, ts + .4, .05); hide(bolt, ts + .9, .3);
+  const sky = mk('rect', { x: 0, y: 0, width: 1600, height: 740, fill: LIGHT }, B); put(sky, { o: 0 }); tw(sky, { o: .25 }, ts + .4, .05); hide(sky, ts + .7, .3);
+  const watcher = phActor(B, 'friend', { x: 1300, y: Y1, s: 2.2 }).face(-1);
+  const th = arcSet(B, 3, { w: 7, maxH: 220 });
+  const tHear = ts + .5 + 3;
+  clockRun(t => arcsFrom(th, t, ts + .5, 300, 520, { v: 1000 / 3, gap: .25, R: 1300, dir: 1, until: ts + 1 }), D);
+  say(B, 'see the flash', 1300, 380, ts + .6, { size: 32, fill: LIGHT });
+  say(B, 'hear the thunder', 1300, 340, tHear, { size: 32, fill: SOUND });
+  // three lanes
+  const Cg = G(p, { o: 0 }); show(Cg, to - .2);
+  const lanes = [['air', 380, 343, 70], ['water', 530, 1480, 34], ['steel (a solid)', 680, 5960, 16]];
+  lanes.forEach(([name, y, v, gap]) => {
+    let d = ''; for (let x = 340; x < 1480; x += gap) for (let yy = y - 40; yy <= y + 40; yy += gap) d += `M${x - 3} ${yy}a3 3 0 1 0 6 0a3 3 0 1 0 -6 0`;
+    path(Cg, d, { fill: COL.faint });
+    phLabel(Cg, name, { x: 320, y: y + 10, size: 30, anchor: 'end' });
+  });
+  const pl = lanes.map(([, y]) => [mk('circle', { r: 16, fill: SOUND, ...phLine(2) }, Cg), y]);
+  clockRun(t => pl.forEach(([d, y], i) => put(d, { x: Math.min(1480, 340 + 1140 * lanes[i][2] / 5960 * Math.max(0, t - to - .5) / 2.8), y })), D);
+  line(Cg, [['solids: fastest. Molecules close together pass the bump quickly.']], 800, 820, to + 2.8, { size: 32 });
+  txt(Cg, 'a sound pulse racing in each', 800, 250, to, { size: 32, fill: COL.dim });
+}, { lead: false }],
+['loud', 'Loudness and intensity', (m, D) => {
+  const p = panel(0), ta = m('amp'), ti = m('intensity'), tf = m('far'), td = m('db'), tpl = m('plane'), TI = 7.5, TT = 17.5;   // "We call that intensity", "Normal talking…"
+  // A quiet and a loud sound wave, amplitude bars green; energy blocks stream through a window on each, more on the
+  // loud one. Then you walk away from a speaker: the arcs spread and your meter falls. Then a decibel scale.
+  const A = G(p); hide(A, tf - .3);
+  const W = [[120, 740, 26, 'quieter', 240], [860, 1480, 100, 'louder', 60]].map(([x0, x1, a, lab, gap]) => {
+    const w = waveLine(A, { x0, x1, y: 360, color: SOUND, w: 6 });
+    phLabel(A, lab, { x: (x0 + x1) / 2, y: 180, size: 38 });
+    const bar = distBar(A, { color: AMP, w: 7, size: 28 }), al = phLabel(A, 'amplitude', { x: x0 + 40, y: 360 - a - 30, size: 30, fill: AMP, anchor: 'start', o: 0 }); show(al, ta + 1);
+    const win = G(A, { o: 0 }); mk('rect', { x: x1 - 170, y: 230, width: 80, height: 330, rx: 8, fill: '#ece8dc', 'fill-opacity': .08, stroke: COL.chalk, 'stroke-width': 4 }, win); phLabel(win, 'one area', { x: x1 - 130, y: 220, size: 26, fill: COL.dim });
+    const blocks = eBlocks(A, Math.ceil(620 / gap) + 1, AMP, { size: 22 }); blocks.forEach(b => put(b, { o: 0 }));
+    return { x0, x1, a, w, bar, win, blocks, gap };
+  });
+  W.forEach(w => show(w.win, ti + .3));
+  clockRun(t => W.forEach(({ x0, x1, a, w, bar, blocks, gap }) => {
+    w.set(a, 160, t * 5, { from: x0, to: x1 }); bar.set(x0 + 40, 360, x0 + 40, 360 - a, '', 'right');
+    blocks.forEach((b, i) => { const x = x0 + ((90 * t + i * gap) % (blocks.length * gap)); put(b, { x, y: 525, o: t > ti + .6 && x < x1 - 10 ? 1 : 0 }); });
+  }), D);
+  W.forEach(({ x0 }) => say(A, 'energy', x0 - 10, 532, ti + .6, { size: 26, fill: AMP, anchor: 'end' }));
+  line(A, [['intensity', AMP], [': energy through each area each second']], 800, 660, TI, { size: 38 });
+  // walking away
+  const B = G(p, { o: 0 }); show(B, tf - .2); hide(B, td - .3);
+  floorIn(B);
+  phBlock(B, 100, 560, 110, 180, '#2c3337', { top: 4 }); mk('circle', { cx: 155, cy: 610, r: 30, fill: '#55625b' }, B); mk('circle', { cx: 155, cy: 690, r: 22, fill: '#55625b' }, B);
+  const ring = arcSet(B, 5, { w: 6, span: .9 });
+  const walker = phActor(B, 'you', { x: 400, y: Y1, s: 2.2 });
+  const MH = 260, MT = 220, mg = G(B), meter = mk('rect', { width: 70, fill: AMP }, mg); mk('rect', { width: 70, y: MT, height: MH, fill: 'none', stroke: COL.chalk, 'stroke-width': 4, rx: 4 }, mg);
+  phLabel(mg, 'intensity', { x: 35, y: MT - 64, size: 30, fill: AMP }); const mr = phLabel(mg, '', { x: 35, y: MT - 20, size: 36 });
+  clockRun(t => {
+    const x = lerp(400, 1250, sm(t, tf + .5, tf + 5.5)); put(walker, { x }); walker.stride('walk', x - 400);
+    if (t < tf + .5 || t > tf + 5.5) walker.show('stand');
+    arcsFrom(ring, t, tf - .2, 210, 600, { v: 220, gap: .5, R: 1400 });
+    const r = x - 210, k = Math.min(1, (190 / r) ** 2), h = MH * k;
+    put(mg, { x: x + 70 }); thAtt(meter, 'y', MT + MH - h); thAtt(meter, 'height', h); phText(mr, `${Math.round(100 * k)}%`);
+  }, D);
+  say(B, 'farther away: lower intensity, quieter', 800, 90, tf + 2.4, { size: 36 });
+  // the decibel scale
+  const Cg = G(p, { o: 0 }); show(Cg, td - .2);
+  const DY = v => 820 - 4.4 * v;
+  path(Cg, `M760 ${DY(0)}V${DY(150)}`, { stroke: COL.chalk, 'stroke-width': 6 });
+  for (let v = 0; v <= 150; v += 10) { path(Cg, `M760 ${DY(v)}h${v % 50 ? 18 : 30}`, { stroke: COL.chalk, 'stroke-width': 3 }); if (v % 50 === 0) phLabel(Cg, `${v} dB`, { x: 740, y: DY(v) + 10, size: 28, anchor: 'end' }); }
+  phLabel(Cg, 'decibels', { x: 760, y: 120, size: 32, fill: AMP });
+  const talk = G(Cg, { o: 0 }); phActor(talk, 'you', { x: 500, y: DY(50) + 60, s: 1.2 }); phActor(talk, 'friend', { x: 600, y: DY(50) + 60, s: 1.2 }).face(-1);
+  phLabel(talk, 'talking: 50 dB', { x: 550, y: DY(50) - 150, size: 30 }); show(talk, TT);
+  const steps = G(Cg, { o: 0 });
+  [50, 60, 70].forEach(v => { path(steps, `M${830} ${DY(v) - 4}q40 -${4.4 * 5} 0 -${4.4 * 10 - 8}`, { stroke: AMP, 'stroke-width': 4, fill: 'none' }); phLabel(steps, '× 10 intensity', { x: 880, y: DY(v + 5) + 10, size: 26, fill: AMP, anchor: 'start' }); });
+  show(steps, TT + 3.4);
+  const jet = G(Cg, { o: 0 });
+  path(jet, `M840 ${DY(140)}l180 -16l40 -30l24 0l-20 34l60 6l20 -20h16l-10 28l-10 4h-60l-30 30h-24l14 -30z`, { fill: ENAMEL, ...phLine(2) });
+  phLabel(jet, 'jet taking off: about 140 dB', { x: 1190, y: DY(140) + 10, size: 26, anchor: 'start' });
+  show(jet, tpl);
+  const worker = G(Cg, { o: 0 }); phActor(worker, 'friend', { x: 1300, y: 740, s: 1.6 }); mk('rect', { x: 1284, y: 590, width: 32, height: 34, rx: 10, fill: COL.task, ...phLine(2) }, worker);
+  phLabel(worker, 'ear protection', { x: 1300, y: 790, size: 28, fill: COL.task }); show(worker, tpl + 2.6);
+  const ptr = path(Cg, '', { stroke: AMP, 'stroke-width': 6, fill: AMP }); put(ptr, { o: 0 }); show(ptr, TT);
+  const ta2 = arcSet(Cg, 3, { w: 5, maxH: 110 }), ja = arcSet(Cg, 4, { w: 6, maxH: 150 });   // quiet talk: small arcs; the jet: big ones
+  clockRun(t => { arcsFrom(ta2, t, TT, 555, 600, { v: 120, gap: .7, R: 230 }); arcsFrom(ja, t, tpl, 1000, 204, { v: 260, gap: .35, R: 330 });
+    const v = lerp(lerp(50, 70, sm(t, TT + 3.4, TT + 5.4)), 140, sm(t, tpl, tpl + 1.4)); thAtt(ptr, 'd', `M736 ${DY(v)}l-30 -14v28z`); }, D);
+}, { lead: false }],
+['pitch', 'Pitch', (m, D) => {
+  const p = panel(0), tb = m('bass'), ts = m('sop'), td = m('def'), tsa = m('same');
+  // A bass singer above a long, wide wave; a soprano below a short, close one. Pitch is how we hear frequency. Then
+  // the bass sings loud and the soprano quietly: amplitude changes, pitch doesn't.
+  const rows = [{ who: 'you', y: 330, foot: 450, wl: 300, t0: tb, lab: [['bass', COL.chalk], [': low notes · long waves · '], ['low frequency', FREQ]] },
+                { who: 'friend', y: 680, foot: 800, wl: 75, t0: ts, lab: [['soprano', COL.chalk], [': high notes · short waves · '], ['high frequency', FREQ]] }];
+  rows.forEach((r, i) => {
+    r.g = G(p, { o: 0 }); show(r.g, r.t0 + .2);
+    r.a = phActor(r.g, r.who, { x: 190, y: r.foot, s: 2 });
+    r.w = waveLine(r.g, { x0: 320, x1: 1480, y: r.y, color: SOUND, w: 6 });
+    line(r.g, r.lab, 340, r.y - 120, r.t0 + .4, { size: 34, anchor: 'start' });
+    r.note = phLabel(r.g, '♪', { x: 280, y: r.foot - 230, size: 40, fill: COL.task });
+  });
+  clockRun(t => rows.forEach((r, i) => {
+    const loud = i === 0 ? lerp(50, 95, sm(t, tsa + 1, tsa + 2.4)) : lerp(50, 18, sm(t, tsa + 1, tsa + 2.4));
+    r.w.set(loud, r.wl, TAU * (i ? 4 : 1) * t * .5);
+    put(r.a, { y: r.foot - 3 * Math.abs(Math.sin(t * 3 + i)) }); put(r.note, { y: -16 * ((t * .7 + i * .5) % 1), o: 1 - ((t * .7 + i * .5) % 1) });
+  }), D);
+  line(p, [['pitch', COL.task], [': how we hear '], ['frequency', FREQ]], 800, 80, td + .2, { size: 44 });
+  say(p, 'loud and low', 1480, 200, tsa + 2.4, { size: 30, fill: AMP, anchor: 'end' });
+  say(p, 'quiet and high', 1480, 760, tsa + 2.6, { size: 30, fill: AMP, anchor: 'end' });
+  line(p, [['pitch is not loudness: '], ['amplitude', AMP], [' changes, '], ['frequency', FREQ], [' does not']], 800, 870, tsa + 3.4, { size: 32 });
+}, { lead: false }],
+['signal', 'Analog and digital', (m, D) => {
+  const p = panel(0), ta = m('analog'), td = m('digital'), tph = m('phone'), tc = m('clean'), TB = 4.5;   // TB: "…interference can blur it"
+  // An analog trace that varies smoothly, blurred by noise; a digital trace of 1s and 0s. A phone call: voice to
+  // pulses, through towers and a satellite, back to voice. Then noise hits the pulses: still the same bits.
+  const noise = (x, t) => 9 * Math.sin(x * .37 + t * 23) + 6 * Math.sin(x * 1.13 - t * 31) + 4 * Math.sin(x * 2.9 + t * 17);
+  const an = path(p, '', { stroke: SOUND, 'stroke-width': 5, fill: 'none' }); put(an, { o: 0 }); show(an, ta + .2);
+  phLabel(p, 'analog', { x: 140, y: 120, size: 34, anchor: 'start', o: 1 });
+  say(p, 'smooth: any height', 1460, 120, ta + 2.6, { size: 28, fill: COL.dim, anchor: 'end' });
+  say(p, 'noise blurs it', 1460, 324, TB + .6, { size: 28, fill: HEAT, anchor: 'end' });
+  const BITS = [1, 0, 1, 1, 0, 1, 0, 0, 1, 1], BW = 132, BX = 140, HI = 430, LO = 510;
+  const dg = path(p, '', { stroke: COL.task, 'stroke-width': 6, fill: 'none' }); put(dg, { o: 0 }); show(dg, td + .2);
+  const bitG = G(p, { o: 0 }); BITS.forEach((b, i) => phLabel(bitG, String(b), { x: BX + i * BW + BW / 2, y: 385, size: 32, fill: COL.task })); show(bitG, td + .6);
+  const dl = say(p, 'digital: only 1s and 0s', 140, 342, td, { size: 34, anchor: 'start' });
+  const thr = path(p, `M${BX} 470H${BX + BITS.length * BW}`, { stroke: COL.dim, 'stroke-width': 2, 'stroke-dasharray': '8 8' }); put(thr, { o: 0 }); show(thr, tc + .8);
+  say(p, 'still 1 0 1 1 0 1 0 0 1 1', 1460, 580, tc + 2, { size: 30, fill: COL.task, anchor: 'end' });
+  clockRun(t => {
+    let d = ''; const nA = sm(t, TB, TB + 1.5);
+    for (let x = 140; x <= 1460; x += 4) { const u = x - 140, y = 210 - (40 + 22 * Math.sin(u / 210)) * Math.sin(u / 40 + 3 * Math.sin(u / 300) - t * 3) + nA * noise(x, t); d += `${x === 140 ? 'M' : 'L'}${x} ${y.toFixed(1)}`; }
+    thAtt(an, 'd', d);
+    const nD = sm(t, tc, tc + 1.2); let e = '';
+    for (let x = BX; x <= BX + BITS.length * BW; x += 4) { const i = Math.min(BITS.length - 1, Math.floor((x - BX) / BW)), y = (BITS[i] ? HI : LO) + nD * noise(x, t) * .8; e += `${x === BX ? 'M' : 'L'}${x} ${y.toFixed(1)}`; }
+    thAtt(dg, 'd', e);
+  }, D);
+  // the phone call
+  const C = G(p, { o: 0 }); show(C, tph);
+  const ph = (x) => { phBlock(C, x - 30, 720, 60, 110, '#2c3337', { top: 4 }); mk('rect', { x: x - 22, y: 732, width: 44, height: 76, fill: '#4a7fa8' }, C); };
+  ph(160); ph(1440); [460, 1140].forEach(x => radioTower(G(C, { x, y: 840, s: .5 }), 0, 0));
+  const sat = G(C, { x: 800, y: 640 }); phBlock(sat, -30, -24, 60, 48, '#c3ccce', { top: 4 }); phBlock(sat, -110, -14, 70, 28, '#4a7fa8', { top: 0 }); phBlock(sat, 40, -14, 70, 28, '#4a7fa8', { top: 0 });
+  const PTS = [[160, 720], [460, 650], [800, 640], [1140, 650], [1440, 720]];
+  path(C, PTS.map(([x, y], i) => `${i ? 'L' : 'M'}${x} ${y}`).join(''), { stroke: COL.faint, 'stroke-width': 3, 'stroke-dasharray': '6 8' });
+  phLabel(C, 'voice', { x: 160, y: 860, size: 28, fill: SOUND }); phLabel(C, 'voice', { x: 1440, y: 860, size: 28, fill: SOUND });
+  const pk = eBlocks(C, 6, COL.task, { size: 18 });
+  const along = s => { const segs = PTS.slice(1).map((q, i) => [PTS[i], q, Math.hypot(q[0] - PTS[i][0], q[1] - PTS[i][1])]), tot = segs.reduce((a, g) => a + g[2], 0); let r = s * tot; for (const [a, b, L] of segs) { if (r <= L) return [a[0] + (b[0] - a[0]) * r / L, a[1] + (b[1] - a[1]) * r / L]; r -= L; } return PTS[4]; };
+  clockRun(t => pk.forEach((b, i) => { const s = (t - tph - 1 - i * .35) / 4; const [x, y] = along(Math.max(0, Math.min(1, s))); put(b, { x, y: y - 24, o: s > 0 && s < 1 ? 1 : 0 }); }), D);
+}, { lead: false }],
+['q4', 'Quick check', (m, D) => {
+  const p = panel(0), f = tuningFork(p, 220, 520, 1), fld = longField(p, { x: 320, y: 230, w: 1080, h: 220, cols: 50, rows: 6, r: 6 });
+  clockRun(t => { f.ring(3 * Math.sin(t * 50)); fld.set(TAU * .5 * t, 14, 220); }, D);
+}, { ask: done => quiz(Q_CARD, [
+  { id: 'c-long', prompt: ['In a sound wave the molecules move…'],
+    build: choice([['up and down, across the direction of travel'], ['back and forth along the direction of travel'], ['not at all']], 1,
+      'Sound is longitudinal: compressions and expansions along the way it travels.',
+      ['That is a transverse wave, like light or a shaken rope.', null, 'They move, but only back and forth: they pass the bump along and stay roughly in place.']) },
+  { id: 'c-pitch', prompt: ['Which has a higher frequency?'],
+    build: choice([['a bass singer’s low note'], ['a soprano’s high note'], ['they are the same']], 1,
+      'High notes: short waves, high frequency.',
+      ['Low notes have lower frequency and longer waves.', null, 'A higher pitch is a higher frequency.']) },
+  { id: 'c-storm', prompt: ['You see lightning before you hear its thunder because…'],
+    build: choice([['the thunder happens later'], ['light travels much faster than sound'], ['the air blocks the sound']], 1,
+      'Light is almost a million times faster than sound in air.',
+      ['Both happen at the same moment; the sound is slower to reach you.', null, 'The sound does reach you, only later.']) },
+], done) }],
+['wrap4', 'Summary · Sound', (m, D) => {
+  summary(panel(0), m, [
+    [['Sound is a longitudinal wave,', 'and it needs matter.'], g => { longField(g, { x: 170, y: -30, w: 200, h: 60, cols: 16, rows: 3, r: 5 }).set(0, 6, 70); }],
+    [['Louder: larger amplitude. Higher pitch:', 'higher frequency.'], g => { waveLine(g, { x0: 170, x1: 370, y: 0, color: SOUND, w: 5 }).set(30, 40, 0); }],
+    [['Sound is fastest in solids; digital', 'signals stay clearer than analog ones.'], g => { path(g, 'M170 20V-20H220V20H250V-20H330V20H370', { stroke: COL.task, 'stroke-width': 5, fill: 'none' }); }],
+  ], 'Time for the chapter practice.');
+}],
+/* ---------- chapter practice and finish ---------- */
+['final1', 'Chapter practice: light', () => { PRACTICE = panel(0); }, { ask: done => quiz(SCREEN, withPics([
+  { id: 'p-roy', prompt: ['Which is the order of the colors of visible light?'],
+    build: choice([['red, yellow, orange, green, indigo, blue, violet'], ['red, orange, yellow, green, blue, indigo, violet'], ['violet, indigo, blue, green, yellow, orange, red']], 1,
+      'Roy G Biv: red, orange, yellow, green, blue, indigo, violet.',
+      ['Orange comes before yellow, and blue before indigo.', null, 'Start from the longest wavelength: red.']) },
+  { id: 'p-amp', prompt: ['A high-intensity sound wave has a large ______.'],
+    build: choice([['wavelength'], ['amplitude'], ['frequency']], 1,
+      'More energy each second through each area means a larger amplitude.',
+      ['Wavelength sets the pitch, not the intensity.', null, 'Frequency is the pitch; intensity comes from amplitude.']) },
+  { id: 'p-solid', prompt: ['Sound waves travel fastest in ______.'],
+    build: choice([['gases'], ['liquids'], ['solids']], 2,
+      'In solids the molecules are close together and pass the bump along quickly.',
+      ['Gas molecules are far apart, so sound is slowest there.', 'Faster than in air, but solids are faster still.', null]) },
+  { id: 'p-micro', prompt: ['What kind of waves warm up food in an oven?'],
+    build: choice([['microwaves'], ['radio waves'], ['X-rays']], 0,
+      'Their frequency is just right for shaking water molecules.',
+      [null, 'Radio waves carry music; they are too long to heat food.', 'X-rays pass through flesh; they are used to see bones.']) },
+  { id: 'p-gamma', prompt: ['Which high-energy electromagnetic waves can harm living things?'],
+    build: choice([['radio waves'], ['infrared'], ['gamma rays']], 2,
+      'Gamma rays have the most energy of all and can damage living cells.',
+      ['Radio waves have the lowest energy.', 'Infrared is warmth from warm things.', null]) },
+]), done, 'Chapter practice, set 1 of 2 · question') }],
+['final2', 'Chapter practice: the spectrum and sound', () => { PRACTICE = panel(0); }, { ask: done => quiz(SCREEN, withPics([
+  { id: 'p-sun', prompt: ['What kind of wave causes sunburn?'],
+    build: choice([['infrared'], ['visible light'], ['ultraviolet']], 2,
+      'Ultraviolet has more energy than visible light; the sun gives it off.',
+      ['Infrared is the warmth you feel, not the burn.', 'Visible light is what you see; the burn comes from beyond violet.', null]) },
+  { id: 'p-vis', prompt: ['Which electromagnetic waves can we see?'],
+    build: choice([['visible light'], ['X-rays'], ['microwaves']], 0,
+      'Only the thin band from 700 to 400 nanometers.',
+      [null, 'X-rays are invisible; they show bones on film.', 'Microwaves are invisible; they heat food.']) },
+  { id: 'p-warm', prompt: ['Warm bodies give off what kind of wave?'],
+    build: choice([['ultraviolet'], ['infrared'], ['gamma rays']], 1,
+      'Warm things give off infrared, which night vision goggles pick up.',
+      ['The sun gives off ultraviolet; warm bodies give off infrared.', null, 'Gamma rays are far higher energy.']) },
+  { id: 'p-phone', prompt: ['Why would a cell phone make no sound in space?'],
+    build: choice([['Its battery would stop.'], ['Sound needs matter to pass from molecule to molecule, and space has none.'], ['Sound would be too fast to hear.']], 1,
+      'With no molecules to push, the vibration has nothing to travel through.',
+      ['The phone could still work; the sound has no air to travel in.', null, 'Sound is not too fast; it has nothing to travel through.']) },
+  { id: 'p-pitch', prompt: ['Why do higher-pitched sounds have higher frequencies?'],
+    build: choice([['Longer waves mean more of them pass each second.'], ['Louder sounds are higher.'], ['At the same speed, shorter waves mean more of them pass each second.']], 2,
+      'Sound’s speed stays the same, so short waves pass more often: a higher frequency, a higher pitch.',
+      ['Longer waves pass less often: fewer each second.', 'Loudness is amplitude; pitch is frequency.', null]) },
+]), done, 'Chapter practice, set 2 of 2 · question') }],
+['finish', 'Finished', () => {
+  // under the card, the chapter in four small pictures with their names
+  const p = panel(0);
+  [['waves', 300, g => { waveLine(g, { x0: -80, x1: 80, y: -20, color: '#a9d4ec', w: 5 }).set(22, 80, 0); }],
+   ['reflection', 633, g => { phBlock(g, -80, 0, 160, 10, '#c8e0ff', { top: 0 }); lightRay(g, [[-60, -60], [0, 0], [60, -60]], { w: 5, drawn: true }); }],
+   ['the spectrum', 966, g => { ROYGBIV.forEach((c, i) => mk('rect', { x: -70 + i * 20, y: -50, width: 20, height: 50, fill: c }, g)); }],
+   ['sound', 1300, g => { tuningFork(g, 0, 0, .3); }]]
+    .forEach(([s, x, draw_]) => { const g = G(p, { x, y: 800, s: .85 }); draw_(g); phLabel(g, s, { y: 56, size: 30, fill: COL.dim, weight: 600 }); });
+}, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+let PRACTICE;   // the practice beat's panel: its question pictures are drawn there
+const PICS = {
+  'p-roy': g => { path(g, 'M800 760L740 870H860Z', { fill: '#c8e0ff', opacity: .3, stroke: '#c8e0ff', 'stroke-width': 4 }); path(g, 'M660 840L772 812', { stroke: '#ffffff', 'stroke-width': 5 }); },
+  'p-amp': g => { waveLine(g, { x0: 660, x1: 940, y: 820, color: SOUND, w: 5 }).set(40, 90, 0); path(g, 'M682 820V780', { stroke: AMP, 'stroke-width': 6 }); },
+  'p-solid': g => { let d = ''; for (let x = 680; x < 920; x += 16) for (let y = 790; y < 870; y += 16) d += `M${x - 4} ${y}a4 4 0 1 0 8 0a4 4 0 1 0 -8 0`; path(g, d, { fill: COL.dim }); },
+  'p-micro': g => { path(g, 'M730 820Q800 900 870 820Z', { fill: '#e4e0d4', ...phLine() }); mk('rect', { x: 736, y: 812, width: 128, height: 10, fill: '#c0504d' }, g); put(riseLines(g, 800, 800, { n: 3, c: COL.chalk }), { o: 1 }); },
+  'p-gamma': g => { path(g, Array.from({ length: 20 }, (_, i) => { const a = i * Math.PI / 10, r = i % 2 ? 22 : 60; return `${i ? 'L' : 'M'}${(800 + r * Math.cos(a)).toFixed(1)} ${(810 + r * Math.sin(a)).toFixed(1)}`; }).join('') + 'Z', { fill: '#c6f58a', ...phLine() }); },
+  'p-sun': g => { phSun(g, { x: 740, y: 800, r: 40 }); waveRays(g, { x0: 780, y0: 810, x1: 900, y1: 850, n: 2, spread: 30, amp: 6, wl: 20, color: LIGHT }).set(0, 1); },
+  'p-vis': g => { eyeIcon(g, 800, 820, 1.4); },
+  'p-warm': g => { mk('rect', { x: 700, y: 760, width: 200, height: 120, rx: 12, fill: '#06100c' }, g); mk('circle', { cx: 800, cy: 790, r: 16, fill: HEAT }, g); mk('rect', { x: 780, y: 806, width: 40, height: 60, rx: 14, fill: HEAT }, g); },
+  'p-phone': g => { mk('rect', { x: 680, y: 760, width: 240, height: 120, rx: 12, fill: SPACE }, g); starsIn(g, 690, 770, 220, 100, 14, 4); phBlock(g, 780, 790, 40, 70, '#2c3337', { top: 3 }); },
+  'p-pitch': g => { waveLine(g, { x0: 660, x1: 940, y: 790, color: SOUND, w: 4 }).set(16, 30, 0); waveLine(g, { x0: 660, x1: 940, y: 850, color: SOUND, w: 4 }).set(16, 120, 0); },
+};
+const withPics = qs => qs.map(q => ({ ...q, build(body, api) { const old = PRACTICE.querySelector('.pic'); if (old) old.remove(); const g = G(PRACTICE, { x: 800, y: 870, s: 1.8 }); g.classList.add('pic'); PICS[q.id]?.(G(g, { x: -800, y: -870 })); return q.build(body, api); } }));
+
+boot();
+</script>
+</body>
+</html>
