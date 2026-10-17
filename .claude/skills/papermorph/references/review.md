@@ -1,14 +1,14 @@
 # Delivery pass
 
-Serve `site/` with `python3 SKILL/scripts/serve.py 8765 site` (no browser caching, so an engine edit is never hidden by a stale file). Use this pass once per chapter: watch, fix what you find, recheck those parts, then deliver for the user's judgement of aesthetics, pacing and teaching. Keep the evidence in `books/<book>/review/chNN/`.
+Serve `site/` with `python3 SKILL/scripts/serve.py 8765 site` (no browser caching, so an engine edit is never hidden by a stale file). Use this pass once per chapter: watch, fix what you find, recheck those parts, then deliver for the user's judgement of aesthetics, pacing and teaching. Offer the chapter URL with `?review` added: the user can press N at any moment to leave a note and Shift+N to copy them all for you, each with the `?beat=N&t=S` that opens that frame. Keep the evidence in `books/<book>/review/chNN/`.
 
 ## Watch it in motion
 
 ```sh
-uv run --with playwright --with pillow SKILL/scripts/strip.py chNN OUT --url http://localhost:8765/<book>/ push/0.25 law3/0.5@w
+uv run --with playwright --with pillow --with numpy SKILL/scripts/strip.py chNN OUT --url http://localhost:8765/<book>/ push/0.25 law3/0.5@w roll/0.2@o
 ```
 
-A strip shows one beat at small steps; `@w` adds a motion WebP. Look at each action as a viewer would: do actors perform what the narration says, do props stay on the hands, does the camera move with purpose, does each frame still match the storyboard, do arrows, labels and readouts agree with the motion? Then watch a few beats live in Firefox with sound, which is how the user watches.
+A strip shows one beat at small steps; `@w` adds a motion WebP; `@o` adds an onion skin, the same frames laid over each other in one picture, later ones stronger, so spacing reads at a glance: even gaps are even speed, bunched ghosts are easing in or out, a ghost that jumps is a pop. Look at each action as a viewer would: do actors perform what the narration says, do props stay on the hands, does the camera move with purpose, does each frame still match the storyboard, do arrows, labels and readouts agree with the motion? Then watch a few beats live in Firefox with sound, which is how the user watches.
 
 ## Static checks first
 
