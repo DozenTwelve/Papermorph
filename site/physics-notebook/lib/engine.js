@@ -1880,6 +1880,23 @@ function toggleHelp() {
   if (open) { helpResume = P.playing; if (P.playing) setPlaying(false); }
   else if (helpResume) setPlaying(true);
 }
+// Review notes, only with ?review in the URL: N pauses and asks for a note on this moment, Shift+N copies every
+// note of the chapter (one line each, with the ?beat=N&t=S that reopens it) and offers to clear them.
+const REVIEW = new URLSearchParams(location.search).has('review');
+const REVIEW_KEY = 'papermorph:review:' + location.pathname;
+const reviewNotes = () => { try { return JSON.parse(localStorage.getItem(REVIEW_KEY) || '[]'); } catch { return []; } };
+function reviewNote() {
+  if (P.playing) setPlaying(false);
+  const at = `?beat=${P.i}&t=${P.t.toFixed(1)}`, note = prompt(`Note at ${BEATS[P.i].id} ${at}`);
+  if (!note) return;
+  try { localStorage.setItem(REVIEW_KEY, JSON.stringify([...reviewNotes(), `ch${String(CHAPTER.number).padStart(2, '0')} ${at} (${BEATS[P.i].id}): ${note}`])); } catch {}
+}
+function reviewCopy() {
+  const notes = reviewNotes(), text = notes.join('\n');
+  console.log(text);
+  navigator.clipboard?.writeText(text).catch(() => {});
+  if (confirm(`${notes.length} notes copied (also in the console). Clear them?`)) try { localStorage.removeItem(REVIEW_KEY); } catch {}
+}
 // Every action has a key. A question's own keys (P.keys) come first; Shift reaches the player during a question.
 document.addEventListener('keydown', e => {
   if (e.altKey || e.metaKey || e.ctrlKey) return;
@@ -1891,6 +1908,7 @@ document.addEventListener('keydown', e => {
     return;
   }
   if (k === '?') { e.preventDefault(); toggleHelp(); return; }
+  if (REVIEW && isShortcut(e, 'n')) { e.preventDefault(); e.shiftKey ? reviewCopy() : reviewNote(); return; }
   if ((k === 'Enter' || k === ' ') && e.target.closest?.('button, [tabindex], a')) return;  // a Tab-focused control acts itself
   if (!P.started) { if (k === ' ' || k === 'Enter') { e.preventDefault(); togglePlay(); } return; }
   if (P.keys && !e.shiftKey && P.keys(e)) { e.preventDefault(); return; }
