@@ -27,7 +27,7 @@ TEMPLATES = SKILL / "assets/templates"
 TIMING = {"dur": 30, "marks": {"sub": 1, "note": 2, "w1": 3, "w2": 4}, "cues": []}
 TIMINGS = "const TIMINGS = " + json.dumps({beat: TIMING for beat in ("intro", "idea", "q1", "wrap", "final1", "finish")})
 # Page variants: (html lang, engine and book template from BASE_REF instead of the working tree).
-VARIANTS = {"base": ("en", True), "en": ("en", False), "ru": ("ru", False), "de": ("de", False)}
+VARIANTS = {"base": ("en", True), "en": ("en", False), "ru": ("ru", False), "zh": ("zh", False), "ja": ("ja", False), "de": ("de", False)}
 
 
 def at_base_ref(path):
@@ -271,6 +271,26 @@ async def check_russian_book(browser, errors):
     await page.close()
 
 
+async def check_cjk(browser, errors):
+    expect = {
+        "zh": ("第 1 章", "开始上课", "打开这本书", "1 章 · 1 个单元 · 有配音", "第 1 单元", "8 分钟"),
+        "ja": ("第1章", "授業を始める", "本を開く", "1章 · 1単元 · 音声つき", "単元 1", "8分"),
+    }
+    for language, (chapter, start, open_book, meta, unit, minutes) in expect.items():
+        page = await open_lesson(browser, language, errors)
+        assert await page.locator("#coverK").text_content() == chapter
+        assert await page.evaluate(f"translate('startLesson') === '{start}' && num(2.5) === '2.5'")
+        await page.close()
+        page = await open_page(browser, f"{language}/", errors)
+        text = lambda selector: page.locator(selector).first.text_content()
+        assert (await text("#cover .btn.go")).startswith(open_book)
+        assert await text("#meta") == meta, await text("#meta")
+        assert await text(".unit h2 span") == unit
+        assert await text(".ch small") == minutes
+        await page.close()
+    print("PASS Chinese and Japanese lesson cover and book contents")
+
+
 async def main():
     errors = []
     async with async_playwright() as playwright:
@@ -279,6 +299,7 @@ async def main():
         await check_russian_lesson(browser, errors)
         await check_other_language(browser, errors)
         await check_russian_book(browser, errors)
+        await check_cjk(browser, errors)
         await browser.close()
     assert not errors, errors
     print("PASS no page errors, console errors or failed requests")

@@ -26,6 +26,20 @@ const Contents = (() => {
       chapterCount: { one: '{n} глава', few: '{n} главы', many: '{n} глав', other: '{n} главы' }, finished: 'Пройдено {done} из {n}',
       doneMark: '✓ Пройдено · ', lastMark: ' · Открыта последней',
     },
+    zh: {
+      open: '打开这本书', toCover: '返回封面', resume: '继续 · 第 {n} 章', unit: '第 {n} 单元', minutes: '{n} 分钟',
+      meta: '{chapters}{samples} · {units} · 有配音', metaChapters: '{n} 章', metaUnits: '{n} 个单元',
+      metaSamples: ' + {n} 个示例章', sampleUnit: ' · 示例章，另一种风格',
+      chapterCount: '{n} 章', finished: '已完成 {done} / {n}',
+      doneMark: '✓ 已完成 · ', lastMark: ' · 上次打开',
+    },
+    ja: {
+      open: '本を開く', toCover: '表紙に戻る', resume: '続きから · 第{n}章', unit: '単元 {n}', minutes: '{n}分',
+      meta: '{chapters}{samples} · {units} · 音声つき', metaChapters: '{n}章', metaUnits: '{n}単元',
+      metaSamples: ' + サンプル{n}章', sampleUnit: ' · サンプル章（別のスタイル）',
+      chapterCount: '{n}章', finished: '{n}章中 {done}章 完了',
+      doneMark: '✓ 完了 · ', lastMark: ' · 最後に開いた章',
+    },
   };
   const LANGUAGE = (document.documentElement.lang || 'en').toLowerCase().split('-')[0];
   function translate(key, vars = {}) {
