@@ -1,0 +1,1015 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chapter 17: Electrical Energy Sources — Science</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/figures.js"></script>
+<script src="../lib/actors.js"></script>
+<script src="../lib/physics.js"></script>
+<script src="../lib/machines.js"></script>
+<script src="../lib/energy.js"></script>
+<script src="../lib/thermal.js"></script>
+<script src="../lib/waves.js"></script>
+<script src="../lib/electric.js"></script>
+<script src="../lib/sources.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+// Chapter 17, one page in book order of ideas: part 1 (turbines, fossil fuels and their limits, nuclear), part 2
+// (renewable resources: water, tides, wind), part 3 (sun, earth's heat, biomass), then the chapter practice.
+// Energy blocks keep the book's colours (kinetic yellow, potential blue, chemical lime, heat red, light pale gold) and
+// electric energy is ch16's electron blue; water blue, steam white, smoke grey. Every turbine, stream and electron
+// moves whenever it is on screen. Notes, storyboard and errata: books/science/chapters/ch17.md.
+const CHAPTER = { number: 17, title: 'Electrical Energy Sources', minutes: 12, language: 'en' };
+const Q_CARD = { x: 96, y: 586, w: 1408, cls: 'band' };   // a band card under the scenes
+const Y1 = 740;                                           // ground line
+const sm = (t, a, b) => io(ramp(t, a, b));
+const lerp = (a, b, k) => a + (b - a) * k;
+const ELE = CHG_N, EARTH = '#3b3229', GRASS = '#3f6a4c', ENAMEL = '#e4e0d4', BOX = '#16221f', HOTW = '#f4a493';
+const say = (p, s, x, y, t0, o = {}) => { const e = phLabel(p, s, { x, y, size: 32, ...o, o: 0 }); show(e, t0); return e; };
+const line = (p, parts, x, y, t0, o = {}) => { const e = runs(p, parts, { x, y, size: 40, ...o }); show(e, t0); return e; };
+const frameBox = (p, x, y, w, h, fill = BOX, stroke = COL.faint) => mk('rect', { x, y, width: w, height: h, rx: 18, fill, stroke, 'stroke-width': 3 }, p);
+const spinAt = (t, keys) => phaseOf(t, keys);             // a rotor's angle (rad) from [time, rad/s] keys
+// Outdoor ground from y down: earth with a grass band on top.
+const outdoors = (p, y = Y1, x = -2000, w = 8000, h = 1600) => { phBlock(p, x, y, w, h, EARTH, { top: 0, ol: 0 }); phBlock(p, x, y, w, 14, GRASS, { top: 0, ol: 0 }); };
+// A block's place along a route at distance s (clamped at the ends).
+const onRoute = (b, R, s) => { const [x, y] = R.at(s); put(b, { x, y }); return [x, y]; };
+
+/* ---------- shared pictures ---------- */
+// The same shapes as ch10–16: a part title and a three-row summary with small pictures.
+function opener(p, x, y, part, name, name2) {
+  const g = G(p, { o: 0, y: 24 });
+  phLabel(g, part.toUpperCase(), { x, y: y - 80, size: 30, fill: COL.dim, weight: 600 }); phLabel(g, name, { x, y, size: 80, weight: 600 });
+  if (name2) phLabel(g, name2, { x, y: y + 86, size: 80, weight: 600 });
+  tw(g, { o: 1, y: 0 }, .2, 1.1, out); return g;
+}
+function summary(p, m, rows, next) {
+  rows.forEach(([lines, icon], i) => {
+    const g = G(p, { x: -16, y: 250 + i * 220, o: 0 });
+    lines.forEach((s, j) => T(g, s, { x: 430, y: j * 50, size: 38, weight: 600 }));
+    icon(g); tw(g, { o: 1, x: 0 }, m(['w1', 'w2', 'w3'][i]), .6);
+  });
+  txt(p, next, 800, 860, m('end'), { size: 32, fill: COL.dim, weight: 500 });
+}
+// A floor lamp standing at (x, y) (as in ch15–16); g.glow is its light cone, g.shade its shade.
+function floorLamp(p, x, y = Y1) {
+  const g = G(p, { x, y });
+  const glow_ = path(g, 'M-50 -350L-210 0H210L50 -350Z', { fill: LIGHT, 'fill-opacity': .16 }); put(glow_, { o: 0 });
+  phBlock(g, -40, -14, 80, 14, '#4a5458', { top: 3 }); phBlock(g, -5, -350, 10, 336, '#7d8a86', { top: 0 });
+  const shade = path(g, 'M-50 -350L-80 -420H80L50 -350Z', { fill: '#d8c79a', ...phLine() });
+  return Object.assign(g, { glow: glow_, shade });
+}
+// The radiation sign: three black blades on yellow, centred on (x, y).
+function trefoil(p, { x = 0, y = 0, r = 30, bg = '#f3c95c', fg = '#1b1f1d' } = {}) {
+  const g = G(p, { x, y }); mk('circle', { r: r * 1.22, fill: bg, ...phLine(2) }, g);
+  let d = '';
+  for (let k = 0; k < 3; k++) {
+    const a0 = (-120 + k * 120) * Math.PI / 180, a1 = (-60 + k * 120) * Math.PI / 180, r0 = r * .3;
+    const P = (rr, a) => `${(rr * Math.cos(a)).toFixed(1)} ${(rr * Math.sin(a)).toFixed(1)}`;
+    d += `M${P(r0, a0)}L${P(r, a0)}A${r} ${r} 0 0 1 ${P(r, a1)}L${P(r0, a1)}A${r0} ${r0} 0 0 0 ${P(r0, a0)}Z`;
+  }
+  path(g, d, { fill: fg }); mk('circle', { r: r * .18, fill: fg }, g);
+  return g;
+}
+// A uranium nucleus: protons (red) and neutrons (grey) packed in a disc, in two halves (g.L, g.R) that can fly apart.
+function nucleus(p, { x = 0, y = 0, n = 34, r = 19, s = 1, o = 1 } = {}) {
+  const g = G(p, { x, y, s, o }), L = G(g), R = G(g);
+  for (let i = 0; i < n; i++) {
+    const a = i * 2.39996, d = r * 1.05 * Math.sqrt(i + .5), bx = d * Math.cos(a), by = d * Math.sin(a);
+    mk('circle', { cx: bx.toFixed(1), cy: by.toFixed(1), r, fill: i % 2 ? '#9aa5a8' : CHG_P, ...phLine(2) }, bx < 0 ? L : R);
+  }
+  return Object.assign(g, { L, R });
+}
+// A small tree that grows: g.set(k) scales it from a sprout (0) to a young tree (1).
+function sapling(p, x, y) {
+  const g = G(p, { x, y }), t = phSprite(g, 'tree', { s: .2 });
+  return Object.assign(g, { set(k) { put(t, { s: .2 + .5 * k }); return g; } }).set(0);
+}
+
+// The coal power plant (fossil beat and q1), standing on y 500: the boiler, the steam pipe, the turbine and generator,
+// the line out to a house. f.set(t, {heat, steam, a, el, lit}) draws a moment.
+function fossilPlant(p) {
+  const g = G(p);
+  mk('rect', { x: 600, y: 150, width: 650, height: 350, rx: 10, fill: '#22302b', stroke: COL.faint, 'stroke-width': 3 }, g);
+  phBlock(g, 560, 40, 44, 460, '#7a6d62', { top: 6 });
+  const smoke = puffs(g, 582, 40, { color: SMOKE, rise: 140, drift: 90, r0: 14, r1: 46 });
+  const b = boiler(g, { x: 730, y: 500, w: 200, fh: 110, th: 140 });
+  const sp = pipeFlow(g, route([b.out, [b.out[0], 190], [870, 190], [870, 330], [918, 330]]), { w: 18, color: STEAM, dash: [22, 20] });
+  const tg = turbineGen(g, { x: 960, y: 330, s: .8, R: 70, L: 110, gap: 40, GW: 150 });
+  const wR = route([tg.term, [tg.term[0], 200], [1250, 200]]); wire(g, wR, { w: 6 }); const wf = eFlow(g, wR, { gap: 40, r: 6 });
+  const py = pylon(g, { x: 1340, y: 500, h: 230 });
+  const pl = powerLine(g, [[1250, 200], py.top, [1452, 430]]);
+  const house = litHouse(g, { x: 1515, y: 500 });
+  return Object.assign(g, {
+    b, sp, tg, house, smoke, wf, pl,
+    set(t, { heat = 1, steam = 1, a = 0, el = 0, lit = 1, smk = 1 } = {}) {
+      b.set(t, heat); sp.set(110 * t, steam); tg.set(a); wf.set(el); pl.set(el); house.set(lit); smoke.set(t, smk);
+      return g;
+    },
+  });
+}
+
+// The hydroelectric dam in cross-section (hydro beat and q2): lake, dam, the pipe to the turbine pit, the river and
+// the line out to a house. d.set(t, {L, flow, a, el, lit, out}) draws a moment; L is the lake's level (y).
+function damScene(p) {
+  const g = G(p);
+  path(g, 'M-40 190L0 190L210 690L556 711V900H-40Z', { fill: EARTH, ...phLine() });
+  path(g, 'M-40 190H0L210 690', { stroke: GRASS, 'stroke-width': 10, fill: 'none' });
+  outdoors(g, Y1 + 20, 700, 1000, 300);
+  mk('rect', { x: 788, y: 590, width: 196, height: 320, fill: '#24302c', ...phLine() }, g);   // the turbine pit, cut away
+  const inflow = pipeFlow(g, route([[-30, 236], [60, 330], [120, 420], [170, 560]]), { w: 16, walls: false, dash: [20, 18] });
+  const lake = path(g, '', { fill: WATER, ...phLine(2) }), rip = path(g, '', { stroke: lt(WATER, .5), 'stroke-width': 4, fill: 'none', 'stroke-linecap': 'round' });
+  path(g, 'M556 226H648L792 790H556Z', { fill: '#a7adaa', ...phLine() });
+  const pipe = pipeFlow(g, route([[546, 650], [760, 776], [838, 815]]), { w: 22 });
+  const river = G(g); mk('rect', { x: 950, y: 828, width: 700, height: 80, fill: WATER }, river);
+  const rw = windLines(river, { x0: 940, x1: 1750, y0: 842, y1: 890, n: 9, len: 70, color: lt(WATER, .5) });
+  const tg = turbineGen(g, { x: 885, y: 815, s: .72, r: -90, R: 66, L: 96, rows: 2, gap: 34, GW: 150 });
+  const outS = pipeFlow(g, route([[905, 852], [960, 868], [1010, 862]]), { w: 18, walls: false, dash: [18, 16] });
+  const wR = route([tg.term, [796, tg.term[1]], [796, 560]]); wire(g, wR, { w: 6 }); const wf = eFlow(g, wR, { gap: 40, r: 6 });
+  const p1 = pylon(g, { x: 1110, y: Y1 + 20, h: 230 }), p2 = pylon(g, { x: 1360, y: Y1 + 20, h: 230 });
+  const pl = powerLine(g, [[796, 560], p1.top, p2.top, [1462, 690]]);
+  const house = litHouse(g, { x: 1525, y: Y1 + 20 });
+  const lakeAt = L => { const xL = 210 * (L - 190) / 500; return `M${xL.toFixed(1)} ${L.toFixed(1)}H556V711L210 690Z`; };
+  return Object.assign(g, {
+    lake, pipe, river, tg, house, lakeAt,
+    set(t, { L = 300, flow = 1, a = 0, el = 0, lit = 1, out = 1, inK = 1 } = {}) {
+      thAtt(lake, 'd', lakeAt(L));
+      const xL = 210 * (L - 190) / 500; let d = '';
+      for (let x = xL + 30 + ((t * 30) % 60); x < 540; x += 60) d += `M${x.toFixed(1)} ${(L + 12).toFixed(1)}q10 -7 20 0t20 0`;
+      thAtt(rip, 'd', d);
+      inflow.set(120 * t, inK); pipe.set(240 * t, flow); outS.set(160 * t, out); rw.set(70 * t);
+      tg.set(a); wf.set(el); pl.set(el); house.set(lit);
+      return g;
+    },
+  });
+}
+
+// The geothermal plant in cross-section (geo beat and q3): hot rock and magma below, the production well, the turbine,
+// the cooling tower, the injection well and the house. s.set(t, {well, steam, a, el, lit, cool, inj}).
+function geoScene(p) {
+  const g = G(p);
+  outdoors(g, 330, -400, 2400, 900);
+  path(g, 'M-400 470H2000M-400 590H2000', { stroke: '#2e2620', 'stroke-width': 6 });
+  const hot = G(g); mk('rect', { x: -400, y: 640, width: 2400, height: 300, fill: MAGMA, opacity: .16 }, hot); mk('rect', { x: -400, y: 750, width: 2400, height: 200, fill: MAGMA, opacity: .2 }, hot);
+  const magma = mk('ellipse', { cx: 250, cy: 880, rx: 230, ry: 70, fill: MAGMA, ...phLine() }, g);
+  const heat = [90, 200, 640, 1180, 1420, 1560].map((x, i) => riseLines(g, x, 860, { n: 3, h: 30 }));
+  const well = pipeFlow(g, route([[480, 760], [480, 330]]), { w: 22, color: HOTW, dash: [22, 20] });
+  const steamP = pipeFlow(g, route([[480, 330], [480, 240], [682, 240]]), { w: 20, color: STEAM, dash: [22, 20] });
+  const tg = turbineGen(g, { x: 720, y: 240, s: .7, R: 70, L: 110, gap: 40, GW: 150 });
+  const exh = pipeFlow(g, route([[720, 280], [720, 306], [1064, 306]]), { w: 16, color: STEAM, dash: [20, 18] });
+  const tower = coolingTower(g, { x: 1150, y: 330, h: 230, w: 200 });
+  const pf = puffs(g, 1150, 100, { rise: 90, drift: 30, r0: 16, r1: 44, per: 2.6 });
+  const drops = path(g, '', { fill: lt(WATER, .3) });
+  const inj = pipeFlow(g, route([[1236, 318], [1320, 318], [1320, 760]]), { w: 22, color: WATER, dash: [22, 20] });
+  const loop = path(g, 'M1320 790C1100 830 700 830 480 790', { stroke: lt(WATER, .4), 'stroke-width': 5, fill: 'none', 'stroke-dasharray': '16 14' }, { d: 0 });
+  const wR = route([tg.term, [tg.term[0], 66], [1412, 66], [1412, 262]]); wire(g, wR, { w: 6 }); const wf = eFlow(g, wR, { gap: 40, r: 6 });
+  const house = litHouse(g, { x: 1480, y: 330 });
+  return Object.assign(g, {
+    tg, tower, inj, well, magma, house, loop,
+    set(t, { wellK = 1, steamK = 1, a = 0, el = 0, lit = 1, coolK = 1, injK = 1 } = {}) {
+      heat.forEach((h, i) => { const q = ((t * .35 + i * .27) % 1); put(h, { y: 900 - 220 * q, o: Math.min(1, q * 5, (1 - q) * 3) }); });
+      well.set(130 * t, wellK); steamP.set(130 * t, steamK); exh.set(110 * t, coolK); inj.set(120 * t, injK);
+      tg.set(a); wf.set(el); house.set(lit); pf.set(t, coolK);
+      let d = '';
+      if (coolK > .05) for (let i = 0; i < 8; i++) { const q = ((t * .8 + i / 8) % 1), x = 1110 + 80 * phHash(i, 2), y = 170 + 130 * q; d += `M${x.toFixed(1)} ${(y - 9).toFixed(1)}q6 9 0 13q-6 -4 0 -13Z`; }
+      thAtt(drops, 'd', d);
+      return g;
+    },
+  });
+}
+
+/* ---------- beats ---------- */
+const BEATS = [
+/* ---------- part 1: turbines and fuels ---------- */
+['intro', 'Electrical energy sources', (m, D) => {
+  const p = panel(0), tp = m('plug'), tw_ = m('where'), tm = m('mix');
+  // A room in a cut-away house: you plug the lamp in and it lights. The wall turns see-through: the wire runs out
+  // along power lines past a wind turbine to a power plant on the horizon. The camera pulls back to take it all in,
+  // then lands on the plant's turbine and generator.
+  const cam = camera(p, D, { x: 800, y: 450, z: 1 }), W = cam.world;
+  outdoors(W);
+  phBlock(W, -40, Y1, 760, 90, '#6b5a48', { top: 8, ol: 0 });
+  // the plant on the horizon
+  mk('rect', { x: 2680, y: 440, width: 480, height: 300, rx: 10, fill: '#22302b', stroke: COL.faint, 'stroke-width': 3 }, W);
+  phBlock(W, 3100, 260, 46, 180, '#7a6d62', { top: 6 });
+  const smoke = puffs(W, 3123, 260, { color: SMOKE, rise: 150, drift: 90, r0: 16, r1: 50 });
+  const jet = pipeFlow(W, route([[2680, 620], [2778, 620]]), { w: 20, color: STEAM });
+  const tg = turbineGen(W, { x: 2830, y: 620, s: 1, R: 70, L: 100, gap: 40, GW: 150 });
+  const riser = route([tg.term, [tg.term[0], 400]]); wire(W, riser, { w: 6 }); const rf = eFlow(W, riser, { gap: 40, r: 6 });
+  const wt = windTurbine(W, { x: 2240, y: Y1, h: 380, bl: 170 });
+  const pyl = [2480, 1980, 1480, 980].map(x => pylon(W, { x, y: Y1, h: 240 }));
+  const pl = powerLine(W, [[tg.term[0], 400], ...pyl.map(q => q.top), [720, 560]]);
+  // the house and the room
+  path(W, 'M-70 110L330 -160L730 110Z', { fill: '#7a4a3c', ...phLine() });
+  phBlock(W, -40, 100, 760, 22, '#55625b', { top: 0 });
+  phBlock(W, -40, 100, 40, Y1 - 100, '#55625b', { top: 0 });
+  const inWall = route([[720, 560], [700, 560], [700, 650], [668, 650]]); wire(W, inWall, { w: 6 }); const iwf = eFlow(W, inWall, { gap: 36, r: 5 });
+  const wall = G(W); phBlock(wall, 680, 100, 40, Y1 - 100, '#55625b', { top: 0 });
+  phBlock(W, 652, 622, 26, 50, ENAMEL, { top: 0 });
+  const lamp = floorLamp(W, 300);
+  const cordR = route([[652, 650], [640, 650], [640, 728], [342, 728]]); const cordF = eFlow(W, cordR, { gap: 34, r: 5 });
+  const cord = path(W, '', { stroke: PH.out, 'stroke-width': 7, fill: 'none', 'stroke-linejoin': 'round' });
+  const plug = mk('rect', { x: -12, y: -9, width: 24, height: 18, rx: 4, fill: '#2f3a3d' }, G(W)), plugG = plug.parentNode;
+  const you = phActor(W, 'you', { x: 560, y: Y1, s: 2.4 });
+  const q = say(W, '?', 2560, 300, tw_ + 1.6, { size: 170, fill: COL.task });
+  hide(q, tm + .2);
+  const lt_ = say(W, 'turbine', 2830, 530, tm + 2.4, { size: 30 }), lg = say(W, 'generator', 3000, 736, tm + 3, { size: 30 });
+  clockRun(t => {
+    const reach = t > tp - 1 && t < tp + .5;
+    you.show(reach ? 'catch' : 'stand', 0);
+    const [hx, hy] = you.hand('F'), k = sm(t, tp - .5, tp), px = lerp(hx + 8, 662, k), py = lerp(hy, 650, k);
+    put(plugG, { x: px, y: py });
+    thAtt(cord, 'd', `M342 728H640V${Math.max(650, py).toFixed(1)}${k < 1 ? `L${px.toFixed(1)} ${py.toFixed(1)}` : 'H652'}`);
+    const on = t > tp, s = on ? 80 * (t - tp) : 0;
+    put(cordF, { o: on ? 1 : 0 }); put(iwf, { o: on ? 1 : 0 }); put(pl.flow, { o: on ? 1 : 0 }); put(rf, { o: on ? 1 : 0 });
+    cordF.set(s); iwf.set(s); pl.set(s); rf.set(s);
+    const a = 4 * t; tg.set(a); wt.set(70 * t); jet.set(140 * t); smoke.set(t);
+  }, D);
+  tw(lamp.glow, { o: 1 }, tp + .15, .3); tw(lamp.shade, { c_fill: LIGHT }, tp + .15, .3);
+  tw(wall, { o: .25 }, tw_ + .1, .8);
+  cam.to({ x: 1720, y: 400, z: .42 }, tw_ + .1, 2.4); cam.to({ x: 2900, y: 600, z: 1.3 }, tm + .3, 2.4);
+  const ttl = G(p, { o: 0, y: 24 });
+  phLabel(ttl, 'Unit 4 · Energy · Chapter 17', { x: 1160, y: 190, size: 26, fill: COL.dim, weight: 600 });
+  phLabel(ttl, 'Electrical Energy', { x: 1160, y: 280, size: 76 }); phLabel(ttl, 'Sources', { x: 1160, y: 360, size: 76 });
+  tw(ttl, { o: 1, y: 0 }, .3, 1.1, out); hide(ttl, tw_ - .2);
+  line(p, [['turbine', COL.chalk], [' → ', COL.dim], ['generator', COL.chalk]], 800, 120, tm + 3.6, { size: 48 });
+}, { lead: false }],
+['turbine', 'Turbines', (m, D) => {
+  const p = panel(0), tt = m('turbine'), ts = m('shaft'), tp = m('push'), tg_ = m('gen'), te = m('energy'), TR = 23.31, TF = 32.19;
+  // One big turbine standing upright: blades at the bottom on a shaft that rises into the generator. Water pushes
+  // the blades round; the camera goes close to the generator, where the loop turns between the magnets and electrons
+  // run out. Then energy blocks: kinetic (yellow) in the water, turning the shaft, electric (blue) out of the
+  // generator; a little heat (red) leaks off at the shaft: friction.
+  const cam = camera(p, D, { x: 680, y: 480, z: 1.18 }), W = cam.world;
+  const RX = 620, RY = 650;
+  const jet = pipeFlow(W, route([[1500, 690], [742, 690]]), { w: 30 });
+  const tg = turbineGen(W, { x: RX, y: RY, s: 1.25, r: -90, R: 90, L: 150, rows: 3, gap: 70, GW: 190 });
+  const wR = route([tg.term, [330, tg.term[1]]]); wire(W, wR, { w: 8 }); const wf = eFlow(W, wR, { gap: 42, r: 7 });
+  const b = bulb(W, { x: 330, y: tg.term[1], r: -90 });
+  const turnA = G(W, { o: 0 }); path(turnA, `M${RX - 56} 500A56 16 0 1 0 ${RX + 56} 500l-16 -10m16 10l-18 4`, { stroke: COL.task, 'stroke-width': 5, fill: 'none' });
+  const hl = mk('rect', { x: RX - 128, y: RY - 106, width: 256, height: 212, rx: 20, fill: 'none', stroke: COL.task, 'stroke-width': 5 }, W); put(hl, { o: 0 });
+  say(W, 'turbine', RX + 150, RY + 110, tt + .4, { size: 40, anchor: 'start' });
+  show(hl, tt + .3, .3); hide(hl, ts - .2);
+  show(turnA, ts + .2); hide(turnA, tp + 1);
+  say(W, 'shaft', RX + 84, 512, ts + .3, { size: 36, anchor: 'start' });
+  say(W, 'generator', RX + 150, 300, ts + 2.3, { size: 40, anchor: 'start' });
+  say(W, 'water', 1380, 640, tp + .4, { size: 32, fill: lt(WATER, .4) });
+  const genL = line(p, [['a loop of wire spins between magnets: ', COL.chalk], ['a current', ELE]], 800, 110, tg_ + 1.6, { size: 38 });
+  hide(genL, te - .6);
+  line(p, [['turbine: ', COL.chalk], ['moving water', KIN], [' → rotation', COL.chalk]], 1180, 130, TR - 1.4, { size: 36 });
+  line(p, [['generator: rotation → ', COL.chalk], ['electricity', ELE]], 1180, 190, TR + 3.6, { size: 36 });
+  say(W, 'friction: a little heat', 500, 580, TF + .8, { size: 30, fill: HEAT, anchor: 'end' });
+  // energy blocks: along the jet, round to the shaft, up into the generator, out along the wire
+  const BR = route([[1500, 690], [748, 690], [662, 600], [RX, 560], [RX, 352], [tg.term[0], 350], [372, 350]]);
+  const genIn = BR.len - (tg.term[0] - 372) - (RX - tg.term[0]);   // arc length at the generator's middle
+  const bs = eBlocks(W, 4, KIN, { size: 30, o: 0 }), PER = 5.2;
+  const hb = eBlocks(W, 2, KIN, { size: 22, o: 0 });
+  const rl = riseLines(W, RX - 163, 510, { n: 2, h: 28 });
+  clockRun(t => {
+    const a = spinAt(t, [[tp + .4, 0], [tp + 2.6, 6.5]]); tg.set(a);
+    jet.set(170 * t, sm(t, tp - .2, tp + .4));
+    const es = phaseOf(t, [[tg_ + 1.2, 0], [tg_ + 2.2, 110]]); wf.set(es); b.set(sm(t, tg_ + 1.6, tg_ + 2.4));
+    bs.forEach((e, i) => {
+      const u = (t - te - i * PER / 4) / PER;
+      if (u < 0) { put(e, { o: 0 }); return; }
+      const sAt = (u % 1) * BR.len, [x, y] = onRoute(e, BR, sAt);
+      const inside = y > 236 && y < 466 && Math.abs(x - RX) < 130;
+      put(e, { o: inside ? 0 : Math.min(1, (u % 1) * 20, (1 - u % 1) * 20) }); e.set(sAt > genIn ? ELE : KIN);
+    });
+    hb.forEach((e, i) => {   // two small blocks ride in and leak off at the shaft as heat
+      const t0 = TF - 1.4 + i * 1.6, q = ramp(t, t0, t0 + 1.4), off = sm(t, t0 + 1.4, t0 + 2.2);
+      if (t < t0) { put(e, { o: 0 }); return; }
+      const [x, y] = BR.at(lerp(BR.len * .38, BR.len * .62, q));
+      put(e, { x: lerp(x, RX - 150 - i * 26, off), y: lerp(y, 530, off), o: 1 }); e.set(off > .1 ? HEAT : KIN);
+    });
+    put(rl, { o: sm(t, TF + .6, TF + 1.2), y: 510 - 8 * ((t * 1.3) % 1) });
+  }, D);
+  cam.to({ z: 1.28, x: 680, y: 480 }, 0, tp);
+  cam.to({ x: RX, y: 420, z: 1.55 }, tg_ - .3, 1.8); cam.to({ x: 800, y: 450, z: 1 }, te - .4, 1.8);
+}, { lead: false }],
+['fossil', 'Fossil fuels', (m, D) => {
+  const p = panel(0), tf = m('fossil'), tb = m('burn'), tbo = m('boil'), ts = m('spin'), tg_ = m('gen'), TM = 3.84, TC = 10.4;
+  // Underground at the left, oil, coal and natural gas formed from buried living things under heat and pressure; they
+  // hold chemical energy (lime). At "burned" the blocks come up the well into the furnace and turn to heat; the water
+  // boils, steam spins the turbine, the generator sends electrons out to a house.
+  outdoors(p, 500, -40, 1700, 500);
+  path(p, 'M-40 610H1640M-40 720H1640M-40 820H1640', { stroke: '#2e2620', 'stroke-width': 6 });
+  const press = G(p, { o: 0 }); [150, 330, 500].forEach(x => path(press, `M${x} 520V586M${x - 14} 572L${x} 588L${x + 14} 572`, { stroke: COL.dim, 'stroke-width': 5, fill: 'none' }));
+  const heatL = [140, 330, 500].map(x => riseLines(p, x, 880, { n: 2, h: 26 }));
+  // ancient life pressed into the rock: a skeleton and a fern
+  const fos = G(p, { o: 0 });
+  path(fos, 'M190 856h180M214 834v44M244 834v44M274 834v44M304 834v44M334 834v44M370 856l34 -22M404 834a14 14 0 1 0 0.1 0', { stroke: '#cfc4ad', 'stroke-width': 5, fill: 'none', 'stroke-linecap': 'round' });
+  path(fos, 'M70 880q30 -40 60 -50M84 868l-10 -14M96 858l-6 -16M110 850l-2 -16M90 870l14 4M104 860l14 2', { stroke: '#8fae6a', 'stroke-width': 4, fill: 'none', 'stroke-linecap': 'round' });
+  show(fos, TM + .6);
+  const oil = G(p, { o: 0 }); mk('ellipse', { cx: 160, cy: 668, rx: 100, ry: 38, fill: '#120f0c', ...phLine(2) }, oil); mk('ellipse', { cx: 130, cy: 656, rx: 34, ry: 8, fill: '#4a4036' }, oil);
+  const coal = G(p, { o: 0 }); path(coal, 'M250 742L470 736L480 790L240 796Z', { fill: '#191a1b', ...phLine(2) });
+  const gas = G(p, { o: 0 }); mk('ellipse', { cx: 470, cy: 580, rx: 74, ry: 26, fill: '#a9c6d6', opacity: .55, ...phLine(2) }, gas);
+  show(oil, tf + .3); show(coal, tf + .9); show(gas, tf + 1.6);
+  say(p, 'oil', 160, 728, tf + .3, { size: 28 }); say(p, 'coal', 360, 830, tf + .9, { size: 28 }); say(p, 'natural gas', 470, 550, tf + 1.6, { size: 28 });
+  say(p, 'fossil fuels', 300, 470, tf + .2, { size: 40 });
+  show(press, TM + .2); hide(press, TC - .5);
+  say(p, 'heat and pressure, millions of years', 800, 880, TM + 1.2, { size: 28, fill: COL.dim });
+  say(p, 'stored chemical energy', 800, 640, TC + .6, { size: 32, fill: CHEM });
+  // the plant
+  const f = fossilPlant(p);
+  say(p, 'thermal energy', 730, 132, tb + 2.4, { size: 30, fill: HEAT });
+  say(p, 'steam', 840, 176, tbo + 1, { size: 30, fill: STEAM, anchor: 'end' });
+  say(p, 'turbine', 935, 440, ts + .5, { size: 30 });
+  say(p, 'generator', 1115, 440, tg_ + .2, { size: 30 });
+  say(p, 'power lines', 1400, 160, tg_ + 1.6, { size: 30 });
+  // chemical blocks in the fuels, then up the well into the furnace, where they turn to heat in the water above
+  const home = [[120, 668], [190, 668], [320, 766], [400, 764], [450, 580], [500, 580]];
+  const bs = home.map(([x, y]) => eBlock(p, CHEM, { size: 26, x, y, o: 0 }));
+  const well = path(p, 'M556 500V610', { stroke: '#5d6a6a', 'stroke-width': 10 }); put(well, { o: 0 }); show(well, tb - .4);
+  bs.forEach((e, i) => {
+    show(e, TC + i * .15, .3);
+    const [hx, hy] = home[i], R = route([[hx, hy], [556, hy], [556, 470], [690, 470], [730, 446]]), t0 = tb + .2 + i * .45;
+    const [px, py] = heapAt(i, 730, 386, { cols: 3, size: 26, gap: 6 });
+    prog(q => {
+      if (q < .75) onRoute(e, R, R.len * q / .75);
+      else { const k = (q - .75) / .25; put(e, { x: lerp(730, px, k), y: lerp(446, py, k) }); }
+      e.set(q > .72 ? HEAT : CHEM);
+    }, t0, 2.6, lin);
+  });
+  clockRun(t => {
+    heatL.forEach((h, i) => put(h, { o: sm(t, TM + .4, TM + 1) * (1 - sm(t, TC - .6, TC)), y: 880 - 14 * ((t * 1.2 + i * .3) % 1) }));
+    const heat = sm(t, tb + .3, tb + 1.6), stm = sm(t, tbo, tbo + 1.2);
+    const a = spinAt(t, [[ts, 0], [ts + 2, 6.5]]), el = phaseOf(t, [[tg_, 0], [tg_ + 1, 100]]);
+    f.set(t, { heat, steam: stm, a, el, lit: sm(t, tg_ + 2.4, tg_ + 3), smk: heat * .8 });
+  }, D);
+}, { lead: false }],
+['limits', 'Nonrenewable', (m, D) => {
+  const p = panel(0), tg_ = m('gone'), tsm = m('smoke'), tc = m('co2'), TF = 2.41, TW = 15.59;
+  // The fuel pile beside the plant empties block by block, much faster than nature's slow trickle refills it. Smoke
+  // drifts over the town; carbon dioxide gathers in the air and sends heat back down; the thermometer climbs.
+  outdoors(p, Y1, -40, 1700, 200);
+  const sky = G(p, { o: 0 }); mk('rect', { x: 0, y: 70, width: 1600, height: 110, fill: SMOKE, opacity: .22 }, sky);
+  phLabel(sky, 'the atmosphere', { x: 120, y: 142, size: 26, fill: COL.dim, anchor: 'start' });
+  show(sky, tc);
+  // the plant and the town
+  mk('rect', { x: 640, y: 560, width: 320, height: 180, rx: 8, fill: '#22302b', stroke: COL.faint, 'stroke-width': 3 }, p);
+  mk('rect', { x: 660, y: 660, width: 50, height: 80, fill: '#14100c' }, p);
+  phBlock(p, 890, 400, 44, 160, '#7a6d62', { top: 6 });
+  const smk = puffs(p, 912, 400, { color: SMOKE, rise: 240, drift: 260, r0: 18, r1: 70, per: 4, n: 8 });
+  [1150, 1300].forEach(x => phSprite(p, 'house', { x, y: Y1 }));
+  // the pile: 24 lime blocks; one leaves every 0.8 s; one comes back very slowly from below
+  const N = 24, pile = Array.from({ length: N }, () => eBlock(p, CHEM, { size: 34 }));
+  const pos = i => heapAt(i, 300, Y1, { cols: 6, size: 34, gap: 6 });
+  const R = route([[0, 0], [660, 700]]);
+  say(p, 'fossil fuels', 300, 520, tg_ + .1, { size: 34 });
+  line(p, [['nonrenewable', COL.task]], 300, 470, tg_ + .6, { size: 44 });
+  const used = G(p, { o: 0 }); path(used, 'M440 600Q540 560 620 640M604 624L622 642L598 646', { stroke: COL.task, 'stroke-width': 5, fill: 'none' }); phLabel(used, 'used: fast', { x: 520, y: 560, size: 28, fill: COL.task }); show(used, TF + .4);
+  const nat = G(p, { o: 0 }); path(nat, 'M300 880V800M288 812L300 798L312 812', { stroke: COL.dim, 'stroke-width': 4, fill: 'none', 'stroke-dasharray': '6 8' }); phLabel(nat, 'nature: millions of years', { x: 330, y: 880, size: 26, fill: COL.dim, anchor: 'start' }); show(nat, TF + 2.4);
+  const tb = thermoTube(p, { x: 1500, y: 640, len: 330, w: 30, bulb: 30, o: 0 });
+  show(tb, TW - .4);
+  say(p, 'global warming', 1450, 470, TW + .3, { size: 36, anchor: 'end' });
+  say(p, "a rise in Earth's average temperature", 1450, 514, TW + 1.6, { size: 26, fill: COL.dim, anchor: 'end' });
+  say(p, 'largely caused by people', 1450, 552, TW + 4, { size: 26, fill: COL.dim, anchor: 'end' });
+  say(p, 'air pollution', 1130, 300, tsm + .6, { size: 32, fill: SMOKE });
+  const co2 = [0, 1, 2, 3].map(i => phLabel(p, 'CO₂', { size: 30, fill: '#cdd3d1', o: 0 }));
+  const hb = eBlocks(p, 3, HEAT, { size: 24, o: 0 });
+  say(p, 'traps heat', 520, 230, tc + 2.8, { size: 30, fill: HEAT });
+  clockRun(t => {
+    // blocks: the top of the pile leaves first; the refill rises from below the ground very slowly
+    const gone = Math.max(0, Math.min(N - 1, Math.floor((t - TF) / .8) + 1)) * (t > TF ? 1 : 0);
+    pile.forEach((e, i) => {
+      const k = N - 1 - i;   // the order they leave in
+      const [hx, hy] = pos(i);
+      if (k < gone - 1) { put(e, { x: 670, y: 700, o: 0 }); return; }   // gone: parked at the furnace, so seek = play
+      if (k === gone - 1) { const q = ((t - TF) % .8) / .8, x = lerp(hx, 670, q), y = lerp(hy, 700, q) - 90 * Math.sin(Math.PI * q); put(e, { x, y, o: 1 - sm(q, .8, 1) }); }
+      else put(e, { x: hx, y: hy, o: 1 });
+    });
+    smk.set(t, .35 + .65 * sm(t, tsm - .3, tsm + .5));
+    co2.forEach((e, i) => { const q = (((t - tc) / 5 + i / 4) % 1); put(e, { x: 900 - 240 * q - i * 30 + (i % 2) * 120, y: lerp(380, 130, q), o: t < tc ? 0 : Math.min(1, q * 5, (1 - q) * 5) }); });
+    hb.forEach((e, i) => {   // heat going up from the ground meets the CO₂ and comes back down
+      const q = (((t - tc - 1.2) / 3 + i / 3) % 1), y = q < .5 ? lerp(700, 190, q * 2) : lerp(190, 700, (q - .5) * 2);
+      put(e, { x: 440 + i * 70 + 60 * q, y, o: t < tc + 1.2 ? 0 : 1 });
+    });
+    tb.set(.25 + .45 * sm(t, TW, TW + 5));
+  }, D);
+}, { lead: false }],
+['nuclear', 'Nuclear power', (m, D) => {
+  const p = panel(0), ta = m('atom'), tsp = m('split'), tst = m('steam'), tcl = m('clean'), tws = m('waste'), tmi = m('mined');
+  // One uranium nucleus splits with a flash and sends heat out. It shrinks into the reactor of a plant: the heat boils
+  // water, steam spins the turbine, the house lights. The cooling tower gives off only steam; a toxic waste drum sits
+  // in its store; a cart of uranium ore leaves the mine, and the pile beside it never refills.
+  const plant = G(p, { o: 0 });
+  outdoors(plant, Y1, -40, 1700, 200);
+  // the mine
+  path(plant, 'M-40 740L-40 520Q120 430 340 740Z', { fill: '#4a3d31', ...phLine() });
+  path(plant, 'M170 740V676A40 40 0 0 1 250 676V740Z', { fill: '#0d0b09' });
+  path(plant, 'M150 740H700', { stroke: '#7d8a86', 'stroke-width': 4, 'stroke-dasharray': '4 10' });
+  const ore = Array.from({ length: 7 }, (_, i) => mk('circle', { cx: 60 + (i % 4) * 22 + (i > 3 ? 11 : 0), cy: i > 3 ? 708 : 726, r: 12, fill: '#6e7a3e', ...phLine(2) }, plant));
+  const cart = G(plant, { x: 210, y: 740 }); phBlock(cart, -46, -50, 92, 36, '#6d6d72', { top: 4 }); [-26, 26].forEach(x => mk('circle', { cx: x, cy: -8, r: 9, fill: '#2f3a3d' }, cart));
+  [-24, 0, 24].forEach(x => mk('circle', { cx: x, cy: -54, r: 13, fill: '#6e7a3e', ...phLine(2) }, cart));
+  // the reactor building, cut away: core below, tank above
+  path(plant, 'M380 740V470Q380 360 520 360Q660 360 660 470V740Z', { fill: '#2a3833', ...phLine() });
+  trefoil(plant, { x: 520, y: 410, r: 22 });
+  const core = G(plant); mk('rect', { x: 440, y: 640, width: 160, height: 100, rx: 8, fill: '#2b1a14', ...phLine() }, core);
+  const rods = path(core, 'M470 652V728M500 652V728M530 652V728M560 652V728', { stroke: '#ff9a4a', 'stroke-width': 9 });
+  const bl = boiler(plant, { x: 520, y: 640, w: 150, fh: 0, th: 150, fire: false });
+  const sp = pipeFlow(plant, route([bl.out, [bl.out[0], 450], [760, 450], [760, 520], [796, 520]]), { w: 18, color: STEAM, dash: [22, 20] });
+  const tg = turbineGen(plant, { x: 840, y: 520, s: .8, R: 70, L: 110, gap: 40, GW: 150 });
+  const wR = route([tg.term, [tg.term[0], 400], [1250, 400], [1250, 640]]); wire(plant, wR, { w: 6 }); const wf = eFlow(plant, wR, { gap: 40, r: 6 });
+  const house = litHouse(plant, { x: 1250, y: Y1 });
+  const ct = coolingTower(plant, { x: 1460, y: Y1, h: 300, w: 220 });
+  const pf = puffs(plant, 1460, 440, { rise: 150, drift: 40, r0: 20, r1: 56 });
+  // the waste store
+  const shed = G(plant, { o: 0 });
+  path(shed, 'M760 740V660L860 630L960 660V740Z', { fill: '#3a4642', ...phLine() });
+  mk('rect', { x: 800, y: 676, width: 120, height: 64, fill: '#141c19' }, shed);
+  const gl = mk('circle', { cx: 860, cy: 708, r: 54, fill: '#a6f06a', opacity: .25 }, shed);
+  phBlock(shed, 838, 680, 44, 58, '#e0c040', { top: 4 }); trefoil(shed, { x: 860, y: 708, r: 12 });
+  show(shed, tws - .2);
+  // the atom first, alone in the middle
+  const atom = G(p, { x: 800, y: 430 });
+  [-24, 24].forEach(a => mk('ellipse', { rx: 330, ry: 90, fill: 'none', stroke: COL.faint, 'stroke-width': 3 }, G(atom, { r: a })));
+  const nuc = nucleus(atom, { s: 1 });
+  const flash = mk('circle', { r: 150, fill: '#fff6c8', opacity: 0 }, atom);
+  const hb = eBlocks(atom, 6, HEAT, { size: 34, o: 0 });
+  const neu = [0, 1, 2].map(() => mk('circle', { r: 16, fill: '#9aa5a8', ...phLine(2), opacity: 0 }, atom));
+  const al = say(p, 'a uranium nucleus', 800, 140, ta + .5, { size: 40 });
+  const al2 = say(p, 'it splits: an enormous amount of energy', 800, 820, tsp + 2.6, { size: 36, fill: HEAT });
+  hide(al, tst - .4); hide(al2, tst - .4);
+  tw(atom, { s: .1, x: 520, y: 690, o: 0 }, tst - .3, 1.2, io);
+  show(plant, tst - .3, .9);
+  say(p, 'heat boils water', 520, 330, tst + .9, { size: 30, fill: HEAT });
+  say(p, 'steam', 680, 432, tst + 1.6, { size: 28, fill: STEAM });
+  const cl = G(p, { o: 0 }); phLabel(cl, 'very little air pollution', { x: 1380, y: 330, size: 30, anchor: 'end' }); path(cl, 'M994 312l12 14l26 -30', { stroke: COL.good, 'stroke-width': 7, fill: 'none' });
+  show(cl, tcl + .4);
+  say(p, 'only steam', 1380, 372, tcl + 1.6, { size: 26, fill: COL.dim, anchor: 'end' });
+  say(p, 'toxic nuclear waste', 860, 800, tws + .6, { size: 30, fill: '#c8f08a' });
+  say(p, 'hard to store safely', 860, 840, tws + 2.4, { size: 26, fill: COL.dim });
+  say(p, 'uranium is mined', 150, 420, tmi + .6, { size: 30 });
+  say(p, 'it cannot be replaced', 150, 460, tmi + 2.4, { size: 26, fill: COL.dim });
+  line(p, [['nonrenewable', COL.task]], 150, 510, tmi + 4, { size: 36 });
+  clockRun(t => {
+    // the nucleus jiggles, then its halves fly apart
+    const sp_ = sm(t, tsp, tsp + 1.2);
+    const dr = Math.max(0, t - tsp - 1.2);   // after the split the halves keep drifting apart, trembling
+    put(nuc.L, { x: -150 * sp_ - 9 * dr + (2 + 3 * sp_) * Math.sin(t * 17), y: -60 * sp_ - 3 * dr + 3 * sp_ * Math.sin(t * 13), r: -20 * sp_ - 2 * dr });
+    put(nuc.R, { x: 150 * sp_ + 9 * dr + (2 + 3 * sp_) * Math.sin(t * 19 + 1), y: 60 * sp_ + 3 * dr + 3 * sp_ * Math.sin(t * 11 + 2), r: 20 * sp_ + 2 * dr });
+    thAtt(flash, 'opacity', (t > tsp && t < tsp + .6 ? .7 * (1 - (t - tsp) / .6) : 0).toFixed(2));
+    hb.forEach((e, i) => { const a = i * TAU / 6 + .3 + .03 * Math.max(0, t - tsp), d = 60 + 250 * sm(t, tsp + .1, tsp + 1.6) + 8 * Math.max(0, t - tsp - 1.6); put(e, { x: d * Math.cos(a) + 5 * Math.sin(t * 6 + i * 2), y: d * Math.sin(a) * .7 + 5 * Math.sin(t * 7 + i), o: t > tsp ? 1 : 0 }); });
+    neu.forEach((e, i) => { const a = [-.6, 2.4, 1.2][i], d = 80 + 600 * ramp(t, tsp, tsp + 1.4); put(e, { x: d * Math.cos(a), y: d * Math.sin(a), o: t > tsp && d < 600 ? 1 : 0 }); });
+    // the plant
+    const k = sm(t, tst, tst + 1.2), a = spinAt(t, [[tst + 1.2, 0], [tst + 3, 6.5]]), el = phaseOf(t, [[tst + 2.4, 0], [tst + 3.4, 100]]);
+    thAtt(rods, 'stroke', mix('#ff9a4a', '#ffd27a', .5 + .5 * Math.sin(t * 5)));
+    bl.set(t, k); sp.set(130 * t, sm(t, tst + .6, tst + 1.4)); tg.set(a); wf.set(el); house.set(sm(t, tst + 3.6, tst + 4.2));
+    pf.set(t, sm(t, tst + 2, tst + 3));
+    thAtt(gl, 'opacity', (.18 + .14 * Math.sin(t * 3)).toFixed(2));
+    // the cart rolls out of the mine toward the reactor; the pile beside the mine loses its rocks to it
+    const c = sm(t, tmi + .4, tmi + 4.4); put(cart, { x: lerp(210, 330, c) });
+    ore.forEach((e, i) => thAtt(e, 'opacity', t > tmi + .4 + i * .5 && i > 2 ? 0 : 1));
+  }, D);
+}, { lead: false }],
+['q1', 'Quick check', (m, D) => {
+  const p = panel(0);
+  outdoors(p, 500, -40, 1700, 200);
+  const f = fossilPlant(p);
+  clockRun(t => f.set(t, { a: 6.5 * t, el: 100 * t }), D);
+}, { ask: done => quiz(Q_CARD, [
+  { id: 'c-turb', prompt: ['What does the generator add to a spinning turbine?'],
+    build: choice([['it turns the rotation into electricity'], ['it spins the turbine'], ['it burns the fuel']], 0,
+      'The turbine turns; the generator turns that rotation into electricity.',
+      [null, 'Steam, water or wind spins the turbine.', 'Burning happens at the boiler.']) },
+  { id: 'c-fossil', prompt: ['In a coal power plant, what boils the water?'],
+    build: choice([['thermal energy released by burning the coal'], ['the generator'], ['the turbine']], 0,
+      'Chemical energy becomes heat, and the heat boils the water.',
+      [null, 'The generator makes electricity.', 'The turbine is pushed by the steam.']) },
+  { id: 'c-nuc', prompt: ['What is a problem with nuclear power?'],
+    build: choice([['it leaves toxic waste that is hard to store'], ['it gives off lots of smoke'], ['it burns fossil fuels']], 0,
+      'Nuclear waste is very toxic and hard to store safely.',
+      [null, 'A nuclear plant gives off very little air pollution.', 'It splits uranium nuclei instead.']) },
+], done) }],
+['wrap1', 'Summary · Turbines and fuels', (m, D) => {
+  const p = panel(0);
+  let tg, sk, nu;
+  summary(p, m, [
+    [['A turbine spins a generator;', 'the generator makes the electricity.'], g => { tg = turbineGen(g, { x: 190, y: 6, s: .42, R: 70, L: 100, gap: 30, GW: 140 }); }],
+    [['Fossil fuels are burned to boil water;', 'they run out, pollute and warm the earth.'], g => { phBlock(g, 250, -60, 40, 110, '#7a6d62', { top: 5 }); sk = puffs(g, 270, -60, { color: SMOKE, rise: 70, drift: 40, r0: 8, r1: 26 }); eBlock(g, CHEM, { x: 330, y: 30, size: 30 }); }],
+    [['Nuclear power splits atoms to boil water:', 'little air pollution, but toxic waste.'], g => { nu = nucleus(g, { x: 280, y: 6, s: .55, n: 26 }); }],
+  ], 'Next: energy that can be replenished.');
+  clockRun(t => { tg.set(6 * t); sk.set(t); put(nu.L, { x: -22 - 8 * Math.sin(t * 2) }); put(nu.R, { x: 22 + 8 * Math.sin(t * 2) }); }, D);
+}],
+/* ---------- part 2: water and wind ---------- */
+['part2', 'Part 2 · Water and wind', (m, D) => {
+  const p = panel(0);
+  outdoors(p, 620, -40, 760, 300);
+  path(p, 'M60 620L60 360H140L230 620Z', { fill: '#a7adaa', ...phLine() });
+  const lake = mk('rect', { x: -40, y: 420, width: 100, height: 200, fill: WATER }, p);
+  const fall = pipeFlow(p, route([[150, 600], [230, 640], [520, 640]]), { w: 20, walls: false });
+  const wt = windTurbine(p, { x: 470, y: 620, h: 380, bl: 170 });
+  const wl = windLines(p, { x0: 0, x1: 700, y0: 150, y1: 520, n: 8 });
+  clockRun(t => { wt.set(80 * t); wl.set(160 * t); fall.set(150 * t); }, D);
+  opener(p, 1140, 340, 'Part 2', 'Water and', 'Wind');
+}, { lead: false }],
+['renew', 'Renewable resources', (m, D) => {
+  const p = panel(0), tr = m('renew'), tl = m('list');
+  // A tank that is drawn from and refilled at the same rate keeps its level: replenished. Around a turning ring, the
+  // renewable sources each appear, each doing what it does.
+  const TX = 330, TT = 300, TB = 700;
+  mk('rect', { x: TX - 90, y: TT, width: 180, height: TB - TT, rx: 16, fill: '#22322d', stroke: GLASS, 'stroke-width': 4 }, p);
+  const lvl = mk('rect', { x: TX - 84, y: 430, width: 168, height: TB - 436, rx: 10, fill: WATER }, p);
+  const inS = pipeFlow(p, route([[TX, 150], [TX, 430]]), { w: 18, walls: false });
+  const outS = pipeFlow(p, route([[TX + 90, 670], [TX + 200, 670], [TX + 200, 800]]), { w: 18 });
+  say(p, 'replenished', TX - 110, 220, tr + 3, { size: 30, anchor: 'end', fill: COL.good });
+  say(p, 'used', TX + 230, 760, tr + 3.6, { size: 30, anchor: 'start', fill: COL.dim });
+  line(p, [['renewable', COL.good]], TX, 110, tr + .4, { size: 48 });
+  say(p, 'can be replenished: it does not run out', TX, 856, tr + 1.4, { size: 28 });
+  // the ring of sources
+  const CX = 1100, CY = 470, RX = 330, RY = 260;
+  const ring = path(p, `M${CX - RX} ${CY}A${RX} ${RY} 0 1 0 ${CX + RX} ${CY}A${RX} ${RY} 0 1 0 ${CX - RX} ${CY}`, { stroke: COL.faint, 'stroke-width': 5, fill: 'none', 'stroke-dasharray': '18 14' });
+  const heads = path(p, '', { stroke: COL.good, 'stroke-width': 5, fill: 'none' });
+  const at = a => [CX + RX * Math.cos(a), CY + RY * Math.sin(a)];
+  const icons = [
+    ['moving water', -Math.PI / 2, g => { const s = pipeFlow(g, route([[-70, 0], [70, 0]]), { w: 24, walls: false }); return t => s.set(90 * t); }],
+    ['wind', -Math.PI / 2 + 1.257, g => { const w = windLines(g, { x0: -90, x1: 90, y0: -40, y1: 40, n: 4, len: 60 }); return t => w.set(120 * t); }],
+    ['sunlight', -Math.PI / 2 + 2.513, g => { const s = phSun(g, { r: 38 }); return t => put(s._rays, { r: 20 * t }); }],
+    ["earth's heat", -Math.PI / 2 + 3.77, g => { phBlock(g, -70, 0, 140, 40, EARTH, { top: 0 }); mk('rect', { x: -70, y: 22, width: 140, height: 18, fill: MAGMA, opacity: .6 }, g); const r = riseLines(g, 0, -4, { n: 3, h: 28 }); put(r, { o: 1 }); return t => put(r, { y: -4 - 10 * ((t * 1.2) % 1) }); }],
+    ['growing plants', -Math.PI / 2 + 5.027, g => { const tr_ = phSprite(g, 'tree', { y: 40, s: .55 }); return t => put(tr_, { r: 2 * Math.sin(t * 1.6) }); }],
+  ].map(([s, a, draw_], i) => {
+    const [x, y] = at(a), g = G(p, { x, y, o: 0, s: .4 });
+    mk('circle', { r: 86, fill: BOX, stroke: COL.faint, 'stroke-width': 3 }, g);
+    const f = draw_(G(g, { y: -14 }));
+    phLabel(g, s, { y: 64, size: 24 });
+    pop(g, tl + .3 + i * 1.15);
+    return f;
+  });
+  clockRun(t => {
+    inS.set(140 * t); outS.set(140 * t);
+    icons.forEach(f => f(t));
+    let d = ''; for (let k = 0; k < 4; k++) { const a = .5 + k * Math.PI / 2 + t * .35, [x, y] = at(a), dx = -RX * Math.sin(a), dy = RY * Math.cos(a), L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L; d += `M${(x - ux * 16 - uy * 11).toFixed(1)} ${(y - uy * 16 + ux * 11).toFixed(1)}L${x.toFixed(1)} ${y.toFixed(1)}L${(x - ux * 16 + uy * 11).toFixed(1)} ${(y - uy * 16 - ux * 11).toFixed(1)}`; }
+    thAtt(heads, 'd', d);
+  }, D);
+}, { lead: false }],
+['hydro', 'Hydroelectricity', (m, D) => {
+  const p = panel(0), td = m('dam'), tpe = m('pe'), trl = m('release'), ttu = m('turb'), tpw = m('power'), trv = m('river'), TK = 11.4;
+  // The dam in cross-section. The lake rises behind it; one blue block of potential energy sits high in it. Released,
+  // it runs down the pipe and turns yellow (kinetic), rides the turbine round, then goes up into the generator and out
+  // along the power lines as electric energy. The water goes on down the river.
+  const cam = camera(p, D, { x: 800, y: 450, z: 1 }), W = cam.world;
+  const d = damScene(W);
+  say(W, 'reservoir', 300, 270, td + 1.6, { size: 34 });
+  say(W, 'dam', 600, 210, td + .6, { size: 34 });
+  const hgt = G(W, { o: 0 });
+  path(hgt, 'M560 300H1060', { stroke: POT, 'stroke-width': 3, 'stroke-dasharray': '10 10' });
+  path(hgt, 'M1040 310V820M1028 324L1040 308L1052 324M1028 806L1040 822L1052 806', { stroke: POT, 'stroke-width': 4, fill: 'none' });
+  phLabel(hgt, 'high up', { x: 1020, y: 410, size: 28, fill: POT, anchor: 'end' });
+  show(hgt, tpe + 1.6); hide(hgt, trl + 3);
+  say(W, 'gravitational potential energy', 330, 160, tpe + .6, { size: 32, fill: POT });
+  say(W, 'kinetic energy', 690, 900 - 70, TK, { size: 28, fill: KIN });
+  say(W, 'turbine', 970, 806, ttu + .4, { size: 26, anchor: 'start' });
+  say(W, 'generator', 970, 690, tpw + .2, { size: 26, anchor: 'start' });
+  say(W, 'power lines', 1290, 520, tpw + 1.2, { size: 30 });
+  say(W, 'on down the river', 1300, 800, trv + .6, { size: 30, fill: lt(WATER, .4) });
+  // the one block's journey
+  const blk = eBlock(W, POT, { size: 32, o: 0 }); show(blk, tpe + .2, .4);
+  const pipeR = route([[440, 330], [500, 640], [546, 650], [760, 776], [838, 815]]);
+  const outR = route([[885, 800], [885, 702], [796, 702], [796, 560], [1174, 568], [1424, 568], [1462, 690]]);
+  const sl = path(W, '', { stroke: KIN, 'stroke-width': 4, fill: 'none', 'stroke-linecap': 'round' });
+  clockRun(t => {
+    const L = lerp(430, 300, sm(t, td + .2, td + 3.6)), flow = sm(t, trl, trl + .8);
+    const a = spinAt(t, [[trl + 1, 0], [trl + 2.4, 2.5], [ttu, 2.5], [ttu + 1.2, 7]]), el = phaseOf(t, [[tpw, 0], [tpw + 1, 100]]);
+    d.set(t, { L, flow, a, el, lit: sm(t, tpw + 2.6, tpw + 3.2), out: flow, inK: 1 - sm(t, td + 3.4, td + 4.4) });
+    let bx, by, sd = '';
+    if (t < trl + .3) { [bx, by] = [440, L + 30 + 4 * Math.sin(t * 2)]; }
+    else if (t < trl + 3.3) { const q = ramp(t, trl + .3, trl + 3.3), s = pipeR.len * q * q; [bx, by] = pipeR.at(s); if (q > .3) { const [x2, y2] = pipeR.at(Math.max(0, s - 90 * q)); sd = `M${x2.toFixed(1)} ${(y2 - 22).toFixed(1)}L${(bx).toFixed(1)} ${(by - 22).toFixed(1)}M${x2.toFixed(1)} ${(y2 + 22).toFixed(1)}L${bx.toFixed(1)} ${(by + 22).toFixed(1)}`; } }
+    else if (t < tpw) { bx = 885 + 40 * Math.cos(a); by = 815 + 6 * Math.sin(a); }
+    else { [bx, by] = outR.at(outR.len * sm(t, tpw, tpw + 4.5)); }
+    put(blk, { x: bx, y: by, o: t < tpe + .2 ? 0 : (t > tpw && t < tpw + .9 ? 0 : 1) });
+    blk.set(t < trl + .3 || (t < trl + 3.3 && by < 648) ? POT : t < tpw + .5 ? KIN : ELE);
+    thAtt(sl, 'd', sd);
+  }, D);
+  cam.to({ x: 700, y: 640, z: 1.35 }, trl - .2, 1.6); cam.to({ x: 800, y: 450, z: 1 }, tpw - .6, 1.8);
+}, { lead: false }],
+['tidal', 'Tidal power', (m, D) => {
+  const p = panel(0), tt = m('tide'), tf = m('flow'), tu = m('tur'), tb = m('both');
+  // The shore in cross-section with a scale of the tide. The water rises (flowing in toward the shore), then turns and
+  // falls (flowing out). The underwater turbine spins with the flow, backwards when it reverses; its generator sends
+  // electrons up a cable to the lamp on the shore.
+  const P_ = tb + 2;   // half a tide, compressed: low at t = −2, high at the [[both]] mark
+  const level = t => 450 + 70 * Math.cos(Math.PI * (t + 2) / P_);   // y of the surface: 520 low, 380 high
+  const flowS = t => 3.2 * (520 - level(t));                         // distance the water has moved toward the shore
+  const shoreX = L => -40 + (L - 300) / 260 * 560;                   // where the surface meets the beach
+  const water = path(p, '', { fill: WATER, opacity: .92 });
+  const surf = path(p, '', { stroke: lt(WATER, .5), 'stroke-width': 4, fill: 'none' });
+  const fl = windLines(p, { x0: 420, x1: 1700, y0: 600, y1: 830, n: 12, len: 90, color: lt(WATER, .55) });
+  path(p, 'M-40 300L520 560L760 840L1640 872V940H-40Z', { fill: '#a08a5c', ...phLine() });
+  path(p, 'M-40 300L520 560', { stroke: GRASS, 'stroke-width': 8 });
+  phBlock(p, 1006, 120, 24, 760, '#7d8a86', { top: 0 });
+  const tg = turbineGen(p, { x: 870, y: 720, s: .85, R: 70, L: 90, rows: 2, gap: 30, GW: 150 });
+  const cR = route([tg.term, [tg.term[0], 130], [60, 130], [60, 150]]); wire(p, cR, { w: 6 }); const cf = eFlow(p, cR, { gap: 40, r: 6 });
+  phBlock(p, 52, 150, 16, 200, '#7d8a86', { top: 0 });
+  const b = bulb(p, { x: 60, y: 160, r: 180, s: .7 });
+  // the tide scale
+  const sc = G(p, { o: 0 }); phBlock(sc, 1300, 330, 20, 240, '#c3ccce', { top: 0 });
+  [[380, 'high tide'], [520, 'low tide']].forEach(([y, s]) => { path(sc, `M1290 ${y}H1340`, { stroke: COL.chalk, 'stroke-width': 4 }); phLabel(sc, s, { x: 1350, y: y + 10, size: 26, anchor: 'start' }); });
+  const mark = path(sc, '', { fill: COL.task });
+  show(sc, tt + .4);
+  say(p, 'tides: the ocean rises and falls', 800, 90, tt + .4, { size: 40 });
+  say(p, 'once or twice a day', 1380, 300, tt + 3, { size: 26, fill: COL.dim });
+  // which way the water goes: a dark tag over the flow, its arrow pointing that way (in: toward the shore, left)
+  const tag = (s, dir, t0) => {
+    const g = G(p, { o: 0 }); mk('rect', { x: 1080, y: 644, width: 300, height: 58, rx: 14, fill: BOX, opacity: .9 }, g);
+    phLabel(g, s, { x: 1262, y: 684, size: 32, fill: lt(WATER, .5) });
+    path(g, dir < 0 ? 'M1146 673H1096m16 -14l-16 14l16 14' : 'M1096 673H1146m-16 -14l16 14l-16 14', { stroke: lt(WATER, .5), 'stroke-width': 6, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
+    show(g, t0); return g;
+  };
+  hide(tag('flowing in', -1, tf + .6), tb + .2); tag('and back out', 1, tb + 1.4);
+  say(p, 'underwater turbine', 840, 620, tu + .4, { size: 28 });
+  say(p, 'generator', 1160, 770, tu + 2.6, { size: 26 });
+  clockRun(t => {
+    const L = level(t), s = flowS(t);
+    const x0 = shoreX(L);
+    let d = `M${x0.toFixed(1)} ${L.toFixed(1)}`, sd = '';
+    for (let x = x0; x <= 1640; x += 20) { const y = L + 6 * Math.sin(x / 40 - t * 2); d += `L${x.toFixed(1)} ${y.toFixed(1)}`; sd += `${sd ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`; }
+    d += `L1640 900L${x0.toFixed(1)} 900Z`;
+    thAtt(water, 'd', d); thAtt(surf, 'd', sd);
+    fl.set(-s); tg.set(-s / 40);
+    const v = Math.abs(Math.sin(Math.PI * (t + 2) / P_)), on = t > tu - .4 ? Math.min(1, v * 2.2) : 0;
+    cf.set(phaseOf(t, [[tu - .4, 0], [tu + .6, 90]]) * 1); b.set(on);
+    thAtt(mark, 'd', `M1288 ${L.toFixed(1)}l-20 -12v24Z`);
+  }, D);
+}, { lead: false }],
+['wind', 'Wind power', (m, D) => {
+  const p = panel(0), tw_ = m('wind'), tb = m('blades'), tg_ = m('gen'), tsp = m('spot');
+  // A big wind turbine on a hill, wind streaming past with kinetic energy (yellow blocks riding it). The blades spin
+  // up; an inset opens the nacelle: shaft into generator; electrons run down the tower to a pylon. Then the camera
+  // pulls far back: rows of turbines on hills, on plains and out at sea.
+  const cam = camera(p, D, { x: 800, y: 450, z: 1 }), W = cam.world;
+  outdoors(W, 800, -2000, 9000, 1800);
+  path(W, 'M120 810Q700 600 1300 810Z', { fill: GRASS, ...phLine() });
+  // the hills, the plains and the sea for the pull-back
+  path(W, 'M1900 810Q2600 360 3300 810Z', { fill: GRASS, ...phLine() });
+  path(W, 'M4640 800H7100V2000H4900Q4800 1000 4640 800Z', { fill: WATER });
+  // waves over the whole sea, rocking, so it reads as water from far back too
+  const waves = G(W); path(waves, [850, 960, 1070, 1180, 1290].flatMap((y, j) => [0, 1, 2, 3, 4, 5].map(i => `M${5000 + i * 340 + (j % 2) * 170} ${y}q30 -26 60 0t60 0t60 0`)).join(''), { stroke: lt(WATER, .5), 'stroke-width': 16, fill: 'none', 'stroke-linecap': 'round' });
+  const big = windTurbine(W, { x: 700, y: 676, h: 440, bl: 200 });
+  const ridge = [2300, 2600, 2900].map((x, i) => windTurbine(W, { x, y: [690, 584, 690][i], h: 380, bl: 170 }));
+  const plains = [3700, 4050, 4400].map(x => windTurbine(W, { x, y: 800, h: 380, bl: 170 }));
+  const sea = [5000, 5300, 5600].map(x => windTurbine(W, { x, y: 800, h: 380, bl: 170 }));
+  const all = [...ridge, ...plains, ...sea];
+  const wl = windLines(W, { x0: -1200, x1: 6600, y0: -700, y1: 760, n: 96, len: 120 });
+  const kb = eBlocks(W, 4, KIN, { size: 30, o: 0 });
+  const cab = route([[700, 300], [700, 676], [860, 676], [860, 800], [1190, 800], [1190, 650]]);
+  const cf = eFlow(W, cab, { gap: 40, r: 6 }); put(cf, { o: 0 });
+  pylon(W, { x: 1180, y: 800, h: 220 });
+  say(p, 'wind: moving air', 800, 90, tw_ + .3, { size: 40 });
+  hide(say(W, 'kinetic energy', 330, 250, tw_ + 1.6, { size: 30, fill: KIN }), tsp - .6);
+  hide(say(W, 'blades', 990, 210, tb + .6, { size: 32, anchor: 'start' }), tg_ - .6);
+  // the inset: inside the top
+  const ins = G(p, { o: 0 }); frameBox(ins, 1010, 140, 520, 290);
+  phLabel(ins, 'inside the top', { x: 1270, y: 186, size: 28, fill: COL.dim });
+  const itg = turbineGen(ins, { x: 1150, y: 310, s: .72, R: 70, L: 80, rows: 1, n: 3, gap: 60, GW: 160 });
+  phLabel(ins, 'shaft → generator', { x: 1270, y: 412, size: 26 });
+  path(ins, 'M806 270L1010 230M806 270L1010 400', { stroke: COL.faint, 'stroke-width': 3 });
+  show(ins, tg_ - .2); hide(ins, tsp - .6);
+  const sl = [['hills', 2600, -40], ['plains', 4050, 150], ['at sea', 5300, 150]].map(([s, x, y]) => say(W, s, x, y, tsp + 1.4 + (x > 4000 ? 1 : 0) + (x > 5000 ? 1 : 0), { size: 110 }));
+  const tsL = say(p, 'built where it is windy', 800, 840, tsp + 4, { size: 40 });
+  clockRun(t => {
+    wl.set(260 * t); put(waves, { x: 40 * Math.sin(t * .9) });
+    const deg = phaseOf(t, [[tb, 0], [tb + 2.4, 150]]); big.set(deg);
+    itg.set(deg * Math.PI / 180 * 1.5);
+    all.forEach((w, i) => w.set(150 * t + i * 37));
+    kb.forEach((e, i) => { const q = ((t - tw_ - 1 + i * 1.2) / 4.8) % 1; put(e, { x: lerp(-100, 1700, q < 0 ? 0 : q), y: 200 + i * 95, o: t > tw_ + 1 + i * .2 ? Math.min(1, q * 8, (1 - q) * 8) * (1 - sm(t, tsp - .6, tsp)) : 0 }); });
+    put(cf, { o: t > tg_ + 1 ? 1 : 0 }); cf.set(phaseOf(t, [[tg_ + 1, 0], [tg_ + 2, 100]]));
+  }, D);
+  cam.to({ x: 3150, y: -30, z: .3 }, tsp - .2, 2.6);
+}, { lead: false }],
+['q2', 'Quick check', (m, D) => {
+  const p = panel(0), S_ = .62, OX = 304, OY = 0;
+  const d = damScene(G(p, { x: OX, y: OY, s: S_ }));
+  clockRun(t => d.set(t, { a: 7 * t, el: 100 * t, inK: 0 }), D);
+  const bx = (x, y, w, h) => [OX + x * S_, OY + y * S_, w * S_, h * S_];
+  S.q2 = [
+    { el: d.lake, box: bx(120, 300, 430, 380), label: 'the lake behind the dam' },
+    { el: d.pipe, box: bx(700, 730, 150, 100), label: 'the water in the pipe by the turbine' },
+    { el: d.river, box: bx(1000, 828, 560, 72), label: 'the river below' },
+  ];
+}, { ask: done => quiz(Q_CARD, [
+  { id: 'c-renew', prompt: ['Renewable or nonrenewable?'],
+    build: grid([
+      { parts: ['wind'], ans: ['r'], why: 'Wind keeps blowing: renewable.' },
+      { parts: ['natural gas'], ans: ['n'], why: 'A fossil fuel: it runs out.' },
+      { parts: ['a flowing river'], ans: ['r'], why: 'Rain keeps refilling rivers: renewable.' },
+      { parts: ['uranium'], ans: ['n'], why: 'Uranium is mined and cannot be replaced.' },
+    ], [['r', 'renewable', COL.good, 'r'], ['n', 'nonrenewable', COL.task, 'n']], { multi: false, text: true }) },
+  { id: 'c-chain', prompt: ['In a hydroelectric dam, the energy changes in which order?'],
+    build: choice([['potential energy of high water, then kinetic energy of moving water, then electrical energy'], ['electrical, then kinetic, then potential'], ['kinetic, then potential, then heat']], 0,
+      'Stored high water falls, speeds up, and spins the turbine and generator.',
+      [null, 'That is backwards.', 'The stored high water comes first.']) },
+  { id: 'c-hydro', prompt: ['Click the water that has the most gravitational potential energy.'],
+    build: pickEls(S.q2, 0,
+      'The lake is held high up behind the dam.',
+      i => ['', 'That water is moving fast: it has kinetic energy.', 'The river is low.'][i]) },
+], done) }],
+['wrap2', 'Summary · Water and wind', (m, D) => {
+  const p = panel(0);
+  let ins, fl, wt, wv;
+  summary(p, m, [
+    [['A renewable resource', 'can be replenished.'], g => { mk('rect', { x: 240, y: -50, width: 70, height: 100, rx: 8, fill: '#22322d', stroke: GLASS, 'stroke-width': 3 }, g); mk('rect', { x: 244, y: -10, width: 62, height: 56, rx: 5, fill: WATER }, g); ins = pipeFlow(g, route([[275, -90], [275, -12]]), { w: 10, walls: false, dash: [12, 10] }); }],
+    [['A dam turns the potential energy of high water', 'into kinetic energy, then electricity.'], g => { path(g, 'M180 -60H240V50H180Z', { fill: WATER }); path(g, 'M240 -70H270L310 50H240Z', { fill: '#a7adaa', ...phLine(2) }); fl = pipeFlow(g, route([[244, 30], [360, 40]]), { w: 10, walls: false, dash: [12, 10] }); }],
+    [['Tides and wind turn turbines too,', 'with the motion of water and air.'], g => { wt = windTurbine(g, { x: 310, y: 80, h: 130, bl: 75 }); wv = windLines(g, { x0: 140, x1: 400, y0: -70, y1: 40, n: 6, len: 50 }); }],
+  ], 'Next: sun, earth, and living things.');
+  clockRun(t => { ins.set(60 * t); fl.set(80 * t); wt.set(120 * t); wv.set(110 * t); }, D);
+}],
+/* ---------- part 3: sun, earth and living things ---------- */
+['part3', 'Part 3 · Sun, earth and living things', (m, D) => {
+  const p = panel(0);
+  const sun = phSun(p, { x: 230, y: 200, r: 60 });
+  outdoors(p, 560, -40, 760, 400);
+  mk('rect', { x: -40, y: 760, width: 760, height: 200, fill: MAGMA, opacity: .25 }, p);
+  const well = pipeFlow(p, route([[420, 820], [420, 520]]), { w: 18, color: HOTW, dash: [18, 16] });
+  const pf = puffs(p, 420, 520, { rise: 120, drift: 30, r0: 12, r1: 34 });
+  const cf = campfire(p, { x: 180, y: 560 });
+  clockRun(t => { put(sun._rays, { r: 15 * t }); well.set(90 * t); pf.set(t); put(cf.flame, { s: .9 + .08 * Math.sin(t * 13), x: 2 * Math.sin(t * 9) }); }, D);
+  opener(p, 1140, 300, 'Part 3', 'Sun, Earth and', 'Living Things');
+}, { lead: false }],
+['solar', 'Solar power', (m, D) => {
+  const p = panel(0), ts = m('sun'), tth = m('thermal'), tpv = m('pv'), tsh = m('share'), TS2 = 9.52, TNT = 20.55;
+  // The sun over two houses. Light reaches a thermal collector on the left roof: its blocks turn to heat in water
+  // running through the collector's pipe into a hot tank (or, in the inset, into steam for a turbine). On the right,
+  // a solar panel: light blocks become electric blocks at once, and electrons run down to a lamp. Between them, a small
+  // and growing share of our electricity, and the price of panels falling.
+  outdoors(p, Y1, -40, 1700, 200);
+  const sun = phSun(p, { x: 800, y: 130, r: 60 });
+  // left house with the thermal collector
+  path(p, 'M170 560L380 420L590 560Z', { fill: '#7a4a3c', ...phLine() }); phBlock(p, 200, 560, 360, 180, '#c9b48a', { top: 0 });
+  const col = G(p); path(col, 'M410 452L540 538L520 552L390 466Z', { fill: '#2b3f3a', ...phLine(2) });
+  const loopR = route([[400, 470], [520, 548], [530, 540], [410, 456], [420, 448], [540, 528], [548, 600], [548, 640], [330, 640], [330, 600]]);
+  const pipeL = pipeFlow(p, loopR, { w: 8, color: WATER, dash: [10, 10] });
+  const tank = G(p); mk('rect', { x: 260, y: 580, width: 90, height: 140, rx: 14, fill: '#9aa5a8', ...phLine() }, tank);
+  const tankW = mk('rect', { x: 268, y: 600, width: 74, height: 112, rx: 8, fill: WATER }, tank);
+  const tankH = riseLines(p, 305, 570, { n: 2, h: 26 });
+  const hotDots = path(p, '', { fill: HEAT, ...phLine(1.5) });
+  // the inset: steam for a turbine
+  const ins = G(p, { o: 0 }); frameBox(ins, 30, 150, 300, 170);
+  const itg = turbineGen(ins, { x: 110, y: 240, s: .5, R: 70, L: 90, rows: 2, gap: 30, GW: 140 });
+  const ipf = puffs(ins, 60, 240, { rise: 40, drift: -10, r0: 8, r1: 20, per: 1.6 });
+  phLabel(ins, 'or steam for a turbine', { x: 180, y: 185, size: 22, fill: COL.dim });
+  show(ins, TS2 + 2.4);
+  // right house with the photovoltaic panel
+  path(p, 'M1010 560L1220 420L1430 560Z', { fill: '#7a4a3c', ...phLine() }); phBlock(p, 1040, 560, 360, 180, '#c9b48a', { top: 0 });
+  solarPanel(p, { x: 1115, y: 482, w: 150, h: 46, sk: 0, r: -33.7 });
+  const pvR = route([[1120, 500], [1120, 640], [1300, 640], [1300, 600]]); wire(p, pvR, { w: 6 }); const pvf = eFlow(p, pvR, { gap: 36, r: 6 }); put(pvf, { o: 0 });
+  const lb = bulb(p, { x: 1300, y: 600, r: 180, s: .6 });
+  // light: waving rays to both roofs, and light blocks along them
+  const rL = waveRays(p, { x0: 760, y0: 180, x1: 470, y1: 490, n: 2, spread: 60, color: LIGHT });
+  const rR = waveRays(p, { x0: 840, y0: 180, x1: 1110, y1: 470, n: 2, spread: 60, color: LIGHT });
+  const lbL = eBlocks(p, 3, LIGHT, { size: 26, o: 0 }), lbR = eBlocks(p, 3, LIGHT, { size: 26, o: 0 });
+  say(p, 'radiant energy', 800, 340, ts + .8, { size: 30, fill: LIGHT });
+  say(p, 'thermal collector', 330, 400, tth + .4, { size: 32 });
+  say(p, 'heats water', 380, 800, tth + 2.4, { size: 26, fill: HEAT });
+  say(p, 'photovoltaic collector', 1270, 400, tpv + .4, { size: 32 });
+  say(p, 'electricity directly', 1220, 800, tpv + 3.4, { size: 26, fill: ELE });
+  const nt = G(p, { o: 0, x: 55 }); phLabel(nt, 'no turbine', { x: 1460, y: 620, size: 28 });
+  const mini = turbineGen(nt, { x: 1460, y: 680, s: .25, R: 70, L: 90, rows: 2, gen: false });
+  path(nt, 'M1420 650L1500 710M1500 650L1420 710', { stroke: COL.bad, 'stroke-width': 6 });
+  show(nt, TNT);
+  // the share and the price
+  const sh = G(p, { o: 0 });
+  phLabel(sh, "solar's share of our electricity", { x: 800, y: 592, size: 28 });
+  mk('rect', { x: 610, y: 606, width: 380, height: 34, rx: 8, fill: 'none', stroke: COL.dim, 'stroke-width': 3 }, sh);
+  const bar = mk('rect', { x: 613, y: 609, width: 8, height: 28, rx: 5, fill: LIGHT }, sh);
+  phLabel(sh, 'price of panels', { x: 800, y: 676, size: 28 });
+  path(sh, 'M620 684V734H990', { stroke: COL.dim, 'stroke-width': 3, fill: 'none' });
+  const pr = path(sh, '', { stroke: COL.task, 'stroke-width': 5, fill: 'none' });
+  show(sh, tsh + .2);
+  clockRun(t => {
+    put(sun._rays, { r: 12 * t });
+    rL.set(t * 5, sm(t, ts + .3, ts + 1.6)); rR.set(t * 5, sm(t, ts + .3, ts + 1.6));
+    // thermal: blocks land on the collector and turn red; the water circulates, heating as it passes
+    lbL.forEach((e, i) => { const q = ((t - tth + .6) / 2 + i / 3) % 1; if (t < tth - .6 + i * .66) { put(e, { o: 0 }); return; } put(e, { x: lerp(770, 470, q), y: lerp(200, 490, q), o: Math.min(1, q * 8, (1 - q) * 8) }); e.set(q > .82 ? HEAT : LIGHT); });
+    pipeL.set(60 * t, 1);
+    const warm = sm(t, tth + .8, tth + 3);
+    thAtt(tankW, 'fill', mix(WATER, '#d9776a', warm)); put(tankH, { o: warm, y: 570 - 8 * ((t * 1.3) % 1) });
+    let hd = ''; if (warm > 0) for (let k = 0; k < 4; k++) { const [x, y] = loopR.at(((60 * t + k * loopR.len / 4) % (loopR.len * .55)) + loopR.len * .1); hd += `M${(x - 5).toFixed(1)} ${y.toFixed(1)}a5 5 0 1 0 10 0a5 5 0 1 0 -10 0`; }
+    thAtt(hotDots, 'd', hd);
+    itg.set(5 * t); ipf.set(t);
+    // photovoltaic: blocks land on the panel and turn blue at once, and the current flows to the lamp
+    lbR.forEach((e, i) => { const q = ((t - tpv + .6) / 2 + i / 3) % 1; if (t < tpv - .6 + i * .66) { put(e, { o: 0 }); return; }
+      const [x, y] = q < .7 ? [lerp(830, 1110, q / .7), lerp(200, 480, q / .7)] : pvR.at((q - .7) / .3 * pvR.len);
+      put(e, { x, y, o: Math.min(1, q * 8, (1 - q) * 8) }); e.set(q > .68 ? ELE : LIGHT); });
+    put(pvf, { o: t > tpv + .8 ? 1 : 0 }); pvf.set(phaseOf(t, [[tpv + .8, 0], [tpv + 1.6, 90]])); lb.set(sm(t, tpv + 1.2, tpv + 1.8));
+    // share grows, price falls
+    const g = sm(t, tsh + .6, tsh + 5);
+    thAtt(bar, 'width', 8 + 36 * g);
+    let d = ''; for (let k = 0; k <= 12; k++) { const x = 630 + k * 29, kk = Math.min(k / 12, g), y = 690 + 36 * (1 - Math.exp(-3 * kk)); if (k / 12 <= g + .001) d += `${d ? 'L' : 'M'}${x} ${y.toFixed(1)}`; }
+    thAtt(pr, 'd', d);
+  }, D);
+}, { lead: false }],
+['geo', 'Geothermal power', (m, D) => {
+  const p = panel(0), th = m('hot'), tw_ = m('well'), ts = m('steam'), tc = m('cool'), ti = m('inject'), TW2 = 10.47;
+  // Deep, glowing rock and magma; the camera starts down there and rises with the production well's hot water and
+  // steam to the surface, where the steam spins the turbine, then cools and condenses in the tower; the injection well
+  // takes the water back down and the loop closes.
+  // the opening: from the surface down, how deep the heat is (hot rock, magma at the bottom)
+  const cam = camera(p, D, { x: 620, y: 660, z: 1.25 }), W = cam.world;
+  const g = geoScene(W);
+  const deep = G(W, { o: 0 }); path(deep, 'M880 350V650M864 632L880 652L896 632', { stroke: COL.chalk, 'stroke-width': 5, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
+  phLabel(deep, 'deep underground', { x: 860, y: 500, size: 32, anchor: 'end' });
+  show(deep, th + .3); hide(deep, tw_ + 3.4);
+  say(W, 'hot rock', 1000, 700, th + .8, { size: 34, fill: '#ffb09a' });
+  say(W, 'magma: molten rock', 430, 800, tw_ + 1.8, { size: 30, fill: '#ffb09a' });
+  say(W, 'hot water and steam', 500, 560, TW2 + .3, { size: 28, anchor: 'start' });
+  say(W, 'turbine', 720, 330, ts + .2, { size: 26 });
+  say(W, 'cooling tower', 1150, 380, tc + .3, { size: 28 });
+  say(W, 'condenses to water', 1150, 420, tc + 2.6, { size: 24, fill: lt(WATER, .4) });
+  say(W, 'injection well', 1340, 560, ti + .3, { size: 28, anchor: 'start' });
+  say(W, 'and the loop starts again', 900, 860, ti + 3.2, { size: 28, fill: lt(WATER, .4) });
+  draw(g.loop, ti + 2.2, 1.6);
+  clockRun(t => {
+    const a = spinAt(t, [[ts - .4, 0], [ts + 1.2, 6]]);
+    g.set(t, { wellK: sm(t, tw_ + 4, tw_ + 5), steamK: sm(t, TW2 + .4, TW2 + 1.2), a, el: phaseOf(t, [[ts + 1, 0], [ts + 2, 90]]), lit: sm(t, ts + 2.4, ts + 3), coolK: sm(t, tc, tc + 1), injK: sm(t, ti, ti + 1) });
+  }, D);
+  cam.to({ x: 800, y: 450, z: 1 }, tw_ + 3.6, 3.2);
+}, { lead: false }],
+['biomass', 'Biomass power', (m, D) => {
+  const p = panel(0), tb = m('bio'), tf = m('feed'), tbu = m('burn'), th = m('heat'), tp = m('plant'), tsm = m('smoke'), TC = 5.27;
+  // A campfire's log holds chemical energy that turns to heat (and no electricity). Then the plant: feedstocks ride a
+  // belt into the furnace; the steam spins the turbine, the house lights. A sapling grows beside a stump: renewable
+  // only if replanted. The chimney smokes.
+  const cam = camera(p, D, { x: 380, y: 600, z: 1.4 }), W = cam.world;
+  outdoors(W, Y1, -1000, 4000, 900);
+  const cf = campfire(W, { x: 330, y: Y1, s: 1.4 });
+  const fireOn = t => sm(t, TC - .4, TC + .6);
+  const cb = [[-60, -40], [-20, -52], [20, -44], [60, -34]].map(([x, y]) => eBlock(W, CHEM, { x: 330 + x * 1.4, y: Y1 + y * 1.4, size: 26 }));
+  const rlF = riseLines(W, 330, 560, { n: 3, h: 34 });
+  say(W, 'stored chemical energy', 330, 420, tb + 1.4, { size: 36, fill: CHEM });
+  say(W, 'heat (no electricity)', 330, 466, TC + 2.6, { size: 32, fill: HEAT });
+  // feedstocks: stalks, wood chips and a trash bag on a belt into the plant
+  const fs = G(W, { o: 0 });
+  [740, 760, 780].forEach((x, i) => path(fs, `M${x} ${Y1}q${-10 + i * 10} -60 ${-4 + i * 8} -120`, { stroke: PLANT, 'stroke-width': 7, fill: 'none', 'stroke-linecap': 'round' }));
+  path(fs, `M820 ${Y1}L870 ${Y1 - 50}L940 ${Y1 - 40}L980 ${Y1}Z`, { fill: '#b08a5a', ...phLine(2) });
+  path(fs, `M1000 ${Y1}Q996 ${Y1 - 70} 1030 ${Y1 - 76}Q1070 ${Y1 - 70} 1064 ${Y1}Z`, { fill: '#3a3f3d', ...phLine(2) });
+  show(fs, tf - .2);
+  say(W, 'biomass feedstocks', 900, Y1 - 160, tf + .3, { size: 40 });
+  say(W, 'plants, wood, waste', 900, Y1 - 120, tf + 1.4, { size: 32, fill: COL.dim });
+  const belt = G(W, { o: 0 }); phBlock(belt, 1080, Y1 - 120, 230, 16, '#4a5458', { top: 0 });
+  const beltD = path(belt, `M1080 ${Y1 - 112}H1310`, { stroke: '#9aa5a8', 'stroke-width': 4, 'stroke-dasharray': '14 12' });
+  phBlock(belt, 1090, Y1 - 104, 10, 104, '#4a5458', { top: 0 });
+  show(belt, tbu - .4);
+  const bits = [0, 1, 2, 3, 4, 5].map(() => G(W, { o: 0 }));
+  bits.forEach((g, i) => { if (i % 3 === 0) phBlock(g, -14, -12, 28, 14, '#b08a5a', { top: 3 }); else if (i % 3 === 1) path(g, 'M-14 0q14 -20 28 0', { stroke: PLANT, 'stroke-width': 6, fill: 'none' }); else mk('circle', { cy: -8, r: 10, fill: '#3a3f3d', ...phLine(2) }, g); });
+  const bl = boiler(W, { x: 1420, y: Y1, w: 200, fh: 120, th: 150 });
+  phBlock(W, 1310, Y1 - 470, 40, 200, '#7a6d62', { top: 6 });
+  const smoke = puffs(W, 1330, Y1 - 470, { color: SMOKE, rise: 200, drift: 120, r0: 16, r1: 56 });
+  const sp = pipeFlow(W, route([bl.out, [bl.out[0], Y1 - 330], [1600, Y1 - 330], [1600, Y1 - 260], [1636, Y1 - 260]]), { w: 18, color: STEAM, dash: [22, 20] });
+  const tg = turbineGen(W, { x: 1680, y: Y1 - 260, s: .8, R: 70, L: 110, gap: 40, GW: 150 });
+  const wR = route([tg.term, [tg.term[0], Y1 - 400], [1980, Y1 - 400], [1980, Y1 - 120]]); wire(W, wR, { w: 6 }); const wf = eFlow(W, wR, { gap: 40, r: 6 });
+  const house = litHouse(W, { x: 2020, y: Y1 });
+  say(W, 'a power plant burns them', 1420, 290, tbu + .6, { size: 40 });
+  say(W, 'steam spins the turbine', 1760, 370, th + 1, { size: 38 });
+  say(W, 'air pollution', 1330, 150, tsm + .4, { size: 40, fill: SMOKE });
+  // replanting: a stump and a sapling, and the loop back to the feedstock
+  const rp = G(W, { o: 0 }); phBlock(rp, 560, Y1 - 30, 40, 30, '#7a5236', { top: 6 }); show(rp, tp - .2);
+  const sap = sapling(W, 640, Y1); put(sap, { o: 0 }); show(sap, tp);
+  const loop = path(W, `M650 ${Y1 - 160}C700 ${Y1 - 320} 860 ${Y1 - 340} 900 ${Y1 - 220}M886 ${Y1 - 238}L900 ${Y1 - 220}L912 ${Y1 - 242}`, { stroke: COL.good, 'stroke-width': 5, fill: 'none' }, { d: 0 });
+  draw(loop, tp + 1.6, 1.2);
+  say(W, 'renewable only if replanted', 900, 372, tp + 2, { size: 40, fill: COL.good });
+  const BR = route([[1080, Y1 - 128], [1310, Y1 - 128], [1350, Y1 - 100], [1420, Y1 - 60]]);
+  clockRun(t => {
+    const k = fireOn(t);
+    put(cf.flame, { s: k * (.9 + .08 * Math.sin(t * 13)), x: 3 * Math.sin(t * 9) });
+    cb.forEach((e, i) => { const q = sm(t, TC + .6 + i * .5, TC + 2.2 + i * .5); e.set(q > .05 ? HEAT : CHEM); put(e, { y: lerp(Y1 + [-40, -52, -44, -34][i] * 1.4 - 3 * Math.sin(t * 2.4 + i), 515 + 8 * Math.sin(t * 2 + i), q), x: 330 + [-60, -20, 20, 60][i] * 1.4 * (1 - .4 * q) }); });
+    put(rlF, { o: k, y: 560 - 10 * ((t * 1.2) % 1) });
+    thAtt(beltD, 'stroke-dashoffset', -60 * t);
+    bits.forEach((g, i) => { const q = ((t - tbu) / 3 + i / 6) % 1; if (t < tbu + i * .5) { put(g, { o: 0 }); return; } const [x, y] = BR.at(q * BR.len); put(g, { x, y, o: Math.min(1, q * 10, (1 - q) * 6) }); });
+    const heat = sm(t, tbu + 1, tbu + 2.4);
+    bl.set(t, heat); sp.set(130 * t, sm(t, th, th + 1)); tg.set(spinAt(t, [[th + .6, 0], [th + 2, 6.5]]));
+    wf.set(phaseOf(t, [[th + 1.6, 0], [th + 2.4, 90]])); house.set(sm(t, th + 2.8, th + 3.4));
+    smoke.set(t, heat * (.4 + .6 * sm(t, tsm - .3, tsm + .4)));
+    sap.set(sm(t, tp, tp + 3));
+  }, D);
+  cam.to({ x: 800, y: 560, z: 1.15 }, tf - .6, 2); cam.to({ x: 1150, y: 470, z: .78 }, tbu - .2, 2.4);
+}, { lead: false }],
+['q3', 'Quick check', (m, D) => {
+  const p = panel(0), S_ = .62, OX = 304, OY = 24;
+  const g = geoScene(G(p, { x: OX, y: OY, s: S_ }));
+  clockRun(t => g.set(t, { a: 6 * t, el: 90 * t }), D);
+  const bx = (x, y, w, h) => [OX + x * S_, OY + y * S_, w * S_, h * S_];
+  S.q3 = [
+    { el: g.inj, box: bx(1290, 300, 70, 470), label: 'the injection well' },
+    { el: g.tower, box: bx(1040, 100, 220, 230), label: 'the cooling tower' },
+    { el: g.tg, box: bx(660, 170, 250, 140), label: 'the turbine' },
+  ];
+}, { ask: done => quiz(Q_CARD, [
+  { id: 'c-solar', prompt: ['Which collector turns sunlight directly into electricity?'],
+    build: choice([['a photovoltaic collector'], ['a thermal collector'], ['neither']], 0,
+      'Photovoltaic panels make electricity with no turbine.',
+      [null, 'Thermal collectors heat water first.', 'Panels do it, with no turbine.']) },
+  { id: 'c-geo', prompt: ['Click the part that sends cooled water back underground.'],
+    build: pickEls(S.q3, 0,
+      'The injection well returns the water to the hot rock.',
+      i => ['', 'The cooling tower condenses the steam; the injection well sends it down.', 'The turbine spins in the steam.'][i]) },
+  { id: 'c-bio', prompt: ['When is biomass power renewable?'],
+    build: choice([['when new plants are grown to replace what is burned'], ['always, whatever is burned'], ['never']], 0,
+      'Replanting replaces what was burned.',
+      [null, 'Not if it is never replanted.', 'It can be, if it is replanted.']) },
+], done) }],
+['wrap3', 'Summary · Sun, earth and living things', (m, D) => {
+  const p = panel(0);
+  let rs, pf, cf, sp;
+  summary(p, m, [
+    [['Thermal collectors heat water;', 'photovoltaic collectors make electricity directly.'], g => { solarPanel(g, { x: 300, y: 20, w: 140, h: 50 }); rs = waveRays(g, { x0: 220, y0: -70, x1: 290, y1: -6, n: 2, spread: 40, color: LIGHT }); }],
+    [["Geothermal power uses the earth's heat for steam;", 'the water goes back down to be used again.'], g => { phBlock(g, 180, 0, 220, 60, EARTH, { top: 0 }); mk('rect', { x: 180, y: 36, width: 220, height: 24, fill: MAGMA, opacity: .5 }, g); path(g, 'M230 50V-10M350 -10V50', { stroke: '#9aa5a8', 'stroke-width': 8 }); pf = puffs(g, 230, -10, { rise: 50, drift: 10, r0: 8, r1: 20 }); }],
+    [['Biomass burns plants, wood and waste;', 'renewable only if what is burned is replanted.'], g => { cf = campfire(g, { x: 240, y: 50, s: .7 }); sp = sapling(g, 350, 50); sp.set(.4); }],
+  ], 'Time for the chapter practice.');
+  clockRun(t => { rs.set(t * 5); pf.set(t); put(cf.flame, { s: .9 + .08 * Math.sin(t * 13) }); }, D);
+}],
+/* ---------- chapter practice and finish ---------- */
+['final1', 'Chapter practice: sources and turbines', () => { PRACTICE = panel(0); }, { ask: done => quiz(SCREEN, withPics([
+  { id: 'p-sort', prompt: ['Renewable or nonrenewable?'],
+    build: grid([
+      { parts: ['hydropower'], ans: ['r'], why: 'Rivers are refilled by rain.' },
+      { parts: ['solar'], ans: ['r'], why: 'The sun keeps shining.' },
+      { parts: ['geothermal'], ans: ['r'], why: "The earth's heat keeps coming." },
+      { parts: ['wind'], ans: ['r'], why: 'The wind keeps blowing.' },
+      { parts: ['tidal'], ans: ['r'], why: 'The tides come in and out every day.' },
+      { parts: ['biomass, replanted'], ans: ['r'], why: 'New plants replace the ones burned.' },
+      { parts: ['fossil fuels'], ans: ['n'], why: 'They took millions of years to form and will run out.' },
+      { parts: ['nuclear'], ans: ['n'], why: 'Uranium is mined and cannot be replaced.' },
+    ], [['r', 'renewable', COL.good, 'r'], ['n', 'nonrenewable', COL.task, 'n']], { multi: false, text: true }) },
+  { id: 'p-fossil', prompt: ['Is it a problem with using fossil fuels as our main energy source?'],
+    build: grid([
+      { parts: ['they will run out, with none for millions of years'], ans: ['y'], why: 'We use them much faster than they form.' },
+      { parts: ['burning them pollutes the air'], ans: ['y'], why: 'Smoke and soot pollute the air.' },
+      { parts: ['the carbon dioxide adds to global warming'], ans: ['y'], why: 'Carbon dioxide traps heat.' },
+      { parts: ['they make toxic nuclear waste'], ans: ['n'], why: 'That is nuclear power.' },
+    ], [['y', 'yes', COL.good, 'y'], ['n', 'no', COL.bad, 'n']], { multi: false, text: true }) },
+  { id: 'p-nuc', prompt: ['What is a problem with using nuclear power?'],
+    build: choice([['its waste is very toxic and hard to dispose of and store'], ['its smoke pollutes the air'], ['its fuel is oil']], 0,
+      'Nuclear waste is very toxic, and storing it safely is hard.',
+      [null, 'It gives off very little air pollution.', 'Its fuel is uranium, not oil.']) },
+  { id: 'p-turb', prompt: ['What is a turbine?'],
+    build: choice([['a battery that stores energy'], ['a propeller-like piece that turns a metal shaft in a generator'], ['a wire that carries current']], 1,
+      'Water, steam or wind push its blades, and it turns the shaft.',
+      ['It does not store energy; it turns a shaft.', null, 'That is a conductor.']) },
+  { id: 'p-which', prompt: ['Which of these makes electricity without a turbine?'],
+    build: choice([['a hydroelectric dam'], ['a wind farm'], ['a photovoltaic solar panel']], 2,
+      'It turns sunlight directly into electricity.',
+      ['Water spins its turbine.', 'Wind spins its turbines.', null]) },
+]), done, 'Chapter practice, set 1 of 2 · question') }],
+['final2', 'Chapter practice: how each source works', () => { PRACTICE = panel(0); }, { ask: done => quiz(SCREEN, withPics([
+  { id: 'p-solar', prompt: ['How are the two kinds of solar collector different?'],
+    build: choice([['thermal ones make electricity directly; photovoltaic ones heat water'], ['thermal ones absorb sunlight to heat water; photovoltaic ones turn sunlight directly into electricity'], ['thermal ones use wind; photovoltaic ones use tides']], 1,
+      'Thermal collectors heat water; photovoltaic panels make electricity directly.',
+      ['It is the other way round.', null, 'Both use the sun.']) },
+  { id: 'p-uran', prompt: ['Where does the energy in nuclear power come from?'],
+    build: choice([['burning uranium'], ['the stored chemical energy of ancient fossils'], ['the nuclei of enriched uranium atoms']], 2,
+      'A nucleus that breaks apart releases an enormous amount of energy.',
+      ['Nothing burns; the nuclei break apart.', 'That is fossil fuel.', null]) },
+  { id: 'p-hydro', prompt: ['How does hydroelectricity produce electricity?'],
+    build: choice([['river water is piled up behind a dam and released; the moving water turns a turbine'], ['the dam burns water'], ['sunlight heats the water in the dam']], 0,
+      'Gravity pulls the high water down; its kinetic energy spins the turbine.',
+      [null, 'Nothing is burned.', 'Gravity does the work.']) },
+  { id: 'p-geo', prompt: ['What heats the water in geothermal power?'],
+    build: choice([['burning coal'], ["the earth's heat, from hot rock and sometimes magma"], ['sunlight on the ground']], 1,
+      'Hot rock deep underground, and sometimes magma, heats the water.',
+      ['That is a fossil fuel plant.', null, 'The heat comes from inside the earth.']) },
+  { id: 'p-bio', prompt: ['Biomass power uses the stored chemical energy of living things. Is it a biomass feedstock?'],
+    build: grid([
+      { parts: ['wood scraps'], ans: ['y'], why: 'Wood came from living trees.' },
+      { parts: ['food waste'], ans: ['y'], why: 'Waste from living things is biomass.' },
+      { parts: ['natural gas'], ans: ['n'], why: 'That is a fossil fuel.' },
+      { parts: ['uranium'], ans: ['n'], why: 'Uranium is a mined metal, not a living thing.' },
+    ], [['y', 'yes', COL.good, 'y'], ['n', 'no', COL.bad, 'n']], { multi: false, text: true }) },
+]), done, 'Chapter practice, set 2 of 2 · question') }],
+['finish', 'Finished', (m, D) => {
+  // under the card, the chapter in four small pictures with their names
+  const p = panel(0);
+  let tg, fl, cf, sp;
+  [['turbines', 300, g => { tg = turbineGen(g, { x: -60, y: -40, s: .4, R: 70, L: 100, gap: 30, GW: 140 }); }],
+   ['water', 633, g => { path(g, 'M-90 -90H-30V0H-90Z', { fill: WATER }); path(g, 'M-30 -100H0L40 0H-30Z', { fill: '#a7adaa', ...phLine(2) }); fl = pipeFlow(g, route([[-26, -14], [80, -10]]), { w: 10, walls: false, dash: [12, 10] }); }],
+   ['sun', 966, g => { solarPanel(g, { y: -40, w: 160, h: 60 }); }],
+   ['replanting', 1300, g => { sp = sapling(g, 30, 0); sp.set(.6); cf = campfire(g, { x: -50, y: 0, s: .6 }); }]]
+    .forEach(([s, x, draw_]) => { const g = G(p, { x, y: 800, s: .85 }); draw_(g); phLabel(g, s, { y: 56, size: 30, fill: COL.dim, weight: 600 }); });
+  clockRun(t => { tg.set(6 * t); fl.set(80 * t); put(cf.flame, { s: .9 + .08 * Math.sin(t * 13) }); }, D);
+}, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+let PRACTICE;   // the practice beat's panel: its question pictures are drawn there
+const PICS = {
+  'p-fossil': g => { phBlock(g, 780, 740, 36, 130, '#7a6d62', { top: 5 }); [[800, 720, 22], [830, 690, 30], [870, 660, 36]].forEach(([x, y, r]) => mk('circle', { cx: x, cy: y, r, fill: SMOKE, opacity: .7 }, g)); },
+  'p-nuc': g => { phBlock(g, 776, 760, 48, 70, '#e0c040', { top: 4 }); trefoil(g, { x: 800, y: 795, r: 14 }); },
+  'p-turb': g => { turbineGen(g, { x: 740, y: 810, s: .45, R: 70, L: 100, gap: 30, GW: 140 }).set(.6); },
+  'p-which': g => { solarPanel(g, { x: 800, y: 810, w: 180, h: 70 }); },
+  'p-solar': g => { solarPanel(g, { x: 730, y: 810, w: 120, h: 50 }); path(g, 'M840 790h40l-30 20h40l-30 20h40', { stroke: WATER, 'stroke-width': 7, fill: 'none' }); },
+  'p-uran': g => { nucleus(g, { x: 800, y: 810, s: .5 }); },
+  'p-hydro': g => { path(g, 'M700 760H770V860H700Z', { fill: WATER }); path(g, 'M770 750H800L840 860H770Z', { fill: '#a7adaa', ...phLine(2) }); path(g, 'M800 850H900', { stroke: WATER, 'stroke-width': 10 }); },
+  'p-geo': g => { phBlock(g, 700, 780, 200, 90, EARTH, { top: 0 }); mk('rect', { x: 700, y: 830, width: 200, height: 40, fill: MAGMA, opacity: .5 }, g); path(g, 'M760 840V740', { stroke: '#9aa5a8', 'stroke-width': 8 }); },
+  'p-bio': g => { campfire(g, { x: 800, y: 860, s: .7 }); },
+};
+const withPics = qs => qs.map(q => ({ ...q, build(body, api) { const old = PRACTICE.querySelector('.pic'); if (old) old.remove(); const g = G(PRACTICE, { x: 800, y: 870, s: 1.8 }); g.classList.add('pic'); PICS[q.id]?.(G(g, { x: -800, y: -870 })); return q.build(body, api); } }));
+
+boot();
+</script>
+</body>
+</html>
