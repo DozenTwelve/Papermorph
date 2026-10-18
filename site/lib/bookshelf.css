@@ -24,9 +24,8 @@ a { color: inherit; }
 .algebra-book { left: 10.1%; width: 26.1%; }
 .math-book { left: 39.9%; width: 24.5%; }
 .physics-book { left: 66.8%; width: 25.3%; }
-/* The middle shelf: our picture book's cover laid over the first painted book. */
-.pigs-book { left: 8.3%; width: 25.6%; top: 34.8%; height: 19.3%; overflow: hidden; }
-.book-cover { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 2px; box-shadow: 0 2px 6px #0004; }
+/* The middle shelf: the photographed cover of our picture book. */
+.pigs-book { left: 8.1%; width: 25.8%; top: 34.5%; height: 19.6%; }
 .pigs-book .book-caption { background: linear-gradient(110deg, #7a4a1ef5, #5a3414f0); }
 .book-hotspot:hover { box-shadow: 0 0 0 2px #f7d998b3, 0 0 28px #edc97833; }
 #shelf a:focus-visible { outline: 3px solid #f4d786; outline-offset: 5px; }
