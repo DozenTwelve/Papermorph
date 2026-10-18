@@ -10,6 +10,8 @@ uv run --with playwright --with pillow --with numpy SKILL/scripts/strip.py chNN 
 
 A strip shows one beat at small steps; `@w` adds a motion WebP; `@o` adds an onion skin, the same frames laid over each other in one picture, later ones stronger, so spacing reads at a glance: even gaps are even speed, bunched ghosts are easing in or out, a ghost that jumps is a pop. Look at each action as a viewer would: do actors perform what the narration says, do props stay on the hands, does the camera move with purpose, does each frame still match the storyboard, do arrows, labels and readouts agree with the motion? Then watch a few beats live in Firefox with sound, which is how the user watches.
 
+Watch every beat to its end, question cards included; problems hide in the beats nobody looked at. A strip is a row of still pictures, so it cannot tell you that nothing is moving: a wave drawn once at a fixed phase looks right in every frame and is dead on screen. `uv run --with playwright --with pillow SKILL/scripts/still.py chNN --url …` lists the stretches of each beat where the stage does not change. Some holds are right (a moment to read a result); a wave, a ray of light or an actor that stands for something in motion should be moving whenever it is on screen, because the motion is what it explains.
+
 ## Static checks first
 
 `python3 SKILL/scripts/lint.py site/<book> chNN` takes a second and needs no browser: a global name that clashes with the engine or a library (which stops the page script), beats without timings or MP3, marks the code waits for that the narration lacks, narration edited since `tts.py` ran, and a malformed `style.json`. Run it after every edit, before the passes below.
