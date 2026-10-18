@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Three Little Pigs — how it was made</title>
+<meta name="description" content="An experiment: a picture book animated from a story alone, with an image model for the art and code for the motion. What we tried, what worked, and why it stayed out of the Skill.">
+<style>
+  :root { --ink: #2f2418; --soft: #6b5a46; --paper: #fbf5e8; --card: #fffaf0; --line: #e4d6bb; --accent: #b4532a; --ui: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif; --serif: "Iowan Old Style", Palatino, Georgia, serif; color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 18px/1.65 var(--ui); }
+  a { color: var(--accent); }
+  header.hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 40px; align-items: center; max-width: 1180px; margin: 0 auto; padding: 48px 24px 24px; }
+  .hero img { width: 100%; border-radius: 10px; box-shadow: 0 14px 40px #4a33182e; }
+  .back { display: inline-block; margin-bottom: 18px; font-size: 15px; color: var(--soft); text-decoration: none; }
+  h1 { margin: 0 0 8px; font: 700 clamp(34px, 4.6vw, 56px)/1.05 var(--serif); }
+  .tag { display: inline-block; margin-bottom: 18px; padding: 2px 12px; border: 1.5px solid var(--accent); border-radius: 99px; color: var(--accent); font-size: 14px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+  .lede { font-size: 20px; color: #4a3b2a; }
+  .watch { display: inline-flex; align-items: center; gap: 10px; margin-top: 10px; padding: 14px 26px; border-radius: 99px; background: var(--ink); color: #fff6e0; font-weight: 600; text-decoration: none; }
+  .watch:hover { background: #4a3826; }
+  .watch small { opacity: .75; font-weight: 500; }
+  main { max-width: 900px; margin: 0 auto; padding: 8px 24px 80px; }
+  h2 { margin: 64px 0 8px; font: 700 32px/1.2 var(--serif); }
+  h3 { margin: 32px 0 4px; font: 700 21px/1.3 var(--ui); }
+  figure { margin: 18px 0 26px; }
+  figure img { display: block; width: 100%; border-radius: 8px; border: 1px solid var(--line); background: #fff; }
+  figcaption { margin-top: 8px; font-size: 15px; color: var(--soft); }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .stills { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 18px 0; }
+  .stills img { width: 100%; border-radius: 6px; display: block; }
+  .verdict { margin: 18px 0; padding: 4px 22px; border-left: 4px solid var(--accent); background: var(--card); border-radius: 0 8px 8px 0; }
+  .numbers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 18px 0; }
+  .numbers div { padding: 14px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; text-align: center; }
+  .numbers b { display: block; font: 700 28px/1.1 var(--serif); }
+  .numbers span { font-size: 14px; color: var(--soft); }
+  ol.tries { padding-left: 22px; }
+  code { font-size: .88em; background: #f1e6cf; padding: 1px 5px; border-radius: 4px; }
+  footer { max-width: 900px; margin: 0 auto; padding: 0 24px 60px; color: var(--soft); font-size: 15px; }
+  @media (max-width: 760px) {
+    header.hero { grid-template-columns: 1fr; padding-top: 28px; }
+    .pair, .numbers { grid-template-columns: 1fr 1fr; }
+    .stills { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<header class="hero">
+  <img src="making/cover.webp" alt="The Three Little Pigs: the wolf blows at the straw house while the first little pig peeks out of the window.">
+  <div>
+    <a class="back" href="../">← Back to the bookshelf</a><br>
+    <span class="tag">An experiment</span>
+    <h1>The Three Little Pigs</h1>
+    <p class="lede">The other books on this shelf start from a textbook and draw every picture in code. This one started from nothing but the story. An image model painted the characters and places, and code made them move, speak and dance. It works, and it's fun to watch. But the method turned out not good enough to become part of the Papermorph Skill. Here is how it was made, and why.</p>
+    <a class="watch" href="ch01/">▶ Watch the film <small>4½ minutes · narrated · music</small></a>
+  </div>
+</header>
+
+<main>
+  <div class="stills">
+    <img src="making/still-1.webp" alt="Mother Pig waves goodbye with her handkerchief." loading="lazy">
+    <img src="making/still-2.webp" alt="The first pig carries straw to her half-built house." loading="lazy">
+    <img src="making/still-5.webp" alt="The wolf licks his lips." loading="lazy">
+    <img src="making/still-6.webp" alt="The straw house flies apart." loading="lazy">
+    <img src="making/still-8.webp" alt="Three pigs in the windows of the brick house." loading="lazy">
+    <img src="making/still-11.webp" alt="Happily ever after." loading="lazy">
+  </div>
+
+  <h2>What we set out to do</h2>
+  <p>Take a story with no book and no pictures, and make it an animated film you can pause, scrub and read along with. The pages are the same kind as the rest of the shelf: static web pages, one SVG stage, narration clips driving every move. What was new: the art came from an image model (OpenAI's gpt-image through OpenRouter), and the goal was for it to feel like a TV cartoon, not a slideshow.</p>
+  <figure><img src="making/styles.webp" alt="The same scene in three styles: gouache, cut paper, TV cartoon." loading="lazy"><figcaption>Style tests, one scene in three looks. We chose the TV cartoon (right).</figcaption></figure>
+
+  <h2>Four tries at a character</h2>
+  <ol class="tries">
+    <li><b>Rotating painted parts.</b> We cut the wolf into image pieces and rotated them at the joints. Too stiff: it read as a paper puppet, with seams at every knee.</li>
+    <li><b>Painted body, code-drawn limbs.</b> Arms and legs became bendable SVG curves with feet planted by inverse kinematics. Much livelier, but the first scene, shot from one fixed camera, still felt like a slideshow.</li>
+    <li><b>Separately painted parts.</b> Heads, bodies, sleeves and hands from separate generations never lined up: arms came out beside the sleeve, collars doubled, hands went missing.</li>
+    <li><b>Characters drawn entirely in code.</b> They lined up perfectly, but looked far too crude next to the painted world.</li>
+  </ol>
+  <div class="pair">
+    <figure><img src="making/try1-rigid.webp" alt="The wolf assembled from rigid painted parts." loading="lazy"><figcaption>Try 1: rigid parts.</figcaption></figure>
+    <figure><img src="making/try2-hose.webp" alt="The wolf with bendable code-drawn limbs." loading="lazy"><figcaption>Try 2: bendable limbs.</figcaption></figure>
+    <figure><img src="making/try3-sheets.webp" alt="Mother Pig's arm emerging beside her sleeve." loading="lazy"><figcaption>Try 3: parts that don't fit.</figcaption></figure>
+    <figure><img src="making/try4-handdrawn.webp" alt="Mother Pig drawn in code, crude." loading="lazy"><figcaption>Try 4: drawn in code.</figcaption></figure>
+  </div>
+
+  <h2>What finally worked</h2>
+  <h3>One picture, edited, never redrawn</h3>
+  <p>Each character got one large picture. Every other version was an <em>edit</em> of that same picture: without the near arm, without eyes and mouth, with the legs in each walking pose, with each mouth shape. Because the edits change only a few percent of the pixels, they line up exactly, and a script can cut parts out wherever two pictures differ.</p>
+  <figure><img src="making/edits-mother.webp" alt="Mother Pig three times: complete, without her arm, without her face." loading="lazy"><figcaption>Mother Pig as drawn, without her arm (the dress behind it painted in), and without her face.</figcaption></figure>
+  <h3>Vectorized, then swapped like a TV cartoon</h3>
+  <p>The cut parts were traced into vector shapes, so close-ups stay sharp. Then they were baked back to images, because live tracing was too slow. Movement comes from swapping drawings the way TV cartoons do. Legs walk on four drawings, each held for a few frames. Arms swap between drawn gestures. Big actions, like sleeping or running, are whole drawings of their own. Code adds the rest: body bounce, blinks, eye movement and the camera.</p>
+  <figure><img src="making/vectorize.webp" alt="Mother Pig painted, vectorized, and zoomed in three times." loading="lazy"><figcaption>Painted, vectorized, and the vector zoomed in three times.</figcaption></figure>
+  <figure><img src="making/walk-wolf.webp" alt="Four walking drawings of the wolf." loading="lazy"><figcaption>The wolf's walk: four drawings, all edits of the same picture.</figcaption></figure>
+  <figure><img src="making/whole-poses.webp" alt="The first pig carrying, tossing, napping, laughing and running." loading="lazy"><figcaption>Whole-body drawings for actions that limbs alone can't do.</figcaption></figure>
+  <figure><img src="making/wolf-poses.webp" alt="The wolf sniffing, grinning, inhaling, blowing, tiptoeing, collapsing and howling." loading="lazy"><figcaption>Every wolf action in the film is one of these.</figcaption></figure>
+  <h3>Faces that talk</h3>
+  <p>Each face has a featureless "faceplate" laid over it. On top go moving eyes, lids that slide down to blink, and brows. Mouth shapes are painted by the model, and each one is timed to a word from the voice track.</p>
+  <figure><img src="making/mouths-wolf.webp" alt="The wolf's mouth: closed, and four open shapes." loading="lazy"><figcaption>The wolf's mouths. Each is a block of the muzzle with a soft edge, so the jaw can really open.</figcaption></figure>
+  <figure><img src="making/mouths-mother.webp" alt="Mother Pig's mouth: closed and four shapes." loading="lazy"></figure>
+
+  <h2>Places, houses and the camera</h2>
+  <p>Backgrounds were painted, then separated into layers: sky, hills, ground, buildings, and flowers close to the camera. Layers slide past each other as the camera moves, and the background softens in close-ups. The houses come in three aligned stages, so building them is a series of thumps, not a wipe. The camera cuts on words: a close-up for whoever speaks, a follow shot when someone runs. Silences were spliced into the narration to give the building and the huffing room to happen.</p>
+  <figure><img src="making/layers.webp" alt="The cottage scene as five separate layers." loading="lazy"><figcaption>Mother Pig's cottage in five layers.</figcaption></figure>
+  <figure><img src="making/houses.webp" alt="Each house in three construction stages." loading="lazy"><figcaption>Three houses, three stages each.</figcaption></figure>
+  <p>The voices are free text-to-speech, one voice per character; when all three pigs answer the wolf, three voices are stretched to the same length and mixed into a chorus. The music, four instrumental pieces, was generated with Google's Lyria and crossfades between parts of the story, dipping under the voices.</p>
+
+  <h2>What kept going wrong</h2>
+  <p>Almost every fix came from a problem spotted while watching, and many of them were specific to one character.</p>
+  <figure><img src="making/bugs-hands.webp" alt="A hollow arm, a missing hand, and ghost legs." loading="lazy"><figcaption>A see-through arm (fur the same colour as the body behind it fooled the cutting), a missing hand, ghost legs from blending two drawings.</figcaption></figure>
+  <ul>
+    <li>The second pig wore no trousers in his first design. The image model's safety filter kept refusing his pictures. Another model redrew each one slightly differently, so his body flickered as he walked. In the end he got shorts and was redrawn from scratch.</li>
+    <li>A held object belongs to one drawing: the third pig carried the pot while still holding a brick, because his carrying arm was the brick-carrying drawing.</li>
+    <li>Anything without its own drawing slides instead of moving, like the wolf running away on a single pose, until we gave it the walking legs.</li>
+    <li>Quality "high" cost five times "medium" and, once traced, looked the same. We found out late.</li>
+  </ul>
+  <figure><img src="making/medium-vs-high.webp" alt="Medium and high quality side by side, zoomed in." loading="lazy"><figcaption>Medium (left) and high (right), vectorized and zoomed in three times.</figcaption></figure>
+
+  <h2>The numbers</h2>
+  <div class="numbers">
+    <div><b>~4½ min</b><span>11 scenes</span></div>
+    <div><b>~220</b><span>generated pictures</span></div>
+    <div><b>$10.7</b><span>pictures and music</span></div>
+    <div><b>1 day</b><span>of making and fixing</span></div>
+  </div>
+
+  <h2>Why it isn't in the Skill</h2>
+  <div class="verdict">
+    <p><b>Every new action needs new drawings.</b> In a book drawn in code, a new movement is a few lines. Here, picking up a pot, climbing a ladder or running away each means another round of edits per character, plus cutting, checking and fixing. The film can only do what was drawn, and you notice the gaps.</p>
+    <p><b>Consistency has to be fought for, character by character.</b> Hips, collars, sleeves, fur and mouths each needed their own handling. A safety filter or a second model could break a character halfway through.</p>
+    <p><b>It doesn't get cheaper with practice.</b> The first scenes were polished. The later ones, made faster, came out rough. A Skill should make the hundredth chapter as good as the first. This method makes each one cost about the same, in money and attention.</p>
+  </div>
+  <p>So the story is finished and stays here, as a record of a path we walked and wouldn't recommend as it stands. What would change our mind: image models that can hand back a character as a real, bendable rig, or video models that keep a character consistent and can be steered word by word.</p>
+  <p><a class="watch" href="ch01/">▶ Watch the film</a></p>
+</main>
+<footer>Story: the English folk tale, retold for this film (in this version nobody gets eaten). Pictures generated with OpenAI gpt-image and Google Gemini image models, music with Google Lyria, voices with Microsoft Edge text-to-speech. Part of <a href="../">Papermorph</a>.</footer>
+</body>
+</html>

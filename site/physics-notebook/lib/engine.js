@@ -1745,16 +1745,16 @@ const sorter = (items, trayXY) => (body, api) => {
 const P = { i: 0, t: 0, end: 1, playing: false, waiting: false, done: false, started: false, audio: null, afail: false, stall: 0, cleanup: [], rate: 1, nextClip: null };
 function runBeat(i) {
   TW = [];
-  const b = BEATS[i], tm = TIMINGS[b.id];
+  const b = BEATS[i], tm = TIMINGS[b.id], pre = b.pre || 0;   // pre: seconds of picture before the narration starts
   const m = (k, off = 0) => {
     if (!(k in tm.marks)) throw new Error(`${b.id}: missing mark ${k}`);
-    return tm.marks[k] + off;
+    return pre + tm.marks[k] + off;
   };
   S.cleared = false;
-  b.run(m, tm.dur);
-  if (S.cleared && b.lead !== false) leadIn();
+  b.run(m, pre + tm.dur);
+  if (S.cleared && b.lead !== false && !pre) leadIn();
   TW.sort((a, c) => a.t0 - c.t0);
-  return Math.max(tm.dur, ...TW.map(w => w.t0 + w.dur)) + .6;
+  return Math.max(pre + tm.dur, ...TW.map(w => w.t0 + w.dur)) + .6;
 }
 // A beat that clears the picture must not leave it empty while the narration has started.
 // If nothing appears before LEAD_MAX, the opening group (every tween that starts within LEAD_GROUP s of the
@@ -1798,11 +1798,11 @@ function seek(i, play = P.playing) {
 // Jump to a point inside beat i (frac of its narration); question beats always start at their beginning.
 function seekInto(i, frac) {
   seek(i, true);
-  const t = BEATS[i].ask ? 0 : frac * TIMINGS[BEATS[i].id].dur;
+  const pre = BEATS[i].pre || 0, t = BEATS[i].ask ? 0 : frac * (pre + TIMINGS[BEATS[i].id].dur);
   if (t < .3) return;
   P.t = t;
   evalTo(t);
-  if (P.audio) P.audio.currentTime = t;
+  if (P.audio) P.audio.currentTime = Math.max(0, t - pre);
 }
 function start(i, play) {
   stopAudio(); clearCards();
@@ -1818,7 +1818,7 @@ function start(i, play) {
   a.onplaying = () => {
     if (P.audio !== a) return;
     $('soundNote').hidden = true;
-    if (P.afail) { P.afail = false; a.currentTime = P.t; }   // sound came back late: rejoin the picture where it is
+    if (P.afail) { P.afail = false; a.currentTime = Math.max(0, P.t - (BEATS[P.i].pre || 0)); }   // sound came back late: rejoin the picture where it is
   };
   const b = BEATS[i];
   if (b.ask) b.ask(() => { if (P.i === i) { evalTo(Infinity); start(i + 1, true); } });
@@ -1850,8 +1850,12 @@ function setPlaying(v) {
   P.playing = v;
   const a = P.audio;
   if (!a) return;
-  if (v && !P.waiting && !a.ended && !P.afail) a.play().catch(e => { if (P.audio === a && e.name === 'NotAllowedError') soundFailed(); });
-  else a.pause();
+  const lead = v && P.t < (BEATS[P.i]?.pre || 0);
+  if (v && !P.waiting && !a.ended && !P.afail && !lead) a.play().catch(e => { if (P.audio === a && e.name === 'NotAllowedError') soundFailed(); });
+  else if (lead && !a._unlocked) {   // the clip starts later, outside this click: play it silently now so the browser allows that
+    a._unlocked = true; a.muted = true;
+    a.play().then(() => { if (P.t < (BEATS[P.i].pre || 0)) { a.pause(); a.currentTime = 0; } a.muted = false; }, () => { a.muted = false; });
+  } else a.pause();
 }
 function beatDone() {
   evalTo(Infinity);
@@ -1869,8 +1873,12 @@ function frame(now) {
   if (P.playing && !P.waiting && !P.done) {
     const a = P.audio;
     // While the clip plays, its clock drives the picture; before it starts or after it ends, wall time does.
-    if (a && !P.afail && !a.ended) {
-      if (a.currentTime > 0) { P.t = Math.max(P.t, a.currentTime); P.stall = 0; }
+    const pre = BEATS[P.i].pre || 0;
+    if (a && P.t < pre) {   // the picture's lead before the narration, on wall time; then the clip starts
+      P.t += dt * P.rate;
+      if (P.t >= pre && !P.afail) { a.muted = false; a.currentTime = P.t - pre; a.play().catch(e => { if (P.audio === a && e.name === 'NotAllowedError') soundFailed(); }); }
+    } else if (a && !P.afail && !a.ended) {
+      if (a.currentTime > 0) { P.t = Math.max(P.t, pre + a.currentTime); P.stall = 0; }
       else if ((P.stall += dt) > (a.readyState < 2 ? 8 : 15)) soundFailed();   // nothing to play after 8 s, or stuck for 15
     } else P.t += dt * P.rate;
     evalTo(P.t);
@@ -1908,7 +1916,7 @@ function ui() {
   const b = BEATS[P.i];
   let text = '';
   if (captions && P.started && !b.ask && !P.done) {
-    for (const [t, line] of TIMINGS[b.id].cues) { if (t > P.t + .05) break; text = line; }
+    for (const [t, line] of TIMINGS[b.id].cues) { if (t + (b.pre || 0) > P.t + .05) break; text = line; }
   }
   if (text !== capText) { capText = text; $('caption').textContent = text; $('caption').hidden = !text; }
 }
@@ -2026,6 +2034,7 @@ function boot() {
     seek(+qs.get('beat'), false);
     P.t = +(qs.get('t') || 0);
     evalTo(P.t);
+    if (P.audio) P.audio.currentTime = Math.max(0, P.t - (BEATS[P.i].pre || 0));
   } else seek(0, false);
   requestAnimationFrame(frame);
 }

@@ -1,0 +1,810 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Three Little Pigs</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/cast.js"></script>
+<script src="../lib/toon.js"></script>
+<script src="../img/mother/rig/rig.js"></script><script src="../img/pig1/rig/rig.js"></script><script src="../img/pig2/rig/rig.js"></script><script src="../img/pig3/rig/rig.js"></script><script src="../img/wolf/rig/rig.js"></script>
+<script src="../img/mother/pose/pose.js"></script><script src="../img/pig1/pose/pose.js"></script><script src="../img/pig2/pose/pose.js"></script><script src="../img/pig3/pose/pose.js"></script><script src="../img/wolf/pose/pose.js"></script>
+<script src="audio/en/timings.js"></script>
+<script src="audio/en/mouths.js"></script>
+<script src="audio/en/shots.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 1, title: 'The Three Little Pigs', minutes: 4, language: 'en' };
+// A picture book: captions are on unless the reader turned them off.
+try { if (localStorage.getItem('captions') === null) setCaptions(true); } catch {}
+
+/* ---------- helpers ---------- */
+const clamp01 = x => Math.min(1, Math.max(0, x)), smooth = x => { x = clamp01(x); return x * x * (3 - 2 * x); };
+const dur = id => TIMINGS[id].dur;
+const mouthAt = (beat, t) => { let m = 'X'; for (const [at, s] of MOUTHS[beat] || []) { if (at > t) break; m = s; } return m; };
+// A painted place in layers that slide past each other with the camera; each layer but the nearest has a
+// pre-blurred copy that fades in on close shots (shallow focus).
+function scenery(cam, place, layers) {
+  const at = { x: -80, y: -45, width: 1760, height: 990 }, soft = [];
+  for (const [n, k] of layers) {
+    const g = cam.layer(k);
+    mk('image', { href: `../img/${place}/${n}.webp`, ...at }, g);
+    if (n !== 'front') soft.push(mk('image', { href: `../img/${place}/${n}-soft.webp`, ...at, opacity: 0 }, g));
+  }
+  return t => { const f = clamp01((cam.at(t).z - 2.4) / .9); soft.forEach(e => e.setAttribute('opacity', f)); };
+}
+// Shots: [time, view, [view, seconds]?]; the optional push eases toward a second view.
+function shots(cam, list) { for (const [t, v, push] of list) { cam.cut(v, t); if (push) cam.to(push[0], t + .01, push[1], soft); } }
+// A walk on the drawings, on twos: contact (near leg forward), passing, contact (far leg forward), passing.
+const LEGS = [1, 2, 3, 4], SWING = [2, 0, 1, 0], BOB = [1, -1, 1, -1];
+const walkPose = (tau, hold) => { const i = ((Math.floor(tau / hold) % 4) + 4) % 4; return { legs: LEGS[i], arm: SWING[i], bob: BOB[i] }; };
+
+/* ---------- shot 1: leaving home ---------- */
+// The dirt road runs past the gate and off to the right; the pigs set off along it and walk out of the picture,
+// easing into their pace. Positions are a function of time alone.
+const PIGS = [
+  { id: 'pig1', x: 870, g: 862, k: .4, go: 0, hold: .12, v: 115, stop: true, bounce: 8, lean: 4, seed: 11 },
+  { id: 'pig3', x: 745, g: 852, k: .41, go: .35, hold: .16, v: 100, bounce: 5, lean: 2, seed: 23 },
+  { id: 'pig2', x: 620, g: 842, k: .41, go: .9, hold: .22, v: 82, bounce: 7, lean: 6, seed: 37 },
+];
+const MOM = { x: 470, g: 810, k: .52 };
+const S1 = TIMINGS.shot1.parts.s01b, SET_OFF = 3.55, PACK = 2.44, LOOK = S1 + 2.47, WOLF = S1 + 3.45;
+function pigAt(o, T) {
+  // The first pig stops to wave back.
+  const tau = T - SET_OFF - o.go, u = Math.max(0, o.stop ? Math.min(tau, LOOK - .25 - SET_OFF - o.go) : tau), d = o.v * (u - (1 - Math.exp(-3 * u)) / 3);
+  return { tau, x: o.x + d, g: o.g - .05 * d, k: o.k * (1 - d / 6000) };
+}
+const inPic = ({ x, y, z }) => ({ x: Math.min(1640 - 800 / z, Math.max(800 / z - 40, x)), y: Math.min(910 - 450 / z, Math.max(450 / z - 20, y)), z });
+const pigsView = (T, z, dy = 0) => { const ps = PIGS.map(o => pigAt(o, T)); return inPic({ x: ps.reduce((s, p) => s + p.x, 0) / 3 + 40 / z, y: ps.reduce((s, p) => s + p.g, 0) / 3 - 70 + dy, z }); };
+const follow = (T0, z, dy) => ({ x: t => pigsView(T0 + t, z, dy).x, y: t => pigsView(T0 + t, z, dy).y, z });
+const momHead = z => inPic({ x: MOM.x + 30, y: MOM.g - 160, z });   // head and shoulders   // her head a little above the middle
+
+function shot1(p, T0, D) {
+  const cam = camera(p, D, inPic({ x: 800, y: 450, z: 1 }));
+  // The ground, the cottage and the actors share the camera's own plane (k = 1); sky and hills lag, flowers lead.
+  const focus = scenery(cam, 'cottage', [['sky', .15], ['far', .4], ['ground', 1], ['mid', 1]]);
+  const actors = cam.layer(1);
+  const mom = TOON.posed(actors, 'mother');
+  const pigs = PIGS.map(o => ({ o, a: TOON.posed(actors, o.id) })).sort((u, v) => u.o.g - v.o.g);
+  pigs.forEach(({ a }) => actors.appendChild(a.root));   // nearer pigs in front
+  pigs.forEach(({ a }) => {   // a bindle over the shoulder, behind the body
+    const [sx, sy] = a.R.shoulder;
+    mk('image', { href: '../img/props/bindle.webp', x: -425, y: -355, width: 850, height: 711, transform: `translate(${sx - 150},${sy - 120}) scale(-.55,.55) rotate(-8)` }, a.back);
+  });
+  const front = cam.layer(1.4);
+  mk('image', { href: '../img/cottage/front.webp', x: -80, y: -45, width: 1760, height: 990 }, front);   // near flowers: gone on close shots
+  // The imagined wolf (screen space): thought bubbles from her head, then a round frame with the wolf grinning.
+  const bubbles = [0, 1, 2].map(i => mk('circle', { r: 10 + i * 8, fill: '#fff', stroke: '#151314', 'stroke-width': 4, opacity: 0 }, p));
+  const inset = G(p, { x: 1290, y: 245, s: 0 });
+  mk('circle', { r: 182, fill: '#fff', stroke: '#151314', 'stroke-width': 6 }, inset);
+  const clip = 'wolfclip' + Math.random().toString(36).slice(2, 8);   // a fresh id: an old scene's clip may still be in the page
+  mk('clipPath', { id: clip }, mk('defs', {}, inset)).appendChild(mk('circle', { r: 168 }));
+  const inner = G(inset); inner.setAttribute('clip-path', `url(#${clip})`);
+  mk('circle', { r: 168, fill: '#22331d' }, inner);
+  for (let i = 0; i < 7; i++) mk('path', { d: `M${-175 + i * 55} 175L${-152 + i * 55} ${-50 - (i % 3) * 32}L${-130 + i * 55} 175Z`, fill: '#182714' }, inner);
+  const wolf = TOON.posed(inner, 'wolf');
+
+  shots(cam, [
+    [0, inPic({ x: 800, y: 450, z: 1 }), [inPic({ x: 690, y: 520, z: 1.25 }), 1.4]],       // the cottage, pushing in
+    [1.47, inPic({ x: 690, y: 690, z: 2.4 }), [inPic({ x: 705, y: 686, z: 2.55 }), 2]],     // the three of them, ready to go
+    [SET_OFF + .25, pigsView(SET_OFF + .25, 1.8), [pigsView(S1 + .3, 1.7), S1 - SET_OFF - .25]],   // off they go: one smooth pan that ends on them
+    [S1, momHead(5.2), [momHead(5.6), 2.4]],                                                  // Mother calls after them
+    [LOOK, (p => inPic({ x: p.x - 120, y: p.g - 90, z: 2.3 }))(pigAt(PIGS[0], LOOK)), [(p => inPic({ x: p.x - 90, y: p.g - 90, z: 2.4 }))(pigAt(PIGS[0], WOLF)), WOLF - LOOK]],   // the first pig turns and waves back
+    [WOLF, momHead(6.2), [momHead(6.8), D - WOLF]],                              // her worried face
+  ]);
+  clockRun(t => {
+    const T = T0 + t;
+    focus(t);
+    front.setAttribute('opacity', t < 1.47 ? 1 : 0);   // near flowers only in the opening wide shot
+    for (const { o, a } of pigs) {
+      const at = pigAt(o, T), walking = at.tau > 0 && !(o.stop && T > LOOK - .25), wp = walkPose(at.tau, o.hold), hop = clamp01(1 - Math.abs(T - PACK - o.go * .3) / .18);
+      const waving = o.stop && T > LOOK;
+      a.pose({
+        x: at.x, ground: at.g, k: at.k, dir: waving ? -1 : 1, lean: walking ? o.lean : 0,   // turns back to wave
+        legs: walking ? wp.legs : 0, arm: waving ? 3 : walking ? wp.arm : 0,
+        bob: (walking ? o.bounce * wp.bob : 0) + 14 * hop,
+        face: { blink: blinkAt(T, o.seed), gaze: [1, -.1], mouth: waving && Math.floor(T / .14) % 3 ? 'C' : 'X' },
+      });
+    }
+    // Mother: on her line she waves her handkerchief and calls; at "big bad wolf" a hand goes to her chest.
+    const s = T - S1, worried = T > WOLF - .1;
+    mom.pose({
+      x: MOM.x, ground: MOM.g, k: MOM.k, lean: s > 0 && !worried ? -2 : worried ? 2 : 0, bob: 3 * Math.sin(T * 2.1),
+      arm: worried ? 2 : s > 0 ? 1 : 0,
+      face: { mouth: s > 0 ? mouthAt('s01b', s) : 'X', blink: worried ? 0 : blinkAt(T, 3), gaze: [1, worried ? -.3 : 0], raise: worried ? .6 : s > 0 ? .4 : 0, wide: worried ? 1 : 0, worry: worried ? 1 : 0, smile: worried ? -.7 : .8 },
+    });
+    // The imagined wolf.
+    const show = T > WOLF + .05 ? 1 - Math.exp(-7 * (T - WOLF - .05)) * Math.cos(9 * (T - WOLF - .05)) : 0;
+    bubbles.forEach((e, i) => { e.setAttribute('opacity', clamp01((T - WOLF + .05 - i * .08) / .1)); e.setAttribute('cx', 1000 + i * 70); e.setAttribute('cy', 470 - i * 55 + 3 * Math.sin(T * 4 + i)); });
+    put(inset, { s: Math.max(0, show), r: 4 * Math.sin(T * 3) * show });
+    wolf.pose({ x: -55, ground: 560 + 8 * Math.abs(Math.sin(T * 4)), k: 2.1, lean: 4 * Math.sin(T * 3.3), arm: 0, face: { mouth: 'D', blink: blinkAt(T, 9), gaze: [.6, 0], raise: 1 } });
+  }, D);
+}
+
+/* ---------- shot 2: the straw house ---------- */
+// The meadow is 2100 × 900 world px: the road across at y 610–740, three plots behind it (x 200–650, 900–1300, 1500–1900).
+const MW = 2100;
+const inMeadow = ({ x, y, z }) => ({ x: Math.min(MW - 800 / z, Math.max(800 / z, x)), y: Math.min(900 - 450 / z, Math.max(450 / z, y)), z });
+function meadow(cam) {
+  const soft = [];
+  for (const [n, k, pad] of [['sky', .15, 260], ['far', .45, 160], ['ground', 1, 0]]) {
+    const g = cam.layer(k), at = { x: -pad, y: -pad * .43, width: MW + 2 * pad, height: 900 + .86 * pad };
+    mk('image', { href: `../img/meadow/${n}.webp`, ...at, preserveAspectRatio: 'none' }, g);
+    soft.push(mk('image', { href: `../img/meadow/${n}-soft.webp`, ...at, preserveAspectRatio: 'none', opacity: 0 }, g));
+  }
+  return t => { const f = clamp01((cam.at(t).z - 2.4) / .9); soft.forEach(e => e.setAttribute('opacity', f)); };
+}
+const prop = (p, n, x, base, h, [w0, h0]) => {   // a prop standing with its base centre at (x, base), h tall
+  const w = h * w0 / h0, g = G(p, { x, y: base });
+  mk('image', { href: `../img/props/${n}.webp`, x: -w / 2, y: -h, width: w, height: h }, g);
+  return g;
+};
+// Word times on the shot's clock (silence was inserted after "swish", "swoosh" and "flump" for the building).
+const SHOT2 = { big: 1.68, steps: [3.61, 5.76, 7.88], house: 10.32, says: TIMINGS.shot2.parts.s02b };
+SHOT2.easy = SHOT2.says + .1; SHOT2.time = SHOT2.says + 1.78; SHOT2.nap = SHOT2.says + 2.41;
+const STRAW = { x: 410, base: 598, h: 400, size: [858, 916] }, HAY = { x: 800, base: 606, h: 230, size: [965, 867] };
+const HOUSE_AT = 560, HAY_AT = 700;   // where she tosses from, where she picks up
+
+// A house in stages: one drawing per stage (img/props/<name>_1..3.webp, aligned), the current one shown;
+// each new stage lands with a squash and a puff of dust.
+function staged(p, name, { x, base, h, size }) {
+  const w = h * size[0] / size[1], g = G(p, { x, y: base });
+  const pics = [1, 2, 3].map(k => mk('image', { href: `../img/props/${name}_${k}.webp`, x: -w / 2, y: -h, width: w, height: h, visibility: 'hidden' }, g));
+  const dust = Array.from({ length: 9 }, (_, i) => mk('ellipse', { fill: '#eadfc2', opacity: 0 }, p));
+  return (stage, since, rock = 0) => {   // stage 0 = nothing yet; since = seconds since it landed; rock: a lean, degrees
+    pics.forEach((e, k) => e.setAttribute('visibility', k === stage - 1 ? 'visible' : 'hidden'));
+    const sq = since < .6 ? 1 - .14 * Math.exp(-7 * since) * Math.cos(18 * since) : 1;
+    g.setAttribute('transform', `translate(${x},${base}) rotate(${rock}) scale(${2 - sq},${sq})`);
+    dust.forEach((e, i) => {
+      const q = clamp01(since / .7), a = (i / 8) * Math.PI, on = stage > 0 && since < .7;
+      e.setAttribute('cx', x + Math.cos(a) * (w * .35 + 90 * q) * (i % 2 ? 1 : -1)); e.setAttribute('cy', base - 10 - Math.sin(a) * 25 * q - 20 * q);
+      e.setAttribute('rx', 26 + 40 * q); e.setAttribute('ry', 16 + 22 * q); e.setAttribute('opacity', on ? .85 * (1 - q) : 0);
+    });
+  };
+}
+
+function shot2(p, D) {
+  const S2 = SHOT2, cam = camera(p, D, inMeadow({ x: 420, y: 560, z: 1.7 }));
+  const focus = meadow(cam), world = cam.layer(1);
+  const house = staged(world, 'straw_house', STRAW);
+  const hay = prop(world, 'haystack', HAY.x, HAY.base, HAY.h, HAY.size);
+  const pig = TOON.posed(world, 'pig1');
+  const flying = mk('image', { href: '../img/props/bundle.webp', x: -55, y: -59, width: 110, height: 118, visibility: 'hidden' }, world);
+  const zzz = [0, 1, 2].map(i => { const e = T(world, 'z', { x: 0, y: 0, size: 38 + i * 12, weight: 900, fill: '#fff', o: 0 }); e.setAttribute('stroke', '#151314'); e.setAttribute('stroke-width', 5); e.setAttribute('paint-order', 'stroke'); return e; });
+  shots(cam, [
+    [0, inMeadow({ x: 330, y: 560, z: 1.7 }), [inMeadow({ x: 520, y: 545, z: 1.75 }), 2.8]],        // she comes down the road
+    [S2.steps[0] - .45, inMeadow({ x: 580, y: 480, z: 1.5 }), [inMeadow({ x: 560, y: 470, z: 1.6 }), S2.house - S2.steps[0]]], // the building
+    [S2.house, inMeadow({ x: 500, y: 500, z: 1.8 }), [inMeadow({ x: 520, y: 505, z: 1.95 }), 2.4]],  // done
+    [S2.easy - .05, { x: 600, y: 520, z: 3.4 }, [{ x: 605, y: 522, z: 3.6 }, 1.6]],                  // close: "Easy peasy!"
+    [S2.time - .1, inMeadow({ x: 470, y: 520, z: 2.1 }), [inMeadow({ x: 460, y: 540, z: 2.3 }), D - S2.time]], // and down she lies
+  ]);
+  const trips = S2.steps.map(w => w - .35), LAND = 1.2;   // a trip: grab, carry, toss; the stage lands LAND after the grab
+  for (const a of trips) cam.shake(4, a + LAND, .3, 9);
+  const STOP = 2.3, X0 = -60, G0 = 690;
+  clockRun(t => {
+    focus(t);
+    // Which part of the work she is in, and where.
+    const k = trips.filter(a => t >= a).length - 1, a = trips[k] ?? 0, u = t - a, last = k === trips.length - 1;
+    let x = HAY_AT, dir = 1, whole = null, legs = 0, arm = 0, bob = 2 * Math.sin(t * 2.4), lean = 0, carry = false;
+    if (t < STOP) { const wp = walkPose(t, .12); x = X0 + (HAY_AT - X0) * t / STOP; legs = wp.legs; arm = wp.arm; bob = 7 * wp.bob; lean = 4; }
+    else if (k >= 0 && u < .75) { x = HAY_AT + (HOUSE_AT - HAY_AT) * smooth(u / .75); dir = -1; whole = 'carry'; carry = true; bob = -10 * Math.abs(Math.sin(u * 12)); }
+    else if (k >= 0 && u < 1.05) { x = HOUSE_AT; dir = -1; whole = 'toss'; bob = -14 * Math.sin(Math.PI * clamp01((u - .75) / .3)); }
+    else if (k >= 0 && !last && u < 1.85) { const q = (u - 1.05) / .8, wp = walkPose(u, .09); x = HOUSE_AT + (HAY_AT - HOUSE_AT) * smooth(q); legs = wp.legs; arm = wp.arm; bob = 8 * wp.bob; lean = 6; }
+    else if (k >= 0 && last) { x = HOUSE_AT; dir = u < 1.5 ? -1 : 1; bob = u > 1.5 && u < 1.9 ? -30 * Math.sin(Math.PI * (u - 1.5) / .4) : bob; arm = t > S2.house ? 4 : 0; }
+    const napping = t > S2.nap, sayT = t - S2.says, talking = sayT > 0 && t < S2.nap, wow = t > S2.big && t < trips[0] ? 1 : 0;
+    pig.pose({
+      x: napping ? 455 : x, ground: napping ? 640 : G0, k: napping ? .8 : .62, dir, lean,
+      legs, arm, bob, whole: napping ? 'nap' : whole,
+      face: { mouth: talking ? mouthAt('s02b', sayT) : 'X', blink: blinkAt(t, 11), gaze: wow ? [1, -.6] : [1, 0], raise: wow || talking ? .8 : 0, wide: wow, smile: .9 },
+    });
+    // The haystack loses a bite at each grab; the house gets its next stage when the bundle lands.
+    const bites = trips.filter(b => t >= b).length, left = 1 - bites / 3;
+    hay.setAttribute('transform', `translate(${HAY.x},${HAY.base}) scale(${.45 + .55 * left},${left})`);
+    hay.style.visibility = left > 0 ? '' : 'hidden';
+    const landed = trips.filter(b => t >= b + LAND), stage = landed.length;
+    house(stage, stage ? t - landed[stage - 1] - LAND : 9);
+    // The bundle she throws: an arc from her raised hands onto the house.
+    const fq = clamp01((u - .82) / (LAND - .82));
+    flying.setAttribute('visibility', k >= 0 && u > .82 && u < LAND ? 'visible' : 'hidden');
+    if (k >= 0) { const sx = HOUSE_AT - 30, sy = 470, ex = STRAW.x, ey = STRAW.base - STRAW.h * (k + 1) / 3.2;
+      flying.setAttribute('transform', `translate(${sx + (ex - sx) * fq},${sy + (ey - sy) * fq - 140 * Math.sin(Math.PI * fq)}) rotate(${-300 * fq})`); }
+    // Zzz rises above her as she naps.
+    zzz.forEach((z, i) => { const q = ((t - S2.nap - .4 - i * .45) % 1.6 + 1.6) % 1.6 / 1.6, on = t > S2.nap + .4 + i * .45; put(z, { x: 545 + 40 * q + i * 10, y: 560 - 130 * q, o: on ? Math.sin(Math.PI * q) : 0 }); });
+  }, D);
+}
+
+/* ---------- shots 3 and 4: the stick house and the brick house ---------- */
+// A house that grows from the ground up: its image clipped to a rising band. grow(f) shows the bottom f of it.
+function growing(p, n, x, base, h, size) {
+  const id = 'grow' + Math.random().toString(36).slice(2, 8), w = h * size[0] / size[1], hold = G(p);
+  const r = mk('rect', { x: x - w, width: 2 * w, y: base, height: 0 }, mk('clipPath', { id }, mk('defs', {}, p)));
+  hold.setAttribute('clip-path', `url(#${id})`);
+  const g = prop(hold, n, x, base, h, size);
+  return { g, hold, grow: f => { r.setAttribute('y', base - (h + 60) * f); r.setAttribute('height', (h + 60) * f + 4); } };
+}
+const notes = (p, n) => Array.from({ length: n }, (_, i) => { const e = T(p, i % 2 ? '♫' : '♪', { x: 0, y: 0, size: 44, weight: 700, fill: '#fff', o: 0 }); e.setAttribute('stroke', '#151314'); e.setAttribute('stroke-width', 5); e.setAttribute('paint-order', 'stroke'); return e; });
+const SHOT3 = { says: TIMINGS.shot3.parts.s03b, pile: 2.26, taps: [3.24, 4.86, 6.44], wobbly: 8.21 };   // silences after each "tap"
+SHOT3.music = SHOT3.says + 1.75;
+const STICKS = { x: 1030, base: 600, h: 390, size: [826, 895] }, PILE = { x: 1360, base: 612, h: 170, size: [895, 702] };
+
+function shot3(p, D) {
+  const S3 = SHOT3, cam = camera(p, D, inMeadow({ x: 1000, y: 560, z: 1.7 }));
+  const focus = meadow(cam), world = cam.layer(1);
+  const house = staged(world, 'stick_house', STICKS), flyers = [0, 1, 2].map(() => mk('image', { href: '../img/props/stickpile.webp', x: -50, y: -20, width: 100, height: 40, visibility: 'hidden' }, world));
+  const pile = prop(world, 'stickpile', PILE.x, PILE.base, PILE.h, PILE.size);
+  const pig = TOON.posed(world, 'pig2'), music = notes(world, 4);
+  shots(cam, [
+    [0, inMeadow({ x: 860, y: 560, z: 1.7 }), [inMeadow({ x: 1060, y: 545, z: 1.75 }), 2.8]],   // he strolls up to the plot
+    [S3.taps[0] - .3, inMeadow({ x: 1100, y: 480, z: 1.5 })],                                    // tap, tap, tap
+    [S3.says - .05, { x: 1205, y: 525, z: 3.2 }, [{ x: 1210, y: 528, z: 3.4 }, 1.6]],          // "Good enough for me!"
+    [S3.music - .1, inMeadow({ x: 1120, y: 500, z: 1.9 }), [inMeadow({ x: 1120, y: 510, z: 2.05 }), D - S3.music]], // and he dances
+  ]);
+  for (const w of S3.taps) cam.shake(3, w, .25, 10);
+  const STOP = 2.6, X0 = 760, X1 = 1180, G0 = 690;
+  clockRun(t => {
+    focus(t);
+    const walking = t < STOP, x = walking ? X0 + (X1 - X0) * t / STOP : X1, wp = walkPose(t, .22);
+    // Hammering: the hammer comes down on each "tap"; the house grows a third each time, then wobbles.
+    // Each "tap" starts three strikes; sticks fly from the pile, and the next stage of the house lands on the third.
+    const strikes = S3.taps.flatMap(w => [w, w + .35, w + .7]);
+    const hammering = t > S3.taps[0] - .35 && t < S3.taps[2] + 1;
+    const down = strikes.some(w => t > w - .05 && t < w + .15);
+    const lands = S3.taps.map(w => w + .75), stage = lands.filter(w => t >= w).length;
+    house(stage, stage ? t - lands[stage - 1] : 9, t > S3.wobbly ? 1.5 * Math.sin(t * 7) : 0);   // the finished house keeps a little wobble
+    flyers.forEach((f, i) => {
+      const w = S3.taps[i], q = clamp01((t - w + .1) / .8);
+      f.setAttribute('visibility', q > 0 && q < 1 ? 'visible' : 'hidden');
+      f.setAttribute('transform', `translate(${PILE.x + (STICKS.x - PILE.x) * q},${PILE.base - 80 - (STICKS.h * (i + 1) / 3.4) * q - 160 * Math.sin(Math.PI * q)}) rotate(${-360 * q})`);
+    });
+    const left = 1 - S3.taps.filter(w => t >= w).length / 3;
+    pile.setAttribute('transform', `translate(${PILE.x},${PILE.base}) scale(${Math.max(.01, .4 + .6 * left)},${Math.max(.01, left)})`); pile.style.visibility = left > 0 ? '' : 'hidden';
+    // After his line, a little dance in place: steps on the beat, turning back and forth, notes in the air.
+    const dancing = t > S3.music + .2, sayT = t - S3.says;
+    const beat = Math.floor((t - S3.music) / .5);   // an easy step every half second
+    pig.pose({
+      x, ground: G0, k: .62, lean: walking ? 6 : dancing ? 4 * Math.sin(t * 2 * Math.PI) : 0,
+      dir: dancing && beat % 8 >= 4 ? -1 : 1,
+      legs: walking ? wp.legs : dancing ? [1, 2, 3, 4][((beat % 4) + 4) % 4] : 0,
+      arm: hammering ? (down ? 5 : 4) : dancing ? 3 : 0,
+      bob: walking ? 7 * wp.bob : dancing ? -8 * Math.abs(Math.sin(t * 2 * Math.PI)) : 0,
+      face: { mouth: sayT > 0 && sayT < 3.8 ? mouthAt('s03b', sayT) : dancing ? 'F' : 'X', blink: blinkAt(t, 37), raise: sayT > 0 ? .5 : 0, smile: .9 },
+    });
+    music.forEach((e, i) => { const q = ((t - S3.music - i * .35) % 1.4 + 1.4) % 1.4 / 1.4, on = t > S3.music + i * .35; put(e, { x: x + 60 + 50 * Math.sin(q * 6 + i) , y: 470 - 160 * q, o: on ? Math.sin(Math.PI * q) : 0, r: 15 * Math.sin(q * 8) }); });
+  }, D);
+}
+
+const SHOT4 = { says2: TIMINGS.shot4.parts.s04b, says3: TIMINGS.shot4.parts.s04c, brick: 2.61, day: 3.71, ached: 5.19, laugh: 6.42 };
+const BRICKS = { x: 1700, base: 602, h: 380, size: [955, 851] }, BPILE = { x: 1930, base: 618, h: 150, size: [861, 759] };
+function shot4(p, D) {
+  const S4 = SHOT4, cam = camera(p, D, inMeadow({ x: 1650, y: 560, z: 1.7 }));
+  const focus = meadow(cam), world = cam.layer(1);
+  const house = staged(world, 'brick_house', BRICKS), lands = [3.0, 4.35, 5.6];   // "brick by brick", "all day long", "ached"
+  prop(world, 'brickpile', BPILE.x, BPILE.base, BPILE.h, BPILE.size);
+  const sis = TOON.posed(world, 'pig1'), bro = TOON.posed(world, 'pig2'), pig = TOON.posed(world, 'pig3');
+  // Evening light for "all day long": a warm wash over the whole picture that deepens as the house goes up.
+  const dusk = mk('rect', { x: 0, y: 0, width: 1600, height: 900, fill: '#ff9a3c', opacity: 0, style: 'mix-blend-mode: multiply; pointer-events: none' }, p);
+  shots(cam, [
+    [0, inMeadow({ x: 1640, y: 540, z: 1.7 })],                                                   // the third plot, bricks
+    [S4.day - .1, inMeadow({ x: 1700, y: 470, z: 1.45 })],                                        // all day long
+    [S4.laugh - .05, { x: 1380, y: 540, z: 2.2 }],                                                // his brother and sister laugh
+    [S4.says2 - .05, { x: 1330, y: 520, z: 3 }, [{ x: 1335, y: 522, z: 3.2 }, S4.says3 - S4.says2]], // "All that work?"
+    [S4.says3 - .05, { x: 1600, y: 520, z: 3 }, [{ x: 1605, y: 520, z: 3.25 }, D - S4.says3]],      // "A strong house keeps you safe."
+  ]);
+  clockRun(t => {
+    focus(t);
+    // Brick by brick: carry, set down, carry... faster and faster through the day; the house rises with each brick.
+    const lapse = t < S4.brick ? 0 : t < S4.day ? (t - S4.brick) / .6 : (S4.day - S4.brick) / .6 + (t - S4.day) * 4;
+    const working = t > S4.brick - .3 && t < S4.ached, cycle = Math.floor(lapse);
+    const stage = lands.filter(w => t >= w).length; house(stage, stage ? t - lands[stage - 1] : 9);
+    dusk.setAttribute('opacity', .32 * smoothstep(S4.day, S4.ached + .5, t));
+    const tired = t > S4.ached && t < S4.laugh, sayT = t - S4.says3;
+    pig.pose({
+      x: 1580, ground: 700, k: .64, lean: working ? 3 * Math.sin(lapse * Math.PI) : tired ? -4 : 0,
+      arm: working ? (cycle % 2 ? 5 : 4) : tired ? 6 : 0, bob: tired ? 6 : working ? 4 * Math.abs(Math.sin(lapse * Math.PI)) : 0,
+      face: { mouth: sayT > 0 ? mouthAt('s04c', sayT) : 'X', blink: tired ? .5 : blinkAt(t, 23), raise: sayT > 0 ? .3 : 0, smile: sayT > 0 ? .5 : tired ? -.3 : .4 },
+    });
+    // Brother and sister double up laughing; he stops to say his piece.
+    const laughing = t > S4.laugh, broT = t - S4.says2, broTalks = broT > 0 && t < S4.says3;
+    sis.pose({ x: 1290, ground: 702, k: .6, whole: laughing ? 'laugh' : null, bob: laughing ? -6 * Math.abs(Math.sin(t * 9)) : 0, face: { blink: blinkAt(t, 11) } });
+    bro.pose({ x: 1420, ground: 698, k: .62, whole: laughing && !broTalks ? 'laugh' : null, bob: laughing && !broTalks ? -6 * Math.abs(Math.sin(t * 8 + 1)) : 0, arm: broTalks ? 3 : 0,
+      face: { mouth: broTalks ? mouthAt('s04b', broT) : 'X', blink: blinkAt(t, 37), raise: broTalks ? .8 : 0, smile: .9 } });
+  }, D);
+}
+const smoothstep = (a, b, t) => smooth((t - a) / (b - a));
+
+/* ---------- shot 5: the wolf ---------- */
+// The edge of the woods (2100 × 900 world px): forest on the left, a sunny path out to the right. A big trunk in
+// front (x 468–734 of its layer) hides the wolf until he steps out.
+const PRE5 = 1, SHOT5 = Object.fromEntries(Object.entries({ out: .78, came: 1.89, wolf: 2.75, sniff: 3.77, smile: 5.12 }).map(([k, v]) => [k, v + PRE5]));   // narration starts PRE5 s in
+function woods(cam) {
+  const soft = [];
+  for (const [n, k, pad] of [['sky', .25, 200], ['mid', 1, 0]]) {
+    const g = cam.layer(k), at = { x: -pad, y: -pad * .43, width: MW + 2 * pad, height: 900 + .86 * pad };
+    mk('image', { href: `../img/woods/${n}.webp`, ...at, preserveAspectRatio: 'none' }, g);
+    soft.push(mk('image', { href: `../img/woods/${n}-soft.webp`, ...at, preserveAspectRatio: 'none', opacity: 0 }, g));
+  }
+  return t => { const f = clamp01((cam.at(t).z - 2.4) / .9); soft.forEach(e => e.setAttribute('opacity', f)); };
+}
+function shot5(p, D) {
+  const S5 = SHOT5, cam = camera(p, D, { x: 600, y: 520, z: 1.5 });
+  const focus = woods(cam), world = cam.layer(1);
+  const wolf = TOON.posed(world, 'wolf');
+  const front = cam.layer(1.12);
+  mk('image', { href: '../img/woods/front.webp', x: 0, y: 0, width: MW, height: 900, preserveAspectRatio: 'none' }, front);
+  // Shadow over the forest that the wolf comes out of; the scent of pig drifting in from the right.
+  const gloom = mk('rect', { x: 0, y: 0, width: 1600, height: 900, fill: '#0b1a12', opacity: .35, style: 'pointer-events: none' }, p);
+  const scent = [0, 1, 2].map(i => mk('path', { fill: 'none', stroke: '#ffd0c4', 'stroke-width': 12, 'stroke-linecap': 'round', opacity: 0 }, world));
+  shots(cam, [
+    [0, { x: 560, y: 520, z: 1.5 }, [{ x: 640, y: 540, z: 1.65 }, S5.came]],          // the dark woods; something behind the tree
+    [S5.came, { x: 820, y: 560, z: 1.45 }, [{ x: 900, y: 560, z: 1.5 }, S5.sniff - S5.came]],  // out he steps
+    [S5.sniff - .05, { x: 1000, y: 470, z: 2.6 }, [{ x: 1005, y: 465, z: 2.8 }, S5.smile - S5.sniff]], // sniffing
+    [S5.smile - .05, { x: 1015, y: 450, z: 3.6 }, [{ x: 1020, y: 448, z: 4 }, D - S5.smile]],         // the hungry smile
+  ]);
+  const X0 = 640, X1 = 1000, G0 = 830;
+  clockRun(t => {
+    focus(t);
+    gloom.setAttribute('opacity', .35 * (1 - smooth((t - S5.came) / 1.2)));
+    // Peek (a sliver of him by the trunk), then tiptoe out on twos, stop, sniff, grin.
+    const walking = t > S5.came && t < S5.sniff - .25, u = clamp01((t - S5.came) / (S5.sniff - .25 - S5.came));
+    const x = t < S5.out ? X0 - 40 : t < S5.came ? X0 + 20 * smooth((t - S5.out) / .5) : X0 + 20 + (X1 - X0 - 20) * u;
+    const whole = t > S5.smile ? 'grin' : t > S5.sniff - .2 ? 'sniff' : walking ? (Math.floor(t / .26) % 2 ? 'tip2' : 'tip1') : null;
+    const sniffBob = t > S5.sniff && t < S5.smile ? 4 * Math.sin(t * 28) * (Math.floor(t * 3) % 2) : 0;
+    wolf.pose({
+      x, ground: G0, k: 1.05, whole, lean: walking ? 3 * Math.sin(t * 12) : 0,
+      bob: walking ? -10 * Math.abs(Math.sin(t * Math.PI / .26)) : sniffBob - (t > S5.smile ? 4 * Math.sin(t * 6) : 0),
+      face: { blink: blinkAt(t, 9), gaze: [1, 0], raise: 0 },
+    });
+    // The scent: three wavy pink ribbons from the meadow to his nose while he sniffs.
+    scent.forEach((e, i) => {
+      // from the right, converging on his nose (about x 1070, y 450)
+      const on = clamp01((t - S5.sniff + .4 - i * .15) / .3) * (1 - clamp01((t - S5.smile) / .4)), y0 = 400 + i * 45, ph = t * 5 + i * 2;
+      let d = `M1560 ${y0}`; for (let k = 1; k <= 10; k++) { const q = k / 10, xx = 1560 - 480 * q, yy = y0 + (452 - y0) * q * q; d += ` Q${xx + 24} ${yy + 22 * Math.sin(ph + k) * (1 - q)} ${xx} ${yy}`; }
+      e.setAttribute('d', d); e.setAttribute('opacity', on * .55);
+    });
+  }, D);
+}
+
+/* ---------- shot 6: huff and puff ---------- */
+// The wolf comes along the road from the left to the straw house; the first pig answers from its window (x 323–388,
+// y 416–469). He blows from the left, so the straw, and then the pig, fly and run off to the right.
+const PRE6 = 2, P6 = TIMINGS.shot6.parts;
+const SHOT6 = { a: PRE6 + P6.s06a, b: PRE6 + P6.s06b, c: PRE6 + P6.s06c, d: PRE6 + P6.s06d };
+Object.assign(SHOT6, { huff: SHOT6.c + .49, puff: SHOT6.c + 1.35, blowIn: SHOT6.c + 2.23, inhale: SHOT6.d + .54, blow: SHOT6.d + 1.44, flew: SHOT6.d + 3.12 + 1.2, ran: SHOT6.d + 4.81 + 1.2 });
+const WIN = { x: 323, y: 416, w: 65, h: 53 }, WOLF6 = { x: 165, g: 712, k: .95 };
+function shot6(p, D) {
+  const S6 = SHOT6, cam = camera(p, D, inMeadow({ x: 420, y: 520, z: 1.5 }));
+  const focus = meadow(cam), world = cam.layer(1);
+  const sticks = staged(world, 'stick_house', STICKS); staged(world, 'brick_house', BRICKS)(3, 9);   // the other two houses stand where they were built
+  // The straw house in three bands that can fly apart; the first pig drawn inside its window (clipped).
+  const w = STRAW.h * STRAW.size[0] / STRAW.size[1], bands = [0, 1, 2].map(i => {
+    const id = 'sb' + i + Math.random().toString(36).slice(2, 7), y0 = -STRAW.h * (i + 1) / 3 - (i === 2 ? 30 : 0), y1 = -STRAW.h * i / 3;
+    mk('rect', { x: -w, y: y0, width: 2 * w, height: y1 - y0 + 2 }, mk('clipPath', { id }, mk('defs', {}, world)));
+    const g = G(world), inner = G(g); inner.setAttribute('clip-path', `url(#${id})`);
+    mk('image', { href: '../img/props/straw_house_3.webp', x: -w / 2, y: -STRAW.h, width: w, height: STRAW.h }, inner);
+    return g;
+  });
+  const winId = 'win' + Math.random().toString(36).slice(2, 7);
+  mk('rect', { x: WIN.x, y: WIN.y, width: WIN.w, height: WIN.h }, mk('clipPath', { id: winId }, mk('defs', {}, world)));
+  const inWin = G(world); inWin.setAttribute('clip-path', `url(#${winId})`);
+  mk('rect', { x: WIN.x, y: WIN.y, width: WIN.w, height: WIN.h, fill: '#3a2614' }, inWin);   // the dark room behind her
+  const peek = TOON.posed(inWin, 'pig1');
+  const pig = TOON.posed(world, 'pig1');   // out in the open once the house is gone
+  const wolf = TOON.posed(world, 'wolf');
+  const wind = Array.from({ length: 22 }, (_, i) => mk('path', { fill: 'none', stroke: '#fff', 'stroke-width': 7 - (i % 3) * 2, 'stroke-linecap': 'round', opacity: 0 }, world));
+  const bits = Array.from({ length: 10 }, (_, i) => mk('image', { href: '../img/props/bundle.webp', x: -40, y: -43, width: 80, height: 86, visibility: 'hidden' }, world));
+  const wisps = Array.from({ length: 40 }, (_, i) => mk('path', { d: `M0 0l${22 + (i % 5) * 8} ${-3 - (i % 3) * 3}`, stroke: i % 3 ? '#e7b93a' : '#c9962a', 'stroke-width': 5, 'stroke-linecap': 'round', visibility: 'hidden' }, world));
+  const winC = { x: WIN.x + WIN.w / 2, y: WIN.y + WIN.h / 2 };
+  shots(cam, [
+    [0, inMeadow({ x: 380, y: 520, z: 1.5 }), [inMeadow({ x: 330, y: 540, z: 1.6 }), PRE6]],                  // he comes along the road
+    [S6.a, inMeadow({ x: 270, y: 520, z: 2.1 }), [inMeadow({ x: 280, y: 515, z: 2.25 }), S6.b - S6.a]],      // "Little pig, little pig"
+    [S6.b - .1, { x: winC.x, y: winC.y + 4, z: 7.5 }, [{ x: winC.x, y: winC.y + 4, z: 8 }, S6.c - S6.b]],    // in the window: "Not by the hair..."
+    [S6.c - .1, inMeadow({ x: WOLF6.x + 60, y: 470, z: 3.2 }), [inMeadow({ x: WOLF6.x + 60, y: 470, z: 3.5 }), S6.d - S6.c]],    // "Then I'll huff..."
+    [S6.d - .05, inMeadow({ x: 440, y: 500, z: 1.45 }), [inMeadow({ x: 470, y: 490, z: 1.35 }), S6.ran - S6.d]], // the huffing, the puffing
+    [S6.ran - .1, inMeadow({ x: 560, y: 520, z: 1.6 }), [inMeadow({ x: 900, y: 500, z: 1.55 }), 1.6]],  // and she runs to the stick house
+  ]);
+  cam.shake(6, S6.blow, S6.flew - S6.blow + .4, 11);
+  clockRun(t => {
+    focus(t);
+    // The wolf: tiptoe in; say his line; lean back on "huff", forward on "puff"; inhale (chest swelling), blow.
+    const walkIn = t < PRE6 - .2, xw = walkIn ? -120 + (WOLF6.x + 120) * t / (PRE6 - .2) : WOLF6.x;
+    const talkA = t - S6.a, talkC = t - S6.c, talking = (talkA > 0 && t < S6.b - .2) || (talkC > 0 && t < S6.d - .1);
+    const inhaling = t > S6.inhale - .1 && t < S6.blow - .05, blowing = t > S6.blow - .05 && t < S6.flew + .5;
+    const swell = inhaling ? smooth((t - S6.inhale + .1) / .6) : 0;
+    const whole = walkIn ? (Math.floor(t / .26) % 2 ? 'tip2' : 'tip1') : inhaling ? 'inhale' : blowing ? 'blow' : t > S6.flew + .5 ? 'grin' : null;
+    const lean = t > S6.c + .45 && t < S6.c + 1.3 ? -6 : t > S6.c + 1.3 && t < S6.d ? 6 : 0;
+    wolf.pose({
+      x: xw, ground: WOLF6.g, k: WOLF6.k, whole, lean,
+      sy: 1 + .12 * swell, bob: walkIn ? -10 * Math.abs(Math.sin(t * Math.PI / .26)) : blowing ? 3 * Math.sin(t * 40) : 0,
+      arm: talkA > 1.6 && t < S6.b ? 3 : t > S6.blowIn && t < S6.d ? 3 : 0,
+      face: { mouth: talkA > 0 && t < S6.b ? mouthAt('s06a', talkA) : talkC > 0 && t < S6.d ? mouthAt('s06c', talkC) : 'X', blink: blinkAt(t, 9), raise: talking ? .6 : 0, worry: talkC > 0 && t < S6.d ? .8 : 0, smile: talkC > 0 ? .2 : .7 },
+    });
+    // The house trembles under the wind, then its bands fly off to the right, spinning, highest first.
+    const gone = t > S6.flew, shake = blowing && !gone ? 2.5 * Math.sin(t * 37) * smooth((t - S6.blow) / 1) : 0;
+    bands.forEach((b, i) => {
+      const q = Math.max(0, t - S6.flew - (2 - i) * .08), x = STRAW.x + 900 * q + 300 * q * q, y = STRAW.base - 260 * q * (1 + i * .4) + 200 * q * q;
+      b.setAttribute('transform', `translate(${q > 0 ? x : STRAW.x + shake * (i + 1)},${q > 0 ? y : STRAW.base}) rotate(${q > 0 ? 220 * q * (i % 2 ? -1 : 1) : shake * (i + .5) * .6})`);
+      b.style.visibility = q < 2 ? '' : 'hidden';
+    });
+    // Her face in the window (before the house goes): ears up, then her line, defiant.
+    const talkB = t - S6.b;
+    inWin.style.visibility = gone ? 'hidden' : '';
+    peek.pose({ x: winC.x + 6, ground: winC.y + 158, k: .52, dir: -1, bob: 2 * Math.sin(t * 2),
+      face: { mouth: talkB > 0 && t < S6.c ? mouthAt('s06b', talkB) : 'X', blink: blinkAt(t, 11), raise: talkB > 0 ? .4 : 0, worry: talkB > 0 ? .6 : 0, smile: talkB > 0 ? -.3 : .3, wide: t > S6.inhale ? 1 : 0 } });
+    // Then she stands in the open where the house was, frozen; and runs for it, off to the right.
+    const r = t - S6.ran, run = r > 0, px = STRAW.x + (run ? 520 * r - 120 * (1 - Math.exp(-4 * r)) : 0);
+    pig.root.style.visibility = gone && px < STICKS.x ? '' : 'hidden';   // into her brother's house, which shudders as she slams the door
+    const inAt = S6.ran + (STICKS.x - STRAW.x + 120) / 520; sticks(3, t > inAt ? t - inAt : 9, t > inAt ? 3 * Math.exp(-5 * (t - inAt)) * Math.sin((t - inAt) * 30) : 0);
+    pig.pose({ x: px, ground: 690, k: .62, whole: run ? 'run' + (1 + Math.floor(r / .08) % 4) : null,
+      bob: run ? 0 : 4 * Math.sin(t * 30) * (gone ? 1 : 0), face: { wide: 1, worry: 1, blink: 0, smile: -.6, gaze: [-1, 0] }, dir: 1 });
+    // Wind from his mouth across the house; straw bundles and wisps blown away with it.
+    const mouth = { x: xw + 120 * WOLF6.k, y: WOLF6.g - 300 * WOLF6.k };
+    wind.forEach((e, i) => {
+      const q = ((t - S6.blow) * 1.8 + (i * .137) % 1) % 1, on = blowing && t > S6.blow ? 1 : 0, y = mouth.y + ((i * 37) % 120 - 60) * q;
+      const x0 = mouth.x + q * 900, len = 60 + (i % 4) * 30;
+      e.setAttribute('d', `M${x0} ${y}q${len / 2} ${10 * Math.sin(t * 9 + i)} ${len} 0`); e.setAttribute('opacity', on * (1 - q) * .9);
+    });
+    bits.forEach((e, i) => {
+      const q = t - S6.flew - i * .07, on = q > 0 && q < 1.6;
+      e.setAttribute('visibility', on ? 'visible' : 'hidden');
+      if (on) e.setAttribute('transform', `translate(${STRAW.x - 100 + (i * 41) % 200 + 1000 * q},${STRAW.base - 80 - (i * 53) % 280 - 300 * q + 260 * q * q}) rotate(${(i % 2 ? 1 : -1) * 500 * q})`);
+    });
+    wisps.forEach((e, i) => {
+      const q = t - S6.flew - (i % 10) * .04 + (blowing && !gone ? ((t * 2 + i * .13) % 1) - 1.1 : 0), on = (q > 0 && q < 1.4) || (blowing && !gone && i % 4 === 0);
+      e.setAttribute('visibility', on ? 'visible' : 'hidden');
+      const qq = Math.max(0, q) + (blowing && !gone ? ((t * 1.5 + i * .17) % 1) * .4 : 0);
+      e.setAttribute('transform', `translate(${STRAW.x - 150 + (i * 23) % 300 + 1100 * qq},${STRAW.base - (i * 31) % 380 - 120 * qq}) rotate(${i * 37 + 600 * qq})`);
+    });
+  }, D);
+}
+
+/* ---------- shot 7: the stick house ---------- */
+// The wolf follows the road to the stick house; the second pig answers from its window (x 1078–1108, y 445–484).
+// The house wobbles, wobbles, and comes down in a heap; both pigs run on to the brick house.
+const PRE7 = 2, P7 = TIMINGS.shot7.parts;
+const SHOT7 = { a: PRE7 + P7.s07a, b: PRE7 + P7.s07b, c: PRE7 + P7.s07c };
+Object.assign(SHOT7, { inhale: SHOT7.c + .75, blow: SHOT7.c + 1.62, wobble: SHOT7.c + 3.16 + 1, fall: SHOT7.c + 3.94 + 1.8, ran: SHOT7.c + 6.09 + 1.8 });
+const WIN7 = { x: 1078, y: 445, w: 30, h: 39 }, WOLF7 = { x: 760, g: 712, k: .95 };
+function shot7(p, D) {
+  const S7 = SHOT7, cam = camera(p, D, inMeadow({ x: 900, y: 520, z: 1.5 }));
+  const focus = meadow(cam), world = cam.layer(1);
+  staged(world, 'brick_house', BRICKS)(3, 9);
+  const w = STICKS.h * STICKS.size[0] / STICKS.size[1], bands = [0, 1, 2].map(i => {
+    const id = 'kb' + i + Math.random().toString(36).slice(2, 7), y0 = -STICKS.h * (i + 1) / 3 - (i === 2 ? 40 : 0), y1 = -STICKS.h * i / 3;
+    mk('rect', { x: -w, y: y0, width: 2 * w, height: y1 - y0 + 2 }, mk('clipPath', { id }, mk('defs', {}, world)));
+    const g = G(world), inner = G(g); inner.setAttribute('clip-path', `url(#${id})`);
+    mk('image', { href: '../img/props/stick_house_3.webp', x: -w / 2, y: -STICKS.h, width: w, height: STICKS.h }, inner);
+    return g;
+  });
+  const heap = prop(world, 'stickpile', STICKS.x, STICKS.base + 6, 150, PILE.size); heap.style.visibility = 'hidden';
+  const dust = Array.from({ length: 12 }, () => mk('ellipse', { fill: '#eadfc2', opacity: 0 }, world));
+  const winId = 'win7' + Math.random().toString(36).slice(2, 7);
+  mk('rect', { x: WIN7.x, y: WIN7.y, width: WIN7.w, height: WIN7.h }, mk('clipPath', { id: winId }, mk('defs', {}, world)));
+  const inWin = G(world); inWin.setAttribute('clip-path', `url(#${winId})`);
+  mk('rect', { x: WIN7.x, y: WIN7.y, width: WIN7.w, height: WIN7.h, fill: '#2a1a0e' }, inWin);
+  const peek = TOON.posed(inWin, 'pig2');
+  const pigs = [TOON.posed(world, 'pig2'), TOON.posed(world, 'pig1')];
+  const wolf = TOON.posed(world, 'wolf');
+  const wind = Array.from({ length: 22 }, (_, i) => mk('path', { fill: 'none', stroke: '#fff', 'stroke-width': 7 - (i % 3) * 2, 'stroke-linecap': 'round', opacity: 0 }, world));
+  const sticks = Array.from({ length: 16 }, (_, i) => mk('rect', { x: -40 - (i % 3) * 10, y: -5, width: 80 + (i % 3) * 20, height: 10, rx: 5, fill: i % 2 ? '#7a4a24' : '#8f5a2c', stroke: '#151314', 'stroke-width': 3, visibility: 'hidden' }, world));
+  const winC = { x: WIN7.x + WIN7.w / 2, y: WIN7.y + WIN7.h / 2 };
+  shots(cam, [
+    [0, inMeadow({ x: 760, y: 520, z: 1.5 }), [inMeadow({ x: 820, y: 530, z: 1.55 }), PRE7]],                   // he walks on to the next house
+    [S7.a, inMeadow({ x: 900, y: 510, z: 2 }), [inMeadow({ x: 910, y: 505, z: 2.15 }), S7.b - S7.a]],            // "Little pigs, little pigs"
+    [S7.b - .1, { x: winC.x, y: winC.y + 3, z: 12 }, [{ x: winC.x, y: winC.y + 3, z: 13 }, S7.c - S7.b]],      // in the window: "Not by the hair..."
+    [S7.c - .05, inMeadow({ x: 980, y: 480, z: 1.4 }), [inMeadow({ x: 1000, y: 470, z: 1.3 }), S7.ran - S7.c]], // huff, puff, wobble, down
+    [S7.ran - .1, inMeadow({ x: 1150, y: 520, z: 1.6 }), [inMeadow({ x: 1500, y: 510, z: 1.55 }), 2]],          // two pigs run to the brick house
+  ]);
+  cam.shake(5, S7.blow, S7.fall - S7.blow, 11); cam.shake(14, S7.fall, .6, 8);
+  clockRun(t => {
+    focus(t);
+    const walkIn = t < PRE7 - .2, xw = walkIn ? 380 + (WOLF7.x - 380) * t / (PRE7 - .2) : WOLF7.x;
+    const talkA = t - S7.a, inhaling = t > S7.inhale - .1 && t < S7.blow - .05, blowing = t > S7.blow - .05 && t < S7.fall + .5;
+    const swell = inhaling ? smooth((t - S7.inhale + .1) / .6) : 0;
+    wolf.pose({
+      x: xw, ground: WOLF7.g, k: WOLF7.k, whole: walkIn ? (Math.floor(t / .26) % 2 ? 'tip2' : 'tip1') : inhaling ? 'inhale' : blowing ? 'blow' : t > S7.fall + .5 ? 'grin' : null,
+      sy: 1 + .14 * swell, bob: walkIn ? -10 * Math.abs(Math.sin(t * Math.PI / .26)) : blowing ? 3 * Math.sin(t * 40) : 0,
+      arm: talkA > 1.9 && t < S7.b ? 3 : 0,
+      face: { mouth: talkA > 0 && t < S7.b ? mouthAt('s07a', talkA) : 'X', blink: blinkAt(t, 9), raise: talkA > 0 && t < S7.b ? .6 : 0, smile: .7 },
+    });
+    // The house: shivers in the wind, three big wobbles, then its bands drop and topple into a heap.
+    const wob = t > S7.wobble && t < S7.fall ? 7 * Math.sin((t - S7.wobble) * 2 * Math.PI * 3 / (S7.fall - S7.wobble)) : blowing ? 1.5 * Math.sin(t * 33) : 0;
+    const f = t - S7.fall, down = f > 0;
+    bands.forEach((b, i) => {
+      const q = clamp01((f - (2 - i) * .05) / .45), drop = (STICKS.h * i / 3) * q * q, side = (i - 1) * 90 * q, rot = (i % 2 ? -1 : 1) * 70 * q;
+      b.setAttribute('transform', `translate(${STICKS.x + side},${STICKS.base + drop}) rotate(${down ? rot : wob * (1 + i * .3)})`);
+      b.style.visibility = f > .55 ? 'hidden' : '';
+    });
+    heap.style.visibility = f > .45 ? '' : 'hidden';
+    dust.forEach((e, i) => { const q = clamp01((f - .4) / .9), a = (i / 11) * Math.PI, on = f > .4 && f < 1.3;
+      e.setAttribute('cx', STICKS.x + Math.cos(a) * (120 + 160 * q) * (i % 2 ? 1 : -1)); e.setAttribute('cy', STICKS.base - 20 - Math.sin(a) * 60 * q);
+      e.setAttribute('rx', 40 + 60 * q); e.setAttribute('ry', 24 + 30 * q); e.setAttribute('opacity', on ? .9 * (1 - q) : 0); });
+    sticks.forEach((e, i) => {   // thrown up, they come down and lie on the ground in front of the heap
+      const q = f - .3 - (i % 4) * .04, on = q > 0, land = STICKS.base + 30 + (i * 13) % 110, y = STICKS.base - 120 - (i * 29) % 200 - 420 * q + 900 * q * q;
+      const qx = Math.min(q, .9), down = y >= land;
+      e.setAttribute('visibility', on && f < 6 ? 'visible' : 'hidden');
+      if (on) e.setAttribute('transform', `translate(${STICKS.x + ((i * 47) % 300 - 150) * (1 + 1.6 * qx)},${Math.min(y, land)}) rotate(${down ? (i * 23) % 40 - 20 : (i % 2 ? 1 : -1) * 520 * q + i * 40})`);
+    });
+    // The second pig at the window; then both pigs in the open, shaking, and off they run to the bricks.
+    const talkB = t - S7.b;
+    inWin.style.visibility = down ? 'hidden' : '';
+    peek.pose({ x: winC.x + 3, ground: winC.y + 92, k: .3, dir: -1,
+      face: { mouth: talkB > 0 && t < S7.c ? mouthAt('s07b', talkB) : 'X', blink: blinkAt(t, 37), raise: talkB > 0 ? .4 : 0, worry: talkB > 0 ? .6 : 0, smile: -.2, wide: t > S7.inhale ? 1 : 0 } });
+    pigs.forEach((pg, i) => {
+      const r = t - S7.ran - i * .15, run = r > 0, px = STICKS.x - 40 + i * 90 + (run ? 520 * r - 120 * (1 - Math.exp(-4 * r)) : 0);
+      pg.root.style.visibility = f > .5 && px < BRICKS.x ? '' : 'hidden';
+      pg.pose({ x: px, ground: 696 - i * 6, k: .62, whole: run ? 'run' + (1 + Math.floor((r + i * .04) / .08) % 4) : null,
+        bob: run ? 0 : 4 * Math.sin(t * 30 + i), face: { wide: 1, worry: 1, blink: 0, smile: -.6, gaze: [-1, 0] } });
+    });
+    const mouth = { x: xw + 120 * WOLF7.k, y: WOLF7.g - 300 * WOLF7.k };
+    wind.forEach((e, i) => {
+      const q = ((t - S7.blow) * 1.8 + (i * .137) % 1) % 1, on = blowing && t > S7.blow ? 1 : 0, y = mouth.y + ((i * 37) % 120 - 60) * q;
+      e.setAttribute('d', `M${mouth.x + q * 700} ${y}q${(60 + (i % 4) * 30) / 2} ${10 * Math.sin(t * 9 + i)} ${60 + (i % 4) * 30} 0`); e.setAttribute('opacity', on * (1 - q) * .9);
+    });
+  }, D);
+}
+
+/* ---------- shot 8: the brick house ---------- */
+// He tries the brick house: a furious "Let! Me! In!", three pigs crammed in its window answering together, three
+// huffs that move nothing, and he collapses. Window in the world: x 1561–1601, y 459–520.
+const PRE8 = 1.6, P8 = TIMINGS.shot8.parts;
+const SHOT8 = { a: PRE8 + P8.s08a, b: PRE8 + P8.s08b, c: PRE8 + P8.s08c };
+Object.assign(SHOT8, { stomps: [2.03, 3.42, 4.64].map(w => SHOT8.a + w), puffs: [[.54, 1.44], [2.54, 3.56], [4.65, 5.59]].map(([i, b]) => [SHOT8.c + i - .3, SHOT8.c + b]),
+  flop: SHOT8.c + 6.1, bit: SHOT8.c + 8.1 + 1.4 });
+const WIN8 = { x: 1561, y: 459, w: 40, h: 61 }, WIN8B = { x: 1820, y: 465, w: 33, h: 55 }, WOLF8 = { x: 1330, g: 712, k: .95 };
+function shot8(p, D) {
+  const S8 = SHOT8, cam = camera(p, D, inMeadow({ x: 1500, y: 520, z: 1.5 }));
+  const focus = meadow(cam), world = cam.layer(1);
+  prop(world, 'stickpile', STICKS.x, STICKS.base + 6, 150, PILE.size);   // what is left of the stick house
+  staged(world, 'brick_house', BRICKS)(3, 9);
+  // Two windows: the third pig in the left one, his brother and sister squeezed into the right one.
+  const winG = W => { const id = 'w8' + Math.random().toString(36).slice(2, 7);
+    mk('rect', { x: W.x, y: W.y, width: W.w, height: W.h }, mk('clipPath', { id }, mk('defs', {}, world)));
+    const g = G(world); g.setAttribute('clip-path', `url(#${id})`); mk('rect', { x: W.x, y: W.y, width: W.w, height: W.h, fill: '#3a2614' }, g); return g; };
+  const L = winG(WIN8), Rw = winG(WIN8B);
+  const crew = [['pig1', Rw, WIN8B, -7, .27], ['pig2', Rw, WIN8B, 9, .27], ['pig3', L, WIN8, 0, .32]].map(([n, g, W, dx, k]) => ({ a: TOON.posed(g, n), W, dx, k }));
+  const wolf = TOON.posed(world, 'wolf');
+  const wind = Array.from({ length: 22 }, (_, i) => mk('path', { fill: 'none', stroke: '#fff', 'stroke-width': 7 - (i % 3) * 2, 'stroke-linecap': 'round', opacity: 0 }, world));
+  const sweat = [0, 1, 2].map(() => mk('path', { d: 'M0 -14Q9 0 0 8Q-9 0 0 -14Z', fill: '#9fd6ff', stroke: '#151314', 'stroke-width': 2.5, visibility: 'hidden' }, world));
+  const win = { x: WIN8.x + WIN8.w / 2, y: WIN8.y + WIN8.h / 2 };
+  shots(cam, [
+    [0, inMeadow({ x: 1350, y: 520, z: 1.5 }), [inMeadow({ x: 1420, y: 520, z: 1.55 }), PRE8]],              // on to the brick house
+    [S8.a - .1, { x: WOLF8.x + 50, y: 470, z: 3 }, [{ x: WOLF8.x + 50, y: 470, z: 3.3 }, S8.b - S8.a]],      // "Little pigs! Let! Me! In!"
+    [S8.b - .1, { x: 1708, y: 492, z: 4 }, [{ x: 1708, y: 492, z: 4.3 }, S8.c - S8.b]],      // three faces in the windows
+    [S8.c - .05, inMeadow({ x: 1480, y: 470, z: 1.45 }), [inMeadow({ x: 1490, y: 470, z: 1.6 }), S8.flop - S8.c]], // huff after huff
+    [S8.flop, { x: WOLF8.x + 40, y: 600, z: 2.6 }, [{ x: WOLF8.x + 40, y: 610, z: 2.8 }, S8.bit - S8.flop - .2]],  // he collapses
+    [S8.bit - .2, { x: 1708, y: 492, z: 3.8 }, [{ x: 1708, y: 492, z: 4.2 }, D - S8.bit + .2]],      // and they laugh at him
+  ]);
+  for (const [, b] of S8.puffs) cam.shake(4, b, .9, 10);
+  S8.stomps.forEach(w => cam.shake(7, w, .25, 8));
+  clockRun(t => {
+    focus(t);
+    const walkIn = t < PRE8 - .15, xw = walkIn ? 1000 + (WOLF8.x - 1000) * t / (PRE8 - .15) : WOLF8.x;
+    // Which puff, and where in it: inhale until the blow word, blow for 0.9 s; the third is the biggest.
+    const k = S8.puffs.findIndex(([i, b]) => t > i && t < b + .9), [pi, pb] = S8.puffs[Math.max(0, k)];
+    const inhaling = k >= 0 && t < pb, blowing = k >= 0 && t >= pb, big = k === 2 ? 1.5 : 1;
+    const flopped = t > S8.flop, talkA = t - S8.a, stomp = S8.stomps.some(w => t > w - .05 && t < w + .2);
+    wolf.pose({
+      x: xw, ground: WOLF8.g, k: WOLF8.k,
+      whole: walkIn ? (Math.floor(t / .26) % 2 ? 'tip2' : 'tip1') : flopped ? 'flop' : inhaling ? 'inhale' : blowing ? 'blow' : null,
+      sy: inhaling ? 1 + .12 * big * smooth((t - pi) / (pb - pi)) : 1,
+      bob: walkIn ? -10 * Math.abs(Math.sin(t * Math.PI / .26)) : blowing ? 3 * big * Math.sin(t * 40) : stomp ? 10 : flopped ? 2 * Math.sin(t * 9) : 0,
+      lean: talkA > 0 && t < S8.b ? 6 : 0, arm: talkA > 1.8 && t < S8.b ? 3 : 0,
+      face: { mouth: talkA > 0 && t < S8.b ? mouthAt('s08a', talkA) : 'X', blink: blinkAt(t, 9), raise: 0, worry: talkA > 0 && t < S8.b ? 1 : 0, smile: -.5, wide: stomp ? 1 : 0 },
+    });
+    // Sweat flies off him when he collapses.
+    sweat.forEach((e, i) => { const q = ((t - S8.flop - i * .3) % 1.2 + 1.2) % 1.2 / 1.2, on = flopped;
+      e.setAttribute('visibility', on ? 'visible' : 'hidden'); e.setAttribute('transform', `translate(${xw + 60 + (i - 1) * 50 + 40 * q * (i - 1)},${520 - 60 * Math.sin(Math.PI * q) + 80 * q}) rotate(${(i - 1) * 30})`); });
+    // The three in the window: chin chin chins together, then laughing.
+    const talkB = t - S8.b, laughing = t > S8.bit - .3, scared = t > S8.c && t < S8.flop;
+    crew.forEach(({ a, W, dx, k: kk }, i) => a.pose({ x: W.x + W.w / 2 + dx, ground: W.y + W.h / 2 + 300 * kk + 2, k: kk, dir: -1,
+      whole: laughing && i < 2 ? 'laugh' : null, bob: laughing ? -3 * Math.abs(Math.sin(t * 9 + i)) : 0,
+      face: { mouth: talkB > 0 && t < S8.c ? mouthAt('s08b', talkB) : laughing ? 'D' : 'X', blink: blinkAt(t, 11 + i * 13), raise: talkB > 0 ? .5 : 0,
+        worry: scared ? .5 : 0, wide: scared ? 1 : 0, smile: talkB > 0 && t < S8.c ? -.2 : .9 } }));
+    const mouth = { x: xw + 120 * WOLF8.k, y: WOLF8.g - 300 * WOLF8.k };
+    wind.forEach((e, i) => {
+      const q = ((t - pb) * 1.8 + (i * .137) % 1) % 1, on = blowing ? 1 : 0, y = mouth.y + ((i * 37) % 120 - 60) * q;
+      e.setAttribute('d', `M${mouth.x + q * 500 * big} ${y}q${(60 + (i % 4) * 30) / 2} ${10 * Math.sin(t * 9 + i)} ${60 + (i % 4) * 30} 0`); e.setAttribute('opacity', on * (1 - q) * .9);
+    });
+  }, D);
+}
+
+/* ---------- shots 9–11: the chimney, the pot, ever after ---------- */
+// The brick house in the world: chimney x 1797–1874 (top y 222), roof ridge at (1760, 282), left eave at (1491, 423).
+// Inside (img/interior.webp, 1600 × 900): the pot hook at (1293, 390), the fire at (1353, 571), the floor at y 782.
+const HOOK = { x: 1293, y: 392 }, FLOOR = 782, CHIM = { x: 1835, y: 226 };
+function interior(cam) { mk('image', { href: '../img/interior.webp', x: 0, y: 0, width: 1600, height: 900 }, cam.world); }
+function flames(p) {   // a flickering fire over the painted one
+  const fl = Array.from({ length: 7 }, (_, i) => mk('path', { fill: i % 2 ? '#ffb22e' : '#ff7a1a', opacity: .85 }, p));
+  return t => fl.forEach((e, i) => { const x = 1275 + i * 26, h = 60 + 30 * Math.sin(t * (9 + i) + i * 2) + (i % 3) * 12;
+    e.setAttribute('d', `M${x - 18} 600Q${x - 12} ${600 - h * .6} ${x + 4 * Math.sin(t * 7 + i)} ${600 - h}Q${x + 12} ${600 - h * .6} ${x + 18} 600Z`); });
+}
+const steamPuffs = p => Array.from({ length: 8 }, () => mk('ellipse', { fill: '#fff', opacity: 0 }, p));
+const potAt = (p, x, y, h = 230) => { const w = h * 802 / 901, g = G(p, { x, y }); mk('image', { href: '../img/props/pot.webp', x: -w / 2, y: 0, width: w, height: h }, g); return g; };   // hung by its handle top
+
+const P9 = TIMINGS.shot9.parts, S9 = { idea: 1.54, crept: 3.25, roof: 4.18, chim: 5.38, says: P9.s09b, inside: P9.s09c + .33, set: P9.s09c + 3.94, fire: P9.s09c + 5.56 };
+function shot9(p, D) {
+  const cam = camera(p, D, inMeadow({ x: 1500, y: 520, z: 1.5 }));
+  const focus = meadow(cam), world = cam.layer(1);
+  staged(world, 'brick_house', BRICKS)(3, 9);
+  const ladder = mk('image', { href: '../img/props/ladder.webp', x: -60, y: -340, width: 98, height: 345, transform: 'translate(1478,712) rotate(14)' }, world);
+  const wolf = TOON.posed(world, 'wolf');
+  const bulb = G(world, { o: 0 }); mk('circle', { r: 26, fill: '#fff59a', stroke: '#151314', 'stroke-width': 4 }, bulb); mk('rect', { x: -10, y: 22, width: 20, height: 14, fill: '#aaa', stroke: '#151314', 'stroke-width': 3 }, bulb);
+  for (let i = 0; i < 6; i++) mk('line', { x1: Math.cos(i * 1.05) * 34, y1: Math.sin(i * 1.05) * 34 - 4, x2: Math.cos(i * 1.05) * 48, y2: Math.sin(i * 1.05) * 48 - 4, stroke: '#ffd400', 'stroke-width': 5, 'stroke-linecap': 'round' }, bulb);
+  // Inside: a second camera on the room, cut to on "But inside".
+  const cam2 = camera(p, D, { x: 800, y: 450, z: 1 }); interior(cam2); cam2.el.style.display = 'none';   // display, not visibility: a child set visible would show through
+  const fire = flames(cam2.world), pot = potAt(cam2.world, 0, 0), pig = TOON.posed(cam2.world, 'pig3'), sibs = [TOON.posed(cam2.world, 'pig1'), TOON.posed(cam2.world, 'pig2')];
+  shots(cam, [
+    [0, { x: WOLF8.x + 40, y: 600, z: 2.6 }, [{ x: WOLF8.x + 40, y: 580, z: 2.8 }, S9.crept]],              // the idea
+    [S9.crept - .1, inMeadow({ x: 1620, y: 470, z: 1.5 }), [inMeadow({ x: 1700, y: 340, z: 1.6 }), S9.says - S9.crept]], // up the ladder, over the roof
+    [S9.says - .1, { x: CHIM.x - 60, y: 175, z: 2.8 }, [{ x: CHIM.x - 50, y: 170, z: 3 }, S9.inside - S9.says]], // "Heh, heh, heh"
+  ]);
+  cam2.to({ x: 1100, y: 520, z: 1.4 }, S9.inside, D - S9.inside, soft);
+  clockRun(t => {
+    focus(t); fire(t);
+    const inside = t > S9.inside - .05; cam.el.style.display = inside ? 'none' : ''; cam2.el.style.display = inside ? '' : 'none';
+    // Up from the ground: get up, the idea, the ladder (ground to eave), the roof (eave to chimney), at the chimney.
+    const up = clamp01((t - S9.crept) / (S9.roof - S9.crept)), over = clamp01((t - S9.roof) / (S9.chim + .3 - S9.roof));
+    let x = WOLF8.x, g = WOLF8.g, whole = t < .6 ? 'flop' : t < S9.crept ? 'grin' : null, lean = 0;
+    if (t > S9.crept) { x = 1440 + 50 * up; g = 712 - 290 * up; lean = -10 * up; }
+    if (t > S9.roof) { x = 1495 + (CHIM.x - 90 - 1495) * over; g = 423 - (423 - 300) * over; lean = -16 * (1 - over); }
+    const talk = t - S9.says, talking = talk > 0 && t < S9.inside;
+    if (t > S9.chim + .3) { whole = talking ? null : 'grin'; lean = 0; }
+    const stepping = t > S9.crept && t < S9.chim + .3, wp9 = walkPose(t, .14);
+    wolf.pose({ x, ground: g, k: .8, whole, lean, legs: stepping ? wp9.legs : 0, bob: stepping ? 5 * wp9.bob : 0,
+      face: { mouth: talking ? mouthAt('s09b', talk) : 'X', blink: blinkAt(t, 9), raise: talking ? .7 : 0, smile: .9 }, arm: talking && talk > 2 ? 3 : 0 });
+    put(bulb, { x: x + 60, y: g - 370, o: t > S9.idea && t < S9.crept ? 1 : 0, s: t > S9.idea ? 1 + .3 * Math.exp(-8 * (t - S9.idea)) * Math.sin((t - S9.idea) * 20) : 0 });
+    // Inside: he carries the pot to the fire and hangs it on the hook; the others watch from the table.
+    const q = clamp01((t - S9.set) / 1.2), carrying = t > S9.inside && t < S9.set + 1.2;
+    const px = 760 + (HOOK.x - 150 - 760) * q;
+    pig.pose({ x: px, ground: FLOOR, k: 1, legs: carrying && q > 0 && q < 1 ? walkPose(t, .16).legs : 0, arm: carrying ? 1 : 0,   // hand forward under the pot (arm 4 holds a brick)
+      face: { blink: blinkAt(t, 23), smile: t > S9.fire ? .9 : .5, raise: t > S9.inside + 1 && t < S9.set ? .6 : 0, gaze: [1, -.2] } });
+    pot.setAttribute('transform', q < 1 ? `translate(${px + 95},${FLOOR - 300 - 60 * Math.sin(Math.PI * q)}) scale(.75)` : `translate(${HOOK.x},${HOOK.y + 6}) rotate(${4 * Math.exp(-3 * (t - S9.set - 1.2)) * Math.sin((t - S9.set) * 9)})`);
+    sibs.forEach((a, i) => a.pose({ x: 330 + i * 150, ground: FLOOR + 10, k: .92, face: { blink: blinkAt(t, 11 + i * 26), worry: .6, gaze: [1, 0] } }));
+  }, D);
+}
+
+const P10 = TIMINGS.shot10.parts, S10 = { down: .1, wolf: 1.3, splash: 2.6, hot: 4.27, ow: P10.s10b + .1, tail: P10.s10b + 1.73, up: P10.s10c + .11, shot: P10.s10c + .99, away: P10.s10c + 2.45, woods: P10.s10c + 3.56, never: P10.s10c + 4.75 };
+function shot10(p, D) {
+  const cam = camera(p, D, { x: 1150, y: 450, z: 1.3 }); interior(cam);
+  const fire = flames(cam.world);
+  // The wolf drawn only above the pot's bottom (he sinks into it, never out under it); the pot drawn over him.
+  const cid = 'pot' + Math.random().toString(36).slice(2, 7), inside = G(cam.world);
+  mk('rect', { x: 0, y: -2000, width: 1600, height: 2000 + HOOK.y + 200 }, mk('clipPath', { id: cid }, mk('defs', {}, cam.world)));
+  inside.setAttribute('clip-path', `url(#${cid})`);
+  const wolfIn = TOON.posed(inside, 'wolf'), pot = potAt(cam.world, HOOK.x, HOOK.y + 6);
+  const RIM = HOOK.y + 66, rings = [0, 1, 2].map(() => mk('ellipse', { fill: 'none', stroke: '#dff4ff', 'stroke-width': 4, opacity: 0 }, cam.world));
+  const bubbles = Array.from({ length: 9 }, () => mk('circle', { fill: '#cfeeff', stroke: '#5aa9d6', 'stroke-width': 2, opacity: 0 }, cam.world));
+  const steam = steamPuffs(cam.world), drops = Array.from({ length: 16 }, () => mk('path', { d: 'M0 -12Q8 0 0 8Q-8 0 0 -12Z', fill: '#8fd3ff', stroke: '#151314', 'stroke-width': 2.5, visibility: 'hidden' }, cam.world));
+  const pigs = [['pig1', 380], ['pig2', 520], ['pig3', 720]].map(([n, x]) => ({ a: TOON.posed(cam.world, n), x }));
+  // Outside, for the shot up the chimney and the run to the woods.
+  const out = camera(p, D, inMeadow({ x: 1600, y: 400, z: 1.2 })); const focus = meadow(out), world = out.layer(1);
+  staged(world, 'brick_house', BRICKS)(3, 9); out.el.style.display = 'none';
+  const wolfOut = TOON.posed(world, 'wolf'), smoke = Array.from({ length: 12 }, () => mk('circle', { fill: '#9a9a9a', opacity: 0 }, world));
+  cam.to({ x: HOOK.x, y: 470, z: 2.2 }, S10.wolf - .4, .8, io);
+  cam.shake(10, S10.splash, .5, 9); cam.to({ x: 1000, y: 470, z: 1.3 }, S10.ow + .2, .6, io);   // close on the pot until he howls
+  out.to({ x: 1150, y: 480, z: 1.15 }, S10.away, S10.never - S10.away, soft);
+  clockRun(t => {
+    fire(t); focus(t);
+    const outside = t > S10.shot - .3; out.el.style.display = outside ? '' : 'none'; cam.el.style.display = outside ? 'none' : '';
+    // Down he drops (arms out), splash, sits steaming in the pot, then howls and shoots back up.
+    const fall = clamp01((t - S10.wolf + .3) / (S10.splash - S10.wolf + .3)), inPot = t > S10.splash, rise = t > S10.ow ? (t - S10.ow) : 0;
+    // In the pot: plunge out of sight, bubbles, his head comes up to the eyes, he goes red and shakes, then OWWW.
+    const SUNK = RIM + 290, EYES = RIM + 175, w = t - S10.splash;
+    const plunge = smooth(w / .35), surface = smooth((w - 1.3) / 1.1), shake = t > S10.hot ? Math.min(1, (t - S10.hot) / .8) : 0;
+    const gyIn = SUNK - (SUNK - EYES) * surface + (w < .35 ? -(SUNK - RIM - 60) * (1 - plunge) : 0);
+    const gy = !inPot ? -200 + (RIM + 60 + 200) * fall * fall : t < S10.ow ? gyIn + 3 * Math.sin(t * 60) * shake : EYES - 900 * rise * rise;
+    const red = inPot && t < S10.ow + .4 ? clamp01((t - S10.hot + .3) / 1) : 0;
+    wolfIn.root.style.filter = red > 0 ? `sepia(${.5 * red}) saturate(${1 + 3 * red}) hue-rotate(${-25 * red}deg)` : '';   // boiling red
+    rings.forEach((e, i) => { const q = clamp01((w - i * .18) / .9); e.setAttribute('cx', HOOK.x); e.setAttribute('cy', RIM + 4); e.setAttribute('rx', 30 + 70 * q); e.setAttribute('ry', 6 + 12 * q); e.setAttribute('opacity', inPot && q < 1 ? .9 * (1 - q) : 0); });
+    bubbles.forEach((e, i) => { const q = ((w - .4 - i * .19) % .7 + .7) % .7 / .7, on = w > .4 && t < S10.ow;
+      e.setAttribute('cx', HOOK.x - 60 + (i * 29) % 120); e.setAttribute('cy', RIM + 10 - 14 * q); e.setAttribute('r', (4 + (i % 3) * 3) * (q < .85 ? 1 : 1.6)); e.setAttribute('opacity', on ? (q < .85 ? .9 : 0) : 0); });
+    wolfIn.pose({ x: HOOK.x + 4 * Math.sin(t * 47) * shake * (t < S10.ow ? 1 : 0), ground: gy, k: .7, whole: !inPot ? 'inhale' : t > S10.ow - .1 ? 'howl' : null, sy: t > S10.ow ? 1 + .5 * clamp01(rise * 3) : 1,
+      face: { blink: 0, wide: 1, worry: red, smile: -red, gaze: [1, -.4 * red] } });
+    cam.world.appendChild(pot);   // the pot in front of him: he sits inside it
+    drops.forEach((e, i) => { const q = t - S10.splash - (i % 4) * .03, on = q > 0 && q < .9, a = -Math.PI * (i / 15);
+      e.setAttribute('visibility', on ? 'visible' : 'hidden'); e.setAttribute('transform', `translate(${HOOK.x + Math.cos(a) * 420 * q},${HOOK.y + 30 + Math.sin(a) * 380 * q + 700 * q * q}) rotate(${a * 57 + 90})`); });
+    steam.forEach((e, i) => { const q = ((t - S10.splash - i * .25) % 2 + 2) % 2 / 2, on = inPot && t < S10.shot;
+      e.setAttribute('cx', HOOK.x - 60 + (i * 17) % 120 + 20 * Math.sin(t * 2 + i)); e.setAttribute('cy', HOOK.y + 10 - 220 * q); e.setAttribute('rx', 20 + 30 * q); e.setAttribute('ry', 14 + 20 * q); e.setAttribute('opacity', on ? .8 * (1 - q) : 0); });
+    pigs.forEach(({ a, x }, i) => a.pose({ x, ground: FLOOR + 10, k: .92, whole: t > S10.ow + .4 && i < 2 ? 'laugh' : null,
+      face: { blink: blinkAt(t, 11 + i * 12), wide: t > S10.splash ? 1 : 0, gaze: [1, -.3], smile: .9 } }));
+    // Outside: out of the chimney, stretched, high into the sky; down again and off to the woods with a smoking tail.
+    const u = t - S10.shot, flyUp = u < 1.2, ox = flyUp ? CHIM.x - 180 * u : CHIM.x - 216 - 520 * (u - 1.2);
+    const oy = flyUp ? CHIM.y + 40 - 300 * Math.sin(Math.PI * u / 1.2) + 450 * Math.max(0, u - .6) ** 2 * 4 : 712;   // up, over, down to the road
+    const wr = walkPose(u, .07);
+    wolfOut.pose({ x: ox, ground: oy, k: .8, whole: flyUp ? 'howl' : null, dir: flyUp ? 1 : -1, sy: flyUp ? 1.4 : 1, lean: flyUp ? 0 : 10,
+      legs: flyUp ? 0 : wr.legs, arm: flyUp ? 0 : wr.arm, bob: flyUp ? 0 : 10 * wr.bob, face: { blink: 0, wide: 1, worry: 1, mouth: 'D', smile: -.6 } });
+    smoke.forEach((e, i) => { const q = ((t * 1.6 + i / 12) % 1), on = u > 0 && t < S10.never + .5;
+      e.setAttribute('cx', ox + (u > .9 ? 80 : 0) + 120 * q * (u > .9 ? 1 : 0)); e.setAttribute('cy', oy - 120 + (flyUp ? 200 * q : -60 * q)); e.setAttribute('r', 14 + 30 * q); e.setAttribute('opacity', on ? .6 * (1 - q) : 0); });
+  }, D);
+}
+
+const S11 = { pigs: 1.49, brick: 3.89, other: 5.21, bricks: 7.41, happily: 9.59, after: 10.44 }, END = 3.2;
+function shot11(p, D) {
+  const cam = camera(p, D + END, inMeadow({ x: 1700, y: 520, z: 1.8 }));
+  const focus = meadow(cam), world = cam.layer(1);
+  const house = staged(world, 'brick_house', BRICKS);
+  const pigs = ['pig1', 'pig2', 'pig3'].map(n => TOON.posed(world, n));
+  const shed = prop(world, 'brickpile', BRICKS.x + 260, BRICKS.base + 20, 130, BPILE.size);
+  const glow = mk('rect', { x: 0, y: 0, width: 1600, height: 900, fill: '#ffcf7a', opacity: 0, style: 'mix-blend-mode: soft-light; pointer-events: none' }, p);
+  const black = mk('rect', { x: 0, y: 0, width: 1600, height: 900, fill: '#141210', opacity: 0 }, p);
+  const end = T(p, 'The End', { x: 800, y: 470, size: 110, weight: 800, fill: '#fff6e0', anchor: 'middle', o: 0 });
+  end.setAttribute('font-family', 'Georgia, serif'); end.setAttribute('font-style', 'italic');
+  cam.to(inMeadow({ x: 1700, y: 500, z: 1.6 }), 0, S11.other, soft);
+  cam.to(inMeadow({ x: 1850, y: 480, z: 1.9 }), S11.other, S11.happily - S11.other, soft);
+  cam.to(inMeadow({ x: 1300, y: 450, z: 1 }), S11.happily, D + END - S11.happily, soft);
+  clockRun(t => {
+    focus(t); house(3, 9);
+    // Dancing in a ring in front of the house; then two of them help: hammering, laying bricks; then dancing again.
+    const helping = t > S11.other && t < S11.happily, ring = !helping;
+    pigs.forEach((a, i) => {
+      const ph = t * 2.2 + i * 2.09, x = 1640 + Math.cos(ph) * 120, back = Math.sin(ph) < 0;
+      const hx = [1880, 1960, 1800][i];
+      a.pose(ring ? { x, ground: 702 + Math.sin(ph) * 14, k: .62 + Math.sin(ph) * .03, dir: Math.cos(ph + Math.PI / 2) > 0 ? 1 : -1,
+          legs: walkPose(t + i * .1, .18).legs, arm: 3, bob: -10 * Math.abs(Math.sin(t * 8 + i)), face: { blink: blinkAt(t, 11 + i * 12), mouth: 'D', smile: 1 } }
+        : { x: hx, ground: 705, k: .62, dir: i === 2 ? 1 : -1,
+          arm: i === 1 ? (Math.floor(t / .35) % 2 ? 5 : 4) : i === 2 ? (Math.floor(t / .6) % 2 ? 5 : 4) : 3, legs: 0,
+          face: { blink: blinkAt(t, 11 + i * 12), smile: .9 } });
+      a.root.parentNode.appendChild(back ? a.root : a.root);
+    });
+    glow.setAttribute('opacity', .5 * smooth((t - S11.happily) / 1.5));
+    black.setAttribute('opacity', smooth((t - D - .2) / 1.4));
+    put(end, { o: smooth((t - D - .9) / 1), y: 470 - 20 * smooth((t - D - .9) / 1) });
+  }, D + END);
+}
+
+/* ---------- beats: [id, title, run(m, D), extra] ---------- */
+const BEATS = [
+  ['shot1', 'Leaving home', (m, D) => shot1(panel(0), 0, D), { lead: false }],   // narration and Mother's line, one clip
+  ['shot2', 'The straw house', (m, D) => shot2(panel(0), D), { lead: false }],
+  ['shot3', 'The stick house', (m, D) => shot3(panel(0), D), { lead: false }],
+  ['shot4', 'The brick house', (m, D) => shot4(panel(0), D), { lead: false }],
+  ['shot5', 'The wolf', (m, D) => shot5(panel(0), D), { lead: false, pre: PRE5 }],
+  ['shot6', 'Huff and puff', (m, D) => shot6(panel(0), D), { lead: false, pre: PRE6 }],
+  ['shot7', 'The stick house falls', (m, D) => shot7(panel(0), D), { lead: false, pre: PRE7 }],
+  ['shot8', 'The brick house stands', (m, D) => shot8(panel(0), D), { lead: false, pre: PRE8 }],
+  ['shot9', 'Down the chimney', (m, D) => shot9(panel(0), D), { lead: false }],
+  ['shot10', 'Splash!', (m, D) => shot10(panel(0), D), { lead: false }],
+  ['shot11', 'Happily ever after', (m, D) => shot11(panel(0), D), { lead: false }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+// Decode every character drawing and prop when the page opens, before any scene needs it.
+for (const n of ['mother', 'pig1', 'pig2', 'pig3', 'wolf']) {
+  for (const k in POSES[n].parts) TOON.preload(`../img/${n}/pose/${k}.webp`);
+  for (const k in RIGS[n].parts) TOON.preload(`../img/${n}/rig/${k}.webp`);
+}
+for (const k of ['bindle', 'bundle', 'haystack', 'stickpile', 'brickpile', 'straw_house_1', 'straw_house_2', 'straw_house_3', 'stick_house_1', 'stick_house_2', 'stick_house_3', 'brick_house_1', 'brick_house_2', 'brick_house_3']) TOON.preload(`../img/props/${k}.webp`);
+/* ---------- background music ---------- */
+// One track per part of the story, following the picture: its position is the time since the part began, so
+// pausing, seeking and changing beats keep it in step. Tracks crossfade at part changes; the music sits lower while
+// someone is speaking, and follows the player's volume.
+const BGM = [['m1-home', ['shot1', 'shot2', 'shot3', 'shot4']], ['m2-wolf', ['shot5', 'shot6', 'shot7', 'shot8']], ['m3-chimney', ['shot9', 'shot10']], ['m4-ending', ['shot11']]]
+  .map(([n, beats]) => ({ n, beats, a: Object.assign(new Audio(`audio/bgm/${n}.mp3`), { preload: 'auto', loop: true, volume: 0 }), v: 0 }));
+const beatLen = id => { const b = BEATS.find(x => x.id === id); return (b.pre || 0) + TIMINGS[id].dur + .6; };
+let lastTick = performance.now();
+function bgmTick(now) {
+  const dt = Math.min(.1, (now - lastTick) / 1000); lastTick = now;
+  const id = BEATS[P.i]?.id, on = P.started && P.playing && !P.waiting && !P.done;
+  const speaking = P.audio && !P.audio.paused && !P.audio.ended;
+  const master = +(document.getElementById('volume')?.value ?? 1) * (speaking ? .16 : .3);
+  for (const m of BGM) {
+    const k = m.beats.indexOf(id), current = on && k >= 0;
+    m.v = Math.max(0, Math.min(1, m.v + (current ? 1 : -1) * dt / .8));   // 0.8 s fades
+    m.a.volume = m.v * master;
+    if (current) {
+      const want = (m.beats.slice(0, k).reduce((s, b) => s + beatLen(b), 0) + P.t) % (m.a.duration || 1e9);
+      if (Math.abs(m.a.currentTime - want) > .5) m.a.currentTime = want;
+      if (m.a.paused) m.a.play().catch(() => {});
+    } else if (m.v === 0 && !m.a.paused) m.a.pause();
+  }
+  if (!on && !P.done) for (const m of BGM) m.a.pause();   // paused: silence at once (at the end it fades out)
+  requestAnimationFrame(bgmTick);
+}
+requestAnimationFrame(bgmTick);
+boot();
+</script>
+</body>
+</html>
