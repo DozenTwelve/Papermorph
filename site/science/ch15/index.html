@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Chapter 15: Light and Sound Waves — Science</title>
+<title>Chapter 7: Light and Sound Waves — Science</title>
 <link rel="stylesheet" href="../lib/engine.css">
 <link rel="expect" href="#bar" blocking="render">
 </head>
@@ -23,7 +23,7 @@
 // and the electromagnetic spectrum), part 4 (sound), then the chapter practice. Amplitude green (energy), wavelength
 // pink (distance), frequency blue (time), wave speed yellow; light pale gold, sound grey-white.
 // Notes, storyboard and errata: books/science/chapters/ch15.md.
-const CHAPTER = { number: 15, title: 'Light and Sound Waves', minutes: 15, language: 'en', next: '../ch16/' };
+const CHAPTER = { number: 15, label: 7, title: 'Light and Sound Waves', minutes: 15, language: 'en', next: '../ch16/' };
 const Q_CARD = { x: 96, y: 586, w: 1408, cls: 'band' };   // a band card under the scenes; it moves up by itself when taller
 const Y1 = 740;                                           // floor line under big actors
 const floorIn = (p, y = Y1, x = 0, w = 1600) => { phBlock(p, x, y, w, 90, '#6b5a48', { top: 8, ol: 0 }); };
@@ -198,7 +198,7 @@ const BEATS = [
   }, D);
   tw(lamp.glow, { o: 1 }, tq + .25, .3); tw(lamp.shade, { c_fill: LIGHT }, tq + .25, .3);
   const ttl = G(p, { o: 0, y: 24 });
-  phLabel(ttl, 'Unit 4 · Energy · Chapter 15', { x: 1050, y: 150, size: 26, fill: COL.dim, weight: 600 });
+  phLabel(ttl, 'Unit 2 · Energy · Chapter 7', { x: 1050, y: 150, size: 26, fill: COL.dim, weight: 600 });
   phLabel(ttl, 'Light and', { x: 1050, y: 240, size: 76 }); phLabel(ttl, 'Sound Waves', { x: 1050, y: 320, size: 76 });
   tw(ttl, { o: 1, y: 0 }, .3, 1.1, out); hide(ttl, tb - .4);
   say(p, 'light?', 300, 420, tb + .6, { size: 40, fill: LIGHT });

@@ -1,27 +1,27 @@
 window.TIMINGS = {
  "intro": {
-  "dur": 12.336,
+  "dur": 12.384,
   "marks": {
-   "title": 3.633,
-   "blob": 5.026,
+   "title": 3.542,
+   "blob": 4.883,
    "forms": 8.438,
-   "never": 10.612
+   "never": 10.638
   },
   "cues": [
    [
     0.104,
-    "Unit four, energy."
+    "Unit two, energy."
    ],
    [
-    1.94,
-    "Chapter thirteen: forms of energy."
+    2.214,
+    "Chapter five: forms of energy."
    ],
    [
-    5.026,
+    4.883,
     "Meet Blip."
    ],
    [
-    6.055,
+    5.925,
     "Blip is a little bundle of energy."
    ],
    [
@@ -590,7 +590,7 @@ window.TIMINGS = {
   ]
  },
  "finish": {
-  "dur": 3.216,
+  "dur": 2.952,
   "marks": {},
   "cues": [
    [
@@ -598,8 +598,8 @@ window.TIMINGS = {
     "Well done."
    ],
    [
-    1.081,
-    "That's the end of chapter thirteen."
+    1.159,
+    "That's the end of chapter five."
    ]
   ]
  }

@@ -15,7 +15,7 @@
 <script src="audio/en/timings.js"></script>
 <script>
 'use strict';
-const CHAPTER = { number: 19, title: 'The Sun-Earth-Moon System', minutes: 14, language: 'en' };
+const CHAPTER = { number: 19, label: 10, title: 'The Sun-Earth-Moon System', minutes: 14, language: 'en' };
 
 /* ---------- chapter helpers ---------- */
 const at = (e, o, t) => tw(e, o, t, 0);                       // a cut: e takes state o at time t
@@ -107,7 +107,7 @@ const BEATS = [
       put(mo, { x: mx, y: my }); mo.light(toward(mx, my, ...C)); moDepth(Math.sin(deg(a)) > 0);
     }, D);
     const t = G(p, { o: 0, y: 20 });
-    pen(t, 'Unit 5 · Chapter 19', { x: 800, y: 170, size: 34, fill: INK.blue, anchor: 'middle', o: 1 });
+    pen(t, 'Outer space · Chapter 10', { x: 800, y: 170, size: 34, fill: INK.blue, anchor: 'middle', o: 1 });
     pen(t, 'The Sun-Earth-Moon System', { x: 800, y: 270, size: 92, fill: INK.note, anchor: 'middle', o: 1 });
     const ul = path(t, 'M380 302Q800 286 1220 300', { stroke: INK.hl, 'stroke-width': 8 }, { d: 0 });
     tw(t, { o: 1, y: 0 }, .2, 1, out); draw(ul, .9, .7);

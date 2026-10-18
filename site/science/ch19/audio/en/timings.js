@@ -1,20 +1,20 @@
 window.TIMINGS = {
  "intro": {
-  "dur": 9.384,
+  "dur": 9.624,
   "marks": {
-   "sub": 4.154
+   "sub": 3.971
   },
   "cues": [
    [
-    0.091,
-    "Chapter nineteen."
+    0.104,
+    "Chapter ten."
    ],
    [
-    1.445,
+    1.224,
     "The sun, the earth, and the moon."
    ],
    [
-    4.154,
+    3.971,
     "Three bodies, always moving, and every day we see the results."
    ]
   ]
@@ -975,7 +975,7 @@ window.TIMINGS = {
   ]
  },
  "finish": {
-  "dur": 3.144,
+  "dur": 3.0,
   "marks": {},
   "cues": [
    [
@@ -984,7 +984,7 @@ window.TIMINGS = {
    ],
    [
     1.107,
-    "That's the end of chapter nineteen."
+    "That's the end of chapter ten."
    ]
   ]
  }

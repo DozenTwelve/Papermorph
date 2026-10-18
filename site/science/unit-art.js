@@ -15,21 +15,18 @@
   const reset = s => { k = 0; return s; };
 
   window.UNIT_ART = [
-    // Unit 3 (motion, forces, work): a road with a car-dot speeding along it, and speed = distance ÷ time.
+    // Unit 1 (motion, forces, work): a road with a car-dot speeding along it, and speed = distance ÷ time.
     reset(P('M228 130H572') + Array.from({ length: 7 }, (_, i) => P(`M${250 + i * 50} 122v16`, 'a')).join('') +
       `<circle class="t hop" r="8" fill="currentColor" stroke="none" style="--k:${k++};offset-path:path('M250 116Q275 84 300 116Q325 84 350 116Q375 84 400 116')"/>` +
       Tx(250, 60, 'speed = distance ÷ time', 26) + P('M480 70h70m-14 -10l14 10l-14 10', 'a')),
-    // Unit 4 (energy): a ball rolling to and fro in a dip, potential ⇄ kinetic.
+    // Unit 2 (energy): a ball rolling to and fro in a dip, potential ⇄ kinetic.
     reset(P('M228 60Q400 200 572 60') +
       `<circle class="t hop" r="9" fill="currentColor" stroke="none" style="--k:${k++};offset-path:path('M250 54Q400 186 550 54Q400 186 250 54')"/>` +
       Tx(400, 40, 'potential ⇄ kinetic', 24, 'a', 'middle')),
-    // Unit 5 sample (outer space): a sun with an orbit, Earth going round it with its moon.
+    // The samples (the light notebook edition of chapter 5, and outer space): a sun with an orbit, Earth going round it with its moon.
     reset(C(420, 92, 30) + Array.from({ length: 8 }, (_, i) => { const a = i * Math.PI / 4; return P(`M${420 + 40 * Math.cos(a)} ${92 + 40 * Math.sin(a)}L${420 + 52 * Math.cos(a)} ${92 + 52 * Math.sin(a)}`); }).join('') +
       P('M560 92A140 46 0 1 1 280 92A140 46 0 1 1 560 92', 'a') +
       `<g class="t orbit" style="--k:${k++};offset-path:path('M560 92A140 46 0 1 0 280 92A140 46 0 1 0 560 92')"><circle r="11" fill="currentColor" stroke="none"/><circle cx="20" cy="-6" r="4" fill="currentColor" stroke="none" opacity=".7"/></g>` +
       Tx(420, 30, 'sun · earth · moon', 22, 'a', 'middle')),
-    // Unit 4 sample (the light notebook edition of chapter 13): a ruled page with a margin and a doodled lightning bolt.
-    reset([60, 100, 140].map(y => P(`M228 ${y}H572`, 'faint')).join('') + P('M262 30V170', 'a') +
-      P('M430 34L398 98H428L404 160L470 82H438L462 34Z') + Tx(500, 60, 'notebook', 22, 'a', 'middle')),
   ];
 })();

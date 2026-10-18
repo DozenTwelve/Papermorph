@@ -1,24 +1,24 @@
 window.TIMINGS = {
  "intro": {
-  "dur": 8.832,
+  "dur": 8.928,
   "marks": {
-   "q": 5.091
+   "q": 5.208
   },
   "cues": [
    [
     0.104,
-    "Chapter twelve: work and machines."
+    "Chapter four: work and machines."
    ],
    [
-    2.891,
+    2.982,
     "You lift a heavy box into a truck."
    ],
    [
-    5.091,
+    5.208,
     "Is that work?"
    ],
    [
-    6.172,
+    6.302,
     "And how could a simple ramp make it easier?"
    ]
   ]
@@ -817,15 +817,15 @@ window.TIMINGS = {
   ]
  },
  "finish": {
-  "dur": 7.272,
+  "dur": 7.008,
   "marks": {},
   "cues": [
    [
     0.104,
-    "Chapter twelve is done."
+    "Chapter four is done."
    ],
    [
-    2.148,
+    1.927,
     "Work is force times distance, and machines help you do it with less force."
    ]
   ]

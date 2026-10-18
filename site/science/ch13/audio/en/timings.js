@@ -1,24 +1,24 @@
 window.TIMINGS = {
  "intro": {
-  "dur": 12.36,
+  "dur": 11.76,
   "marks": {
-   "q": 6.797
+   "q": 6.393
   },
   "cues": [
    [
     0.104,
-    "Chapter thirteen: forms of energy."
+    "Chapter five: forms of energy."
    ],
    [
-    3.073,
+    2.734,
     "You swing a golf club, and the ball flies off down the course."
    ],
    [
-    6.797,
+    6.393,
     "Where did the ball's energy come from?"
    ],
    [
-    8.802,
+    8.477,
     "And where does energy go when it seems to disappear?"
    ]
   ]
@@ -613,15 +613,15 @@ window.TIMINGS = {
   ]
  },
  "finish": {
-  "dur": 9.696,
+  "dur": 9.0,
   "marks": {},
   "cues": [
    [
     0.104,
-    "Chapter thirteen is done."
+    "Chapter five is done."
    ],
    [
-    2.37,
+    1.719,
     "Energy comes in many forms, moving and stored, and it is never lost: it only changes form."
    ]
   ]

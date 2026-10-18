@@ -1243,7 +1243,7 @@ function finishCard() {
   P.keys = e => e.key === 'Enter' ? ((next ? next.onclick() : restart()), true)
     : isShortcut(e, 'r') ? (restart(), true) : false;
   const guide = mascotEl(240);
-  c.append(h('div', 'finwrap', [guide, h('p', 'kicker', translate('chapterComplete', { n: CHAPTER.number })), h('p', 'prompt', CHAPTER.title),
+  c.append(h('div', 'finwrap', [guide, h('p', 'kicker', translate('chapterComplete', { n: CHAPTER.label ?? CHAPTER.number })), h('p', 'prompt', CHAPTER.title),
     line(translate('quickChecks'), sum('c-')), line(translate('chapterPractice'), sum('p-')), h('div', 'acts', next ? [home, again, next] : [home, again])]));
   setTimeout(() => mood(guide, 'happy'), 400);
 }
@@ -2013,7 +2013,7 @@ function progress(f) {
   } catch {}
 }
 function boot() {
-  $('coverK').textContent = translate('chapterNumber', { n: CHAPTER.number });
+  $('coverK').textContent = translate('chapterNumber', { n: CHAPTER.label ?? CHAPTER.number });
   $('coverT').textContent = CHAPTER.title;
   $('bHome').href = `../#ch${String(CHAPTER.number).padStart(2, '0')}`;
   progress(p => { p.last = CHAPTER.number; });

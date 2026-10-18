@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Chapter 13: Forms of Energy — Science</title>
+<title>Chapter 5: Forms of Energy — Science</title>
 <link rel="stylesheet" href="../lib/engine.css">
 <link rel="expect" href="#bar" blocking="render">
 </head>
@@ -21,7 +21,7 @@
 // energy), part 3 (how much energy; moving and stored forms), then the chapter practice. Energy is drawn as blocks that
 // move and change colour with their form but never appear or vanish, and as energy bars with a fixed total line.
 // Notes, storyboard and errata: books/science/chapters/ch13.md.
-const CHAPTER = { number: 13, title: 'Forms of Energy', minutes: 11, language: 'en', next: '../ch14/' };
+const CHAPTER = { number: 13, label: 5, title: 'Forms of Energy', minutes: 11, language: 'en', next: '../ch14/' };
 const Q_CARD = { x: 96, y: 586, w: 1408, cls: 'band' };   // a band card under the scenes; it moves up by itself when taller
 const GY = 560;                                           // ground line in quick-check pictures
 const Y1 = 740;                                           // ground line under big actors
@@ -301,7 +301,7 @@ const BEATS = [
     put(ball, { x: bx + 760 * f, y: Y1 - 12 - 1100 * f + 330 * f * f });
   }, D);
   const ttl = G(p, { o: 0, y: 24 });
-  phLabel(ttl, 'Unit 4 · Energy · Chapter 13', { x: 1180, y: 330, size: 26, fill: COL.dim, weight: 600 });
+  phLabel(ttl, 'Unit 2 · Energy · Chapter 5', { x: 1180, y: 330, size: 26, fill: COL.dim, weight: 600 });
   phLabel(ttl, 'Forms of', { x: 1180, y: 420, size: 76 }); phLabel(ttl, 'Energy', { x: 1180, y: 500, size: 76 });
   tw(ttl, { o: 1, y: 0 }, .3, 1.1, out);
   thought(p, [60, 60, 900, 220], 330, ['Where did the ball’s energy come from?', 'Where does energy go?'], tq);

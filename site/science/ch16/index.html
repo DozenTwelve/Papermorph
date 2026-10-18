@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Chapter 16: Electricity and Magnetism — Science</title>
+<title>Chapter 8: Electricity and Magnetism — Science</title>
 <link rel="stylesheet" href="../lib/engine.css">
 <link rel="expect" href="#bar" blocking="render">
 </head>
@@ -25,7 +25,7 @@
 // Positive charge red, negative blue (electrons are blue dots wherever they flow); current I blue, voltage amber,
 // resistance pink, power lilac, magnetic field green; a magnet's N end blue and S end red.
 // Notes, storyboard and errata: books/science/chapters/ch16.md.
-const CHAPTER = { number: 16, title: 'Electricity and Magnetism', minutes: 14, language: 'en', next: '../ch17/' };
+const CHAPTER = { number: 16, label: 8, title: 'Electricity and Magnetism', minutes: 14, language: 'en', next: '../ch17/' };
 const Q_CARD = { x: 96, y: 586, w: 1408, cls: 'band' };   // a band card under the scenes; it moves up by itself when taller
 const Y1 = 740;                                           // floor line under big actors
 const floorIn = (p, y = Y1, x = 0, w = 1600) => { phBlock(p, x, y, w, 90, '#6b5a48', { top: 8, ol: 0 }); };
@@ -170,7 +170,7 @@ const BEATS = [
   }, D);
   tw(lamp.glow, { o: 1 }, tq + .25, .3); tw(lamp.shade, { c_fill: LIGHT }, tq + .25, .3);
   const ttl = G(p, { o: 0, y: 24 });
-  phLabel(ttl, 'Unit 4 · Energy · Chapter 16', { x: 800, y: 130, size: 26, fill: COL.dim, weight: 600 });
+  phLabel(ttl, 'Unit 2 · Energy · Chapter 8', { x: 800, y: 130, size: 26, fill: COL.dim, weight: 600 });
   phLabel(ttl, 'Electricity and', { x: 800, y: 220, size: 76 }); phLabel(ttl, 'Magnetism', { x: 800, y: 300, size: 76 });
   tw(ttl, { o: 1, y: 0 }, .3, 1.1, out); hide(ttl, tb - .4);
   say(p, 'electricity', 250, 270, tb + .6, { size: 44, fill: CHG_N });

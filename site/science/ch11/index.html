@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Chapter 11: Gravity, Friction, and More Forces in Everyday Life — Science</title>
+<title>Chapter 3: Gravity, Friction, and More Forces in Everyday Life — Science</title>
 <link rel="stylesheet" href="../lib/engine.css">
 <link rel="expect" href="#bar" blocking="render">
 </head>
@@ -18,7 +18,7 @@
 // Chapter 11, one page in book order: part 1 (gravity, weight, falling), part 2 (friction, air resistance, terminal
 // velocity), part 3 (magnetic and electric forces, electromagnets), part 4 (centripetal force, buoyancy), then the
 // chapter practice. Notes and storyboard intents: books/science/chapters/ch11.md.
-const CHAPTER = { number: 11, title: 'Gravity, Friction, and More Forces in Everyday Life', minutes: 15, language: 'en', next: '../ch12/' };
+const CHAPTER = { number: 11, label: 3, title: 'Gravity, Friction, and More Forces in Everyday Life', minutes: 15, language: 'en', next: '../ch12/' };
 const Q_CARD = { x: 96, y: 586, w: 1408, cls: 'band' };   // a band card under the scenes; it moves up by itself when taller
 const GY = 560;                                           // ground line in quick-check pictures
 const Y1 = 740;                                           // ground line under big actors
@@ -199,7 +199,7 @@ const BEATS = [
     up.set(x - 70, hy2 + 70, t > tl ? 110 : 0, -90, '');
   }, D);
   const ttl = G(p, { o: 0, y: 24 });
-  phLabel(ttl, 'Unit 3 · Motion, Forces, and Work · Chapter 11', { x: 1150, y: 330, size: 26, fill: COL.dim, weight: 600 });
+  phLabel(ttl, 'Unit 1 · Motion, Forces, and Work · Chapter 3', { x: 1150, y: 330, size: 26, fill: COL.dim, weight: 600 });
   phLabel(ttl, 'Gravity, Friction,', { x: 1150, y: 420, size: 76 }); phLabel(ttl, 'and More Forces', { x: 1150, y: 500, size: 76 });
   tw(ttl, { o: 1, y: 0 }, .3, 1.1, out);
   thought(p, [70, 60, 930, 220], 510, ['Why do things fall, slow down,', 'stick together, or float?'], tq);

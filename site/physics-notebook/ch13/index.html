@@ -14,7 +14,7 @@
 <script src="audio/en/timings.js"></script>
 <script>
 'use strict';
-const CHAPTER = { number: 13, title: 'Forms of Energy', minutes: 9, language: 'en' };
+const CHAPTER = { number: 13, label: 5, title: 'Forms of Energy', minutes: 9, language: 'en' };
 
 /* ---------- chapter drawing helpers ---------- */
 const DEG = Math.PI / 180;
@@ -288,8 +288,8 @@ const BEATS = [
   ['intro', 'Forms of energy', (m, D) => {
     const p = G(scene);
     S.panel = p;
-    show(hand(p, 'Unit 4 · Energy', 200, 230, { size: 36, fill: COL.dim, anchor: 'start', o: 0 }), .2);
-    show(hand(p, 'Chapter 13', 200, 300, { size: 44, anchor: 'start', o: 0 }), .3);
+    show(hand(p, 'Unit 2 · Energy', 200, 230, { size: 36, fill: COL.dim, anchor: 'start', o: 0 }), .2);
+    show(hand(p, 'Chapter 5', 200, 300, { size: 44, anchor: 'start', o: 0 }), .3);
     term(p, 'Forms of', 200, 440, { size: 100, anchor: 'start', color: HL.yellow, t0: m('title') });
     term(p, 'Energy', 200, 580, { size: 130, anchor: 'start', color: HL.pink, t0: m('title', .35) });
     ground(p, 760, 960, 1480);

@@ -1,20 +1,20 @@
 window.TIMINGS = {
  "intro": {
-  "dur": 6.816,
+  "dur": 6.768,
   "marks": {
-   "sub": 3.594
+   "sub": 3.568
   },
   "cues": [
    [
-    0.104,
-    "Chapter ten."
+    0.091,
+    "Chapter two."
    ],
    [
-    1.25,
+    1.211,
     "Force and Newton's laws of motion."
    ],
    [
-    3.594,
+    3.568,
     "What makes things start, stop, speed up, or turn?"
    ]
   ]

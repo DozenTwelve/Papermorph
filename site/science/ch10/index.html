@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Chapter 10: Force and Newton's Laws of Motion — Science</title>
+<title>Chapter 2: Force and Newton's Laws of Motion — Science</title>
 <link rel="stylesheet" href="../lib/engine.css">
 <link rel="expect" href="#bar" blocking="render">
 </head>
@@ -17,7 +17,7 @@
 'use strict';
 // Chapter 10, one page in book order: part 1 (force, net force, balanced forces, newtons), part 2 (first law: inertia,
 // momentum), part 3 (second law), part 4 (third law), then the chapter practice.
-const CHAPTER = { number: 10, title: 'Force and Newton’s Laws of Motion', minutes: 13, language: 'en', next: '../ch11/' };
+const CHAPTER = { number: 10, label: 2, title: 'Force and Newton’s Laws of Motion', minutes: 13, language: 'en', next: '../ch11/' };
 const Q_CARD = { x: 96, y: 586, w: 1408, cls: 'band' };   // a band card under the scenes; it moves up by itself when taller
 const GY = 560;                                           // ground line in side-view scenes
 const Y1 = 740;                                           // part 1: a lower ground line under big actors
@@ -98,7 +98,7 @@ const BEATS = [
   ground(p, Y);
   // You push the title crate into the frame, then let go: it slides a little and stops.
   const a = phActor(p, 'you', { y: Y, s: S, anim: 'push' }), c = crate(p, { y: Y, w: W, h: H }), f = forceArrow(p, { w: 14, size: 34 });
-  phLabel(c, 'Unit 3 · Motion, Forces, and Work · Chapter 10', { x: -10, y: -400, size: 26, fill: '#eedec4', weight: 600 });
+  phLabel(c, 'Unit 1 · Motion, Forces, and Work · Chapter 2', { x: -10, y: -400, size: 26, fill: '#eedec4', weight: 600 });
   phLabel(c, 'Force &', { x: -10, y: -326, size: 70 }); phLabel(c, 'Newton’s Laws', { x: -10, y: -256, size: 70 });
   const X = t => t < tp ? x0 + v * t : t < tp + .4 ? x0 + v * tp + v * ((t - tp) - (t - tp) ** 2 / .8) : x0 + v * (tp + .2);
   clockRun(t => {

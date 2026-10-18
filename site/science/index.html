@@ -25,7 +25,7 @@
   <svg class="mascot draw" id="guide" width="210" height="147"></svg>
   <p class="kicker">An animated science book · physics</p>
   <h1>Motion <i>&amp;</i> Forces</h1>
-  <p class="lede">The physics chapters of a middle-school science notebook, as short narrated animations with quick checks. Chapters 9 to 17 are ready.</p>
+  <p class="lede">The physics chapters of a middle-school science notebook, as short narrated animations with quick checks. Chapters 1 to 9 are ready.</p>
   <div class="acts">
     <a class="btn go" href="#contents" data-t="open">Open the book<svg viewBox="0 0 16 16"><path d="M6 2.5 11.5 8 6 13.5 4.6 12.1 8.7 8 4.6 3.9z"/></svg></a>
     <a class="btn quiet" id="resume" hidden></a>
@@ -46,14 +46,14 @@
 <script>
 // Add a chapter here when its lesson is ready; chapters are numbered in order from start.
 Contents.book({
-  start: { unit: 3, chapter: 9 },
-  units: [   // [unit title, [[chapter title, minutes], ...], { unit, chapter, sample }?]
+  start: { unit: 1, chapter: 9, label: 1 },   // folders keep the book's numbers (ch09–ch17), shown from 1
+  units: [   // [unit title, [[chapter title, minutes, { href, chapter }?], ...], { unit, chapter, sample }?]
     ['Motion, Forces, and Work', [['Motion', 18], ['Force and Newton’s Laws of Motion', 13], ['Gravity, Friction, and More Forces in Everyday Life', 15], ['Work and Machines', 14]]],
     ['Energy', [['Forms of Energy', 11], ['Thermal Energy', 11], ['Light and Sound Waves', 15], ['Electricity and Magnetism', 14], ['Electrical Energy Sources', 12]]],
-    ['Outer Space: the Sun, Earth and Moon', [['The Sun-Earth-Moon System', 14]], { unit: 5, chapter: 19, sample: true }],
-    ['Energy, light notebook edition', [['Forms of Energy', 9]], { unit: 4, chapter: 13, sample: true, href: '../physics-notebook/ch13/' }],
+    ['Energy in a light notebook, and outer space', [['Forms of Energy, light notebook edition', 9, { href: '../physics-notebook/ch13/', chapter: 5 }],
+      ['The Sun-Earth-Moon System', 14, { chapter: 10 }]], { chapter: 19, sample: true }],
   ],
-  hues: ['#f4a48c', '#8fd6b0', '#86c9e8', '#e8a0c8', '#e8a0c8', '#bba8ee', '#f0b45a'],   // unit 4 (energy) green; the samples keep blue and pink
+  hues: ['#f4a48c', '#8fd6b0', '#86c9e8', '#bba8ee', '#f0b45a'],   // unit 2 (energy) green; the samples blue
 });
 </script>
 </body>

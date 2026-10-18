@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Chapter 9: Motion — Science</title>
+<title>Chapter 1: Motion — Science</title>
 <link rel="stylesheet" href="../lib/engine.css">
 <link rel="expect" href="#bar" blocking="render">
 </head>
@@ -14,7 +14,7 @@
 <script>
 'use strict';
 // Chapter 9, one page in book order: part 1 (motion; relative motion), part 2 (speed), part 3 (velocity), part 4 (acceleration).
-const CHAPTER = { number: 9, title: 'Motion', minutes: 18, language: 'en', next: '../ch10/' };
+const CHAPTER = { number: 9, label: 1, title: 'Motion', minutes: 18, language: 'en', next: '../ch10/' };
 
 /* ---------- chapter helpers ---------- */
 const V = 150;                                   // 30 mph on screen, in world px per second (same scale in every road beat)
@@ -139,7 +139,7 @@ const BEATS = [
     const x = carX(t); put(car, { x }); phRoll(car, x);
   }, D);
   const g = G(p, { o: 0, y: 24 });
-  T(g, 'Unit 3 · Motion, Forces, and Work · Chapter 9', { x: 800, y: 130, size: 28, fill: COL.dim, anchor: 'middle' });
+  T(g, 'Unit 1 · Motion, Forces, and Work · Chapter 1', { x: 800, y: 130, size: 28, fill: COL.dim, anchor: 'middle' });
   phLabel(g, 'Motion', { x: 800, y: 250, size: 120, weight: 600 });
   tw(g, { o: 1, y: 0 }, .2, 1.1, out);
   txt(p, 'Part 1 · Motion and relative motion', 800, 320, m('sub'), { size: 36, fill: COL.dim });
@@ -387,7 +387,7 @@ const BEATS = [
     put(car, { x: cx }); phRoll(car, cx); put(run, { x: rx }); if (u > 0) walkTo(run, rx); else phPose(run);
   }, D);
   const g = G(p, { o: 0, y: 24 });
-  T(g, 'Chapter 9 · Motion', { x: 800, y: 130, size: 28, fill: COL.dim, anchor: 'middle' });
+  T(g, 'Chapter 1 · Motion', { x: 800, y: 130, size: 28, fill: COL.dim, anchor: 'middle' });
   phLabel(g, 'Speed', { x: 800, y: 250, size: 120, weight: 600 });
   tw(g, { o: 1, y: 0 }, .2, 1.1, out);
   txt(p, 'Part 2 · How fast is something moving?', 800, 320, m('q'), { size: 36, fill: COL.dim });
@@ -575,7 +575,7 @@ const BEATS = [
     arrowAt(arA, xa - 55, ROAD.near - 130, 110, 0); arrowAt(arB, xb + 55, ROAD.far - 222, 110, 180);
   }, D);
   const g = G(p, { o: 0, y: 24 });
-  T(g, 'Chapter 9 · Motion', { x: 800, y: 130, size: 28, fill: COL.dim, anchor: 'middle' });
+  T(g, 'Chapter 1 · Motion', { x: 800, y: 130, size: 28, fill: COL.dim, anchor: 'middle' });
   phLabel(g, 'Velocity', { x: 800, y: 250, size: 120, weight: 600 });
   tw(g, { o: 1, y: 0 }, .2, 1.1, out);
   txt(p, 'Part 3 · Same speed, which way?', 800, 320, m('q'), { size: 36, fill: COL.dim });
@@ -720,7 +720,7 @@ const BEATS = [
     put(car, { x }); phRoll(car, x); arrowAt(av, x - 40, ROAD.near - 130, v * .35, 0); arrowAt(aa, x - 40, ROAD.near - 160, 90, 0);
   }, D);
   const g = G(p, { o: 0, y: 24 });
-  T(g, 'Chapter 9 · Motion', { x: 800, y: 130, size: 28, fill: COL.dim, anchor: 'middle' });
+  T(g, 'Chapter 1 · Motion', { x: 800, y: 130, size: 28, fill: COL.dim, anchor: 'middle' });
   phLabel(g, 'Acceleration', { x: 800, y: 250, size: 120, weight: 600 });
   tw(g, { o: 1, y: 0 }, .2, 1.1, out);
   txt(p, 'Part 4 · Speeding up, slowing down, turning', 800, 320, m('q'), { size: 36, fill: COL.dim });

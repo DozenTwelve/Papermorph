@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Chapter 17: Electrical Energy Sources — Science</title>
+<title>Chapter 9: Electrical Energy Sources — Science</title>
 <link rel="stylesheet" href="../lib/engine.css">
 <link rel="expect" href="#bar" blocking="render">
 </head>
@@ -26,7 +26,7 @@
 // Energy blocks keep the book's colours (kinetic yellow, potential blue, chemical lime, heat red, light pale gold) and
 // electric energy is ch16's electron blue; water blue, steam white, smoke grey. Every turbine, stream and electron
 // moves whenever it is on screen. Notes, storyboard and errata: books/science/chapters/ch17.md.
-const CHAPTER = { number: 17, title: 'Electrical Energy Sources', minutes: 12, language: 'en' };
+const CHAPTER = { number: 17, label: 9, title: 'Electrical Energy Sources', minutes: 12, language: 'en' };
 const Q_CARD = { x: 96, y: 586, w: 1408, cls: 'band' };   // a band card under the scenes
 const Y1 = 740;                                           // ground line
 const sm = (t, a, b) => io(ramp(t, a, b));
@@ -235,7 +235,7 @@ const BEATS = [
   tw(wall, { o: .25 }, tw_ + .1, .8);
   cam.to({ x: 1720, y: 400, z: .42 }, tw_ + .1, 2.4); cam.to({ x: 2900, y: 600, z: 1.3 }, tm + .3, 2.4);
   const ttl = G(p, { o: 0, y: 24 });
-  phLabel(ttl, 'Unit 4 · Energy · Chapter 17', { x: 1160, y: 190, size: 26, fill: COL.dim, weight: 600 });
+  phLabel(ttl, 'Unit 2 · Energy · Chapter 9', { x: 1160, y: 190, size: 26, fill: COL.dim, weight: 600 });
   phLabel(ttl, 'Electrical Energy', { x: 1160, y: 280, size: 76 }); phLabel(ttl, 'Sources', { x: 1160, y: 360, size: 76 });
   tw(ttl, { o: 1, y: 0 }, .3, 1.1, out); hide(ttl, tw_ - .2);
   line(p, [['turbine', COL.chalk], [' → ', COL.dim], ['generator', COL.chalk]], 800, 120, tm + 3.6, { size: 48 });

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Chapter 14: Thermal Energy — Science</title>
+<title>Chapter 6: Thermal Energy — Science</title>
 <link rel="stylesheet" href="../lib/engine.css">
 <link rel="expect" href="#bar" blocking="render">
 </head>
@@ -22,7 +22,7 @@
 // part 2 (thermal energy and heat), part 3 (conduction, convection, radiation), then the chapter practice. Molecules
 // are dots whose speed lines grow with their speed; heat is red, cool is blue-grey; heat moves as red energy blocks.
 // Notes, storyboard and errata: books/science/chapters/ch14.md.
-const CHAPTER = { number: 14, title: 'Thermal Energy', minutes: 11, language: 'en', next: '../ch15/' };
+const CHAPTER = { number: 14, label: 6, title: 'Thermal Energy', minutes: 11, language: 'en', next: '../ch15/' };
 const Q_CARD = { x: 96, y: 586, w: 1408, cls: 'band' };   // a band card under the scenes; it moves up by itself when taller
 const GY = 560;                                           // ground line in quick-check pictures
 const Y1 = 740;                                           // floor line under big actors
@@ -160,7 +160,7 @@ const BEATS = [
   const steam = riseLines(p, 410, 470, { n: 3, c: COL.chalk }); put(steam, { o: 0 }); show(steam, .4);
   clockRun(t => { put(steam, { y: 470 - 10 * ((t * .9) % 1) }); if (t > TH) you.show('catch', 1); else you.show('stand'); }, D);
   const ttl = G(p, { o: 0, y: 24 });
-  phLabel(ttl, 'Unit 4 · Energy · Chapter 14', { x: 1230, y: 330, size: 26, fill: COL.dim, weight: 600 });
+  phLabel(ttl, 'Unit 2 · Energy · Chapter 6', { x: 1230, y: 330, size: 26, fill: COL.dim, weight: 600 });
   phLabel(ttl, 'Thermal', { x: 1230, y: 420, size: 76 }); phLabel(ttl, 'Energy', { x: 1230, y: 500, size: 76 });
   tw(ttl, { o: 1, y: 0 }, .3, 1.1, out);
   say(p, 'hot cocoa', 392, 728, 2.9, { size: 28, fill: HEAT, anchor: 'start' }); say(p, 'cold milk', 700, 728, 4.6, { size: 28, fill: COLD });

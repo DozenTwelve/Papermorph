@@ -1,25 +1,25 @@
 window.TIMINGS = {
  "intro": {
-  "dur": 15.432,
+  "dur": 15.144,
   "marks": {
-   "q": 3.542,
-   "both": 10.56
+   "q": 3.464,
+   "both": 10.365
   },
   "cues": [
    [
     0.104,
-    "Chapter fifteen: light and sound waves."
+    "Chapter seven: light and sound waves."
    ],
    [
-    3.542,
+    3.464,
     "You flip a light switch, and the room fills with light."
    ],
    [
-    7.565,
+    7.552,
     "You clap, and a friend across the room hears it."
    ],
    [
-    10.56,
+    10.365,
     "What travels from the lamp to your eyes, and from your hands to their ears?"
    ]
   ]
@@ -1035,19 +1035,19 @@ window.TIMINGS = {
   ]
  },
  "finish": {
-  "dur": 12.792,
+  "dur": 12.216,
   "marks": {},
   "cues": [
    [
     0.104,
-    "Chapter fifteen is done."
+    "Chapter seven is done."
    ],
    [
-    2.435,
+    2.018,
     "Waves carry energy."
    ],
    [
-    3.906,
+    3.438,
     "Light is a transverse electromagnetic wave that crosses empty space, and sound is a longitudinal wave that needs matter."
    ]
   ]

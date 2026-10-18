@@ -1,30 +1,30 @@
 window.TIMINGS = {
  "intro": {
-  "dur": 16.2,
+  "dur": 15.48,
   "marks": {
-   "plug": 4.036,
-   "where": 6.55,
-   "mix": 9.036
+   "plug": 3.464,
+   "where": 5.846,
+   "mix": 8.281
   },
   "cues": [
    [
     0.104,
-    "Chapter seventeen: electrical energy sources."
+    "Chapter nine: electrical energy sources."
    ],
    [
-    4.036,
+    3.464,
     "Plug something into the wall, and it works."
    ],
    [
-    6.55,
+    5.846,
     "But where does that electrical energy come from?"
    ],
    [
-    9.036,
+    8.281,
     "Almost every answer starts the same way."
    ],
    [
-    12.175,
+    11.354,
     "Something turns a turbine, and the turbine turns a generator."
    ]
   ]
@@ -592,23 +592,23 @@ window.TIMINGS = {
   ]
  },
  "finish": {
-  "dur": 16.704,
+  "dur": 16.272,
   "marks": {},
   "cues": [
    [
     0.104,
-    "Chapter seventeen is done."
+    "Chapter nine is done."
    ],
    [
-    2.461,
+    1.602,
     "Nearly every power plant spins a turbine, and the main exception is a solar panel."
    ],
    [
-    8.203,
+    7.513,
     "Fossil fuels and uranium run out."
    ],
    [
-    10.846,
+    10.026,
     "Water, wind, sunlight, the earth's heat, and replanted biomass can be replenished."
    ]
   ]

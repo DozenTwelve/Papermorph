@@ -1,24 +1,24 @@
 window.TIMINGS = {
  "intro": {
-  "dur": 14.232,
+  "dur": 13.8,
   "marks": {
-   "q": 7.318
+   "q": 7.096
   },
   "cues": [
    [
     0.104,
-    "Chapter fourteen: thermal energy."
+    "Chapter six: thermal energy."
    ],
    [
-    2.904,
+    2.552,
     "A mug of hot cocoa sits next to a glass of cold chocolate milk."
    ],
    [
-    7.318,
+    7.096,
     "What does it really mean for one to be hot and the other cold?"
    ],
    [
-    10.859,
+    10.482,
     "And what happens to the heat when you wrap your hands around the mug?"
    ]
   ]
@@ -627,15 +627,15 @@ window.TIMINGS = {
   ]
  },
  "finish": {
-  "dur": 14.04,
+  "dur": 13.968,
   "marks": {},
   "cues": [
    [
     0.104,
-    "Chapter fourteen is done."
+    "Chapter six is done."
    ],
    [
-    2.396,
+    2.201,
     "Temperature is the average motion of molecules, thermal energy is the total, and heat is energy flowing from warmer to cooler, by conduction, convection, and radiation."
    ]
   ]

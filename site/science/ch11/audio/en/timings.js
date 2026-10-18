@@ -1,24 +1,24 @@
 window.TIMINGS = {
  "intro": {
-  "dur": 13.104,
+  "dur": 13.44,
   "marks": {
-   "q": 6.107
+   "q": 6.432
   },
   "cues": [
    [
-    0.104,
-    "Chapter eleven."
+    0.091,
+    "Chapter three."
    ],
    [
-    1.315,
+    1.263,
     "Gravity, friction, and more forces in everyday life."
    ],
    [
-    6.107,
+    6.432,
     "Everywhere you look, forces are at work."
    ],
    [
-    8.854,
+    9.102,
     "Why do things fall, slow down, stick together, or float?"
    ]
   ]

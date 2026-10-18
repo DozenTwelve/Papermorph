@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Chapter 12: Work and Machines — Science</title>
+<title>Chapter 4: Work and Machines — Science</title>
 <link rel="stylesheet" href="../lib/engine.css">
 <link rel="expect" href="#bar" blocking="render">
 </head>
@@ -19,7 +19,7 @@
 // Chapter 12, one page in book order: part 1 (work, force × distance, direction, power), part 2 (simple machines:
 // inclined plane, wedge, screw), part 3 (levers, wheel and axle, pulleys), part 4 (energy, efficiency, compound
 // machines), then the chapter practice. Notes and storyboard intents: books/science/chapters/ch12.md.
-const CHAPTER = { number: 12, title: 'Work and Machines', minutes: 14, language: 'en', next: '../ch13/' };
+const CHAPTER = { number: 12, label: 4, title: 'Work and Machines', minutes: 14, language: 'en', next: '../ch13/' };
 const Q_CARD = { x: 96, y: 586, w: 1408, cls: 'band' };   // a band card under the scenes; it moves up by itself when taller
 const GY = 560;                                           // ground line in quick-check pictures
 const Y1 = 740;                                           // ground line under big actors
@@ -229,7 +229,7 @@ const BEATS = [
     put(c, { x: t < 3 ? lerp(700, 680, lift) : lerp(680, 587, carry), y: t < 3 ? lerp(Y1, 650, lift) : lerp(650, BED, carry) });
   }, D);
   const ttl = G(p, { o: 0, y: 24 });
-  phLabel(ttl, 'Unit 3 · Motion, Forces, and Work · Chapter 12', { x: 1230, y: 330, size: 26, fill: COL.dim, weight: 600 });
+  phLabel(ttl, 'Unit 1 · Motion, Forces, and Work · Chapter 4', { x: 1230, y: 330, size: 26, fill: COL.dim, weight: 600 });
   phLabel(ttl, 'Work and', { x: 1230, y: 420, size: 76 }); phLabel(ttl, 'Machines', { x: 1230, y: 500, size: 76 });
   tw(ttl, { o: 1, y: 0 }, .3, 1.1, out);
   thought(p, [70, 60, 930, 220], 740, ['Is lifting a box work?', 'How could a ramp help?'], tq);

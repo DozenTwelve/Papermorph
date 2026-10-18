@@ -1,20 +1,20 @@
 window.TIMINGS = {
  "intro": {
-  "dur": 7.944,
+  "dur": 7.704,
   "marks": {
-   "sub": 2.083
+   "sub": 1.979
   },
   "cues": [
    [
     0.104,
-    "Chapter nine."
+    "Chapter one."
    ],
    [
-    1.198,
+    1.094,
     "Motion."
    ],
    [
-    2.083,
+    1.979,
     "In this first part, we answer a simple question: what does it really mean for something to move?"
    ]
   ]

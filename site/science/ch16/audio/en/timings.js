@@ -1,26 +1,26 @@
 window.TIMINGS = {
  "intro": {
-  "dur": 14.616,
+  "dur": 13.992,
   "marks": {
-   "q": 3.945,
-   "fan": 6.484,
-   "both": 9.167
+   "q": 3.503,
+   "fan": 6.029,
+   "both": 8.776
   },
   "cues": [
    [
     0.104,
-    "Chapter sixteen: electricity and magnetism."
+    "Chapter eight: electricity and magnetism."
    ],
    [
-    3.945,
+    3.503,
     "You flip a switch, and a lamp comes on."
    ],
    [
-    6.484,
+    6.029,
     "You press a button, and a motor spins."
    ],
    [
-    9.167,
+    8.776,
     "These look like two different things, but both come from the tiny charges inside matter."
    ]
   ]
@@ -919,15 +919,15 @@ window.TIMINGS = {
   ]
  },
  "finish": {
-  "dur": 11.352,
+  "dur": 11.424,
   "marks": {},
   "cues": [
    [
     0.104,
-    "Chapter sixteen is done."
+    "Chapter eight is done."
    ],
    [
-    2.188,
+    1.953,
     "Moving charges make a current and a magnetic field, a closed circuit lets them flow, and motors and generators trade electric energy for motion."
    ]
   ]
