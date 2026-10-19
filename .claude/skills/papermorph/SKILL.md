@@ -1,6 +1,6 @@
 ---
 name: papermorph
-description: Make or edit animated, narrated, interactive web books from reference PDFs. Use for book planning, storyboards, chapter animation and exercises, narration, and cover and contents pages, including "make the next chapter" or "fix this animation". Deliver runnable static book files; bookshelf design, bookshelf registration and hosting are separate tasks.
+description: Make or edit animated, narrated, interactive web books from reference PDFs, and animated picture books (paper-puppet films) from a story, a joke or a fairy tale. Use for book planning, storyboards, chapter animation and exercises, narration, and cover and contents pages, including "make the next chapter", "turn this story into a picture book" or "fix this animation". Deliver runnable static book files; bookshelf design, bookshelf registration and hosting are separate tasks.
 ---
 
 # Papermorph
@@ -8,6 +8,8 @@ description: Make or edit animated, narrated, interactive web books from referen
 Each chapter is a short animated lesson film: the picture carries the explanation, the narration says it, and quick checks and practice happen inside the picture. Good means **alive** (things act and change with weight and timing), **composed** (each moment reads as one picture, text beside what it names), **true** (motion, labels and numbers agree at every moment) and **smooth** (it plays without stutter, Firefox included). Technically a chapter is one 1600×900 SVG stage plus a player; **beats** pair narration clips with timed actions.
 
 What the picture should be depends on the book and on the user, so the work starts with a conversation ([intake.md](references/intake.md)) that ends in `style.json`, the book's agreed style. Every chapter is made against it. `style.json` fixes the atoms (palette and meanings, fonts, voice, cast, shared components, approved chapters); composition stays free, so how each beat is laid out and choreographed is yours to judge against it and the approved chapters. Then read the reference for the technique in use: [diagrams.md](references/diagrams.md) (symbols and diagrams that change), [scenes.md](references/scenes.md) (illustrated scenes, actors, camera), [assets.md](references/assets.md) (shared components, images, sprites), [authoring.md](references/authoring.md) (chapter shape, narration, questions), [engine.md](references/engine.md), [review.md](references/review.md), [site.md](references/site.md), [team.md](references/team.md) (making chapters with subagents).
+
+**Picture books** are the same machine pointed at a story: short films of paper puppets in front of sets, drawn in code or painted by an image model, with voices, effects and music. When the user brings a story, a joke or a fairy tale instead of a textbook, follow [stories.md](references/stories.md) (with [puppets.md](references/puppets.md), [painting.md](references/painting.md) and [sound.md](references/sound.md)) in place of the PDF steps; the engine, previews, review, site and team below apply unchanged.
 
 Follow the pipeline forward, entering at the requested stage for existing work. User requests override defaults. Re-create explanations, examples and drawings; keep source PDFs, page images and extracted text outside the static output folder and out of version control (`.gitignore`: `*.pdf`, `books/*/pages/`). Deliver a self-contained book folder with a cover, contents, chapters and local preview instructions.
 
@@ -32,6 +34,8 @@ site/<book>/                   the static book (only this is delivered)
   lib/*.js, img/               the book's element library and images
   chNN/index.html, audio/<lang>/   a lesson, its beat MP3s + timings.js
 ```
+
+A picture book adds `books/<book>/story.md` (the user's telling, verbatim), `storyboard.md`, `sets.js` (set sketches) and `art/` (generated pictures, `painted.json`, `costs.tsv`); its `site/<book>/lib/` holds the paper kit (`paper.js`, `cast.js`, `shared.js` from `assets/templates/picture-book/`) and `img/` the baked sets, props and puppet pieces; each episode `chNN/` has one script per scene and `audio/<lang>/`, `audio/sfx/`, `audio/bgm/`.
 
 `SKILL` means this skill's absolute folder; `<book>` is the book slug, `<lang>` its primary language code. Existing books keep their paths. Needs: `uv`, `ffmpeg`/`ffprobe`, Edge TTS network access (or Kokoro, local: `uv run --python 3.12 --with kokoro`) and Playwright browsers (`uv run --with playwright playwright install chromium firefox`). Preview: `python3 SKILL/scripts/serve.py 8765 site` (no browser caching).
 

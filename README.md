@@ -39,7 +39,7 @@ The Skill starts by asking: it finds your PDF, says what the book is, suggests a
 
 - [x] **Math books:** formulas and diagrams that change step by step, with quizzes. Two books on the shelf.
 - [ ] **Physics books:** illustrated scenes, acting characters and camera work. Chapters 9–12 are on the shelf; chapter 12 was made by the new Skill.
-- [ ] **Picture books:** image models and storyboards for interactive picture books. In local testing.
+- [x] **Picture books:** short films of paper puppets from a story, a joke or a fairy tale; sets drawn in code or painted by an image model. *Little Red Riding Hood* and *Joke Collection* are on the shelf.
 - [ ] **Humanities documentaries:** history and social science titles.
 
 Along the way, the bookshelf grows and new Skills are released.
@@ -58,7 +58,7 @@ In Claude Code with Opus 5.5, run:
 /papermorph
 ```
 
-It looks for the PDF in your project, then asks the rest. Diagrams that change (tier 1) suit maths and other abstract topics; illustrated scenes (tier 2) suit physics and stories. Picture books and documentaries are coming.
+It looks for the PDF in your project, then asks the rest. Diagrams that change (tier 1) suit maths and other abstract topics; illustrated scenes (tier 2) suit physics and stories. For a picture book, bring a story instead of a PDF. Documentaries are coming.
 
 Before you review a chapter, `scripts/lint.py` catches broken names, missing audio and stale narration in under a second.
 

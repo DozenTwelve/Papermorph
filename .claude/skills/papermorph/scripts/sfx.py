@@ -1,0 +1,488 @@
+#!/usr/bin/env python3
+"""Sound effects for a picture book, synthesized with numpy (no samples): named recipes written as mono 44.1 kHz MP3s.
+
+    uv run --with numpy python sfx.py site/<book>/ch01/audio/sfx knock door rain   # these effects, OUT_DIR/<name>.mp3
+    uv run --with numpy python sfx.py site/<book>/ch01/audio/sfx all               # every recipe
+    python3 sfx.py --list                                                          # names with a one-line description
+
+Needs ffmpeg. Every file is faded (5 ms) and peak-normalised to -3 dBFS; each recipe is seeded by its name, so a name
+always renders the same sound. Play them from a chapter with sfx(beat, seconds, 'name', volume) (paper-cutout kit,
+shared.js), which plays them at half volume under the voices.
+
+Add a recipe: write a function that returns a float array at SR, built from the small toolkit below (t_of, unit, place,
+lp1/hp1/bpf filters, pluck, pink, drops), and list it in RECIPES. Keep them soft and natural: a hard high hiss reads
+as "scary rain" and a bare sine as a phone, so layer a low thump under a click, shape every sound with a decay, and
+listen before using one. Recipes: sting growl gulp door tick bell whoosh fly violin crickets chair (character and
+house sounds), knock chop bang bonk thud crash (wood, axe, glass, a wardrobe door), plop sniff chomp burp lick bark
+(eating and a dog), chime beep card coin (a convenience store), rain and rain-short (gentle rain).
+"""
+import math
+import os
+import subprocess
+import sys
+import tempfile
+import wave
+import zlib
+
+import numpy as np
+
+SR = 44100
+rng = np.random.default_rng(1019)   # replaced per recipe in main(), seeded by the recipe's name
+
+
+def t_of(dur):
+    return np.arange(int(round(dur * SR))) / SR
+
+
+def unit(x):
+    return x / np.max(np.abs(x))
+
+
+def place(y, x, t0):
+    i = int(t0 * SR)
+    n = min(len(x), len(y) - i)
+    y[i:i + n] += x[:n]
+
+
+def lp1(x, fc):
+    """One-pole low-pass."""
+    a = math.exp(-2 * math.pi * fc / SR)
+    out, s = [], 0.0
+    for v in x.tolist():
+        s = a * s + (1 - a) * v
+        out.append(s)
+    return np.array(out)
+
+
+def hp1(x, fc):
+    return x - lp1(x, fc)
+
+
+def bpf(x, fc, q=5.0):
+    """RBJ constant-peak band-pass; fc may be a per-sample array."""
+    fcs = np.broadcast_to(np.asarray(fc, float), x.shape).tolist()
+    out, x1, x2, y1, y2 = [], 0.0, 0.0, 0.0, 0.0
+    for v, f in zip(x.tolist(), fcs):
+        w = 2 * math.pi * f / SR
+        al, c = math.sin(w) / (2 * q), math.cos(w)
+        y = (al * (v - x2) + 2 * c * y1 - (1 - al) * y2) / (1 + al)
+        out.append(y)
+        x2, x1, y2, y1 = x1, v, y1, y
+    return np.array(out)
+
+
+def pluck(f, dur, decay=0.996):
+    """Karplus-Strong string with a two-point average (lowpass) in the loop."""
+    n = int(round(SR / f - 0.5))
+    buf = rng.uniform(-1, 1, n).tolist()
+    out = []
+    for i in range(int(dur * SR)):
+        j = i % n
+        s = buf[j]
+        out.append(s)
+        buf[j] = decay * 0.5 * (s + buf[(j + 1) % n])
+    return np.array(out)
+
+
+def pink(n):
+    """1/f noise: white noise shaped in the frequency domain."""
+    f = np.fft.rfftfreq(n, 1 / SR)
+    f[0] = 1
+    return np.fft.irfft(np.fft.rfft(rng.standard_normal(n)) / np.sqrt(f), n)
+
+
+def drops(n, rate, fc, q, decay, lo, hi):
+    """Random short band-passed ticks (rain on stone or fabric): `rate` per second, pitch near fc."""
+    y = np.zeros(n)
+    for _ in range(rng.poisson(rate * n / SR)):
+        m = int(decay * 6 * SR)
+        s = np.arange(m) / SR
+        d = bpf(rng.standard_normal(m), fc * rng.uniform(.8, 1.25), q) * np.exp(-s / decay)
+        place(y, d * rng.uniform(lo, hi), rng.uniform(0, n / SR - decay * 6))
+    return y
+
+
+noise = lambda n: rng.standard_normal(n)
+
+
+def sting():
+    """A four-note plucked flourish that settles into a chord (a title or a joke landing)."""
+    dur, y = 2.5, np.zeros(int(2.5 * SR))
+    for f, t0 in [(146.83, 0.00), (196.00, 0.18), (246.94, 0.36), (293.66, 0.54)]:
+        place(y, pluck(f, 0.9), t0)
+    for k, f in enumerate([98.00, 123.47, 146.83, 196.00, 246.94, 392.00]):
+        place(y, pluck(f, dur - 0.80), 0.80 + k * 0.015)
+    return y
+
+
+def growl():
+    """A low, wavering growl."""
+    t = t_of(1.4)
+    brown = hp1(np.cumsum(rng.standard_normal(len(t))), 20)
+    y = bpf(brown, 110 + 30 * np.sin(2 * np.pi * 1.1 * t), q=6)
+    rate = 6 + 0.8 * np.sin(2 * np.pi * 0.4 * t)  # tremolo 5-7 Hz
+    trem = 0.35 + 0.65 * (0.5 + 0.5 * np.sin(2 * np.pi * np.cumsum(rate) / SR))
+    swells = np.interp(t, np.arange(0, 1.6, 0.3), rng.uniform(0.5, 1, 6))
+    return unit(y) * trem * swells
+
+
+def gulp():
+    """Three quick glugs."""
+    y = np.zeros(int(1.0 * SR))
+    for t0 in (0.0, 0.3, 0.6):
+        t = t_of(0.2)
+        tt = np.minimum(t, 0.12)
+        phase = 2 * np.pi * (320 * tt - 100 * tt ** 2 / 0.12 + 120 * np.maximum(t - 0.12, 0))
+        glug = np.sin(phase) * np.exp(-t / 0.045)
+        click = rng.standard_normal(len(t)) * np.exp(-t / 0.002) * 0.15
+        place(y, glug + click, t0)
+    return y
+
+
+def door():
+    """A door shut hard: a low thump and a dull bang."""
+    t = t_of(0.6)
+    bang = lp1(lp1(rng.standard_normal(len(t)), 400), 400) * np.exp(-t / 0.05)
+    thump = np.sin(2 * np.pi * 70 * t) * np.exp(-t / 0.08)
+    return unit(bang) * 0.7 + unit(thump) * 0.9
+
+
+def tick():
+    """A small dry click."""
+    t = t_of(0.1)
+    click = np.zeros(len(t))
+    n = int(0.002 * SR)
+    click[:n] = hp1(rng.standard_normal(n), 2000) * np.exp(-t[:n] / 0.0008)
+    m = int(0.010 * SR)
+    sine = np.zeros(len(t))
+    sine[:m] = np.sin(2 * np.pi * 3000 * t[:m]) * np.exp(-t[:m] / 0.003)
+    return unit(click) * 0.6 + unit(sine) * 0.8
+
+
+def bell():
+    """A school bell: a ringing hammer, three seconds."""
+    dur, t = 3.0, t_of(3.0)
+    y = np.zeros(len(t))
+    partials = [(1000, 1.0, 0.12), (2410, 0.5, 0.08), (3920, 0.25, 0.05)]
+    for ts in np.arange(0, dur, 1 / 22):  # hammer strikes at ~22 Hz
+        i0 = int(ts * SR)
+        seg = np.arange(min(int(0.5 * SR), len(t) - i0)) / SR
+        for f, a, tau in partials:
+            y[i0:i0 + len(seg)] += a * np.exp(-seg / tau) * np.sin(2 * np.pi * f * seg)
+    env = np.clip((dur - t) / 0.3, 0, 1)  # full 2.7 s, then 0.3 s release
+    return unit(y) * env
+
+
+def whoosh():
+    """A swift pass: filtered noise sweeping up."""
+    dur = 0.45
+    t = t_of(dur)
+    y = bpf(rng.standard_normal(len(t)), 400 * (2500 / 400) ** (t / dur), q=2.5)
+    return unit(y) * np.sin(np.pi * t / dur) ** 2
+
+
+def fly():
+    """A fly circling: a buzzing 220 Hz saw with vibrato."""
+    dur = 3.0
+    t = t_of(dur)
+    f = 220 + 12 * np.sin(2 * np.pi * 8 * t)  # 8 Hz vibrato, +-12 Hz
+    phase = 2 * np.pi * np.cumsum(f) / SR
+    saw = np.zeros(len(t))
+    for k in range(1, 69):  # band-limited sawtooth, harmonics below ~15 kHz
+        saw += np.sin(k * phase) / k
+    wander = lp1(rng.standard_normal(len(t)), 0.7)  # circling amplitude
+    y = unit(saw) * (0.65 + 0.35 * unit(wander))
+    y = hp1(hp1(y, 150), 150)
+    return y * np.minimum(t / 0.3, 1) * np.minimum((dur - t) / 0.3, 1)
+
+
+def violin():
+    """A sad four-note violin phrase with a little echo."""
+    dur, out = 3.5, np.zeros(int(3.5 * SR) + int(0.2 * SR))
+    t0 = 0.0
+    for f, d in [(440.0, 0.7), (392.0, 0.7), (349.23, 0.7), (329.63, 1.4)]:
+        t = t_of(d)
+        vib = np.where(t > 0.15, 0.006 * np.sin(2 * np.pi * 5.5 * t) * np.minimum((t - 0.15) / 0.2, 1), 0)
+        phase = 2 * np.pi * np.cumsum(f * (1 + vib)) / SR
+        wave_ = sum(np.sin(k * phase) / k for k in range(1, 13))
+        env = np.minimum(t / 0.08, 1) * np.minimum((d - t) / 0.05, 1)
+        place(out, wave_ * env * 0.5, t0)
+        t0 += d
+    for _ in range(2):  # ~3 kHz low-pass, two one-poles
+        out = lp1(out, 3000)
+    echo = out.copy()
+    for delay, gain in [(0.060, 10 ** (-10 / 20)), (0.110, 10 ** (-16 / 20))]:
+        d = int(delay * SR)
+        echo[d:] += gain * out[:-d]
+    return echo[:int(dur * SR)]
+
+
+def crickets():
+    """Crickets in the evening."""
+    dur, y = 3.0, np.zeros(int(3.0 * SR))
+    pulse_len = int(0.012 * SR)
+    s = np.arange(pulse_len) / SR
+    pulse_env = np.sin(np.pi * s / 0.012) ** 2
+    for f, off, gain in [(4500, 0.0, 1.0), (4800, 0.27, 0.6)]:
+        for b0 in np.arange(off, dur, 0.6):
+            amp = gain * rng.uniform(0.8, 1.0)
+            for p in range(3):  # three pulses at 30 Hz
+                place(y, amp * np.sin(2 * np.pi * f * s) * pulse_env, b0 + p / 30)
+    return y
+
+
+def chair():
+    """A chair scraping the floor."""
+    t = t_of(0.5)
+    y = bpf(rng.standard_normal(len(t)), 700, q=6)
+    jitter = np.repeat(rng.uniform(0.3, 1, int(np.ceil(0.5 / 0.01))), int(0.01 * SR))[:len(t)]
+    return unit(y) * jitter
+
+
+def knock():
+    """Knuckles on a wooden door."""
+    t = t_of(.18)
+    return unit(bpf(noise(len(t)), 190, q=3) * np.exp(-t / .02)) * .8 + unit(np.sin(2 * np.pi * 95 * t) * np.exp(-t / .03)) * .7
+
+
+def chop():
+    """An axe into a log: a crack, the wood's ring, a low thump."""
+    t = t_of(.32)
+    crack = hp1(noise(len(t)), 2500) * np.exp(-t / .004)
+    wood = bpf(noise(len(t)), 620, q=2.5) * np.exp(-t / .045)
+    thump = np.sin(2 * np.pi * 120 * t) * np.exp(-t / .06)
+    return unit(crack) * .5 + unit(wood) * .8 + unit(thump) * .7
+
+
+def bang():
+    """A door flung against the wall, then a rattle."""
+    t = t_of(.6)
+    y = unit(lp1(noise(len(t)), 500) * np.exp(-t / .07)) * .7 + unit(np.sin(2 * np.pi * 68 * t) * np.exp(-t / .1)) * .9
+    for k, at in enumerate((.11, .17, .21)):
+        place(y, unit(bpf(noise(int(.03 * SR)), 900, q=4)) * np.exp(-t_of(.03) / .006) * (.35 - .1 * k), at)
+    return y
+
+
+def bonk():
+    """An umbrella on a head: a hollow pitch that drops."""
+    t = t_of(.4)
+    f = 560 * np.exp(-t / .25)
+    tone = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t / .12)
+    return unit(tone) + unit(hp1(noise(len(t)), 1500) * np.exp(-t / .003)) * .4
+
+
+def thud():
+    """A soft fall onto a floor."""
+    t = t_of(.4)
+    return unit(lp1(lp1(noise(len(t)), 180), 180) * np.exp(-t / .08)) * .8 + unit(np.sin(2 * np.pi * 58 * t) * np.exp(-t / .12)) * .8
+
+
+def crash():
+    """A window pane: the hit, a hiss of glass, then shards tinkling down."""
+    t = t_of(1.6)
+    y = unit(hp1(noise(len(t)), 1800) * np.exp(-t / .07)) * .9
+    y += unit(bpf(noise(len(t)), 4200, q=1.5) * np.exp(-t / .3)) * .35
+    y += unit(lp1(noise(len(t)), 300) * np.exp(-t / .05)) * .5
+    for _ in range(46):
+        at = rng.uniform(0, 1.1) ** 1.6
+        d = t_of(rng.uniform(.03, .12))
+        ping = np.sin(2 * np.pi * rng.uniform(2600, 7500) * d) * np.exp(-d / (d[-1] / 3))
+        place(y, ping * rng.uniform(.15, .45) * (1 - at / 1.3), at)
+    return y
+
+
+def plop():
+    """A single bloop, like a drop in a bowl."""
+    dur = 0.35
+    t = t_of(dur)
+    f = 400 + 500 * np.minimum(t / 0.04, 1)  # pitch rises 400 -> 900 Hz in 40 ms
+    bloop = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t / 0.06)
+    n = int(0.002 * SR)
+    tick = np.zeros(len(t))
+    tick[:n] = hp1(rng.standard_normal(n), 2000) * np.exp(-t[:n] / 0.0008)
+    return unit(bloop) + 0.12 * unit(tick)
+
+
+def sniff():
+    """Three short sniffs."""
+    dur = 0.9
+    y = np.zeros(int(dur * SR))
+    n = int(0.10 * SR)
+    s = np.arange(n) / SR
+    env = np.minimum(s / 0.03, 1) * np.clip(1 - (s - 0.03) / 0.07, 0, 1)  # 30 ms rise, 70 ms fall
+    for t0, fc, level in [(0.0, 2500, 1.0), (0.25, 2750, 0.8), (0.5, 2300, 0.9)]:
+        noise = bpf(rng.standard_normal(n), fc, q=2)
+        place(y, unit(noise) * env * level, t0)
+    return y
+
+
+def chomp():
+    """A bite of something crunchy."""
+    dur = 0.4
+    t = t_of(dur)
+    thump = np.sin(2 * np.pi * 90 * t) * np.exp(-t / 0.06)
+    crackle = hp1(rng.standard_normal(len(t)), 1500)
+    gate = np.zeros(len(t))
+    for _ in range(rng.integers(6, 11)):  # 6-10 tiny bursts in the first 200 ms
+        i0 = int(rng.uniform(0, 0.2) * SR)
+        n = int(rng.uniform(0.005, 0.015) * SR)
+        n = min(n, len(t) - i0)
+        gate[i0:i0 + n] = np.sin(np.pi * np.arange(n) / n)
+    return unit(thump) + 0.6 * unit(crackle * gate)
+
+
+def burp():
+    """A low, short burp."""
+    dur = 0.8
+    t = t_of(dur)
+    f = 110 - 30 * t / dur  # 110 -> 80 Hz
+    phase = 2 * np.pi * np.cumsum(f) / SR
+    saw = sum(np.sin(k * phase) / k for k in range(1, 9))
+    am = 0.6 + 0.4 * np.sin(2 * np.pi * 30 * t + 0.8 * np.sin(2 * np.pi * 3.7 * t))  # irregular 30 Hz
+    y = saw * am
+    y = lp1(lp1(y, 900), 900)
+    env = np.minimum(t / 0.04, 1) * np.clip((dur - t) / 0.6, 0, 1)  # 40 ms rise, slow 0.6 s fade
+    return unit(y) * env
+
+
+def lick():
+    """A wet lick."""
+    dur = 0.5
+    t = t_of(dur)
+    n = len(t)
+    fc = 800 + 2200 * np.minimum(t / 0.3, 1)  # centre sweeps 800 -> 3000 Hz
+    wet = bpf(rng.standard_normal(n), fc, q=2)
+    wobble = 0.7 + 0.3 * np.sin(2 * np.pi * 60 * t)
+    env = np.minimum(t / 0.05, 1) * np.clip((dur - t) / 0.2, 0, 1)
+    y = unit(wet) * wobble * env
+    m = int(0.002 * SR)
+    s = np.arange(m) / SR
+    click = hp1(rng.standard_normal(m), 2000) * np.exp(-s / 0.0008)
+    place(y, unit(click) * 0.4, 0.46)
+    return y
+
+
+def bark():
+    """A small dog barks once."""
+    dur = 0.35
+    t = t_of(dur)
+    f = 420 - 120 * np.minimum(t / 0.15, 1)  # 420 -> 300 Hz
+    phase = 2 * np.pi * np.cumsum(f) / SR
+    tone = sum(np.sin(k * phase) / k for k in range(1, 7))
+    breath = bpf(rng.standard_normal(len(t)), 1200, q=2)
+    env = np.minimum(t / 0.01, 1) * np.exp(-t / 0.12)  # 10 ms attack, ~120 ms decay
+    return (0.7 * unit(tone) + 0.3 * unit(breath)) * env
+
+
+def chime():
+    """Two soft notes, E6 then C6, second starting at 0.35 s."""
+    y = np.zeros(int(1.6 * SR))
+    for f, t0 in [(1318.51, 0.0), (1046.50, 0.35)]:
+        t = t_of(1.25)
+        env = np.minimum(t / 0.005, 1) * np.exp(-t / 0.2)
+        tone = np.sin(2 * np.pi * f * t) + 0.2 * np.sin(2 * np.pi * 2 * f * t)
+        place(y, tone * env, t0)
+    return y
+
+
+def beep():
+    """Barcode scanner: one clean 2.7 kHz sine, 0.12 s, then quiet tail."""
+    y = np.zeros(int(0.25 * SR))
+    t = t_of(0.12)
+    place(y, np.sin(2 * np.pi * 2700 * t) * 0.8, 0.0)
+    return y
+
+
+def card():
+    """Terminal accepting: two short 1.8 kHz beeps, then a softer rising tone."""
+    y = np.zeros(int(0.62 * SR))
+    t = t_of(0.08)
+    beep_tone = np.sin(2 * np.pi * 1800 * t) * np.sin(np.pi * t / 0.08) ** 2
+    place(y, beep_tone, 0.0)
+    place(y, beep_tone, 0.20)
+    t = t_of(0.24)
+    f = np.linspace(2000, 2600, len(t))
+    rise = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.sin(np.pi * t / 0.24) ** 2 * 0.5
+    place(y, rise, 0.36)
+    return y
+
+
+def coin():
+    """100-yen coin on a counter: inharmonic metallic tap, tiny wood knock, small bounce."""
+    y = np.zeros(int(0.9 * SR))
+    partials = [(3200, 1.0, 0.12), (5100, 0.6, 0.10), (7400, 0.4, 0.08), (9800, 0.25, 0.06)]
+
+    def metal(gain):
+        t = t_of(0.4)
+        tap = sum(a * np.exp(-t / tau) * np.sin(2 * np.pi * f * t) for f, a, tau in partials)
+        click = rng.standard_normal(len(t)) * np.exp(-t / 0.001)
+        return (tap + click * 0.3) * gain
+
+    place(y, metal(1.0), 0.0)
+    place(y, metal(0.3), 0.06)  # small second bounce, quieter
+    t = t_of(0.05)
+    knock = np.sin(2 * np.pi * 450 * t) * np.exp(-t / 0.015)
+    place(y, lp1(knock + rng.standard_normal(len(t)) * np.exp(-t / 0.003) * 0.2, 2500) * 0.4, 0.0)
+    return y
+
+
+def rain(dur=5.0, fade=.35):
+    """Gentle rain: a soft pink-noise wash, fine patter on the pavement and drops tapping on umbrellas."""
+    t = t_of(dur)
+    n = len(t)
+    wash = hp1(lp1(lp1(pink(n), 3500), 3500), 120)
+    patter = drops(n, 90, 2200, 2.0, .004, .2, .6)
+    taps = drops(n, 22, 700, 3.0, .012, .4, 1.0)
+    y = unit(wash) * .75 + unit(patter) * .25 + unit(taps) * .3
+    return y * np.minimum(t / fade, 1) * np.minimum((dur - t) / fade, 1)
+
+
+RECIPES = {name: globals()[name] for name in (
+    "sting growl gulp door tick bell whoosh fly violin crickets chair knock chop bang bonk thud crash plop sniff "
+    "chomp burp lick bark chime beep card coin rain").split()}
+RECIPES["rain-short"] = lambda: rain(1.15, .12)
+RECIPES["rain-short"].__doc__ = "About one second of the same rain, for a quick cut."
+
+
+def write_mp3(path, y):
+    fade = int(0.005 * SR)
+    ramp = np.linspace(0, 1, fade)
+    y = y.copy()
+    y[:fade] *= ramp
+    y[-fade:] *= ramp[::-1]
+    y *= 10 ** (-3 / 20) / np.max(np.abs(y))
+    pcm = (np.clip(y, -1, 1) * 32767).astype("<i2")
+    with tempfile.TemporaryDirectory() as d:
+        wav = os.path.join(d, "x.wav")
+        with wave.open(wav, "wb") as w:
+            w.setnchannels(1)
+            w.setsampwidth(2)
+            w.setframerate(SR)
+            w.writeframes(pcm.tobytes())
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", wav, "-ac", "1", "-ar", str(SR),
+                        "-b:a", "128k", str(path)], check=True)
+
+
+def main(argv):
+    global rng
+    if argv == ["--list"]:
+        for name, fn in RECIPES.items():
+            doc = (fn.__doc__ or "").strip().splitlines()
+            print(f"{name:12s}{doc[0] if doc else ''}")
+        return
+    if len(argv) < 2 or argv[0] in ("-h", "--help"):
+        print(__doc__)
+        sys.exit(0 if argv[:1] in (["-h"], ["--help"]) else 2)
+    out, names = argv[0], (list(RECIPES) if argv[1:] == ["all"] else argv[1:])
+    unknown = [n for n in names if n not in RECIPES]
+    if unknown:
+        sys.exit(f"unknown: {', '.join(unknown)} (sfx.py --list)")
+    os.makedirs(out, exist_ok=True)
+    for name in names:
+        rng = np.random.default_rng(zlib.crc32(name.encode()))
+        write_mp3(os.path.join(out, name + ".mp3"), RECIPES[name]())
+        print("wrote", name)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

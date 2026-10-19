@@ -26,3 +26,7 @@ Start each worker in the background with a short brief: the chapter and its page
 ## Before delivering
 
 Check the reports against each other (an odd claim is worth one look at the file), confirm lint and e2e pass, and deliver the chapter URL with `?review`. If the user wants the cost, it is in the subagent transcripts (`subagents/agent-<id>.jsonl` under the session's folder in `~/.claude/projects/`: usage per assistant message, each message id counted once) plus your own session's usage.
+
+## Picture books
+
+The same shape, split by scene instead of by step: the strong coordinator writes the script with the user, builds what every scene shares (cast, sets and their painting, the episode's helpers, the voices and joined audio), and writes a short brief for scene workers (the kit, the style, how to check, how to reply). Then one **middle** worker per scene, in parallel, each writing only its own `sceneN.js` and checking it with contact sheets; a **small** worker synthesizes the sound effects from recipes; a **middle** worker looks at every scene's contact sheet and reports problems with scene and time, so the coordinator reads a list instead of the pictures; the coordinator reworks or sends back. A fresh session as coordinator matters even more here: contact sheets are large, and a long conversation rereads them at every step. An episode made this way from a bedtime telling, in one night: about 22 million tokens, most of them the coordinator rereading its own context.

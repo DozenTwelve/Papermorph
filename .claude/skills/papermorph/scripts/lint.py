@@ -93,7 +93,12 @@ def decls(text):
 
 def timings(path):
     t = path.read_text(encoding='utf-8')
-    return json.loads(t[t.index('{'):t.rindex('}') + 1])
+    T = json.loads(t[t.index('{'):t.rindex('}') + 1])
+    shots = path.with_name('shots.js')   # join.py's joined scenes: TIMINGS.scene = {...};
+    if shots.exists():
+        for m in re.finditer(r'^TIMINGS\.(\w+) = (\{.*\});$', shots.read_text(encoding='utf-8'), re.M):
+            T[m.group(1)] = json.loads(m.group(2))
+    return T
 
 
 def words(s):
@@ -150,6 +155,8 @@ def lint_chapter(ch, content, out):
     if nar.exists():
         N = json.loads(nar.read_text(encoding='utf-8-sig')).get('beats', {})
         for b, text in N.items():
+            if isinstance(text, dict):   # a beat with a speaker
+                text = text['text']
             if b not in T:
                 err('stale', f'narration beat {b} has no timings')
                 continue

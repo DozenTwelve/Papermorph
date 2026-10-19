@@ -1,0 +1,13 @@
+{
+  "frame": [1600, 900],
+  "pad": [60, 34],
+  "fonts": { "sign": "/System/Library/Fonts/STHeiti Medium.ttc" },
+  "sets": {
+    "room": [
+      { "name": "wall", "file": "bg-room.png",
+        "words": [{ "x": 800, "y": 200, "size": 60, "text": "WELCOME", "colour": "#f6d68a", "font": "sign" }] },
+      { "name": "table", "file": "table.png", "cut": { "x": 1000, "bottom": 860, "width": 520 } }
+    ]
+  },
+  "props": { "cat": "p-cat.png" }
+}

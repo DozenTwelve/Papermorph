@@ -25,11 +25,11 @@ Offer the animation tiers as reference points. The published books at https://pa
 
 1. **Diagrams that change**: symbols, number lines, graphs and shapes built in code, rearranged as the narration explains (the maths books). Lightest: about 100k tokens a chapter, works on a smaller model.
 2. **Illustrated scenes**: characters act out the idea, the camera moves, external images and a storyboard before motion (the science book). About 400k tokens a chapter on a large model.
-3. **Picture book**: coming, not available yet.
+3. **Picture book**: a short film of paper puppets acting out a story, the sets drawn in code or painted by an image model ([stories.md](stories.md)). For stories, jokes and fairy tales, including a story book's PDF.
 4. **Documentary**: coming, not available yet.
 5. **Custom**: the user describes what they want; you judge which abilities it needs and say so.
 
-Recommend one from the chapter's content: abstract and procedural ideas fit tier 1 ([diagrams.md](diagrams.md)); physical and narrative ones fit tier 2 ([scenes.md](scenes.md)). Mixing per beat is allowed under any tier.
+When the user brings a story rather than a textbook, go straight to [stories.md](stories.md), which has its own short intake. Otherwise recommend one from the chapter's content: abstract and procedural ideas fit tier 1 ([diagrams.md](diagrams.md)); physical and narrative ones fit tier 2 ([scenes.md](scenes.md)). Mixing per beat is allowed under any tier.
 
 ## 4. The look, by tier
 
