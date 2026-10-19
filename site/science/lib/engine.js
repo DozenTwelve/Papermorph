@@ -1922,12 +1922,12 @@ function ui() {
 }
 let captions = false, capText = '';
 try { captions = localStorage.getItem('captions') === '1'; } catch {}
-function setCaptions(on) {
+function setCaptions(on, save = true) {
   captions = on;
   $('bCC').setAttribute('aria-pressed', String(on));
-  try { localStorage.setItem('captions', on ? '1' : '0'); } catch {}
+  if (save) try { localStorage.setItem('captions', on ? '1' : '0'); } catch {}
 }
-setCaptions(captions);
+setCaptions(captions, false);   // only the reader's own choice is stored, so a book can still pick the first-time default
 function hideCover() { P.started = true; $('cover').hidden = true; }
 function togglePlay() {
   if (!P.started) { hideCover(); return setPlaying(true); }
