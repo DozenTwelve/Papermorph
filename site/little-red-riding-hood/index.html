@@ -1,5 +1,145 @@
 <!doctype html>
+<html lang="en">
+<head>
 <meta charset="utf-8">
-<title>Little Red Riding Hood</title>
-<meta http-equiv="refresh" content="0; url=../">
-<p>Back to the <a href="../">bookshelf</a>.</p>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Little Red Riding Hood — how it was made</title>
+<meta name="description" content="A second picture-book experiment: paper-cutout stop motion drawn entirely in code, with no image model. How it was made, and everything we built for it.">
+<style>
+  :root { --ink: #2f2418; --soft: #6b5a46; --paper: #fbf5e8; --card: #fffaf0; --line: #e4d6bb; --accent: #a8322a; --ui: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif; --serif: "Iowan Old Style", Palatino, Georgia, serif; color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 18px/1.65 var(--ui); }
+  a { color: var(--accent); }
+  header.hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 40px; align-items: center; max-width: 1180px; margin: 0 auto; padding: 48px 24px 24px; }
+  .hero img { width: 100%; height: auto; border-radius: 10px; box-shadow: 0 14px 40px #4a33182e; }
+  .back { display: inline-block; margin-bottom: 18px; font-size: 15px; color: var(--soft); text-decoration: none; }
+  h1 { margin: 0 0 8px; font: 700 clamp(34px, 4.6vw, 56px)/1.05 var(--serif); }
+  .tag { display: inline-block; margin-bottom: 18px; padding: 2px 12px; border: 1.5px solid var(--accent); border-radius: 99px; color: var(--accent); font-size: 14px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+  .lede { font-size: 20px; color: #4a3b2a; }
+  .watch { display: inline-flex; align-items: center; gap: 10px; margin-top: 10px; padding: 14px 26px; border-radius: 99px; background: var(--ink); color: #fff6e0; font-weight: 600; text-decoration: none; }
+  .watch:hover { background: #4a3826; }
+  .watch small { opacity: .75; font-weight: 500; }
+  main { max-width: 900px; margin: 0 auto; padding: 8px 24px 80px; }
+  h2 { margin: 64px 0 8px; font: 700 32px/1.2 var(--serif); }
+  h3 { margin: 32px 0 4px; font: 700 21px/1.3 var(--ui); }
+  figure { margin: 18px 0 26px; }
+  figure img { display: block; width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--line); background: #fff; }
+  figcaption { margin-top: 8px; font-size: 15px; color: var(--soft); }
+  .stills { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 18px 0; }
+  .stills img { width: 100%; height: auto; border-radius: 6px; display: block; }
+  .verdict { margin: 18px 0; padding: 4px 22px; border-left: 4px solid var(--accent); background: var(--card); border-radius: 0 8px 8px 0; }
+  .numbers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 18px 0; }
+  .numbers div { padding: 14px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; text-align: center; }
+  .numbers b { display: block; font: 700 28px/1.1 var(--serif); }
+  .numbers span { font-size: 14px; color: var(--soft); }
+  dl.made { display: grid; grid-template-columns: max-content 1fr; gap: 10px 22px; margin: 18px 0; }
+  dl.made dt { font-weight: 700; }
+  dl.made dd { margin: 0; }
+  ol.beats { padding-left: 22px; }
+  code { font-size: .88em; background: #f1e6cf; padding: 1px 5px; border-radius: 4px; }
+  footer { max-width: 900px; margin: 0 auto; padding: 0 24px 60px; color: var(--soft); font-size: 15px; }
+  @media (max-width: 760px) {
+    header.hero { grid-template-columns: 1fr; padding-top: 28px; }
+    .numbers, .stills { grid-template-columns: 1fr 1fr; }
+    dl.made { grid-template-columns: 1fr; gap: 2px; }
+    dl.made dd { margin-bottom: 12px; }
+  }
+</style>
+</head>
+<body>
+<header class="hero">
+  <img src="making/cover.webp" width="1400" height="788" alt="Little Red Riding Hood meets the wolf in the woods: two paper puppets with brass pins at their joints.">
+  <div>
+    <a class="back" href="../">← Back to the bookshelf</a><br>
+    <span class="tag">Paper-cutout stop motion</span>
+    <h1>Little Red Riding Hood</h1>
+    <p class="lede">Our second picture book, and the opposite bet to <a href="../three-little-pigs/">The Three Little Pigs</a>. No image model at all: every character, tree and cake is paper drawn in code, pinned at the joints and shot like a stop-motion film. It cost nothing in pictures, and any new movement is just a few more lines of code.</p>
+    <a class="watch" href="ch01/">▶ Watch the film <small>3½ minutes · narrated · music</small></a>
+  </div>
+</header>
+
+<main>
+  <div class="stills">
+    <img src="making/still-home.webp" width="800" height="450" alt="Mother sees Little Red Riding Hood off at the cottage door." loading="lazy">
+    <img src="making/still-eyes.webp" width="800" height="450" alt="Two eyes in a dark bush." loading="lazy">
+    <img src="making/still-flowers.webp" width="800" height="450" alt="The wolf and Little Red Riding Hood among the flowers." loading="lazy">
+    <img src="making/still-knock.webp" width="800" height="450" alt="The wolf knocks at Grandma's blue door." loading="lazy">
+    <img src="making/still-mouth.webp" width="800" height="450" alt="The wolf in Grandma's nightcap: what a big mouth." loading="lazy">
+    <img src="making/still-cake.webp" width="800" height="450" alt="Grandma, Little Red Riding Hood and the woodcutter share the cake." loading="lazy">
+  </div>
+
+  <h2>What we set out to do</h2>
+  <p>The Three Little Pigs showed that an image model can paint a lovely world, but every new action needed a new round of drawings, and the characters had to be fought into consistency. This time we asked the opposite question: what if the characters stay simple shapes drawn in code, and we lean into that, so that they look like paper puppets on purpose?</p>
+  <p>The story is the Brothers Grimm version (1857), retold lightly: the wolf still talks his way into Grandma's house, but Grandma hides in the wardrobe, nobody gets eaten, and the wolf leaves through the window in Grandma's nightcap.</p>
+
+  <h2>Making it look like stop motion</h2>
+  <ul>
+    <li><b>Twelve frames a second, on twos.</b> Every movement is sampled into steps, so it moves in little jumps, the way a hand-moved puppet does.</li>
+    <li><b>The animator's hand.</b> Each frame nudges every puppet by a tiny random amount, and the picture flickers slightly. The nudge belongs to the frame, so a paused or rewound film looks exactly the same.</li>
+    <li><b>Paper you can feel.</b> Each piece has paper grain, torn edges and a soft shadow, and the joints show brass pins.</li>
+    <li><b>Replacement, not morphing.</b> Mouths are swapped like stop-motion mouths, blinks are two closed-eye frames, and a door opens through a few boards of different widths.</li>
+  </ul>
+
+  <h2>The cast</h2>
+  <p>Five puppets: Little Red Riding Hood, her mother, the wolf (flat cap, red bow tie, more polite than he should be), Grandma (nightcap, glasses, umbrella) and the woodcutter (check shirt, axe). Each puppet is a handful of paper pieces pinned at the joints. A pose is just a set of joint angles, so a new action, like ducking, swinging an axe or diving through a window, costs a few numbers instead of new drawings.</p>
+  <figure><img src="making/cast.webp" width="1400" height="455" alt="The five puppets, each seen from the side and from the front." loading="lazy"><figcaption>Every puppet comes as two complete sets: side view and front view.</figcaption></figure>
+  <h3>Turning around is a whole-body swap</h3>
+  <p>A paper puppet can't rotate, so a turn works like a cut-out cartoon: the side view squashes, the whole front view takes over for the narrowest frames, and the mirrored side view comes out the other way. Head and body always turn together. A front head on a side body looked wrong every time.</p>
+  <figure><img src="making/turn.webp" width="1400" height="420" alt="Little Red Riding Hood turning: side view squashing, front view, mirrored side view." loading="lazy"></figure>
+  <h3>Mouths, walks and hands</h3>
+  <p>Nine mouth shapes, each timed to the words of the voice track. Walks use a compass step: the planted foot stays put while the hip swings over it, so feet never slide on the ground. When someone hands something over, both hands really touch it.</p>
+  <figure><img src="making/mouths.webp" width="1400" height="245" alt="Little Red Riding Hood's nine mouth shapes." loading="lazy"><figcaption>The nine mouths, from rest to "oo".</figcaption></figure>
+  <figure><img src="making/walk.webp" width="1400" height="350" alt="Six frames of the wolf's walk." loading="lazy"><figcaption>Six frames of the wolf's walk.</figcaption></figure>
+
+  <h2>Sets and the camera</h2>
+  <p>Eight sets, each drawn as layers of paper: sky, distant hills, trees, the building, and plants close to the lens. As the camera moves, the layers slide past each other at different speeds, and in close-ups the background goes soft. Windows and doorways are real holes, so we can see people inside a house from outside. Reverse shots get their own sets, so the background behind a face is always what that person is looking at.</p>
+  <figure><img src="making/sets.webp" width="1400" height="395" alt="Eight sets: Mother's cottage, the garden, two woods, Grandma's cottage, her bedroom and two reverse angles." loading="lazy"><figcaption>Mother's cottage and garden, the woods both ways, Grandma's cottage, her bedroom, and the bedroom seen from the bed and from the door.</figcaption></figure>
+  <figure><img src="making/layers.webp" width="1400" height="172" alt="Grandma's cottage taken apart into sky, far, mid, inside and house layers." loading="lazy"><figcaption>Grandma's cottage, layer by layer. "Inside" is the room seen through the door and window holes.</figcaption></figure>
+  <p>Shots change as in a film: wide shots to show where we are, two-shots for conversations, a close-up for whoever speaks, and each question to "Grandma" closer than the last. At a few scene changes, a big tree trunk sweeps across the frame, as in a paper theatre.</p>
+
+  <h2>Voices, music and sound</h2>
+  <p>Six voices (the narrator, Little Red Riding Hood, Mother, the wolf, Grandma and the woodcutter) come from free text-to-speech, and every line's word timings drive the mouths. The music is the Three Little Pigs' score, reused. The six sound effects are synthesized in code from noise and tones: knocking, the axe, the wardrobe door, the umbrella on the wolf's head, a thud, and the window breaking.</p>
+
+  <h2>The rescue that didn't make sense</h2>
+  <p>In the first cut, the woodcutter appeared from nowhere, Grandma suddenly stood outside the wardrobe, and the wolf flew out of the window as if Grandma had superpowers. Every shot looked fine. The story didn't hold together. We rewrote it so that each moment causes the next:</p>
+  <figure><img src="making/chop.webp" width="800" height="450" alt="Little Red Riding Hood greets the woodcutter chopping wood near Grandma's cottage." loading="lazy"><figcaption>The woodcutter now appears earlier. He is chopping wood near the cottage, and Little Red Riding Hood says good morning.</figcaption></figure>
+  <figure><img src="making/rescue.webp" width="1400" height="526" alt="Six moments of the rescue." loading="lazy"></figure>
+  <ol class="beats">
+    <li>The wolf leaps; she ducks and cries "Help!"; he snaps up her flowers and lands face first.</li>
+    <li>Earlier, while he said "all the better to see you with", we glimpsed Grandma's eye in the crack of the wardrobe door. Now the door bursts open.</li>
+    <li>She runs at him and brings her umbrella down on his head.</li>
+    <li>He bolts for the front door, where the woodcutter, who heard the cry, steps in.</li>
+    <li>Grandma on one side, the woodcutter at the door: only one way out.</li>
+    <li>Through the window. Outside, the window stays broken.</li>
+  </ol>
+  <p>The lesson: check the script for cause and effect before animating. A story fix is cheap on paper, and expensive once every shot is built.</p>
+
+  <h2>Everything we made for it</h2>
+  <dl class="made">
+    <dt>Puppets</dt><dd>Five characters, side and front sets each, with eyes, brows, nine mouths and fingers that stay live while the paper pieces are baked.</dd>
+    <dt>Sets</dt><dd>Eight layered sets, each with a blurred copy for close-ups.</dd>
+    <dt>Props</dt><dd>Basket with cake and apple juice, a bouquet that grows as she picks it, Grandma's nightcap and glasses, umbrella, axe and chopping block, quilt, doors that swing, window glass that shatters into falling shards, the spilled flowers.</dd>
+    <dt>Sound</dt><dd>Six voices, nine mouth shapes per line, four music cues, six synthesized sound effects.</dd>
+    <dt>Tools</dt><dd>A set drawer and baker; a puppet baker that turns all 154 paper pieces into images so the film starts at once; a sound synthesizer; voice, mouth and audio-joining scripts reused from the pigs; a cast lab for posing puppets; and contact sheets, a few frames of every shot side by side, checked before anyone else watched.</dd>
+  </dl>
+
+  <h2>The numbers</h2>
+  <div class="numbers">
+    <div><b>~3½ min</b><span>11 scenes</span></div>
+    <div><b>5 · 8</b><span>puppets · sets</span></div>
+    <div><b>154</b><span>pieces of paper</span></div>
+    <div><b>$0</b><span>for pictures</span></div>
+  </div>
+
+  <h2>Where this leaves us</h2>
+  <div class="verdict">
+    <p><b>New actions are cheap.</b> The pigs could only do what had been drawn. Here, the umbrella blow, the duck and the dive through the window were each a few lines, added on the last evening.</p>
+    <p><b>Consistency comes free.</b> A puppet is the same paper in every shot, so nothing drifts between scenes.</p>
+    <p><b>It gets cheaper with practice.</b> Puppets, sets, sounds and tools carry over to the next story.</p>
+  </div>
+  <p>The limits are real too. The look is deliberately simple, the paper effect has to be baked ahead of time to play smoothly, and with no painter to hide behind, the story itself has to hold up. We plan to build the Papermorph Skill's picture-book method on this.</p>
+  <p><a class="watch" href="ch01/">▶ Watch the film</a></p>
+</main>
+<footer>Story: the Brothers Grimm's <i>Little Red Cap</i> (1857), retold for this film. No image model: everything you see is drawn in code. Music from Google Lyria (made for The Three Little Pigs), voices with Microsoft Edge text-to-speech, sound effects synthesized. Part of <a href="../">Papermorph</a>.</footer>
+</body>
+</html>
