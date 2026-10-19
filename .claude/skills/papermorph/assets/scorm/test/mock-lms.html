@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mock LMS</title>
+<style>
+  body { margin: 0; display: grid; grid-template-columns: 1fr 380px; height: 100vh; font: 13px/1.4 system-ui, sans-serif; }
+  iframe { width: 100%; height: 100%; border: 0; }
+  aside { overflow: auto; padding: 10px; background: #111; color: #ddd; }
+  pre { white-space: pre-wrap; word-break: break-all; margin: 0 0 10px; }
+  h2 { font-size: 13px; margin: 8px 0 4px; color: #8cf; }
+</style>
+</head>
+<body>
+<iframe id="sco" allow="autoplay; fullscreen"></iframe>
+<aside><h2>CMI data</h2><pre id="cmi"></pre><h2>Calls</h2><pre id="log"></pre></aside>
+<script>
+// A stand-in LMS for local testing: ?pkg=<unzipped package folder>&v=1.2|2004. Data survives reloads (sessionStorage),
+// so reloading the page tests resume; ?reset clears it.
+const q = new URLSearchParams(location.search);
+const pkg = q.get('pkg') || 'pkg', ver = q.get('v') || '1.2';
+const STORE = 'mocklms:' + pkg;
+if (q.has('reset')) sessionStorage.removeItem(STORE);
+const cmi = JSON.parse(sessionStorage.getItem(STORE) || 'null') || (ver === '2004'
+  ? { 'cmi.completion_status': 'unknown', 'cmi.success_status': 'unknown', 'cmi.entry': 'ab-initio' }
+  : { 'cmi.core.lesson_status': 'not attempted', 'cmi.core.entry': 'ab-initio' });
+window.LOG = [];
+let state = 'new';
+const show = () => {
+  document.getElementById('cmi').textContent = Object.entries(cmi).sort().map(([k, v]) => `${k} = ${v}`).join('\n');
+  document.getElementById('log').textContent = LOG.slice(-40).join('\n');
+};
+const call = (name, f) => (...a) => { const r = f(...a); LOG.push(`${name}(${a.map(x => JSON.stringify(x)).join(', ')}) -> ${r}`); show(); return r; };
+const init = () => { if (state !== 'new') return 'false'; state = 'live'; return 'true'; };
+const fin = () => {
+  if (state !== 'live') return 'false';
+  state = 'done';
+  const exit = cmi['cmi.core.exit'] ?? cmi['cmi.exit'];
+  if (exit === 'suspend') { cmi[ver === '2004' ? 'cmi.entry' : 'cmi.core.entry'] = 'resume'; }
+  sessionStorage.setItem(STORE, JSON.stringify(cmi));
+  return 'true';
+};
+const getv = k => cmi[k] ?? '';
+const setv = (k, v) => { if (state !== 'live') return 'false'; cmi[k] = v; return 'true'; };
+const commit = () => { sessionStorage.setItem(STORE, JSON.stringify(cmi)); return 'true'; };
+if (ver === '2004') window.API_1484_11 = {
+  Initialize: call('Initialize', init), Terminate: call('Terminate', fin), GetValue: call('GetValue', getv),
+  SetValue: call('SetValue', setv), Commit: call('Commit', commit), GetLastError: () => '0', GetErrorString: () => '', GetDiagnostic: () => '',
+};
+else window.API = {
+  LMSInitialize: call('LMSInitialize', init), LMSFinish: call('LMSFinish', fin), LMSGetValue: call('LMSGetValue', getv),
+  LMSSetValue: call('LMSSetValue', setv), LMSCommit: call('LMSCommit', commit), LMSGetLastError: () => '0', LMSGetErrorString: () => '', LMSGetDiagnostic: () => '',
+};
+window.CMI = cmi;
+show();
+document.getElementById('sco').src = pkg + '/launch.html';
+</script>
+</body>
+</html>
