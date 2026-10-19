@@ -6,8 +6,8 @@
 
 No server is needed: the check answers every request itself from the zip and mock-lms.html, and, as many LMS file
 servers do, returns 404 for folder URLs. It checks that the session opens, that a chapter card opens its lesson
-(folder links rewritten), that reaching the finish card reports the chapter to the LMS, and that a reload resumes
-with the chapter's checkmark. No files are generated.
+(folder links rewritten), that reaching the finish card reports the chapter to the LMS, and that a reload with
+the book's localStorage cleared resumes with the chapter's checkmark. No files are generated.
 """
 import asyncio
 import json
@@ -77,6 +77,8 @@ async def main(zpath):
         assert cmi.get(status) == "completed", f"objective 0: {cmi.get(status)!r}"
         print(f"PASS finish card reported: suspend_data {cmi['cmi.suspend_data']}, objective 0 completed")
 
+        # Resume must come from the LMS alone, as on another device: clear the book's localStorage first.
+        await page.evaluate("document.getElementById('sco').contentWindow.document.getElementById('book').contentWindow.localStorage.clear()")
         await page.goto(f"{ORIGIN}/mock-lms.html?pkg=pkg&v={version}")
         await book().locator(f"#ch{first:02d}.done").wait_for(state="attached", timeout=10000)
         print("PASS resume: the chapter's checkmark is back after a reload")

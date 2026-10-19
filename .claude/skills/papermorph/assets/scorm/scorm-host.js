@@ -128,6 +128,7 @@
   /* ---------- the interface book pages use ---------- */
   window.PapermorphSCORM = {
     live,
+    progressKey: CFG.progressKey,   // the contents page's own key, when the book sets one
     // A copy of {done, last}, in the shape the book's own progress() works on.
     progress: () => ({ done: S.done.slice(), last: S.last }),
     // The book changed its progress (opened or finished a chapter).

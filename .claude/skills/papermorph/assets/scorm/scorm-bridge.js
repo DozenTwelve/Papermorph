@@ -9,9 +9,10 @@
 
   // 1. Seed the book's own progress store from the LMS, so the contents page and the chapter
   //    see the learner's saved checkmarks. This file sits in the book folder, the same folder the default key names;
-  //    in a chapter, the engine's own key (BOOK_PROGRESS_KEY, which honours lib/book.css --progress-key) wins.
+  //    in a chapter, the engine's own key (BOOK_PROGRESS_KEY, which honours lib/book.css --progress-key) wins;
+  //    on the contents page, the progressKey the page passes to Contents.book(), which scorm.py reads at build time.
   const KEY = typeof BOOK_PROGRESS_KEY === 'string' ? BOOK_PROGRESS_KEY
-    : 'animebook:progress:' + new URL('.', document.currentScript.src).pathname;
+    : host.progressKey || 'animebook:progress:' + new URL('.', document.currentScript.src).pathname;
   try { localStorage.setItem(KEY, JSON.stringify(host.progress())); } catch {}
 
   // 2. In a chapter, every progress change and every finish goes to the host as well.

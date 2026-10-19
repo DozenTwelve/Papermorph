@@ -67,6 +67,12 @@ def outside(site: Path, rel: str, html: str):
     return out
 
 
+def progress_key(site: Path):
+    """The progressKey the contents page passes to Contents.book(), if any (an older book's own localStorage key)."""
+    m = re.search(r'progressKey:\s*(["\'])(.*?)\1', (site / 'index.html').read_text(encoding='utf-8'))
+    return m.group(2) if m else None
+
+
 def book_title(site: Path):
     m = re.search(r'<title>(.*?)</title>', (site / 'index.html').read_text(encoding='utf-8'), re.S)
     return m.group(1).strip() if m else site.name
@@ -192,7 +198,8 @@ def main():
         files['book/' + rel] = data
     files['book/' + BRIDGE] = (RUNTIME / BRIDGE).read_bytes()
     files['scorm-host.js'] = (RUNTIME / 'scorm-host.js').read_bytes()
-    cfg = {'book': slug, 'title': title, 'version': a.version, 'mastery': a.mastery, 'chapters': chs}
+    cfg = {'book': slug, 'title': title, 'version': a.version, 'mastery': a.mastery, 'chapters': chs,
+           'progressKey': progress_key(site)}
     launch = (RUNTIME / 'launch.html').read_text(encoding='utf-8')
     config = json.dumps(cfg, ensure_ascii=False).replace('<', chr(92) + 'u003c')   # no '</script>' inside the script
     launch = launch.replace('__TITLE__', escape(title)).replace('__CONFIG__', config)
