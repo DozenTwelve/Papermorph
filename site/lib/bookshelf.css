@@ -24,9 +24,11 @@ a { color: inherit; }
 .algebra-book { left: 10.1%; width: 26.1%; }
 .math-book { left: 39.9%; width: 24.5%; }
 .physics-book { left: 66.8%; width: 25.3%; }
-/* The middle shelf: the photographed cover of our picture book. */
+/* The middle shelf: the photographed covers of our picture books. */
 .pigs-book { left: 8.1%; width: 25.8%; top: 34.5%; height: 19.6%; }
+.red-book { left: 37.2%; width: 26%; top: 34.4%; height: 19.6%; }
 .pigs-book .book-caption { background: linear-gradient(110deg, #7a4a1ef5, #5a3414f0); }
+.red-book .book-caption { background: linear-gradient(110deg, #8a2a22f5, #5e1a16f0); }
 .book-hotspot:hover { box-shadow: 0 0 0 2px #f7d998b3, 0 0 28px #edc97833; }
 #shelf a:focus-visible { outline: 3px solid #f4d786; outline-offset: 5px; }
 .book-caption { position: absolute; bottom: 0; left: 0; right: 0; display: flex; flex-direction: column; justify-content: center; gap: .35cqw; min-height: 6.45cqw; padding: 1.1cqw 1.2cqw .9cqw; color: #faf7e9; background: linear-gradient(110deg, #263d32f5, #182a23f0); box-shadow: 0 -2px 8px #0003; font: 1.4cqw/1.25 var(--ui); transition: background .2s; }
