@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Joke Collection</title>
+<meta name="description" content="Short animated jokes: painted sets from an image model, paper puppets moved by code. Two episodes so far, and how they were made.">
+<style>
+  :root { --ink: #2f2418; --soft: #6b5a46; --paper: #fbf5e8; --card: #fffaf0; --line: #e4d6bb; --accent: #2f5aa8; --ui: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif; --serif: "Iowan Old Style", Palatino, Georgia, serif; color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 18px/1.65 var(--ui); }
+  a { color: var(--accent); }
+  header.hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 40px; align-items: center; max-width: 1180px; margin: 0 auto; padding: 48px 24px 24px; }
+  .hero img { width: 100%; height: auto; border-radius: 10px; box-shadow: 0 14px 40px #4a33182e; }
+  .back { display: inline-block; margin-bottom: 18px; font-size: 15px; color: var(--soft); text-decoration: none; }
+  h1 { margin: 0 0 8px; font: 700 clamp(34px, 4.6vw, 56px)/1.05 var(--serif); }
+  .tag { display: inline-block; margin-bottom: 18px; padding: 2px 12px; border: 1.5px solid var(--accent); border-radius: 99px; color: var(--accent); font-size: 14px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+  .lede { font-size: 20px; color: #4a3b2a; }
+  .watch { display: inline-flex; align-items: center; gap: 10px; margin-top: 10px; padding: 14px 26px; border-radius: 99px; background: var(--ink); color: #fff6e0; font-weight: 600; text-decoration: none; }
+  .watch:hover { background: #4a3826; }
+  .watch small { opacity: .75; font-weight: 500; }
+  main { max-width: 900px; margin: 0 auto; padding: 8px 24px 80px; }
+  h2 { margin: 64px 0 8px; font: 700 32px/1.2 var(--serif); }
+  h3 { margin: 32px 0 4px; font: 700 21px/1.3 var(--ui); }
+  figure { margin: 18px 0 26px; }
+  figure img { display: block; width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--line); background: #fff; }
+  figcaption { margin-top: 8px; font-size: 15px; color: var(--soft); }
+  .stills { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 18px 0; }
+  .stills img { width: 100%; height: auto; border-radius: 6px; display: block; }
+  .episodes { list-style: none; padding: 0; margin: 18px 0; display: grid; gap: 12px; }
+  .episodes a { display: flex; gap: 18px; align-items: center; padding: 14px 18px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; color: var(--ink); text-decoration: none; }
+  .episodes a:hover { border-color: var(--accent); }
+  .episodes b { flex: none; font: 700 22px/1.2 var(--serif); }
+  .episodes span { color: var(--soft); font-size: 15px; }
+  .episodes .soon { padding: 14px 18px; border: 1px dashed var(--line); border-radius: 10px; color: var(--soft); }
+  .verdict { margin: 18px 0; padding: 4px 22px; border-left: 4px solid var(--accent); background: var(--card); border-radius: 0 8px 8px 0; }
+  .numbers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 18px 0; }
+  .numbers div { padding: 14px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; text-align: center; }
+  .numbers b { display: block; font: 700 28px/1.1 var(--serif); }
+  .numbers span { font-size: 14px; color: var(--soft); }
+  footer { max-width: 900px; margin: 0 auto; padding: 0 24px 60px; color: var(--soft); font-size: 15px; }
+  @media (max-width: 760px) {
+    header.hero { grid-template-columns: 1fr; padding-top: 28px; }
+    .numbers, .stills { grid-template-columns: 1fr 1fr; }
+    .episodes a { flex-direction: column; align-items: flex-start; gap: 4px; }
+    .watch { flex-wrap: wrap; row-gap: 2px; }
+  }
+</style>
+</head>
+<body>
+<header class="hero">
+  <img src="making/cover.webp" width="1400" height="788" alt="Bo, with a bun sitting on a toilet in his thought bubble, about to ask his question; Me beside him and the class behind.">
+  <div>
+    <a class="back" href="../">← Back to the bookshelf</a><br>
+    <span class="tag">Short animated jokes</span>
+    <h1>Joke Collection</h1>
+    <p class="lede">Little jokes, a couple of minutes each. The third way we've tried to make picture books, and the one we're keeping: an image model paints every set and everything that stays still, and paper puppets drawn in code do all the moving.</p>
+    <a class="watch" href="ch01/">▶ Episode 1 <small>Breakfast in the Bathroom · 2 minutes</small></a>
+    <a class="watch" href="ch02/">▶ Episode 2 <small>Do You Need a Bag? · 2 minutes</small></a>
+  </div>
+</header>
+
+<main>
+  <h2>Episodes</h2>
+  <ul class="episodes">
+    <li><a href="ch01/"><b>1 · Breakfast in the Bathroom</b><span>Seventh grade. My deskmate had two questions for me, and one morning he asked them both at once. A true story.</span></a></li>
+    <li><a href="ch02/"><b>2 · Do You Need a Bag?</b><span>A convenience store in Fukuoka. A clerk who speaks no English, a customer who speaks no Japanese, and me in line behind them with a hundred-yen coffee. Also true.</span></a></li>
+    <li class="soon">More jokes coming.</li>
+  </ul>
+
+  <div class="stills">
+    <img src="making/still-stall.webp" width="800" height="450" alt="Me and Bo at the bun stall, each with a bun." loading="lazy">
+    <img src="making/still-rain.webp" width="800" height="450" alt="The same stall in the rain, with umbrellas." loading="lazy">
+    <img src="making/still-door.webp" width="800" height="450" alt="Bo, late and out of breath, in the classroom door." loading="lazy">
+    <img src="making/still-dream.webp" width="800" height="450" alt="A daydream: a bun and soy milk laid out on a squat toilet." loading="lazy">
+    <img src="making/still-laugh.webp" width="800" height="450" alt="The whole class laughing." loading="lazy">
+    <img src="making/cover.webp" width="1400" height="788" alt="Bo's two thoughts merged into one." loading="lazy">
+    <img src="making/ep2-street.webp" width="800" height="450" alt="Episode 2: walking into the Happy Mart at dusk." loading="lazy">
+    <img src="making/ep2-veggie.webp" width="800" height="450" alt="Episode 2: the customer hears 'reji' as 'veggie'." loading="lazy">
+    <img src="making/ep2-exchange.webp" width="800" height="450" alt="Episode 2: the clerk wonders if she wants to change dollars into yen." loading="lazy">
+  </div>
+
+  <h2>Two ways, then a third</h2>
+  <p><a href="../three-little-pigs/">The Three Little Pigs</a> was painted by an image model, characters included. The world looked lovely, but every new action meant another round of drawings, and keeping a character the same from shot to shot was a fight. <a href="../little-red-riding-hood/">Little Red Riding Hood</a> went the other way: everything was paper drawn in code. Any movement was a few lines, but the world looked plain.</p>
+  <p>So we split the work by one question: <b>does it move?</b> Anything that stays put (streets, walls, blackboards, desks, the bun cart) is painted by the image model. Anything with joints, a face or a change of shape (the people, the falling rain, a bitten bun, the hands of the clock) is a paper puppet moved by code. A painting never has to act, and a puppet never has to look like a painting.</p>
+  <figure><img src="making/layers.webp" width="1400" height="879" alt="One frame taken apart: the painted street, the painted cart cut out on its own, the puppets drawn in code, and the finished frame." loading="lazy"><figcaption>One frame, taken apart. The cart is painted as a separate cut-out, so the bun seller can stand behind it.</figcaption></figure>
+
+  <h2>Finding the look</h2>
+  <p>Our puppets are flat paper with round heads, in the spirit of South Park. We tried three painted styles behind them: flat paper like the puppets (closest to that show), a warm gouache, and a richer torn-paper collage. We picked the collage. There was no reason to copy South Park exactly, and the point was to let the image model give the world as much texture and light as it could.</p>
+  <figure><img src="making/styles-stall.webp" width="1400" height="788" alt="The bun stall four ways: drawn in code, flat paper, gouache, and torn-paper collage." loading="lazy"><figcaption>Top left: the stall drawn in code. Then flat paper (A), gouache (B), and torn-paper collage (C), the one we chose. Each test picture cost under two cents.</figcaption></figure>
+  <p>Every set was painted by redrawing our own code-drawn version in that style. That way the composition stays the same, and the puppets still stand where the scenes expect them. Signs and blackboards were painted blank, and their words were written on afterwards: image models still garble Chinese characters.</p>
+  <figure><img src="making/batch-stall.webp" width="1400" height="551" alt="The stall street in sun, rain and snow, and the painted props: buns, soy milk, umbrellas, homework sheets." loading="lazy"><figcaption>The stall in three weathers, from one picture, edited, so a cut between them changes only the weather. Below them, props painted on transparent backgrounds.</figcaption></figure>
+  <figure><img src="making/batch-sets.webp" width="1400" height="1050" alt="The town, the classroom from the front, the blackboard wall, the toilet, a pupil's desk and the teacher's desk." loading="lazy"><figcaption>The rest of the sets. The desks are separate pieces, because pupils sit behind them, row behind row. The clock is painted without hands, so code can turn them.</figcaption></figure>
+
+  <h2>What the code still does</h2>
+  <ul>
+    <li><b>The acting.</b> Mouths timed to every word, blinks at each puppet's own moments, eyes that follow whoever is talking, a whole class turning its heads a frame or two apart.</li>
+    <li><b>The joke's machinery.</b> Two thought bubbles (a bun and a toilet) pushing each other and merging, before Bo opens his mouth.</li>
+    <li><b>Weather and small things.</b> Rain and snow falling over the painted street, umbrellas, a fly, the clock's hands.</li>
+    <li><b>The film.</b> Cuts, close-ups, a soft background in close-ups, a soft shadow under every puppet so it stands in the painted light, and a gentle hand-made wobble.</li>
+  </ul>
+
+  <h2>A joke needs its setup</h2>
+  <p>The first version didn't land. Bo's slip ("Wanna go eat breakfast… in the bathroom?") came out of nowhere, and he looked as if he really meant it. The fix was story, not animation. First we show his two everyday questions: "Breakfast?" every morning at the stall, "Bathroom?" after every class. Then, the one morning he oversleeps and comes in starving, we show both wants at once, as two bubbles that collide. Only then does he speak. Same lesson as Little Red Riding Hood: set up everything the punchline needs, before anyone animates a frame.</p>
+
+  <h3>Episode 2, made in one night</h3>
+  <p>For the second joke, the user told the story at bedtime and handed over: a fresh session read this method, wrote the script, painted two sets (the store outside and in), a counter to stand behind and three props, built three new puppets and four scenes, and checked them, all before morning. The clerk's Japanese is spoken in Japanese with English subtitles, so the audience understands both sides while neither character does. Its painting cost $0.13.</p>
+
+  <h2>The numbers</h2>
+  <div class="numbers">
+    <div><b>2</b><span>episodes, about 2 minutes each</span></div>
+    <div><b>~27</b><span>painted pictures</span></div>
+    <div><b>$0.53</b><span>for all the painting</span></div>
+    <div><b>7</b><span>painted sets</span></div>
+  </div>
+  <div class="verdict">
+    <p><b>Why we're keeping this one.</b> The paintings carry the look, the puppets carry the acting, and neither has to do the other's job. The sets and props carry over to the next joke. This is the method we're building the Papermorph Skill's picture books on.</p>
+  </div>
+  <p><a class="watch" href="ch01/">▶ Watch episode 1</a></p>
+</main>
+<footer>Both episodes are true stories, retold. Sets and props painted with OpenAI's gpt-image; puppets, weather and animation drawn in code; voices with Microsoft Edge text-to-speech; music from Google Lyria (made for The Three Little Pigs); sound effects synthesized. Part of <a href="../">Papermorph</a>.</footer>
+</body>
+</html>
