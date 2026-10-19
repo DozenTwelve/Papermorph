@@ -64,3 +64,27 @@ Narration and on-screen text are written in one language first. A second languag
 ## Video export (optional)
 
 `uv run --with playwright SKILL/scripts/export.py chNN --url http://localhost:8765/<book>/ --out OUT --link <lesson URL>` renders the lesson beats to `OUT/chNN.mp4` (1080p, 30 fps) plus `OUT/chNN.srt` for upload with it. Frames come from seeking the beat clock, so the video matches the page exactly; question beats are left out and the video ends on a card pointing to the interactive lesson. It takes about 1.6× the video's length.
+
+## SCORM package (optional)
+
+For a course in an LMS (Canvas/Quercus, Moodle, Brightspace, Blackboard), package a built book as one SCORM zip:
+
+```sh
+python3 SKILL/scripts/scorm.py site/<book>                    # SCORM 2004 4th edition, completion only -> dist/<book>-scorm2004.zip
+python3 SKILL/scripts/scorm.py site/<book> --version 1.2      # older LMSs
+python3 SKILL/scripts/scorm.py site/<book> --mastery 80       # also passed/failed at 80 %, once the whole book is finished
+```
+
+`site/<book>/` is not changed; rebuild the zip after changing the book. The LMS launches `launch.html`, which opens one SCORM session and runs the book in a frame, so moving between chapters keeps the session. The build adds `scorm-bridge.js` to the contents page and after `engine.js` in every chapter; it wraps the engine's `progress()` and `finishCard()`, seeds the book's progress from the LMS on each launch (the LMS is the source of truth) and points folder links (`ch02/`) at `index.html`, which many LMS file servers need.
+
+| | SCORM 1.2 | SCORM 2004 |
+|---|---|---|
+| Completion: every chapter's finish card reached | `cmi.core.lesson_status` (`passed`/`failed` with `--mastery`) | `cmi.completion_status`, `cmi.success_status` with `--mastery` |
+| Progress: chapters finished ÷ chapters | — | `cmi.progress_measure` |
+| Score: first-try answers over all quick checks and practice, best attempt per chapter | `cmi.core.score.raw` | `cmi.score.raw`, `cmi.score.scaled` |
+| One objective per chapter (`ch01`, …) with status and score | `cmi.objectives.n.*` | `cmi.objectives.n.*` |
+| Resume (checkmarks, Continue) | `cmi.suspend_data`, `lesson_location` | `cmi.suspend_data`, `cmi.location` |
+
+A chapter counts as finished when its finish card appears, as in the book; a learner can skip there on the step bar, so use `--mastery` when the grade should depend on the answers. Cards that link to another book's folder (`href` in `units`) leave the package and don't work inside an LMS.
+
+Check a package before handing it over: `uv run --with playwright SKILL/assets/scorm/test/check_scorm.py dist/<book>-scorm2004.zip` opens it in `assets/scorm/test/mock-lms.html` (a stand-in LMS that shows every CMI value), opens a chapter through a folder link, reaches its finish card and checks resume. To click through by hand, unzip the package as `pkg/` next to a copy of `mock-lms.html`, run `python3 SKILL/assets/scorm/test/serve.py <folder> 8781` (no folder URLs, like an LMS) and open `http://localhost:8781/mock-lms.html?pkg=pkg&v=2004&reset`; reload without `&reset` to test resume. Before learners use it, upload it to SCORM Cloud (a free account), the usual test of a real LMS. Audio makes up most of a package: check the LMS's upload limit. Canvas grades only the overall result; it doesn't show the per-chapter objectives.

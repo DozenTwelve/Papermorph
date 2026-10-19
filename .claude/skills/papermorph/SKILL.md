@@ -43,7 +43,7 @@ Start with intake whenever `books/<book>/style.json` does not exist yet; reuse a
 2. **Intake.** Follow [intake.md](references/intake.md): find the PDF with the user, say what the book is, agree on one chapter to try and a tier, settle the look the way that tier needs, and write `style.json`.
 3. **Initialize.** Follow [site.md](references/site.md#start-a-book-folder); build agreed shared components once into the book's library ([assets.md](references/assets.md)) and list them in `style.json`.
 4. **Pilot.** Make the chosen chapter through the chapter loop and deliver it for the user's judgement. Fold their feedback into `style.json` and record the chapter under `approved`.
-5. **Remaining chapters and finish**, when the user wants the whole book: write `chapters.md`, produce chapters sequentially (see *Context*), complete cover text, contents and unit sketches using [site.md](references/site.md). Deliver the static book folder, its entry URL for local preview and any unresolved issues.
+5. **Remaining chapters and finish**, when the user wants the whole book: write `chapters.md`, produce chapters sequentially (see *Context*), complete cover text, contents and unit sketches using [site.md](references/site.md). Deliver the static book folder, its entry URL for local preview and any unresolved issues. For an LMS, package it as SCORM ([site.md](references/site.md#scorm-package-optional)).
 
 ## Chapter loop
 
