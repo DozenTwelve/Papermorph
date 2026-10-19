@@ -16,6 +16,8 @@ cp "$SKILL/assets/templates/book.html" "$BOOK_SITE/index.html"
 cp "$SKILL/assets/templates/unit-art.js" "$BOOK_SITE/unit-art.js"
 cp "$SKILL/assets/templates/chapter.html" "$BOOK_SITE/ch01/index.html"
 cp "$SKILL/assets/templates/narration.en.json" "content/$BOOK_ID/ch01/narration.en.json"
+echo '[]' > "$BOOK_WORK/refs.json"                   # cited works; an empty list builds an empty refs.js
+python3 "$SKILL/scripts/refs.py" build "$BOOK_WORK/refs.json" "$BOOK_SITE/refs.js"
 ```
 
 Use the pilot chapter's number in place of `ch01` when the pilot is not the first chapter. Use the agreed primary language: rename the narration source, load `audio/<lang>/timings.js`, and set `CHAPTER.language` to match (default `en`). Take `voice` and `rate` for each narration file from `style.json`, and translate the template's visible UI text as needed before the pilot.
@@ -32,11 +34,12 @@ A chapter returns to its book's index. Preserve cover → contents → chapter n
 
 ## Cover and contents (`index.html`)
 
-One page: no hash or `#book` shows the cover, `#contents` or `#chNN` the contents; a lesson's home button returns to `#chNN`, and the card grows into the lesson frame through a view transition.
+One page: no hash or `#book` shows the cover, `#references` the reference list, `#contents` or `#chNN` the contents; a lesson's home button returns to `#chNN`, and the card grows into the lesson frame through a view transition.
 
 - Edit the title, kicker, lede, the faint chalk phrases on the cover (a few formulas or lines from the book), and the `<title>`.
 - The page's script calls `Contents.book({ start, units, hues })` (from the engine's `lib/contents.js`; the shared styles are `lib/contents.css`). `units`: `[unit title, [[chapter title, minutes], …]]`; chapters are numbered in order from `start` (`{ unit: 1, chapter: 1 }`; a book whose scope starts mid-way, e.g. at unit 3, chapter 9, keeps the original numbers). Add a chapter when its lesson is ready; also set the previous chapter's `CHAPTER.next = '../chNN/'`. An optional third entry `{ unit, chapter, sample: true }` renumbers a unit and marks it as a sample, left out of the chapter count. To show different numbers than the folders, add `label` to `start` (`{ unit: 1, chapter: 9, label: 1 }` shows ch09 as 1) and set the same `CHAPTER.label` in each lesson, which its title screen and completion card show. A chapter's own third entry `{ chapter }` changes only the number on its card; `{ href, chapter }` links a card to another book's chapter, outside this book's count and progress (`href` on a unit's entry does it for the whole unit).
 - `hues`: one colour per unit, cycling.
+- References: the page loads `refs.js`, and the contents ends with one link to the separate `#references` view, which lists every cited work linked to its DOI or catalogue record; a book without citations shows no link. Rebuild `refs.js` whenever `refs.json` changes ([authoring.md](authoring.md#citations)).
 - A book with its own look overrides the tokens of `lib/contents.css` (`--board`, `--chalk`, `--top-bg`, …) in a `<style>` after it, as the template's comment shows; don't copy the stylesheet into the page.
 
 ## Unit sketches (`unit-art.js`)
@@ -55,7 +58,7 @@ Serve the static output over HTTP for audio playback:
 python3 SKILL/scripts/serve.py 8765 site   # no-store, so edits are never hidden by the browser cache
 ```
 
-Open `http://localhost:8765/<book>/`. Confirm the cover opens the contents, ready chapter links load their lessons, and lessons return to the book's contents. Deliver `site/<book>/` with its HTML, scripts, styles and audio, the preview command and entry URL, available chapter count and unresolved issues. Source PDFs, extracted pages, narration drafts and development environments are not part of the static book.
+Open `http://localhost:8765/<book>/`. Confirm the cover opens the contents, ready chapter links load their lessons, lessons return to the book's contents, and reference links open their works. Deliver `site/<book>/` with its HTML, scripts (including `refs.js`), styles and audio, the preview command and entry URL, available chapter count and unresolved issues. Source PDFs, extracted pages, narration drafts and development environments are not part of the static book.
 
 ## Languages
 

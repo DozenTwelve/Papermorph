@@ -26,6 +26,12 @@ uv run --with playwright SKILL/scripts/overlap.py chNN --url http://localhost:87
 
 `shot.py` captures open/end frames of every beat as 4-up sheets and reports console errors. Look for an empty or unrelated opening, text over drawings or clipped at the edge, a card covering what it asks about, leftovers half faded, geometry contradicting its values, shapes inside circles or curves crossing the outline (check thin geometry on the full-size `chNN_bII_T.png`, not only the sheet), text too small at half size or too much at once, and the same idea in different colours. `check_blank.py` reports openings empty for more than a second after speech starts. `overlap.py` samples every beat and lists where an arrow runs through text or two texts collide, with times, so you can look at exactly those frames.
 
+## Questions and citations
+
+For a chapter with an item bank, lint it with the item writer (`python3 MCQ/scripts/lint_items.py books/<book>/items/chNN.items.json`, where `MCQ` is the mcq-item-writer skill's folder) and fix every error; rebuild `items.js` after any change, then answer one bank question per card position, wrong then right, to see the answered card fit with Continue visible.
+
+For a chapter that cites works, run `python3 SKILL/scripts/refs.py verify books/<book>/refs.json` and rebuild `refs.js` after any `refs.json` change. Every author–year or work title on screen should be a link whose key is verified; look for links that are missing, unreadable or overlapping other targets, and open one per chapter to confirm it lands on the work.
+
 ## Smoothness
 
 `uv run --with playwright SKILL/scripts/perf.py chNN --url …` measures frame times in Firefox, which repaints SVG on the main thread and is the slowest common browser for these pages; headless Chromium hides paint cost. Look at the worst beats and transitions; the remedies are in [engine.md](engine.md#performance-firefox).

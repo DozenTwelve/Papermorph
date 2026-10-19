@@ -11,6 +11,7 @@
 <script src="lib/units.js"></script>
 <script src="lib/contents.js"></script>
 <script src="unit-art.js"></script>
+<script src="refs.js"></script><!-- the book's cited works, built by the skill's scripts/refs.py -->
 <link rel="expect" href="#ch01" blocking="render">
 <!-- The book's own look, if it differs from the chalkboard: override the tokens of lib/contents.css here, e.g.
 <style>
@@ -42,6 +43,19 @@
     <span class="prog" id="prog"></span>
   </header>
   <div id="units"></div>
+  <p class="refs-more" id="refsMore" hidden><a href="#references"><b data-t="references">References</b><span id="refsCount"></span><i data-t="viewAll">View all →</i></a></p>
+</main>
+
+<main id="refpage" aria-labelledby="refsTitle">
+  <header class="top">
+    <a class="back" href="#contents" data-t="backToContents">← Contents</a>
+    <span class="rp-book" id="rpBook"></span>
+  </header>
+  <section class="refs" id="references">
+    <h1 id="refsTitle" tabindex="-1" data-t="references">References</h1>
+    <p class="lead" data-t="refsLead">Every work cited in the lessons.</p>
+    <ol id="refList"></ol>
+  </section>
 </main>
 
 <script>

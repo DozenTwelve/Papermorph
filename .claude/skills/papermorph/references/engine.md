@@ -21,6 +21,7 @@ Many drawing helpers are mathematical because the first book was algebra. Use th
 | `G(parent, {x,y,s,r,o})` | group |
 | `path(parent, d, attrs, {d:0})` | path; `{d: 0}` makes it ready to be drawn on with `draw()` |
 | `T(parent, str, {x,y,size,fill,font,weight,anchor,o})` | text |
+| `cite(parent, key, {str,x,y,size,fill,weight,anchor,o})` | a citation from `REFS` (`../refs.js`), drawn as an underlined link that opens the source in a new tab and listed on the finish card ([authoring.md](authoring.md#citations)) |
 | `M(parent, parts, {x,y,size,fill,anchor,o,s})` | math with its baseline at y; parts are strings, `F(n,d)` fractions, `R(x, i)` roots (x may be `F(...)`, i the index), `E(exp)` exponents, `TX(tex)` LaTeX (see [LaTeX](#latex)); returns a group with `_w` (width) |
 | `mathW(parts, size)` | width of math without drawing it |
 | `frac(p, top, bot, x, y, t0, opts)` | built-up fraction whose top and bottom are math parts |
@@ -92,6 +93,7 @@ quiz(position, [{ id: 'c-mean', prompt: ['Find the mean of ', $m('7, 3, 9'), '.'
 
 - Positions: `BAND` (bottom band, y 686–886; long content can push it past the stage, so check it), `TOPR` (top right, ≤ 470 high), `RIGHT`, `SCREEN` (full-screen practice; label `'Chapter practice   N of M'`), `SORT_SCREEN`, or any `{x, y, w, cls: 'side'}`.
 - `choice(options, right, why, wrongWhys[], onRight?)` — number keys.
+- `mcq(id, onRight?)` — a whole quiz entry (`{id, prompt, build: choice(...)}`) from the chapter's item bank: `quiz(TOPR, [mcq('c-attrib'), mcq('c-cause')], done)`. Needs `items.js` (built by `scripts/items.py`) loaded after `engine.js`; an unknown id throws.
 - `blanks(rows)` — rows `{parts: [..., {box: '21'}, ...], why, hint?, fx?, test?}`; accepts −5, 3/4, 2 1/4, 0.75 as exact values; `{box, lowest: true}` demands lowest terms; `test(values)` judges the whole row (e.g. two factors in either order). Tab moves between boxes, Enter checks, Esc leaves a box.
 - `grid(rows, cols, {multi, text})` — rows `{parts, ans: [keys], why, fx?}`, cols `[[key, label, colour?, hotkey?]]`; with `text: true` parts are rich text (math via `$m`). ↑/↓ change rows.
 - `tap(values, right, why, v => wrongWhy, onRight?)` points on the number line; `tapEls(row, idx, right, …)` tokens of a `tokens` row; `pickEls([{el, box: [x,y,w,h], label}], right, …)` any drawn objects; `pickPoint(P, [x,y], why, (x,y) => wrongWhy, onRight?, test?)` grid points (arrows + Enter or click); `sorter(items, trayXY)` drag into the set diagram (keys 1–6).

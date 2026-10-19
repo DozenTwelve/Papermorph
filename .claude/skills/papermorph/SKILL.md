@@ -17,6 +17,8 @@ Follow the pipeline forward, entering at the requested stage for existing work. 
 books/<book>/
   book.pdf, sections.json      source and page map (private)
   pages/chNN/text.md, *.png    extracted reference material (private)
+  refs.json                   cited works with verified DOI/ISBN/URL (scripts/refs.py)
+  items/chNN.items.json       optional choice-question bank per chapter (scripts/items.py)
   style.json                  the agreed style every chapter anchors to (assets/templates/style.json)
   chapters.md                 chapter map and status
   chapters/chNN.md            storyboard, errata, feedback
@@ -26,14 +28,16 @@ content/<book>/chNN/           narration.<lang>.json and TTS cache
 tools/<book>/                 tests and evidence scripts
 site/<book>/                   the static book (only this is delivered)
   index.html, unit-art.js      cover + contents, unit sketches
+  refs.js                      the cited works, built by scripts/refs.py
   lib/engine.*, volume.*,      the engine (player, cover/contents, unit headers), copied into the book by
       contents.*, units.*        scripts/engine.py
   lib/book.css                 this book's engine settings and style overrides
   lib/*.js, img/               the book's element library and images
   chNN/index.html, audio/<lang>/   a lesson, its beat MP3s + timings.js
+  chNN/items.js                built choice questions (scripts/items.py), when the chapter has a bank
 ```
 
-`SKILL` means this skill's absolute folder; `<book>` is the book slug, `<lang>` its primary language code. Existing books keep their paths. Needs: `uv`, `ffmpeg`/`ffprobe`, Edge TTS network access (or Kokoro, local: `uv run --python 3.12 --with kokoro`) and Playwright browsers (`uv run --with playwright playwright install chromium firefox`). Preview: `python3 SKILL/scripts/serve.py 8765 site` (no browser caching).
+`SKILL` means this skill's absolute folder; `<book>` is the book slug, `<lang>` its primary language code. Existing books keep their paths. Needs: `uv`, `ffmpeg`/`ffprobe`, Edge TTS network access (or Kokoro, local: `uv run --python 3.12 --with kokoro`) network access to api.crossref.org and openlibrary.org for references, and Playwright browsers (`uv run --with playwright playwright install chromium firefox`). Preview: `python3 SKILL/scripts/serve.py 8765 site` (no browser caching).
 
 ## Pipeline
 
@@ -47,10 +51,10 @@ Start with intake whenever `books/<book>/style.json` does not exist yet; reuse a
 
 ## Chapter loop
 
-1. **Read** this chapter's `pages/chNN/text.md`; render pages with `split_pages.py … --only chNN` when diagrams or missing text need images. Choose the ideas, examples and sections to teach.
+1. **Read** this chapter's `pages/chNN/text.md`; render pages with `split_pages.py … --only chNN` when diagrams or missing text need images. Choose the ideas, examples and sections to teach. When the chapter names other works (an author–year, a study, a book), add them to `refs.json` and run `refs.py lookup`, `verify` and `build` ([authoring.md](references/authoring.md#citations)).
 2. **Beats and narration**: list beats in `chapters/chNN.md` with what each says and which word triggers which action ([authoring.md](references/authoring.md)). Write `content/<book>/chNN/narration.<lang>.json`, then `uv run --with edge-tts SKILL/scripts/tts.py content/<book>/chNN/narration.<lang>.json site/<book>/chNN/audio/<lang>` (for `"engine": "kokoro"`: `uv run --python 3.12 --with kokoro …`).
 3. **Storyboard, layout first**: in the real page, place everything for one to three key moments per beat, real elements at their real sizes, no motion yet. Capture them into one sheet with `strip.py` and give each frame one line: what it says and where the eye goes. That sheet is the storyboard. Note what the chapter needs beyond the library: draw it, or add it to the image requests.
-4. **Motion**: add the motion, the camera and the questions; API and replay invariants are in [engine.md](references/engine.md).
+4. **Motion**: add the motion, the camera and the questions (choice questions may come from an item bank via `mcq()`, [authoring.md](references/authoring.md#choice-questions-from-an-item-bank)); API and replay invariants are in [engine.md](references/engine.md).
 5. **Delivery pass**: watch your output in motion and judge it as a viewer would, against the storyboard; then run the checks in [review.md](references/review.md). Correct what you find, recheck, deliver; report unresolved problems.
 6. **Register**: add the chapter to the contents (`units` in `Contents.book` in `index.html`), set the previous chapter's `CHAPTER.next`, update `chapters.md` and `chapters/chNN.md`. Promote new shared decisions and recurring elements to `style.json` and the library. The coordinator owns this step when using subagents.
 

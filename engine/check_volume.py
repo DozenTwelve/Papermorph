@@ -22,6 +22,8 @@ async def template(route):
     name = urlparse(route.request.url).path.split("/__volume_template__/")[1]
     if name == "ch01/":
         await route.fulfill(path=SKILL / "assets/templates/chapter.html")
+    elif name.endswith("refs.js"):   # the templates load the book's built reference list
+        await route.fulfill(content_type="text/javascript", body="const REFS = {};")
     elif name.startswith("lib/"):
         await route.fulfill(path=ENGINE / Path(name).name)
     elif name.endswith("timings.js"):

@@ -45,7 +45,7 @@ Pick the type that lets the student act on the picture itself whenever possible 
 
 | Type | Use for |
 | --- | --- |
-| `choice` | One answer from a few options, each wrong option with its own explanation |
+| `choice` / `mcq` | One answer from a few options, each wrong option with its own explanation; `mcq(id)` takes it from the chapter's item bank |
 | `blanks` | Typed numbers inside an expression; fractions and mixed numbers accepted; `test` judges a whole row (answers in any order) |
 | `grid` | Several items, each classified (yes/no, which category, true/false) |
 | `tap` / `tapEls` / `pickEls` | Click a point on the number line / a token in an expression / any drawn object |
@@ -62,8 +62,39 @@ New types are welcome when the content calls for one; each needs keyboard play (
 - Compose the question beat for its card: the picture the question is about stays visible (for example in the top 60 % with a `BAND` card below, or beside a `{x, y, w, cls: 'side'}` card); `SCREEN` for practice.
 - Units in typed answers: write the unit as a word after the box (`{ box: '60' }, ' kilograms'`) so it is not set as a math variable.
 
+### Choice questions from an item bank
+
+A chapter's choice questions can live in a reviewed item bank, `books/<book>/items/chNN.items.json`, instead of inline in the page, so they can be linted, reviewed by a person in a sheet, and approved before release. The bank follows the JSON schema of the [mcq-item-writer](https://github.com/titulartarantula/mcq-item-writer) skill, which writes and lints items against evidence-based item-writing rules (stem with the problem, one best answer, plausible distractors, feedback on every option). Inline `choice` stays fine for a quick check written on the spot.
+
+For a bank used by a page:
+
+- **Ids** keep the book's prefixes: `c-…` for a quick check, `p-…` for practice (the finish card adds them up by prefix).
+- **The card is the screen.** Put the scenario and lead-in in `stem`; no data tables or media (draw the data in the beat and ask about it). Options stay short enough for one line on the card; three options fit a side or band card, four only on a `SCREEN`.
+- **Feedback** on every option, two or three sentences. The engine adds "Correct." / "Not quite.", so don't start with a verdict; `items.py` drops one if present.
+- **Order.** Options show as authored (no shuffle): spread the right answer's position across the chapter.
+
+Build the page's copy after every bank change, and never edit `items.js` by hand:
+
+```sh
+python3 SKILL/scripts/items.py books/<book>/items/chNN.items.json site/<book>/chNN/items.js
+```
+
+The chapter loads `<script src="items.js"></script>` right after `engine.js` and asks with `quiz(TOPR, [mcq('c-attrib')], done)` (engine.md). `items.py` refuses what a card cannot show (multiple-response items, tables, media, no single key) and warns about items not yet marked `approved`.
+
 ## Content rules
 
 - Follow the agreed chapter scope and order. Verify facts, calculations and answers actually used in the finished lesson; correct or replace source errors and note them in `books/<book>/chapters/chNN.md` for the user.
 - Check worked examples as the subject, not only as arithmetic (a push on someone standing on the ground is not the net force).
 - Use the notation and rounding in `style.json` (`look.notation`). Record new shared decisions there.
+
+## Citations
+
+Every work named on screen (an author–year, a quoted study, a book title) can be a live link to that work. Links come from a verified list, never from memory.
+
+1. **List.** Add each cited work to `books/<book>/refs.json`, taking authors, year and full title from the source book's own reference list (`pages/*/text.md`). The key is `surname-surname-year` (`scheper-hughes-lock-1987`); `cite` is the on-screen label (`python3 SKILL/scripts/refs.py --help` lists the entry fields).
+2. **Find.** `python3 SKILL/scripts/refs.py lookup books/<book>/refs.json --write`. It accepts a Crossref DOI only when the year, first author and title all match. For books without a DOI it takes the ISBN of the edition from the cited year (Open Library), which links to its WorldCat record. Decide each `NO CONFIDENT MATCH` by hand: pick the right candidate or a trusted academic page (`url`, e.g. PubMed, JSTOR, ERIC, a university repository). If none exists, keep the citation as plain text and note it in the chapter file.
+3. **Verify.** `python3 SKILL/scripts/refs.py verify books/<book>/refs.json --write` resolves every DOI or ISBN, checks it against the entry, fills in missing metadata and stamps `verified`. Fix every `FAIL`.
+4. **Build.** `python3 SKILL/scripts/refs.py build books/<book>/refs.json site/<book>/refs.js`. Chapters and the contents page load it: the contents ends with a link to a separate References view that lists every work, and each chapter's finish card lists the sources that chapter cites.
+5. **Draw.** `cite(p, key, { x, y, size, fill, anchor, weight, o: 0 })` draws the label as an underlined link and returns it, ready for `show()`/`tw()` like `T`; `str` overrides the label (e.g. `'(1987)'` after a name drawn separately). Text drawn with `T` or written in a card that matches a work's `cite` label (or one of its `match` strings) becomes a link by itself. Clicking a citation opens the source in a new tab and pauses the lesson; faded-out links take no clicks or Tab focus. A work discussed but not drawn goes in `CHAPTER.refs` so the finish card still lists it.
+
+Draw a citation next to the text it supports rather than inside a long sentence, so the link is a separate target of at least 24 px text height.
