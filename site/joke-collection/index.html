@@ -16,9 +16,6 @@
   h1 { margin: 0 0 8px; font: 700 clamp(34px, 4.6vw, 56px)/1.05 var(--serif); }
   .tag { display: inline-block; margin-bottom: 18px; padding: 2px 12px; border: 1.5px solid var(--accent); border-radius: 99px; color: var(--accent); font-size: 14px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
   .lede { font-size: 20px; color: #4a3b2a; }
-  .watch { display: inline-flex; align-items: center; gap: 10px; margin-top: 10px; padding: 14px 26px; border-radius: 99px; background: var(--ink); color: #fff6e0; font-weight: 600; text-decoration: none; }
-  .watch:hover { background: #4a3826; }
-  .watch small { opacity: .75; font-weight: 500; }
   main { max-width: 900px; margin: 0 auto; padding: 8px 24px 80px; }
   h2 { margin: 64px 0 8px; font: 700 32px/1.2 var(--serif); }
   h3 { margin: 32px 0 4px; font: 700 21px/1.3 var(--ui); }
@@ -27,12 +24,17 @@
   figcaption { margin-top: 8px; font-size: 15px; color: var(--soft); }
   .stills { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 18px 0; }
   .stills img { width: 100%; height: auto; border-radius: 6px; display: block; }
-  .episodes { list-style: none; padding: 0; margin: 18px 0; display: grid; gap: 12px; }
-  .episodes a { display: flex; gap: 18px; align-items: center; padding: 14px 18px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; color: var(--ink); text-decoration: none; }
-  .episodes a:hover { border-color: var(--accent); }
-  .episodes b { flex: none; font: 700 22px/1.2 var(--serif); }
-  .episodes span { color: var(--soft); font-size: 15px; }
-  .episodes .soon { padding: 14px 18px; border: 1px dashed var(--line); border-radius: 10px; color: var(--soft); }
+  .episodes { list-style: none; padding: 0; margin: 18px 0 10px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .episodes a { display: flex; flex-direction: column; height: 100%; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; }
+  .episodes a:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .thumb { position: relative; display: block; }
+  .thumb img { display: block; width: 100%; height: auto; }
+  .thumb::after { content: "▶"; position: absolute; left: 10px; bottom: 10px; width: 38px; height: 38px; border-radius: 50%; background: #2f2418d0; color: #fff6e0; font-size: 15px; line-height: 38px; text-align: center; text-indent: 3px; opacity: .85; transition: opacity .15s; }
+  .episodes a:hover .thumb::after { opacity: 1; }
+  .episodes small { margin: 12px 16px 0; color: var(--soft); font-size: 13px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; }
+  .episodes b { margin: 2px 16px 4px; font: 700 21px/1.25 var(--serif); }
+  .episodes span:last-child { margin: 0 16px 16px; color: var(--soft); font-size: 15px; line-height: 1.5; }
+  .soon { margin: 0 0 18px; color: var(--soft); font-size: 15px; }
   .verdict { margin: 18px 0; padding: 4px 22px; border-left: 4px solid var(--accent); background: var(--card); border-radius: 0 8px 8px 0; }
   .numbers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 18px 0; }
   .numbers div { padding: 14px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; text-align: center; }
@@ -42,8 +44,7 @@
   @media (max-width: 760px) {
     header.hero { grid-template-columns: 1fr; padding-top: 28px; }
     .numbers, .stills { grid-template-columns: 1fr 1fr; }
-    .episodes a { flex-direction: column; align-items: flex-start; gap: 4px; }
-    .watch { flex-wrap: wrap; row-gap: 2px; }
+    .episodes { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -55,33 +56,27 @@
     <span class="tag">Short animated jokes</span>
     <h1>Joke Collection</h1>
     <p class="lede">Little jokes, a couple of minutes each. The third way we've tried to make picture books, and the one we're keeping: an image model paints every set and everything that stays still, and paper puppets drawn in code do all the moving.</p>
-    <a class="watch" href="ch01/">▶ Episode 1 <small>Breakfast in the Bathroom · 2 minutes</small></a>
-    <a class="watch" href="ch02/">▶ Episode 2 <small>Do You Need a Bag? · 2 minutes</small></a>
-    <a class="watch" href="ch03/">▶ Episode 3 <small>How to Move a Cow · 2 minutes</small></a>
   </div>
 </header>
 
 <main>
   <h2>Episodes</h2>
-  <ul class="episodes">
-    <li><a href="ch01/"><b>1 · Breakfast in the Bathroom</b><span>Seventh grade. My deskmate had two questions for me, and one morning he asked them both at once. A true story.</span></a></li>
-    <li><a href="ch02/"><b>2 · Do You Need a Bag?</b><span>A convenience store in Fukuoka. A clerk who speaks no English, a customer who speaks no Japanese, and me in line behind them with a hundred-yen coffee. Also true.</span></a></li>
-    <li><a href="ch03/"><b>3 · How to Move a Cow</b><span>A Chinese man, an Indian man and an American are stuck behind a cow that won't budge. Each has his own way to make it walk. An old joke, with a newer ending.</span></a></li>
-    <li class="soon">More jokes coming.</li>
+  <ul class="episodes" id="episodes">
+    <li><a href="ch01/"><span class="thumb"><img src="making/still-stall.webp" width="800" height="450" alt="Me and Bo at the bun stall."></span><small>Episode 1 · 2 minutes</small><b>Breakfast in the Bathroom</b><span>Seventh grade. My deskmate had two questions for me, and one morning he asked them both at once. A true story.</span></a></li>
+    <li><a href="ch02/"><span class="thumb"><img src="making/ep2-veggie.webp" width="800" height="450" alt="The customer hears “reji” as “veggie”."></span><small>Episode 2 · 2 minutes</small><b>Do You Need a Bag?</b><span>A convenience store in Fukuoka. A clerk who speaks no English, a customer who speaks no Japanese, and me in line behind them with a hundred-yen coffee. Also true.</span></a></li>
+    <li><a href="ch03/"><span class="thumb"><img src="making/ep3-hay.webp" width="800" height="450" alt="The cow walks after hay hung from a rod on its own back."></span><small>Episode 3 · 2 minutes</small><b>How to Move a Cow</b><span>A Chinese man, an Indian man and an American are stuck behind a cow that won’t budge. Each has his own way to make it walk. An old joke, with a newer ending.</span></a></li>
   </ul>
+  <p class="soon">More jokes coming.</p>
 
   <div class="stills">
-    <img src="making/still-stall.webp" width="800" height="450" alt="Me and Bo at the bun stall, each with a bun." loading="lazy">
     <img src="making/still-rain.webp" width="800" height="450" alt="The same stall in the rain, with umbrellas." loading="lazy">
     <img src="making/still-door.webp" width="800" height="450" alt="Bo, late and out of breath, in the classroom door." loading="lazy">
     <img src="making/still-dream.webp" width="800" height="450" alt="A daydream: a bun and soy milk laid out on a squat toilet." loading="lazy">
     <img src="making/still-laugh.webp" width="800" height="450" alt="The whole class laughing." loading="lazy">
     <img src="making/cover.webp" width="1400" height="788" alt="Bo's two thoughts merged into one." loading="lazy">
     <img src="making/ep2-street.webp" width="800" height="450" alt="Episode 2: walking into the Happy Mart at dusk." loading="lazy">
-    <img src="making/ep2-veggie.webp" width="800" height="450" alt="Episode 2: the customer hears 'reji' as 'veggie'." loading="lazy">
     <img src="making/ep2-exchange.webp" width="800" height="450" alt="Episode 2: the clerk wonders if she wants to change dollars into yen." loading="lazy">
     <img src="making/ep3-road.webp" width="800" height="450" alt="Episode 3: three men and a cow that won't move, on a country road." loading="lazy">
-    <img src="making/ep3-hay.webp" width="800" height="450" alt="Episode 3: the cow walks after hay hung from a fishing rod tied to its own back." loading="lazy">
     <img src="making/ep3-flat.webp" width="800" height="450" alt="Episode 3: the cow gives up and lies flat in the road." loading="lazy">
   </div>
 
@@ -124,7 +119,6 @@
   <div class="verdict">
     <p><b>Why we're keeping this one.</b> The paintings carry the look, the puppets carry the acting, and neither has to do the other's job. The sets and props carry over to the next joke. This is the method we're building the Papermorph Skill's picture books on.</p>
   </div>
-  <p><a class="watch" href="ch01/">▶ Watch episode 1</a></p>
 </main>
 <footer>Both episodes are true stories, retold. Sets and props painted with OpenAI's gpt-image; puppets, weather and animation drawn in code; voices with Microsoft Edge text-to-speech; music from Google Lyria (made for The Three Little Pigs); sound effects synthesized. Part of <a href="../">Papermorph</a>.</footer>
 </body>
