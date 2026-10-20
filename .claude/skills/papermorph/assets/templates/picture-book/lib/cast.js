@@ -2,7 +2,7 @@
    touching eyes, a mouth low on the face, mitten hands. Built at the feet (0, 0) facing us. They turn by sliding the
    face to one side (look -1 … 1), as that show does; the paper pieces never deform.
    pose(o, f): x, y, s; look (face slide), eyeX/eyeY (pupils, -1 … 1), lids (0 open … 1 shut; .55 is deadpan), shut
-   (blink), mouth (a Rhubarb shape or an expression below), brow (0 none, >0 angry, <0 worried), headR, bob, squash,
+   (blink), mouth (a Rhubarb shape or an expression below), brow (0 none, <0 angry, >0 worried), headR, bob, squash,
    armL/armR (degrees, + raises outward; 0 hangs at the side), legL/legR (degrees), sit (hide legs), hold (prop key).
 
    To add a character: write another entry in SHAPES (copy `kid` and change the numbers: sx/sy the shoulder, hipX the

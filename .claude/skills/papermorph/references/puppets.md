@@ -25,7 +25,7 @@ Two cast styles are on the shelf, both from the same kit: jointed storybook figu
 
 ## Performance
 
-Paper filters are expensive live. Every finished piece is baked to a bitmap: sets with `bake_sets.py` (SVG sketches) or `painted.py` (painted pictures), puppet and prop pieces with `bake_puppets.py`, which seeks every episode to its end so each piece is asked for once and writes `img/puppets/<hash>.webp` with `baked.js`. The parts that change every frame (eyes, mouths, brows, fingers) stay live. Rebake after changing any piece; a piece missing from `baked.js` is baked in the browser and costs a stall. Full-frame effects that change every frame (the flicker) live outside the SVG so the picture isn't redrawn each frame.
+Paper filters are expensive live. Every finished piece is baked to a bitmap: sets with `bake_sets.py` (SVG sketches) or `painted.py` (painted pictures), puppet and prop pieces with `bake_puppets.py`, which seeks every episode to its end so each piece is asked for once and writes `img/puppets/<hash>.webp` with `baked.js`. The parts that change every frame (eyes, mouths, brows, fingers) stay live. In a series every episode's pieces share one folder: `bake_puppets.py` adds new pieces and keeps the others, and `--clean` rebakes every episode before replacing them, so leave the folder to it (a hand-written prune once deleted a published episode's pieces; git brought them back). Rebake after changing any piece; a piece missing from `baked.js` is baked in the browser and costs a stall. Full-frame effects that change every frame (the flicker) live outside the SVG so the picture isn't redrawn each frame.
 
 ## Seeing your own work
 
