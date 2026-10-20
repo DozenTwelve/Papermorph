@@ -1915,8 +1915,13 @@ function ui() {
   if (step !== stepText) { stepText = step; $('stepName').textContent = step; }
   const b = BEATS[P.i];
   let text = '';
-  if (captions && P.started && !b.ask && !P.done) {
-    for (const [t, line] of TIMINGS[b.id].cues) { if (t + (b.pre || 0) > P.t + .05) break; text = line; }
+  if (P.started && !b.ask && !P.done) {
+    // a cue is [start, line], [start, line, end] or [start, line, end, 1]: with an end, the caption clears once its
+    // words are over; a 1 marks a line in another language, whose subtitle shows even with captions off
+    for (const [t, line, end, forced] of TIMINGS[b.id].cues) {
+      if (t + (b.pre || 0) > P.t + .05) break;
+      text = (captions || forced) && !(end != null && P.t > end + (b.pre || 0)) ? line : '';
+    }
   }
   if (text !== capText) { capText = text; $('caption').textContent = text; $('caption').hidden = !text; }
 }
