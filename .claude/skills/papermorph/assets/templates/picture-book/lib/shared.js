@@ -37,4 +37,4 @@ function sfxTick() {
   sfxLast = { i: P.i, t: P.t };
   requestAnimationFrame(sfxTick);
 }
-requestAnimationFrame(sfxTick);
+addEventListener('load', () => requestAnimationFrame(sfxTick));   // after the chapter's own scripts define BEATS
