@@ -93,17 +93,24 @@ function classroom(p, holds = {}) {
 /* ---------- episode 2: the homework, the teacher, the dog ---------- */
 // A sheet of homework held up by its bottom edge (the hand at (0, 0)). grease: the oil stain from a bun; bite 0–2: how
 // much of it a dog has eaten from the top; blank: nothing written; perfect: a red 100 in the corner.
-function hwSVG({ grease = false, bite = 0, blank = false, perfect = false } = {}) {
+// name: 'Bo' written at the top (so a blank one reads as blank); grease: true or 'big' (for an insert); paw: a muddy
+// paw print in the corner (the dog signed it).
+function hwSVG({ grease = false, bite = 0, blank = false, perfect = false, name = '', paw = false } = {}) {
   const top = [-92, -92, -50][bite];
   const sheet = ['M-34,-92 H34 V-4 H-34 Z', 'M-34,-92 H2 a14,14 0 0 0 16,14 a12,12 0 0 0 16,10 V-4 H-34 Z',
     'M-34,-50 a12,12 0 0 0 18,-6 a14,14 0 0 0 22,4 a14,14 0 0 0 28,-6 V-4 H-34 Z'][bite];
   const lines = blank ? '' : [-78, -66, -54, -42, -30, -18].filter(y => y > top + 6)
     .map((y, i) => `<path d="M-26,${y} q6,-4 12,0 t12,0 t12,0 ${i % 2 ? 't12,0' : 't12,0 t8,0'}" fill="none" stroke="#3a4f86" stroke-width="2.2"/>`).join('');
   return `<g filter="url(#paper)"><path d="${sheet}" fill="#fbfaf4"/><path d="M-34,${top + 2} V-4" stroke="#e89a9a" stroke-width="2"/>${lines}
-    ${grease ? '<ellipse cx="10" cy="-34" rx="15" ry="11" fill="#e0b25a" opacity=".55"/>' : ''}
+    ${grease === 'big' ? '<path d="M-6,-48 q14,-10 30,-2 q12,8 4,22 q-8,14 -26,10 q-18,-4 -16,-16 q0,-8 8,-14 Z" fill="#c98f2e" opacity=".7"/><ellipse cx="10" cy="-36" rx="9" ry="6" fill="#f3d79a" opacity=".6"/>'
+      : grease ? '<ellipse cx="10" cy="-34" rx="15" ry="11" fill="#e0b25a" opacity=".55"/>' : ''}
+    ${name && top < -80 ? `<text x="-24" y="-80" font-family="Chalkboard, Comic Sans MS, sans-serif" font-size="12" font-weight="700" fill="#3a4f86">${name}</text>` : ''}
+    ${paw ? '<g fill="#7a5a3c" opacity=".85"><ellipse cx="18" cy="-18" rx="7" ry="6"/><circle cx="10" cy="-27" r="2.6"/><circle cx="15" cy="-30" r="2.6"/><circle cx="21" cy="-30" r="2.6"/><circle cx="26" cy="-26" r="2.6"/></g>' : ''}
     ${perfect ? '<text x="16" y="-70" font-family="Chalkboard, Comic Sans MS, sans-serif" font-size="22" font-weight="700" fill="#d8322c" text-anchor="middle">100</text><ellipse cx="16" cy="-77" rx="19" ry="13" fill="none" stroke="#d8322c" stroke-width="2.5"/>' : ''}</g>`;
 }
 // A pencil, centred, lying crosswise (as the dog carries it).
+// A torn scrap of a homework sheet (in the dog's mouth corner after the bites), centred.
+const scrapSVG = `<g filter="url(#paper)"><path d="M-9,-7 L8,-9 L10,-2 L6,1 L9,7 L-7,8 L-10,2 Z" fill="#fbfaf4"/><path d="M-6,-2 q4,-3 8,0 t6,0" fill="none" stroke="#3a4f86" stroke-width="1.6"/></g>`;
 const pencilSVG = `<g filter="url(#paper)"><rect x="-34" y="-5" width="60" height="10" fill="#f2c230"/><path d="M26,-5 L40,0 L26,5 Z" fill="#e8c9a0"/><path d="M36,-1.5 L40,0 L36,1.5 Z" fill="#3a3430"/><rect x="-42" y="-5" width="9" height="10" rx="2" fill="#e88a9a"/></g>`;
 
 /* The front of the classroom, seen by the pupils: the teacher behind her desk on the right of the blackboard, only
@@ -119,7 +126,9 @@ function teacherSet(p, holds = {}) {
 // mirror it (x 1600 - 860).
 const DOG_DESK = { x: 860, y: 724, s: .7 };
 // Late afternoon light for the detention: a warm wash over the whole frame (draw it last, over the camera).
-const dusk = p => mk('rect', { width: 1600, height: 900, fill: '#ff9a3c', opacity: .2, 'pointer-events': 'none' }, p);
+const dusk = p => { const g = mk('g', { 'pointer-events': 'none' }, p);
+  mk('rect', { width: 1600, height: 900, fill: '#c2501e', opacity: .2, style: 'mix-blend-mode: multiply' }, g);
+  mk('rect', { width: 1600, height: 900, fill: '#ffa040', opacity: .18 }, g); return g; };
 
 /* ---------- sound effects ----------
    sfx(beat, at, name, vol): play audio/sfx/<name>.mp3 when the clock of beat `beat` passes `at` in normal playback
@@ -135,7 +144,8 @@ function sfxTick() {
   if (!same) while (sfxOn.length) sfxOn.pop().pause();
   if (on && same)
     for (const e of SFX) if (e.beat === id && e.at > sfxLast.t && e.at <= P.t) {
-      const a = new Audio(`audio/sfx/${e.name}.mp3`); a.volume = .5 * e.vol * +(document.getElementById('volume')?.value ?? 1);   // effects sit under the voices a.playbackRate = P.rate || 1;
+      const a = new Audio(`audio/sfx/${e.name}.mp3`); a.volume = .5 * e.vol * +(document.getElementById('volume')?.value ?? 1);   // effects sit under the voices
+      a.playbackRate = P.rate || 1;
       a.play().catch(() => {}); sfxOn.push(a); a.onended = () => sfxOn.splice(sfxOn.indexOf(a), 1);
     }
   for (const a of sfxOn) if (on === a.paused) on ? a.play().catch(() => {}) : a.pause();   // a pause holds them, play resumes

@@ -142,11 +142,12 @@ const teacherPuppet = (p, o) => spKid(p, 'teacher', { coat: '#8c2f45', stripe: '
 /* The bun seller's dog (episode 2), side-on as the show draws its dogs. Built at its feet (0, 0) facing right, about
    190 long and 170 tall at s = 1. pose(o, f): x, y, s, dir (1 faces right, -1 left), headR (+ looks up), jaw (0 shut …
    1 open), tail (degrees, + up), wag (the tail swings on twos), ear (degrees), shut, lids, eyeX (-1 … 1 along its look),
-   sit (on its haunches), lie (flat on the ground, asleep), walk (legs scissor on twos), bob, glasses, tongue,
+   sit (on its haunches; 0…1 or true, ease it over ~0.3 s), lie (flat on the ground, front paws out, 0…1 or true; asleep
+   unless lie is 'awake'), walk (legs scissor on twos), bob, glasses, tongue, sniff (the nose twitches),
    hold (prop key, carried crosswise in its mouth). */
 const DOG = { coat: '#ece5d6', dark: '#6b5444', far: '#cdc3b1', muzzle: '#fbf8f0' };
 const REST_DOG = { x: 0, y: 0, s: 1, dir: 1, headR: 0, jaw: 0, tail: 0, wag: false, ear: 0, shut: false, lids: 0, eyeX: 0,
-  sit: false, lie: false, walk: false, bob: 0, glasses: false, tongue: false, hold: null };
+  sit: false, lie: false, walk: false, bob: 0, glasses: false, tongue: false, sniff: false, hold: null };
 function dogPuppet(parent, { holds = {} } = {}) {
   const g = mk('g', {}, parent), id = 'dogc' + (++spClip), C = DOG;
   const leg = (k, col) => `<g data-p="leg${k}"><g filter="url(#paper)"><rect x="-11" y="0" width="22" height="58" rx="8" fill="${col}"/><ellipse cx="6" cy="56" rx="13" ry="7" fill="${C.dark}"/></g></g>`;
@@ -161,14 +162,14 @@ function dogPuppet(parent, { holds = {} } = {}) {
           <circle cx="94" cy="-132" r="38" fill="${C.coat}"/><ellipse cx="128" cy="-106" rx="24" ry="9" fill="#4a1a14"/></g>
         <g data-p="jaw"><g filter="url(#paper)"><path d="M100,-108 Q150,-106 150,-98 Q132,-86 100,-96 Z" fill="${C.muzzle}"/></g>
           <ellipse data-p="tongue" cx="138" cy="-90" rx="9" ry="12" fill="#e06f7a"/></g>
-        <g filter="url(#paper)"><ellipse cx="128" cy="-116" rx="28" ry="15" fill="${C.muzzle}"/><ellipse cx="154" cy="-122" rx="8.5" ry="6.5" fill="${SP_INK}"/></g>
+        <g filter="url(#paper)"><ellipse cx="128" cy="-116" rx="28" ry="15" fill="${C.muzzle}"/></g><g data-p="nose"><g filter="url(#paper)"><ellipse cx="154" cy="-122" rx="8.5" ry="6.5" fill="${SP_INK}"/></g></g>
         <clipPath id="${id}">${eye}/></clipPath>
         <g data-p="whites" filter="url(#paper)">${eye} fill="#fff"/></g>
         <circle data-p="pupil" cx="102" cy="-142" r="4.8" fill="${SP_INK}"/>
         <g clip-path="url(#${id})"><g data-p="lids"><rect x="86" y="-182" width="28" height="26" fill="${C.coat}"/><path d="M86,-155 H114" stroke="${SP_INK}" stroke-width="3"/></g></g>
         ${eye} fill="none" stroke="${SP_INK}" stroke-width="2"/>
         <g data-p="ear"><g filter="url(#paper)"><path d="M0,0 C-22,4 -26,40 -12,62 C-2,52 10,28 8,0 Z" fill="${C.dark}"/></g></g>
-        <g data-p="glasses" fill="none" stroke="${SP_INK}" stroke-width="3.5"><circle cx="101" cy="-142" r="16"/><path d="M85,-144 L64,-150"/></g>
+        <g data-p="glasses" fill="none" stroke="${SP_INK}" stroke-width="3.5"><circle cx="101" cy="-142" r="16"/><path d="M85,-144 L64,-150 M117,-145 Q122,-149 127,-146"/><ellipse cx="135" cy="-143" rx="7" ry="13"/></g>
         ${Object.entries(holds).map(([k, s]) => `<g data-p="hold_${k}" transform="translate(134,-100)">${s}</g>`).join('')}
       </g></g>${leg('B1', C.coat)}${leg('F1', C.coat)}</g>`;
   bakeAll(g);
@@ -179,20 +180,24 @@ function dogPuppet(parent, { holds = {} } = {}) {
     o = { ...REST_DOG, ...o };
     const j = k => .35 * jit(f >> 1, k), k2 = Math.floor(f / 2) % 2 ? 1 : -1;
     tf(g, `translate(${(o.x + j(1) * .8).toFixed(1)},${(o.y + j(2) * .6).toFixed(1)}) scale(${(o.s * o.dir).toFixed(3)},${o.s})`);
-    tf(P.all, `translate(0,${(o.bob + (o.lie ? 50 : 0)).toFixed(1)})`);
-    const a = o.sit ? -16 : 0;
+    const L = o.lie === true || o.lie === 'awake' ? 1 : +o.lie || 0, S = o.sit === true ? 1 : +o.sit || 0;
+    tf(P.all, `translate(0,${(o.bob + 50 * L).toFixed(1)})`);
+    const a = -16 * S;
     tf(P.torso, `rotate(${(a + j(3) * .4).toFixed(2)},-50,-56)`);
-    vis(P.haunch, o.sit); vis(P.legB1, !o.sit && !o.lie); vis(P.legB2, !o.sit && !o.lie); vis(P.legF1, !o.lie); vis(P.legF2, !o.lie);
-    const sw = o.walk ? 18 * k2 : 0, [fx, fy] = turn(o.sit ? 30 : 46, -60, a), fl = (-fy) / 60;   // front legs reach the ground from the shoulder
-    tf(P.legB1, `translate(-50,-60) rotate(${(sw + j(4) * .5).toFixed(2)})`); tf(P.legB2, `translate(-34,-60) rotate(${(-sw + j(5) * .5).toFixed(2)})`);
-    tf(P.legF1, `translate(${fx.toFixed(1)},${fy.toFixed(1)}) rotate(${(-sw + j(6) * .5).toFixed(2)}) scale(1,${fl.toFixed(3)})`);
-    tf(P.legF2, `translate(${(fx + 14).toFixed(1)},${fy.toFixed(1)}) rotate(${(sw + j(7) * .5).toFixed(2)}) scale(1,${fl.toFixed(3)})`);
+    // sitting folds the back legs under the haunch; lying shortens the back legs away and swings the front paws forward
+    vis(P.haunch, S > .4); vis(P.legB1, S <= .4 && L < .95); vis(P.legB2, S <= .4 && L < .95);
+    const sw = o.walk ? 18 * k2 : 0, [fx, fy] = turn(30 + 16 * (1 - S), -60, a), fl = (-fy) / 60, bl = 1 - L;   // front legs reach the ground from the shoulder
+    tf(P.legB1, `translate(-50,-60) rotate(${(sw + j(4) * .5).toFixed(2)}) scale(1,${bl.toFixed(3)})`); tf(P.legB2, `translate(-34,-60) rotate(${(-sw + j(5) * .5).toFixed(2)}) scale(1,${bl.toFixed(3)})`);
+    const fr = -90 * L, fs = fl * (1 - .3 * L);
+    tf(P.legF1, `translate(${fx.toFixed(1)},${fy.toFixed(1)}) rotate(${(-sw + fr + j(6) * .5).toFixed(2)}) scale(1,${fs.toFixed(3)})`);
+    tf(P.legF2, `translate(${(fx + 14).toFixed(1)},${fy.toFixed(1)}) rotate(${(sw + fr + j(7) * .5).toFixed(2)}) scale(1,${fs.toFixed(3)})`);
     tf(P.tail, `translate(-78,-92) rotate(${(-o.tail - (o.wag ? 16 * k2 : 0) + j(8)).toFixed(2)})`);
     tf(P.head, `rotate(${(-o.headR - a + j(9) * .6).toFixed(2)},62,-104)`);
     tf(P.jaw, `rotate(${(o.jaw * 30).toFixed(1)},100,-102)`);
     tf(P.ear, `translate(80,-158) rotate(${(o.ear + j(10) * 2).toFixed(2)})`);
     tf(P.pupil, `translate(${(o.eyeX * 5).toFixed(1)},0)`);
-    tf(P.lids, `translate(0,${((o.shut || o.lie ? 1 : o.lids) * 26).toFixed(1)})`);
+    tf(P.lids, `translate(0,${((o.shut || (L > .5 && o.lie !== 'awake') ? 1 : o.lids) * 26).toFixed(1)})`);
+    tf(P.nose, o.sniff ? `translate(154,-122) scale(${(1 + .18 * (f % 2)).toFixed(2)}) translate(-154,-122)` : '');   // sniffing: the nose twitches every frame
     vis(P.glasses, o.glasses); vis(P.tongue, o.tongue);
     for (const k of holdKeys) vis(P[`hold_${k}`], o.hold === k);
   } };
