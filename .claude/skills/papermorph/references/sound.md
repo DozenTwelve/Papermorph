@@ -5,7 +5,7 @@ Voices carry the story; everything else sits under them. In early cuts the music
 ## Voices
 
 - **One voice per character.** List them under `voices` in `narration.<lang>.json` and write each line as `{"speaker": name, "text": …}`; `tts.py` synthesizes every line (Edge voices, with rate and pitch: children were adult voices sped up and pitched up). The narrator is a voice too.
-- **Lines in other languages** are spoken in their own language by a native voice (Edge has Japanese, Chinese, Korean and more) and subtitled in the book's language. The caption shows both: the original and the translation in brackets.
+- **Lines in other languages** are spoken in their own language by a native voice (Edge has Japanese, Chinese, Korean and more) and subtitled in the book's language. The caption shows both: the original and the translation in brackets. Write it as the beat's `"sub"`; `tts.py` marks such a line (its voice's locale differs from the narration file's language) so the page shows its subtitle even with captions off, the way films subtitle foreign dialogue.
 - **Mouths** follow the words: `mouths.py` turns each line's word timings into mouth shapes, and `lips(q, scene, pre, line…)` picks the shape for the frame.
 - **One clip per scene.** `join.py` joins a scene's lines into one audio clip with short pauses, and inserts silence where the action needs room (`line@T+S`: S seconds of silence T seconds into the line). Gaps for a held stare, a fly landing, a class turning round belong here, not in rushed animation. Changing a line means `tts.py`, `mouths.py` and `join.py` again.
 

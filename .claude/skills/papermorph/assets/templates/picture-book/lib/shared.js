@@ -20,20 +20,24 @@ const artSVG = (name, x, y, w, h) => `<image href="../img/props/${name}.webp" x=
 
 /* ---------- sound effects ----------
    sfx(beat, at, name, vol): play audio/sfx/<name>.mp3 (SKILL/scripts/sfx.py) when the clock of beat `beat` passes `at`
-   in normal playback (seeking past it does not fire it). Pausing stops them. They play at half volume under the voices. */
+   in normal playback (seeking past it does not fire it). Pausing holds them; a seek stops them. They play at half volume under the voices. */
 const SFX = [], sfxOn = [];
 const sfx = (beat, at, name, vol = 1) => SFX.push({ beat, at, name, vol });
 let sfxLast = { i: -1, t: 0 };
 function sfxTick() {
   const id = BEATS[P.i]?.id, on = P.started && P.playing && !P.waiting && !P.done;
-  if (on && sfxLast.i === P.i && P.t > sfxLast.t && P.t - sfxLast.t < .5)
+  // the clock ran on (or stood still, paused) in the same beat; anything else is a seek, a replay or a new scene,
+  // and what was playing belongs to another moment
+  const same = sfxLast.i === P.i && P.t >= sfxLast.t && P.t - sfxLast.t < .5;
+  if (!same) while (sfxOn.length) sfxOn.pop().pause();
+  if (on && same)
     for (const e of SFX) if (e.beat === id && e.at > sfxLast.t && e.at <= P.t) {
       const a = new Audio(`audio/sfx/${e.name}.mp3`);
       a.volume = .5 * e.vol * +(document.getElementById('volume')?.value ?? 1);   // effects sit under the voices
       a.playbackRate = P.rate || 1;
       a.play().catch(() => {}); sfxOn.push(a); a.onended = () => sfxOn.splice(sfxOn.indexOf(a), 1);
     }
-  if (!on) while (sfxOn.length) sfxOn.pop().pause();
+  for (const a of sfxOn) if (on === a.paused) on ? a.play().catch(() => {}) : a.pause();   // a pause holds them, play resumes
   sfxLast = { i: P.i, t: P.t };
   requestAnimationFrame(sfxTick);
 }

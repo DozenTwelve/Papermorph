@@ -41,12 +41,14 @@ const BEATS = [
 const BGM = [/* ['theme', ['scene1', 'scene2'], .3] */]
   .map(([n, beats, gain]) => ({ n, beats, gain, a: Object.assign(new Audio(`audio/bgm/${n}.mp3`), { preload: 'auto', loop: true, volume: 0 }), v: 0 }));
 const beatLen = id => { const b = BEATS.find(x => x.id === id); return (b.pre || 0) + TIMINGS[id].dur + .6; };
-let lastTick = performance.now();
+let lastTick = performance.now(), duck = .3;
 function bgmTick(now) {
   const dt = Math.min(.1, (now - lastTick) / 1000); lastTick = now;
   const id = BEATS[P.i]?.id, on = P.started && P.playing && !P.waiting && !P.done;
-  const speaking = P.audio && !P.audio.paused && !P.audio.ended;
-  const vol = +(document.getElementById('volume')?.value ?? 1) * (speaking ? .3 : .7);   // the music ducks well under the voices
+  // the music ducks well under the voices for the whole of a scene that has them (its silent opening and tail too, so
+  // it does not swell between lines), easing over about half a second
+  duck += Math.max(-dt, Math.min(dt, (P.audio ? .3 : .7) - duck));
+  const vol = +(document.getElementById('volume')?.value ?? 1) * duck;
   for (const m of BGM) {
     const k = m.beats.indexOf(id), current = on && k >= 0 && !(window.MUSIC_OFF?.[id]?.(P.t));
     m.v = Math.max(0, Math.min(1, m.v + (current ? 1 : -1) * dt / .8));

@@ -202,12 +202,13 @@ async def main(src, out_dir):
     if engine not in ("edge", "kokoro"):
         raise SystemExit(f"unknown engine {engine!r}: use edge or kokoro")
     result = {}
-    public = lambda v: {k: v[k] for k in ("dur", "marks", "cues")}
+    public = lambda v: {k: v[k] for k in ("dur", "marks", "cues", "forced") if k in v}
     live = {b: public(v) for b, v in cache.items()
             if {"dur", "marks", "cues"} <= v.keys() and (out_dir / f"{b}.mp3").exists()}
     timings_path = out_dir / "timings.js"
     for beat, raw in spec["beats"].items():
         who = voices[raw["speaker"]] if isinstance(raw, dict) else spec
+        sub = raw.get("sub") if isinstance(raw, dict) else None   # the line's subtitle, one cue for the whole clip
         raw = raw["text"] if isinstance(raw, dict) else raw
         voice, rate, pitch = who["voice"], who.get("rate", "+0%"), who.get("pitch", "+0Hz")
         if pitch != "+0Hz" and engine == "kokoro":
@@ -234,7 +235,11 @@ async def main(src, out_dir):
                 words = (kokoro_beat(clean, voice, rate, clip) if engine == "kokoro"
                          else await edge_beat(beat, clean, voice, rate, clip, out_dir, pitch))
             entry = {"key": key, "dur": duration(clip), "words": words,
-                     "marks": mark_times(clean, marks, words), "cues": caption_cues(clean, words)}
+                     "marks": mark_times(clean, marks, words), "cues": [[0, sub]] if sub else caption_cues(clean, words)}
+            # a line in another language than the book's (its voice's locale differs): the page shows its subtitle even
+            # with captions off, as films do with foreign dialogue
+            if sub and "-" in voice and voice.split("-")[0].lower() != Path(src).stem.split(".")[-1].lower():
+                entry["forced"] = True
             if tmp:
                 tmp.replace(mp3)
                 print(f"{beat}: synthesized")
