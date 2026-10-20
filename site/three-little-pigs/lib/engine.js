@@ -1827,7 +1827,9 @@ function start(i, play) {
 }
 // The next beat's clip starts loading while this one plays, so a slow connection does not stall between beats.
 function beatClip(i, take) {
-  const src = `audio/${CHAPTER.language || 'en'}/${BEATS[i].id}.mp3`;
+  // the clip's length rides on the URL: regenerated narration gets a new address, so a browser cache cannot pair new
+  // timings with an old clip
+  const src = `audio/${CHAPTER.language || 'en'}/${BEATS[i].id}.mp3?v=${TIMINGS[BEATS[i].id]?.dur ?? ''}`;
   let a = P.nextClip?._src === src ? P.nextClip : null;
   if (!a) {
     if (P.nextClip && P.nextClip !== P.audio) { P.nextClip.removeAttribute('src'); P.nextClip.load(); }   // abandon a stale preload
