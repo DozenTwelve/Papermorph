@@ -69,7 +69,8 @@ window.TIMINGS = {
     0,
     "这是暴力！  (That's violence!)"
    ]
-  ]
+  ],
+  "forced": true
  },
  "s07": {
   "dur": 3.72,
@@ -79,7 +80,8 @@ window.TIMINGS = {
     0,
     "He Gau Mata, kripya aage chaliye.  (O Mother Cow, please walk on.)"
    ]
-  ]
+  ],
+  "forced": true
  },
  "s08": {
   "dur": 1.896,
@@ -89,7 +91,8 @@ window.TIMINGS = {
     0,
     "这是迷信！  (That's superstition!)"
    ]
-  ]
+  ],
+  "forced": true
  },
  "s09": {
   "dur": 6.816,
@@ -123,7 +126,8 @@ window.TIMINGS = {
     0,
     "看到了吗？我没有强迫它，它是自愿往前走的！  (See? I'm not forcing it. It's walking of its own free will!)"
    ]
-  ]
+  ],
+  "forced": true
  },
  "s12": {
   "dur": 7.8,
@@ -149,6 +153,24 @@ window.TIMINGS = {
    ]
   ]
  },
+ "s13b": {
+  "dur": 9.888,
+  "marks": {},
+  "cues": [
+   [
+    0.102,
+    "Lying flat means you stop chasing the carrot."
+   ],
+   [
+    3.685,
+    "No more overtime, no more racing for a promotion."
+   ],
+   [
+    7.786,
+    "You just lie down."
+   ]
+  ]
+ },
  "s14": {
   "dur": 5.76,
   "marks": {},
@@ -157,7 +179,8 @@ window.TIMINGS = {
     0,
     "你这个可恶的境外势力！是不是你煽动我的牛躺平的？  (You evil foreign hostile force! Did YOU incite my cow to lie flat?!)"
    ]
-  ]
+  ],
+  "forced": true
  },
  "s15": {
   "dur": 1.872,

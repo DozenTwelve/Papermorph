@@ -41,9 +41,10 @@ window.TIMINGS = {
   "cues": [
    [
     0,
-    "Reji-bukuro wa go-riy\u014d desu ka?  (Do you need a bag?)"
+    "Reji-bukuro wa go-riyō desu ka?  (Do you need a bag?)"
    ]
-  ]
+  ],
+  "forced": true
  },
  "s04": {
   "dur": 3.576,
@@ -51,7 +52,7 @@ window.TIMINGS = {
   "cues": [
    [
     0.098,
-    "Um\u2026 I'm not vegetarian."
+    "Um… I'm not vegetarian."
    ]
   ]
  },
@@ -75,9 +76,10 @@ window.TIMINGS = {
   "cues": [
    [
     0,
-    "\u4e21\u66ff\u306f\u3057\u3066\u304a\u308a\u307e\u305b\u3093\u3002  (We don't do currency exchange.)"
+    "両替はしておりません。  (We don't do currency exchange.)"
    ]
-  ]
+  ],
+  "forced": true
  },
  "s07": {
   "dur": 2.568,
@@ -95,9 +97,10 @@ window.TIMINGS = {
   "cues": [
    [
     0,
-    "\u3042\u3001\u306f\u3044\uff01  (Oh! Yes!)"
+    "あ、はい！  (Oh! Yes!)"
    ]
-  ]
+  ],
+  "forced": true
  },
  "s09": {
   "dur": 2.184,
@@ -105,9 +108,10 @@ window.TIMINGS = {
   "cues": [
    [
     0,
-    "\u3042\u308a\u304c\u3068\u3046\u3054\u3056\u3044\u307e\u3057\u305f\uff01  (Thank you very much!)"
+    "ありがとうございました！  (Thank you very much!)"
    ]
-  ]
+  ],
+  "forced": true
  },
  "s10": {
   "dur": 2.04,
@@ -145,7 +149,8 @@ window.TIMINGS = {
     0,
     "Ah, she's my friend. She's paying for my coffee too. It's fine."
    ]
-  ]
+  ],
+  "forced": true
  },
  "s13": {
   "dur": 4.272,
@@ -153,9 +158,10 @@ window.TIMINGS = {
   "cues": [
    [
     0,
-    "\u3042\u3063\u3001\u305d\u3046\u3067\u3057\u305f\u304b\uff01  (Oh, I see! Thank you very much!)"
+    "あっ、そうでしたか！  (Oh, I see! Thank you very much!)"
    ]
-  ]
+  ],
+  "forced": true
  },
  "s14": {
   "dur": 7.2,

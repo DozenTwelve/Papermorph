@@ -61,15 +61,17 @@ function whipLash(parent) {
   // dark and thick on a pale edge, so it reads against the fence and the fields at wide-shot scale
   const edge = mk('path', { fill: 'none', stroke: '#f6efe0', 'stroke-width': 11, 'stroke-linecap': 'round', opacity: .8 }, parent);
   const path = mk('path', { fill: 'none', stroke: '#2e1c10', 'stroke-width': 7, 'stroke-linecap': 'round' }, parent);
-  return { pose({ hx = 0, hy = 0, tx = hx + 160, ty = hy + 40, phase = 0, on = true } = {}) {
+  return { els: [edge, path], pose({ hx = 0, hy = 0, tx = hx + 160, ty = hy + 40, phase = 0, on = true, len = 1 } = {}) {
     vis(path, on); vis(edge, on); if (!on) return;
     let d;
-    if (phase <= 0) d = `M${hx},${hy} q10,60 -10,110 q-14,30 4,56`;   // hanging
-    else if (phase < .6) { const u = phase / .6, bx = hx - 180 * Math.sin(u * Math.PI), by = hy - 120 - 80 * u;   // whirled up and back
-      d = `M${hx},${hy} Q${hx - 40},${hy - 120} ${bx},${by}`; }
-    else { const u = (phase - .6) / .4;   // thrown forward: a wave runs down the lash to the crack
-      const mx = hx + (tx - hx) * .5, my = hy - 140 * (1 - u) + (ty - hy) * .5 * u;
-      d = `M${hx},${hy} Q${mx},${my - 60 * (1 - u)} ${hx + (tx - hx) * (.4 + .6 * u)},${hy + (ty - hy) * (.4 + .6 * u) - 120 * (1 - u)}`; }
+    if (phase <= 0) { const L = len; d = `M${hx},${hy} q${22*L},${-14*L} ${30*L},${18*L} q${8*L},${56*L} ${-6*L},${104*L} q${-6*L},${24*L} ${8*L},${40*L}`; }   // hanging
+    else if (phase < .6) { const u = phase / .6, bx = hx - 230 * Math.sin(u * Math.PI), by = hy - 190 - 90 * u;   // whirled up and back over the head
+      d = `M${hx},${hy} Q${hx + 30},${hy - 210} ${bx},${by}`; }
+    else { const u = (phase - .6) / .4, e = u ** 1.4;   // thrown forward: the tip leaves from above the hand; a wave runs down the lash and it snaps at the target
+      const x0 = hx, y0 = hy - 250, X = x0 + (tx - x0) * e, Y = y0 + (ty - y0) * e, dx = X - hx, dy = Y - hy, n = Math.hypot(dx, dy) || 1,
+        A = 95 * (1 - u) + 20, px = dy / n * A, py = -dx / n * A, f = k => (hx + dx * k).toFixed(1) + ',' + (hy + dy * k).toFixed(1);
+      d = `M${hx},${hy} C${(hx + dx * .3 + px).toFixed(1)},${(hy + dy * .3 + py).toFixed(1)} ${(hx + dx * .7 - px * .7).toFixed(1)},${(hy + dy * .7 - py * .7).toFixed(1)} ${X.toFixed(1)},${Y.toFixed(1)}`;
+      if (u >= 1) d += ' q10,-20 30,-12'; }   // the crack: the tip flicks up
     if (path._d !== d) { path.setAttribute('d', path._d = d); edge.setAttribute('d', d); }
   } };
 }
@@ -102,9 +104,10 @@ function cowPuppet(parent) {
       <g data-p="rod"><g filter="url(#paper)"><path d="M-60,-288 L${COW_ROD.tip[0]},${COW_ROD.tip[1]}" stroke="#3a2a1a" stroke-width="7" stroke-linecap="round"/>
         <path d="M-74,-304 Q-60,-210 -76,-130 M-50,-304 Q-36,-210 -52,-130" stroke="#b08a50" stroke-width="7" fill="none"/><circle cx="-40" cy="-300" r="12" fill="#9aa0a8"/></g></g>
       <g data-p="head">
-        <g filter="url(#paper)"><path d="M150,-290 C190,-330 230,-300 250,-280 L230,-190 C200,-180 160,-200 150,-230 Z" fill="${C.coat}"/>
+        <g filter="url(#paper)"><path d="M140,-296 C170,-330 205,-345 222,-330 L236,-246 C222,-226 196,-214 168,-210 C150,-208 140,-222 140,-240 Z" fill="${C.coat}"/>
+          <path d="M224,-362 Q212,-388 222,-398 Q228,-374 242,-358 Z" fill="#d6c79e"/>
           <path d="M210,-360 Q196,-386 206,-396 Q212,-372 228,-354 Z" fill="${C.horn}"/>
-          <path d="M210,-350 C230,-372 268,-370 280,-340 L292,-250 C290,-226 240,-224 220,-250 Z" fill="${C.coat}"/>
+          <path d="M200,-322 C196,-356 226,-376 258,-372 C282,-368 292,-348 294,-322 L300,-262 C298,-238 268,-228 240,-232 C216,-236 204,-262 202,-290 Z" fill="${C.coat}"/>
           <path d="M228,-352 C246,-366 264,-360 270,-344 C262,-326 238,-326 228,-352 Z" fill="${C.spot}"/></g>
         <g data-p="jaw"><g filter="url(#paper)"><path d="M232,-226 Q262,-214 300,-222 Q296,-198 264,-196 Q238,-200 232,-226 Z" fill="${C.pink}"/></g>
           <path d="M248,-212 Q268,-206 288,-212" stroke="#c87070" stroke-width="3" fill="none"/></g>
@@ -123,12 +126,12 @@ function cowPuppet(parent) {
   const P = pieces(g);
   return { g, pose(o, f) {
     o = { ...REST_COW, ...o };
-    const j = k => .35 * jit(f >> 1, k), k2 = Math.floor(f / 2) % 2 ? 1 : -1, L = Math.max(0, Math.min(1, o.lie));
+    const j = k => .35 * jit(f >> 1, k), k2 = Math.floor(o.gait ?? f / 2) % 2 ? 1 : -1, L = Math.max(0, Math.min(1, o.lie));
     tf(g, `translate(${(o.x + j(1) * .8).toFixed(1)},${(o.y + j(2) * .6).toFixed(1)}) scale(${(o.s * o.dir).toFixed(3)},${o.s})`);
     // lying: the legs fold under (shorter, splayed a little), the body sinks onto the ground, the chin goes down
     tf(P.all, `translate(0,${(o.bob + 118 * L).toFixed(1)})`);
     vis(P.shadow, true);
-    const sw = o.walk ? 14 * k2 : 0, fold = 1 - .82 * L;
+    const sw = o.walk ? 14 * k2 * Number(o.walk) : 0, fold = 1 - .82 * L;
     const legT = (x, a) => `translate(${x},-150) rotate(${(a + j(4 + x % 7) * .5).toFixed(2)}) scale(1,${fold.toFixed(3)})`;
     tf(P.legB1, legT(-120, sw + o.splay)); tf(P.legB2, legT(-96, -sw + o.splay * .6));
     tf(P.legF1, legT(120, -sw - o.splay)); tf(P.legF2, legT(144, sw - o.splay * .6));
@@ -159,9 +162,9 @@ function roadSet(p, set = 'road', { amHolds = {}, cnHolds = {} } = {}) {
   const cam = paperCam(p, set);
   const cow = cowPuppet(cam.stage);
   const am = americanPuppet(cam.stage, { holds: { coil: whipCoilSVG, whip: whipHandleSVG, ...amHolds } });
+  const lash = whipLash(cam.stage);   // right above the American, below whoever stands in front of him
   const cn = chinesePuppet(cam.stage, { holds: { rod: rodHeldSVG, hay: haySVG, ...cnHolds } });
   const ind = indianPuppet(cam.stage);
-  const lash = whipLash(cam.stage);
   return { cam, cow, am, cn, ind, lash };
 }
 

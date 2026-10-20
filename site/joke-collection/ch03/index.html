@@ -40,17 +40,20 @@ const BEATS = [
 /* ---------- background music ----------
    The Three Little Pigs' score (Lyria), reused from episode 2's folder: one track per listed scene, its position the
    time since the track's first scene began, so pausing and seeking keep it in step; 0.8 s crossfades; lower under
-   speech. Scene 2 is silent (the whip, the prayer, the crickets); the march stops when the cow lies down. */
-const BGM = [['m1-home', ['scene1'], .3], ['m3-chimney', ['scene3', 'scene4'], .22]]
-  .map(([n, beats, gain]) => ({ n, beats, gain, a: Object.assign(new Audio(`../ch02/audio/bgm/${n}.mp3`), { preload: 'auto', loop: true, volume: 0 }), v: 0 }));
-window.MUSIC_OFF = { scene4: t => t > (window.S4_STOP ?? 1e9) };
+   speech. Scene 2 has its own track (this folder) that drops out for the crickets after the prayer; the march stops when
+   the cow lies down. */
+const BGM = [['m1-home', ['scene1'], .3], ['audio/bgm/m-s2-standoff', ['scene2'], .27], ['m3-chimney', ['scene3', 'scene4'], .22]]
+  .map(([n, beats, gain]) => ({ n, beats, gain, a: Object.assign(new Audio(`${n.includes('/') ? n : '../ch02/audio/bgm/' + n}.mp3`), { preload: 'auto', loop: true, volume: 0 }), v: 0 }));
+window.MUSIC_OFF = { scene2: t => t > (window.S2_HUSH ?? 1e9), scene4: t => t > (window.S4_STOP ?? 1e9) };
 const beatLen = id => { const b = BEATS.find(x => x.id === id); return (b.pre || 0) + TIMINGS[id].dur + .6; };
-let lastTick = performance.now();
+let lastTick = performance.now(), duck = .3;
 function bgmTick(now) {
   const dt = Math.min(.1, (now - lastTick) / 1000); lastTick = now;
   const id = BEATS[P.i]?.id, on = P.started && P.playing && !P.waiting && !P.done;
-  const speaking = P.audio && !P.audio.paused && !P.audio.ended;
-  const vol = +(document.getElementById('volume')?.value ?? 1) * (speaking ? .3 : .7);   // the music ducks well under the voices
+  // the music ducks well under the voices for the whole of a scene that has them (its silent opening and tail too, so
+  // it does not swell between lines), easing over about half a second
+  duck += Math.max(-dt, Math.min(dt, (P.audio ? .3 : .7) - duck));
+  const vol = +(document.getElementById('volume')?.value ?? 1) * duck;
   for (const m of BGM) {
     const k = m.beats.indexOf(id), current = on && k >= 0 && !(window.MUSIC_OFF?.[id]?.(P.t));
     m.v = Math.max(0, Math.min(1, m.v + (current ? 1 : -1) * dt / .8));
