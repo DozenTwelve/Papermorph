@@ -1864,7 +1864,19 @@ function beatDone() {
   const b = BEATS[P.i];
   if (b.ask) P.waiting = true;
   else if (P.i < BEATS.length - 1) start(P.i + 1, true);
-  else { P.done = true; setPlaying(false); }
+  else { P.done = true; setPlaying(false); filmDone(); }
+}
+// A chapter that ends on its last frame, with no closing card of questions (a picture book), is finished there: it
+// counts as done, and CHAPTER.next is offered over that frame. Seeking or replaying clears the button with the cards.
+function filmDone() {
+  progress(p => { p.done = [...new Set([...(p.done || []), CHAPTER.number])]; });
+  if (!CHAPTER.next) return;
+  const next = h('button', 'btn go', translate('nextChapter'));
+  next.onclick = () => { location.href = CHAPTER.next; };
+  const c = card({ x: 0, y: 770, w: 0, cls: 'side' }, 'next');
+  Object.assign(c.style, { left: 'auto', right: '40px', width: 'auto' });
+  c.append(h('div', 'acts', [next]));
+  next.focus({ preventScroll: true });
 }
 let last = performance.now();
 function frame(now) {
