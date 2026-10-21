@@ -14,17 +14,19 @@ import argparse, asyncio
 import sys
 from pathlib import Path
 from playwright.async_api import async_playwright
+from browsers import exe
 from PIL import Image
 
 
 async def main(a):
     a.out.mkdir(parents=True, exist_ok=True)
     async with async_playwright() as p:
-        b = await p.chromium.launch()
+        b = await p.chromium.launch(**exe())
         pg = await b.new_page(viewport={"width": 1600, "height": 960})
         errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
-        pg.on("console", lambda m: m.type == "error" and errs.append(m.text))
+        # a desktop browser ($CHROME) also asks the server for /favicon.ico, which is not the book's
+        pg.on("console", lambda m: m.type == "error" and not m.location.get("url", "").endswith("/favicon.ico") and errs.append(m.text))
         base = f"{a.url}{a.chapter}/index.html"
         await pg.goto(base + "?beat=0&t=0"); await pg.wait_for_timeout(500)
         if errs:

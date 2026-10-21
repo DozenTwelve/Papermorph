@@ -17,6 +17,7 @@ The sketches are a finished look on their own (free) and the composition referen
 import asyncio, base64, io, json, pathlib, sys
 from PIL import Image
 from playwright.async_api import async_playwright
+from browsers import exe
 
 JS = """async ([name, i, soft]) => {
   const L = SETS[name]()[i], [x, y, w, h] = L.box, s = L.scale || 1;
@@ -33,7 +34,7 @@ async def main(sets_js, site, only, ref):
     out = pathlib.Path(site) / 'img/sets'; old = out / 'sets.js'
     man = json.loads(old.read_text().split('=', 1)[1].rstrip().rstrip(';')) if old.exists() else {}
     async with async_playwright() as p:
-        b = await p.chromium.launch(); pg = await b.new_page()
+        b = await p.chromium.launch(**exe()); pg = await b.new_page()
         await pg.add_script_tag(path=str(pathlib.Path(sets_js).resolve()))
         known = await pg.evaluate('Object.keys(SETS)')
         if set(only) - set(known): sys.exit(f'not in {sets_js}: {sorted(set(only) - set(known))}')

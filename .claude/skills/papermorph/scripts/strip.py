@@ -17,6 +17,7 @@ a row. Firefox by default: it is the slowest common browser and the one to judge
 import argparse, asyncio, re, sys, tempfile
 from pathlib import Path
 from playwright.async_api import async_playwright
+from browsers import exe
 from PIL import Image, ImageDraw
 
 def sheet(ims, path, cols=4):
@@ -40,7 +41,7 @@ async def main(a):
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
     tmp = Path(tempfile.mkdtemp()) / "f.png"
     async with async_playwright() as p:
-        b = await (p.firefox.launch(firefox_user_prefs={"media.autoplay.default": 0}) if a.browser == "firefox" else p.chromium.launch())
+        b = await (p.firefox.launch(firefox_user_prefs={"media.autoplay.default": 0}) if a.browser == "firefox" else p.chromium.launch(**exe()))
         pg = await b.new_page(viewport={"width": 1600, "height": 960})
         errs = []; pg.on("pageerror", lambda e: errs.append(str(e)))
         await pg.goto(f"{a.url}{a.chapter}/?beat=0&t=0"); await pg.wait_for_timeout(800)

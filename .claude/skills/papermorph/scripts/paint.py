@@ -17,16 +17,9 @@ after a batch, so the spend is known.
 """
 import argparse, base64, datetime, json, mimetypes, os, pathlib, sys, urllib.request, urllib.error
 
+from ledger import print_total
 
-def total(path):
-    rows = [l.rstrip("\n").split("\t") for l in pathlib.Path(path).read_text(encoding="utf-8").splitlines() if l.strip()]
-    by = {}
-    for r in rows:
-        by[r[2]] = by.get(r[2], 0) + float(r[4])
-    for m, c in sorted(by.items()):
-        print(f"{m:40s} {c:8.4f} USD")
-    print(f"{'total':40s} {sum(by.values()):8.4f} USD  ({len(rows)} pictures)")
-
+total = print_total
 
 def key():
     f = pathlib.Path("~/.config/openrouter/key").expanduser()
@@ -55,12 +48,14 @@ def main():
         body["resolution"] = "2K"
     if a.refs:
         body["input_references"] = [{"type": "image_url", "image_url": {"url": f"data:{mimetypes.guess_type(r)[0] or 'image/png'};base64," + base64.b64encode(pathlib.Path(r).read_bytes()).decode()}} for r in a.refs]
+    k = key()
     req = urllib.request.Request("https://openrouter.ai/api/v1/images", json.dumps(body).encode(),
-                                 {"Authorization": f"Bearer {key()}", "Content-Type": "application/json"})
+                                 {"Authorization": f"Bearer {k}", "Content-Type": "application/json"})
     try:
         r = json.load(urllib.request.urlopen(req, timeout=600))
     except urllib.error.HTTPError as e:
-        raise SystemExit(f"{e.code} {e.read().decode()[:500]}")
+        err = e.read().decode(errors="replace").replace(k, "***")[:500]  # redact the whole body, then trim
+        raise SystemExit(f"{e.code} {err}")
     out = pathlib.Path(a.out); out.parent.mkdir(parents=True, exist_ok=True)
     out.write_bytes(base64.b64decode(r["data"][0]["b64_json"]))
     usage = r.get("usage") or {}

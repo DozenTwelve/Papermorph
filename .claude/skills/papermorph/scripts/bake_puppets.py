@@ -16,6 +16,7 @@ every piece and then removes the files no chapter asked for. --url defaults to t
 import argparse, base64, io, json, pathlib
 from PIL import Image
 from playwright.sync_api import sync_playwright
+from browsers import exe
 
 READY = """async () => {
   let n = -1; while (bakedJobs.size !== n) { n = bakedJobs.size; await Promise.all([...bakedJobs.values()]); await new Promise(r => setTimeout(r, 300)); }
@@ -34,7 +35,12 @@ def main():
     got = {}
     with sync_playwright() as p:
         for kind in (p.chromium, p.firefox):
-            b = kind.launch(); pg = b.new_page(viewport={'width': 1600, 'height': 900})
+            try:
+                b = kind.launch(**exe()) if kind is p.chromium else kind.launch()
+            except Exception as e:   # Playwright's Firefox may not run on this system: the Chromium pieces still stand
+                if kind is p.chromium: raise
+                print(f'{kind.name} did not start, so Firefox bakes its own few pieces in the page:', str(e).splitlines()[0]); continue
+            pg = b.new_page(viewport={'width': 1600, 'height': 900})
             for ch in sorted(d.name for d in site.glob('ch[0-9][0-9]')):
                 pg.goto(f'{url}{ch}/?bake', timeout=600000)
                 last = pg.evaluate('BEATS.length - 1')
