@@ -27,7 +27,7 @@
 'use strict';
 const CHAPTER = { number: 2, title: 'Do You Need a Bag?', minutes: 2, language: 'en', next: '../ch03/' };
 // captions on the first time: half the film is Japanese
-try { if (localStorage.getItem('captions') === null) setCaptions(true); } catch {}
+try { if (localStorage.getItem('captions') === null) setCaptions(true, false); } catch {}
 
 /* ---------- beats: one per scene ---------- */
 const BEATS = [

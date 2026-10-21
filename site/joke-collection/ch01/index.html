@@ -24,7 +24,7 @@
 <script>
 'use strict';
 const CHAPTER = { number: 1, title: 'Breakfast in the Bathroom', minutes: 2, language: 'en', next: '../ch02/' };
-try { if (localStorage.getItem('captions') === null) setCaptions(true); } catch {}
+try { if (localStorage.getItem('captions') === null) setCaptions(true, false); } catch {}
 
 /* ---------- beats: one per scene ---------- */
 const BEATS = [

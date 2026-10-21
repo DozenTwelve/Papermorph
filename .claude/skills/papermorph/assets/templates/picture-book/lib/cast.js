@@ -13,8 +13,8 @@
    (build in g, bakeAll(g), return { g, pose(o, f) }) — see spKid for the pattern. */
 'use strict';
 const SP_INK = '#1d1a1a';
-// How far a shut eye's lid comes down: 1 covers it; a book may set window.SP_SHUT = .9 to leave the lid line showing.
-const SP_SHUT = window.SP_SHUT ?? 1;
+// How far a shut eye's lid comes down: .9 leaves the lid line showing (a full lid, 1, leaves two blank skin ovals).
+const SP_SHUT = window.SP_SHUT ?? .9;
 // Mouths, centred on the mouth point: Rhubarb shapes A–H and X (mouths.py writes them), plus expressions. They open downward, like the show's.
 const SP_MOUTHS = {
   X: `<path d="M-13,0 Q0,4 13,0" fill="none" stroke="${SP_INK}" stroke-width="3" stroke-linecap="round"/>`,

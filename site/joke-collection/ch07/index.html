@@ -29,7 +29,7 @@
 'use strict';
 const CHAPTER = { number: 7, title: 'Baka Means Cow', minutes: 2, language: 'en' };
 // captions on the first time: a third of the film is Spanish and Japanese
-try { if (localStorage.getItem('captions') === null) setCaptions(true); } catch {}
+try { if (localStorage.getItem('captions') === null) setCaptions(true, false); } catch {}
 
 /* ---------- beats: one per scene ---------- */
 const BEATS = [

@@ -113,8 +113,8 @@ const mouthAt = (clip, t) => { let m = 'X'; if (t < 0) return m; for (const [at,
 
 /* ---------- puppets ----------
    A puppet is paper pieces on brass pins, built at its hip (0, 0) facing right, feet near y 166. pose(o, f) sets the
-   whole state for frame f; any key left out keeps its rest value. turn (1 … -1) squashes the flat figure to turn it
-   round: through the thin middle (|turn| < .55) the front head shows, past it the figure is the mirrored profile. */
+   whole state for frame f; any key left out keeps its rest value. A profile puppet that turns round squashes its
+   side figure, shows its whole front figure through the thin middle of the turn and comes out mirrored (puppets.md). */
 const pinAt = (x, y) => `<circle cx="${x}" cy="${y}" r="3.4" fill="#caa24c" stroke="#7d5f22" stroke-width="1.2"/>`;
 const tf = (el, s) => { if (el._t !== s) el.setAttribute('transform', el._t = s); };
 const vis = (el, on) => { const v = on ? 'inherit' : 'hidden'; if (el._v !== v) el.setAttribute('visibility', el._v = v); };
