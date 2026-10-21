@@ -75,8 +75,9 @@ function scene6(p, D) {
       Object.assign(me, { armR: 38 * pat, look: 0, eyeX: 0 });
     }
 
-    /* --- Luna: under the board; at an1 she looks up at her new name and nods (the nod resolves before the card) --- */
-    const lookUp = span(q, N6.an1 - .1, N6.an1 + .6), nod = span(q, N6.an1 + .7, N6.an1 + 1.2) * (1 - span(q, N6.an1 + 1.6, N6.an1 + 2.1));
+    /* --- Luna: under the board; at an1 she looks up at her new name and nods — the whole nod (up and return) resolves
+       ~135 ms before the card appears at 17.89, so nothing of it plays behind the card --- */
+    const lookUp = span(q, N6.an1 - .1, N6.an1 + .6), nod = span(q, N6.an1 + .6, N6.an1 + .95) * (1 - span(q, N6.an1 + 1.05, N6.an1 + 1.25));
     const cow = { x: BK.STAB.cow.x, y: BK.STAB.cow.y, s: BK.STAB.cow.s, dir: -1,
       headR: 14 - 24 * lookUp + 6 * nod, jaw: .25, eyeX: 1, eyeY: -1 * lookUp,
       ear: 14 * lookUp, lids: 0, brow: 0, tail: 4 * Math.sin(q * .8), shut: false };
