@@ -184,6 +184,6 @@ function bkTitleCard(p) {
   card.innerHTML = `<rect width="1600" height="900" fill="#0d0b0a"/>
     <g filter="url(#paper)"><path d="M180,330 L260,318 L420,334 L600,316 L800,332 L1000,317 L1200,333 L1380,318 L1430,330 L1420,430 L1370,444 L1180,428 L1000,444 L800,430 L600,446 L400,430 L240,446 L176,432 Z" fill="#f3ead6"/></g>
     <text x="800" y="408" text-anchor="middle" font-family="'Chalkboard SE','Avenir Next Heavy',sans-serif" font-size="66" font-weight="800" fill="#2a1c14">Baka Means Cow</text>
-    <text x="800" y="560" text-anchor="middle" font-family="'Avenir Next',Arial,sans-serif" font-size="26" fill="#8a745a">Joke Collection · Episode 6</text>`;
+    <text x="800" y="560" text-anchor="middle" font-family="'Avenir Next',Arial,sans-serif" font-size="26" fill="#8a745a">Joke Collection · Episode 7</text>`;
   return { g: card, on(v) { card.setAttribute('visibility', v ? 'visible' : 'hidden'); } };
 }

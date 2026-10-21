@@ -1,225 +1,156 @@
 window.TIMINGS = {
  "s01": {
-  "dur": 7.272,
-  "marks": {
-   "by1": 1.615
-  },
+  "dur": 5.016,
+  "marks": {},
   "cues": [
    [
-    0.104,
-    "Last summer, my cousin Yui flew in from Osaka, to spend a week at Uncle Pedro's farm in the south of Spain."
+    0.102,
+    "One evening, three dogs got together to talk about a dog's life."
    ]
   ]
  },
  "s02": {
-  "dur": 4.248,
+  "dur": 2.208,
   "marks": {},
   "cues": [
    [
-    0.104,
-    "Yui had four years of English in school."
-   ],
-   [
-    2.5,
-    "Spain was going to test all of it."
+    0.102,
+    "An American dog,"
    ]
   ]
- },
- "p1": {
-  "dur": 2.856,
-  "marks": {},
-  "cues": [
-   [
-    0,
-    "The cow is the queen of the house!"
-   ]
-  ],
-  "forced": true
  },
  "s03": {
-  "dur": 7.536,
+  "dur": 2.112,
   "marks": {},
   "cues": [
    [
-    0.104,
-    "Uncle Pedro had one rule about his cow, Luna."
-   ],
-   [
-    3.464,
-    "You may look."
-   ],
-   [
-    4.44,
-    "You may pet."
-   ],
-   [
-    5.599,
-    "But you never joke about the cow."
+    0.102,
+    "a Polish dog,"
    ]
   ]
  },
- "p2": {
-  "dur": 2.928,
+ "s04": {
+  "dur": 2.208,
   "marks": {},
   "cues": [
    [
-    0,
-    "And she's the cleverest cow in town!"
-   ]
-  ],
-  "forced": true
- },
- "s04": {
-  "dur": 4.536,
-  "marks": {
-   "ba1": 0.872,
-   "va1": 2.982
-  },
-  "cues": [
-   [
-    0.078,
-    "In Japanese, baka means stupid."
-   ],
-   [
-    2.305,
-    "In Spanish, vaca means cow."
+    0.102,
+    "a Soviet dog,"
    ]
   ]
  },
  "s05": {
-  "dur": 6.096,
-  "marks": {
-   "th1": 4.844
-  },
+  "dur": 2.304,
+  "marks": {},
   "cues": [
    [
-    0.104,
-    "Say them fast, and Uncle Pedro had just called the queen an idiot."
-   ],
-   [
-    4.844,
-    "Three times."
+    0.102,
+    "and a Chinese dog."
    ]
   ]
- },
- "y1": {
-  "dur": 1.896,
-  "marks": {},
-  "cues": [
-   [
-    0,
-    "Hang in there."
-   ]
-  ],
-  "forced": true
- },
- "p3": {
-  "dur": 3.312,
-  "marks": {},
-  "cues": [
-   [
-    0,
-    "That's it! Vaca!"
-   ]
-  ],
-  "forced": true
- },
- "y2": {
-  "dur": 2.04,
-  "marks": {},
-  "cues": [
-   [
-    0,
-    "I'm so sorry."
-   ]
-  ],
-  "forced": true
  },
  "s06": {
-  "dur": 2.784,
-  "marks": {
-   "v1": 0.104,
-   "c1": 1.016,
-   "b1": 1.758
-  },
+  "dur": 1.944,
+  "marks": {},
   "cues": [
    [
-    0.104,
-    "\u200bVaca."
-   ],
-   [
-    1.016,
-    "Cow."
-   ],
-   [
-    1.758,
-    "Not baka."
+    0.102,
+    "Four dogs."
    ]
   ]
  },
- "p4": {
-  "dur": 3.528,
-  "marks": {},
-  "cues": [
-   [
-    0,
-    "See? She agrees."
-   ]
-  ],
-  "forced": true
- },
- "p5": {
-  "dur": 2.448,
-  "marks": {},
-  "cues": [
-   [
-    0,
-    "Come on! To my house!"
-   ]
-  ],
-  "forced": true
- },
- "y3": {
-  "dur": 1.92,
-  "marks": {},
-  "cues": [
-   [
-    0,
-    "My\u2026 cow?"
-   ]
-  ],
-  "forced": true
- },
  "s07": {
-  "dur": 7.272,
-  "marks": {
-   "mk1": 2.357
-  },
+  "dur": 5.976,
+  "marks": {},
   "cues": [
    [
-    0.104,
-    "That evening, Uncle Pedro painted MIKASA over her stable."
-   ],
-   [
-    4.505,
-    "He thinks it's Japanese for 'the queen's house.'"
+    0.097,
+    "Back home, if you bark, and keep barking, sooner or later, somebody hears you, and gives you meat!"
    ]
   ]
  },
  "s08": {
-  "dur": 3.336,
-  "marks": {
-   "an1": 1.615
-  },
+  "dur": 2.136,
+  "marks": {},
   "cues": [
    [
-    0.091,
-    "Nobody corrected him."
-   ],
-   [
-    1.615,
-    "The cow answers to it now."
+    0.097,
+    "Sooner or later."
    ]
   ]
+ },
+ "s09": {
+  "dur": 1.872,
+  "marks": {},
+  "cues": [
+   [
+    0.106,
+    "What is meat?"
+   ]
+  ]
+ },
+ "s10": {
+  "dur": 2.304,
+  "marks": {},
+  "cues": [
+   [
+    0.11,
+    "What is barking?"
+   ]
+  ]
+ },
+ "s11": {
+  "dur": 3.0,
+  "marks": {},
+  "cues": [
+   [
+    0.097,
+    "Barking!"
+   ],
+   [
+    1.462,
+    "You know..."
+   ]
+  ]
+ },
+ "s12": {
+  "dur": 1.872,
+  "marks": {},
+  "cues": [
+   [
+    0.108,
+    "Shh."
+   ]
+  ]
+ },
+ "s13": {
+  "dur": 3.216,
+  "marks": {},
+  "cues": [
+   [
+    0.108,
+    "Don't bark, or you are the meat."
+   ]
+  ]
+ },
+ "hush1": {
+  "dur": 4.0,
+  "marks": {},
+  "cues": []
+ },
+ "hush2": {
+  "dur": 2.0,
+  "marks": {},
+  "cues": []
+ },
+ "hush3": {
+  "dur": 8.0,
+  "marks": {},
+  "cues": []
+ },
+ "hush4": {
+  "dur": 18.5,
+  "marks": {},
+  "cues": []
  }
 };

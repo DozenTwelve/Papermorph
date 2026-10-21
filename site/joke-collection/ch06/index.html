@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Baka Means Cow</title>
+<title>Four Dogs</title>
 <link rel="stylesheet" href="../lib/engine.css">
 <link rel="expect" href="#bar" blocking="render">
 </head>
@@ -12,42 +12,39 @@
 <script src="../img/sets/sets.js"></script>
 <script src="../img/puppets/baked.js" onerror="0"></script>
 <script src="../lib/paper.js"></script>
-<script>window.SP_SHUT = .9;   // a shut eye keeps its lid line (Yui's frozen cringe reads as empty eyes otherwise)</script>
+<script>window.SP_SHUT = .9;   // a shut eye keeps its lid line (as episode 3): a full lid left two blank skin ovals</script>
 <script src="../lib/cast.js"></script>
 <script src="audio/en/timings.js"></script>
 <script src="audio/en/mouths.js"></script>
 <script src="audio/en/shots.js"></script>
 <script src="../lib/shared.js"></script>
-<script src="baka.js"></script>
+<script src="dogs.js"></script>
 <script src="scene1.js"></script>
 <script src="scene2.js"></script>
 <script src="scene3.js"></script>
 <script src="scene4.js"></script>
-<script src="scene5.js"></script>
-<script src="scene6.js"></script>
 <script>
 'use strict';
-const CHAPTER = { number: 6, title: 'Baka Means Cow', minutes: 2, language: 'en' };
-// captions on the first time: a third of the film is Spanish and Japanese
+const CHAPTER = { number: 6, title: 'Four Dogs', minutes: 2, language: 'en', next: '../ch07/' };
 try { if (localStorage.getItem('captions') === null) setCaptions(true); } catch {}
 
 /* ---------- beats: one per scene ---------- */
 const BEATS = [
-  ['scene1', 'Arrival', (m, D) => scene1(panel(0), D), { lead: false, pre: PRE1 }],
-  ['scene2', 'The queen of the house', (m, D) => scene2(panel(0), D), { lead: false, pre: PRE2 }],
-  ['scene3', 'The collision', (m, D) => scene3(panel(0), D), { lead: false, pre: PRE3 }],
-  ['scene4', 'The whisper', (m, D) => scene4(panel(0), D), { lead: false, pre: PRE4 }],
-  ['scene5', 'Vaca. Cow. Not baka.', (m, D) => scene5(panel(0), D), { lead: false, pre: PRE5 }],
-  ['scene6', 'Mi casa', (m, D) => scene6(panel(0), D), { lead: false, pre: PRE6 }],
+  ['scene1', 'Three dogs', (m, D) => scene1(panel(0), D), { lead: false, pre: PRE1 }],
+  ['scene2', 'Back home', (m, D) => scene2(panel(0), D), { lead: false, pre: PRE2 }],
+  ['scene3', 'What is meat?', (m, D) => scene3(panel(0), D), { lead: false, pre: PRE3 }],
+  ['scene4', 'Shh', (m, D) => scene4(panel(0), D), { lead: false, pre: PRE4 }],
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
 
 /* ---------- background music ----------
    The Three Little Pigs' score (Lyria), reused from episode 2's folder: one track per listed scene, its position the
-   time since the track's first scene began, so pausing and seeking keep it in step; 0.8 s crossfades; ducked under
-   speech. The home theme carries the day at the farm; the chimney theme under the dusk and the naming. */
-const BGM = [['m1-home', ['scene1', 'scene2', 'scene3', 'scene4', 'scene5'], .26], ['m3-chimney', ['scene6'], .24]]
-  .map(([n, beats, gain]) => ({ n, beats, gain, a: Object.assign(new Audio(`${n.includes('/') ? n : '../ch02/audio/bgm/' + n}.mp3`), { preload: 'auto', loop: true, volume: 0 }), v: 0 }));
-window.MUSIC_OFF = {};
+   time since the track's first scene began, so pausing and seeking keep it in step; 0.8 s crossfades; lower under
+   speech. The home theme under the introductions, fading when the narrator hesitates before the fourth dog (scene 1
+   sets S1_STOP); the march under the American dog's boast and his "back home", fading as he barks for real in the
+   alley (scene 2 sets S2_STOP). Scenes 3 and 4 have no music: the chopping and the silences carry them. */
+const BGM = [['m1-home', ['scene1'], .3], ['m3-chimney', ['scene2'], .3]]
+  .map(([n, beats, gain]) => ({ n, beats, gain, a: Object.assign(new Audio(`../ch02/audio/bgm/${n}.mp3`), { preload: 'auto', loop: true, volume: 0 }), v: 0 }));
+window.MUSIC_OFF = { scene1: t => t > (window.S1_STOP ?? 1e9), scene2: t => t > (window.S2_STOP ?? 1e9) };
 const beatLen = id => { const b = BEATS.find(x => x.id === id); return (b.pre || 0) + TIMINGS[id].dur + .6; };
 let lastTick = performance.now(), duck = .3;
 function bgmTick(now) {
@@ -71,7 +68,7 @@ function bgmTick(now) {
   requestAnimationFrame(bgmTick);
 }
 requestAnimationFrame(bgmTick);
-paperWarm(g => { pedroPuppet(g); yuiPuppet(g, { holds: { case: 1 } }); mePuppet(g); cowPuppet(g); });
+paperWarm(g => { usDog(g); plDog(g); suDog(g); cnDog(g); boxProp(g); prop(g, steakSVG + bowlSVG); });
 boot();
 </script>
 </body>
