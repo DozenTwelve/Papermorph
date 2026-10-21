@@ -22,23 +22,28 @@ const artSVG = (name, x, y, w, h) => `<image href="../img/props/${name}.webp" x=
    sfx(beat, at, name, vol): play audio/sfx/<name>.mp3 (SKILL/scripts/sfx.py) when the clock of beat `beat` passes `at`
    in normal playback (seeking past it does not fire it). Pausing holds them; a seek stops them. They play at half volume under the voices. */
 const SFX = [], sfxOn = [];
-const sfx = (beat, at, name, vol = 1) => SFX.push({ beat, at, name, vol });
+const SFX_BED = {};   // file name -> length in s, for long ambience called once (a seek into the middle starts it part-way)
+const sfx = (beat, at, name, vol = 1, bed = SFX_BED[name] || 0) => SFX.push({ beat, at, name, vol, bed });
 let sfxLast = { i: -1, t: 0 };
 function sfxTick() {
   const id = BEATS[P.i]?.id, on = P.started && P.playing && !P.waiting && !P.done;
   // the clock ran on (or stood still, paused) in the same beat; anything else is a seek, a replay or a new scene,
   // and what was playing belongs to another moment
-  const same = sfxLast.i === P.i && P.t >= sfxLast.t && P.t - sfxLast.t < .5;
+  const same = sfxLast.i === P.i && P.t >= sfxLast.t && P.t - Math.max(0, sfxLast.t) < .5;
   if (!same) while (sfxOn.length) sfxOn.pop().pause();
-  if (on && same)
-    for (const e of SFX) if (e.beat === id && e.at > sfxLast.t && e.at <= P.t) {
+  // a scene that has just begun (or begins again) fires its effects from 0 on, those at 0 too; a seek fires nothing it skipped
+  const from = same ? sfxLast.t : P.t < .25 ? -1 : P.t;
+  const seeked = !same || sfxLast.pend;   // pend: a seek that happened while paused, now playing
+  if (on)
+    for (const e of SFX) if (e.beat === id && (e.at > from && e.at <= P.t || seeked && e.bed && e.at < P.t && P.t < e.at + e.bed)) {
       const a = new Audio(`audio/sfx/${e.name}.mp3`);
       a.volume = .5 * e.vol * +(document.getElementById('volume')?.value ?? 1);   // effects sit under the voices
       a.playbackRate = P.rate || 1;
       a.play().catch(() => {}); sfxOn.push(a); a.onended = () => sfxOn.splice(sfxOn.indexOf(a), 1);
+      if (e.at <= from || e.at > P.t) a.addEventListener('loadedmetadata', () => { a.currentTime = P.t - e.at; }, { once: true });   // a long bed joined mid-way
     }
-  for (const a of sfxOn) if (on === a.paused) on ? a.play().catch(() => {}) : a.pause();   // a pause holds them, play resumes
-  sfxLast = { i: P.i, t: P.t };
+  for (const a of sfxOn) { a.playbackRate = P.rate || 1; if (on === a.paused) on ? a.play().catch(() => {}) : a.pause(); }   // a pause holds them, play resumes
+  sfxLast = { i: P.i, t: on ? P.t : from, pend: !on && (!same || !!sfxLast.pend) };
   requestAnimationFrame(sfxTick);
 }
 addEventListener('load', () => requestAnimationFrame(sfxTick));   // after the chapter's own scripts define BEATS

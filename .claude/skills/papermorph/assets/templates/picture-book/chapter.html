@@ -53,6 +53,7 @@ function bgmTick(now) {
     const k = m.beats.indexOf(id), current = on && k >= 0 && !(window.MUSIC_OFF?.[id]?.(P.t));
     m.v = Math.max(0, Math.min(1, m.v + (current ? 1 : -1) * dt / .8));
     m.a.volume = m.v * m.gain * vol;
+    if (m.a.playbackRate !== (P.rate || 1)) m.a.playbackRate = P.rate || 1;   // in step at 0.75× and 1.5× too, no re-seeking
     if (current) {
       const want = (m.beats.slice(0, k).reduce((s, b) => s + beatLen(b), 0) + P.t) % (m.a.duration || 1e9);
       if (Math.abs(m.a.currentTime - want) > .5) m.a.currentTime = want;
