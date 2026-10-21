@@ -48,12 +48,14 @@ def main():
         body["resolution"] = "2K"
     if a.refs:
         body["input_references"] = [{"type": "image_url", "image_url": {"url": "data:image/png;base64," + base64.b64encode(pathlib.Path(r).read_bytes()).decode()}} for r in a.refs]
+    k = key()
     req = urllib.request.Request("https://openrouter.ai/api/v1/images", json.dumps(body).encode(),
-                                 {"Authorization": f"Bearer {key()}", "Content-Type": "application/json"})
+                                 {"Authorization": f"Bearer {k}", "Content-Type": "application/json"})
     try:
         r = json.load(urllib.request.urlopen(req, timeout=600))
     except urllib.error.HTTPError as e:
-        raise SystemExit(f"{e.code} {e.read().decode()[:500]}")
+        err = e.read().decode(errors="replace").replace(k, "***")[:500]  # redact the whole body, then trim
+        raise SystemExit(f"{e.code} {err}")
     out = pathlib.Path(a.out); out.parent.mkdir(parents=True, exist_ok=True)
     out.write_bytes(base64.b64decode(r["data"][0]["b64_json"]))
     usage = r.get("usage") or {}

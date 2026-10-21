@@ -28,10 +28,11 @@ def total(path):
 
 
 def env_value(v):
-    """An .env value, minus matching outer quotes; empty stays empty."""
+    """An .env value: surrounding whitespace, then matching outer quotes, removed."""
+    v = v.strip()
     if len(v) >= 2 and v[0] == v[-1] and v[0] in ('"', "'"):
         v = v[1:-1]
-    return v.strip()
+    return v
 
 
 def key(env):
@@ -52,8 +53,8 @@ def post(url, key, data, headers):
     try:
         return json.load(urllib.request.urlopen(req, timeout=600))
     except urllib.error.HTTPError as e:
-        body = e.read().decode(errors="replace")[:500]
-        raise SystemExit(f"{e.code} {body.replace(key, '***')}")
+        body = e.read().decode(errors="replace").replace(key, "***")[:500]  # redact the whole body, then trim
+        raise SystemExit(f"{e.code} {body}")
 
 
 def multipart(fields, files):

@@ -3,34 +3,31 @@
     from browsers import exe
     b = await p.chromium.launch(**exe())       # or sync_api
 
-Order: $CHROME (a path), then the user's default browser when it is
-Chromium-family (Playwright cannot drive system Firefox directly), then any
-installed Chromium-family browser, then Playwright's bundled browser ({} —
-the scripts stay portable). Desktop-file ids are cleaned to browser stems
-('brave_brave.desktop', 'google-chrome-stable.desktop'). The args keep a
-headless page honest: no sandbox in a container, autoplay without a gesture
-(the books play sound).
+Order: $CHROME (a configured path), then the user's default browser when it is
+Chromium-family (resolved from its .desktop Exec — Playwright cannot drive
+system Firefox directly), then any installed Chromium-family browser found on
+PATH, then Playwright's bundled browser ({} — the scripts stay portable).
+Desktop-file ids are cleaned and aliased to browser stems
+('brave_brave.desktop', 'brave-browser.desktop', 'google-chrome-stable.desktop').
+The args keep a headless page honest: no sandbox in a container, autoplay
+without a gesture (the books play sound).
 """
 import os, shutil, subprocess
 
 ARGS = ["--no-sandbox", "--disable-dev-shm-usage", "--autoplay-policy=no-user-gesture-required"]
 
-# stem -> known install paths; PATH is checked after these
-PATHS = {
-    "brave": ["/opt/brave.com/brave/brave", "/usr/bin/brave-browser"],
-    "google-chrome": ["/usr/bin/google-chrome", "/usr/local/bin/google-chrome"],
-    "chromium": ["/usr/bin/chromium", "/usr/bin/chromium-browser", "/usr/local/bin/chromium"],
-    "microsoft-edge": ["/usr/bin/microsoft-edge"],
-    "vivaldi": ["/usr/bin/vivaldi"],
-    "opera": ["/usr/bin/opera"],
+# canonical stem -> login-shell command names, in preference order; nothing is
+# looked up outside PATH except through the user's own default-browser setting
+STEMS = {
+    "brave": ["brave", "brave-browser"],
+    "google-chrome": ["google-chrome", "google-chrome-stable"],
+    "microsoft-edge": ["microsoft-edge", "microsoft-edge-stable"],
+    "chromium": ["chromium", "chromium-browser", "chrome"],
+    "vivaldi": ["vivaldi", "vivaldi-stable"],
+    "opera": ["opera"],
 }
-ALIASES = {  # extra PATH names per stem
-    "brave": ["brave-browser"],
-    "chromium": ["chromium-browser", "chrome"],
-    "google-chrome": ["google-chrome-stable"],
-    "microsoft-edge": ["microsoft-edge-stable"],
-    "vivaldi": ["vivaldi-stable"],
-}
+# desktop-file stem -> canonical stem ('chromium-browser' releases, 'chrome' third parties)
+CANON = {name: stem for stem, names in STEMS.items() for name in names if name != stem}
 
 
 def _stem(desktop_id):
@@ -41,15 +38,32 @@ def _stem(desktop_id):
     for suffix in ("-stable", "-beta", "-dev"):
         if s.endswith(suffix):
             s = s[: -len(suffix)]
-    return s
+    return CANON.get(s, s)
 
 
-def _find(stem):
-    for p in PATHS.get(stem, ()):
-        if os.path.exists(p):
-            return p
-    tries = [shutil.which(stem)] + [shutil.which(a) for a in ALIASES.get(stem, [])]
-    return next((w for w in tries if w), None)
+def _which(stem):
+    "shutil.which for the stem itself, then its alias names."
+    names = [stem] + STEMS.get(stem, [])[1:]
+    return next((w for w in (shutil.which(n) for n in names) if w), None)
+
+
+def _desktop_exec(desktop_id):
+    "The program command from the user's .desktop file, or '' (paths from it are the user's own configuration)."
+    try:
+        dirs = [os.path.expanduser("~/.local/share/applications")] + \
+               os.environ.get("XDG_DATA_DIRS", "/usr/local/share:/usr/share").split(":")
+        for d in dirs:
+            f = os.path.join(d.strip(), "applications", desktop_id)
+            if os.path.isfile(f):
+                with open(f, encoding="utf-8", errors="replace") as fh:
+                    for line in fh:
+                        if line.startswith("Exec="):
+                            words = line[5:].strip().split()
+                            words = [w for w in words if not w.startswith("%")]
+                            return words[0].strip('"') if words else ""
+    except Exception:
+        pass
+    return ""
 
 
 def _xdg_default():
@@ -59,15 +73,18 @@ def _xdg_default():
         d = r.stdout.strip() if r.returncode == 0 else ""
     except Exception:
         return None
-    if not d:
+    if not d or _stem(d) not in STEMS:
         return None
-    stem = _stem(d)
-    return _find(stem) if stem in PATHS else None
+    # the desktop id is the user's configuration: its Exec may carry an absolute path
+    e = _desktop_exec(d)
+    if e and (os.path.isfile(e) and os.access(e, os.X_OK) or shutil.which(os.path.basename(e))):
+        return e
+    return _which(_stem(d))
 
 
 def _any_installed():
-    for stem in PATHS:
-        p = _find(stem)
+    for stem in STEMS:
+        p = _which(stem)
         if p:
             return p
     return None
