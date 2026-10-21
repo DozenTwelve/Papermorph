@@ -15,6 +15,7 @@ baked picture to paint.py, then put the result in with painted.py). Needs Playwr
 import asyncio, base64, io, json, pathlib, sys
 from PIL import Image
 from playwright.async_api import async_playwright
+from browsers import exe
 
 JS = """async ([name, i, soft]) => {
   const L = SETS[name]()[i], [x, y, w, h] = L.box, s = L.scale || 1;
@@ -30,7 +31,7 @@ JS = """async ([name, i, soft]) => {
 async def main(sets_js, site, only):
     out = pathlib.Path(site) / 'img/sets'
     async with async_playwright() as p:
-        b = await p.chromium.launch(); pg = await b.new_page()
+        b = await p.chromium.launch(**exe()); pg = await b.new_page()
         await pg.add_script_tag(path=str(pathlib.Path(sets_js).resolve()))
         names = only or await pg.evaluate('Object.keys(SETS)')
         man = {}

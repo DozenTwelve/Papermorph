@@ -14,6 +14,7 @@ Otherwise it prints one line saying none were found. Exit status 1 when somethin
 import argparse, asyncio, os, sys
 from pathlib import Path
 from playwright.async_api import async_playwright
+from browsers import exe
 
 LIMIT = float(os.environ.get("LIMIT", "1.0"))
 PROBE = r"""
@@ -41,7 +42,7 @@ PROBE = r"""
 async def main(book: Path, chapters, url):
     found = []
     async with async_playwright() as p:
-        browser = await p.chromium.launch()
+        browser = await p.chromium.launch(**exe())
         pg = await browser.new_page(viewport={"width": 1600, "height": 960})
         for ch in chapters:
             await pg.goto(f"{url}{ch}/index.html?beat=0&t=0"); await pg.wait_for_timeout(300)

@@ -13,6 +13,7 @@ kept (a piece another chapter or an earlier run made) unless --clean removes the
 import argparse, base64, io, json, pathlib
 from PIL import Image
 from playwright.sync_api import sync_playwright
+from browsers import exe
 
 READY = """async () => {
   let n = -1; while (bakedJobs.size !== n) { n = bakedJobs.size; await Promise.all([...bakedJobs.values()]); await new Promise(r => setTimeout(r, 300)); }
@@ -29,7 +30,7 @@ def main():
     site = pathlib.Path(a.site); out = site / 'img/puppets'; url = a.url.rstrip('/') + '/'
     got = []
     with sync_playwright() as p:
-        b = p.chromium.launch(); pg = b.new_page(viewport={'width': 1600, 'height': 900})
+        b = p.chromium.launch(**exe()); pg = b.new_page(viewport={'width': 1600, 'height': 900})
         for ch in sorted(d.name for d in site.glob('ch[0-9][0-9]')):
             pg.goto(f'{url}{ch}/?bake', timeout=600000)
             last = pg.evaluate('BEATS.length - 1')
