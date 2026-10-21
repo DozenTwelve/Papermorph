@@ -144,23 +144,32 @@ const teacherPuppet = (p, o) => spKid(p, 'teacher', { coat: '#8c2f45', stripe: '
    1 open), tail (degrees, + up), wag (the tail swings on twos), ear (degrees), shut, lids, eyeX (-1 … 1 along its look),
    sit (on its haunches; 0…1 or true, ease it over ~0.3 s), lie (flat on the ground, front paws out, 0…1 or true; asleep
    unless lie is 'awake'), walk (legs scissor on twos), bob, glasses, tongue, sniff (the nose twitches),
-   hold (prop key, carried crosswise in its mouth). */
+   hold (prop key, carried crosswise in its mouth); rot (degrees: the whole dog tips about its middle, + nose down,
+   for a leap); paw (degrees: the near front paw raised forward), swell (0…1: the chest
+   fills, a big breath in).
+   breed (episode 6; every key optional, leaving one out draws episode 4's dog): coat, dark, far, muzzle (colours),
+   collar (colour, 'none'), torso ([rx, ry] of the body, default [82, 40]), spot (svg for the back patch, '' none), ear
+   (path at the ear pin, 0,0 is the pin; DOG_EARS), tail (path), body (svg over the torso), neck (svg by the collar),
+   hat (svg on the head, drawn last), mouthIn (svg of the inside of the mouth, behind the jaw: it turns half as far as
+   the jaw, so a wide-open mouth shows a mouth, not a gap). */
 const DOG = { coat: '#ece5d6', dark: '#6b5444', far: '#cdc3b1', muzzle: '#fbf8f0' };
 const REST_DOG = { x: 0, y: 0, s: 1, dir: 1, headR: 0, jaw: 0, tail: 0, wag: false, ear: 0, shut: false, lids: 0, eyeX: 0,
-  sit: false, lie: false, walk: false, bob: 0, glasses: false, tongue: false, sniff: false, hold: null };
-function dogPuppet(parent, { holds = {} } = {}) {
-  const g = mk('g', {}, parent), id = 'dogc' + (++spClip), C = DOG;
+  sit: false, lie: false, walk: false, bob: 0, glasses: false, tongue: false, sniff: false, hold: null, paw: 0, swell: 0 };
+// Ear shapes at the ear pin: the floppy one (episode 4) and a pricked one (rotate it back, ear -60…-80, to lay it flat).
+const DOG_EARS = { flop: 'M0,0 C-22,4 -26,40 -12,62 C-2,52 10,28 8,0 Z', prick: 'M-16,6 C-14,-14 -4,-40 6,-52 C14,-34 18,-12 16,6 Z' };
+function dogPuppet(parent, { holds = {}, breed = {} } = {}) {
+  const g = mk('g', {}, parent), id = 'dogc' + (++spClip), C = { ...DOG, ...breed }, [trx, try_] = breed.torso || [82, 40];
   const leg = (k, col) => `<g data-p="leg${k}"><g filter="url(#paper)"><rect x="-11" y="0" width="22" height="58" rx="8" fill="${col}"/><ellipse cx="6" cy="56" rx="13" ry="7" fill="${C.dark}"/></g></g>`;
   const eye = '<ellipse cx="100" cy="-142" rx="11" ry="13"';
   g.innerHTML = `<g data-p="all">${leg('B2', C.far)}${leg('F2', C.far)}
     <g data-p="haunch"><g filter="url(#paper)"><ellipse cx="-44" cy="-34" rx="40" ry="34" fill="${C.coat}"/><ellipse cx="-24" cy="-5" rx="24" ry="7" fill="${C.dark}"/></g></g>
     <g data-p="torso">
-      <g data-p="tail"><g filter="url(#paper)"><path d="M0,0 Q-34,-16 -40,-60 Q-28,-60 -24,-32 Q-16,-12 8,-8 Z" fill="${C.coat}"/></g></g>
-      <g filter="url(#paper)"><ellipse cx="0" cy="-86" rx="82" ry="40" fill="${C.coat}"/><ellipse cx="-14" cy="-100" rx="30" ry="15" fill="${C.dark}"/></g>
+      <g data-p="tail"><g filter="url(#paper)"><path d="${breed.tail ?? 'M0,0 Q-34,-16 -40,-60 Q-28,-60 -24,-32 Q-16,-12 8,-8 Z'}" fill="${C.coat}"/></g></g>
+      <g filter="url(#paper)"><ellipse cx="0" cy="-86" rx="${trx}" ry="${try_}" fill="${C.coat}"/>${breed.spot ?? `<ellipse cx="-14" cy="-100" rx="30" ry="15" fill="${C.dark}"/>`}${breed.body || ''}</g>
       <g data-p="head">
-        <g filter="url(#paper)"><rect x="52" y="-116" width="28" height="12" rx="4" fill="#c8322f" transform="rotate(-20 66 -110)"/>
+        <g filter="url(#paper)"><rect x="52" y="-116" width="28" height="12" rx="4" fill="${C.collar ?? '#c8322f'}" transform="rotate(-20 66 -110)"/>${breed.neck || ''}
           <circle cx="94" cy="-132" r="38" fill="${C.coat}"/><ellipse cx="128" cy="-106" rx="24" ry="9" fill="#4a1a14"/></g>
-        <g data-p="jaw"><g filter="url(#paper)"><path d="M100,-108 Q150,-106 150,-98 Q132,-86 100,-96 Z" fill="${C.muzzle}"/></g>
+        ${breed.mouthIn ? `<g data-p="mouthIn">${breed.mouthIn}</g>` : ''}<g data-p="jaw"><g filter="url(#paper)"><path d="M100,-108 Q150,-106 150,-98 Q132,-86 100,-96 Z" fill="${C.muzzle}"/></g>
           <ellipse data-p="tongue" cx="138" cy="-90" rx="9" ry="12" fill="#e06f7a"/></g>
         <g filter="url(#paper)"><ellipse cx="128" cy="-116" rx="28" ry="15" fill="${C.muzzle}"/></g><g data-p="nose"><g filter="url(#paper)"><ellipse cx="154" cy="-122" rx="8.5" ry="6.5" fill="${SP_INK}"/></g></g>
         <clipPath id="${id}">${eye}/></clipPath>
@@ -168,9 +177,9 @@ function dogPuppet(parent, { holds = {} } = {}) {
         <circle data-p="pupil" cx="102" cy="-142" r="4.8" fill="${SP_INK}"/>
         <g clip-path="url(#${id})"><g data-p="lids"><rect x="86" y="-182" width="28" height="26" fill="${C.coat}"/><path d="M86,-155 H114" stroke="${SP_INK}" stroke-width="3"/></g></g>
         ${eye} fill="none" stroke="${SP_INK}" stroke-width="2"/>
-        <g data-p="ear"><g filter="url(#paper)"><path d="M0,0 C-22,4 -26,40 -12,62 C-2,52 10,28 8,0 Z" fill="${C.dark}"/></g></g>
+        <g data-p="ear"><g filter="url(#paper)"><path d="${breed.ear ?? DOG_EARS.flop}" fill="${C.dark}"/></g></g>
         <g data-p="glasses" fill="none" stroke="${SP_INK}" stroke-width="3.5"><circle cx="101" cy="-142" r="16"/><path d="M85,-144 L64,-150 M117,-145 Q122,-149 127,-146"/><ellipse cx="135" cy="-143" rx="7" ry="13"/></g>
-        ${Object.entries(holds).map(([k, s]) => `<g data-p="hold_${k}" transform="translate(134,-100)">${s}</g>`).join('')}
+        ${Object.entries(holds).map(([k, s]) => `<g data-p="hold_${k}" transform="translate(134,-100)">${s}</g>`).join('')}${breed.hat || ''}
       </g></g>${leg('B1', C.coat)}${leg('F1', C.coat)}</g>`;
   bakeAll(g);
   const P = pieces(g), holdKeys = Object.keys(holds);
@@ -179,21 +188,22 @@ function dogPuppet(parent, { holds = {} } = {}) {
   return { g, pose(o, f) {
     o = { ...REST_DOG, ...o };
     const j = k => .35 * jit(f >> 1, k), k2 = Math.floor(f / 2) % 2 ? 1 : -1;
-    tf(g, `translate(${(o.x + j(1) * .8).toFixed(1)},${(o.y + j(2) * .6).toFixed(1)}) scale(${(o.s * o.dir).toFixed(3)},${o.s})`);
+    tf(g, `translate(${(o.x + j(1) * .8).toFixed(1)},${(o.y + j(2) * .6).toFixed(1)}) scale(${(o.s * o.dir).toFixed(3)},${o.s})${o.rot ? ` rotate(${o.rot.toFixed(1)},0,-80)` : ''}`);
     const L = o.lie === true || o.lie === 'awake' ? 1 : +o.lie || 0, S = o.sit === true ? 1 : +o.sit || 0;
     tf(P.all, `translate(0,${(o.bob + 50 * L).toFixed(1)})`);
     const a = -16 * S;
-    tf(P.torso, `rotate(${(a + j(3) * .4).toFixed(2)},-50,-56)`);
+    tf(P.torso, `rotate(${(a + j(3) * .4).toFixed(2)},-50,-56)${o.swell ? ` translate(0,-80) scale(${(1 + .07 * o.swell).toFixed(3)}) translate(0,80)` : ''}`);
     // sitting folds the back legs under the haunch; lying shortens the back legs away and swings the front paws forward
     vis(P.haunch, S > .4); vis(P.legB1, S <= .4 && L < .95); vis(P.legB2, S <= .4 && L < .95);
     const sw = o.walk ? 18 * k2 : 0, [fx, fy] = turn(30 + 16 * (1 - S), -60, a), fl = (-fy) / 60, bl = 1 - L;   // front legs reach the ground from the shoulder
     tf(P.legB1, `translate(-50,-60) rotate(${(sw + j(4) * .5).toFixed(2)}) scale(1,${bl.toFixed(3)})`); tf(P.legB2, `translate(-34,-60) rotate(${(-sw + j(5) * .5).toFixed(2)}) scale(1,${bl.toFixed(3)})`);
     const fr = -90 * L, fs = fl * (1 - .3 * L);
-    tf(P.legF1, `translate(${fx.toFixed(1)},${fy.toFixed(1)}) rotate(${(-sw + fr + j(6) * .5).toFixed(2)}) scale(1,${fs.toFixed(3)})`);
+    tf(P.legF1, `translate(${fx.toFixed(1)},${fy.toFixed(1)}) rotate(${(-sw + fr - o.paw + j(6) * .5).toFixed(2)}) scale(1,${fs.toFixed(3)})`);
     tf(P.legF2, `translate(${(fx + 14).toFixed(1)},${fy.toFixed(1)}) rotate(${(sw + fr + j(7) * .5).toFixed(2)}) scale(1,${fs.toFixed(3)})`);
     tf(P.tail, `translate(-78,-92) rotate(${(-o.tail - (o.wag ? 16 * k2 : 0) + j(8)).toFixed(2)})`);
     tf(P.head, `rotate(${(-o.headR - a + j(9) * .6).toFixed(2)},62,-104)`);
     tf(P.jaw, `rotate(${(o.jaw * 30).toFixed(1)},100,-102)`);
+    if (P.mouthIn) tf(P.mouthIn, `rotate(${(o.jaw * 15).toFixed(1)},100,-102)`);   // the inside of an open mouth (episode 6), halfway between
     tf(P.ear, `translate(80,-158) rotate(${(o.ear + j(10) * 2).toFixed(2)})`);
     tf(P.pupil, `translate(${(o.eyeX * 5).toFixed(1)},0)`);
     tf(P.lids, `translate(0,${((o.shut || (L > .5 && o.lie !== 'awake') ? 1 : o.lids) * 26).toFixed(1)})`);

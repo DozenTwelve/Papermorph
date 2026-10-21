@@ -153,7 +153,8 @@ function sfxTick() {
       a.play().catch(() => {}); sfxOn.push(a); a.onended = () => sfxOn.splice(sfxOn.indexOf(a), 1);
       if (e.at <= from || e.at > P.t) a.addEventListener('loadedmetadata', () => { a.currentTime = P.t - e.at; }, { once: true });   // a long bed joined mid-way
     }
-  for (const a of sfxOn) { a.playbackRate = P.rate || 1; if (on === a.paused) on ? a.play().catch(() => {}) : a.pause(); }   // a pause holds them, play resumes
+  // a pause holds them, play resumes; one that has just ended (still listed until its onended runs) is not replayed
+  for (const a of sfxOn) { a.playbackRate = P.rate || 1; if (on === a.paused && !a.ended) on ? a.play().catch(() => {}) : a.pause(); }
   sfxLast = { i: P.i, t: on ? P.t : from, pend: !on && (!same || !!sfxLast.pend) };
   // the music follows the playback speed, so the chapter's bgmTick need not re-seek it at 0.75× or 1.5× (BGM is the
   // chapter's own list, when it has one)
