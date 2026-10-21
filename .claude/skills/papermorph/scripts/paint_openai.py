@@ -21,14 +21,17 @@ SIZES = {"16:9": "1536x1024", "9:16": "1024x1536", "1:1": "1024x1024"}
 EST = {"low": 0.02, "medium": 0.05, "high": 0.20}
 
 
+from ledger import print_total
+
 def total(path):
-    rows = [l.rstrip("\n").split("\t") for l in pathlib.Path(path).read_text(encoding="utf-8").splitlines() if l.strip()]
-    by = {}
-    for r in rows:
-        by[r[2]] = by.get(r[2], 0) + float(r[4])
-    for m, c in sorted(by.items()):
-        print(f"{m:40s} {c:8.4f} USD")
-    print(f"{'total':40s} {sum(by.values()):8.4f} USD  ({len(rows)} pictures, estimated)")
+    print_total(path, 'estimated')
+
+
+def env_value(v):
+    """An .env value, minus matching outer quotes; empty stays empty."""
+    if len(v) >= 2 and v[0] == v[-1] and v[0] in ('"', "'"):
+        v = v[1:-1]
+    return v.strip()
 
 
 def key(env):
@@ -38,7 +41,9 @@ def key(env):
         if f.exists():
             for line in f.read_text().splitlines():
                 if line.startswith("OPENAI_API_KEY="):
-                    return line.split("=", 1)[1].strip().strip('"')
+                    k = env_value(line.split("=", 1)[1])
+                    if k:  # skip empty lines, keep looking
+                        return k
     raise SystemExit("no key: set OPENAI_API_KEY or pass --env FILE with OPENAI_API_KEY=...")
 
 
@@ -47,7 +52,8 @@ def post(url, key, data, headers):
     try:
         return json.load(urllib.request.urlopen(req, timeout=600))
     except urllib.error.HTTPError as e:
-        raise SystemExit(f"{e.code} {e.read().decode()[:500]}")
+        body = e.read().decode(errors="replace")[:500]
+        raise SystemExit(f"{e.code} {body.replace(key, '***')}")
 
 
 def multipart(fields, files):

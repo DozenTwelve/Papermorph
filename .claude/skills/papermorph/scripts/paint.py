@@ -17,16 +17,9 @@ after a batch, so the spend is known.
 """
 import argparse, base64, datetime, json, os, pathlib, sys, urllib.request, urllib.error
 
+from ledger import print_total
 
-def total(path):
-    rows = [l.rstrip("\n").split("\t") for l in pathlib.Path(path).read_text(encoding="utf-8").splitlines() if l.strip()]
-    by = {}
-    for r in rows:
-        by[r[2]] = by.get(r[2], 0) + float(r[4])
-    for m, c in sorted(by.items()):
-        print(f"{m:40s} {c:8.4f} USD")
-    print(f"{'total':40s} {sum(by.values()):8.4f} USD  ({len(rows)} pictures)")
-
+total = print_total
 
 def key():
     f = pathlib.Path("~/.config/openrouter/key").expanduser()
