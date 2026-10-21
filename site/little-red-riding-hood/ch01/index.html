@@ -20,7 +20,7 @@
 'use strict';
 const CHAPTER = { number: 1, title: 'Little Red Riding Hood', minutes: 4, language: 'en' };
 // A picture book: captions are on unless the reader turned them off.
-try { if (localStorage.getItem('captions') === null) setCaptions(true); } catch {}
+try { if (localStorage.getItem('captions') === null) setCaptions(true, false); } catch {}
 
 // The time (beat clock) of a word: part `b` of a joined scene, `w` seconds into its clip.
 const word = (scene, pre, b, w) => pre + TIMINGS[scene].parts[b] + w;

@@ -24,7 +24,7 @@
 <script>
 'use strict';
 const CHAPTER = { number: 4, title: 'The Dog Ate My Homework', minutes: 2, language: 'en', next: '../ch05/' };
-try { if (localStorage.getItem('captions') === null) setCaptions(true); } catch {}
+try { if (localStorage.getItem('captions') === null) setCaptions(true, false); } catch {}
 
 /* ---------- beats: one per scene ---------- */
 const BEATS = [

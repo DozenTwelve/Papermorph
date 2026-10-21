@@ -25,8 +25,8 @@
 <script src="scene4.js"></script>
 <script>
 'use strict';
-const CHAPTER = { number: 5, title: 'The Penguin and the Zoo', minutes: 2, language: 'en' };
-try { if (localStorage.getItem('captions') === null) setCaptions(true); } catch {}
+const CHAPTER = { number: 5, title: 'The Penguin and the Zoo', minutes: 2, language: 'en', next: '../ch06/' };
+try { if (localStorage.getItem('captions') === null) setCaptions(true, false); } catch {}
 
 /* ---------- beats: one per scene ---------- */
 const BEATS = [

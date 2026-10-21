@@ -1,6 +1,6 @@
 # Picture books: from a story to an episode
 
-A picture book is a short animated film, two to four minutes, told by paper puppets in front of sets. It starts from a story rather than a textbook: a fairy tale, a joke, something that happened to the user, or a story book's PDF. The published examples are on the shelf at https://papermorph.diamonddoge.org/: *Little Red Riding Hood* (everything drawn in code) and *Joke Collection* (painted sets, puppets in code; two episodes, one of them made overnight by a fresh session from the user's bedtime telling).
+A picture book is a short animated film, two to four minutes, told by paper puppets in front of sets. It starts from a story rather than a textbook: a fairy tale, a joke, something that happened to the user, or a story book's PDF. The published examples are on the shelf at https://papermorph.diamonddoge.org/: *Little Red Riding Hood* (everything drawn in code) and *Joke Collection* (painted sets, puppets in code; a series of episodes, the first made overnight by a fresh session from the user's bedtime telling, later ones by a coordinator, scene workers and review rounds, see [team.md](team.md#picture-books)).
 
 The craft is in four references: this one (the story and the shots), [puppets.md](puppets.md) (the paper puppets and the stop-motion look), [painting.md](painting.md) (sets and props painted by an image model) and [sound.md](sound.md) (voices, sound effects, music). The engine, the player, previews, checks and the team are the same as for every other book.
 
@@ -38,8 +38,10 @@ One scene is one beat, with one joined audio clip ([sound.md](sound.md)); cuts i
 - an insert to make a detail readable (a coin on the counter, the clock, a face in a door crack);
 - held silences: the beat where nobody speaks is often the joke. Blinks, eyes and a tiny head turn carry it.
 
+Reviewers of the later episodes kept finding the same few things, all about what the viewer can read. Give every object the joke hangs on an insert of its own; the best episodes ran ten to fourteen shots a half minute. Keep whoever is being spoken to in the shot, since the listener's face is half of the line. A follower trails about 240 px behind; people pass in front of or behind each other, never through. A face half cut by the frame edge, or a blink on the frame that carries the joke, reads as a mistake.
+
 Everybody in the shot stays alive and stays there: extras blink and glance about in close-ups too (in an early cut the whole class vanished whenever someone spoke). Between places, cut or use a paper-theatre wipe; at the end, a title card.
 
 ## Delivering
 
-Deliver the episode URL with what was made, the final script, the decisions the user should review (every line or moment you added), known problems, and the real cost of pictures. For a series, add the episode to the series page with a still and a line, and set the previous episode's `CHAPTER.next`.
+Deliver the episode URL with what was made, the final script, the decisions the user should review (every line or moment you added), known problems, and the real cost of pictures. For a series, add the episode to the series page with a still and a line, and set the previous episode's `CHAPTER.next`: when an episode's last scene ends, the player marks it watched and offers the next one.

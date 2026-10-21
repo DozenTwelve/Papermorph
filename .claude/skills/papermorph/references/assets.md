@@ -17,4 +17,4 @@ Laying out a chapter's moments shows what the library lacks: a new prop, a place
 - Sprite animation: put a character's frames in one sheet and switch frames by changing a nested `<svg>`'s viewBox; changing an `<image href>` per frame can refetch. Pixel art is drawn at an integer scale with `image-rendering: pixelated` and pre-scaled files.
 - One large detailed object (a planet, a map) is cheaper as a single image than as many shapes; see the Firefox notes in [engine.md](engine.md#performance-firefox).
 
-Image-model generation is not part of the pipeline yet; it will come with picture-book and documentary looks.
+Pictures from an image model (sets and props for picture books, and any other book that agrees a budget) go through `paint.py` and `painted.py`; see [painting.md](painting.md).

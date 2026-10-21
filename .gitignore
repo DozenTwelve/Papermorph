@@ -1,7 +1,6 @@
 .DS_Store
 .venv/
 __pycache__/
-.picturebook-video-build/
 
 # Reference books: internal only, never published.
 *.pdf

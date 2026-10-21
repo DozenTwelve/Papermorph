@@ -15,7 +15,7 @@ Each call prints the cost OpenRouter reports and appends one line to the ledger 
 separated; the ledger and its folder are created). Test the cheapest quality first and total the ledger before and
 after a batch, so the spend is known.
 """
-import argparse, base64, datetime, json, os, pathlib, sys, urllib.request, urllib.error
+import argparse, base64, datetime, json, mimetypes, os, pathlib, sys, urllib.request, urllib.error
 
 from ledger import print_total
 
@@ -47,7 +47,7 @@ def main():
     else:
         body["resolution"] = "2K"
     if a.refs:
-        body["input_references"] = [{"type": "image_url", "image_url": {"url": "data:image/png;base64," + base64.b64encode(pathlib.Path(r).read_bytes()).decode()}} for r in a.refs]
+        body["input_references"] = [{"type": "image_url", "image_url": {"url": f"data:{mimetypes.guess_type(r)[0] or 'image/png'};base64," + base64.b64encode(pathlib.Path(r).read_bytes()).decode()}} for r in a.refs]
     k = key()
     req = urllib.request.Request("https://openrouter.ai/api/v1/images", json.dumps(body).encode(),
                                  {"Authorization": f"Bearer {k}", "Content-Type": "application/json"})
