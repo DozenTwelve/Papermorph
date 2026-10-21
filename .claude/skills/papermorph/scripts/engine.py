@@ -58,7 +58,7 @@ def books(target: Path):
     if (target / 'lib' / 'engine.js').exists():
         return [target]
     found = sorted(p.parent.parent for p in target.glob('*/lib/engine.js'))
-    if not found and (target / 'lib').is_dir():   # e.g. site/ with the bookshelf's lib/, before any book exists
+    if not found and (target / 'lib').is_dir() and any((target / 'lib').iterdir()):   # e.g. site/ with the bookshelf's lib/, before any book exists (an empty lib/ is a new book's)
         sys.exit(f'{target}/lib has no engine.js and no book folder below it has one: pass the book folder itself')
     return found or [target]   # or a new book
 

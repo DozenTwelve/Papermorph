@@ -1,7 +1,7 @@
 """Generate narration audio and word-mark timings with Edge TTS or Kokoro.
 
 Usage (from the project root; SKILL is this skill's folder):
-    uv run --with edge-tts $SKILL/scripts/tts.py content/ch01/narration.en.json site/ch01/audio/en
+    uv run --with edge-tts $SKILL/scripts/tts.py content/<book>/ch01/narration.en.json site/<book>/ch01/audio/en
     uv run --python 3.12 --with kokoro $SKILL/scripts/tts.py ...      # narration with "engine": "kokoro"
 
 The narration file names the engine ("edge", the default, or "kokoro"), the voice and the rate. Edge needs network

@@ -30,7 +30,7 @@ async def main(a):
         if errs:
             print("page errors:", errs); await b.close(); return 1
         n = await pg.evaluate("BEATS.length")
-        durs = await pg.evaluate("BEATS.map(b => TIMINGS[b.id].dur)")
+        durs = await pg.evaluate("BEATS.map(b => (b.pre || 0) + TIMINGS[b.id].dur)")   # a picture book's scene starts `pre` s before its speech
         specs = a.specs or [f"{i}:{t}" for t in ("open", "end", *a.moments) for i in range(n)]
         groups = {}
         for s in specs:
@@ -41,7 +41,9 @@ async def main(a):
             f = a.out / f"{a.chapter}_b{i:02d}_{t}.png"
             await pg.screenshot(path=str(f))
             groups.setdefault(t, []).append(f)
+        live = await pg.evaluate("typeof bakedJobs === 'undefined' ? 0 : bakedJobs.size")
         await b.close()
+    if live: print(f"{live} paper pieces were baked live in the page: run bake_puppets.py")
     for t, fs in groups.items():
         for k in range(0, len(fs), 4):
             sheet = Image.new("RGB", (1600, 960), "black")
