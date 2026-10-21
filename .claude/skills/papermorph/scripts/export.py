@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
-"""Export a chapter's lesson as an MP4 video with an .srt caption file, for video sites.
+"""Export a chapter (a lesson or a picture-book episode) as an MP4 video with an .srt caption file, for video sites.
 
-    uv run --with playwright export.py ch12 --url http://localhost:8765/<book>/ --out OUT
+    uv run --with playwright --with numpy export.py ch12 --url http://localhost:8765/<book>/ --out OUT
     ... --fps 30 --height 1080 --link https://example.org/<book>/ch12/
 
 The engine draws every frame as a pure function of the beat time, so frames are rendered by seeking, not by
-recording playback: the video is exact and the same on every run. Question beats (quick checks and practice) are
-left out; the video ends on a card saying they are in the interactive lesson (--link adds its address).
-Captions are not burned in: upload OUT/chNN.srt with the video. Needs ffmpeg; serve the site over HTTP first.
+recording playback: the video is exact and the same on every run. The sound is mixed the way the page plays it:
+each beat's clip from its `pre` on, and in a picture book the sfx() effects (cut at the end of their scene, as a
+scene change stops them) and the BGM tracks with their crossfades, ducking and MUSIC_OFF. Question beats (quick
+checks and practice) are left out, and then the video ends on a card saying they are in the interactive lesson
+(--link adds its address). Captions are not burned in: upload OUT/chNN.srt with the video. Needs ffmpeg; serve the
+site over HTTP first.
 """
-import argparse, asyncio, json, subprocess, sys, tempfile
+import argparse, asyncio, functools, json, subprocess, sys, tempfile, wave
+import numpy as np
 from pathlib import Path
 from playwright.async_api import async_playwright
 
@@ -28,6 +32,23 @@ END_CARD = """(link) => {
     ${link ? `<div style="font-size:30px;opacity:.65">${link}</div>` : ''}`;
   document.getElementById('frame').append(d);
 }"""
+
+
+RATE = 44100
+
+
+@functools.lru_cache(maxsize=None)
+def decode(src):
+    """Any audio file or URL as float32 stereo samples at RATE."""
+    raw = subprocess.run(['ffmpeg', '-v', 'error', '-i', src, '-f', 'f32le', '-ac', '2', '-ar', str(RATE), '-'],
+                         capture_output=True, check=True).stdout
+    return np.frombuffer(raw, np.float32).reshape(-1, 2)
+
+
+def put(track, at, clip, gain=1.0, stop=None):
+    """Add clip into track from `at` seconds, cut at `stop` seconds."""
+    i = round(at * RATE); j = min(len(track), i + len(clip), round(stop * RATE) if stop is not None else len(track))
+    if j > i: track[i:j] += clip[:j - i] * gain
 
 
 def srt_time(t):
@@ -54,33 +75,63 @@ async def main(a):
         await pg.goto(base + '?beat=0&t=0'); await pg.wait_for_timeout(500)
         if errs:
             sys.exit(f'page errors: {errs}')
-        info = await pg.evaluate("({lang: CHAPTER.language || 'en', beats: BEATS.map(b => ({id: b.id, ask: !!b.ask}))})")
+        info = await pg.evaluate("""({lang: CHAPTER.language || 'en', beats: BEATS.map(b => ({id: b.id, ask: !!b.ask, pre: b.pre || 0})),
+          sfx: typeof SFX === 'undefined' ? [] : SFX.map(e => ({...e, src: new URL(`audio/sfx/${e.name}.mp3`, location.href).href})),
+          bgm: typeof BGM === 'undefined' ? [] : BGM.map(m => ({src: m.a.src, beats: m.beats, gain: m.gain}))})""")
         beats = [(i, x['id']) for i, x in enumerate(info['beats']) if not x['ask']]
+        asks = len(beats) < len(info['beats'])
         box = await pg.locator('#stage').bounding_box()
         clip = {k: box[k] for k in ('x', 'y', 'width', 'height')}
         audio_dir = Path(tempfile.mkdtemp(prefix='export-'))
         video = out / f'{a.chapter}.mp4'
-        # Pass 1: the audio track, each beat's clip padded to the beat's length on screen.
-        lengths, cues, offset = [], [], 0.0
+        # Pass 1: the sound track and the captions, beat by beat at the beat's length on screen.
+        end_s = END_SECONDS if asks or a.link else 0   # a picture book ends on its own last scene
+        lengths, starts, music_off, cues, offset = [], [], [], [], 0.0
         for i, bid in beats:
             await open_beat(pg, base, i)
             end, T = await pg.evaluate('[P.end, TIMINGS[BEATS[P.i].id]]')
-            lengths.append(end)
-            for k, (t, line) in enumerate(T['cues']):
-                stop = T['cues'][k + 1][0] if k + 1 < len(T['cues']) else T['dur']
-                cues.append((offset + t, offset + stop, line))
+            pre = info['beats'][i]['pre']
+            lengths.append(end); starts.append(offset)
+            music_off.append(await pg.evaluate('([id, n, fps]) => Array.from({length: n}, (_, f) => !!window.MUSIC_OFF?.[id]?.(f / fps))',
+                                               [bid, round(end * a.fps), a.fps]))
+            for k, c in enumerate(T['cues']):   # [t, text, end?]: the page shows it at pre + t
+                stop = c[2] if len(c) > 2 else T['cues'][k + 1][0] if k + 1 < len(T['cues']) else T['dur']
+                cues.append((offset + pre + c[0], offset + pre + stop, c[1]))
             offset += end
-        total = offset + END_SECONDS
-        site_audio = [f'{a.url}{a.chapter}/audio/{info["lang"]}/{bid}.mp3' for _, bid in beats]
-        inputs, chains = [], []
-        for k, src in enumerate(site_audio):
-            inputs += ['-i', src]
-            chains.append(f'[{k}:a]aformat=sample_rates=44100:channel_layouts=stereo,apad=whole_dur={lengths[k]:.3f},'
-                          f'atrim=0:{lengths[k]:.3f}[a{k}]')
-        mix = ''.join(f'[a{k}]' for k in range(len(beats))) + f'concat=n={len(beats)}:v=0:a=1,apad=whole_dur={total:.3f}[out]'
+        total = offset + end_s
+        track = np.zeros((round(total * RATE) + 1, 2), np.float32)
+        for k, (i, bid) in enumerate(beats):
+            o, pre = starts[k], info['beats'][i]['pre']
+            put(track, o + pre, decode(f'{a.url}{a.chapter}/audio/{info["lang"]}/{bid}.mp3'), 1, o + lengths[k])
+            for e in info['sfx']:   # effects sit at half volume under the voices; a new scene stops them
+                if e['beat'] == bid and 0 <= e['at'] < lengths[k]:
+                    put(track, o + e['at'], decode(e['src']), .5 * e['vol'], o + lengths[k])
+        # music: the page's bgmTick, frame by frame: 0.8 s crossfades, ducked to 30 % in a scene with voices
+        fps, n = a.fps, sum(len(m) for m in music_off)
+        frames_id = [bid for k, (_, bid) in enumerate(beats) for _ in music_off[k]]
+        frames_t = [f / fps for m in music_off for f in range(len(m))]
+        frames_off = [x for m in music_off for x in m]
+        beat_len = {bid: lengths[k] for k, (_, bid) in enumerate(beats)}
+        for m in info['bgm']:
+            song, v, duck, pos = decode(m['src']), 0.0, .3, 0.0
+            gain = np.zeros(n); at = np.zeros(n, int)
+            for f in range(n):
+                bid, t = frames_id[f], frames_t[f]
+                current = bid in m['beats'] and not frames_off[f]
+                v = max(0.0, min(1.0, v + (1 if current else -1) / fps / .8))
+                duck += max(-1 / fps, min(1 / fps, .3 - duck))
+                if current: pos = sum(beat_len.get(b, 0) for b in m['beats'][:m['beats'].index(bid)]) + t
+                else: pos += 1 / fps
+                gain[f], at[f] = v * m['gain'] * duck, round(pos * RATE) % len(song)
+            step = RATE / fps
+            for f in np.nonzero(gain)[0]:
+                i = round(f * step); seg = np.take(song, np.arange(at[f], at[f] + round(step)), axis=0, mode='wrap')
+                put(track, i / RATE, seg, gain[f])
+        peak = float(np.abs(track).max())
         wav = audio_dir / 'track.wav'
-        subprocess.run(['ffmpeg', '-v', 'error', '-y', *inputs, '-filter_complex', ';'.join(chains) + ';' + mix,
-                        '-map', '[out]', str(wav)], check=True)
+        with wave.open(str(wav), 'wb') as w:
+            w.setnchannels(2); w.setsampwidth(2); w.setframerate(RATE)
+            w.writeframes((np.clip(track, -1, 1) * 32767).astype('<i2').tobytes())
         # Pass 2: frames, piped into the encoder with the audio track.
         enc = subprocess.Popen(['ffmpeg', '-v', 'error', '-y', '-f', 'image2pipe', '-framerate', str(a.fps), '-c:v', 'mjpeg',
                                 '-i', '-', '-i', str(wav), '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '20',
@@ -95,10 +146,11 @@ async def main(a):
                 enc.stdin.write(await pg.screenshot(clip=clip, type='jpeg', quality=92))
                 frames += 1
             print(f'{bid}: {n} frames', flush=True)
-        await pg.evaluate(END_CARD, a.link or '')
-        end = await pg.screenshot(clip=clip, type='jpeg', quality=92)
-        for _ in range(END_SECONDS * a.fps):
-            enc.stdin.write(end)
+        if end_s:
+            await pg.evaluate(END_CARD, a.link or '')
+            end = await pg.screenshot(clip=clip, type='jpeg', quality=92)
+            for _ in range(end_s * a.fps):
+                enc.stdin.write(end)
         enc.stdin.close(); enc.wait()
         await b.close()
     with open(out / f'{a.chapter}.srt', 'w', encoding='utf-8') as f:
@@ -106,7 +158,8 @@ async def main(a):
             f.write(f'{k}\n{srt_time(t0)} --> {srt_time(t1)}\n{line}\n\n')
     if errs or enc.returncode:
         sys.exit(f'failed: {errs[:3]} encoder {enc.returncode}')
-    print(f'{video} ({total / 60:.1f} min, {frames} frames, {len(beats)} beats; question beats left out) and {a.chapter}.srt')
+    print(f'{video} ({total / 60:.1f} min, {frames} frames, {len(beats)} beats{"; question beats left out" if asks else ""}; '
+          f'sound peak {peak:.2f}{" (clipped)" if peak > 1 else ""}) and {a.chapter}.srt')
 
 
 if __name__ == '__main__':
