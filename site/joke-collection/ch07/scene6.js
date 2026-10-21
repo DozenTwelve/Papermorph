@@ -36,7 +36,9 @@ function scene6(p, D) {
       armR: 24, armL: 24, brow: 0, shut: b(q, 1.6, 5.2, 9.0, 14.6) };
     if (q < N6.y3) Object.assign(pedro, { mouth: lips(q, 'scene6', PRE6, 'p5') !== 'X' ? lips(q, 'scene6', PRE6, 'p5') : 'grin',
       armL: 88, look: -.6, eyeX: -1, headR: -3 });
-    if (q < 1.2) Object.assign(pedro, spWalk(q, 2.2), { armL: 90, armR: 8 });
+    if (between(q, 1.2, 3.2)) Object.assign(pedro, spWalk(q, 2.2), { armL: 90, armR: 8 });
+    else if (between(q, N6.s07, N6.sp7 - .1) || between(q, N6.cue2 + .5, N6.cue2 + 1.2))
+      Object.assign(pedro, spWalk(q, 2.2));   // leg cycle only inside a translation
     if (q >= N6.y3 && q < N6.s07) {   // listens to Yui: a delighted, very wrong 'O' of realization
       Object.assign(pedro, { look: 1, eyeX: 1, mouth: between(q, N6.y3sp + 1.4, N6.y3sp + 2.1) ? 'O' : 'grin',
         armL: 0, armR: 0, brow: -.1, bob: -2 * onTwos(q) });
