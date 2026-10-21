@@ -7,7 +7,6 @@ const PRE3 = 1.0, S3 = TIMINGS.scene3;
 const N3 = { cut: PRE3 + S3.parts.s04 - .35, bub: PRE3 + S3.parts.s04 + 1.55,
   ba1: PRE3 + S3.marks['s04.ba1'], va1: PRE3 + S3.marks['s04.va1'],
   s05: PRE3 + S3.parts.s05, th1: PRE3 + S3.marks['s05.th1'] };
-
 sfx('scene3', N3.bub, 'chime', .35);
 
 function scene3(p, D) {
@@ -20,14 +19,13 @@ function scene3(p, D) {
   stopClock(D, (q, f) => {
     cam.apply(q, f);
     const cu = q >= N3.cut && q < N3.s05 - .15;
-    const sp = lips(q, 'scene3', PRE3, 'p2', 's04', 's05');
 
     /* --- Pedro: proud raving, oblivious the whole way through --- */
     const wide = !cu && q < N3.s05 - .15;
     const rave = span(q, PRE3, PRE3 + 1.0);
     const pedro = { x: BK.PAST.pedro, y: BK.GROUND, s: .92,
       look: wide ? 0 : -.6, eyeX: wide ? 0 : -1,
-      mouth: lips(q, 'scene3', PRE3, 'p2') !== 'X' ? 'grin' : 'grin',   // he raves happily even when it is narration
+      mouth: lips(q, 'scene3', PRE3, 'p2') !== 'X' ? lips(q, 'scene3', PRE3, 'p2') : 'grin',   // he raves happily even when it is narration
       armL: wide ? 55 + 45 * rave : 25, armR: wide ? 55 + 50 * rave : 25 + 8 * onTwos(q),
       headR: 3 + (q >= N3.s05 ? 5 * onTwos(q) : 2 * onTwos(q)), bob: wide ? -3 * rave : 0,
       shut: b(q, 1.6, 6.2, 12.4) };

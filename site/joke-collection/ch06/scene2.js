@@ -3,8 +3,8 @@
    cow" the finger comes up and the moustache goes very serious. */
 'use strict';
 const PRE2 = 1.0, S2 = TIMINGS.scene2;
-const N2 = { look: PRE2 + S2.parts.s03 + S2.cues[1][0], pet: PRE2 + S2.parts.s03 + S2.cues[2][0],
-  joke: PRE2 + S2.parts.s03 + S2.cues[3][0] };
+const N2 = { look: cueAt('scene2', PRE2, 1), pet: cueAt('scene2', PRE2, 2),
+  joke: cueAt('scene2', PRE2, 4) };
 
 function scene2(p, D) {
   const R = pastSet(p), cam = R.cam;

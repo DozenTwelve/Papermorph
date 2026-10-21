@@ -130,7 +130,7 @@ const BK = {
 
 function gateSet(p) {
   const cam = paperCam(p, 'gate');
-  const yui = yuiPuppet(cam.stage, { holds: { case: 1 } }), me = mePuppet(cam.stage), pedro = pedroPuppet(cam.stage);
+  const yui = yuiPuppet(cam.stage), me = mePuppet(cam.stage), pedro = pedroPuppet(cam.stage);
   return { cam, yui, me, pedro };
 }
 function pastSet(p) {

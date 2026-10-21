@@ -5,7 +5,7 @@
 'use strict';
 const PRE6 = 1.0, S6 = TIMINGS.scene6;
 const N6 = { y3: PRE6 + S6.parts.y3, y3sp: PRE6 + S6.parts.y3 + .42, s07: PRE6 + S6.parts.s07,
-  sp7: PRE6 + S6.parts.s07 + .85, mk1: PRE6 + S6.marks['s07.mk1'], cue2: PRE6 + S6.parts.s07 + .85 + S6.cues[1][0],
+  sp7: PRE6 + S6.parts.s07 + .85, mk1: PRE6 + S6.marks['s07.mk1'], cue2: cueAt('scene6', PRE6, 3),
   s08: PRE6 + S6.parts.s08, an1: PRE6 + S6.marks['s08.an1'], card: PRE6 + S6.parts.s08 + 3.0 };
 
 const YUI_PT = { x: 720, y: 480, z: 1.7 };   // Yui's pointer + Pedro over her shoulder
@@ -75,8 +75,8 @@ function scene6(p, D) {
       Object.assign(me, { armR: 38 * pat, look: 0, eyeX: 0 });
     }
 
-    /* --- Luna: under the board; at an1 she looks up at her new name and nods --- */
-    const lookUp = span(q, N6.an1 - .1, N6.an1 + .6), nod = span(q, N6.an1 + 1.5, N6.an1 + 2.0) * (1 - span(q, N6.an1 + 2.4, N6.an1 + 2.9));
+    /* --- Luna: under the board; at an1 she looks up at her new name and nods (the nod resolves before the card) --- */
+    const lookUp = span(q, N6.an1 - .1, N6.an1 + .6), nod = span(q, N6.an1 + .7, N6.an1 + 1.2) * (1 - span(q, N6.an1 + 1.6, N6.an1 + 2.1));
     const cow = { x: BK.STAB.cow.x, y: BK.STAB.cow.y, s: BK.STAB.cow.s, dir: -1,
       headR: 14 - 24 * lookUp + 6 * nod, jaw: .25, eyeX: 1, eyeY: -1 * lookUp,
       ear: 14 * lookUp, lids: 0, brow: 0, tail: 4 * Math.sin(q * .8), shut: false };
