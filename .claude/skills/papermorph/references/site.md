@@ -18,6 +18,26 @@ cp "$SKILL/assets/templates/chapter.html" "$BOOK_SITE/ch01/index.html"
 cp "$SKILL/assets/templates/narration.en.json" "content/$BOOK_ID/ch01/narration.en.json"
 ```
 
+### A picture book
+
+The contents page is the series page (each episode a chapter in `units`); the episode comes from the picture-book kit, and the empty `baked.js` stands in until `bake_puppets.py` has run:
+
+```sh
+PB="$SKILL/assets/templates/picture-book"
+mkdir -p "$BOOK_SITE/img/puppets" "$BOOK_WORK/art" "content/$BOOK_ID/ch01"
+python3 "$SKILL/scripts/engine.py" "$BOOK_SITE"
+cp "$SKILL/assets/templates/book.html" "$BOOK_SITE/index.html"
+cp "$PB"/lib/*.js "$BOOK_SITE/lib/"
+cp "$PB/chapter.html" "$BOOK_SITE/ch01/index.html"; cp "$PB/scene1.js" "$BOOK_SITE/ch01/"
+cp "$PB/sets.js" "$PB/painted.json" "$BOOK_WORK/art/"
+cp "$PB/narration.en.json" "content/$BOOK_ID/ch01/"
+echo 'window.BAKED = {};' > "$BOOK_SITE/img/puppets/baked.js"
+```
+
+Then the sound and the pictures, in this order ([sound.md](sound.md), [puppets.md](puppets.md)): `tts.py`, `mouths.py`, `join.py "$BOOK_SITE/ch01/audio/en" scene1=s01,s02,s02b,s03 --words content/$BOOK_ID/ch01/narration.en.json`, `sfx.py "$BOOK_SITE/ch01/audio/sfx" knock`, `bake_sets.py "$BOOK_WORK/art/sets.js" "$BOOK_SITE"` and, with the preview server up, `bake_puppets.py "$BOOK_SITE"`.
+
+### Every book
+
 Use the pilot chapter's number in place of `ch01` when the pilot is not the first chapter. Use the agreed primary language: rename the narration source, load `audio/<lang>/timings.js`, and set `CHAPTER.language` to match (default `en`). Take `voice` and `rate` for each narration file from `style.json`, and translate the template's visible UI text as needed before the pilot.
 
 If the book's formulas need LaTeX ([engine.md](engine.md#latex)), add MathJax (with its license) to `lib/`, and load `../lib/mathjax.js` right after `engine.js` in every chapter:
@@ -63,7 +83,7 @@ Narration and on-screen text are written in one language first. A second languag
 
 ## Video export (optional)
 
-`uv run --with playwright SKILL/scripts/export.py chNN --url http://localhost:8765/<book>/ --out OUT --link <lesson URL>` renders the lesson beats to `OUT/chNN.mp4` (1080p, 30 fps) plus `OUT/chNN.srt` for upload with it. Frames come from seeking the beat clock, so the video matches the page exactly; question beats are left out and the video ends on a card pointing to the interactive lesson. It takes about 1.6× the video's length.
+`uv run --with playwright --with numpy SKILL/scripts/export.py chNN --url http://localhost:8765/<book>/ --out OUT --link <lesson URL>` renders the beats to `OUT/chNN.mp4` (1080p, 30 fps) plus `OUT/chNN.srt` for upload with it. Frames come from seeking the beat clock and the sound is mixed by the page's own rules (each beat's `pre`, and in a picture book its effects and music), so the video matches the page; question beats are left out and a lesson's video ends on a card pointing to the interactive lesson. It takes about 1.6× the video's length. Video files are large (an episode at 1080p is tens of megabytes, more than a static host such as Cloudflare Pages takes per file): upload them to the video site, not into `site/`.
 
 ## SCORM package (optional)
 
