@@ -5,12 +5,13 @@
     python3 engine.py site                         # every book in site/ (each folder with lib/engine.js)
     python3 engine.py site --check                 # report copies that differ; exit status 1 if any
     python3 engine.py site --from ../my-engine     # a local engine folder (a fork, or one being fixed)
-    python3 engine.py site --from you/fork@v2      # engine/ of a GitHub repo at a tag, branch or commit
+    python3 engine.py site --from you/fork@main    # engine/ of a GitHub repo at a tag, branch or commit
     python3 engine.py site/stats --latex           # also MathJax, for a book whose chapters use TX()
 
-The engine is not part of this skill: it is the engine/ folder of a repository, versioned by tags, and anyone may
-fork it. Without --from, the engine/ folder here or above the target is used (a checkout of that repository),
-otherwise DEFAULT; the source used is printed.
+The engine is not part of this skill: it is the engine/ folder of a repository, versioned by tags (engine-v2,
+engine-v2.0.1, ...; a new major number means books may need a change), and anyone may fork it. Without --from, the
+engine/ folder here or above the target is used (a checkout of that repository), otherwise DEFAULT, the latest major
+release; the source used is printed.
 Each book keeps a full copy in lib/, so it runs on its own; fix the engine at its source and sync, never edit the
 copies. lib/book.css holds the book's own settings and overrides; it is created from the default and never
 overwritten. MathJax (engine/vendor/mathjax) goes only into books that ask for it with --latex; after that, a book
@@ -19,7 +20,7 @@ with lib/mathjax.js keeps it in step like the rest.
 import argparse, filecmp, io, shutil, sys, tarfile, tempfile, urllib.request
 from pathlib import Path
 
-DEFAULT = 'DozenTwelve/Papermorph@main'
+DEFAULT = 'DozenTwelve/Papermorph@engine-v2'   # moves only with a major release
 OWN = 'book.css'
 LATEX = {'vendor/mathjax/tex-svg-full.js': 'mathjax.js', 'vendor/mathjax/LICENSE': 'mathjax-LICENSE.txt'}
 
