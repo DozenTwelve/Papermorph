@@ -1,0 +1,24 @@
+/* Volume control for the player bar (volume.js); imported by engine.css. */
+.volume { display: flex; align-items: center; flex: none; width: 44px; height: 44px; overflow: hidden;
+  border: 1px solid var(--edge); border-radius: 999px; background: var(--panel); color: var(--chalk); transition: width .18s ease; }
+.volume .icon { width: 42px; height: 42px; border: 0; background: transparent; }
+.volume:hover, .volume:focus-within { width: 166px; gap: 10px; padding-right: 12px; }
+.volume:hover { background: #2b3f36; border-color: var(--faint); }
+.volume:has(:focus-visible) { outline: 2px solid var(--task); outline-offset: 3px; }
+.volume .icon:focus-visible { outline: none; }
+.volume input { appearance: none; flex: none; width: 0; height: 42px; margin: 0; opacity: 0; background: transparent; cursor: pointer; }
+.volume:hover input, .volume:focus-within input { width: 100px; opacity: 1; }
+.volume input:focus-visible { outline: none; }
+.volume input::-webkit-slider-runnable-track { height: 4px; border-radius: 999px;
+  background: linear-gradient(to right, var(--chalk) var(--volume, 100%), var(--faint) var(--volume, 100%)); }
+.volume input::-webkit-slider-thumb { appearance: none; width: 12px; height: 12px; margin-top: -4px; border: 0; border-radius: 50%; background: var(--chalk); }
+.volume input::-moz-range-track { height: 4px; border-radius: 999px; background: var(--faint); }
+.volume input::-moz-range-progress { height: 4px; border-radius: 999px; background: var(--chalk); }
+.volume input::-moz-range-thumb { width: 12px; height: 12px; border: 0; border-radius: 50%; background: var(--chalk); }
+@media (max-width: 700px) {
+  .volume { width: 36px; height: 40px; }
+  #bar .volume .icon { width: 34px; height: 38px; }
+  .volume:hover, .volume:focus-within { width: 158px; }
+  .volume input { height: 38px; }
+}
+@media (prefers-reduced-motion: reduce) { .volume { transition: none; } }

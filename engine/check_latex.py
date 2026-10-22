@@ -133,8 +133,6 @@ async def answer(route):
     variant, _, rest = urlparse(route.request.url).path.split("/__latex__/")[1].partition("/")
     if rest == "ch01/":
         await route.fulfill(content_type="text/html; charset=utf-8", body=PAGES[variant].encode("utf-8"))
-    elif rest.endswith("refs.js"):   # the templates load the book's built reference list
-        await route.fulfill(content_type="text/javascript", body="const REFS = {};")
     elif rest == "lib/engine.js":
         if variant == "base":
             await route.fulfill(content_type="text/javascript", body=BASE_ENGINE)

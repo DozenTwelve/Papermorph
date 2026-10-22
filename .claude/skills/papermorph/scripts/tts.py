@@ -1,13 +1,16 @@
 """Generate narration audio and word-mark timings with Edge TTS or Kokoro.
 
 Usage (from the project root; SKILL is this skill's folder):
-    uv run --with edge-tts $SKILL/scripts/tts.py content/ch01/narration.en.json site/ch01/audio/en
+    uv run --with edge-tts $SKILL/scripts/tts.py content/<book>/ch01/narration.en.json site/<book>/ch01/audio/en
     uv run --python 3.12 --with kokoro $SKILL/scripts/tts.py ...      # narration with "engine": "kokoro"
 
 The narration file names the engine ("edge", the default, or "kokoro"), the voice and the rate. Edge needs network
 access. Kokoro (Apache 2.0) runs locally: its first run downloads the model (about 330 MB) and an English dictionary;
 voices start with the accent's letter (am_michael, af_heart: American; bm_george, bf_emma: British) and its word
 timings cover English. Both need ffmpeg/ffprobe.
+
+A book with several speakers lists them under "voices" ({name: {"voice", "rate", "pitch"}}) and writes a
+beat as {"speaker": name, "text": ...}; plain string beats use the file's own voice. Pitch is Edge only ("+20Hz").
 
 Narration text may contain [[mark]] tags placed before a word. The output
 timings.js records each clip's duration and the time (seconds) at which the
@@ -42,10 +45,10 @@ FIRST_RETRY_DELAY = 2     # seconds before the second request; doubles after eac
 PROBE_TEXT = "1, 2, 3."   # checks the voice after a beat fails; any voice reads digits in its own language
 
 
-async def synth(text, voice, rate, mp3_path):
+async def synth(text, voice, rate, mp3_path, pitch="+0Hz"):
     import edge_tts
     words = []  # (seconds, word)
-    comm = edge_tts.Communicate(text, voice, rate=rate, boundary="WordBoundary")
+    comm = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch, boundary="WordBoundary")
     with open(mp3_path, "wb") as f:
         async for chunk in comm.stream():
             if chunk["type"] == "audio":
@@ -55,12 +58,12 @@ async def synth(text, voice, rate, mp3_path):
     return words
 
 
-async def synth_with_retries(beat, text, voice, rate, mp3_path):
+async def synth_with_retries(beat, text, voice, rate, mp3_path, pitch):
     """synth(), requested again after NoAudioReceived; each attempt rewrites mp3_path from the start."""
     from edge_tts.exceptions import NoAudioReceived
     for attempt in range(1, MAX_ATTEMPTS + 1):
         try:
-            return await synth(text, voice, rate, mp3_path)
+            return await synth(text, voice, rate, mp3_path, pitch)
         except NoAudioReceived:
             if attempt == MAX_ATTEMPTS:
                 raise
@@ -76,7 +79,7 @@ async def explain_no_audio(beat, voice, rate, out_dir):
     with tempfile.NamedTemporaryFile(dir=out_dir, prefix=".probe-", suffix=".mp3", delete=False) as f:
         probe_path = Path(f.name)
     try:
-        await synth(PROBE_TEXT, voice, rate, probe_path)
+        await synth(PROBE_TEXT, voice, rate, probe_path)  # default pitch
         voice_works = True
     except NoAudioReceived:
         voice_works = False
@@ -90,10 +93,10 @@ async def explain_no_audio(beat, voice, rate, out_dir):
             "Rerun later, or choose another voice for the whole book (uv run --with edge-tts edge-tts --list-voices).")
 
 
-async def edge_beat(beat, text, voice, rate, mp3_path, out_dir):
+async def edge_beat(beat, text, voice, rate, mp3_path, out_dir, pitch):
     from edge_tts.exceptions import NoAudioReceived
     try:
-        return await synth_with_retries(beat, text, voice, rate, mp3_path)
+        return await synth_with_retries(beat, text, voice, rate, mp3_path, pitch)
     except NoAudioReceived:
         raise SystemExit(await explain_no_audio(beat, voice, rate, out_dir)) from None
 
@@ -195,20 +198,26 @@ async def main(src, out_dir):
     out_dir.mkdir(parents=True, exist_ok=True)
     cache_path = Path(src).with_suffix(".timings.json")  # build cache, kept out of the site
     cache = json.loads(cache_path.read_text(encoding="utf-8-sig")) if cache_path.exists() else {}
-    voice, rate, engine = spec["voice"], spec["rate"], spec.get("engine", "edge")
+    engine, voices = spec.get("engine", "edge"), spec.get("voices", {})
     if engine not in ("edge", "kokoro"):
         raise SystemExit(f"unknown engine {engine!r}: use edge or kokoro")
     result = {}
-    public = lambda v: {k: v[k] for k in ("dur", "marks", "cues")}
+    public = lambda v: {k: v[k] for k in ("dur", "marks", "cues", "forced") if k in v}
     live = {b: public(v) for b, v in cache.items()
             if {"dur", "marks", "cues"} <= v.keys() and (out_dir / f"{b}.mp3").exists()}
     timings_path = out_dir / "timings.js"
     for beat, raw in spec["beats"].items():
+        who = voices[raw["speaker"]] if isinstance(raw, dict) else spec
+        sub = raw.get("sub") if isinstance(raw, dict) else None   # the line's subtitle, one cue for the whole clip
+        raw = raw["text"] if isinstance(raw, dict) else raw
+        voice, rate, pitch = who["voice"], who.get("rate", "+0%"), who.get("pitch", "+0Hz")
+        if pitch != "+0Hz" and engine == "kokoro":
+            raise SystemExit(f"{beat}: pitch is Edge only")
         mp3 = out_dir / f"{beat}.mp3"
         old = cache.get(beat)
         clean, marks = split_marks(raw)
         tag = "" if engine == "edge" else f"{engine}|"   # Edge keys stay as they were, so its audio is kept
-        key = hashlib.sha1(f"{tag}{voice}|{rate}|{clean}".encode()).hexdigest()
+        key = hashlib.sha1(f"{tag}{voice}|{rate}|{'' if pitch == '+0Hz' else pitch + '|'}{clean}".encode()).hexdigest()
         # Existing caches included [[marks]] in the key; reuse an unchanged old beat once,
         # then save its spoken-text key so future mark edits do not regenerate audio.
         legacy_key = hashlib.sha1(f"{voice}|{rate}|{raw}".encode()).hexdigest()
@@ -224,9 +233,13 @@ async def main(src, out_dir):
         try:
             if not reusable:
                 words = (kokoro_beat(clean, voice, rate, clip) if engine == "kokoro"
-                         else await edge_beat(beat, clean, voice, rate, clip, out_dir))
+                         else await edge_beat(beat, clean, voice, rate, clip, out_dir, pitch))
             entry = {"key": key, "dur": duration(clip), "words": words,
-                     "marks": mark_times(clean, marks, words), "cues": caption_cues(clean, words)}
+                     "marks": mark_times(clean, marks, words), "cues": [[0, sub]] if sub else caption_cues(clean, words)}
+            # a line in another language than the book's (its voice's locale differs): the page shows its subtitle even
+            # with captions off, as films do with foreign dialogue
+            if sub and "-" in voice and voice.split("-")[0].lower() != Path(src).stem.split(".")[-1].lower():
+                entry["forced"] = True
             if tmp:
                 tmp.replace(mp3)
                 print(f"{beat}: synthesized")

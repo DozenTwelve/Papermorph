@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PICTURE BOOK TITLE</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<!-- A picture-book episode: one beat per scene. Copy lib/*.js into site/<book>/lib/ next to the engine, this file to
+     site/<book>/chNN/index.html and scene1.js beside it. Order matters: engine, sets and baked pieces, kit, cast, the
+     audio data (tts.py: timings.js; mouths.py: mouths.js; join.py: shots.js), shared helpers, then the scenes. -->
+<script src="../lib/engine.js"></script>
+<script src="../img/sets/sets.js"></script>
+<script src="../img/puppets/baked.js" onerror="0"></script>
+<script src="../lib/paper.js"></script>
+<script src="../lib/cast.js"></script>
+<script src="audio/en/timings.js"></script>
+<script src="audio/en/mouths.js"></script>
+<script src="audio/en/shots.js"></script>
+<script src="../lib/shared.js"></script>
+<script src="scene1.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 1, title: 'PICTURE BOOK TITLE', minutes: 2, language: 'en' };   // next: '../ch02/' once it exists
+try { if (localStorage.getItem('captions') === null) setCaptions(true, false); } catch {}   // captions on at the first visit; the reader's own choice is kept
+
+/* ---------- beats: one per scene ----------
+   [id, title, run, { lead: false, pre }]: id names audio/en/<id>.mp3 (the joined scene clip) and its TIMINGS entry;
+   `pre` is the seconds of picture before the speech starts (the scene's PRE constant). */
+const BEATS = [
+  ['scene1', 'The visit', (m, D) => scene1(panel(0), D), { lead: false, pre: PRE1 }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+/* ---------- background music ----------
+   One track per listed scene group: [file in audio/bgm/ without .mp3, [scene ids], gain]. A track's position is the
+   time since its first scene began, so pausing and seeking keep it in step; 0.8 s crossfades between tracks; the music
+   ducks to 30 % while anyone speaks and sits at 70 % otherwise. Leave BGM empty for a silent film; a scene can mute its
+   music for a moment with window.MUSIC_OFF = { sceneId: t => boolean }. */
+const BGM = [/* ['theme', ['scene1', 'scene2'], .3] */]
+  .map(([n, beats, gain]) => ({ n, beats, gain, a: Object.assign(new Audio(`audio/bgm/${n}.mp3`), { preload: 'auto', loop: true, volume: 0 }), v: 0 }));
+const beatLen = id => { const b = BEATS.find(x => x.id === id); return (b.pre || 0) + TIMINGS[id].dur + .6; };
+let lastTick = performance.now(), duck = .3;
+function bgmTick(now) {
+  const dt = Math.min(.1, (now - lastTick) / 1000); lastTick = now;
+  const id = BEATS[P.i]?.id, on = P.started && P.playing && !P.waiting && !P.done;
+  // the music ducks well under the voices for the whole of a scene that has them (its silent opening and tail too, so
+  // it does not swell between lines), easing over about half a second
+  duck += Math.max(-dt, Math.min(dt, (P.audio ? .3 : .7) - duck));
+  const vol = +(document.getElementById('volume')?.value ?? 1) * duck;
+  for (const m of BGM) {
+    const k = m.beats.indexOf(id), current = on && k >= 0 && !(window.MUSIC_OFF?.[id]?.(P.t));
+    m.v = Math.max(0, Math.min(1, m.v + (current ? 1 : -1) * dt / .8));
+    m.a.volume = m.v * m.gain * vol;
+    if (m.a.playbackRate !== (P.rate || 1)) m.a.playbackRate = P.rate || 1;   // in step at 0.75× and 1.5× too, no re-seeking
+    if (current) {
+      const want = (m.beats.slice(0, k).reduce((s, b) => s + beatLen(b), 0) + P.t) % (m.a.duration || 1e9);
+      if (Math.abs(m.a.currentTime - want) > .5) m.a.currentTime = want;
+      if (m.a.paused) m.a.play().catch(() => {});
+    } else if (m.v === 0 && !m.a.paused) m.a.pause();
+  }
+  if (!on && !P.done) for (const m of BGM) m.a.pause();
+  requestAnimationFrame(bgmTick);
+}
+requestAnimationFrame(bgmTick);
+// Build every puppet and prop once at load, off screen, so their bitmaps are ready before the first beat needs them.
+paperWarm(g => { kidPuppet(g); });
+boot();
+</script>
+</body>
+</html>

@@ -26,7 +26,7 @@ async def main(ch, out, base):
         pg = await b.new_page(viewport={"width": 1512, "height": 982})
         await pg.goto(f"{base}{ch}/?beat=0&t=0"); await pg.wait_for_timeout(800)
         await pg.evaluate(SETUP)
-        beats = await pg.evaluate("BEATS.map(b => [b.id, !!b.ask, TIMINGS[b.id].dur])")
+        beats = await pg.evaluate("BEATS.map(b => [b.id, !!b.ask, (b.pre || 0) + TIMINGS[b.id].dur])")
         res = []
         for i, (bid, ask, dur) in enumerate(beats):
             if ask: continue

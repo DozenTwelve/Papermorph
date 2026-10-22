@@ -28,6 +28,8 @@
   .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   .stills { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 18px 0; }
   .stills img { width: 100%; border-radius: 6px; display: block; }
+  .notice { margin: 0 0 18px; padding: 12px 16px; border-radius: 8px; background: #f6e3d6; border: 1px solid #e4bfa6; font-size: 16px; color: #5a3320; }
+  .notice a { font-weight: 600; }
   .verdict { margin: 18px 0; padding: 4px 22px; border-left: 4px solid var(--accent); background: var(--card); border-radius: 0 8px 8px 0; }
   .numbers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 18px 0; }
   .numbers div { padding: 14px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; text-align: center; }
@@ -48,6 +50,7 @@
   <img src="making/cover.webp" alt="The Three Little Pigs: the wolf blows at the straw house while the first little pig peeks out of the window.">
   <div>
     <a class="back" href="../">← Back to the bookshelf</a><br>
+    <div class="notice"><b>We don't recommend this method.</b> Asking an image model to draw the characters as well as the world meant new drawings for every action and a constant fight for consistency. Our picture books now paint only what stays still and move the characters in code: see <a href="../joke-collection/">Joke Collection</a>.</div>
     <span class="tag">An experiment</span>
     <h1>The Three Little Pigs</h1>
     <p class="lede">The other books on this shelf start from a textbook and draw every picture in code. This one started from nothing but the story. An image model painted the characters and places, and code made them move, speak and dance. It works, and it's fun to watch. But the method turned out not good enough to become part of the Papermorph Skill. Here is how it was made, and why.</p>
@@ -123,13 +126,13 @@
     <div><b>1 day</b><span>of making and fixing</span></div>
   </div>
 
-  <h2>Why it isn't in the Skill</h2>
+  <h2>Why we don't recommend it</h2>
   <div class="verdict">
     <p><b>Every new action needs new drawings.</b> In a book drawn in code, a new movement is a few lines. Here, picking up a pot, climbing a ladder or running away each means another round of edits per character, plus cutting, checking and fixing. The film can only do what was drawn, and you notice the gaps.</p>
     <p><b>Consistency has to be fought for, character by character.</b> Hips, collars, sleeves, fur and mouths each needed their own handling. A safety filter or a second model could break a character halfway through.</p>
     <p><b>It doesn't get cheaper with practice.</b> The first scenes were polished. The later ones, made faster, came out rough. A Skill should make the hundredth chapter as good as the first. This method makes each one cost about the same, in money and attention.</p>
   </div>
-  <p>So the story is finished and stays here, as a record of a path we walked and wouldn't recommend as it stands. What would change our mind: image models that can hand back a character as a real, bendable rig, or video models that keep a character consistent and can be steered word by word.</p>
+  <p>So the story is finished and stays here, as a record of a path we walked and wouldn't recommend as it stands. What we kept from it: an image model is very good at painting a world that stays still. <a href="../joke-collection/">Joke Collection</a> uses it for exactly that, sets and props only, while paper puppets drawn in code do all the acting. What would change our mind: image models that can hand back a character as a real, bendable rig, or video models that keep a character consistent and can be steered word by word.</p>
   <p><a class="watch" href="ch01/">▶ Watch the film</a></p>
 </main>
 <footer>Story: the English folk tale, retold for this film (in this version nobody gets eaten). Pictures generated with OpenAI gpt-image and Google Gemini image models, music with Google Lyria, voices with Microsoft Edge text-to-speech. Part of <a href="../">Papermorph</a>.</footer>

@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Four Dogs</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../img/sets/sets.js"></script>
+<script src="../img/puppets/baked.js" onerror="0"></script>
+<script src="../lib/paper.js"></script>
+<script>window.SP_SHUT = .9;   // a shut eye keeps its lid line (as episode 3): a full lid left two blank skin ovals</script>
+<script src="../lib/cast.js"></script>
+<script src="audio/en/timings.js"></script>
+<script src="audio/en/mouths.js"></script>
+<script src="audio/en/shots.js"></script>
+<script src="../lib/shared.js"></script>
+<script src="dogs.js"></script>
+<script src="scene1.js"></script>
+<script src="scene2.js"></script>
+<script src="scene3.js"></script>
+<script src="scene4.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 6, title: 'Four Dogs', minutes: 2, language: 'en', next: '../ch07/' };
+try { if (localStorage.getItem('captions') === null) setCaptions(true, false); } catch {}
+
+/* ---------- beats: one per scene ---------- */
+const BEATS = [
+  ['scene1', 'Three dogs', (m, D) => scene1(panel(0), D), { lead: false, pre: PRE1 }],
+  ['scene2', 'Back home', (m, D) => scene2(panel(0), D), { lead: false, pre: PRE2 }],
+  ['scene3', 'What is meat?', (m, D) => scene3(panel(0), D), { lead: false, pre: PRE3 }],
+  ['scene4', 'Shh', (m, D) => scene4(panel(0), D), { lead: false, pre: PRE4 }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+/* ---------- background music ----------
+   The Three Little Pigs' score (Lyria), reused from episode 2's folder: one track per listed scene, its position the
+   time since the track's first scene began, so pausing and seeking keep it in step; 0.8 s crossfades; lower under
+   speech. The home theme under the introductions, fading when the narrator hesitates before the fourth dog (scene 1
+   sets S1_STOP); the march under the American dog's boast and his "back home", fading as he barks for real in the
+   alley (scene 2 sets S2_STOP). Scenes 3 and 4 have no music: the chopping and the silences carry them. */
+const BGM = [['m1-home', ['scene1'], .3], ['m3-chimney', ['scene2'], .3]]
+  .map(([n, beats, gain]) => ({ n, beats, gain, a: Object.assign(new Audio(`../ch02/audio/bgm/${n}.mp3`), { preload: 'auto', loop: true, volume: 0 }), v: 0 }));
+window.MUSIC_OFF = { scene1: t => t > (window.S1_STOP ?? 1e9), scene2: t => t > (window.S2_STOP ?? 1e9) };
+const beatLen = id => { const b = BEATS.find(x => x.id === id); return (b.pre || 0) + TIMINGS[id].dur + .6; };
+let lastTick = performance.now(), duck = .3;
+function bgmTick(now) {
+  const dt = Math.min(.1, (now - lastTick) / 1000); lastTick = now;
+  const id = BEATS[P.i]?.id, on = P.started && P.playing && !P.waiting && !P.done;
+  // the music ducks well under the voices for the whole of a scene that has them (its silent opening and tail too, so
+  // it does not swell between lines), easing over about half a second
+  duck += Math.max(-dt, Math.min(dt, (P.audio ? .3 : .7) - duck));
+  const vol = +(document.getElementById('volume')?.value ?? 1) * duck;
+  for (const m of BGM) {
+    const k = m.beats.indexOf(id), current = on && k >= 0 && !(window.MUSIC_OFF?.[id]?.(P.t));
+    m.v = Math.max(0, Math.min(1, m.v + (current ? 1 : -1) * dt / .8));
+    m.a.volume = m.v * m.gain * vol;
+    if (current) {
+      const want = (m.beats.slice(0, k).reduce((s, b) => s + beatLen(b), 0) + P.t) % (m.a.duration || 1e9);
+      if (Math.abs(m.a.currentTime - want) > .5) m.a.currentTime = want;
+      if (m.a.paused) m.a.play().catch(() => {});
+    } else if (m.v === 0 && !m.a.paused) m.a.pause();
+  }
+  if (!on && !P.done) for (const m of BGM) m.a.pause();
+  requestAnimationFrame(bgmTick);
+}
+requestAnimationFrame(bgmTick);
+paperWarm(g => { usDog(g); plDog(g); suDog(g); cnDog(g); boxProp(g); prop(g, steakSVG + bowlSVG); });
+boot();
+</script>
+</body>
+</html>

@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Little Red Riding Hood</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../img/sets/sets.js"></script>
+<script src="../img/puppets/baked.js" onerror="0"></script>
+<script src="../lib/paper.js"></script>
+<script src="../lib/cast.js"></script>
+<script src="audio/en/timings.js"></script>
+<script src="audio/en/mouths.js"></script>
+<script src="audio/en/shots.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 1, title: 'Little Red Riding Hood', minutes: 4, language: 'en' };
+// A picture book: captions are on unless the reader turned them off.
+try { if (localStorage.getItem('captions') === null) setCaptions(true, false); } catch {}
+
+// The time (beat clock) of a word: part `b` of a joined scene, `w` seconds into its clip.
+const word = (scene, pre, b, w) => pre + TIMINGS[scene].parts[b] + w;
+
+/* ---------- scene 1: home ---------- */
+// The ground at the cottage door is y 790; puppets here are at scale .6 (Red about 245 px tall).
+const PRE1 = 1.5, DOOR = 6.75, OUT = 7.05, LAND = 8.25;
+const SC1 = t => PRE1 + TIMINGS.scene1.parts.s01b + t;   // a moment in Mother's line
+const T13 = 8.9, GIVE = 9.15, REACH = 9.85, TAKE = 10.35;
+const T14 = SC1(5.25), T15 = PRE1 + TIMINGS.scene1.parts.s01c - .15, SC1c = t => PRE1 + TIMINGS.scene1.parts.s01c + t;
+// 1.6: Red turns round and walks off along the garden path toward the woods; the path climbs and narrows into the
+// distance, so she grows smaller as she goes. Mother waves from the door. A near tree trunk wipes to scene 2.
+const T16 = T15 + 1.5, TURN = T16 + .25, WALK = TURN + .4, WIPE = 23.55;
+const pathY = x => 806 - .05 * (x - 560), depth = x => .62 * (1 - .32 * Math.min(1, Math.max(0, (x - 830) / 970)));
+// A raised finger that wags on twos while she says the words between a and b.
+const wag = (q, a, b) => q > a && q < b ? 9 * (Math.floor(q * FPS / 2) % 2 ? 1 : -1) : 0;
+const tween = (q, t0, d, a, b) => a + (b - a) * span(q, t0, t0 + d);
+const footY = (gy, s) => gy - 170 * s;   // hip height for feet on the ground line gy
+function door(parent) {
+  const g = mk('g', {}, parent);
+  g.innerHTML = `<g filter="url(#paper)"><path d="M606,790 L606,476 Q675,424 744,476 L744,790 Z" fill="#8a5a32"/>
+    <path d="M640,450 V790 M675,436 V790 M710,450 V790" stroke="#6e4426" stroke-width="3"/>
+    <path d="M606,530 h70 M606,720 h70" stroke="#3b2a1e" stroke-width="9"/><circle cx="726" cy="630" r="7" fill="#caa24c"/></g>`;
+  bakeAll(g);
+  const open = [1, .7, .3, -.1, -.4, -.55];
+  return q => { const k = Math.floor((q - DOOR) * FPS); tf(g, `translate(606,0) scale(${k < 0 ? 1 : open[Math.min(k, open.length - 1)]},1) translate(-606,0)`); };
+}
+function scene1(p, D) {
+  // 1.1 from the treetops down to the cottage, then a slow push toward the door
+  const cam = paperCam(p, 'home', { x: 800, y: -260, z: 1 });
+  cam.to({ y: 450 }, .4, 3.2).to({ x: 690, y: 560, z: 1.45 }, 3.8, 2.8);
+  // 1.2 medium on the door: it swings open and Red spins out into the garden, ending turned back toward the house
+  cam.cut({ x: 745, y: 640, z: 2 }, 6.6);
+  // 1.3 two-shot: Mother steps into the doorway and hands Red the basket
+  cam.cut({ x: 760, y: 600, z: 1.7 }, T13);
+  // 1.4 Mother close, facing us, finger raised; 1.5 Red close, nodding hard. Each is alone in her close-up.
+  cam.cut({ x: 708, y: 552, z: 4.4 }, T14).soft(T14, true);
+  // The reverse angle for Red's close-up: from the doorway out over the garden, so a second camera on its own set,
+  // with Red drawn large in it instead of zooming.
+  const out = paperCam(p, 'homeOut').soft(0, 'all'), redOut = redPuppet(out.stage);
+  cam.cut({ x: 1000, y: 470, z: 1 }, T16).soft(T16, false).to({ x: 1140 }, WALK + .3, 3);
+  const wipe = trunkWipe(p, WIPE, D - WIPE - .05);
+  const puffs = smoke(cam.stage, 932, 84), theDoor = door(cam.stage), mom = motherPuppet(cam.stage), red = redPuppet(cam.stage);
+  stopClock(D, (q, f) => {
+    const reverse = q >= T15 && q < T15 + 1.5;
+    vis(cam.root, !reverse); vis(out.root, reverse);
+    if (reverse) {
+      out.apply(q, f);
+      redOut.pose({ x: 800, y: 430 + 194 * 2.88, s: 2.88, head: 'F', mouth: mouthAt('s01c', q - SC1c(0)), shut: blinking(q, [19.4]),
+        nod: [.1, .45].some(t => q >= SC1c(t) && q < SC1c(t) + 2 / FPS) ? 22 : 0, rua: 4, rfa: -2 }, f);
+      return;
+    }
+    cam.apply(q, f); puffs(q); theDoor(q); wipe(q);
+
+    vis(mom.g, q >= T13);
+    const held = q < TAKE, sm = .6;
+    mom.pose({
+      x: 690, y: 790 - 212 * sm, s: sm,
+      ua: q < TAKE ? tween(q, GIVE, .45, 6, -45) : tween(q, TAKE + .15, .5, -45, 6),
+      fa: q < TAKE ? tween(q, GIVE, .45, -6, -15) : tween(q, TAKE + .15, .5, -15, -6),
+      finger: q >= T14 && q < T15, head: q >= T14 && q < T15 ? 'F' : 'P',
+      rua: -28, rfa: -146 + wag(q, SC1(5.4), SC1(6.1)) + wag(q, SC1(6.7), SC1(7.9)), lua: 40, lfa: -58,
+      basket: held, swing: held ? 6 * Math.exp(-(q - GIVE) * 2.5) * Math.sin((q - GIVE) * 9) * (q > GIVE) : 0,
+      brow: q < T14 ? span(q, SC1(3.0), SC1(3.3)) : -.7 * span(q, SC1(6.6), SC1(6.8)), headR: q < T14 ? 4 * span(q, SC1(3.0), SC1(3.3)) : -3 * span(q, SC1(6.6), SC1(6.8)),
+      mouth: mouthAt('s01b', q - SC1(0)), shut: blinking(q, [11.4, 15.6, 22.4]),
+      ...(q >= TURN + .2 ? { ua: -118, fa: -30 + (Math.floor(q * FPS / 2) % 2 ? 22 : -22) } : {}),   // waving on twos
+    }, f);
+
+    vis(red.g, q >= DOOR + .25 && !(q >= T14 && q < T15));
+    const u = Math.min(1, Math.max(0, (q - OUT) / (LAND - OUT))), after = Math.max(0, q - LAND), s = .6 + .02 * u;
+    const settle = Math.exp(-after * 3) * Math.sin(after * 10), spinning = u > 0 && u < 1;
+    const sinceTake = Math.max(0, q - TAKE), sway = 7 * Math.exp(-sinceTake * 2.2) * Math.sin(sinceTake * 8);
+    if (q >= T16) {   // 1.6
+      const w = walk(q - WALK, { period: .85, A: 26 }), xs = 830 + w.d * .5, sr = depth(xs), x = 830 + w.d * sr;
+      const tw = Math.min(1, Math.max(0, (q - TURN) / .35)), walking = q > WALK;
+      red.pose({ x, y: pathY(x) - (170 - w.drop) * sr, s: sr, turn: -Math.cos(Math.PI * tw),
+        near: w.near, far: w.far, kNear: w.kNear, kFar: w.kFar, cape: walking ? 3 + 3 * Math.sin(2 * w.ph + .6) : 3,
+        ua: walking ? -8 + 6 * Math.sin(w.ph) : -8, fa: -78, swing: walking ? 9 * Math.sin(w.ph - 1) : 0,
+        headR: walking ? 2 * Math.sin(2 * w.ph) : 0, shut: blinking(q, [21.6]) }, f);
+      return;
+    }
+    red.pose({
+      x: 675 + 155 * ease(u), y: footY(790 + 10 * u, s) - 16 * Math.abs(Math.sin(Math.PI * 3 * u)), s,
+      turn: Math.cos(Math.PI * 3 * ease(u)),                     // one and a half turns: she ends facing the door
+      near: 12 * Math.sin(6 * Math.PI * u), far: -12 * Math.sin(6 * Math.PI * u),
+      kNear: 22 * Math.abs(Math.sin(3 * Math.PI * u)), kFar: 14 * Math.abs(Math.sin(3 * Math.PI * u + 1)),
+      cape: 3 + 30 * Math.sin(Math.PI * u) + 6 * settle,
+      ua: spinning ? -8 - 62 * Math.sin(Math.PI * u) : q < TAKE ? tween(q, REACH, .4, 4 + 4 * settle, -70) : tween(q, TAKE + .05, .5, -70, -8),
+      fa: spinning ? -24 : q < TAKE ? tween(q, REACH, .4, -10, -20) : tween(q, TAKE + .05, .5, -20, -78),
+      basket: !held, swing: sway,
+      headR: spinning ? 0 : -2 * settle - 3 * span(q, SC1(3.2), SC1(3.5)) + 3 * span(q, T15, T15 + .2), shut: blinking(q, [9.6, 13.9, 19.4]),
+
+    }, f);
+  });
+}
+
+/* ---------- sound effects ----------
+   sfx(beat, at, name, vol): play audio/sfx/<name>.mp3 when the clock of beat `beat` passes `at` in normal playback
+   (seeking past it does not fire it). Pausing stops them. Made by tools/little-red-riding-hood/sfx.py. */
+const SFX = [], sfxOn = [];
+const sfx = (beat, at, name, vol = 1) => SFX.push({ beat, at, name, vol });
+let sfxLast = { i: -1, t: 0 };
+function sfxTick() {
+  const id = BEATS[P.i]?.id, on = P.started && P.playing && !P.waiting && !P.done;
+  if (on && sfxLast.i === P.i && P.t > sfxLast.t && P.t - sfxLast.t < .5)
+    for (const e of SFX) if (e.beat === id && e.at > sfxLast.t && e.at <= P.t) {
+      const a = new Audio(`audio/sfx/${e.name}.mp3`); a.volume = e.vol * +(document.getElementById('volume')?.value ?? 1); a.playbackRate = P.rate || 1;
+      a.play().catch(() => {}); sfxOn.push(a); a.onended = () => sfxOn.splice(sfxOn.indexOf(a), 1);
+    }
+  if (!on) while (sfxOn.length) sfxOn.pop().pause();
+  sfxLast = { i: P.i, t: P.t };
+  requestAnimationFrame(sfxTick);
+}
+requestAnimationFrame(sfxTick);
+
+/* ---------- shared for scenes 2–11 ---------- */
+// Beat-clock time of `t` seconds into clip `clip` of a joined scene that starts its narration `pre` s in.
+const clipAt = (scene, pre, clip, t = 0) => pre + TIMINGS[scene].parts[clip] + t;
+const onTwos = q => Math.floor(q * FPS / 2) % 2 ? 1 : -1;
+const between = (q, a, b) => q >= a && q < b;
+// Who is speaking: [clip, scene, pre] → the mouth for this frame, or 'X'.
+const lips = (q, scene, pre, ...clips) => { for (const c of clips) { const m = mouthAt(c, q - clipAt(scene, pre, c)); if (m !== 'X') return m; } return 'X'; };
+// The ground the path runs on in the woods, and where a puppet's hip sits for feet on it.
+const WOODS = 785, hipOn = (gy, s, feet = 170) => gy - feet * s;
+// A walk of a puppet from x0 to the right (dir -1: to the left), stopping cleanly after `steps` steps.
+function walker(x0, s, opts = {}, dir = 1, steps = Infinity) {
+  const half = (opts.period || 1) / 2;
+  return tau => { const w = walk(Math.min(tau, steps * half), opts); return { ...w, x: x0 + dir * w.d * s }; };
+}
+const bushBackSVG = (x, y) => `<g filter="url(#paper)" transform="translate(${x},${y}) scale(.9)"><circle cx="-80" cy="-40" r="58" fill="#2f5638"/><circle cx="80" cy="-46" r="62" fill="#2f5638"/>
+  <rect x="-110" y="-70" width="220" height="90" rx="30" fill="#26482f"/><circle cx="0" cy="-122" r="50" fill="#3a6844"/></g>`;
+const bushFrontSVG = (x, y) => `<g filter="url(#paper)" transform="translate(${x},${y}) scale(.9)"><circle cx="-30" cy="-6" r="40" fill="#3a6844"/><circle cx="40" cy="-4" r="42" fill="#3a6844"/></g>`;
+// Round eyes in the dark of a bush: open (0 … 1) and look (-1 … 1).
+function bushEyes(parent, x, y) {
+  const g = mk('g', {}, parent);
+  const e = [-23, 23].map(dx => { const w = mk('g', { transform: `translate(${x + dx},${y})` }, g); mk('ellipse', { rx: 13.5, ry: 11.5, fill: '#fbf4e2' }, w); return [w, mk('circle', { r: 6, fill: '#22150e' }, w)]; });
+  return (open, look) => { vis(g, open > 0); e.forEach(([w, p], i) => { tf(w, `translate(${x + [-23, 23][i]},${y}) scale(1,${Math.max(.05, open).toFixed(2)})`); p.setAttribute('cx', (6 * look).toFixed(1)); }); };
+}
+const doorLeaf = (parent, d, fill, hinge, extra = '') => { const g = prop(parent, `<g filter="url(#paper)"><path d="${d}" fill="${fill}"/>${extra}</g>`); return k => tf(g, `translate(${hinge},0) scale(${k.toFixed(2)},1) translate(${-hinge},0)`); };
+// Door positions over its frames from shut (1) to open; returns the door's scale at time q for an opening at t0.
+const OPENING = [1, .75, .45, .15, -.15, -.35];
+const opening = (q, t0, steps = OPENING) => q < t0 ? steps[0] : steps[Math.min(steps.length - 1, Math.floor((q - t0) * FPS))];
+const quiltSVG = `<g filter="url(#paper)"><path d="M736,646 C800,630 900,640 1000,628 C1100,620 1200,632 1344,640 L1350,764 L730,764 Z" fill="#b5523b"/>
+  ${[0, 1, 2, 3, 4].map(i => `<rect x="${770 + i * 112}" y="${660 + (i % 2) * 34}" width="70" height="44" fill="${i % 2 ? '#e8c4a0' : '#c8704a'}"/>`).join('')}</g>`;
+function roomProps(cam, order) {
+  // order: puppet slots between the room's pieces, back to front. Returns the pieces' controls.
+  const st = cam.stage, slot = n => mk('g', {}, st), r = {};
+  r.daylight = prop(st, `<g filter="url(#paper)"><rect x="176" y="436" width="188" height="364" fill="#f6e7b8"/><rect x="176" y="690" width="188" height="110" fill="#8db35b"/></g>`);
+  r.atDoor = slot();
+  r.door = doorLeaf(st, 'M176,436 H364 V800 H176 Z', '#8a5a32', 176, '<path d="M220,436 V800 M270,436 V800 M320,436 V800" stroke="#6e4426" stroke-width="3"/><rect x="330" y="600" width="22" height="8" fill="#3b2a1e"/>');
+  r.inWardrobe = slot();
+  r.wardrobe = doorLeaf(st, 'M1790,410 H1932 V790 H1790 Z', '#8a5a32', 1790, '<circle cx="1918" cy="600" r="6" fill="#caa24c"/><path d="M1810,430 h102 v160 h-102 Z" fill="none" stroke="#6e4426" stroke-width="4"/>');
+  r.inBed = slot();
+  r.quilt = prop(st, quiltSVG);
+  r.front = slot();
+  return r;
+}
+
+/* ---------- scene 2: the woods ---------- */
+const PRE2 = .9;
+function scene2(p, D) {
+  const EYES = PRE2 + TIMINGS.scene2.marks['s02.eyes'], BX = 1180, BY = 742;
+  const cam = paperCam(p, 'forest', { x: 460, y: 470, z: 1 });
+  prop(cam.stage, bushBackSVG(BX, BY)); const eyes = bushEyes(cam.stage, BX, BY - 50); prop(cam.stage, bushFrontSVG(BX, BY));
+  const red = redPuppet(cam.stage), wipe = trunkWipe(p, 0, .8, 'out');
+  const go = walker(300, .6, { period: .95, A: 24 });
+  // 2.1 follow her along the path; 2.2 at "But someone was watching" the camera stops and pushes in on the bush
+  // she has just passed; 2.3 the eyes, close, watching her go.
+  cam.to({ x: t => go(t).x + 160 }, 0, .01).to({ x: BX, y: 650, z: 2.3 }, EYES, 1.3).cut({ x: BX, y: BY - 50, z: 5.5 }, EYES + 2.1);
+  stopClock(D, (q, f) => {
+    cam.apply(q, f); wipe(q);
+    const w = go(q), s = .6;
+    red.pose({ x: w.x, y: hipOn(WOODS, s) + w.drop * s, s, near: w.near, far: w.far, kNear: w.kNear, kFar: w.kFar,
+      cape: 3 + 3 * Math.sin(2 * w.ph + .6), ua: -8 + 6 * Math.sin(w.ph), fa: -78, swing: 9 * Math.sin(w.ph - 1), headR: 2 * Math.sin(2 * w.ph), shut: blinking(q, [2.6]) }, f);
+    const o = q < EYES + .8 ? 0 : q < EYES + .9 ? .3 : between(q, EYES + 3.4, EYES + 3.57) ? .1 : 1;
+    eyes(o, q < EYES + 2.3 ? .4 : Math.min(1, .4 + (q - EYES - 2.3) * .5));
+  });
+}
+
+/* ---------- scene 3: the wolf ---------- */
+const PRE3 = 2.2;
+function scene3(p, D) {
+  const C = (c, t) => clipAt('scene3', PRE3, c, t), TX = 2250, POP = 1.5, STOP = 1.425;
+  const cam = paperCam(p, 'forest', { x: 2060, y: 560, z: 1.45 });
+  const wolf = wolfPuppet(cam.stage), red = redPuppet(cam.stage);
+  prop(cam.stage, `<g filter="url(#paper)"><path d="M${TX - 64},800 C${TX - 50},500 ${TX - 56},200 ${TX - 40},-200 L${TX + 44},-200 C${TX + 56},200 ${TX + 50},500 ${TX + 66},800 Z" fill="#6e4a30"/>
+    <path d="M${TX - 20},700 C${TX - 10},500 ${TX - 24},300 ${TX - 12},0 M${TX + 22},760 C${TX + 30},520 ${TX + 18},300 ${TX + 26},40" stroke="#5a3b24" stroke-width="6" fill="none"/></g>`);
+  // 3.2 the wolf's view of her: the woods behind her, his ear and shoulder dark and close at the edge
+  const rev = paperCam(p, 'forestRev').soft(0, 'all'), redRev = redPuppet(rev.stage);
+  prop(rev.root, `<g filter="url(#paper)"><path d="M1290,900 C1300,700 1380,560 1480,520 L1520,380 L1560,500 C1620,520 1660,560 1680,600 L1680,900 Z" fill="#3e3a36"/></g>`);
+  const go = walker(1640, .6, { period: .95, A: 24 }, 1, 3);
+  cam.cut({ x: 2120, y: 520, z: 2.6 }, C('s03c', -.05)).soft(C('s03c', -.05), true);
+  stopClock(D, (q, f) => {
+    const reverse = between(q, C('s03b', -.05), C('s03c', -.05));
+    vis(cam.root, !reverse); vis(rev.root, reverse);
+    if (reverse) {
+      rev.apply(q, f);
+      redRev.pose({ x: 760, y: 430 + 194 * 2, s: 2, head: 'F', mouth: mouthAt('s03b', q - C('s03b')), shut: blinking(q, [C('s03b', 1.6)]),
+        rua: q > C('s03b', 2.2) ? -96 : 6, rfa: q > C('s03b', 2.2) ? -10 : -4 }, f);
+      return;
+    }
+    cam.apply(q, f);
+    const w = go(q), s = .6, startle = between(q, POP + .1, POP + .1 + 2 / FPS);
+    red.pose({ x: w.x - (q > POP + .1 ? 12 : 0), y: hipOn(WOODS, s) + w.drop * s - (startle ? 12 : 0), s,
+      near: w.near, far: w.far, kNear: w.kNear, kFar: w.kFar, cape: 3, ua: -8, fa: -78,
+      headR: q > POP + .1 ? -4 : 0, shut: blinking(q, [6.2, 12.0]), mouth: 'X' }, f);
+    // the wolf hops out from behind the trunk, bows with his cap in his paw, then asks
+    const hop = Math.min(1, Math.max(0, (q - POP) / .4)), land = between(q, POP + .4, POP + .4 + 2 / FPS);
+    const bow = q < C('s03', 3) ? span(q, C('s03', .2), C('s03', .6)) : 1 - span(q, C('s03', 3), C('s03', 3.4));
+    const aside = q >= C('s03c', -.05);
+    wolf.pose({ x: TX + 10 - 150 * hop, y: hipOn(WOODS, s, 200) - 50 * Math.sin(Math.PI * hop) + (land ? 6 : 0), s, turn: -1,
+      lean: 26 * bow, cap: bow > .05 ? 'hand' : 'on', ua: bow > .05 ? -20 * bow : q > C('s03', 3.4) && q < C('s03b') ? -46 : 6, fa: bow > .05 ? -125 * bow : -20,
+      tail: 8 * Math.sin(q * 5), head: aside ? 'F' : 'P', mouth: lips(q, 'scene3', PRE3, 's03', 's03c'),
+      rua: 40, rfa: -104 + 8 * onTwos(q), lua: -40, lfa: 104 - 8 * onTwos(q),
+      brow: aside && q > C('s03c', 2.5) ? onTwos(q) : 0, look: aside && q < C('s03c', 2.3) ? -1 : 0, shut: blinking(q, [4.0, 14.8]) }, f);
+  });
+}
+
+/* ---------- scene 4: flowers ---------- */
+const PRE4 = .3;
+function scene4(p, D) {
+  const C = (c, t) => clipAt('scene4', PRE4, c, t), PICK = PRE4 + TIMINGS.scene4.marks['s04b.pick'], RUN = PRE4 + TIMINGS.scene4.marks['s04b.run'];
+  const cam = paperCam(p, 'forest', { x: 2000, y: 560, z: 1.5 });
+  const red = redPuppet(cam.stage), wolf = wolfPuppet(cam.stage);
+  // 4.1 he sweeps a paw at the meadow and the camera follows it; 4.2 she skips into the flowers and picks;
+  // 4.3 low, running with him along the path (she is a blur behind, still picking)
+  cam.to({ x: 3250, y: 500, z: 1.05 }, C('s04', 2.1), 2.6);
+  const RX = 2950, runner = walker(2600, .6, { L: 196, A: 26, period: .5, knee: 60 });
+  cam.cut({ x: 2700, y: 620, z: 1.7 }, RUN).to({ x: t => Math.min(3600, runner(t - RUN).x + 100) }, RUN, .01);
+  stopClock(D, (q, f) => {
+    cam.apply(q, f);
+    const s = .6, run = q >= RUN;
+    if (!run) {
+      const sweep = span(q, C('s04', 1.7), C('s04', 2.1));
+      wolf.pose({ x: 2120, y: hipOn(WOODS, s, 200), s, turn: q < C('s04', 1.6) ? -1 : q < C('s04', 1.9) ? .2 : 1,
+        lean: q < C('s04', 1.5) ? 8 * span(q, C('s04', 0), C('s04', .3)) : 0, ua: q < C('s04', 1.5) ? -50 : -60 - 50 * sweep, fa: -20,
+        mouth: lips(q, 'scene4', PRE4, 's04'), tail: 8 * Math.sin(q * 5), shut: blinking(q, [1.1]) }, f);
+    } else {
+      const w = runner(q - RUN);
+      wolf.pose({ x: w.x, y: hipOn(WOODS, s, 200) + w.drop * s - 6, s, near: w.near, far: w.far, kNear: w.kNear, kFar: w.kFar,
+        lean: 28, ua: -30 + 45 * Math.sin(w.ph), fa: -40, tail: -25 + 6 * Math.sin(2 * w.ph), mouth: 'D', jaw: .5 }, f);
+    }
+    // Red: before the pan she stands at the bend; off-screen she runs on; in the meadow she skips in and picks
+    if (q < PICK) {
+      red.pose({ x: 1883, y: hipOn(WOODS, s), s, ua: -8, fa: -78, headR: -3, shut: blinking(q, [2.4]) }, f);
+    } else {
+      const sm = .44, gy = 722, w = walk(Math.min(q - PICK, 1.9), { period: .7, A: 24 }), x = 2440 + w.d * sm;   // out in the meadow, beyond the path
+      const picks = [7.3, 8.0, 8.7, 9.4, 10.6, 11.4, 12.2].map(t => t + PRE4), done = picks.filter(t => q >= t + .35).length;
+      const bend = picks.some(t => between(q, t, t + .35));
+      red.pose({ x: x + 40 * done, y: hipOn(gy, sm) + w.drop * sm - (q - PICK < 1.9 ? 8 * Math.abs(Math.sin(w.ph)) : 0) + (bend ? 10 : 0), s: sm,
+        near: w.near, far: w.far, kNear: bend ? 30 : w.kNear, kFar: bend ? 20 : w.kFar, ua: bend ? 40 : -8, fa: bend ? 30 : -78,
+        headR: bend ? 14 : -2, bouquet: done, shut: blinking(q, [9.0]) }, f);
+    }
+  });
+}
+
+/* ---------- scene 5: Grandma's door ---------- */
+const PRE5 = 4.0;
+[3.45, 3.62, 3.79].forEach(t => sfx('scene5', t, 'knock'));
+function scene5(p, D) {
+  const C = (c, t) => clipAt('scene5', PRE5, c, t);
+  const cam = paperCam(p, 'grandmaOut', { x: 900, y: 470, z: 1 }, { stages: ['inside'] });
+  const door = doorLeaf(cam.stage, 'M1010,800 L1010,560 Q1070,510 1130,560 L1130,800 Z', '#3f5f8a', 1010, '<path d="M1040,530 V800 M1070,520 V800 M1100,530 V800" stroke="#2f4a6e" stroke-width="3"/><circle cx="1116" cy="680" r="6" fill="#caa24c"/>');
+  const wolf = wolfPuppet(cam.stage);
+  // inside: 5.3 Grandma in bed answers; 5.4 from inside, the latch lifts and the door opens on the wolf
+  const inn = paperCam(p, 'room', { x: 1200, y: 560, z: 2.3 }), R = roomProps(inn, []), gran = grandmaPuppet(R.inBed), wolfIn = wolfPuppet(R.atDoor);
+  inn.cut({ x: 330, y: 600, z: 1.8 }, C('s05b', 3.75));
+  const RUN = 1.8, SKID = 2.1, TIP = 2.2, KNOCK = 3.45, INSIDE = C('s05b', -.05);
+  const runner = walker(-150, .6, { L: 196, A: 26, period: .5, knee: 60 }), tip = walker(650, .6, { period: 1.2, A: 28, knee: 50 });
+  cam.cut({ x: 1010, y: 610, z: 2.4 }, 3.3);
+  stopClock(D, (q, f) => {
+    const inside = q >= INSIDE;
+    vis(cam.root, !inside); vis(inn.root, inside);
+    const s = .6;
+    if (inside) {
+      inn.apply(q, f); R.door(opening(q, C('s05b', 4.3)));
+      gran.pose({ x: 1250, y: 630, s: .55, turn: -1, mouth: lips(q, 'scene5', PRE5, 's05b'), nod: between(q, C('s05b', .05), C('s05b', .05) + 2 / FPS) ? 4 : 0, shut: blinking(q, [C('s05b', 2.2)]) }, f);
+      vis(wolfIn.g, q >= C('s05b', 4.3));
+      wolfIn.pose({ x: 262, y: hipOn(800, s, 200), s, lean: 6, ua: -20, fa: -30, brow: 1 }, f);
+      return;
+    }
+    cam.apply(q, f); door(1);
+    let o;
+    if (q < SKID) { const w = runner(Math.min(q, RUN)); o = { x: Math.min(w.x, 600) + (q > RUN ? 50 * span(q, RUN, SKID) : 0), y: hipOn(800, s, 200) + w.drop * s, near: q > RUN ? 28 : w.near, far: q > RUN ? -20 : w.far, kNear: q > RUN ? 0 : w.kNear, kFar: q > RUN ? 0 : w.kFar, lean: q > RUN ? -14 : 28, ua: -30 + 40 * Math.sin(w.ph), fa: -40, tail: -20 }; }
+    else { const w = tip(Math.min(q - TIP, 2.4)), x = Math.min(935, w.x); o = { x, y: hipOn(800, s, 200) + w.drop * s - 10, near: x < 935 ? w.near : 0, far: x < 935 ? w.far : 0, kNear: x < 935 ? w.kNear : 0, kFar: x < 935 ? w.kFar : 0, lean: 10, ua: -100, fa: -60, tail: 10 }; }
+    if (q >= 3.3) {   // 5.2 at the door: three knocks, then a paw at his throat for the high voice
+      const knock = [KNOCK, KNOCK + .17, KNOCK + .34].some(t => between(q, t, t + 1 / FPS));
+      o = { ...o, x: 935, near: 0, far: 0, kNear: 0, kFar: 0, lean: 6, ua: q < C('s05', 1.5) ? -75 : -10, fa: q < C('s05', 1.5) ? -35 + (knock ? 25 : 0) : -155,
+        brow: q > C('s05', 1.5) ? 1 : 0, shut: q > C('s05', 2) && q < C('s05', 2.6) && onTwos(q) > 0, mouth: lips(q, 'scene5', PRE5, 's05') };
+    }
+    wolf.pose({ s, ...o }, f);
+  });
+}
+
+/* ---------- scene 6: the wardrobe ---------- */
+const PRE6 = .6;
+sfx('scene6', PRE6 + TIMINGS.scene6.marks['s06.hide'] + .8, 'bang', .8);   // the wardrobe slammed shut
+function scene6(p, D) {
+  const HIDE = PRE6 + TIMINGS.scene6.marks['s06.hide'], CAP = PRE6 + TIMINGS.scene6.marks['s06.cap'], W = t => PRE6 + t;
+  const cam = paperCam(p, 'room', { x: 1120, y: 480, z: .9 }), R = roomProps(cam, []);
+  const granIn = grandmaPuppet(R.inWardrobe), gran = grandmaPuppet(R.inBed), wolfBed = wolfPuppet(R.inBed), wolf = wolfPuppet(R.front);
+  const things = prop(R.front, `<g filter="url(#paper)"><path d="M-40,8 C-40,-30 46,-34 54,6 Q8,-10 -40,8 Z" fill="#f6efe0"/></g>`), specs = mk('g', {}, R.front);
+  specs.innerHTML = '<circle cx="-12" r="10" fill="none" stroke="#7a5a2a" stroke-width="2.6"/><circle cx="12" r="10" fill="none" stroke="#7a5a2a" stroke-width="2.6"/>';
+  const wipe = trunkWipe(p, D - .7, .65);
+  // 6.1 the wolf leans in; her eyes go wide; 6.2 she hops into the wardrobe and slams it; 6.3 close on the bed:
+  // nightcap, glasses, into bed; then wide again — a crack in the wardrobe door, one eye.
+  cam.shake(HIDE + .8, 2 / FPS, 8).cut({ x: 1120, y: 620, z: 1.9 }, CAP).to({ z: 2.15 }, CAP + .1, 4).cut({ x: 1120, y: 480, z: .9 }, W(11));
+  const sneak = walker(262, .6, { period: 1.1, A: 26, knee: 50 }, 1, 8);
+  stopClock(D, (q, f) => {
+    cam.apply(q, f); wipe(q); R.door(-.35);
+    const hop = Math.min(1, Math.max(0, (q - HIDE) / .7)), inWard = q >= HIDE + .8;
+    R.wardrobe(q < HIDE + .45 ? 1 : q < HIDE + .8 ? -.3 : q < W(11.2) ? 1 + (q < HIDE + 1.2 ? .03 * onTwos(q) : 0) : .82);
+    vis(gran.g, !inWard);
+    const sg = .55, startled = q >= W(1.0);
+    gran.pose({ x: 1250 + 605 * ease(hop), y: 630 + (692 - 630) * hop - 130 * Math.sin(Math.PI * hop), s: sg, turn: hop > 0 ? 1 : -1,
+      head: startled && hop === 0 ? 'F' : 'P', brow: startled ? 1 : 0, hop: between(q, W(1.0), W(1.0) + 2 / FPS) ? -8 : 0,
+      ua: between(q, W(.4), W(1.0)) ? -150 : 6, fa: between(q, W(.4), W(1.0)) ? -30 : -6, rua: -30, rfa: -10, lua: 30, lfa: 10,
+      cap: q < HIDE + .1, glasses: q < HIDE + .1 }, f);
+    vis(granIn.g, q >= W(11.2));
+    granIn.pose({ x: 1830, y: 692, s: sg, head: 'F', cap: false, glasses: false, shut: blinking(q, [W(11.9)]) }, f);
+    // her nightcap and glasses fly onto the bed, and wait there for the wolf
+    const fly = Math.min(1, Math.max(0, (q - HIDE - .1) / .4)), worn = q >= W(7.4), specsOn = q >= W(8.2);
+    vis(things, q >= HIDE + .1 && !worn); tf(things, `translate(${1300 - 120 * fly},${560 + 80 * fly - 90 * Math.sin(Math.PI * fly)}) scale(.55)`);
+    vis(specs, q >= HIDE + .1 && !specsOn); tf(specs, `translate(${1280 - 70 * fly},${560 + 84 * fly - 60 * Math.sin(Math.PI * fly)}) scale(.55)`);
+    const s = .6, w = sneak(Math.max(0, q - HIDE - 1.2)), bed = Math.min(1, Math.max(0, (q - W(9.0)) / .4));
+    const x = q < W(9.0) ? Math.min(1000, w.x) : 1000 + 250 * ease(bed);
+    // over the quilt while he climbs, under it once he is in: two of him, one on each side of the quilt
+    const tucked = bed >= 1; vis(wolf.g, !tucked); vis(wolfBed.g, tucked);
+    (tucked ? wolfBed : wolf).pose({ x, y: q < W(9.0) ? hipOn(800, s, 200) + w.drop * s : hipOn(800, s, 200) + (630 - hipOn(800, s, 200)) * bed - 80 * Math.sin(Math.PI * bed), s,
+      turn: q < W(9.0) ? 1 : bed < .5 ? 1 - 2 * bed * 2 : -1, near: q < W(9.0) && x < 1000 ? w.near : 0, far: q < W(9.0) && x < 1000 ? w.far : 0,
+      kNear: x < 1000 ? w.kNear : 0, kFar: x < 1000 ? w.kFar : 0, lean: q < W(1.2) ? 22 * span(q, W(.1), W(.5)) : q < HIDE + 1.2 ? 22 : 8,
+      ua: between(q, W(7.0), W(7.4)) ? -60 : between(q, W(7.4), W(8.6)) ? -150 : 6, fa: between(q, W(7.0), W(7.4)) ? -30 : between(q, W(7.4), W(8.6)) ? -30 : -6,
+      cap: worn ? 'off' : 'on', night: worn, glasses: specsOn, head: q >= W(10.2) ? 'F' : 'P', brow: q >= W(10.2) ? onTwos(q) * .6 : 0,
+      tail: 6 * Math.sin(q * 4), shut: blinking(q, [W(2.6), W(9.4)]) }, f);
+  });
+}
+
+/* ---------- scene 7: Red at the door ---------- */
+const PRE7 = 1.6;
+const C7 = (c, t) => clipAt('scene7', PRE7, c, t);
+// The woodcutter chops by the oak while nobody talks to him: a swing every CHOP s, the blade landing at .85 of it.
+const CHOP = .9, CHOPPING = [[0, C7('s07w', .1)], [C7('s07', .9), 99]];
+const chopAt = q => { for (const [a, b] of CHOPPING) if (q >= a && q < b) return ((q - a) / CHOP) % 1; return -1; };
+for (const [a, b] of CHOPPING) for (let t = a + .85 * CHOP; t < Math.min(b, PRE7 + TIMINGS.scene7.dur); t += CHOP) sfx('scene7', t, 'chop', a ? .45 : .8);
+function scene7(p, D) {
+  const C = C7;
+  const cam = paperCam(p, 'grandmaOut', { x: 820, y: 470, z: 1 }, { stages: ['inside'] });
+  const door = doorLeaf(cam.stage, 'M1010,800 L1010,560 Q1070,510 1130,560 L1130,800 Z', '#3f5f8a', 1010, '<path d="M1040,530 V800 M1070,520 V800 M1100,530 V800" stroke="#2f4a6e" stroke-width="3"/><circle cx="1116" cy="680" r="6" fill="#caa24c"/>');
+  // the woodcutter by the oak, a chopping block in front of him and a few split logs
+  const WX = 400, WY = 772;
+  const wood = woodcutterPuppet(cam.stage);
+  prop(cam.stage, `<g filter="url(#paper)"><path d="M${WX + 56},${WY} L${WX + 60},${WY - 78} L${WX + 116},${WY - 78} L${WX + 120},${WY} Z" fill="#7a5034"/><ellipse cx="${WX + 88}" cy="${WY - 78}" rx="28" ry="7" fill="#c9a074"/>
+    <rect x="${WX + 74}" y="${WY - 118}" width="28" height="40" fill="#a37a52"/><ellipse cx="${WX + 88}" cy="${WY - 118}" rx="14" ry="4.5" fill="#d8b88a"/>
+    <path d="M${WX - 120},${WY} l60,0 l-6,-22 l-56,4 Z M${WX - 110},${WY - 20} l56,-4 l-4,-20 l-54,6 Z" fill="#a37a52"/></g>`);
+  const red = redPuppet(cam.stage), wipe = trunkWipe(p, 0, .8, 'out');
+  const inn = paperCam(p, 'room', { x: 330, y: 600, z: 1.8 }), R = roomProps(inn, []), redIn = redPuppet(R.atDoor);
+  // 7.1 she comes along the path, stops to greet him, then on to the open door
+  const opts = { period: .95, A: 24 }, go1 = walker(-60, .6, opts, 1, 3), STOP = go1(99).x, go2 = walker(STOP, .6, opts, 1, 6), ON = C('s07', .2);
+  cam.cut({ x: WX - 20, y: 600, z: 2.1 }, C('s07w', -.05)).cut({ x: 820, y: 470, z: 1 }, ON);   // the greeting, close
+  stopClock(D, (q, f) => {
+    const inside = q >= C('s07b', -.05);
+    vis(cam.root, !inside); vis(inn.root, inside);
+    const s = .6;
+    if (inside) {
+      inn.apply(q, f); R.door(-.35);
+      const w = walk(Math.max(0, Math.min(q - C('s07b', 1.1), .95)), { period: .95, A: 24 });
+      redIn.pose({ x: 270 + w.d * s, y: hipOn(800, s) + w.drop * s, s, near: w.near, far: w.far, kNear: w.kNear, kFar: w.kFar, bouquet: 7,
+        mouth: lips(q, 'scene7', PRE7, 's07b'), headR: 3 }, f);
+      return;
+    }
+    cam.apply(q, f); wipe(q); door(.45 + .06 * Math.sin(q * 2.2));
+    // the axe: raised over his head, a pause, down onto the log
+    const u = chopAt(q), ua = u < 0 ? 6 : u < .6 ? -42 - 133 * ease(u / .6) : u < .75 ? -175 : u < .85 ? -175 + 133 * (u - .75) / .1 : -42;
+    const talk = between(q, C('s07w', .1), ON + .3), turnBack = span(q, C('s07w', .1), C('s07w', .4)) - span(q, ON, ON + .3);
+    wood.pose({ x: WX, y: WY - 200 * .62, s: .62, turn: 1 - 2 * turnBack, ua, fa: u < 0 ? -6 : 0, hop: u >= .85 && u < .9 ? 2 : 0,
+      mouth: lips(q, 'scene7', PRE7, 's07x'), brow: talk ? .6 : 0, shut: blinking(q, [C('s07x', 1.6), C('s07', 3.0)]) }, f);
+    const w = q < ON ? go1(q) : go2(q - ON);
+    red.pose({ x: w.x, y: hipOn(800, s) + w.drop * s, s, near: w.near, far: w.far, kNear: w.kNear, kFar: w.kFar, cape: 3 + 3 * Math.sin(2 * w.ph + .6),
+      ua: -8 + 4 * Math.sin(w.ph), fa: -78, swing: 6 * Math.sin(w.ph - 1), bouquet: 7, mouth: lips(q, 'scene7', PRE7, 's07w'),
+      headR: q > C('s07', 3.2) ? -6 : 0, shut: blinking(q, [C('s07w', 2.2), C('s07', 2.4)]) }, f);
+  });
+}
+
+/* ---------- scene 8: what big ears ---------- */
+const PRE8 = .4;
+function scene8(p, D) {
+  const C = (c, t) => clipAt('scene8', PRE8, c, t), mid = c => C(c, -.05);
+  const cam = paperCam(p, 'room', { x: 1140, y: 560, z: 1.9 }), R = roomProps(cam, []);
+  const wolf = wolfPuppet(R.inBed), red = redPuppet(R.front);
+  // Grandma inside the wardrobe, seen only through the crack of its door (open to .6: 1875–1932)
+  mk('rect', { x: 1875, y: 424, width: 57, height: 366 }, mk('clipPath', { id: 'crack8' }, R.inWardrobe));
+  const crack = mk('g', { 'clip-path': 'url(#crack8)' }, R.inWardrobe);
+  mk('rect', { x: 1868, y: 410, width: 72, height: 390, fill: '#2a1a10' }, crack);
+  const granIn = grandmaPuppet(crack);
+  // the close-ups face each other across the bed: his, with the wall and window behind him (her view); hers, with
+  // the open door behind her (his view). Each line comes closer than the one before.
+  const A = paperCam(p, 'roomA').soft(0, 'all'), wolfA = wolfPuppet(A.stage);
+  const B = paperCam(p, 'roomB').soft(0, 'all'), redB = redPuppet(B.stage);
+  const shots = [['s08', 'two'], ['s08b', 'A', 1.9], ['s08c', 'B', 2], ['s08d', 'A', 2.7], ['s08e', 'B', 2.8], ['s08f', 'A', 3.4]];
+  const EAT = C('s08f', .88);
+  // while he says "see you with", a look at the wardrobe: through the crack, Grandma's eye narrows and the umbrella comes up
+  const WARD = [C('s08d', 1.0), mid('s08e')];
+  cam.cut({ x: 1870, y: 560, z: 2.6 }, WARD[0]);
+  stopClock(D, (q, f) => {
+    let k = 0; for (let i = 0; i < shots.length; i++) if (q >= mid(shots[i][0])) k = i;
+    const ward = between(q, ...WARD), [, which, big] = ward ? [, 'two'] : shots[k], s = .6;
+    vis(cam.root, which === 'two'); vis(A.root, which === 'A'); vis(B.root, which === 'B');
+    const wolfMouth = lips(q, 'scene8', PRE8, 's08b', 's08d', 's08f');
+    // s08e has half a second of silence after "And Grandma…": her mouth waits through it
+    const tE = q - C('s08e'), redMouth = lips(q, 'scene8', PRE8, 's08', 's08c') !== 'X' ? lips(q, 'scene8', PRE8, 's08', 's08c') : mouthAt('s08e', tE < 1 ? tE : tE < 1.5 ? -1 : tE - .5);
+    if (ward) {
+      cam.apply(q, f); R.wardrobe(.6);
+      const up = span(q, WARD[0] + .4, WARD[0] + 1.1);
+      granIn.pose({ x: 1906, y: 692, s: .55, head: 'F', cap: false, glasses: false, umbrella: true, brow: -1.8 * span(q, WARD[0] + .1, WARD[0] + .3), mouth: 'A',
+        rua: 30 - 150 * up, rfa: -10 - 70 * up, shut: blinking(q, [WARD[0] + .7]) }, f);
+    } else if (which === 'two') {
+      cam.apply(q, f); R.wardrobe(.6);
+      wolf.pose({ x: 1250, y: 630, s, turn: -1, cap: 'off', night: true, glasses: true, ear: between(q, C('s08', 1.3), C('s08', 2.6)) ? onTwos(q) : 0 }, f);
+      red.pose({ x: 1030, y: hipOn(800, s), s, bouquet: 7, mouth: redMouth, ua: -8, fa: -78, shut: blinking(q, [C('s08', 2.8)]) }, f);
+    } else if (which === 'A') {
+      A.apply(q, f);
+      const eat = q >= EAT, lunge = span(q, EAT + .6, D);
+      if (k === 5) A.shake(EAT, .3, 12);
+      wolfA.pose({ x: 800, y: 430 + 212 * big * (1 + .3 * lunge) - 300 * lunge, s: big * (1 + .3 * lunge), head: 'F', cap: 'off', night: true, glasses: !eat,
+        mouth: wolfMouth, jaw: eat && q < EAT + .9 ? 1 : null, brow: eat ? -1 : .6, rua: 30, rfa: -60, lua: -30, lfa: 60, shut: blinking(q, [C('s08b', 1.3), C('s08d', 1.5)]) }, f);
+    } else {
+      B.apply(q, f);
+      redB.pose({ x: 800, y: 430 + 194 * big, s: big, head: 'F', mouth: redMouth, headR: k === 2 ? -6 : 0, bouquet: 0, basket: false,
+        nod: k === 4 && between(tE, 1.0, 1.5) ? 3 : 0, shut: blinking(q, [C('s08c', 2.6), C('s08e', 1.1)]) }, f);
+    }
+  });
+}
+
+/* ---------- scene 9: out! ---------- */
+const PRE9 = 1.0;
+const C9 = (c, t) => clipAt('scene9', PRE9, c, t), M9 = k => PRE9 + TIMINGS.scene9.marks['s09c.' + k];
+// BANG: the wardrobe bursts open; WHACK: the umbrella comes down on his head; RUN: he bolts for the front door;
+// LEAP: the only way left, over everyone; CRASH: through the window.
+const LAND9 = 1.2, BANG = C9('s09', 0), WHACK = C9('s09', 2.04), RUN = C9('s09b', -.85), LEAP = C9('s09c', 5.3), CRASH = LEAP + .9;
+sfx('scene9', LAND9, 'thud'); sfx('scene9', BANG, 'bang'); sfx('scene9', WHACK + .12, 'bonk'); sfx('scene9', CRASH, 'crash');
+// The bedroom window (in the room set, 1420–1660 × 300–530): glass until `at`; then broken — the woods redrawn over
+// the set's cross bars, jagged glass left in the frame — and shards that burst out and fall to the floor.
+function brokenWindow(back, front, at) {
+  const glass = prop(back, `<g><rect x="1420" y="300" width="240" height="230" fill="#e8f4f6" opacity=".25"/>
+    <path d="M1440,340 l40,-26 M1450,362 l64,-42 M1562,340 l40,-26 M1572,470 l52,-34" stroke="#ffffff" stroke-width="6" stroke-linecap="round" opacity=".6"/></g>`);
+  const broken = prop(back, `<g filter="url(#paper)"><rect x="1418" y="298" width="244" height="234" fill="#cfe0d0"/><path d="M1418,430 C1480,400 1560,420 1662,396 L1662,532 L1418,532 Z" fill="#7fa54f"/>
+      <path d="M1440,430 l20,-60 l20,60 Z M1500,420 l24,-80 l24,80 Z M1590,410 l20,-64 l20,64 Z" fill="#4d7d55"/></g>
+    <path d="M1418,298 L1478,298 L1436,346 L1418,330 Z M1662,298 L1600,298 L1640,320 L1662,372 Z M1418,532 L1418,468 L1440,500 L1466,532 Z M1662,532 L1612,532 L1636,506 L1662,476 Z"
+      fill="#e8f4f6" stroke="#ffffff" stroke-width="2" opacity=".85"/>
+    <g filter="url(#paper)" fill="#7a5034"><path d="M1535,298 h10 v30 l-6,9 l-4,-7 Z M1535,532 h10 v-34 l-5,-9 l-5,11 Z M1418,410 v10 h28 l8,-4 l-10,-6 Z M1662,410 v10 h-24 l-6,-6 l8,-4 Z"/></g>`);
+  const G = 1800, shards = [...Array(18)].map((_, i) => {
+    const a = i * 2.4, r = .6 + (i % 5) * .25, y0 = 320 + (i * 53) % 190, vy = -150 - 140 * Math.abs(Math.sin(a)) * r;
+    return { el: mk('path', { d: `M0,${-7 - (i % 4) * 3} L${5 + (i % 3) * 3},6 L-6,4 Z`, fill: '#e8f4f6', stroke: '#ffffff', 'stroke-width': 1.5 }, front),
+      x0: 1440 + (i * 37) % 200, y0, vx: 240 * Math.cos(a) * r, vy, spin: (i % 2 ? 1 : -1) * (300 + i * 40), land: (-vy + Math.sqrt(vy * vy + 2 * G * (796 - y0))) / G };
+  });
+  return q => {
+    const t = q - at; vis(glass, t < 0); vis(broken, t >= 0);
+    for (const sh of shards) {
+      vis(sh.el, t >= 0); if (t < 0) continue;
+      const u = Math.min(t, sh.land);
+      tf(sh.el, `translate(${(sh.x0 + sh.vx * u).toFixed(1)},${(sh.y0 + sh.vy * u + G * u * u / 2).toFixed(1)}) rotate(${(sh.spin * u).toFixed(0)}) scale(1.6)`);
+    }
+  };
+}
+function scene9(p, D) {
+  const C = C9;
+  const cam = paperCam(p, 'room', { x: 1050, y: 500, z: 1.1 }), R = roomProps(cam, []);
+  const win = brokenWindow(R.atDoor, R.front, CRASH);
+  const wood = woodcutterPuppet(R.atDoor), gran = grandmaPuppet(R.front), red = redPuppet(R.front), wolf = wolfPuppet(R.front);
+  const spill = prop(R.front, `<g filter="url(#paper)">${[[-60, 4, '#d6493f'], [-30, -6, '#f6efe0'], [0, 6, '#efae48'], [30, -4, '#e88ab0'], [60, 6, '#d6493f'], [-90, 8, '#f6efe0']].map(([x, y, c]) =>
+    `<rect x="${x - 14}" y="${y - 2}" width="28" height="3" fill="#4f7a34"/><circle cx="${x + 14}" cy="${y}" r="9" fill="${c}"/>`).join('')}</g>`, { transform: 'translate(720,796) scale(.7)' });
+  // 9.1 he crouches on the bed and leaps; she ducks and cries for help; he sails over her, snaps the bouquet out of her
+  // hands and lands face first in it; 9.2 the wardrobe rattles and
+  // bursts open: Grandma and her umbrella; 9.3 wide: she runs at him and brings it down on his head; he bolts for the
+  // door — 9.4 where the woodcutter steps in; 9.5 wide: Grandma one side, the woodcutter the other, the window; the leap.
+  const DOOR = C('s09b', -.05), WIDE = C('s09c', -.05);
+  cam.cut({ x: 1800, y: 560, z: 1.8 }, C('s09', -.7)).cut({ x: 1150, y: 500, z: 1.1 }, C('s09', .9))
+    .cut({ x: 290, y: 560, z: 1.8 }, DOOR).cut({ x: 1000, y: 470, z: .95 }, WIDE).shake(CRASH, 3 / FPS, 10);
+  const runner = walker(780, .6, { L: 196, A: 26, period: .5, knee: 60 }, -1, 3);
+  stopClock(D, (q, f) => {
+    cam.apply(q, f); R.door(-.35); win(q);
+    R.wardrobe(q < C('s09', -.7) ? 1 : q < BANG ? 1 + .04 * onTwos(q) : opening(q, BANG, [1, .4, -.2, -.45, -.4]));
+    const s = .6, sw = q >= WIDE;
+    vis(spill, q >= LAND9);
+    // the wolf
+    let o;
+    const leap = Math.min(1, Math.max(0, (q - .3) / .9)), crouch = span(q, 0, .25) * (1 - leap), UP = C('s09', 1.2);
+    if (q < LAND9) o = { x: 1250 - 470 * ease(leap), y: 630 + 12 * crouch + 122 * leap - 80 * Math.sin(Math.PI * leap), turn: -1, lean: 20 * crouch + 40 * leap, ua: -120, fa: -30, near: -40 * Math.sin(Math.PI * leap), far: 40 * Math.sin(Math.PI * leap), tail: -30 * leap,
+      mouth: leap > .3 && leap < .7 ? 'D' : 'X', jaw: leap > .3 && leap < .55 ? 1 : null };
+    else if (q < UP) o = { x: 780, y: 752, turn: -1, lean: 78, shut: true, ua: -120, fa: -30 };
+    else if (q < RUN) {
+      const r = span(q, UP, UP + .5), hit = between(q, WHACK + .1, WHACK + .45);
+      o = { x: 780, y: 752 - 72 * r - (hit ? 40 * Math.sin(Math.PI * (q - WHACK - .1) / .35) : 0), turn: -1, lean: 78 * (1 - r),
+        ua: q > WHACK + .1 ? -160 : -20, fa: q > WHACK + .1 ? -30 : -10, brow: q > WHACK + .1 ? 1 : 0, ear: hit ? onTwos(q) : 0,
+        shut: between(q, WHACK + .1, WHACK + .9), mouth: hit ? 'D' : 'X' };
+    } else if (q < DOOR) { const w = runner(q - RUN); o = { x: w.x, y: 680 + w.drop * s, turn: -1, near: w.near, far: w.far, kNear: w.kNear, kFar: w.kFar, lean: 28, ua: -30 + 40 * Math.sin(w.ph), fa: -40, brow: 1, tail: -20 }; }
+    else if (q < WIDE) {   // skids to a stop in front of the woodcutter
+      const k = span(q, DOOR, DOOR + .3);
+      o = { x: 470 - 40 * k + (q > DOOR + .5 ? 1.5 * onTwos(q) : 0), y: 680, turn: -1, lean: -14, near: 28 * (1 - k), far: -20 * (1 - k), ua: -100, fa: -60, brow: 1, tail: 10 };
+    } else if (q < LEAP) {   // looks at Grandma, at the woodcutter, at the window; crouches
+      const look = q < M9('gran') ? -1 : q < M9('wood') ? 1 - 2 * span(q, M9('wood'), M9('wood') + .12) : -1 + 2 * span(q, M9('way'), M9('way') + .12);
+      const cr = span(q, LEAP - .35, LEAP - .05);
+      o = { x: 430, y: 680 + 14 * cr, turn: q < M9('wood') ? -1 + 2 * span(q, M9('gran'), M9('gran') + .12) : look, lean: 22 * cr, headR: q > M9('way') + .2 ? -12 * (1 - cr) : 0,
+        ua: -100 + 60 * cr, fa: -60, brow: 1, near: 20 * cr, far: 20 * cr, kNear: 40 * cr, kFar: 40 * cr, tail: 10 };
+    } else { const u = Math.min(1, (q - LEAP) / .9); o = { x: 430 + 1110 * u, y: 694 - 224 * u - 300 * Math.sin(Math.PI * u), s: s * (1 - .3 * u * u), turn: 1, lean: 30, near: -30, far: 30, ua: -150, fa: -20, tail: -30, brow: 1 }; }
+    vis(wolf.g, q < CRASH);
+    wolf.pose({ s, cap: 'off', night: true, glasses: false, ...o }, f);
+    // Red: ducks, then watches the wolf; at the crash, the window
+    const duck = between(q, .45, 1.9);
+    red.pose({ x: 1030, y: hipOn(800, s) + (duck ? 62 * s : 0), s, turn: q < 1.9 || q > CRASH - .3 ? 1 : -1, near: duck ? -62 : 0, far: duck ? -50 : 0, kNear: duck ? 104 : 0, kFar: duck ? 100 : 0,   // a squat
+      ua: duck ? -150 : -8, fa: duck ? -40 : -78, headR: duck ? 10 : sw && q > LEAP ? -8 : 0, bouquet: q < .75 ? 7 : 0, shut: duck,
+      mouth: lips(q, 'scene9', PRE9, 's09a') }, f);
+    // Grandma: out of the wardrobe in a hop, across the room, the umbrella down on his head; then she shakes it at him
+    vis(gran.g, q >= BANG + 1 / FPS);
+    const hop = span(q, BANG, BANG + .5), run = span(q, C('s09', .9), C('s09', 1.9)), whack = span(q, WHACK, WHACK + .16);
+    gran.pose({ x: 1860 - 160 * hop - 810 * run, y: 692 - 110 * Math.sin(Math.PI * hop) - (run > 0 && run < 1 ? 8 * Math.abs(Math.sin(q * 14)) : 0), s: .55,
+      turn: q > CRASH - .4 ? 1 : -1, cap: false, glasses: false, umbrella: true, mouth: lips(q, 'scene9', PRE9, 's09'),
+      ua: q < WHACK ? -175 : -175 + 47 * whack + (between(q, WHACK + .5, RUN) || between(q, WIDE, LEAP) ? 30 * onTwos(q) : 0), fa: -10, brow: -1 }, f);
+    // the woodcutter steps into the doorway
+    vis(wood.g, q >= DOOR);
+    const stamp = between(q, C('s09b', 1.7), C('s09b', 1.7) + 2 / FPS);
+    wood.pose({ x: 200 + 68 * span(q, DOOR, DOOR + .35), y: hipOn(800, .62, 200), s: .62, ua: -20, fa: -150, lean: q > C('s09b', 1.6) ? 8 : 0, hop: stamp ? -10 : 0, brow: -1,
+      mouth: lips(q, 'scene9', PRE9, 's09b'), shut: blinking(q, [C('s09b', 2.4)]) }, f);
+  });
+}
+
+/* ---------- scene 10: away into the woods ---------- */
+const PRE10 = .3;
+function scene10(p, D) {
+  const C = (c, t) => clipAt('scene10', PRE10, c, t);
+  const cam = paperCam(p, 'grandmaOut', { x: 1750, y: 470, z: 1 }, { stages: ['inside'] });
+  // the window he went through: the room redrawn over the set's cross bars, the woodcutter seen only through the hole,
+  // jagged glass left in the frame and a few shards on the grass below
+  mk('rect', { x: 1300, y: 520, width: 160, height: 120 }, mk('clipPath', { id: 'pane10' }, cam.stage));
+  const pane = mk('g', { 'clip-path': 'url(#pane10)' }, cam.stage);
+  prop(pane, '<g filter="url(#paper)"><rect x="1296" y="516" width="168" height="44" fill="#6e4a30"/><rect x="1296" y="560" width="168" height="84" fill="#5a3a24"/></g>');
+  const wood = woodcutterPuppet(pane);
+  prop(cam.stage, `<path d="M1300,520 L1346,520 L1312,556 L1300,546 Z M1460,520 L1412,520 L1442,538 L1460,572 Z M1300,640 L1300,598 L1318,620 L1338,640 Z M1460,640 L1420,640 L1440,620 L1460,600 Z"
+      fill="#e8f4f6" stroke="#ffffff" stroke-width="2" opacity=".85"/>
+    <g filter="url(#paper)" fill="#6e4a30"><path d="M1376,520 h8 v22 l-5,7 l-3,-6 Z M1376,640 h8 v-24 l-4,-7 l-4,9 Z M1300,577 v7 h20 l6,-3 l-8,-4 Z M1460,577 v7 h-18 l-5,-4 l6,-3 Z"/></g>
+    ${[[1312, 812, 30], [1340, 820, -20], [1371, 808, 60], [1398, 818, 10], [1430, 811, -45], [1452, 822, 80]].map(([x, y, r]) =>
+      `<path d="M0,-8 L6,6 L-6,4 Z" fill="#e8f4f6" stroke="#ffffff" stroke-width="1.5" transform="translate(${x},${y}) rotate(${r}) scale(1.4)"/>`).join('')}`);
+  const wolf = wolfPuppet(cam.stage), wipe = trunkWipe(p, D - .7, .65);   // time passes: to the table
+  cam.to({ x: 2560, y: 640, z: 2.4 }, C('s10b', 0), 3.4);
+  const backPath = x => 808 - (x - 1380) * 116 / 1620, far = x => .6 * (1 - .78 * Math.min(1, (x - 1380) / 1620));
+  stopClock(D, (q, f) => {
+    cam.apply(q, f); wipe(q);
+    const w = walk(Math.max(0, q - .25), { L: 196, A: 28, period: .48, knee: 60 }), xs = 1420 + w.d * .3, s = far(xs), x = 1420 + w.d * s;
+    wolf.pose({ x, y: backPath(x) - (200 - w.drop) * s - (q < .25 ? 20 * (1 - q / .25) : 0), s, near: w.near, far: w.far, kNear: w.kNear, kFar: w.kFar,
+      lean: 26, ua: -30 + 45 * Math.sin(w.ph), fa: -40, tail: -25 + 6 * Math.sin(2 * w.ph), cap: 'off', night: true, jaw: .4 }, f);
+    wood.pose({ x: 1372, y: 560 + 224 * .62, s: .62, axe: false, ua: -150, fa: -20 + 14 * onTwos(q), brow: -1, mouth: lips(q, 'scene10', PRE10, 's10'), shut: blinking(q, [C('s10b', .8)]) }, f);
+  });
+}
+
+/* ---------- scene 11: cake ---------- */
+const PRE11 = .8;
+function scene11(p, D) {
+  const C = (c, t) => clipAt('scene11', PRE11, c, t);
+  const cam = paperCam(p, 'room', { x: 2475, y: 590, z: 1.75 }), st = cam.stage;
+  const gran = grandmaPuppet(st), red = redPuppet(st), wood = woodcutterPuppet(st);
+  prop(st, `<g filter="url(#paper)"><path d="M2262,636 L2698,636 L2712,800 L2248,800 Z" fill="#f6efe0"/><path d="M2256,700 L2704,700" stroke="#c8322f" stroke-width="10" stroke-dasharray="14 10"/></g>
+    <g filter="url(#paper)"><ellipse cx="2405" cy="630" rx="42" ry="11" fill="#b5853c"/><rect x="2363" y="610" width="84" height="20" fill="#d9a85a"/><ellipse cx="2405" cy="610" rx="42" ry="11" fill="#f6efe0"/>
+      <path d="M2405,610 L2447,610 L2442,620 Z" fill="#c8322f"/></g>
+    <g filter="url(#paper)"><path d="M2556,632 L2560,580 Q2576,566 2592,580 L2596,632 Z" fill="#3f5f8a"/><path d="M2594,590 q16,4 6,24" stroke="#3f5f8a" stroke-width="6" fill="none"/></g>
+    <g filter="url(#paper)"><rect x="2348" y="616" width="18" height="20" fill="#f6e7b8"/><rect x="2606" y="616" width="18" height="20" fill="#f6e7b8"/><rect x="2516" y="616" width="16" height="20" fill="#f6e7b8"/></g>`);
+  const warm = mk('rect', { width: 1600, height: 900, fill: '#ffb050', opacity: .1 }, p), wipe = trunkWipe(p, 0, .8, 'out');
+  const shut = iris(p, C('s11c', 1.0), 1.2, 805, 445), card = endCard(p, C('s11c', 2.3));
+  // 11.1 the three at the table; 11.2 Red close, to us; 11.3 back out, and the iris closes on her
+  cam.cut({ x: 2480, y: 535, z: 3.4 }, C('s11b', -.05)).soft(C('s11b', -.05), true).cut({ x: 2475, y: 560, z: 1.5 }, C('s11c', -.05)).soft(C('s11c', -.05), false).to({ x: 2480, y: 520, z: 1.9 }, C('s11c', .1), 2.4);
+  stopClock(D, (q, f) => {
+    cam.apply(q, f); wipe(q); shut(q); card(q);
+    const eat = between(q, C('s11', .5), C('s11', 1.2)) || between(q, C('s11', 1.6), C('s11', 2.4));
+    gran.pose({ x: 2330, y: 655, s: .55, cap: true, glasses: true, ua: eat ? -60 : 6, fa: eat ? -110 : -6, blush: span(q, C('s11', 3), C('s11', 4.2)), shut: blinking(q, [C('s11', 1.0), C('s11b', 3)]) }, f);
+    red.pose({ x: 2482, y: 660, s: .6, head: 'F', basket: false, mouth: lips(q, 'scene11', PRE11, 's11b'), shut: blinking(q, [C('s11', 2.6), C('s11b', 5.6)]) || between(q, C('s11b', 5.0), C('s11b', 5.0) + 3 / FPS) }, f);
+    wood.pose({ x: 2640, y: 668, s: .62, turn: -1, axe: false, mouth: between(q, C('s11', 3.0), C('s11', 4.6)) ? (onTwos(q) > 0 ? 'D' : 'C') : 'X', shut: blinking(q, [C('s11', 1.8), C('s11b', 4)]) }, f);
+  });
+}
+
+/* ---------- beats: [id, title, run(m, D), extra] ---------- */
+const BEATS = [
+  ['scene1', 'Home', (m, D) => scene1(panel(0), D), { lead: false, pre: PRE1 }],
+  ['scene2', 'Into the woods', (m, D) => scene2(panel(0), D), { lead: false, pre: PRE2 }],
+  ['scene3', 'Good morning', (m, D) => scene3(panel(0), D), { lead: false, pre: PRE3 }],
+  ['scene4', 'Flowers', (m, D) => scene4(panel(0), D), { lead: false, pre: PRE4 }],
+  ['scene5', 'Knock, knock', (m, D) => scene5(panel(0), D), { lead: false, pre: PRE5 }],
+  ['scene6', 'The wardrobe', (m, D) => scene6(panel(0), D), { lead: false, pre: PRE6 }],
+  ['scene7', 'The open door', (m, D) => scene7(panel(0), D), { lead: false, pre: PRE7 }],
+  ['scene8', 'What big ears', (m, D) => scene8(panel(0), D), { lead: false, pre: PRE8 }],
+  ['scene9', 'Out!', (m, D) => scene9(panel(0), D), { lead: false, pre: PRE9 }],
+  ['scene10', 'Away', (m, D) => scene10(panel(0), D), { lead: false, pre: PRE10 }],
+  ['scene11', 'Cake', (m, D) => scene11(panel(0), D), { lead: false, pre: PRE11 }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+// The music is the Three Little Pigs' score (Lyria), reused.
+/* ---------- background music ---------- */
+// One track per part of the story, following the picture: its position is the time since the part began, so
+// pausing, seeking and changing beats keep it in step. Tracks crossfade at part changes; the music sits lower while
+// someone is speaking, and follows the player's volume.
+const BGM = [['m1-home', ['scene1', 'scene2']], ['m2-wolf', ['scene3', 'scene4', 'scene5']], ['m3-chimney', ['scene6', 'scene7', 'scene8', 'scene9']], ['m4-ending', ['scene10', 'scene11']]]
+  .map(([n, beats]) => ({ n, beats, a: Object.assign(new Audio(`audio/bgm/${n}.mp3`), { preload: 'auto', loop: true, volume: 0 }), v: 0 }));
+const beatLen = id => { const b = BEATS.find(x => x.id === id); return (b.pre || 0) + TIMINGS[id].dur + .6; };
+let lastTick = performance.now();
+function bgmTick(now) {
+  const dt = Math.min(.1, (now - lastTick) / 1000); lastTick = now;
+  const id = BEATS[P.i]?.id, on = P.started && P.playing && !P.waiting && !P.done;
+  const speaking = P.audio && !P.audio.paused && !P.audio.ended;
+  const master = +(document.getElementById('volume')?.value ?? 1) * (speaking ? .16 : .3);
+  for (const m of BGM) {
+    const k = m.beats.indexOf(id), current = on && k >= 0;
+    m.v = Math.max(0, Math.min(1, m.v + (current ? 1 : -1) * dt / .8));   // 0.8 s fades
+    m.a.volume = m.v * master;
+    if (current) {
+      const want = (m.beats.slice(0, k).reduce((s, b) => s + beatLen(b), 0) + P.t) % (m.a.duration || 1e9);
+      if (Math.abs(m.a.currentTime - want) > .5) m.a.currentTime = want;
+      if (m.a.paused) m.a.play().catch(() => {});
+    } else if (m.v === 0 && !m.a.paused) m.a.pause();
+  }
+  if (!on && !P.done) for (const m of BGM) m.a.pause();   // paused: silence at once (at the end it fades out)
+  requestAnimationFrame(bgmTick);
+}
+requestAnimationFrame(bgmTick);
+paperWarm(g => { redPuppet(g); motherPuppet(g); wolfPuppet(g); grandmaPuppet(g); woodcutterPuppet(g); door(g); smoke(g, 0, 0); });
+boot();
+</script>
+</body>
+</html>

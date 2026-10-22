@@ -40,6 +40,8 @@ def art(rows, pal):
 def sheet(anims):
     """anims: {name: [Image, ...]} -> (sheet, layout)."""
     w, h = next(iter(anims.values()))[0].size
+    odd = [f"{n}[{k}] {f.size}" for n, fs in anims.items() for k, f in enumerate(fs) if f.size != (w, h)]
+    if odd: raise ValueError(f"every frame must be {w}x{h}: {odd[:5]}")
     cols = max(len(f) for f in anims.values())
     S = Image.new("RGBA", (w * cols, h * len(anims)))
     layout = {"w": w, "h": h, "anims": {}}

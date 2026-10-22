@@ -20,7 +20,7 @@
 'use strict';
 const CHAPTER = { number: 1, title: 'The Three Little Pigs', minutes: 4, language: 'en' };
 // A picture book: captions are on unless the reader turned them off.
-try { if (localStorage.getItem('captions') === null) setCaptions(true); } catch {}
+try { if (localStorage.getItem('captions') === null) setCaptions(true, false); } catch {}
 
 /* ---------- helpers ---------- */
 const clamp01 = x => Math.min(1, Math.max(0, x)), smooth = x => { x = clamp01(x); return x * x * (3 - 2 * x); };

@@ -28,8 +28,8 @@ async def main():
         r = await pg.evaluate("(() => { const r = document.getElementById('stage').getBoundingClientRect(); return {x: r.x, y: r.y, width: r.width, height: r.height}; })()")
         for i, bid in enumerate(ids):
             if asks[i] or (a.beats and bid not in a.beats): continue
-            dur = await pg.evaluate(f"TIMINGS['{bid}'].dur")
             await pg.evaluate(f"seek({i}, false)"); await pg.wait_for_timeout(200)
+            dur = await pg.evaluate("P.end")   # the whole beat: a picture book's `pre` and the tail after the speech
             prev, diffs, t = None, [], 0.0
             while t <= dur + 1e-6:
                 await pg.evaluate(f"P.t = {t}; evalTo({t})"); await pg.wait_for_timeout(40)

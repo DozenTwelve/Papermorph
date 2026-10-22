@@ -66,8 +66,6 @@ async def answer(route):
     elif rest == "":
         html = BASE_FILES["book"] if from_base else (TEMPLATES / "book.html").read_text(encoding="utf-8")
         await route.fulfill(content_type="text/html", body=with_language(html, language))
-    elif rest.endswith("refs.js"):   # the templates load the book's built reference list
-        await route.fulfill(content_type="text/javascript", body="const REFS = {};")
     elif rest == "unit-art.js":
         await route.fulfill(path=TEMPLATES / "unit-art.js")
     elif rest.startswith("lib/") and rest[4:] in ENGINE_FILES:

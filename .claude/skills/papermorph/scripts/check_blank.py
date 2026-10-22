@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Find opening blanks: the narration has started but the picture is still empty.
 
-    python3 -m http.server 8765 -d site &
+    python3 SKILL/scripts/serve.py 8765 site &
     uv run --with playwright check_blank.py site                       # every chapter of the book in site/
     uv run --with playwright check_blank.py site/history ch05 ch06 --url http://localhost:8765/history/
     LIMIT=0.6 uv run --with playwright check_blank.py site             # stricter
@@ -14,12 +14,13 @@ Otherwise it prints one line saying none were found. Exit status 1 when somethin
 import argparse, asyncio, os, sys
 from pathlib import Path
 from playwright.async_api import async_playwright
+from browsers import exe
 
 LIMIT = float(os.environ.get("LIMIT", "1.0"))
 PROBE = r"""
 (i) => {
   seek(i, false);
-  const b = BEATS[i], tm = TIMINGS[b.id], first = (tm.cues[0] || [0])[0];
+  const b = BEATS[i], tm = TIMINGS[b.id], pre = b.pre || 0, first = pre + (tm.cues[0] || [0])[0];   // the speech starts `pre` s in
   const visible = () => {   // drawn leaves whose opacity, multiplied up to the scene, is above .05
     let n = 0;
     for (const e of scene.querySelectorAll('text,path,circle,rect,ellipse,line,polygon,image')) {
@@ -32,8 +33,8 @@ PROBE = r"""
     return n;
   };
   const out = [];
-  for (let t = 0; t <= Math.min(tm.dur, 12); t += .2) { P.t = t; evalTo(t); out.push([+t.toFixed(1), visible()]); }
-  return { id: b.id, ask: !!b.ask, first, dur: tm.dur, out };
+  for (let t = 0; t <= Math.min(P.end, pre + 12); t += .2) { P.t = t; evalTo(t); out.push([+t.toFixed(1), visible()]); }
+  return { id: b.id, ask: !!b.ask, first, dur: P.end, out };
 }
 """
 
@@ -41,7 +42,7 @@ PROBE = r"""
 async def main(book: Path, chapters, url):
     found = []
     async with async_playwright() as p:
-        browser = await p.chromium.launch()
+        browser = await p.chromium.launch(**exe())
         pg = await browser.new_page(viewport={"width": 1600, "height": 960})
         for ch in chapters:
             await pg.goto(f"{url}{ch}/index.html?beat=0&t=0"); await pg.wait_for_timeout(300)

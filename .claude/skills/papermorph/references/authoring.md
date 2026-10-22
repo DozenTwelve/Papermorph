@@ -89,12 +89,12 @@ The chapter loads `<script src="items.js"></script>` right after `engine.js` and
 
 ## Citations
 
-Every work named on screen (an author–year, a quoted study, a book title) can be a live link to that work. Links come from a verified list, never from memory.
+An option for books that name other works (an author–year, a quoted study, a book title), usually academic ones; offer it at intake, not by default. Each such work on screen can be a live link to it. Links come from a verified list, never from memory.
 
 1. **List.** Add each cited work to `books/<book>/refs.json`, taking authors, year and full title from the source book's own reference list (`pages/*/text.md`). The key is `surname-surname-year` (`scheper-hughes-lock-1987`); `cite` is the on-screen label (`python3 SKILL/scripts/refs.py --help` lists the entry fields).
 2. **Find.** `python3 SKILL/scripts/refs.py lookup books/<book>/refs.json --write`. It accepts a Crossref DOI only when the year, first author and title all match. For books without a DOI it takes the ISBN of the edition from the cited year (Open Library), which links to its WorldCat record. Decide each `NO CONFIDENT MATCH` by hand: pick the right candidate or a trusted academic page (`url`, e.g. PubMed, JSTOR, ERIC, a university repository). If none exists, keep the citation as plain text and note it in the chapter file.
 3. **Verify.** `python3 SKILL/scripts/refs.py verify books/<book>/refs.json --write` resolves every DOI or ISBN, checks it against the entry, fills in missing metadata and stamps `verified`. Fix every `FAIL`.
-4. **Build.** `python3 SKILL/scripts/refs.py build books/<book>/refs.json site/<book>/refs.js`. Chapters and the contents page load it: the contents ends with a link to a separate References view that lists every work, and each chapter's finish card lists the sources that chapter cites.
+4. **Build.** `python3 SKILL/scripts/refs.py build books/<book>/refs.json site/<book>/refs.js`, and uncomment the `refs.js` line in `index.html` and each chapter: the contents ends with a link to a separate References view that lists every work, and each chapter's finish card lists the sources that chapter cites.
 5. **Draw.** `cite(p, key, { x, y, size, fill, anchor, weight, o: 0 })` draws the label as an underlined link and returns it, ready for `show()`/`tw()` like `T`; `str` overrides the label (e.g. `'(1987)'` after a name drawn separately). Text drawn with `T` or written in a card that matches a work's `cite` label (or one of its `match` strings) becomes a link by itself. Clicking a citation opens the source in a new tab and pauses the lesson; faded-out links take no clicks or Tab focus. A work discussed but not drawn goes in `CHAPTER.refs` so the finish card still lists it.
 
 Draw a citation next to the text it supports rather than inside a long sentence, so the link is a separate target of at least 24 px text height.

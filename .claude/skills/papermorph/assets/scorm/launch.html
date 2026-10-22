@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  iframe { display: block; width: 100%; height: 100%; border: 0; }
+</style>
+<script>
+// Package settings, written by the skill's scripts/scorm.py.
+window.PAPERMORPH_SCORM_CONFIG = __CONFIG__;
+</script>
+<script src="scorm-host.js"></script>
+</head>
+<body>
+<!-- The book runs inside this frame, so moving between chapters never ends the LMS session. -->
+<iframe id="book" title="__TITLE__" allow="autoplay; fullscreen"></iframe>
+<script>PapermorphSCORM.start(document.getElementById('book'));</script>
+</body>
+</html>

@@ -26,3 +26,19 @@ Start each worker in the background with a short brief: the chapter and its page
 ## Before delivering
 
 Check the reports against each other (an odd claim is worth one look at the file), confirm lint and e2e pass, and deliver the chapter URL with `?review`. If the user wants the cost, it is in the subagent transcripts (`subagents/agent-<id>.jsonl` under the session's folder in `~/.claude/projects/`: usage per assistant message, each message id counted once) plus your own session's usage.
+
+## Picture books
+
+The same shape, split by scene instead of by step. The **strong** coordinator writes the script with the user and builds what every scene shares: cast, sets and their painting, the episode's helpers, the voices and the joined audio with its word times (`join.py --words`). Then it writes one brief for all scene workers:
+
+- the story in a paragraph, and the user's words that set the bar;
+- the episode kit's API, to read and not edit: a scene that needs more from the kit asks the coordinator, so every scene gets the fix;
+- each scene's `pre`, its holes and the word times to cut on;
+- continuity: who stands where, facing whom, in the first and last frame of every scene, so the cuts match;
+- the style, the effects available, how to look at one's own work, and the reply (the shots with their times, the first and last frame).
+
+One **middle** worker per scene, in parallel, writes only its own `sceneN.js` and checks it with contact sheets and full-size frames of its close-ups; a **small** worker synthesizes the sound effects from recipes.
+
+Review comes in rounds, each with four report-only reviewers (**strong** for the director, **middle** for the rest) that watch the episode against the approved ones. The director judges story, comedy, staging and shots. Two picture reviewers split the scenes between them. The fourth reviewer covers sound and runtime. Each writes a ranked report: scene, beat-clock time, what is wrong as a viewer sees it, a concrete fix. Earlier good reports serve as examples. The coordinator merges the reports into one rework list, taking the director's side where reviewers disagree, fixes the kit itself and sends scenes back to their workers. The next round starts by checking which findings were fixed. A last read-only pass counts them as fixed, partly fixed, not fixed or worse. Episodes made with two or three rounds were the best in the series; the rounds come before the user watches, and what the user says then still decides.
+
+A fresh session as coordinator matters even more here: contact sheets are large, and a long conversation rereads them at every step. An episode made in one night from a bedtime telling, before the review rounds existed, took about 22 million tokens, most of them the coordinator rereading its own context.

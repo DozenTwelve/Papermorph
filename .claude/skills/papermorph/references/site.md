@@ -16,9 +16,27 @@ cp "$SKILL/assets/templates/book.html" "$BOOK_SITE/index.html"
 cp "$SKILL/assets/templates/unit-art.js" "$BOOK_SITE/unit-art.js"
 cp "$SKILL/assets/templates/chapter.html" "$BOOK_SITE/ch01/index.html"
 cp "$SKILL/assets/templates/narration.en.json" "content/$BOOK_ID/ch01/narration.en.json"
-echo '[]' > "$BOOK_WORK/refs.json"                   # cited works; an empty list builds an empty refs.js
-python3 "$SKILL/scripts/refs.py" build "$BOOK_WORK/refs.json" "$BOOK_SITE/refs.js"
 ```
+
+### A picture book
+
+The contents page is the series page (each episode a chapter in `units`); the episode comes from the picture-book kit, and the empty `baked.js` stands in until `bake_puppets.py` has run:
+
+```sh
+PB="$SKILL/assets/templates/picture-book"
+mkdir -p "$BOOK_SITE/img/puppets" "$BOOK_WORK/art" "content/$BOOK_ID/ch01"
+python3 "$SKILL/scripts/engine.py" "$BOOK_SITE"
+cp "$SKILL/assets/templates/book.html" "$BOOK_SITE/index.html"
+cp "$PB"/lib/*.js "$BOOK_SITE/lib/"
+cp "$PB/chapter.html" "$BOOK_SITE/ch01/index.html"; cp "$PB/scene1.js" "$BOOK_SITE/ch01/"
+cp "$PB/sets.js" "$PB/painted.json" "$BOOK_WORK/art/"
+cp "$PB/narration.en.json" "content/$BOOK_ID/ch01/"
+echo 'window.BAKED = {};' > "$BOOK_SITE/img/puppets/baked.js"
+```
+
+Then the sound and the pictures, in this order ([sound.md](sound.md), [puppets.md](puppets.md)): `tts.py`, `mouths.py`, `join.py "$BOOK_SITE/ch01/audio/en" scene1=s01,s02,s02b,s03 --words content/$BOOK_ID/ch01/narration.en.json`, `sfx.py "$BOOK_SITE/ch01/audio/sfx" knock`, `bake_sets.py "$BOOK_WORK/art/sets.js" "$BOOK_SITE"` and, with the preview server up, `bake_puppets.py "$BOOK_SITE"`.
+
+### Every book
 
 Use the pilot chapter's number in place of `ch01` when the pilot is not the first chapter. Use the agreed primary language: rename the narration source, load `audio/<lang>/timings.js`, and set `CHAPTER.language` to match (default `en`). Take `voice` and `rate` for each narration file from `style.json`, and translate the template's visible UI text as needed before the pilot.
 
@@ -39,7 +57,7 @@ One page: no hash or `#book` shows the cover, `#references` the reference list, 
 - Edit the title, kicker, lede, the faint chalk phrases on the cover (a few formulas or lines from the book), and the `<title>`.
 - The page's script calls `Contents.book({ start, units, hues })` (from the engine's `lib/contents.js`; the shared styles are `lib/contents.css`). `units`: `[unit title, [[chapter title, minutes], …]]`; chapters are numbered in order from `start` (`{ unit: 1, chapter: 1 }`; a book whose scope starts mid-way, e.g. at unit 3, chapter 9, keeps the original numbers). Add a chapter when its lesson is ready; also set the previous chapter's `CHAPTER.next = '../chNN/'`. An optional third entry `{ unit, chapter, sample: true }` renumbers a unit and marks it as a sample, left out of the chapter count. To show different numbers than the folders, add `label` to `start` (`{ unit: 1, chapter: 9, label: 1 }` shows ch09 as 1) and set the same `CHAPTER.label` in each lesson, which its title screen and completion card show. A chapter's own third entry `{ chapter }` changes only the number on its card; `{ href, chapter }` links a card to another book's chapter, outside this book's count and progress (`href` on a unit's entry does it for the whole unit).
 - `hues`: one colour per unit, cycling.
-- References: the page loads `refs.js`, and the contents ends with one link to the separate `#references` view, which lists every cited work linked to its DOI or catalogue record; a book without citations shows no link. Rebuild `refs.js` whenever `refs.json` changes ([authoring.md](authoring.md#citations)).
+- References (only a book that cites works): uncomment the `refs.js` line in `index.html` and in each chapter; the contents then ends with one link to the separate `#references` view, which lists every cited work linked to its DOI or catalogue record; a book without citations shows no link. Rebuild `refs.js` whenever `refs.json` changes ([authoring.md](authoring.md#citations)).
 - A book with its own look overrides the tokens of `lib/contents.css` (`--board`, `--chalk`, `--top-bg`, …) in a `<style>` after it, as the template's comment shows; don't copy the stylesheet into the page.
 
 ## Unit sketches (`unit-art.js`)
@@ -58,7 +76,7 @@ Serve the static output over HTTP for audio playback:
 python3 SKILL/scripts/serve.py 8765 site   # no-store, so edits are never hidden by the browser cache
 ```
 
-Open `http://localhost:8765/<book>/`. Confirm the cover opens the contents, ready chapter links load their lessons, lessons return to the book's contents, and reference links open their works. Deliver `site/<book>/` with its HTML, scripts (including `refs.js`), styles and audio, the preview command and entry URL, available chapter count and unresolved issues. Source PDFs, extracted pages, narration drafts and development environments are not part of the static book.
+Open `http://localhost:8765/<book>/`. Confirm the cover opens the contents, ready chapter links load their lessons, lessons return to the book's contents, and any reference links open their works. Deliver `site/<book>/` with its HTML, scripts, styles and audio, the preview command and entry URL, available chapter count and unresolved issues. Source PDFs, extracted pages, narration drafts and development environments are not part of the static book.
 
 ## Languages
 
@@ -66,4 +84,28 @@ Narration and on-screen text are written in one language first. A second languag
 
 ## Video export (optional)
 
-`uv run --with playwright SKILL/scripts/export.py chNN --url http://localhost:8765/<book>/ --out OUT --link <lesson URL>` renders the lesson beats to `OUT/chNN.mp4` (1080p, 30 fps) plus `OUT/chNN.srt` for upload with it. Frames come from seeking the beat clock, so the video matches the page exactly; question beats are left out and the video ends on a card pointing to the interactive lesson. It takes about 1.6× the video's length.
+`uv run --with playwright --with numpy SKILL/scripts/export.py chNN --url http://localhost:8765/<book>/ --out OUT --link <lesson URL>` renders the beats to `OUT/chNN.mp4` (1080p, 30 fps) plus `OUT/chNN.srt` for upload with it. Frames come from seeking the beat clock and the sound is mixed by the page's own rules (each beat's `pre`, and in a picture book its effects and music), so the video matches the page; question beats are left out and a lesson's video ends on a card pointing to the interactive lesson. It takes about 1.6× the video's length. Video files are large (an episode at 1080p is tens of megabytes, more than a static host such as Cloudflare Pages takes per file): upload them to the video site, not into `site/`.
+
+## SCORM package (optional)
+
+For a course in an LMS (Canvas/Quercus, Moodle, Brightspace, Blackboard), package a built book as one SCORM zip:
+
+```sh
+python3 SKILL/scripts/scorm.py site/<book>                    # SCORM 2004 4th edition, completion only -> dist/<book>-scorm2004.zip
+python3 SKILL/scripts/scorm.py site/<book> --version 1.2      # older LMSs
+python3 SKILL/scripts/scorm.py site/<book> --mastery 80       # also passed/failed at 80 %, once the whole book is finished
+```
+
+`site/<book>/` is not changed; rebuild the zip after changing the book. The LMS launches `launch.html`, which opens one SCORM session and runs the book in a frame, so moving between chapters keeps the session. The build adds `scorm-bridge.js` to the contents page and after `engine.js` in every chapter; it wraps the engine's `progress()` and `finishCard()`, seeds the book's progress from the LMS on each launch (the LMS is the source of truth) and points folder links (`ch02/`) at `index.html`, which many LMS file servers need.
+
+| | SCORM 1.2 | SCORM 2004 |
+|---|---|---|
+| Completion: every chapter's finish card reached | `cmi.core.lesson_status` (`passed`/`failed` with `--mastery`) | `cmi.completion_status`, `cmi.success_status` with `--mastery` |
+| Progress: chapters finished ÷ chapters | — | `cmi.progress_measure` |
+| Score: first-try answers over all quick checks and practice, best attempt per chapter | `cmi.core.score.raw` | `cmi.score.raw`, `cmi.score.scaled` |
+| One objective per chapter (`ch01`, …) with status and score | `cmi.objectives.n.*` | `cmi.objectives.n.*` |
+| Resume (checkmarks, Continue) | `cmi.suspend_data`, `lesson_location` | `cmi.suspend_data`, `cmi.location` |
+
+A chapter counts as finished when its finish card appears, as in the book; a learner can skip there on the step bar, so use `--mastery` when the grade should depend on the answers. Cards that link to another book's folder (`href` in `units`) leave the package and don't work inside an LMS.
+
+Check a package before handing it over: `uv run --with playwright SKILL/assets/scorm/test/check_scorm.py dist/<book>-scorm2004.zip` opens it in `assets/scorm/test/mock-lms.html` (a stand-in LMS that shows every CMI value), opens a chapter through a folder link, reaches its finish card and checks resume. To click through by hand, unzip the package as `pkg/` next to a copy of `mock-lms.html`, run `python3 SKILL/assets/scorm/test/serve.py <folder> 8781` (no folder URLs, like an LMS) and open `http://localhost:8781/mock-lms.html?pkg=pkg&v=2004&reset`; reload without `&reset` to test resume. Before learners use it, upload it to SCORM Cloud (a free account), the usual test of a real LMS. Audio makes up most of a package: check the LMS's upload limit. Canvas grades only the overall result; it doesn't show the per-chapter objectives.

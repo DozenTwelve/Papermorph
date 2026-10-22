@@ -1827,7 +1827,9 @@ function start(i, play) {
 }
 // The next beat's clip starts loading while this one plays, so a slow connection does not stall between beats.
 function beatClip(i, take) {
-  const src = `audio/${CHAPTER.language || 'en'}/${BEATS[i].id}.mp3`;
+  // the clip's length rides on the URL: regenerated narration gets a new address, so a browser cache cannot pair new
+  // timings with an old clip
+  const src = `audio/${CHAPTER.language || 'en'}/${BEATS[i].id}.mp3?v=${TIMINGS[BEATS[i].id]?.dur ?? ''}`;
   let a = P.nextClip?._src === src ? P.nextClip : null;
   if (!a) {
     if (P.nextClip && P.nextClip !== P.audio) { P.nextClip.removeAttribute('src'); P.nextClip.load(); }   // abandon a stale preload
@@ -1862,7 +1864,19 @@ function beatDone() {
   const b = BEATS[P.i];
   if (b.ask) P.waiting = true;
   else if (P.i < BEATS.length - 1) start(P.i + 1, true);
-  else { P.done = true; setPlaying(false); }
+  else { P.done = true; setPlaying(false); filmDone(); }
+}
+// A chapter that ends on its last frame, with no closing card of questions (a picture book), is finished there: it
+// counts as done, and CHAPTER.next is offered over that frame. Seeking or replaying clears the button with the cards.
+function filmDone() {
+  progress(p => { p.done = [...new Set([...(p.done || []), CHAPTER.number])]; });
+  if (!CHAPTER.next) return;
+  const next = h('button', 'btn go', translate('nextChapter'));
+  next.onclick = () => { location.href = CHAPTER.next; };
+  const c = card({ x: 0, y: 770, w: 0, cls: 'side' }, 'next');
+  Object.assign(c.style, { left: 'auto', right: '40px', width: 'auto' });
+  c.append(h('div', 'acts', [next]));
+  next.focus({ preventScroll: true });
 }
 let last = performance.now();
 function frame(now) {
@@ -1915,19 +1929,24 @@ function ui() {
   if (step !== stepText) { stepText = step; $('stepName').textContent = step; }
   const b = BEATS[P.i];
   let text = '';
-  if (captions && P.started && !b.ask && !P.done) {
-    for (const [t, line] of TIMINGS[b.id].cues) { if (t + (b.pre || 0) > P.t + .05) break; text = line; }
+  if (P.started && !b.ask && !P.done) {
+    // a cue is [start, line], [start, line, end] or [start, line, end, 1]: with an end, the caption clears once its
+    // words are over; a 1 marks a line in another language, whose subtitle shows even with captions off
+    for (const [t, line, end, forced] of TIMINGS[b.id].cues) {
+      if (t + (b.pre || 0) > P.t + .05) break;
+      text = (captions || forced) && !(end != null && P.t > end + (b.pre || 0)) ? line : '';
+    }
   }
   if (text !== capText) { capText = text; $('caption').textContent = text; $('caption').hidden = !text; }
 }
 let captions = false, capText = '';
 try { captions = localStorage.getItem('captions') === '1'; } catch {}
-function setCaptions(on) {
+function setCaptions(on, save = true) {
   captions = on;
   $('bCC').setAttribute('aria-pressed', String(on));
-  try { localStorage.setItem('captions', on ? '1' : '0'); } catch {}
+  if (save) try { localStorage.setItem('captions', on ? '1' : '0'); } catch {}
 }
-setCaptions(captions);
+setCaptions(captions, false);   // only the reader's own choice is stored, so a book can still pick the first-time default
 function hideCover() { P.started = true; $('cover').hidden = true; }
 function togglePlay() {
   if (!P.started) { hideCover(); return setPlaying(true); }

@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Joke Collection</title>
+<meta name="description" content="Short animated jokes: painted sets from an image model, paper puppets moved by code. Seven episodes so far, and how they were made.">
+<style>
+  :root { --ink: #2f2418; --soft: #6b5a46; --paper: #fbf5e8; --card: #fffaf0; --line: #e4d6bb; --accent: #2f5aa8; --ui: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif; --serif: "Iowan Old Style", Palatino, Georgia, serif; color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 18px/1.65 var(--ui); }
+  a { color: var(--accent); }
+  header.hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 40px; align-items: center; max-width: 1180px; margin: 0 auto; padding: 48px 24px 24px; }
+  .hero img { width: 100%; height: auto; border-radius: 10px; box-shadow: 0 14px 40px #4a33182e; }
+  .back { display: inline-block; margin-bottom: 18px; font-size: 15px; color: var(--soft); text-decoration: none; }
+  h1 { margin: 0 0 8px; font: 700 clamp(34px, 4.6vw, 56px)/1.05 var(--serif); }
+  .tag { display: inline-block; margin-bottom: 18px; padding: 2px 12px; border: 1.5px solid var(--accent); border-radius: 99px; color: var(--accent); font-size: 14px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+  .lede { font-size: 20px; color: #4a3b2a; }
+  main { max-width: 900px; margin: 0 auto; padding: 8px 24px 80px; }
+  h2 { margin: 64px 0 8px; font: 700 32px/1.2 var(--serif); }
+  h3 { margin: 32px 0 4px; font: 700 21px/1.3 var(--ui); }
+  figure { margin: 18px 0 26px; }
+  figure img { display: block; width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--line); background: #fff; }
+  figcaption { margin-top: 8px; font-size: 15px; color: var(--soft); }
+  .stills { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 18px 0; }
+  .stills img { width: 100%; height: auto; border-radius: 6px; display: block; }
+  .episodes { list-style: none; padding: 0; margin: 18px 0 10px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .episodes a { display: flex; flex-direction: column; height: 100%; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; }
+  .episodes a:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .thumb { position: relative; display: block; }
+  .thumb img { display: block; width: 100%; height: auto; }
+  .thumb::after { content: "▶"; position: absolute; left: 10px; bottom: 10px; width: 38px; height: 38px; border-radius: 50%; background: #2f2418d0; color: #fff6e0; font-size: 15px; line-height: 38px; text-align: center; text-indent: 3px; opacity: .85; transition: opacity .15s; }
+  .episodes a:hover .thumb::after { opacity: 1; }
+  .episodes small { margin: 12px 16px 0; color: var(--soft); font-size: 13px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; }
+  .episodes b { margin: 2px 16px 4px; font: 700 21px/1.25 var(--serif); }
+  .episodes span:last-child { margin: 0 16px 16px; color: var(--soft); font-size: 15px; line-height: 1.5; }
+  .soon { margin: 0 0 18px; color: var(--soft); font-size: 15px; }
+  .verdict { margin: 18px 0; padding: 4px 22px; border-left: 4px solid var(--accent); background: var(--card); border-radius: 0 8px 8px 0; }
+  .numbers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 18px 0; }
+  .numbers div { padding: 14px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; text-align: center; }
+  .numbers b { display: block; font: 700 28px/1.1 var(--serif); }
+  .numbers span { font-size: 14px; color: var(--soft); }
+  footer { max-width: 900px; margin: 0 auto; padding: 0 24px 60px; color: var(--soft); font-size: 15px; }
+  @media (max-width: 760px) {
+    header.hero { grid-template-columns: 1fr; padding-top: 28px; }
+    .numbers, .stills { grid-template-columns: 1fr 1fr; }
+    .episodes { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header class="hero">
+  <img src="making/cover.webp" width="1400" height="788" alt="Bo, with a bun sitting on a toilet in his thought bubble, about to ask his question; Me beside him and the class behind.">
+  <div>
+    <a class="back" href="../">← Back to the bookshelf</a><br>
+    <span class="tag">Short animated jokes</span>
+    <h1>Joke Collection</h1>
+    <p class="lede">Little jokes, a couple of minutes each. The third way we've tried to make picture books, and the one we're keeping: an image model paints every set and everything that stays still, and paper puppets drawn in code do all the moving.</p>
+  </div>
+</header>
+
+<main>
+  <h2>Episodes</h2>
+  <ul class="episodes" id="episodes">
+    <li><a href="ch01/"><span class="thumb"><img src="making/still-stall.webp" width="800" height="450" alt="Me and Bo at the bun stall."></span><small>Episode 1 · 2 minutes</small><b>Breakfast in the Bathroom</b><span>Seventh grade. My deskmate had two questions for me, and one morning he asked them both at once. A true story.</span></a></li>
+    <li><a href="ch02/"><span class="thumb"><img src="making/ep2-veggie.webp" width="800" height="450" alt="The customer hears “reji” as “veggie”."></span><small>Episode 2 · 2 minutes</small><b>Do You Need a Bag?</b><span>A convenience store in Fukuoka. A clerk who speaks no English, a customer who speaks no Japanese, and me in line behind them with a hundred-yen coffee. Also true.</span></a></li>
+    <li><a href="ch03/"><span class="thumb"><img src="making/ep3-hay.webp" width="800" height="450" alt="The cow walks after hay hung from a rod on its own back."></span><small>Episode 3 · 2 minutes</small><b>How to Move a Cow</b><span>A Chinese man, an Indian man and an American are stuck behind a cow that won’t budge. Each has his own way to make it walk. An old joke, with a newer ending.</span></a></li>
+    <li><a href="ch04/"><span class="thumb"><img src="making/ep4-glasses.webp" width="800" height="450" alt="The dog on the desk between Me and Bo, in glasses, a pencil in its mouth."></span><small>Episode 4 · 2 minutes</small><b>The Dog Ate My Homework</b><span>My deskmate Bo never did his homework, but he always had an excuse. Then he rented a dog to prove one. I did my homework every morning, at breakfast.</span></a></li>
+    <li><a href="ch05/"><span class="thumb"><img src="making/ep5-photo.webp" width="800" height="450" alt="The man shows the policeman a photo from the zoo, the penguin beside him."></span><small>Episode 5 · 2 minutes</small><b>The Penguin and the Zoo</b><span>A man buys a fish at the harbour, and a penguin follows it. A policeman tells him to take it to the zoo. The next day, there they are again.</span></a></li>
+    <li><a href="ch06/"><span class="thumb"><img src="making/ep6-box.webp" width="800" height="450" alt="Eight eyes in the slot of a cardboard box, one mouth open to bark."></span><small>Episode 6 · 2 minutes</small><b>Four Dogs</b><span>An American dog, a Polish dog and a Soviet dog meet in an alley behind a kitchen to compare notes on a dog’s life. Somebody in a box has been listening.</span></a></li>
+    <li id="ep-baka"><a href="ch07/"><span class="thumb"><img src="making/ep7-baka.webp" width="800" height="450" alt="Luna the cow under a speech bubble that says バカ — Yui hears “vaca” as something worse."></span><small>Episode 7 · 2 minutes</small><b>Baka Means Cow</b><span>My cousin Yui visits her uncle Pedro’s farm in southern Spain, and Spain’s everyday word for a cow sounds, to Osaka-school ears, like the last thing you may call your aunt. Nobody insults anybody. It just sounds that way.</span></a></li>
+  </ul>
+  <p class="soon">More jokes coming.</p>
+
+  <div class="stills">
+    <img src="making/still-rain.webp" width="800" height="450" alt="The same stall in the rain, with umbrellas." loading="lazy">
+    <img src="making/still-door.webp" width="800" height="450" alt="Bo, late and out of breath, in the classroom door." loading="lazy">
+    <img src="making/still-dream.webp" width="800" height="450" alt="A daydream: a bun and soy milk laid out on a squat toilet." loading="lazy">
+    <img src="making/still-laugh.webp" width="800" height="450" alt="The whole class laughing." loading="lazy">
+    <img src="making/cover.webp" width="1400" height="788" alt="Bo's two thoughts merged into one." loading="lazy">
+    <img src="making/ep2-street.webp" width="800" height="450" alt="Episode 2: walking into the Happy Mart at dusk." loading="lazy">
+    <img src="making/ep2-exchange.webp" width="800" height="450" alt="Episode 2: the clerk wonders if she wants to change dollars into yen." loading="lazy">
+    <img src="making/ep3-road.webp" width="800" height="450" alt="Episode 3: three men and a cow that won't move, on a country road." loading="lazy">
+    <img src="making/ep3-flat.webp" width="800" height="450" alt="Episode 3: the cow gives up and lies flat in the road." loading="lazy">
+    <img src="making/ep4-exhibit.webp" width="800" height="450" alt="Episode 4: Exhibit A, the dog, on the desk in class." loading="lazy">
+    <img src="making/ep4-bites.webp" width="800" height="450" alt="Episode 4: the dog takes a bite out of the wrong homework." loading="lazy">
+    <img src="making/ep4-detention.webp" width="800" height="450" alt="Episode 4: detention in the evening light, two boys and a dog." loading="lazy">
+    <img src="making/ep5-harbour.webp" width="800" height="450" alt="Episode 5: the man stops, and the penguin behind him stops half a step late." loading="lazy">
+    <img src="making/ep5-beach.webp" width="800" height="450" alt="Episode 5: at the beach, a second penguin eyes the policeman's chips." loading="lazy">
+  </div>
+
+  <h2>Two ways, then a third</h2>
+  <p><a href="../three-little-pigs/">The Three Little Pigs</a> was painted by an image model, characters included. The world looked lovely, but every new action meant another round of drawings, and keeping a character the same from shot to shot was a fight. <a href="../little-red-riding-hood/">Little Red Riding Hood</a> went the other way: everything was paper drawn in code. Any movement was a few lines, but the world looked plain.</p>
+  <p>So we split the work by one question: <b>does it move?</b> Anything that stays put (streets, walls, blackboards, desks, the bun cart) is painted by the image model. Anything with joints, a face or a change of shape (the people, the falling rain, a bitten bun, the hands of the clock) is a paper puppet moved by code. A painting never has to act, and a puppet never has to look like a painting.</p>
+  <figure><img src="making/layers.webp" width="1400" height="879" alt="One frame taken apart: the painted street, the painted cart cut out on its own, the puppets drawn in code, and the finished frame." loading="lazy"><figcaption>One frame, taken apart. The cart is painted as a separate cut-out, so the bun seller can stand behind it.</figcaption></figure>
+
+  <h2>Finding the look</h2>
+  <p>Our puppets are flat paper with round heads, in the spirit of South Park. We tried three painted styles behind them: flat paper like the puppets (closest to that show), a warm gouache, and a richer torn-paper collage. We picked the collage. There was no reason to copy South Park exactly, and the point was to let the image model give the world as much texture and light as it could.</p>
+  <figure><img src="making/styles-stall.webp" width="1400" height="788" alt="The bun stall four ways: drawn in code, flat paper, gouache, and torn-paper collage." loading="lazy"><figcaption>Top left: the stall drawn in code. Then flat paper (A), gouache (B), and torn-paper collage (C), the one we chose. Each test picture cost under two cents.</figcaption></figure>
+  <p>Every set was painted by redrawing our own code-drawn version in that style. That way the composition stays the same, and the puppets still stand where the scenes expect them. Signs and blackboards were painted blank, and their words were written on afterwards: image models still garble Chinese characters.</p>
+  <figure><img src="making/batch-stall.webp" width="1400" height="551" alt="The stall street in sun, rain and snow, and the painted props: buns, soy milk, umbrellas, homework sheets." loading="lazy"><figcaption>The stall in three weathers, from one picture, edited, so a cut between them changes only the weather. Below them, props painted on transparent backgrounds.</figcaption></figure>
+  <figure><img src="making/batch-sets.webp" width="1400" height="1050" alt="The town, the classroom from the front, the blackboard wall, the toilet, a pupil's desk and the teacher's desk." loading="lazy"><figcaption>The rest of the sets. The desks are separate pieces, because pupils sit behind them, row behind row. The clock is painted without hands, so code can turn them.</figcaption></figure>
+
+  <h2>What the code still does</h2>
+  <ul>
+    <li><b>The acting.</b> Mouths timed to every word, blinks at each puppet's own moments, eyes that follow whoever is talking, a whole class turning its heads a frame or two apart.</li>
+    <li><b>The joke's machinery.</b> Two thought bubbles (a bun and a toilet) pushing each other and merging, before Bo opens his mouth.</li>
+    <li><b>Weather and small things.</b> Rain and snow falling over the painted street, umbrellas, a fly, the clock's hands.</li>
+    <li><b>The film.</b> Cuts, close-ups, a soft background in close-ups, a soft shadow under every puppet so it stands in the painted light, and a gentle hand-made wobble.</li>
+  </ul>
+
+  <h2>A joke needs its setup</h2>
+  <p>The first version didn't land. Bo's slip ("Wanna go eat breakfast… in the bathroom?") came out of nowhere, and he looked as if he really meant it. The fix was story, not animation. First we show his two everyday questions: "Breakfast?" every morning at the stall, "Bathroom?" after every class. Then, the one morning he oversleeps and comes in starving, we show both wants at once, as two bubbles that collide. Only then does he speak. Same lesson as Little Red Riding Hood: set up everything the punchline needs, before anyone animates a frame.</p>
+
+  <h3>Episode 2, made in one night</h3>
+  <p>For the second joke, the user told the story at bedtime and handed over: a fresh session read this method, wrote the script, painted two sets (the store outside and in), a counter to stand behind and three props, built three new puppets and four scenes, and checked them, all before morning. The clerk's Japanese is spoken in Japanese with English subtitles, so the audience understands both sides while neither character does. Its painting cost $0.13.</p>
+
+  <h3>Episode 3, made with the Skill</h3>
+  <p>The third joke was the test of the Papermorph Skill itself. A new session started from nothing but the Skill and the joke, asked a few questions (which language each man speaks, whether English viewers need "lying flat" explained), wrote the script, painted two country roads and a bundle of hay, built a cow and three new puppets, and checked its own work. Each man speaks his own language, Mandarin, Hindi and English, with English subtitles. Its painting cost $0.07.</p>
+
+  <h3>Episode 4, filmed twice</h3>
+  <p>The fourth joke was cut right after the first one, then shelved: the story worked, the filming didn't. Every object the jokes hang on (an oil drop, a blank sheet, three bites) was a few pixels in a wide shot, and the main gag played in one locked frame. A review compared it shot by shot with the episodes above, and four agents filmed each scene again: the main scene went from 6 shots to 22, with a close-up for every object a joke needs and a reaction for every joke. Same script, same voices, no new paintings.</p>
+
+  <h3>Episode 5, nobody in the loop</h3>
+  <p>For the fifth, the user said only: make one, without me. Claude picked an old joke, and a coordinator ran the rest with agents: one wrote the script and built the harbour, the street, the beach and three new puppets; four filmed a scene each; then a director, two picture reviewers and a sound reviewer watched every scene against the episodes above and sent them back, three rounds in all. The running gag (he stops, the penguin stops half a step late) came out of the first review. Its painting cost $0.18.</p>
+  <p>For the sixth, the user brought the joke Ronald Reagan used to tell about three dogs, and added a fourth. They changed the last line so it rhymes ("Shh. Don't bark, or you are the meat."), asked for it all in English, and after watching the first cut said the Polish dog shouldn't carry his bowl and the barks sounded odd, so the dogs now shout their own "Woof!". The miscount became the opening gag, and a cook's shadow chopping behind a kitchen door became the reason nobody barks. The same team of agents ran three review rounds. Its painting cost $0.14.</p>
+
+  <h2>The numbers</h2>
+  <div class="numbers">
+    <div><b>6</b><span>episodes, about 2 minutes each</span></div>
+    <div><b>~46</b><span>painted pictures</span></div>
+    <div><b>$0.92</b><span>for all the painting</span></div>
+    <div><b>16</b><span>painted sets</span></div>
+  </div>
+  <div class="verdict">
+    <p><b>Why we're keeping this one.</b> The paintings carry the look, the puppets carry the acting, and neither has to do the other's job. The sets and props carry over to the next joke. This is the method we're building the Papermorph Skill's picture books on.</p>
+  </div>
+</main>
+<footer>Episodes 1 and 2 are true stories, retold. Sets and props painted with OpenAI's gpt-image; puppets, weather and animation drawn in code; voices with Microsoft Edge text-to-speech; music from Google Lyria (made for The Three Little Pigs); sound effects synthesized. Part of <a href="../">Papermorph</a>.</footer>
+</body>
+</html>

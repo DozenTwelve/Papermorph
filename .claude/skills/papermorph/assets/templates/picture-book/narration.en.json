@@ -1,0 +1,15 @@
+{
+  "engine": "edge",
+  "voice": "en-GB-RyanNeural",
+  "rate": "+0%",
+  "voices": {
+    "kid": { "voice": "en-US-AnaNeural", "rate": "+0%", "pitch": "+0Hz" },
+    "dad": { "voice": "en-US-GuyNeural", "rate": "-5%", "pitch": "-10Hz" }
+  },
+  "beats": {
+    "s01": "Once upon a time, a kid knocked on the door.",
+    "s02": { "speaker": "kid", "text": "Dad? Are you home?" },
+    "s02b": { "speaker": "dad", "text": "[[open]]Of course I am. Come in." },
+    "s03": { "speaker": "kid", "text": "Good. I brought you a cat." }
+  }
+}

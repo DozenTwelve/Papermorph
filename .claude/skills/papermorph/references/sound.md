@@ -1,0 +1,25 @@
+# Sound for picture books
+
+Voices carry the story; everything else sits under them. In early cuts the music and effects were loud enough that the lines got lost ("说话的声音听不见"), and that was the first thing the user noticed.
+
+## Voices
+
+- **One voice per character.** List them under `voices` in `narration.<lang>.json` and write each line as `{"speaker": name, "text": …}`; `tts.py` synthesizes every line (Edge voices, with rate and pitch: children were adult voices sped up and pitched up). The narrator is a voice too.
+- **Lines in other languages** are spoken in their own language by a native voice (Edge has Japanese, Chinese, Korean and more) and subtitled in the book's language. The caption shows both: the original and the translation in brackets. Write it as the beat's `"sub"`; `tts.py` marks such a line (its voice's locale differs from the narration file's language) so the page shows its subtitle even with captions off, the way films subtitle foreign dialogue.
+- **Mouths** follow the words: `mouths.py` turns each line's word timings into mouth shapes (a Chinese or Japanese line opens and shuts once per character), and `lips(q, scene, pre, line…)` picks the shape for the frame. Edge's word times run about a tenth of a second ahead of the sound; `mouths.py` and `join.py` move mouths and captions that much later and shut the mouth where the clip's sound stops, so a lip flap that leads or trails the voice is worth reporting.
+- **One clip per scene.** `join.py` joins a scene's lines into one audio clip with short pauses, and inserts silence where the action needs room (`line@T+S`: S seconds of silence T seconds into the line, after a word's sound has ended rather than where the next word begins) or after the last line (`name:S`, a stare or a tag). Gaps for a held stare, a fly landing, a class turning round belong here, not in rushed animation. `--words` writes every word's time in the scene clip beside the narration; scene authors time actions against it (the beat clock adds the scene's `pre`).
+- **One script for the whole sound.** Keep the episode's audio steps in one script beside the book's notes (`tools/<book>/audio.sh`) and rerun it after any change: lines replaced by hand, `mouths.py`, level fixes, `join.py` with its holes, any caption edits. One episode's join arguments lived only in a terminal and had to be read back out of `shots.js`.
+- **Levels.** The line the joke hangs on must not be the quietest, voices need pitches apart (a dog at 113 Hz under a 110 Hz narrator read as the same person), and peaks stay under -1 dB. A gain change goes through a limiter (`volume=3dB,alimiter=limit=0.89`) once per synthesized clip, so rerunning the script does not raise it again (remember the clip's checksum).
+- **Sounds a voice makes.** Animal voices that speak (a dog's "Woof!") came out best from an Edge voice shouting the word, trimmed and normalized; synthesized barks lost to them. A whispered "Shh." is shaped pink noise, not Edge's voiced "shh-uh". Write such a clip over the line's MP3 and set its `dur` in `timings.js` before joining.
+
+## Sound effects
+
+`sfx.py` synthesizes effects (knock, door, creak, latch, bell, chop, bang, bonk, thud, clang, crash, coin, beep, rain, wind, room tone, surf, gulls, crickets, steps and more; `--list` names them all) as small MP3s, free and consistent. Keep them soft and natural: the first rain was a high hiss and read as scary; pink noise with patter and taps on umbrellas read as rain. An effect is placed on the scene clock with `sfx(scene, t, name, volume)` and plays at half volume under the voices; a pause holds it and the next scene stops it. Cut an effect to its shot: a six-second rain under a one-second shot spills into the next. A long bed (wind, room tone) is listed in `SFX_BED` with its length, so a seek into the middle joins it part-way; a bed that loops overlaps its seams by about half a second, and room tone runs under the silences too, where its absence is heard first.
+
+## Music
+
+Music is optional and goes under everything: about 70 % of its own level, and 30 % for the whole of a scene that has voices (its silent opening and tail too, so it does not swell between lines), fading in and out over most of a second. Give a scene silence when silence is the joke: `window.MUSIC_OFF = { scene: t => … }` fades it out for a stare. Don't let music stop dead in the middle of a scene; carry it to the end or fade it, and bring an earlier theme back when the story returns to an earlier place. Use tracks the book may redistribute (generated for the book, or openly licensed) and credit them.
+
+## Captions
+
+Picture books turn captions on at a reader's first visit (`chapter.html` does this); the reader's own choice is remembered after that. A caption appears when its words are heard and ends at the first real pause after them; a hole inside a sentence keeps its caption up. When that gives away words before they are said (a punchline after a pause), split the caption at the hole in `shots.js`, and hold a punchline's caption into the silence after it; do this in the audio script after `join.py`, so a rerun keeps it.

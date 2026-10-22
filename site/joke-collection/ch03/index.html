@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Move a Cow</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../img/sets/sets.js"></script>
+<script src="../img/puppets/baked.js" onerror="0"></script>
+<script src="../lib/paper.js"></script>
+<script>window.SP_SHUT = .9;   // a shut eye keeps its lid line (long bows read as empty eyes otherwise)</script>
+<script src="../lib/cast.js"></script>
+<script src="audio/en/timings.js"></script>
+<script src="audio/en/mouths.js"></script>
+<script src="audio/en/shots.js"></script>
+<script src="../lib/shared.js"></script>
+<script src="farm.js"></script>
+<script src="scene1.js"></script>
+<script src="scene2.js"></script>
+<script src="scene3.js"></script>
+<script src="scene4.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 3, title: 'How to Move a Cow', minutes: 2, language: 'en', next: '../ch04/' };
+// captions on the first time: half the film is Chinese and Hindi
+try { if (localStorage.getItem('captions') === null) setCaptions(true, false); } catch {}
+
+/* ---------- beats: one per scene ---------- */
+const BEATS = [
+  ['scene1', "The cow won't move", (m, D) => scene1(panel(0), D), { lead: false, pre: PRE1 }],
+  ['scene2', 'Violence and superstition', (m, D) => scene2(panel(0), D), { lead: false, pre: PRE2 }],
+  ['scene3', 'Of its own free will', (m, D) => scene3(panel(0), D), { lead: false, pre: PRE3 }],
+  ['scene4', 'Lying flat', (m, D) => scene4(panel(0), D), { lead: false, pre: PRE4 }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+/* ---------- background music ----------
+   The Three Little Pigs' score (Lyria), reused from episode 2's folder: one track per listed scene, its position the
+   time since the track's first scene began, so pausing and seeking keep it in step; 0.8 s crossfades; lower under
+   speech. Scene 2 has its own track (this folder) that drops out for the crickets after the prayer; the march stops when
+   the cow lies down. */
+const BGM = [['m1-home', ['scene1'], .3], ['audio/bgm/m-s2-standoff', ['scene2'], .27], ['m3-chimney', ['scene3', 'scene4'], .22]]
+  .map(([n, beats, gain]) => ({ n, beats, gain, a: Object.assign(new Audio(`${n.includes('/') ? n : '../ch02/audio/bgm/' + n}.mp3`), { preload: 'auto', loop: true, volume: 0 }), v: 0 }));
+window.MUSIC_OFF = { scene2: t => t > (window.S2_HUSH ?? 1e9), scene4: t => t > (window.S4_STOP ?? 1e9) };
+const beatLen = id => { const b = BEATS.find(x => x.id === id); return (b.pre || 0) + TIMINGS[id].dur + .6; };
+let lastTick = performance.now(), duck = .3;
+function bgmTick(now) {
+  const dt = Math.min(.1, (now - lastTick) / 1000); lastTick = now;
+  const id = BEATS[P.i]?.id, on = P.started && P.playing && !P.waiting && !P.done;
+  // the music ducks well under the voices for the whole of a scene that has them (its silent opening and tail too, so
+  // it does not swell between lines), easing over about half a second
+  duck += Math.max(-dt, Math.min(dt, (P.audio ? .3 : .7) - duck));
+  const vol = +(document.getElementById('volume')?.value ?? 1) * duck;
+  for (const m of BGM) {
+    const k = m.beats.indexOf(id), current = on && k >= 0 && !(window.MUSIC_OFF?.[id]?.(P.t));
+    m.v = Math.max(0, Math.min(1, m.v + (current ? 1 : -1) * dt / .8));
+    m.a.volume = m.v * m.gain * vol;
+    if (current) {
+      const want = (m.beats.slice(0, k).reduce((s, b) => s + beatLen(b), 0) + P.t) % (m.a.duration || 1e9);
+      if (Math.abs(m.a.currentTime - want) > .5) m.a.currentTime = want;
+      if (m.a.paused) m.a.play().catch(() => {});
+    } else if (m.v === 0 && !m.a.paused) m.a.pause();
+  }
+  if (!on && !P.done) for (const m of BGM) m.a.pause();
+  requestAnimationFrame(bgmTick);
+}
+requestAnimationFrame(bgmTick);
+paperWarm(g => { americanPuppet(g, { holds: { coil: whipCoilSVG, whip: whipHandleSVG } }); chinesePuppet(g, { holds: { rod: rodHeldSVG, hay: haySVG } }); indianPuppet(g); cowPuppet(g); });
+boot();
+</script>
+</body>
+</html>

@@ -14,23 +14,25 @@ import argparse, asyncio
 import sys
 from pathlib import Path
 from playwright.async_api import async_playwright
+from browsers import exe
 from PIL import Image
 
 
 async def main(a):
     a.out.mkdir(parents=True, exist_ok=True)
     async with async_playwright() as p:
-        b = await p.chromium.launch()
+        b = await p.chromium.launch(**exe())
         pg = await b.new_page(viewport={"width": 1600, "height": 960})
         errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
-        pg.on("console", lambda m: m.type == "error" and errs.append(m.text))
+        # a desktop browser ($CHROME) also asks the server for /favicon.ico, which is not the book's
+        pg.on("console", lambda m: m.type == "error" and not m.location.get("url", "").endswith("/favicon.ico") and errs.append(m.text))
         base = f"{a.url}{a.chapter}/index.html"
         await pg.goto(base + "?beat=0&t=0"); await pg.wait_for_timeout(500)
         if errs:
             print("page errors:", errs); await b.close(); return 1
         n = await pg.evaluate("BEATS.length")
-        durs = await pg.evaluate("BEATS.map(b => TIMINGS[b.id].dur)")
+        durs = await pg.evaluate("BEATS.map(b => (b.pre || 0) + TIMINGS[b.id].dur)")   # a picture book's scene starts `pre` s before its speech
         specs = a.specs or [f"{i}:{t}" for t in ("open", "end", *a.moments) for i in range(n)]
         groups = {}
         for s in specs:
@@ -41,7 +43,9 @@ async def main(a):
             f = a.out / f"{a.chapter}_b{i:02d}_{t}.png"
             await pg.screenshot(path=str(f))
             groups.setdefault(t, []).append(f)
+        live = await pg.evaluate("typeof bakedJobs === 'undefined' ? 0 : bakedJobs.size")
         await b.close()
+    if live: print(f"{live} paper pieces were baked live in the page: run bake_puppets.py")
     for t, fs in groups.items():
         for k in range(0, len(fs), 4):
             sheet = Image.new("RGB", (1600, 960), "black")

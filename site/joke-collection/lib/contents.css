@@ -1,0 +1,115 @@
+/* The book's cover and contents (index.html): the chalkboard look, the cover, the guide, the chapter grid and the
+   page-to-page motion. A book's own <style> after this file sets its theme: the colour and font tokens below, and the
+   few rules a theme redraws (e.g. body::before for the paper). */
+:root {
+  --page: #0f1613; --board: #1d2b27; --panel: #22322d; --edge: #3a5047;
+  --chalk: #ece8dc; --dim: #9aaba3; --faint: #5d7068; --task: #f0b45a; --quiz: #86c9e8; --good: #8fd6b0;
+  --ui: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --book: "Iowan Old Style", Palatino, Georgia, serif;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  --top-bg: rgba(22, 33, 29, .86); --top-line: #2a3b35;   /* the sticky contents header */
+  --lift: rgba(0, 0, 0, .3);                                /* a card's shadow on hover */
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-padding-top: 90px; }
+body { margin: 0; min-height: 100svh; background: var(--board); color: var(--chalk); font: 18px/1.5 var(--ui); }
+/* Chalkboard: the same grain and vignette as the lesson stage. */
+body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(ellipse at 50% 42%, transparent 55%, rgba(0, 0, 0, .38)),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 .92 0 0 0 0 .95 0 0 0 0 .9 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23g)'/%3E%3C/svg%3E"); }
+a { color: inherit; }
+a:focus-visible { outline: 3px solid var(--task); outline-offset: 3px; }
+.kicker { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--quiz); }
+
+/* ---------- cover ---------- */
+#cover { position: relative; min-height: 100svh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 48px 16px 64px; text-align: center; overflow: hidden; }
+.open #cover, body:not(.open) #contents { display: none; }
+#cover > * { animation: rise .8s var(--ease) backwards; }
+#cover .mascot { animation: none; margin-bottom: 26px; view-transition-name: guide; }
+#cover .kicker { animation-delay: .9s; }
+#cover h1 { animation-delay: 1s; }
+#cover .lede { animation-delay: 1.12s; }
+#cover .acts { animation-delay: 1.24s; }
+#cover .meta { animation-delay: 1.36s; }
+h1 { margin: 14px 0 18px; font: 500 clamp(44px, 8.4vw, 92px)/1.02 var(--book); letter-spacing: -.01em; view-transition-name: book; }
+h1 i { color: var(--task); font-style: italic; }
+.lede { max-width: 34em; margin: 0 0 34px; color: var(--dim); font-size: clamp(17px, 2.2vw, 20px); text-wrap: balance; }
+.acts { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+.btn { display: inline-flex; align-items: center; gap: 12px; padding: 14px 30px; border-radius: 999px; font-weight: 600; font-size: 19px; text-decoration: none;
+  transition: transform .25s var(--ease), background-color .25s, border-color .25s; }
+.btn[hidden] { display: none; }
+.btn:hover { transform: translateY(-2px); }
+.btn.go { background: var(--chalk); color: var(--board); }
+.btn.quiet { border: 1.5px solid var(--edge); color: var(--chalk); }
+.btn.quiet:hover { border-color: var(--dim); }
+.btn svg { width: 15px; height: 15px; fill: currentColor; }
+.meta { margin: 30px 0 0; color: var(--faint); font-size: 15px; letter-spacing: .04em; }
+/* Faint chalk notes around the edges of the board. */
+.chalk { position: absolute; inset: 0; z-index: -1; pointer-events: none; animation: none !important; }
+.chalk span { position: absolute; font: italic 400 clamp(22px, 3vw, 38px) var(--book); color: var(--chalk); opacity: 0; white-space: nowrap;
+  animation: chalk 1.6s ease-out forwards, drift 14s ease-in-out infinite alternate; animation-delay: calc(var(--d) * 1s), calc(var(--d) * 1s); }
+@keyframes chalk { to { opacity: .075; } }
+@keyframes drift { to { translate: 0 -10px; } }
+@keyframes rise { from { opacity: 0; transform: translateY(16px); } }
+
+/* ---------- the guide: an infinity sign whose loops are its eyes ---------- */
+.mascot { display: block; overflow: visible; }
+.mascot .mbody { transform-box: view-box; transform-origin: 60px 46px; animation: bob 3.4s ease-in-out infinite; }
+.mascot .pupil { transform-box: fill-box; transform-origin: center; animation: blink 5s infinite; }
+.mascot .joy { display: none; }
+#cover:has(.go:hover, .go:focus-visible) .pupil { display: none; }
+#cover:has(.go:hover, .go:focus-visible) .joy { display: inline; }
+.draw .loop { stroke-dasharray: 1 1; animation: draw 1.3s cubic-bezier(.6, 0, .3, 1) .15s backwards; }
+.draw .face { animation: pop .45s var(--ease) 1.25s backwards; }
+@keyframes draw { from { stroke-dashoffset: 1; } }
+@keyframes pop { from { opacity: 0; transform: scale(.6); } }
+.draw .face { transform-box: view-box; transform-origin: 60px 44px; }
+@keyframes bob { 50% { transform: translateY(-3px) rotate(-2deg); } }
+@keyframes blink { 0%, 93%, 100% { transform: scaleY(1); } 96% { transform: scaleY(.1); } }
+
+/* ---------- contents ---------- */
+.top { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 14px; padding: 12px max(16px, calc(50% - 590px));
+  background: var(--top-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--top-line); }
+.home { display: flex; align-items: center; gap: 12px; text-decoration: none; border-radius: 10px; }
+.home .mascot { view-transition-name: guide; }
+.home strong { font: 500 22px/1.1 var(--book); view-transition-name: book; }
+.home strong i { color: var(--task); }
+.prog { margin-left: auto; color: var(--dim); font-size: 15px; white-space: nowrap; }
+.prog b { color: var(--good); font-weight: 600; }
+main#contents { padding-bottom: 80px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr)); gap: 12px; }
+.ch { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: 1fr auto; column-gap: 16px; row-gap: 8px; min-height: 112px;
+  padding: 16px 18px 14px 16px; border-radius: 16px; background: var(--panel); border: 1.5px solid var(--edge); border-left: 6px solid var(--c);
+  text-decoration: none; transition: transform .3s var(--ease), border-color .3s, box-shadow .3s; }
+.ch:hover { transform: translateY(-3px); border-color: var(--c); box-shadow: 0 14px 34px var(--lift); }
+.ch b { grid-row: span 2; min-width: 1.15em; font: 500 42px/1 var(--book); color: var(--c); font-variant-numeric: lining-nums tabular-nums; }
+.ch span { font-size: 18px; line-height: 1.3; }
+.ch small { color: var(--dim); font-size: 14px; }
+.ch.done small::before { content: var(--done, "✓ Finished · "); color: var(--good); font-weight: 600; }
+.ch.last small::after { content: var(--last, " · Last opened"); color: var(--quiz); }
+.ch.here:focus-visible { outline-color: var(--c); }
+.ch.here { animation: here 1.8s ease-out .3s; }
+@keyframes here { 0% { box-shadow: 0 0 0 0 var(--c); } 25% { box-shadow: 0 0 0 5px var(--c); } 100% { box-shadow: 0 0 0 14px transparent; } }
+.stagger .top { animation: rise .6s var(--ease) backwards; }
+.stagger .unit h2, .stagger .ch { animation: rise .6s var(--ease) backwards; animation-delay: calc(min(var(--i), 14) * 32ms + 80ms); }
+
+/* ---------- page-to-page motion ---------- */
+@view-transition { navigation: auto; }
+/* Firefox flickers through view transitions (the header blinks for several frames): it switches without one, and the
+   contents still rise in. -moz-orient exists only in Firefox. */
+@supports (-moz-orient: inline) { @view-transition { navigation: none; } }
+::view-transition-group(*) { animation-duration: .5s; animation-timing-function: var(--ease); }
+::view-transition-old(lesson), ::view-transition-new(lesson) { height: 100%; object-fit: cover; }
+::view-transition-old(lesson) { animation-duration: .18s; }
+@media (max-width: 560px) {
+  .home strong { font-size: 18px; }
+  #contents .top { flex-wrap: wrap; gap: 8px 12px; }
+  .ch { min-height: 0; }
+  .chalk span:not(:nth-child(3), :nth-child(4), :nth-child(7)) { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; transition: none !important; }
+  .chalk span { opacity: .075; }
+}
