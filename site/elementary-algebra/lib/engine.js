@@ -18,7 +18,7 @@ const TRANSLATIONS = {
     helpShowAnswer: 'Show the answer', helpLeaveBox: 'Leave an answer box', helpClose: 'Press {key} to close.',
     paused: 'Paused. Press space or click to continue.',
     soundFailed: 'Sound could not play. The lesson continues with the on-screen text.',
-    startLesson: 'Start lesson', coverKeys: 'Press {space} to start, {help} for shortcuts.', spaceKey: 'Space',
+    startLesson: 'Start lesson', startFilm: 'Play', aboutMinutesFilm: 'About {n} minutes, with sound.', coverKeys: 'Press {space} to start, {help} for shortcuts.', spaceKey: 'Space',
     chapterNumber: 'Chapter {n}', aboutMinutes: 'About {n} minutes, with sound and quick checks.',
     allChapters: 'All chapters', playLabel: 'Play or pause (space)', backLabel: 'Previous step (left arrow)', restartLabel: 'Restart lesson',
     volumeLabel: 'Adjust volume', volumeTitle: 'Volume (0 = muted)', volumeSlider: 'Volume',
@@ -52,7 +52,7 @@ const TRANSLATIONS = {
     helpShowAnswer: 'Показать ответ', helpLeaveBox: 'Выйти из поля ответа', helpClose: 'Нажмите {key}, чтобы закрыть.',
     paused: 'Пауза. Нажмите пробел или щёлкните, чтобы продолжить.',
     soundFailed: 'Звук не воспроизводится. Урок продолжится с текстом на экране.',
-    startLesson: 'Начать урок', coverKeys: '{space} — начать, {help} — горячие клавиши.', spaceKey: 'Пробел',
+    startLesson: 'Начать урок', startFilm: 'Смотреть', aboutMinutesFilm: { one: 'Около {n} минуты, со звуком.', few: 'Около {n} минут, со звуком.', many: 'Около {n} минут, со звуком.', other: 'Около {n} минуты, со звуком.' }, coverKeys: '{space} — начать, {help} — горячие клавиши.', spaceKey: 'Пробел',
     chapterNumber: 'Глава {n}',
     aboutMinutes: { one: 'Около {n} минуты, со звуком и проверками.', few: 'Около {n} минут, со звуком и проверками.',
       many: 'Около {n} минут, со звуком и проверками.', other: 'Около {n} минуты, со звуком и проверками.' },
@@ -88,7 +88,7 @@ const TRANSLATIONS = {
     helpShowAnswer: '显示答案', helpLeaveBox: '离开答题框', helpClose: '按 {key} 关闭。',
     paused: '已暂停。按空格键或点击继续。',
     soundFailed: '声音无法播放。课程将借助屏幕上的文字继续。',
-    startLesson: '开始上课', coverKeys: '按 {space} 开始，按 {help} 查看快捷键。', spaceKey: '空格',
+    startLesson: '开始上课', startFilm: '播放', aboutMinutesFilm: '约 {n} 分钟，有配音。', coverKeys: '按 {space} 开始，按 {help} 查看快捷键。', spaceKey: '空格',
     chapterNumber: '第 {n} 章', aboutMinutes: '约 {n} 分钟，含配音和随堂小测。',
     allChapters: '全部章节', playLabel: '播放或暂停（空格）', backLabel: '上一步（左方向键）', restartLabel: '重新开始本课',
     volumeLabel: '调节音量', volumeTitle: '音量（0 为静音）', volumeSlider: '音量',
@@ -122,7 +122,7 @@ const TRANSLATIONS = {
     helpShowAnswer: '答えを表示', helpLeaveBox: '解答欄から出る', helpClose: '{key} で閉じる。',
     paused: '一時停止中。スペースキーかクリックで再開します。',
     soundFailed: '音声を再生できません。画面の文字で授業を続けます。',
-    startLesson: '授業を始める', coverKeys: '{space} で開始、{help} でショートカット一覧。', spaceKey: 'スペース',
+    startLesson: '授業を始める', startFilm: '再生', aboutMinutesFilm: '約{n}分、音声つき。', coverKeys: '{space} で開始、{help} でショートカット一覧。', spaceKey: 'スペース',
     chapterNumber: '第{n}章', aboutMinutes: '約{n}分、音声と確認問題つき。',
     allChapters: 'すべての章', playLabel: '再生／一時停止（スペース）', backLabel: '前のステップ（左矢印）', restartLabel: '授業を最初から',
     volumeLabel: '音量を調整', volumeTitle: '音量（0 でミュート）', volumeSlider: '音量',
@@ -205,7 +205,7 @@ document.body.insertAdjacentHTML('afterbegin', `<div id="frame">
   <button class="cover" id="cover"><div>
     <p class="cover-k" id="coverK"></p>
     <h1 class="cover-t" id="coverT"></h1>
-    <span class="go"><svg width="24" height="24" viewBox="0 0 18 18"><path d="M3 1.5v15l13-7.5z" fill="currentColor"/></svg>${translate('startLesson')}</span>
+    <span class="go"><svg width="24" height="24" viewBox="0 0 18 18"><path d="M3 1.5v15l13-7.5z" fill="currentColor"/></svg><span id="coverGo">${translate('startLesson')}</span></span>
     <small><span id="coverMeta"></span> ${translate('coverKeys', { space: `<kbd>${translate('spaceKey')}</kbd>`, help: '<kbd>?</kbd>' })}</small>
   </div></button>
   <div id="bar">
@@ -1408,6 +1408,7 @@ function quiz(pos, qs, done, label = translate('quickCheck')) {
     const q = qs[k];
     let first = true, resolved = false;
     const fb = h('div', 'fb'), body = h('div', 'body'), acts = h('div', 'acts');
+    fb.setAttribute('role', 'status');   // screen readers announce right or wrong
     const bCheck = h('button', 'btn', [translate('check'), kbd('Enter')]), bShow = h('button', 'btn quiet', [translate('showAnswer'), kbd('S')]);
     const bNext = h('button', 'btn go', [k < qs.length - 1 ? translate('nextQuestion') : translate('continue'), kbd('Enter')]);
     bShow.hidden = bNext.hidden = true;
@@ -1966,12 +1967,12 @@ function beatDone() {
 function filmDone() {
   progress(p => { p.done = [...new Set([...(p.done || []), CHAPTER.number])]; });
   if (!CHAPTER.next) return;
-  const next = h('button', 'btn go', translate('nextChapter'));
+  const next = h('button', 'btn go', [translate('nextChapter'), kbd('Enter')]);
   next.onclick = () => { location.href = CHAPTER.next; };
+  P.keys = e => e.key === 'Enter' ? (next.onclick(), true) : false;   // not focused, so Space still replays
   const c = card({ x: 0, y: 770, w: 0, cls: 'side' }, 'next');
   Object.assign(c.style, { left: 'auto', right: '40px', width: 'auto' });
   c.append(h('div', 'acts', [next]));
-  next.focus({ preventScroll: true });
 }
 let last = performance.now();
 function frame(now) {
@@ -2145,7 +2146,9 @@ function boot() {
   $('bHome').href = `../#ch${String(CHAPTER.number).padStart(2, '0')}`;
   progress(p => { p.last = CHAPTER.number; });
   document.getElementById('stage').setAttribute('aria-label', translate('stageLabelTitled', { title: CHAPTER.title }));
-  $('coverMeta').textContent = translate('aboutMinutes', { n: num(CHAPTER.minutes) });
+  const film = !BEATS.some(b => b.ask);   // a picture book: no questions, so no "lesson" or "quick checks" on its cover
+  if (film) $('coverGo').textContent = translate('startFilm');
+  $('coverMeta').textContent = translate(film ? 'aboutMinutesFilm' : 'aboutMinutes', { n: num(CHAPTER.minutes) });
   buildSegs();
   const qs = new URLSearchParams(location.search);
   if (qs.has('beat')) {
