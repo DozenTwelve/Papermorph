@@ -32,14 +32,16 @@ def main():
     a = ap.parse_args()
     site = pathlib.Path(a.site); out = site / 'img/puppets'
     url = (a.url or f'http://localhost:8765/{site.resolve().name}/').rstrip('/') + '/'
-    got = {}
+    got, clean = {}, a.clean
     with sync_playwright() as p:
         for kind in (p.chromium, p.firefox):
             try:
                 b = kind.launch(**exe()) if kind is p.chromium else kind.launch()
             except Exception as e:   # Playwright's Firefox may not run on this system: the Chromium pieces still stand
                 if kind is p.chromium: raise
-                print(f'{kind.name} did not start, so Firefox bakes its own few pieces in the page:', str(e).splitlines()[0]); continue
+                print(f'{kind.name} did not start, so Firefox bakes its own few pieces in the page:', str(e).splitlines()[0])
+                if clean: print('--clean is off: the Firefox pieces baked before stay'); clean = False
+                continue
             pg = b.new_page(viewport={'width': 1600, 'height': 900})
             for ch in sorted(d.name for d in site.glob('ch[0-9][0-9]')):
                 pg.goto(f'{url}{ch}/?bake', timeout=600000)
@@ -51,16 +53,16 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     man_path = out / 'baked.js'
     man = {}
-    if man_path.exists() and not a.clean:
+    if man_path.exists() and not clean:
         man = {h: f for h, f in json.loads(man_path.read_text().split('=', 1)[1].rstrip().rstrip(';')).items() if (out / f).exists()}
     new = 0
     for h, data in got.items():
         f = out / f'{h}.webp'
-        if h in man and not a.clean: continue   # the same key is the same drawing: re-encoding only adds noise
+        if h in man and not clean: continue   # the same key is the same drawing: re-encoding only adds noise
         Image.open(io.BytesIO(base64.b64decode(data.split(',')[1]))).save(f, quality=88, method=6)
         man[h] = f.name; new += 1
     man_path.write_text('window.BAKED = ' + json.dumps(man) + ';\n')
-    if a.clean:   # only now, so the site never lists a file that is gone
+    if clean:   # only now, so the site never lists a file that is gone
         for f in out.glob('*.webp'):
             if f.name not in man.values(): f.unlink()
     print(len(got), 'pieces asked for,', new, 'encoded,', len(man), 'listed,', sum((out / f).stat().st_size for f in man.values()) // 1024, 'KB')

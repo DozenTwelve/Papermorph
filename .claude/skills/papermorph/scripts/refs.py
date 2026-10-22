@@ -65,6 +65,7 @@ def get(url, accept="application/json"):
             if attempt < 2:
                 time.sleep(2)
                 continue
+            get.offline = True
             return 0, url, str(e).encode()
     return 0, url, b""
 
@@ -212,7 +213,7 @@ def lookup(entries, write):
 def verify(entries, write):
     bad, today = 0, datetime.date.today().isoformat()
     for e in entries:
-        problems, how = [], ""
+        problems, how, get.offline = [], "", False
         if e.get("doi"):
             e["doi"] = re.sub(r"^(https?://(dx\.)?doi\.org/|doi:)", "", e["doi"].strip(), flags=re.I).lower()
             m = crossref_work(e["doi"])
@@ -247,7 +248,10 @@ def verify(entries, write):
             how = "no link: " + e["nolink"]     # searched; no reliable online record (thesis, magazine, talk)
         else:
             problems.append("no doi, isbn or url (run lookup), or set nolink to the reason none exists")
-        if problems:
+        if get.offline:   # no answer is not a wrong answer: keep the entry as it was
+            bad += 1
+            print(f"SKIP {e['key']}: network unreachable, nothing changed")
+        elif problems:
             bad += 1
             e.pop("verified", None)
             print(f"FAIL {e['key']}: {'; '.join(problems)}")

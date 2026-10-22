@@ -12,7 +12,7 @@ checks and practice) are left out, and then the video ends on a card saying they
 (--link adds its address). Captions are not burned in: upload OUT/chNN.srt with the video. Needs ffmpeg; serve the
 site over HTTP first.
 """
-import argparse, asyncio, functools, json, subprocess, sys, tempfile, wave
+import argparse, asyncio, functools, json, shutil, subprocess, sys, tempfile, wave
 import numpy as np
 from pathlib import Path
 from playwright.async_api import async_playwright
@@ -27,9 +27,9 @@ END_CARD = """(link) => {
   d.style.cssText = 'position:absolute;left:0;top:0;width:1600px;height:900px;display:flex;flex-direction:column;' +
     'align-items:center;justify-content:center;gap:26px;background:var(--board,#1d2b27);color:var(--chalk,#ece8dc);' +
     'font-family:inherit;text-align:center;z-index:50';
-  d.innerHTML = `<div style="font-size:30px;opacity:.65;letter-spacing:.08em;text-transform:uppercase">Chapter ${CHAPTER.number}</div>
+  d.innerHTML = `<div style="font-size:30px;opacity:.65;letter-spacing:.08em;text-transform:uppercase">${translate('chapterNumber', { n: CHAPTER.label ?? CHAPTER.number })}</div>
     <div style="font-size:64px;font-weight:600;max-width:1300px">${CHAPTER.title}</div>
-    <div style="font-size:34px;opacity:.85;margin-top:30px">Quick checks and practice are in the interactive lesson.</div>
+    <div style="font-size:34px;opacity:.85;margin-top:30px">${translate('checksInLesson')}</div>
     ${link ? `<div style="font-size:30px;opacity:.65">${link}</div>` : ''}`;
   document.getElementById('frame').append(d);
 }"""
@@ -87,14 +87,16 @@ async def main(a):
         video = out / f'{a.chapter}.mp4'
         # Pass 1: the sound track and the captions, beat by beat at the beat's length on screen.
         end_s = END_SECONDS if asks or a.link else 0   # a picture book ends on its own last scene
-        lengths, starts, music_off, cues, offset = [], [], [], [], 0.0
+        lengths, starts, counts, music_off, cues, offset = [], [], [], [], [], 0.0
         for i, bid in beats:
             await open_beat(pg, base, i)
             end, T = await pg.evaluate('[P.end, TIMINGS[BEATS[P.i].id]]')
             pre = info['beats'][i]['pre']
-            lengths.append(end); starts.append(offset)
+            # frames counted on the running clock, so rounding never drifts the picture away from the sound
+            count = round((offset + end) * a.fps) - round(offset * a.fps)
+            lengths.append(end); starts.append(offset); counts.append(count)
             music_off.append(await pg.evaluate('([id, n, fps]) => Array.from({length: n}, (_, f) => !!window.MUSIC_OFF?.[id]?.(f / fps))',
-                                               [bid, round(end * a.fps), a.fps]))
+                                               [bid, count, a.fps]))
             for k, c in enumerate(T['cues']):   # [t, text, end?]: the page shows it at pre + t
                 stop = c[2] if len(c) > 2 else T['cues'][k + 1][0] if k + 1 < len(T['cues']) else T['dur']
                 cues.append((offset + pre + c[0], offset + pre + stop, c[1]))
@@ -141,7 +143,7 @@ async def main(a):
         frames = 0
         for k, (i, bid) in enumerate(beats):
             await open_beat(pg, base, i)
-            n = round(lengths[k] * a.fps)
+            n = counts[k]
             for f in range(n):
                 await pg.evaluate('t => { P.t = t; evalTo(t); }', f / a.fps)
                 enc.stdin.write(await pg.screenshot(clip=clip, type='jpeg', quality=92))
@@ -153,6 +155,7 @@ async def main(a):
             for _ in range(end_s * a.fps):
                 enc.stdin.write(end)
         enc.stdin.close(); enc.wait()
+        shutil.rmtree(audio_dir, ignore_errors=True)
         await b.close()
     with open(out / f'{a.chapter}.srt', 'w', encoding='utf-8') as f:
         for k, (t0, t1, line) in enumerate(cues, 1):

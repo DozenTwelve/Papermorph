@@ -92,9 +92,8 @@ def main(manifest, site):
     missing += [src for src in m.get('props', {}).values() if not (base / src).exists()]
     if missing: sys.exit(f'missing pictures (nothing changed): {missing}')
     for name, layers in m.get('sets', {}).items():
-        out = sets_js.parent / name; out.mkdir(parents=True, exist_ok=True)
-        for f in out.glob('*.webp'): f.unlink()
-        entry = []
+        out = sets_js.parent / name
+        entry, made = [], []   # every layer is made before the set's old files go, so a failure leaves the set whole
         for L in layers:
             im = Image.open(base / L['file']).convert('RGBA')
             if 'cut' in L:
@@ -105,10 +104,14 @@ def main(manifest, site):
             else:
                 im = im.resize((W, H), Image.LANCZOS); words(im, L.get('words', []), 0, 0, fonts, base)
                 im = padded(im, pad, L.get('edge', 'mirror')); b = [-pad[0], -pad[1], W + 2 * pad[0], H + 2 * pad[1]]
-            im.save(out / f"{L['name']}.webp", quality=88, method=6)
-            im.filter(ImageFilter.GaussianBlur(6)).save(out / f"{L['name']}-soft.webp", quality=80, method=6)
+            made.append((L['name'], im))
             entry.append({'name': L['name'], 'k': L.get('k', 1), 'box': b, 'soft': True})
             print(name, L['name'], b)
+        out.mkdir(parents=True, exist_ok=True)
+        for f in out.glob('*.webp'): f.unlink()
+        for n, im in made:
+            im.save(out / f'{n}.webp', quality=88, method=6)
+            im.filter(ImageFilter.GaussianBlur(6)).save(out / f'{n}-soft.webp', quality=80, method=6)
         sets[name] = entry
     sets_js.parent.mkdir(parents=True, exist_ok=True)
     sets_js.write_text('window.SETS = ' + json.dumps(sets) + ';\n')
