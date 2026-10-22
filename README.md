@@ -18,7 +18,7 @@
 
 <p align="center">
   <a href="https://papermorph.diamonddoge.org/">
-    <img src="img/readme/papermorph-preview.gif" alt="The bookshelf, an animated lesson and a quiz" width="900">
+    <img src="img/readme/papermorph-preview.webp" alt="Pulleys in Elementary Physics, a quiz answered wrong and then right, and paper puppets with subtitled lines from Joke Collection" width="880">
   </a>
 </p>
 
