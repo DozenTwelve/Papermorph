@@ -68,7 +68,8 @@ for arg in args:
         shift = lambda b, t: t + sum(sec for at, sec in holes[b] if t >= at)
         gap = pathlib.Path(tmp) / 'gap.mp3'; silence(gap, GAP)
         lst = pathlib.Path(tmp) / 'list.txt'
-        lst.write_text(''.join(''.join(f"file '{f}'\n" for f in piece(b)) + (f"file '{gap}'\n" if i < len(beats) - 1 else '') for i, b in enumerate(beats)))
+        q = lambda f: "file '" + str(f).replace("'", "'\\''") + "'\n"   # the concat list's quoting: ' becomes '\''
+        lst.write_text(''.join(''.join(q(f) for f in piece(b)) + (q(gap) if i < len(beats) - 1 else '') for i, b in enumerate(beats)))
         subprocess.run(['ffmpeg', '-v', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', str(lst), '-c:a', 'libmp3lame', '-b:a', '64k', str(d / f'{shot}.mp3')], check=True)
     parts, cues, marks, at = {}, [], {}, 0
     for b in beats:

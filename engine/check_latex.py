@@ -303,8 +303,9 @@ async def check_tex_chapter(browser):
     assert not errors, errors
     allowed = {"ch01/", "lib/engine.js", "lib/engine.css", "lib/volume.js", "lib/volume.css", "lib/book.css",
                "lib/mathjax.js", "ch01/audio/en/timings.js"}
+    rest = lambda u: urlparse(u).path.split("/__latex__/tex/")[1]   # audio URLs carry ?v=<duration>
     stray = [u for u in requests if not u.startswith(f"{ORIGIN}/__latex__/tex/")
-             or (u.split("/__latex__/tex/")[1] not in allowed and not u.endswith(".mp3"))]
+             or (rest(u) not in allowed and not rest(u).endswith(".mp3"))]
     assert not stray, f"unexpected requests: {stray}"
     print("PASS network: only the page's own files")
     await page.close()

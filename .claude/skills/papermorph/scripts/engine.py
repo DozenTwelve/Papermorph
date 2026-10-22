@@ -9,7 +9,8 @@
     python3 engine.py site/stats --latex           # also MathJax, for a book whose chapters use TX()
 
 The engine is not part of this skill: it is the engine/ folder of a repository, versioned by tags, and anyone may
-fork it. Without --from, ./engine is used when it exists (a checkout of that repository), otherwise DEFAULT.
+fork it. Without --from, the engine/ folder here or above the target is used (a checkout of that repository),
+otherwise DEFAULT; the source used is printed.
 Each book keeps a full copy in lib/, so it runs on its own; fix the engine at its source and sync, never edit the
 copies. lib/book.css holds the book's own settings and overrides; it is created from the default and never
 overwritten. MathJax (engine/vendor/mathjax) goes only into books that ask for it with --latex; after that, a book
@@ -43,9 +44,11 @@ def fetch(spec: str) -> Path:
     return out
 
 
-def source(spec):
-    if spec is None:
-        spec = 'engine' if Path('engine/engine.js').exists() else DEFAULT
+def source(spec, target):
+    if spec is None:   # the repository's engine/: here, or above the books
+        local = [d / 'engine' for d in (Path.cwd(), *target.resolve().parents) if (d / 'engine' / 'engine.js').exists()]
+        spec = str(local[0]) if local else DEFAULT
+        print(f'engine source: {spec}', file=sys.stderr)
     path = Path(spec)
     if path.is_dir():
         if not (path / 'engine.js').exists():
@@ -70,7 +73,7 @@ def main():
     ap.add_argument('--check', action='store_true', help='only report differing copies')
     ap.add_argument('--latex', action='store_true', help='also copy MathJax, for TX() formulas')
     a = ap.parse_args()
-    engine = source(a.src)
+    engine = source(a.src, a.target)
     shared = sorted(p for p in engine.iterdir() if p.suffix in ('.js', '.css') and p.name != OWN)
     stale = []
     for book in books(a.target):

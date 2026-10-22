@@ -13,7 +13,7 @@ Errors (exit status 1):
   stale     the narration's text or [[marks]] differ from timings.js: run tts.py again
   style     style.json is not valid JSON or lacks schema, tier, book, words, look or voice
 Warnings: a beat's m('name') not among that beat's own marks (beats built by shared helpers can mislead this);
-  no beats recognised in a chapter.
+  no beats recognised in a chapter; no narration file to check against.
 --content defaults to content/<book> (content/ for the first book's legacy layout), --brief to books/<book>.
 """
 import argparse, json, re, sys
@@ -155,8 +155,8 @@ def lint_chapter(ch, content, out):
     if nar.exists():
         N = json.loads(nar.read_text(encoding='utf-8-sig')).get('beats', {})
         for b, text in N.items():
-            if isinstance(text, dict):   # a beat with a speaker
-                text = text['text']
+            if isinstance(text, dict):   # a beat with a speaker; its caption is the subtitle when it has one
+                text = text.get('sub') or text['text']
             if b not in T:
                 err('stale', f'narration beat {b} has no timings')
                 continue
@@ -165,6 +165,8 @@ def lint_chapter(ch, content, out):
             cues = ' '.join(c[1] for c in T[b].get('cues', []))
             if cues and words(text) != words(cues):
                 err('stale', f'beat {b}: narration text differs from the generated audio')
+    else:
+        warn('stale', f'no narration at {nar}: narration not checked (pass --content)')
 
 
 def lint_style(brief, out):
