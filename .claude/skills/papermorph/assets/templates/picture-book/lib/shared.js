@@ -43,6 +43,8 @@ function sfxTick() {
       if (e.at <= from || e.at > P.t) a.addEventListener('loadedmetadata', () => { a.currentTime = P.t - e.at; }, { once: true });   // a long bed joined mid-way
     }
   for (const a of sfxOn) { a.playbackRate = P.rate || 1; if (on === a.paused && !a.ended) on ? a.play().catch(() => {}) : a.pause(); }   // a pause holds them, play resumes
+  // the music follows the playback speed too (BGM is the chapter's own list, when it has one)
+  if (typeof BGM !== 'undefined') for (const m of BGM) if (m.a.playbackRate !== (P.rate || 1)) m.a.playbackRate = P.rate || 1;
   sfxLast = { i: P.i, t: on ? P.t : from, pend: !on && (!same || !!sfxLast.pend) };
   requestAnimationFrame(sfxTick);
 }

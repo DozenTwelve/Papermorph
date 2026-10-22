@@ -1,5 +1,5 @@
 /* paper.js — a paper-cutout stop-motion kit on top of the engine.
-   Sets are baked bitmaps (img/sets/, from tools/breakfast/bake.py); puppets are live SVG pieces with the
+   Sets are baked bitmaps (img/sets/, from the Skill's scripts/bake_sets.py or painted.py); puppets are live SVG pieces with the
    same paper filter. Everything moves on a 12 fps clock (on twos), each frame with its own small hand jitter, so
    pause, seek and ?beat=N&t=S show exactly the frame a viewer would see. */
 'use strict';
@@ -132,7 +132,7 @@ const blinking = (q, times) => times.some(b => q >= b && q < b + 2 / FPS);
    piece is drawn once to a bitmap (at RES px per unit) and replaced by that image. Parts that change (eyes, mouths,
    brows, pieces with data-p) stay live; a filtered live part is baked on its own. Identical pieces share one bitmap. */
 const RES = 4, bakedReady = new Map(), bakedJobs = new Map(), PAPER_EXTRA = [];   // extra defs (patterns) other files add
-// Pieces baked ahead of time (tools/breakfast/bake_puppets.py): img/puppets/<hash>.webp, listed in
+// Pieces baked ahead of time (the Skill's scripts/bake_puppets.py): img/puppets/<hash>.webp, listed in
 // window.BAKED. A piece missing from it (just edited) is baked here in the browser; ?bake ignores the list.
 const BAKED = new URLSearchParams(location.search).has('bake') ? {} : (window.BAKED || {});
 const keyHash = k => { let h = 2166136261; for (let i = 0; i < k.length; i++) h = Math.imul(h ^ k.charCodeAt(i), 16777619); return (h >>> 0).toString(16).padStart(8, '0'); };

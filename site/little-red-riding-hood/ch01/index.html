@@ -119,7 +119,7 @@ function scene1(p, D) {
 
 /* ---------- sound effects ----------
    sfx(beat, at, name, vol): play audio/sfx/<name>.mp3 when the clock of beat `beat` passes `at` in normal playback
-   (seeking past it does not fire it). Pausing stops them. Made by tools/little-red-riding-hood/sfx.py. */
+   (seeking past it does not fire it). Pausing stops them. Synthesized like the recipes of the Skill's scripts/sfx.py. */
 const SFX = [], sfxOn = [];
 const sfx = (beat, at, name, vol = 1) => SFX.push({ beat, at, name, vol });
 let sfxLast = { i: -1, t: 0 };

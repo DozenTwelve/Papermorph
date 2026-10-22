@@ -4,18 +4,19 @@
     uv run --with playwright --with pillow still.py ch15 --url http://localhost:8765/science/ [beat ...] [--min 3]
 
 Prints, per lesson beat, the stretches of at least --min seconds whose consecutive frames differ by less than
---thr (mean absolute pixel difference, 0-255, on a small grey copy of the stage). Strips and onion skins cannot
+--thr (mean absolute pixel difference, 0-255, on a small grey copy of the stage; default 0.03 for a lesson, 2 for a
+picture book, whose puppets jitter and flicker on every frame even when nothing acts). Strips and onion skins cannot
 show that nothing moves; this can. A stretch is worth a look, not automatically wrong: a held moment can be right.
 """
 import argparse, asyncio, io
 from playwright.async_api import async_playwright
 from PIL import Image, ImageChops, ImageStat
 
-ap = argparse.ArgumentParser()
+ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
 ap.add_argument("chapter"); ap.add_argument("beats", nargs="*")
 ap.add_argument("--url", default="http://localhost:8765/")
 ap.add_argument("--step", type=float, default=1); ap.add_argument("--min", type=float, default=3)
-ap.add_argument("--thr", type=float, default=.03)
+ap.add_argument("--thr", type=float)
 a = ap.parse_args()
 URL = a.url.rstrip("/") + f"/{a.chapter}/"
 
@@ -25,6 +26,7 @@ async def main():
         pg = await b.new_page(viewport={"width": 1600, "height": 960})
         await pg.goto(URL + "?beat=0&t=0"); await pg.wait_for_timeout(800)
         ids = await pg.evaluate("BEATS.map(b => b.id)"); asks = await pg.evaluate("BEATS.map(b => !!b.ask)")
+        thr = a.thr if a.thr is not None else (2 if await pg.evaluate("typeof jit === 'function'") else .03)   # paper.js jitters
         r = await pg.evaluate("(() => { const r = document.getElementById('stage').getBoundingClientRect(); return {x: r.x, y: r.y, width: r.width, height: r.height}; })()")
         for i, bid in enumerate(ids):
             if asks[i] or (a.beats and bid not in a.beats): continue
@@ -38,8 +40,8 @@ async def main():
                 prev = im; t += a.step
             runs, start = [], None
             for t1, d in diffs + [(t, 99)]:
-                if d < a.thr and start is None: start = t1 - a.step
-                if d >= a.thr and start is not None:
+                if d < thr and start is None: start = t1 - a.step
+                if d >= thr and start is not None:
                     if min(t1 - a.step, dur) - start >= a.min: runs.append((start, min(t1 - a.step, dur)))
                     start = None
             print(f"{bid:11s} dur {dur:5.1f}  still: " + (", ".join(f"{s:.0f}-{e:.0f}s" for s, e in runs) or "-"), flush=True)

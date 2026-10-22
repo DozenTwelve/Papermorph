@@ -14,7 +14,7 @@ const lips = (q, scene, pre, ...clips) => { for (const c of clips) { const m = m
 const chew = q => onTwos(q) > 0 ? 'chew' : 'A';
 
 /* ---------- props (puppet pieces, baked like them) ---------- */
-// Painted props (img/props, from tools/breakfast/painted.py): a picture at (x, y), w by h.
+// Painted props (img/props, from the Skill's scripts/painted.py): a picture at (x, y), w by h.
 const artSVG = (name, x, y, w, h) => `<image href="../img/props/${name}.webp" x="${x}" y="${y}" width="${w}" height="${h}"/>`;
 // A steamed bun, centred on (0, 0), about 48 wide; `bite`: with a bite out of its right side.
 const bunSVG = (bite = false) => bite ? artSVG('bun-bite', -24, -36, 48, 44) : artSVG('bun', -24, -34, 48, 42);
@@ -34,7 +34,7 @@ const deskSVG = (cx, top, s) => artSVG('desk', cx - 240 * s, top - 10 * s, 480 *
 const STALL = { ground: 800, s: .95, me: 480, bo: 760, aunt: { x: 1300, y: 780, s: 1 } };
 // the stall's locked framing: the boys and the seller, a little closer than the whole set
 const STALL_VIEW = { x: 860, y: 560, z: 1.3 };
-// The stall is painted (tools/breakfast/painted.py): three weathers of the street, and the cart as its own cut-out so
+// The stall is painted (the Skill's scripts/painted.py): three weathers of the street, and the cart as its own cut-out so
 // the seller stands behind it. weather('sun'|'rain'|'snow').
 function stallSet(p, holds = {}) {
   const cam = paperCam(p, 'stall', {}, { after: 'cart', stages: ['snow'] });
