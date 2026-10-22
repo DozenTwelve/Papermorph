@@ -2,7 +2,7 @@
 
 The actors of a picture book are paper puppets drawn in code: pieces of coloured paper pinned at the joints, moved a little each frame, like a cut-out film shot by hand. Because a pose is only a set of numbers, any action the story needs (ducking, swinging an axe, diving through a window, shoving a thought bubble) costs a few lines, never a new drawing, and a puppet looks the same in every shot. The kit is in `assets/templates/picture-book/` (`paper.js`, `cast.js`, `shared.js`, `chapter.html`); copy it into `site/<book>/lib/` and the episode folder.
 
-Two cast styles are on the shelf, both on the same `paper.js`: round-headed figures that face us, in the spirit of South Park (*Joke Collection*), which the kit's `cast.js` builds (add a character by copying an entry of its `SHAPES`), and jointed storybook figures seen mostly in profile (*Little Red Riding Hood*: the wolf, Grandma, the woodcutter), which a book draws itself, a side set and a front set per figure. Pick with the user; the first is quicker to build and to act with.
+Two cast styles are on the shelf, both on the same `paper.js`: round-headed figures that face us, in the spirit of South Park (*Joke Collection*), which the kit's `cast.js` builds (add a character by copying an entry of its `SHAPES`), and jointed storybook figures seen mostly in profile (*Little Red Riding Hood*: the wolf, Grandma, the woodcutter), which a book draws itself, a side set and a front set per figure (start from that book's `lib/paper.js` and `lib/cast.js`, under `site/little-red-riding-hood/` in the Papermorph repository). Pick with the user; the first is quicker to build and to act with.
 
 ## What makes it read as stop motion
 

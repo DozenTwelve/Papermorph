@@ -57,7 +57,7 @@ function paperCam(p, setName, v0 = {}, { after = null, stages = [] } = {}) {
     const blur = L.soft ? mk('image', { href: `../img/sets/${setName}/${L.name}-soft.webp`, ...img, visibility: 'hidden' }, g) : null;
     layers.push({ g, k: L.k, sharp, blur, name: L.name });
     if (stages.includes(L.name)) layers.push({ g: stageAt[L.name] = mk('g', {}, world), k: L.k });
-    if (L.name === (after || 'house') || (!after && L.k === 1 && !stage)) layers.push({ g: stage = mk('g', {}, world), k: 1 });
+    if (L.name === after || (!after && L.k === 1 && !stage)) layers.push({ g: stage = mk('g', {}, world), k: 1 });
   }
   mk('rect', { width: 1600, height: 900, fill: 'url(#vignette)' }, root);
   // Parallax is measured from the set's own framing (base), wherever the beat's first view is.
@@ -219,9 +219,9 @@ function trunkWipe(p, t0, dur, mode = 'in') {
   const [a, b] = mode === 'in' ? [1650, -200] : [-200, -2150];
   return q => { const u = Math.min(1, Math.max(0, (q - t0) / dur)); vis(g, mode === 'in' ? u > 0 : u < 1); tf(g, `translate(${(a + (b - a) * ease(u)).toFixed(0)},0)`); };
 }
-// The title card at the end: a paper label that drops in on its pin.
-function endCard(p, t0) {
+// The title card at the end: a paper label that drops in on its pin. Give the words in the book's language.
+function endCard(p, t0, words = 'The End') {
   const g = prop(p, `<g filter="url(#paper)"><rect x="560" y="330" width="480" height="240" rx="14" fill="#f3e9d2"/><rect x="580" y="350" width="440" height="200" rx="8" fill="none" stroke="#c8322f" stroke-width="5"/></g>
-    <text x="800" y="478" text-anchor="middle" font-family="Georgia, serif" font-size="78" font-style="italic" fill="#5a2a1e">The End</text>${pinAt(800, 342)}`);
+    <text x="800" y="478" text-anchor="middle" font-family="Georgia, serif" font-size="78" font-style="italic" fill="#5a2a1e">${words}</text>${pinAt(800, 342)}`);
   return q => { const u = (q - t0) * FPS; vis(g, u >= 0); const d = [-60, -20, 8, -3, 0][Math.min(4, Math.max(0, Math.floor(u / 2)))]; tf(g, `translate(0,${d})`); };
 }

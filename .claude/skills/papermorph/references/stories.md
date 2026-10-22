@@ -65,4 +65,4 @@ With subagents the reviewers run in parallel ([team.md](team.md#picture-books));
 
 The episode is a first cut for the user's viewing, not a finished film. Deliver its URL with what was made, the final script, the decisions the user should review (every line or moment you added), known problems, and the real cost of pictures. Once the user approves it, add it to `approved` in `style.json` and to the series page, and set the previous episode's `CHAPTER.next`: when an episode's last scene ends, the player marks it watched and offers the next one.
 
-The series page is the book's `index.html`, made from [series.html](../assets/templates/picture-book/series.html): one card per episode with a still, its title and a line, and a mark on episodes already watched.
+The series page is the book's `index.html`, made from [series.html](../assets/templates/picture-book/series.html): one card per episode with a still, its title and a line, and a mark on episodes already watched. A still is one frame of the episode (`shot.py`, or the page at `?beat=N&t=S`) saved as a 1400×788 WebP, like the cover image.

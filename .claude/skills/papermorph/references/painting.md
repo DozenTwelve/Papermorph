@@ -8,7 +8,7 @@ Paint one set two or three ways at the cheapest quality, stand the puppets in ea
 
 ## Getting the composition you need
 
-Puppets stand at fixed places, counters must hide the right legs, and cuts must match. The reliable way is to draw the set first as a rough SVG sketch in `books/<book>/art/sets.js` (`bake_sets.py … --ref books/<book>/art` renders each set as one frame, `ref-<set>.png`), then ask the model to repaint *that picture* in the style of the reference: the layout survives, the look changes. Once a set is painted, `bake_sets.py` leaves it alone unless you name it. Then:
+Puppets stand at fixed places, counters must hide the right legs, and cuts must match. The reliable way is to draw the set first as a rough SVG sketch in `books/<book>/art/sets.js` (`bake_sets.py books/<book>/art/sets.js site/<book> <set> … --ref books/<book>/art` renders each named set as one frame, `ref-<set>.png`; name the sets, since a set already baked is otherwise skipped), then ask the model to repaint *that picture* in the style of the reference: the layout survives, the look changes. Once a set is painted, `bake_sets.py` leaves it alone unless you name it. Then:
 
 - **Cut-outs for whatever people stand behind.** A counter, a cart, rows of desks, a lectern: paint each as its own picture on a transparent background and place it as a layer (`painted.py`, `cut`).
 - **Variants by editing, not redrawing.** Rain and snow versions of a street, a door open and shut, a bun with a bite: edit the one picture, so a cut between versions changes only that.

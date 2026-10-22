@@ -25,7 +25,7 @@ Start each worker in the background with a short brief: the chapter and its page
 
 ## Before delivering
 
-Check the reports against each other (an odd claim is worth one look at the file), confirm lint and e2e pass, and deliver the chapter URL with `?review`. If the user wants the cost, it is in the subagent transcripts (`subagents/agent-<id>.jsonl` under the session's folder in `~/.claude/projects/`: usage per assistant message, each message id counted once) plus your own session's usage.
+Check the reports against each other (an odd claim is worth one look at the file), confirm lint and e2e pass, and deliver the chapter URL with `?review`. If the user wants the cost and runs Claude Code, it is in the subagent transcripts (`subagents/agent-<id>.jsonl` under the session's folder in `~/.claude/projects/`: usage per assistant message, each message id counted once) plus your own session's usage.
 
 ## Picture books
 

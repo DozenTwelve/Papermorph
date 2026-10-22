@@ -37,7 +37,7 @@ Then start the book folder ([site.md](site.md#start-a-book-folder)): the look is
 
 ## 4. The look, by tier
 
-**Tier 1** needs few decisions. Propose palette, fonts and the language and voice from the book itself. Then make the chapter's narration and its first one or two beats, laid out at real size ([SKILL.md](../SKILL.md#chapter-loop), steps 2–3), and capture a few key frames with `strip.py`. Show the sheet and ask: go ahead as it is (recommended), or one of two or three concrete changes (calmer, more colour, larger type …). Once agreed, write `style.json` and make the chapter.
+**Tier 1** needs few decisions. Propose palette, fonts and the language and voice from the book itself. Then make the chapter's narration and its first one or two beats, laid out at real size ([SKILL.md](../SKILL.md#chapter-loop), steps 2–3), and capture a few key frames with `strip.py`. Show the sheet and ask: go ahead as it is (recommended), or one of two or three concrete changes (calmer, more colour, larger type …). Once agreed, settle the models (§5), then write `style.json` and make the chapter.
 
 **Tier 2** has more to settle; ask in rounds:
 1. Art and sources: drawn in code, pixel scenes, illustrated, real images; whether web images (with credits) are acceptable. The recurring characters: propose two or three casts that suit the book, each in one line.
@@ -48,7 +48,7 @@ Then start the book folder ([site.md](site.md#start-a-book-folder)): the look is
 
 ## 5. Models
 
-Which model does which step is the user's choice. Users run the Skill with different models and providers, and a book can mix them. Show the defaults for the chosen tier as one table, one row per step of the chapter loop ([team.md](team.md#steps)), and ask: keep it (recommended), or change some rows. Any model the user names is fine.
+Which model does which step is the user's choice. Users run the Skill with different models and providers, and a book can mix them. Show the defaults for the chosen tier as one table, one row per step in [team.md](team.md#steps), and ask: keep it (recommended), or change some rows. Any model the user names is fine.
 
 | Step | Tier 1 | Tier 2 | Picture book |
 |---|---|---|---|
@@ -60,7 +60,7 @@ Which model does which step is the user's choice. Users run the Skill with diffe
 | Rework | strong | strong | middle, per scene |
 | Register | small | small | small |
 
-**small**, **middle** and **strong** stand for the user's current fast, balanced and most capable models; write the actual model names into `models`. Without subagents one agent does every step on its own model, and the table only records that. The user can change a row at any time; later chapters follow the table as it stands.
+**small**, **middle** and **strong** stand for the user's current fast, balanced and most capable models; write the actual model names into `models`, keyed by step as in the [course](../assets/templates/style.json) or [picture-book](../assets/templates/picture-book/style.json) template (a picture book's keys name its roles: `script`, `kit`, `scenes`, `sound`, `director`, `reviewers`). Without subagents one agent does every step on its own model, and the table only records that. The user can change a row at any time; later chapters follow the table as it stands.
 
 ## 6. style.json
 

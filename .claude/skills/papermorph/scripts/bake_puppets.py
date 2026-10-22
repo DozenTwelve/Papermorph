@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Bake every paper piece a picture book uses (puppets and props, every scene of every chapter) to bitmaps.
 
-    python3 SKILL/scripts/serve.py 8790 site &
-    uv run --with playwright --with pillow python bake_puppets.py site/<book> [--url http://localhost:8790/<book>/] [--clean]
+    python3 SKILL/scripts/serve.py 8765 site &
+    uv run --with playwright --with pillow python bake_puppets.py site/<book> [--url http://localhost:8765/<book>/] [--clean]
 
 The page would otherwise run the paper filter on each piece at startup. This opens every chNN of the book with ?bake
 (which ignores existing bitmaps), seeks it to its last beat (which builds every scene before it, so every piece is asked
@@ -11,7 +11,7 @@ Run it after changing a puppet or prop drawing, or after adding a chapter. A pie
 bounding box, and the box of text or of a rotated piece differs between browsers, so the pages are opened in Chromium
 and in Firefox and both sets are kept. Pieces already baked are not encoded again, and files this run did not produce
 are kept (a piece another chapter or an earlier run made); --clean (after changing the paper filter itself) re-encodes
-every piece and then removes the files no chapter asked for. --url defaults to the book under http://localhost:8790/.
+every piece and then removes the files no chapter asked for. --url defaults to the book under http://localhost:8765/.
 """
 import argparse, base64, io, json, pathlib
 from PIL import Image
@@ -31,7 +31,7 @@ def main():
     ap.add_argument('site'); ap.add_argument('--url'); ap.add_argument('--clean', action='store_true')
     a = ap.parse_args()
     site = pathlib.Path(a.site); out = site / 'img/puppets'
-    url = (a.url or f'http://localhost:8790/{site.resolve().name}/').rstrip('/') + '/'
+    url = (a.url or f'http://localhost:8765/{site.resolve().name}/').rstrip('/') + '/'
     got = {}
     with sync_playwright() as p:
         for kind in (p.chromium, p.firefox):
