@@ -1338,8 +1338,8 @@ function ui() {
   if (step !== stepText) { stepText = step; $('stepName').textContent = step; }
   const b = BEATS[P.i];
   let text = '';
-  // a question's caption shows while its narration plays, at the top left, clear of the cards; a full-screen card
-  // already shows the question, so it has none
+  // a question's caption shows while its narration plays, clear of the cards; a full-screen card already shows the
+  // question, so it has none
   const asking = !!b.ask;
   if (P.started && !P.done && !(asking && (P.waiting || $('ui').querySelector('.card.screen')))) {
     // a cue is [start, line], [start, line, end] or [start, line, end, 1]: with an end, the caption clears once its
@@ -1350,7 +1350,19 @@ function ui() {
     }
   }
   if (text !== capText) { capText = text; $('caption').textContent = text; $('caption').hidden = !text; }
-  if (text) $('caption').classList.toggle('ask', asking);
+  if (text) placeCaption(asking);
+}
+// Above a bottom band, or centred left of a card in the bottom right; elsewhere the caption keeps its place.
+let capAt = '';
+function placeCaption(asking) {
+  const c = asking ? $('ui').querySelector('.card.band, .card.side') : null;
+  let at = '';
+  if (c?.classList.contains('band')) at = `${960 - c.offsetTop + 12}||`;
+  else if (c && c.offsetLeft > 800 && c.offsetTop + c.offsetHeight > 700) at = `|${c.offsetLeft / 2}|${c.offsetLeft - 60}`;
+  if (at === capAt) return;
+  capAt = at;
+  const [bottom, left, width] = at.split('|'), s = $('caption').style;
+  Object.assign(s, { bottom: bottom && bottom + 'px', left: left && left + 'px', maxWidth: width && width + 'px' });
 }
 let captions = false, capText = '';
 try { captions = localStorage.getItem('captions') === '1'; } catch {}

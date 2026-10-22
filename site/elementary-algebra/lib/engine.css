@@ -157,7 +157,6 @@ kbd { display: inline-block; min-width: 1.5em; padding: 0 .4em; margin-left: .5e
 /* Optional captions of the narration, one sentence at a time. Off by default: teaching text lives in the picture. */
 .caption { position: absolute; left: 50%; bottom: 78px; transform: translateX(-50%); width: max-content; max-width: 1180px; padding: 10px 24px; border-radius: 14px; background: rgba(10, 16, 14, .82); color: var(--chalk); font-size: 28px; line-height: 1.35; text-align: center; pointer-events: none; }
 .caption[hidden] { display: none; }
-.caption.ask { left: 40px; top: 24px; bottom: auto; transform: none; max-width: 880px; text-align: left; }
 .icon.cc { font-size: 15px; font-weight: 700; color: var(--dim); }
 .icon.cc[aria-pressed="true"] { background: var(--chalk); border-color: var(--chalk); color: var(--board); }
 .card.side { overflow: auto; }
