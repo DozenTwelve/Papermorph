@@ -1,8 +1,8 @@
 # The engine (lib/engine.js, lib/engine.css)
 
-A chapter page loads the engine and its `audio/<lang>/timings.js`, defines `CHAPTER` (including `language` when different from `en`), drawing helpers, `BEATS` and questions, then calls `boot()`. The engine provides the stage, drawing, timeline, question types, guide and player. Use the code's signatures if they differ from this reference.
+A chapter page loads the engine and its `audio/<lang>/timings.js`, defines `CHAPTER` (including `language` when different from `en`: the audio folder), drawing helpers, `BEATS` and questions, then calls `boot()`. The engine provides the stage, drawing, timeline, question types, guide and player. Use the code's signatures if they differ from this reference. The interface text (buttons, help, cover, finish card) follows `<html lang>`: English, Russian, Chinese and Japanese are in the engine's `TRANSLATIONS`; another language needs a block there.
 
-Every book keeps a copy of the shared engine in `lib/` (`engine.*`, `volume.*`), so the book runs on its own. The engine is not part of this skill: it lives in the `engine/` folder of the Papermorph repository (or a fork), versioned by tags. `python3 SKILL/scripts/engine.py site` copies it into every book (`--check` lists copies that differ, `--from DIR|OWNER/REPO@REF` picks the source); a book's copy is not edited by hand. An engine bug is fixed at the source, then synced. The book's own settings and style overrides live in `lib/book.css`, imported by `engine.css` and never overwritten: `--math-font` for numbers and formulas, `--progress-key` when the cover uses a key other than the default.
+Every book keeps a copy of the shared engine in `lib/` (`engine.*`, `volume.*`), so the book runs on its own. The engine is not part of this skill: it lives in the `engine/` folder of the Papermorph repository (or a fork). `python3 SKILL/scripts/engine.py site` copies it into every book from the repository's `engine/` when it is at hand, otherwise from GitHub (`--check` lists copies that differ, `--from DIR|OWNER/REPO@REF` picks the source, a tag or commit pins it); a book's copy is not edited by hand. An engine bug is fixed at the source, then synced. The book's own settings and style overrides live in `lib/book.css`, imported by `engine.css` and never overwritten: `--math-font` for numbers and formulas, `--progress-key` when the cover uses a key other than the default.
 
 Many drawing helpers are mathematical because the first book was algebra. Use those that fit; draw the rest in the chapter, and move what several chapters use into the book's element library (`lib/<name>.js`, [assets.md](assets.md)) rather than into the engine copy.
 
@@ -21,7 +21,7 @@ Many drawing helpers are mathematical because the first book was algebra. Use th
 | `G(parent, {x,y,s,r,o})` | group |
 | `path(parent, d, attrs, {d:0})` | path; `{d: 0}` makes it ready to be drawn on with `draw()` |
 | `T(parent, str, {x,y,size,fill,font,weight,anchor,o})` | text |
-| `cite(parent, key, {str,x,y,size,fill,weight,anchor,o})` | a citation from `REFS` (`../refs.js`), drawn as an underlined link that opens the source in a new tab and listed on the finish card ([authoring.md](authoring.md#citations)) |
+| `cite(parent, key, {str,x,y,size,fill,weight,anchor,o})` | a citation from `REFS` (`../refs.js`, a course option: [courses.md](courses.md)), drawn as an underlined link that opens the source in a new tab and listed on the finish card ([courses.md](courses.md#citations)) |
 | `M(parent, parts, {x,y,size,fill,anchor,o,s})` | math with its baseline at y; parts are strings, `F(n,d)` fractions, `R(x, i)` roots (x may be `F(...)`, i the index), `E(exp)` exponents, `TX(tex)` LaTeX (see [LaTeX](#latex)); returns a group with `_w` (width) |
 | `mathW(parts, size)` | width of math without drawing it |
 | `frac(p, top, bot, x, y, t0, opts)` | built-up fraction whose top and bottom are math parts |
@@ -58,6 +58,8 @@ A book whose formulas need more than `M()` parts (indices, sums, matrices, accen
 - Tweens: `tw(e, to, t0, dur, ease)`, `prog(q => …, t0, dur, ease)` for custom motion (arcs, counters, live redraws), `show`, `hide`, `draw`, `pop`, `pulse`, `stream`. Eases: `io`, `out`, `back`, `lin`, `soft`. Continuous motion and cameras: see below.
 - A lesson beat ends after its narration and its last tween, then the next starts; an `ask` beat waits for `done()`.
 - **Opening lead-in**: if a beat calls `panel()` (before 0.5 s) and nothing appears within 0.8 s, `runBeat` moves the opening group (every tween starting within 1.2 s of the first reveal) to start at 0.4 s. Opt out with `{ lead: false }` in the beat's fourth slot.
+- **`pre`** in the fourth slot (`{ pre: 1.2 }`) runs the picture that many seconds before the narration starts: an action, then the line. Picture books use it on every scene.
+- **The end of a film**: a chapter whose last beat asks nothing (a picture book) is finished when that beat ends: it is marked done and, with `CHAPTER.next`, offers the next chapter (Enter).
 - **Seeking replays**: jumping to beat N rebuilds the scene and runs earlier beats instantly. Make `run` deterministic: create objects and schedule tweens through the timeline, with inputs from chapter data and replayed `S` state. Create interactions inside `ask`; use `fx`/`fxp` for answer effects.
 - Constants used in a `BEATS` literal are evaluated when it is defined, so define them above `BEATS`. Data used only inside an `ask` closure may sit below.
 
@@ -91,9 +93,9 @@ Firefox repaints SVG on the main thread and is the slowest common browser for th
 quiz(position, [{ id: 'c-mean', prompt: ['Find the mean of ', $m('7, 3, 9'), '.'], build: blanks([...]) }, …], done, 'Quick check')
 ```
 
-- Positions: `BAND` (bottom band, y 686–886; long content can push it past the stage, so check it), `TOPR` (top right, ≤ 470 high), `RIGHT`, `SCREEN` (full-screen practice; label `'Chapter practice   N of M'`), `SORT_SCREEN`, or any `{x, y, w, cls: 'side'}`.
+- Positions: `BAND` (bottom band, y 686–886; long content can push it past the stage, so check it), `TOPR` (top right, ≤ 470 high), `RIGHT`, `SCREEN` (full-screen practice; the label names the set in the book's language, and the engine appends k of n when a quiz has several questions), `SORT_SCREEN`, or any `{x, y, w, cls: 'side'}`.
 - `choice(options, right, why, wrongWhys[], onRight?)` — number keys.
-- `mcq(id, onRight?)` — a whole quiz entry (`{id, prompt, build: choice(...)}`) from the chapter's item bank: `quiz(TOPR, [mcq('c-attrib'), mcq('c-cause')], done)`. Needs `items.js` (built by `scripts/items.py`) loaded after `engine.js`; an unknown id throws.
+- `mcq(id, onRight?)` — (course option, [courses.md](courses.md)) a whole quiz entry (`{id, prompt, build: choice(...)}`) from the chapter's item bank: `quiz(TOPR, [mcq('c-attrib'), mcq('c-cause')], done)`. Needs `items.js` (built by `scripts/items.py`) loaded after `engine.js`; an unknown id throws.
 - `blanks(rows)` — rows `{parts: [..., {box: '21'}, ...], why, hint?, fx?, test?}`; accepts −5, 3/4, 2 1/4, 0.75 as exact values; `{box, lowest: true}` demands lowest terms; `test(values)` judges the whole row (e.g. two factors in either order). Tab moves between boxes, Enter checks, Esc leaves a box.
 - `grid(rows, cols, {multi, text})` — rows `{parts, ans: [keys], why, fx?}`, cols `[[key, label, colour?, hotkey?]]`; with `text: true` parts are rich text (math via `$m`). ↑/↓ change rows.
 - `tap(values, right, why, v => wrongWhy, onRight?)` points on the number line; `tapEls(row, idx, right, …)` tokens of a `tokens` row; `pickEls([{el, box: [x,y,w,h], label}], right, …)` any drawn objects; `pickPoint(P, [x,y], why, (x,y) => wrongWhy, onRight?, test?)` grid points (arrows + Enter or click); `sorter(items, trayXY)` drag into the set diagram (keys 1–6).
@@ -105,9 +107,9 @@ quiz(position, [{ id: 'c-mean', prompt: ['Find the mean of ', $m('7, 3, 9'), '.'
 
 Space play/pause, ←/→ previous/next beat (Shift+←/→ during a question), Home restart, C captions, `<`/`>` speed (0.75–1.5×, remembered), F full screen, ? help. Clicking a step segment jumps to that point of the beat (`seekInto(i, frac)`); the next beat's clip preloads while one plays. `seek(i, play)` rebuilds and jumps; `start(i, play)` begins a beat from the current picture. While audio plays, the beat clock follows `audio.currentTime`. `?beat=N&t=S` in the URL opens a frozen frame for review. With `?review` in the URL, N pauses and asks for a note on the current moment and Shift+N copies the chapter's notes, one line each with the `?beat=N&t=S` that reopens it, so a reviewer can collect notes while watching and hand them over at once. The finish card's Enter opens `CHAPTER.next`, R replays.
 
-Progress uses the stable legacy key `animebook:progress:<book-path>` (keep it when renaming the project so existing readers retain their progress); the cover template reads the same key. A book can set another key with `--progress-key` in `lib/book.css`; its cover must then read that key. Books served in different folders have separate saved places and completion lists.
+Progress is saved under `animebook:progress:<book-path>`; the cover and a picture book's series page read the same key. A book can set another key with `--progress-key` in `lib/book.css`; its cover must then read that key. Books served in different folders have separate saved places and completion lists.
 
-Treat saved progress as optional: malformed JSON, `null` or a non-object value starts with empty progress; only an array of positive integer chapter numbers is used for completion. Preserve each existing book's key when applying engine fixes.
+Treat saved progress as optional: malformed JSON, `null` or a non-object value starts with empty progress; only an array of positive integer chapter numbers is used for completion.
 
 Keep `<link rel="expect" href="#bar" blocking="render">` in every chapter's head; without it Chromium may paint before the player exists and cancel the page transition from the contents page.
 

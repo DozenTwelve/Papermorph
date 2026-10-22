@@ -4,7 +4,7 @@ In the painted look, one question splits the work: **does it move?** Streets, ro
 
 ## Choosing the look
 
-Paint one set two or three ways at the cheapest quality, stand the puppets in each (composite a frame), and let the user choose. In *Joke Collection* the candidates were flat paper like the puppets, warm gouache, and a richer torn-paper collage with light; the user chose the collage: "no need to copy South Park 100%; use the image model as far as it goes while what can move, moves". Keep the chosen picture as the style reference for every later set and prop, and record the style words in `style.json`.
+Paint one set two or three ways at the cheapest quality, stand the puppets in each (composite a frame), and let the user choose. In *Joke Collection* the candidates were flat paper like the puppets, warm gouache, and a richer torn-paper collage with light; the collage was chosen: let the image model carry as much as it can, while everything that can move still moves. Keep the chosen picture as the style reference for every later set and prop, and record the style words in `style.json`.
 
 ## Getting the composition you need
 
@@ -22,9 +22,9 @@ Everything that comes out goes through `painted.py` (manifest `books/<book>/art/
 Money is the user's, so the user sets a ceiling and sees every cent:
 
 - `paint.py` takes quality `low` or `medium` only. Try low first: in these books low was often good enough for the final set (about $0.02 a picture; medium about $0.02–0.03; high cost five times as much and, once used in a film, looked the same).
-- Every picture is logged with its cost (`--ledger books/<book>/art/costs.tsv`); before a batch, say how many pictures and what they will cost; after it, report the real balance from the provider, not an estimate. OpenRouter refuses any image request when the balance is under one dollar.
-- Without an OpenRouter account, `paint_openai.py` calls OpenAI's image API directly with the same arguments and ledger (key in `OPENAI_API_KEY`). OpenAI does not return a price, so its ledger lines are estimates: read the real spend from OpenAI's usage page.
-- After every batch, put the pictures on one contact sheet and open it for the user (Finder, the browser), even when working on your own: they like to see each stage.
+- `paint.py` reads the OpenRouter key from `~/.config/openrouter/key` or `$OPENROUTER_API_KEY`. Every picture is logged with its cost (`--ledger books/<book>/art/costs.tsv`; `paint.py --total books/<book>/art/costs.tsv` sums it); before a batch, say how many pictures and what they will cost; after it, report the real balance from the provider (OpenRouter's credits page, or `GET https://openrouter.ai/api/v1/credits` with the key), not an estimate. OpenRouter refuses any image request when the balance is under one dollar.
+- Without an OpenRouter account, `paint_openai.py` calls OpenAI's image API directly with the same arguments and ledger (key in `$OPENAI_API_KEY`, `--env FILE` or `~/.config/papermorph/.env`). OpenAI does not return a price, so its ledger lines are estimates: read the real spend from OpenAI's usage page.
+- After every batch, put the pictures on one contact sheet and open it for the user (Finder, the browser), even when working on your own, so the user sees each stage.
 
 ## Credits and licences
 

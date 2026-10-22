@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "tier": "picture",
+  "book": { "title": "Series title", "slug": "jokes", "language": "en", "readers": "families, all ages", "pilot": "ch01" },
+  "words": [
+    "The user's own words about the story and the look, verbatim.",
+    "ch01 feedback: later words that changed the bar, with the episode they came from."
+  ],
+  "look": "Whatever the user chose: for example paper puppets in front of sets painted as torn-paper collage, warm light",
+  "voice": {
+    "engine": "edge",
+    "narrator": { "voice": "en-US-AndrewMultilingualNeural", "rate": "-4%" },
+    "cast": { "Bo": { "voice": "en-US-AnaNeural", "rate": "+0%" }, "Clerk": { "voice": "ja-JP-NanamiNeural", "rate": "+0%", "subtitles": "en" } }
+  },
+  "illustration": {
+    "sets": "painted by an image model, puppets and anything that moves in code",
+    "budget": "under $1 of pictures per episode",
+    "cast": [{ "name": "Bo", "look": "round face, school uniform", "file": "site/jokes/lib/cast.js" }]
+  },
+  "models": { "script": "claude-opus-5-5", "kit": "claude-opus-5-5", "scenes": "claude-sonnet-5-5", "sound": "claude-haiku-5-5", "director": "claude-opus-5-5", "reviewers": "claude-sonnet-5-5" },
+  "approved": [{ "chapter": "ch01", "why": "set-up before the punchline; a close-up on whoever speaks" }]
+}

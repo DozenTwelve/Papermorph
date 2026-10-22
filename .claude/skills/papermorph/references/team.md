@@ -4,7 +4,7 @@ After the pilot, a chapter can be made by a coordinator handing each step of the
 
 Why this shape: one agent doing a whole chapter carries an ever larger context through every call, and long idle waits make that context expire and get written again; that, more than the model's price, makes a chapter expensive. Small workers that start from the files they need and finish quickly cost far less, and each step can use the cheapest model that does it well. On a physics book this cost about half as much per minute of narration as one strong agent doing everything, at the same quality.
 
-Models below are named by tier: **small** (fast and cheap; Haiku today), **middle** (Sonnet today), **strong** (Opus today). Pass the tier's current model to the subagent.
+Each step runs on the model the user chose for it (`models` in `style.json`, agreed at intake: [intake.md](intake.md#5-models)). The defaults below are named by strength: **small** (fast and cheap), **middle**, **strong** (the most capable); where `models` is silent, use them and say which model you picked.
 
 ## The coordinator
 
@@ -21,7 +21,7 @@ Start each worker in the background with a short brief: the chapter and its page
 4. **Checks — small, report-only**, in parallel with 5: lint, `check_blank.py`, `overlap.py`, `still.py`, `perf.py` in Firefox, and an e2e test adapted from the previous chapter's, in Chromium and Firefox. It reports problems with beat and time and changes only its own test.
 5. **Review — middle**, in parallel with 4: watch every beat as [review.md](review.md) describes, against the storyboard and the approved chapters. It fixes small local problems itself and lists larger ones with beat, time and a suggested fix. Its reply opens with the beats it watched; if some are missing, send it back to finish (continuing a worker is cheaper than starting one).
 6. **Rework — strong, only for real problems** left by 4 and 5: a brief listing exactly those, re-checked with strips, `still.py`, lint and e2e in both browsers.
-7. **Register — small.** Give it the exact edits: the contents entry, the previous chapter's `CHAPTER.next`, cover or shelf counts, `chapters.md` and the status line in chNN.md. Then lint and e2e.
+7. **Register — small.** Give it the exact edits: the contents entry, the previous chapter's `CHAPTER.next`, chapter counts on the cover, `chapters.md` and the status line in chNN.md. Then lint and e2e.
 
 ## Before delivering
 
@@ -39,6 +39,11 @@ The same shape, split by scene instead of by step. The **strong** coordinator wr
 
 One **middle** worker per scene, in parallel, writes only its own `sceneN.js` and checks it with contact sheets and full-size frames of its close-ups; a **small** worker synthesizes the sound effects from recipes.
 
-Review comes in rounds, each with four report-only reviewers (**strong** for the director, **middle** for the rest) that watch the episode against the approved ones. The director judges story, comedy, staging and shots. Two picture reviewers split the scenes between them. The fourth reviewer covers sound and runtime. Each writes a ranked report: scene, beat-clock time, what is wrong as a viewer sees it, a concrete fix. Earlier good reports serve as examples. The coordinator merges the reports into one rework list, taking the director's side where reviewers disagree, fixes the kit itself and sends scenes back to their workers. The next round starts by checking which findings were fixed. A last read-only pass counts them as fixed, partly fixed, not fixed or worse. Episodes made with two or three rounds were the best in the series; the rounds come before the user watches, and what the user says then still decides.
+Review comes in rounds ([stories.md](stories.md#review-rounds) says what to look for):
+
+- **Who**: four report-only reviewers watch the episode against the approved ones: a director (**strong**) for story, comedy, staging and shots; two picture reviewers (**middle**) splitting the scenes; one (**middle**) for sound and runtime.
+- **Reports**: each ranked: scene, beat-clock time, what is wrong as a viewer sees it, a concrete fix. Earlier good reports serve as examples.
+- **Merging**: the coordinator turns the reports into one rework list, taking the director's side where reviewers disagree, fixes the kit itself and sends scenes back to their workers.
+- **Closing**: the next round starts by checking which findings were fixed; a last read-only pass counts them as fixed, partly fixed, not fixed or worse. Two or three rounds made the best episodes. The rounds come before the user watches, and what the user says then still decides.
 
 A fresh session as coordinator matters even more here: contact sheets are large, and a long conversation rereads them at every step. An episode made in one night from a bedtime telling, before the review rounds existed, took about 22 million tokens, most of them the coordinator rereading its own context.

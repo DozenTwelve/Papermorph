@@ -4,7 +4,7 @@ For physical, spatial and narrative ideas: people and things act out the idea, t
 
 ## Each moment is one picture
 
-The subject comes first, large and placed where the eye lands; text is part of the picture and appears beside what it names, as it is said. A layout with a title row, a picture somewhere else and notes in a column feels fragmented ("割裂", the user's word) even when every piece is correct.
+The subject comes first, large and placed where the eye lands; text is part of the picture and appears beside what it names, as it is said. A layout with a title row, a picture somewhere else and notes in a column feels fragmented even when every piece is correct.
 
 Worked example, the push in the science book's chapter 10:
 - *Before*: a small pusher and cart at the bottom left, the sentence at the top centre, the word "push" floating far from both, and an arrow above the cart rather than on it. Every piece was right; nothing read as one picture.
@@ -21,7 +21,7 @@ Vary the composition with the content (a close-up, a wide shot, a split screen, 
 
 ## Actors and actions
 
-When the narration says someone pushes, throws or jumps, they perform it with weight and timing, and what they handle moves with them. A figure sliding across the ground like a statue reads as a still picture, not an action; the user objected to that strongly.
+When the narration says someone pushes, throws or jumps, they perform it with weight and timing, and what they handle moves with them. A figure sliding across the ground like a statue reads as a still picture, not an action, and viewers notice it at once.
 - Drive gait frames from the distance travelled, so the feet keep pace with the ground.
 - Keep contact as a shared position: the prop follows the hand position of the current frame; a ball is caught, held and released through it.
 - Time poses to narration marks (wind-up before "kick", contact on it), and derive motion constants from the marks when an action must land on a word.

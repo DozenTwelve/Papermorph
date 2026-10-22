@@ -20,25 +20,40 @@ cp "$SKILL/assets/templates/narration.en.json" "content/$BOOK_ID/ch01/narration.
 
 ### A picture book
 
-The contents page is the series page (each episode a chapter in `units`); the episode comes from the picture-book kit, and the empty `baked.js` stands in until `bake_puppets.py` has run:
+Instead of the block above (not after it). The book's `index.html` is the series page; each episode comes from the picture-book kit, and the empty `baked.js` stands in until `bake_puppets.py` has run:
 
 ```sh
+BOOK_ID=jokes
+BOOK_SITE="site/$BOOK_ID"
+BOOK_WORK="books/$BOOK_ID"
 PB="$SKILL/assets/templates/picture-book"
-mkdir -p "$BOOK_SITE/img/puppets" "$BOOK_WORK/art" "content/$BOOK_ID/ch01"
+mkdir -p "$BOOK_SITE/lib" "$BOOK_SITE/img/puppets" "$BOOK_SITE/ch01" "$BOOK_WORK/art" "content/$BOOK_ID/ch01" "tools/$BOOK_ID"
 python3 "$SKILL/scripts/engine.py" "$BOOK_SITE"
-cp "$SKILL/assets/templates/book.html" "$BOOK_SITE/index.html"
+cp "$PB/series.html" "$BOOK_SITE/index.html"
 cp "$PB"/lib/*.js "$BOOK_SITE/lib/"
 cp "$PB/chapter.html" "$BOOK_SITE/ch01/index.html"; cp "$PB/scene1.js" "$BOOK_SITE/ch01/"
-cp "$PB/sets.js" "$PB/painted.json" "$BOOK_WORK/art/"
+cp "$PB/sets.js" "$BOOK_WORK/art/"
 cp "$PB/narration.en.json" "content/$BOOK_ID/ch01/"
 echo 'window.BAKED = {};' > "$BOOK_SITE/img/puppets/baked.js"
 ```
 
-Then the sound and the pictures, in this order ([sound.md](sound.md), [puppets.md](puppets.md)): `tts.py`, `mouths.py`, `join.py "$BOOK_SITE/ch01/audio/en" scene1=s01,s02,s02b,s03 --words content/$BOOK_ID/ch01/narration.en.json`, `sfx.py "$BOOK_SITE/ch01/audio/sfx" knock`, `bake_sets.py "$BOOK_WORK/art/sets.js" "$BOOK_SITE"` and, with the preview server up, `bake_puppets.py "$BOOK_SITE"`.
+For a painted look, also `cp "$PB/painted.json" "$BOOK_WORK/art/"` ([painting.md](painting.md)). Then the sound and the pictures, in this order ([sound.md](sound.md), [puppets.md](puppets.md)), with the preview server running on 8765:
+
+```sh
+A="$BOOK_SITE/ch01/audio/en"; N="content/$BOOK_ID/ch01/narration.en.json"
+uv run --with edge-tts python "$SKILL/scripts/tts.py" "$N" "$A"
+python3 "$SKILL/scripts/mouths.py" "$N" "$A"
+python3 "$SKILL/scripts/join.py" "$A" scene1=s01,s02,s02b,s03 --words "$N"
+uv run --with numpy python "$SKILL/scripts/sfx.py" "$BOOK_SITE/ch01/audio/sfx" knock
+uv run --with playwright --with pillow python "$SKILL/scripts/bake_sets.py" "$BOOK_WORK/art/sets.js" "$BOOK_SITE"
+uv run --with playwright --with pillow python "$SKILL/scripts/bake_puppets.py" "$BOOK_SITE" --url "http://localhost:8765/$BOOK_ID/"
+```
+
+Keep these commands in a script beside the book's notes (`tools/$BOOK_ID/audio.sh`) and rerun it after any change to the narration. A painted look paints its sets between `bake_sets.py --ref` and the scenes ([painting.md](painting.md)).
 
 ### Every book
 
-Use the pilot chapter's number in place of `ch01` when the pilot is not the first chapter. Use the agreed primary language: rename the narration source, load `audio/<lang>/timings.js`, and set `CHAPTER.language` to match (default `en`). Take `voice` and `rate` for each narration file from `style.json`, and translate the template's visible UI text as needed before the pilot.
+Use the pilot chapter's number in place of `ch01` when the pilot is not the first chapter. Use the agreed primary language: rename the narration source, load `audio/<lang>/timings.js`, and set `CHAPTER.language` to match (default `en`, it picks the audio folder). Set `<html lang>` in `index.html` and every chapter to the same language: the player and the contents page take their interface text from it (English, Russian, Chinese and Japanese are built into the engine; other languages fall back to English until a block is added to the engine's `TRANSLATIONS`). Take `voice` and `rate` for each narration file from `style.json`, and translate the template's own visible text (titles, lede, prompts) before the pilot.
 
 If the book's formulas need LaTeX ([engine.md](engine.md#latex)), add MathJax (with its license) to `lib/`, and load `../lib/mathjax.js` right after `engine.js` in every chapter:
 
@@ -46,18 +61,25 @@ If the book's formulas need LaTeX ([engine.md](engine.md#latex)), add MathJax (w
 python3 "$SKILL/scripts/engine.py" "$BOOK_SITE" --latex   # lib/mathjax.js; later syncs keep it in step
 ```
 
-Each book has its own engine copy (kept in step with `engine.py`, see [engine.md](engine.md)), source materials, narration and optional tests. The engine and cover derive the same progress key from the book's URL folder. Keep existing books on their current paths; their legacy progress remains intact.
+Each book has its own engine copy (kept in step with `engine.py`, see [engine.md](engine.md)), source materials, narration and optional tests. The engine and cover derive the same progress key from the book's URL folder (or `--progress-key` in `lib/book.css`), so moving a book to another folder resets its readers' progress unless the key is set.
 
-A chapter returns to its book's index. Preserve cover → contents → chapter navigation and the return from contents to cover. The book opens directly at `/<book>/`; it needs no parent index page. Keep existing books' navigation when editing them.
+A chapter returns to its book's index. Preserve cover → contents → chapter navigation and the return from contents to cover. The book opens directly at `/<book>/`; it needs no parent index page.
 
 ## Cover and contents (`index.html`)
+
+A textbook's cover and contents; a picture book uses its series page instead ([stories.md](stories.md#delivering)).
 
 One page: no hash or `#book` shows the cover, `#references` the reference list, `#contents` or `#chNN` the contents; a lesson's home button returns to `#chNN`, and the card grows into the lesson frame through a view transition.
 
 - Edit the title, kicker, lede, the faint chalk phrases on the cover (a few formulas or lines from the book), and the `<title>`.
-- The page's script calls `Contents.book({ start, units, hues })` (from the engine's `lib/contents.js`; the shared styles are `lib/contents.css`). `units`: `[unit title, [[chapter title, minutes], …]]`; chapters are numbered in order from `start` (`{ unit: 1, chapter: 1 }`; a book whose scope starts mid-way, e.g. at unit 3, chapter 9, keeps the original numbers). Add a chapter when its lesson is ready; also set the previous chapter's `CHAPTER.next = '../chNN/'`. An optional third entry `{ unit, chapter, sample: true }` renumbers a unit and marks it as a sample, left out of the chapter count. To show different numbers than the folders, add `label` to `start` (`{ unit: 1, chapter: 9, label: 1 }` shows ch09 as 1) and set the same `CHAPTER.label` in each lesson, which its title screen and completion card show. A chapter's own third entry `{ chapter }` changes only the number on its card; `{ href, chapter }` links a card to another book's chapter, outside this book's count and progress (`href` on a unit's entry does it for the whole unit).
+- The page's script calls `Contents.book({ start, units, hues })` (from the engine's `lib/contents.js`; the shared styles are `lib/contents.css`):
+  - `units`: `[unit title, [[chapter title, minutes], …]]`; chapters are numbered in order from `start` (`{ unit: 1, chapter: 1 }`; a book whose scope starts mid-way, e.g. at unit 3, chapter 9, keeps the original numbers).
+  - Add a chapter when its lesson is ready, and set the previous chapter's `CHAPTER.next = '../chNN/'`.
+  - A unit's optional third entry `{ unit, chapter, sample: true }` renumbers it and marks it as a sample, left out of the chapter count.
+  - To show different numbers than the folders, add `label` to `start` (`{ unit: 1, chapter: 9, label: 1 }` shows ch09 as 1) and set the same `CHAPTER.label` in each lesson, which its title screen and completion card show.
+  - A chapter's own third entry `{ chapter }` changes only the number on its card; `{ href, chapter }` links a card to another book's chapter, outside this book's count and progress (`href` on a unit's entry does it for the whole unit).
 - `hues`: one colour per unit, cycling.
-- References (only a book that cites works): uncomment the `refs.js` line in `index.html` and in each chapter; the contents then ends with one link to the separate `#references` view, which lists every cited work linked to its DOI or catalogue record; a book without citations shows no link. Rebuild `refs.js` whenever `refs.json` changes ([authoring.md](authoring.md#citations)).
+- A book that cites works gets a `#references` view ([courses.md](courses.md#citations)).
 - A book with its own look overrides the tokens of `lib/contents.css` (`--board`, `--chalk`, `--top-bg`, …) in a `<style>` after it, as the template's comment shows; don't copy the stylesheet into the page.
 
 ## Unit sketches (`unit-art.js`)
@@ -66,7 +88,7 @@ Give each unit a small sketch of its own ideas, drawn in the unit colour, with o
 
 ## Guide character
 
-Keep the existing infinity guide by default. For an agreed custom guide, adapt `mascotEl` and the cover drawing together, retaining blink, happy hop and wrong-answer tilt states.
+The infinity guide comes with the engine (`mascotEl` in `engine.js`, the cover's in `contents.js`), so a book's copy is replaced at every sync. A custom guide needs a hook in the engine itself; agree it with the user and change the engine at its source.
 
 ## Local preview and delivery
 
@@ -85,27 +107,3 @@ Narration and on-screen text are written in one language first. A second languag
 ## Video export (optional)
 
 `uv run --with playwright --with numpy SKILL/scripts/export.py chNN --url http://localhost:8765/<book>/ --out OUT --link <lesson URL>` renders the beats to `OUT/chNN.mp4` (1080p, 30 fps) plus `OUT/chNN.srt` for upload with it. Frames come from seeking the beat clock and the sound is mixed by the page's own rules (each beat's `pre`, and in a picture book its effects and music), so the video matches the page; question beats are left out and a lesson's video ends on a card pointing to the interactive lesson. It takes about 1.6× the video's length. Video files are large (an episode at 1080p is tens of megabytes, more than a static host such as Cloudflare Pages takes per file): upload them to the video site, not into `site/`.
-
-## SCORM package (optional)
-
-For a course in an LMS (Canvas/Quercus, Moodle, Brightspace, Blackboard), package a built book as one SCORM zip:
-
-```sh
-python3 SKILL/scripts/scorm.py site/<book>                    # SCORM 2004 4th edition, completion only -> dist/<book>-scorm2004.zip
-python3 SKILL/scripts/scorm.py site/<book> --version 1.2      # older LMSs
-python3 SKILL/scripts/scorm.py site/<book> --mastery 80       # also passed/failed at 80 %, once the whole book is finished
-```
-
-`site/<book>/` is not changed; rebuild the zip after changing the book. The LMS launches `launch.html`, which opens one SCORM session and runs the book in a frame, so moving between chapters keeps the session. The build adds `scorm-bridge.js` to the contents page and after `engine.js` in every chapter; it wraps the engine's `progress()` and `finishCard()`, seeds the book's progress from the LMS on each launch (the LMS is the source of truth) and points folder links (`ch02/`) at `index.html`, which many LMS file servers need.
-
-| | SCORM 1.2 | SCORM 2004 |
-|---|---|---|
-| Completion: every chapter's finish card reached | `cmi.core.lesson_status` (`passed`/`failed` with `--mastery`) | `cmi.completion_status`, `cmi.success_status` with `--mastery` |
-| Progress: chapters finished ÷ chapters | — | `cmi.progress_measure` |
-| Score: first-try answers over all quick checks and practice, best attempt per chapter | `cmi.core.score.raw` | `cmi.score.raw`, `cmi.score.scaled` |
-| One objective per chapter (`ch01`, …) with status and score | `cmi.objectives.n.*` | `cmi.objectives.n.*` |
-| Resume (checkmarks, Continue) | `cmi.suspend_data`, `lesson_location` | `cmi.suspend_data`, `cmi.location` |
-
-A chapter counts as finished when its finish card appears, as in the book; a learner can skip there on the step bar, so use `--mastery` when the grade should depend on the answers. Cards that link to another book's folder (`href` in `units`) leave the package and don't work inside an LMS.
-
-Check a package before handing it over: `uv run --with playwright SKILL/assets/scorm/test/check_scorm.py dist/<book>-scorm2004.zip` opens it in `assets/scorm/test/mock-lms.html` (a stand-in LMS that shows every CMI value), opens a chapter through a folder link, reaches its finish card and checks resume. To click through by hand, unzip the package as `pkg/` next to a copy of `mock-lms.html`, run `python3 SKILL/assets/scorm/test/serve.py <folder> 8781` (no folder URLs, like an LMS) and open `http://localhost:8781/mock-lms.html?pkg=pkg&v=2004&reset`; reload without `&reset` to test resume. Before learners use it, upload it to SCORM Cloud (a free account), the usual test of a real LMS. Audio makes up most of a package: check the LMS's upload limit. Canvas grades only the overall result; it doesn't show the per-chapter objectives.

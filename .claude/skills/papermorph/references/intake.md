@@ -15,21 +15,25 @@ The conversation should feel light: the user tries one chapter first and decides
 
 Greet briefly as Papermorph. Look for PDFs in the working folder and its subfolders (then the user's Downloads and Desktop if none are found) and ask "Is it this one?", listing up to four candidates. If none are found, offer to search another folder or to take a path. Choose a short slug and place the file at `books/<book>/book.pdf`, a copy or a link.
 
+When the user brings a story, a joke or a fairy tale instead (or a story book's PDF), it becomes a picture book: go to [stories.md](stories.md), which has its own short intake, and come back here for the models (§5) and `style.json` (§6).
+
 ## 2. What this book is
 
-Run the split ([SKILL.md](../SKILL.md#pipeline), step 1) and read the contents, the preface and the `text.md` of two or three chapter openings across the book. Say in two or three sentences what the book is: subject, readers, how it teaches. Then offer a chapter to try: name two or three candidates with one line each on what they would show, recommending one that is representative rather than the gentlest opening (a light introduction can pass while hiding the hard problems). A section of a long chapter is fine.
+Run the split ([SKILL.md](../SKILL.md#pipeline)) and read the contents, the preface and the `text.md` of two or three chapter openings across the book. Say in two or three sentences what the book is: subject, readers, how it teaches. Then offer a chapter to try: name two or three candidates with one line each on what they would show, recommending one that is representative rather than the gentlest opening (a light introduction can pass while hiding the hard problems). A section of a long chapter is fine.
+
+If the book is for a course, notice it here: when it cites other works (author–year citations, named studies), offer links from the works named on screen to their sources; when its questions must be reviewed before release, offer an item bank; when it goes into an LMS, mention the SCORM package. None is on by default ([courses.md](courses.md)).
 
 ## 3. Tier
 
-Offer the animation tiers as reference points. The published books at https://papermorph.diamonddoge.org/ show the first two; link them.
+Offer the animation tiers as reference points; the books at https://papermorph.diamonddoge.org/ show each of them (and the picture books); link them.
 
-1. **Diagrams that change**: symbols, number lines, graphs and shapes built in code, rearranged as the narration explains (the maths books). Lightest: about 100k tokens a chapter, works on a smaller model.
-2. **Illustrated scenes**: characters act out the idea, the camera moves, external images and a storyboard before motion (the science book). About 400k tokens a chapter on a large model.
-3. **Picture book**: a short film of paper puppets acting out a story, the sets drawn in code or painted by an image model ([stories.md](stories.md)). For stories, jokes and fairy tales, including a story book's PDF.
-4. **Documentary**: coming, not available yet.
-5. **Custom**: the user describes what they want; you judge which abilities it needs and say so.
+1. **Diagrams that change**: symbols, number lines, graphs and shapes built in code, rearranged as the narration explains (the maths books). The lightest; a smaller model can do most steps.
+2. **Illustrated scenes**: characters act out the idea, the camera moves, external images and a storyboard before motion (the science book). Several times the work of tier 1 per chapter, and the picture step wants a strong model.
+3. **Custom**: the user describes what they want; you judge which abilities it needs and say so.
 
-When the user brings a story rather than a textbook, go straight to [stories.md](stories.md), which has its own short intake. Otherwise recommend one from the chapter's content: abstract and procedural ideas fit tier 1 ([diagrams.md](diagrams.md)); physical and narrative ones fit tier 2 ([scenes.md](scenes.md)). Mixing per beat is allowed under any tier.
+Recommend one from the chapter's content: abstract and procedural ideas fit tier 1 ([diagrams.md](diagrams.md)); physical and narrative ones fit tier 2 ([scenes.md](scenes.md)). Mixing per beat is allowed under any tier.
+
+Then start the book folder ([site.md](site.md#start-a-book-folder)): the look is settled on real frames, so the engine, the chapter page and the voice need to be in place first.
 
 ## 4. The look, by tier
 
@@ -42,15 +46,29 @@ When the user brings a story rather than a textbook, go straight to [stories.md]
 
 **Custom**: ask what the description leaves open, using the closest tier's rounds and options.
 
-When the book cites other works (author–year citations, named studies), ask whether the works named on screen should link to their sources ([authoring.md](authoring.md#citations)); when its questions must be reviewed before release (a course book), offer an item bank ([authoring.md](authoring.md#choice-questions-from-an-item-bank)). Neither is on by default.
+## 5. Models
 
-## 5. style.json
+Which model does which step is the user's choice. Users run the Skill with different models and providers, and a book can mix them. Show the defaults for the chosen tier as one table, one row per step of the chapter loop ([team.md](team.md#steps)), and ask: keep it (recommended), or change some rows. Any model the user names is fine.
+
+| Step | Tier 1 | Tier 2 | Picture book |
+|---|---|---|---|
+| Extract the chapter (or the story) | small | small | strong (script and storyboard with the user) |
+| Narration and beats | middle | middle | strong (voices, the episode kit) |
+| Picture: storyboard, motion, questions | middle | strong | middle, one worker per scene |
+| Checks | small | small | small (sound effects too) |
+| Review | middle | middle | strong director, middle picture and sound reviewers |
+| Rework | strong | strong | middle, per scene |
+| Register | small | small | small |
+
+**small**, **middle** and **strong** stand for the user's current fast, balanced and most capable models; write the actual model names into `models`. Without subagents one agent does every step on its own model, and the table only records that. The user can change a row at any time; later chapters follow the table as it stands.
+
+## 6. style.json
 
 Start from [the template](../assets/templates/style.json). Blocks are grouped by ability, not by tier; a tier is just which blocks are present:
 
 | Block | What it holds | Present in |
 |---|---|---|
-| `schema`, `tier`, `book` | schema version; `1`, `2` or `"custom"`; title, slug, language, readers, pilot chapter | all |
+| `schema`, `tier`, `book` | schema version; `1`, `2`, `"custom"` or `"picture"`; title, slug, language, readers, pilot chapter | all |
 | `words` | the user's own words about the look, verbatim, with later feedback that changed the bar | all |
 | `look` | palette, what each colour means, text and maths fonts, notation and rounding | all |
 | `voice` | TTS engine (`edge`, or `kokoro` when Edge is unavailable or local audio is wanted), voice, rate | all |
@@ -59,9 +77,12 @@ Start from [the template](../assets/templates/style.json). Blocks are grouped by
 | `scenes` | art style, cast, how storyboards are reviewed | tier 2 |
 | `components` | shared elements: name, file, what each does | tier 2, tier 1 when the book has some |
 | `images` | where images may come from, credit rules | tier 2 |
+| `models` | the model for each step, as agreed in §5 | all |
+| `illustration` | a picture book's look, budget, cast and sets ([stories.md](stories.md#intake-for-a-story)) | picture books |
+| `courses` | the course options chosen ([courses.md](courses.md)) | when chosen |
 | `approved` | chapters the user approved and what each shows well | filled as chapters are approved |
 
-Leave out blocks the tier does not use. Later tiers add their own blocks (for example `illustration` or `footage`) beside these; a reader that meets a block it does not know reads it as plain intent. Increase `schema` only when an existing field changes meaning.
+Leave out blocks the tier does not use. New kinds of book add their own blocks beside these; a reader that meets a block it does not know reads it as plain intent. Increase `schema` only when an existing field changes meaning.
 
 Deliver the pilot with a choice: approve and make the rest of the book (recommended when it is good), approve and stop here, or one of two or three concrete changes you would make yourself. Fold the answer and any feedback into `words` and the affected block, and add an approved chapter to `approved`. Approved chapters are the strongest anchor: later chapters watch and read them as worked examples.
 

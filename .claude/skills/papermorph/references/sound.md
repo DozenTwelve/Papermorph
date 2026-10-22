@@ -1,6 +1,6 @@
 # Sound for picture books
 
-Voices carry the story; everything else sits under them. In early cuts the music and effects were loud enough that the lines got lost ("说话的声音听不见"), and that was the first thing the user noticed.
+Voices carry the story; everything else sits under them. In early cuts the music and effects were loud enough that the lines got lost, and that was the first thing viewers noticed.
 
 ## Voices
 

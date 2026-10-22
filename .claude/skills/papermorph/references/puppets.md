@@ -7,7 +7,7 @@ Two cast styles are on the shelf, both on the same `paper.js`: round-headed figu
 ## What makes it read as stop motion
 
 - **Twelve frames a second, on twos.** `stopClock` samples every movement into steps; the slight jerk is the style, not a defect. Big moves still ease in and out across those steps.
-- **The animator's hand.** Each frame nudges every puppet by a tiny random amount (`jit(frame, k)`, the same nudge for the same frame, so pause, seek and `?beat=N&t=S` show exactly what playback shows), and the picture flickers faintly. Keep it small: at full strength it read as shaking ("抖动有点太剧烈", the user said); a third of a pixel-ish wobble, held for two frames, felt hand-made.
+- **The animator's hand.** Each frame nudges every puppet by a tiny random amount (`jit(frame, k)`, the same nudge for the same frame, so pause, seek and `?beat=N&t=S` show exactly what playback shows), and the picture flickers faintly. Keep it small: at full strength it reads as shaking; a third of a pixel-ish wobble, held for two frames, felt hand-made.
 - **Paper you can feel.** Grain, torn edges and a soft drop shadow on every piece (the `#paper` filter), brass pins at the joints, and a soft contact shadow under the feet so a puppet stands on the ground, leaning the way the set's light falls.
 - **Replacement, not morphing.** Mouths are swapped shapes timed to the words; a blink is two closed frames; a door opens through a few boards of different widths; a bun bitten is a different picture.
 
@@ -21,7 +21,7 @@ Two cast styles are on the shelf, both on the same `paper.js`: round-headed figu
 
 ## Cameras
 
-`paperCam(parent, set, view)` is one camera on one set: layers slide with parallax, `to`/`cut` move it on the scene's clock, `soft` swaps in the blurred copy of the set for close-ups, `shake` jolts it, `show(layer, on)` swaps a layer (rain and snow versions of the same street). Several cameras can live in one scene; cut between places by showing one `cam.root` and hiding the others. Close-ups zoom the same set and blur it, so the speaker stays sharp.
+`paperCam(parent, set, view)` is one camera on one set: layers slide with parallax, `to`/`cut` move it on the scene's clock, `soft` swaps in the blurred copy of the set for close-ups, `shake(t0, dur, amp = 10)` jolts it (note the order: the engine's `cam.shake` takes the amplitude first), `show(layer, on)` swaps a layer (rain and snow versions of the same street). Several cameras can live in one scene; cut between places by showing one `cam.root` and hiding the others. Close-ups zoom the same set and blur it, so the speaker stays sharp.
 
 ## Performance
 
