@@ -15,17 +15,19 @@ function scene1(p, D) {
     const sp = lips(q, 'scene1', PRE1, 's01', 's02');
 
     /* --- the walk in: Yui with the suitcase, me behind; Pedro trots out from the house, waving --- */
+    // gait rides the translations: standing frames keep resting legs so nobody slides
     const yuiWalk = spWalk(q, 2.2), meWalk = spWalk(q, 2.0);
     const yui = { x: 60 + 430 * span(q, .2, 3.1), y: BK.GROUND, s: .95, holdL: q < N1.bow + 1.4 ? 'case' : null,
       look: q > N1.bow - .4 && q < N1.bow + 2.2 ? 0 : 1, eyeX: 0, mouth: 'X', shut: b(q, .9, N1.bow + 1.9, 10.2) };
-    if (q < 3.1) Object.assign(yui, yuiWalk, { armL: 6, armR: -8 });
+    if (q > .2 && q < 3.1) Object.assign(yui, yuiWalk, { armL: 6, armR: -8 });
     const me = { x: 30 + 300 * span(q, .3, 3.2), y: BK.GROUND, s: .92, look: .55, eyeX: 1, mouth: 'flat',
       shut: b(q, 2.4, 6.6, 9.8) };
-    if (q < 3.2) Object.assign(me, meWalk, { armL: 8, armR: -8 });
+    if (q > .3 && q < 3.2) Object.assign(me, meWalk, { armL: 8, armR: -8 });
     // Pedro: out from the house, waving the whole way, then both arms wide for the welcome
     const pedro = { x: 1560 - 350 * span(q, .3, 3.0), y: BK.GROUND, s: .92, look: -1, eyeX: -1,
       mouth: q < 4.9 ? 'grin' : 'smile', armR: 118 + 9 * onTwos(q), headR: -2,
       shut: b(q, 1.6, 5.4, 8.0, 11.4) };
+    if (q > .3 && q < 3.0) Object.assign(pedro, spWalk(q, 2.4));   // leg cycle only while he moves
     if (q > 3.4 && q < 5.0) Object.assign(pedro, { armL: 55, armR: 55 });   // arms wide: ¡bienvenidos!
 
     /* --- Yui's first bow of the week, on "my cousin Yui" --- */
