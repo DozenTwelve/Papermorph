@@ -16,7 +16,8 @@ listen before using one. Recipes: sting growl gulp door tick bell whoosh fly vio
 house sounds), knock chop bang bonk thud crash (wood, axe, glass, a wardrobe door), plop sniff chomp burp lick bark
 (eating and a dog), chime beep card coin (a convenience store), rain and rain-short (gentle rain), creak latch sash
 shutter flap clang scrape (doors, windows, a shutter, cardboard, a steel bowl), inhale inhale-short (a breath in),
-patter patter1 step1 (light steps, one step, a grown-up's shoe), honk gulls (a penguin or goose, seagulls), and beds:
+patter patter1 step1 (light steps, one step, a grown-up's shoe), honk gulls gull1 (a penguin or goose, seagulls,
+one gull), crack clop (a whip, hooves), bark-big woof-mf yip (a big dog, a smothered bark, a puppy), and beds:
 wind (8 s), surf (30 s), room (3 s room tone that tiles every 2.6 s).
 """
 import math
@@ -587,10 +588,65 @@ def step1():
     return y
 
 
+def crack():
+    """A whip: a short swish, then a sharp snap with a little room ring, 0.5 s."""
+    y = np.zeros(int(.5 * SR))
+    sw = t_of(.16); place(y, unit(bpf(noise(len(sw)), 1400, q=1.2) * np.sin(np.pi * sw / sw[-1]) ** 2) * .25, 0)
+    s = t_of(.34); place(y, unit(hp1(noise(len(s)), 3000) * np.exp(-s / .006)) + unit(bpf(noise(len(s)), 2200, q=3) * np.exp(-s / .05)) * .3, .16)
+    return y
+
+
+def clop():
+    """Four slow hoof steps on a dirt road (2 s): dull knocks, a little uneven."""
+    y = np.zeros(int(2.0 * SR))
+    for k, at in enumerate((.05, .52, 1.0, 1.47)):
+        d = t_of(.12)
+        hit = unit(bpf(noise(len(d)), 380 + 40 * (k % 2), q=2) * np.exp(-d / .02)) * .7 + unit(np.sin(2 * np.pi * 150 * d) * np.exp(-d / .03)) * .5
+        place(y, hit * (.8 + .2 * (k % 2)), at)
+    return y
+
+
+def gull1():
+    """One distant gull cry (the last of gulls), for a second gull that is not the same pattern."""
+    return gulls()[int(1.85 * SR):int(2.4 * SR)]
+
+
+def yip():
+    """A puppy's tiny yip: a quick high squeak 900 -> 1300 -> 800 Hz, 0.2 s."""
+    t = t_of(.2)
+    ph = 2 * np.pi * np.cumsum(900 + 400 * np.sin(np.pi * t / .2)) / SR
+    return unit(np.sin(ph) + .3 * np.sin(2 * ph)) * np.sin(np.pi * t / .2) ** .5
+
+
+def bark_big(k=1.0, dur=.32, rough=.4):
+    """A big dog's 'WOOF': a harsh onset, then a rough voiced 'wuh' whose pitch jumps up and falls (200-320 Hz),
+    through mouth formants (550 / 1150 / 2500 Hz), a breathy tail."""
+    t = t_of(dur)
+    f = k * (200 + 120 * np.sin(np.pi / 2 * np.minimum(t / .05, 1)) - 140 * np.maximum(t - .05, 0) / dur)
+    f = f * (1 + .02 * noise(len(t)).cumsum() / np.sqrt(np.arange(1, len(t) + 1)))
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    src = sum(np.sin(h * ph) / h ** 1.1 for h in range(1, 18)) * (1 + rough * np.sin(2 * np.pi * 35 * t))
+    voiced = bpf(src, 550, q=2) + .8 * bpf(src, 1150, q=3) + .35 * bpf(src, 2500, q=4)
+    env = np.minimum(t / .008, 1) * np.where(t < .07, 1, np.exp(-(t - .07) / (dur / 3.2)))
+    return (unit(voiced) * .8 + unit(bpf(noise(len(t)), 1300, q=1.2)) * .25 * np.exp(-t / .2)
+            + unit(hp1(noise(len(t)), 1500) * np.exp(-t / .012)) * .35) * env
+
+
+def woof_mf():
+    """A bark smothered by paws: the start of a big bark, muffled, then a closed-mouth 'mf', 0.45 s."""
+    b = bark_big(.95)[:int(.15 * SR)]
+    b = lp1(lp1(b, 700), 700) * np.minimum((.15 - t_of(.15)) / .03, 1)
+    t = t_of(.25)
+    y = np.zeros(int(.45 * SR)); place(y, unit(b), 0); place(y, lp1(np.sin(2 * np.pi * 140 * t) * np.exp(-t / .08) * .6, 400), .14)
+    return y
+
+
 RECIPES = {name: globals()[name] for name in (
     "sting growl gulp door tick bell whoosh fly violin crickets chair knock chop bang bonk thud crash plop sniff "
     "chomp burp lick bark chime beep card coin rain creak latch clang shutter sash flap scrape inhale wind room "
-    "honk gulls surf patter step1").split()}
+    "honk gulls surf patter step1 crack clop gull1 yip").split()}
+RECIPES["bark-big"] = bark_big
+RECIPES["woof-mf"] = woof_mf
 RECIPES["rain-short"] = lambda: rain(1.15, .12)
 RECIPES["rain-short"].__doc__ = "About one second of the same rain, for a quick cut."
 RECIPES["inhale-short"] = lambda: inhale(.85)

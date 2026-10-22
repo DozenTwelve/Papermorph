@@ -6,9 +6,6 @@ __pycache__/
 *.pdf
 .wrangler/
 
-# Extracted references for books in their own folders.
-books/*/pages/
-
 # Local production state and unused artwork; publish the Skill and finished site.
 /CLAUDE.md
 /plan.md
@@ -19,7 +16,6 @@ books/*/pages/
 !/img/readme/logo_light.png
 !/img/readme/papermorph-preview.gif
 !/img/readme/papermorph-preview.mp4
-/scripts/
 /books/
 /content/
 /tools/
