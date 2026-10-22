@@ -25,7 +25,13 @@ Two cast styles are on the shelf, both on the same `paper.js`: round-headed figu
 
 ## Performance
 
-Paper filters are expensive live. Every finished piece is baked to a bitmap: sets with `bake_sets.py` (SVG sketches) or `painted.py` (painted pictures), puppet and prop pieces with `bake_puppets.py`, which seeks every episode to its end, in Chromium and in Firefox, so each piece is asked for once, and writes `img/puppets/<hash>.webp` with `baked.js`. The parts that change every frame (eyes, mouths, brows, fingers) stay live. In a series every episode's pieces share one folder: `bake_puppets.py` encodes only pieces it has not baked before and keeps the others, and `--clean` (after changing the paper filter itself) re-encodes them all and removes only what no episode asks for any more, so leave the folder to it (a hand-written prune once deleted a published episode's pieces; git brought them back). Rebake after changing any piece or adding an episode; a piece missing from `baked.js` is baked in the browser and costs a stall, and `shot.py` says how many pieces a chapter still bakes live. Full-frame effects that change every frame (the flicker) live outside the SVG so the picture isn't redrawn each frame.
+Paper filters are expensive live, so every finished piece is baked to a bitmap; the parts that change every frame (eyes, mouths, brows, fingers) stay live.
+
+- Sets: `bake_sets.py` (SVG sketches) or `painted.py` (painted pictures).
+- Puppet and prop pieces: `bake_puppets.py` seeks every episode to its end, in Chromium and in Firefox, so each piece is asked for once, and writes `img/puppets/<hash>.webp` with `baked.js`.
+- In a series every episode's pieces share one folder. `bake_puppets.py` encodes only pieces it has not baked before and keeps the others; `--clean` (after changing the paper filter itself) re-encodes them all and removes only what no episode asks for any more. Leave the folder to it: a hand-written prune once deleted a published episode's pieces.
+- Rebake after changing any piece or adding an episode. A piece missing from `baked.js` is baked in the browser and costs a stall; `shot.py` says how many pieces a chapter still bakes live.
+- Full-frame effects that change every frame (the flicker) live outside the SVG, so the picture isn't redrawn each frame.
 
 ## Seeing your own work
 

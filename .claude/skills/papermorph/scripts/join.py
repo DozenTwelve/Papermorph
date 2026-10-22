@@ -23,17 +23,7 @@ if len(sys.argv) < 3 or sys.argv[1] in ('-h', '--help'):
 GAP = .35
 LAG = .12   # Edge's word times run ~0.12–0.25 s ahead of the sound: captions (and mouths.py's cues) start this much later
 d = pathlib.Path(sys.argv[1]); T = json.loads((d / 'timings.js').read_text().split('=', 1)[1].rstrip().rstrip(';'))
-def speech_end(f):   # where a clip's sound stops (the start of its trailing silence), in seconds
-    err = subprocess.run(['ffmpeg', '-v', 'info', '-i', str(f), '-af', 'silencedetect=n=-40dB:d=0.15', '-f', 'null', '-'], capture_output=True, text=True).stderr
-    starts = [float(x) for x in re.findall(r'silence_start: ([\d.]+)', err)]
-    ends = [float(x) for x in re.findall(r'silence_end: ([\d.]+)', err)]
-    dur = float(subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', str(f)], capture_output=True, text=True).stdout)
-    # the last silence runs to the end of the file (ffmpeg may print its end there, just inside
-    # the mp3's priming padding): an end well before the file's duration is a pause inside the clip
-    return starts[-1] if starts and (len(ends) < len(starts) or ends[-1] > dur - .2) and starts[-1] > 0 else dur
-def pauses(f):   # start of every pause of 0.45 s or more inside a clip: a caption ends at the pause after its words
-    err = subprocess.run(['ffmpeg', '-v', 'info', '-i', str(f), '-af', 'silencedetect=n=-40dB:d=0.45', '-f', 'null', '-'], capture_output=True, text=True).stderr
-    return [float(x) for x in re.findall(r'silence_start: ([\d.]+)', err)]
+from silence import speech_end, pauses   # a caption ends at the pause after its words
 args, words = sys.argv[2:], None
 if '--words' in args:
     k = args.index('--words'); words = pathlib.Path(args[k + 1]); del args[k:k + 2]

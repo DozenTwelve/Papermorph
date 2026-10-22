@@ -30,14 +30,7 @@ def shapes(word):
     out = [x for j, x in enumerate(s) if j == 0 or x != s[j - 1]]
     return out or ['B']
 LAG = .12   # Edge's word times run ahead of the sound (join.py has the same)
-def speech_end(f):   # where the clip's sound stops: the mouth shuts there, not .55 s after the last word starts
-    err = subprocess.run(['ffmpeg', '-v', 'info', '-i', str(f), '-af', 'silencedetect=n=-40dB:d=0.15', '-f', 'null', '-'], capture_output=True, text=True).stderr
-    starts = [float(x) for x in re.findall(r'silence_start: ([\d.]+)', err)]   # paired with ends; a leading silence is skipped below
-    ends = [float(x) for x in re.findall(r'silence_end: ([\d.]+)', err)]
-    dur = float(subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', str(f)], capture_output=True, text=True).stdout or 0)
-    # only a silence that never ends (or runs to the file's end, inside mp3 priming padding) is
-    # trailing: an internal silence means speech resumes after it, and the mouth cues past it must stay
-    return starts[-1] if starts and (len(ends) < len(starts) or ends[-1] > dur - .2) and starts[-1] > .2 else dur
+from silence import speech_end   # the mouth shuts where the sound stops, not .55 s after the last word starts
 res = {}
 for beat, e in cache.items():
     words, dur, cues = e['words'], e['dur'], []

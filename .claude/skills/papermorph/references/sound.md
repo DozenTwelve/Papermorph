@@ -14,7 +14,11 @@ Voices carry the story; everything else sits under them. In early cuts the music
 
 ## Sound effects
 
-`sfx.py` synthesizes effects (knock, door, creak, latch, bell, chop, bang, bonk, thud, clang, crash, coin, beep, rain, wind, room tone, surf, gulls, crickets, steps and more; `--list` names them all) as small MP3s, free and consistent. Keep them soft and natural: the first rain was a high hiss and read as scary; pink noise with patter and taps on umbrellas read as rain. An effect is placed on the scene clock with `sfx(scene, t, name, volume)` and plays at half volume under the voices; a pause holds it and the next scene stops it. Cut an effect to its shot: a six-second rain under a one-second shot spills into the next. A long bed (wind, room tone) is listed in `SFX_BED` with its length, so a seek into the middle joins it part-way; a bed that loops overlaps its seams by about half a second, and room tone runs under the silences too, where its absence is heard first.
+`sfx.py` synthesizes effects as small MP3s, free and consistent (knock, door, creak, bell, chop, crash, coin, rain, wind, room tone, surf, gulls, crickets, steps, a dog and more; `--list` names them all). Keep them soft and natural: the first rain was a high hiss and read as scary; pink noise with patter and taps on umbrellas read as rain.
+
+- Place an effect on the scene clock with `sfx(scene, t, name, volume)`; it plays at half volume under the voices, a pause holds it and the next scene stops it.
+- Cut an effect to its shot: a six-second rain under a one-second shot spills into the next.
+- A long bed (wind, room tone) is listed in `SFX_BED` with its length, so a seek into the middle joins it part-way; a bed that loops overlaps its seams by about half a second, and room tone runs under the silences too, where its absence is heard first.
 
 ## Music
 
