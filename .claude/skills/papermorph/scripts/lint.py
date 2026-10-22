@@ -8,6 +8,7 @@
 Errors (exit status 1):
   global    a top-level name in the chapter or a lib file it loads is also declared by the engine or another of
             its scripts; a second const/let/class stops the page script, a second function silently replaces one
+  math      the chapter uses a maths helper from lib/math.js but does not load it after engine.js
   beat      a beat id has no entry in audio/<lang>/timings.js or no MP3
   mark      m('name') is not a mark of any beat
   stale     the narration's text or [[marks]] differ from timings.js: run tts.py again
@@ -25,6 +26,11 @@ INLINE = re.compile(r'<script>(.*?)</script>', re.S)
 BEAT = re.compile(r"\[\s*'(\w+)'\s*,\s*(['\"`])(?:\\.|(?!\2).)*\2\s*,\s*(?:\(\s*(?:m\b|\))|m\s*=>)")   # ['id', 'title', (m, D) =>
 MCALL = re.compile(r"(?<![\w$.])m\(\s*'(\w+)'\s*[,)]")
 MARK = re.compile(r'\[\[(\w+)\]\]')
+ENGINE_FILES = {'engine.js', 'math.js', 'volume.js', 'contents.js', 'units.js'}
+LOCAL = re.compile(r'[,(]\s*([A-Za-z_$][\w$]*)\s*=(?![=>])')   # a, name = … or (p, name = 1): declared in a list
+PARAMS = re.compile(r'function\s*[\w$]*\s*\(([^)]*)\)|\(([^()]*)\)\s*=>|([A-Za-z_$][\w$]*)\s*=>')   # parameters
+METHOD = re.compile(r'^\s*([A-Za-z_$][\w$]*)\s*\([^()]*\)\s*\{', re.M)   # name(a, b) { … } in an object
+USE = re.compile(r'(?<![\w$.])([A-Za-z_$][\w$]*)(?![\w$])(?!\s*:)')   # a name, not a property or an object key
 
 
 def depth0(text):
@@ -111,7 +117,7 @@ def lint_chapter(ch, content, out):
     html = (ch / 'index.html').read_text(encoding='utf-8')
     inline = '\n'.join(INLINE.findall(html))
     # globals: every script the page loads, in order
-    seen = {}
+    seen, own = {}, [inline]   # own: the chapter's code and the book's scripts, not the engine's
     for src in SRC.findall(html) + ['(chapter)']:
         if src == '(chapter)':
             text, name = inline, 'chapter'
@@ -120,6 +126,8 @@ def lint_chapter(ch, content, out):
             if f.suffix != '.js' or not f.exists() or f.name in ('timings.js', 'mathjax.js'):   # MathJax declares no globals
                 continue
             text, name = f.read_text(encoding='utf-8'), f.name
+            if f.parent.name != 'lib' or f.name not in ENGINE_FILES:
+                own.append(text)
         for ident, kind, line in decls(text):
             if ident in seen:
                 first, k0 = seen[ident]
@@ -127,6 +135,18 @@ def lint_chapter(ch, content, out):
                 err('global', f'{name}:{line} {what} {ident} from {first}')
             else:
                 seen[ident] = (name, kind)
+    # maths helpers used without math.js (they left engine.js after the engine-v1 tag)
+    math = (ch / '../lib/math.js').resolve()
+    loaded = {Path(s).name for s in SRC.findall(html)}
+    if 'engine.js' in loaded and 'math.js' not in loaded and math.exists():
+        names = {d[0] for d in decls(math.read_text(encoding='utf-8'))} - set(seen)
+        code = [depth0(text)[0] for text in own]
+        local = {m.group(2) for c in code for m in DECL.finditer(c)} | {n for c in code for n in LOCAL.findall(c)}
+        local |= {n for c in code for n in METHOD.findall(c)}
+        local |= {n for c in code for p in PARAMS.findall(c) for n in re.findall(r'[A-Za-z_$][\w$]*', ''.join(p))}
+        used = sorted({w for c in code for w in USE.findall(c)} & names - local)
+        if used:
+            err('math', f"uses {', '.join(used)} from lib/math.js: load ../lib/math.js right after engine.js")
     # beats, audio, marks
     lang = (re.search(r"language:\s*'(\w+)'", inline) or [None, 'en'])[1]
     tpath = ch / 'audio' / lang / 'timings.js'

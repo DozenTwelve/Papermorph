@@ -49,8 +49,8 @@ Pick the type that lets the student act on the picture itself whenever possible 
 | `blanks` | Typed numbers inside an expression; fractions and mixed numbers accepted; `test` judges a whole row (answers in any order) |
 | `grid` | Several items, each classified (yes/no, which category, true/false) |
 | `tap` / `tapEls` / `pickEls` | Click a point on the number line / a token in an expression / any drawn object |
-| `pickPoint` | Choose a grid point on a coordinate plane |
-| `sorter` | Drag items into regions (the number-set diagram) |
+| `pickPoint` | Choose a grid point on a coordinate plane (math.js) |
+| `sorter` | Drag items into regions (the number-set diagram; math.js) |
 
 New types are welcome when the content calls for one; each needs keyboard play (see engine.md).
 

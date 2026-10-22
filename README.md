@@ -74,6 +74,8 @@ python3 .claude/skills/papermorph/scripts/engine.py site                        
 python3 .claude/skills/papermorph/scripts/engine.py site --from you/your-fork@main
 ```
 
+Engine versions are tagged. Since `engine-v2` the maths helpers (number lines, tiles, planes, the number-set diagram) are in `lib/math.js`: a chapter that uses them loads `../lib/math.js` right after `engine.js`, and `lint.py` names the chapters that need it. `--from DozenTwelve/Papermorph@engine-v1` keeps the earlier engine.
+
 ## Video and LMS export
 
 With the site served locally, any chapter or episode renders to a 1080p MP4 with an `.srt`:

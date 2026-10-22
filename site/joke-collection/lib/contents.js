@@ -56,6 +56,7 @@ const Contents = (() => {
       refsCount: '授業で引用した著作 {n} 件', refsAllLinked: '、すべて出典へのリンクつき', refsSomeLinked: '、うち {n} 件は出典へのリンクつき',
     },
   };
+  // the same lookup as translate() in engine.js (the two pages never load each other's file): keep them in step
   const LANGUAGE = (document.documentElement.lang || 'en').toLowerCase().split('-')[0];
   function translate(key, vars = {}) {
     const language = TRANSLATIONS[LANGUAGE]?.[key] !== undefined ? LANGUAGE : 'en';

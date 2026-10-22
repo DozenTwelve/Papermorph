@@ -50,7 +50,8 @@ HEAD = """<!doctype html>
 """
 
 # Every place that takes math parts gets a TX formula. The script between MathJax and the chapter counts conversions.
-TEST_CHAPTER = HEAD + r"""<script src="../lib/mathjax.js"></script>
+TEST_CHAPTER = HEAD + r"""<script src="../lib/math.js"></script>
+<script src="../lib/mathjax.js"></script>
 <script>
 const texCalls = [], convert = MathJax.tex2svg;
 MathJax.tex2svg = (tex, options) => { texCalls.push(tex); return convert(tex, options); };
@@ -123,7 +124,7 @@ def at_base_ref(path):
 
 
 BASE_ENGINE = at_base_ref(ENGINE)
-LIB = ("engine.css", "volume.js", "volume.css", "book.css")
+LIB = ("engine.css", "math.js", "volume.js", "volume.css", "book.css")
 BASE_LIB = {name: at_base_ref(ENGINE_DIR / name) for name in LIB}
 PAGES = {"base": TEMPLATE.read_text(encoding="utf-8"), "plain": TEMPLATE.read_text(encoding="utf-8"),
          "tex": TEST_CHAPTER, "typo": TYPO_PAGE, "nomathjax": NO_MATHJAX_PAGE}
@@ -301,7 +302,7 @@ async def check_tex_chapter(browser):
     print(f"PASS replay: every beat repeatable, {calls[1]} formulas converted once each")
 
     assert not errors, errors
-    allowed = {"ch01/", "lib/engine.js", "lib/engine.css", "lib/volume.js", "lib/volume.css", "lib/book.css",
+    allowed = {"ch01/", "lib/engine.js", "lib/engine.css", "lib/math.js", "lib/volume.js", "lib/volume.css", "lib/book.css",
                "lib/mathjax.js", "ch01/audio/en/timings.js"}
     rest = lambda u: urlparse(u).path.split("/__latex__/tex/")[1]   # audio URLs carry ?v=<duration>
     stray = [u for u in requests if not u.startswith(f"{ORIGIN}/__latex__/tex/")

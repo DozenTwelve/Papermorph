@@ -13,8 +13,11 @@
   </div>`);
   const input = document.getElementById('volume');
   document.getElementById('bVolume').onclick = () => input.focus();
-  input.oninput = () => {
+  const apply = () => {
     input.style.setProperty('--volume', +input.value * 100 + '%');
     if (P.audio) P.audio.volume = +input.value;
   };
+  // the volume carries over to the next chapter; a muted slider does not, so a new visit always has sound
+  try { const v = +localStorage.getItem('papermorph:volume'); if (v) { input.value = v; apply(); } } catch {}
+  input.oninput = () => { apply(); try { localStorage.setItem('papermorph:volume', input.value); } catch {} };
 }

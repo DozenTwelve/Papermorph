@@ -39,8 +39,9 @@ content/<book>/chNN/           narration.<lang>.json and TTS cache
 tools/<book>/                 tests and evidence scripts
 site/<book>/                   the static book (only this is delivered)
   index.html, unit-art.js      cover + contents, unit sketches
-  lib/engine.*, volume.*,      the engine (player, cover/contents, unit headers), copied into the book by
-      contents.*, units.*        scripts/engine.py
+  lib/engine.*, math.js,       the engine (player, maths helpers, cover/contents, unit headers), copied into
+      volume.*, contents.*,      the book by scripts/engine.py
+      units.*
   lib/book.css                 this book's engine settings and style overrides
   lib/*.js, img/               the book's element library and images
   chNN/index.html, audio/<lang>/   a lesson, its beat MP3s + timings.js

@@ -103,6 +103,8 @@ async def check(browser, path):
         assert abs(await page.evaluate("P.audio.volume") - value) < .001
         assert await page.evaluate("P.i === 0 && P.playing && P.audio === window.volumeAudio"), "range keys must not navigate, restart or pause"
     await page.evaluate("seek(BEATS.findIndex(b => b.ask), false)")
+    # the question focuses its own first box on the next frame; let that happen before the slider takes focus
+    await page.evaluate("new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))")
     await slider.focus()
     await slider.press("Home")
     await slider.press("Enter")
