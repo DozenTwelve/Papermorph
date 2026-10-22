@@ -285,11 +285,11 @@ window.TIMINGS = {
   ]
  },
  "repartition": {
-  "dur": 36.84,
+  "dur": 44.376,
   "marks": {
-   "cuts": 3.633,
-   "labels": 14.518,
-   "compare": 25.443
+   "cuts": 3.828,
+   "labels": 14.596,
+   "compare": 26.042
   },
   "cues": [
    [
@@ -297,39 +297,39 @@ window.TIMINGS = {
     "Keep every original fourth and fifth in place."
    ],
    [
-    3.633,
+    3.828,
     "Split each fourth into five equal pieces and each fifth into four equal pieces."
    ],
    [
-    9.935,
+    10.117,
     "Both rows now use twentieths."
    ],
    [
-    12.201,
+    12.331,
     "No length was added or removed."
    ],
    [
-    14.518,
+    14.596,
     "Negative three fourths is negative fifteen twentieths."
    ],
    [
-    18.516,
+    18.672,
     "Negative three fifths is negative twelve twentieths."
    ],
    [
-    22.266,
+    22.552,
     "The points remain in exactly the same positions."
    ],
    [
-    25.443,
+    26.042,
     "Negative fifteen is less than negative twelve, so negative fifteen twentieths is less than negative twelve twentieths."
    ],
    [
-    33.32,
+    33.997,
     "Common denominators compare equal-sized pieces."
    ],
    [
-    0,
+    37.669,
     "They are one useful method; they are not required when another exact comparison already settles the order."
    ]
   ]

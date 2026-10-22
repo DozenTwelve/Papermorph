@@ -438,6 +438,8 @@ const BEATS = [
   T(big, 'acceleration', { x: 560, y: 470, size: 64, weight: 700, fill: ACC, anchor: 'end' }); T(big, '=', { x: 640, y: 470, size: 64, weight: 700, anchor: 'middle' });
   T(big, 'net force', { x: 900, y: 420, size: 60, weight: 700, fill: FORCE, anchor: 'middle' }); mk('rect', { x: 720, y: 446, width: 360, height: 6, fill: COL.chalk }, big);
   T(big, 'mass', { x: 900, y: 520, size: 60, weight: 700, anchor: 'middle' });
+  const name = T(p, "Newton's second law", { x: 800, y: 300, size: 44, weight: 700, fill: COL.dim, anchor: 'middle', o: 0 });   // on screen while the narration names the law
+  show(name, .1); hide(name, tm - .8, .4);
   show(big, tl); hide(big, tm - .8, .4);
   show(runs(p, [['acceleration', ACC], [' = ', COL.chalk], ['net force', FORCE], [' ÷ mass', COL.chalk]], { x: 800, y: 110, size: 44, weight: 700 }), tm - .5);
   show(runs(p, [['net force', FORCE], [' = mass × ', COL.chalk], ['acceleration', ACC]], { x: 800, y: 170, size: 40, weight: 700 }), m('rearr'));

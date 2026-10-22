@@ -95,7 +95,7 @@ const BEATS = [
     text(p, 'axis of symmetry  x = −4', 140, 270, m('axis'), { size: 30, fill: AXC, weight: 600 });
     P.arrow(-4, .5, -6, .5, ROOT, m('dist'), { label: '2' });
     P.arrow(-4, .5, -2, .5, HIT, m('mirror'), { label: '2' });
-    P.dot(-2, 0, HIT, m('mirror', .8), { label: '(−2, 0)', dx: 14, dy: 40 });
+    P.dot(-2, 0, HIT, m('mirror', .8));   // named in the text on the left: a label here sat on the tick numbers
     P.fn(x => .75 * (x + 4) ** 2 - 3, -6.3, -1.7, PAR, m('mirror', 1.4));
     text(p, 'other root: (−2, 0)', 140, 360, m('mirror', 1), { size: 34, fill: HIT, weight: 700 });
   }],

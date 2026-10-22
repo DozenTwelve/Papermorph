@@ -141,8 +141,9 @@ def split_marks(raw):
     return "".join(clean), marks
 
 
-def time_at(clean, words):
-    """Return f(pos): start time of the first spoken word at or after char pos."""
+def time_at(clean, words, estimate=False):
+    """Return f(pos): start time of the first spoken word at or after char pos. The voice's word list can stop
+    short of the text; with estimate, a position past its last word is timed at the speaking rate so far."""
     cursor, located = 0, []
     for t, w in words:
         i = clean.find(w, cursor)
@@ -150,7 +151,13 @@ def time_at(clean, words):
             continue
         located.append((i, t))
         cursor = i + len(w)
-    return lambda pos: next((round(t, 3) for i, t in located if i >= pos), None)
+    def at(pos):
+        t = next((t for i, t in located if i >= pos), None)
+        if t is None and estimate and located:
+            i, t = located[-1]
+            t += (pos - i) * t / max(i, 1)
+        return None if t is None else round(t, 3)
+    return at
 
 
 def mark_times(clean, marks, words):
@@ -162,10 +169,15 @@ def mark_times(clean, marks, words):
     return out
 
 
+ABBREV = re.compile(r"(?<![\w.])(?:Mr|Mrs|Ms|Dr|Prof|St|vs|approx|e\.g|i\.e|cf)\.$")
+
+
 def caption_cues(clean, words):
     """One cue per sentence: [start seconds, sentence]."""
-    at, cues, start = time_at(clean, words), [], 0
-    for m in list(re.finditer(r"[.?!]\s+", clean)) + [None]:
+    at, cues, start = time_at(clean, words, estimate=True), [], 0
+    for m in list(re.finditer(r"[.?!]\s+|[。！？]\s*", clean)) + [None]:
+        if m and ABBREV.search(clean, 0, m.start() + 1):   # "Mr. Lee", "e.g. a lot" go on
+            continue
         end = m.end() if m else len(clean)
         text = clean[start:end].strip()
         if text:
@@ -243,6 +255,11 @@ async def main(src, out_dir):
             if tmp:
                 tmp.replace(mp3)
                 print(f"{beat}: synthesized")
+            # Edge has returned clips that stop a sentence early: the last spoken word should end the text
+            ends = re.findall(r"[A-Za-z][\w'-]*", clean[-40:])
+            if words and ends and clean.isascii() and words[-1][1].strip(".,;:!?\"'") != ends[-1]:
+                print(f"{beat}: WARNING the voice's last word is {words[-1][1]!r} but the text ends {ends[-1]!r}: the clip "
+                      "may be cut short; listen to it, and synthesize it again (change its cached key) if so")
             result[beat] = entry
             cache[beat] = entry
             # A later failed beat must not discard the successful beats' cache.

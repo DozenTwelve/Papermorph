@@ -73,7 +73,7 @@ const BEATS = [
     const cnt = T(p, '', { x: 300, y: 300, size: 46, fill: HIT, weight: 600, anchor: 'middle' });
     const set = b => {
       ln.setAttribute('d', `M${P.PX(-6)} ${P.PY(b)}H${P.PX(6)}`);
-      put(lab, { y: P.PY(b) + 10 }); lab.textContent = `y = ${num(Math.round(b * 10) / 10)}`;
+      put(lab, { y: P.PY(b) + 10 - 22 * Math.max(0, 1 - Math.abs(b) / 2) }); lab.textContent = `y = ${num(Math.round(b * 10) / 10)}`;   // the label lifts above the line near the x axis
       const r = b > 0 ? Math.sqrt(b) : 0;
       put(dA, { x: P.PX(r), y: P.PY(b), o: b >= -.05 ? 1 : 0 }); put(dB, { x: P.PX(-r), y: P.PY(b), o: b > .05 ? 1 : 0 });
       cnt.textContent = b > .05 ? 'two solutions' : b >= -.05 ? 'one solution' : 'no real solution';
