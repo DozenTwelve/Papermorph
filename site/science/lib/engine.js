@@ -38,7 +38,7 @@ const TRANSLATIONS = {
     stepsLeftOfZero: '{n} steps left of 0',
     natural: 'Natural', whole: 'Whole', integers: 'Integers', rational: 'Rational', irrational: 'Irrational', real: 'Real', integerColumn: 'Integer',
     trueLabel: 'True', falseLabel: 'False',
-    chapterComplete: 'Chapter {n} complete', quickChecks: 'Quick checks', chapterPractice: 'Chapter practice',
+    chapterComplete: 'Chapter {n} complete', quickChecks: 'Quick checks', chapterPractice: 'Chapter practice', sources: 'Sources in this chapter', opensSource: '{label}, opens the source in a new tab',
     firstTryScore: '{name}: {r} of {t} right on the first try.', notAttempted: '{name}: not attempted.',
     watchAgain: 'Watch again', nextChapter: 'Next chapter',
   },
@@ -74,7 +74,7 @@ const TRANSLATIONS = {
     stepsLeftOfZero: { one: '{n} шаг влево от 0', few: '{n} шага влево от 0', many: '{n} шагов влево от 0', other: '{n} шага влево от 0' },
     natural: 'Натуральные', whole: 'Целые неотрицательные', integers: 'Целые', rational: 'Рациональные', irrational: 'Иррациональные', real: 'Действительные', integerColumn: 'Целые',
     trueLabel: 'Верно', falseLabel: 'Неверно',
-    chapterComplete: 'Глава {n} пройдена', quickChecks: 'Проверь себя', chapterPractice: 'Практика по главе',
+    chapterComplete: 'Глава {n} пройдена', quickChecks: 'Проверь себя', chapterPractice: 'Практика по главе', sources: 'Источники этой главы', opensSource: '{label}, источник откроется в новой вкладке',
     firstTryScore: '{name}: {r} из {t} верно с первой попытки.', notAttempted: '{name}: не выполнялось.',
     watchAgain: 'Смотреть снова', nextChapter: 'Следующая глава',
   },
@@ -108,7 +108,7 @@ const TRANSLATIONS = {
     stepsLeftOfZero: '0 左边 {n} 步',
     natural: '正整数', whole: '非负整数', integers: '整数', rational: '有理数', irrational: '无理数', real: '实数', integerColumn: '整数',
     trueLabel: '对', falseLabel: '错',
-    chapterComplete: '第 {n} 章完成', quickChecks: '小测', chapterPractice: '本章练习',
+    chapterComplete: '第 {n} 章完成', quickChecks: '小测', chapterPractice: '本章练习', sources: '本章引用的文献', opensSource: '{label}，在新标签页中打开来源',
     firstTryScore: '{name}：第一次就答对 {r} / {t}。', notAttempted: '{name}：未作答。',
     watchAgain: '再看一遍', nextChapter: '下一章',
   },
@@ -142,7 +142,7 @@ const TRANSLATIONS = {
     stepsLeftOfZero: '0 から左へ {n}',
     natural: '自然数', whole: '0 以上の整数', integers: '整数', rational: '有理数', irrational: '無理数', real: '実数', integerColumn: '整数',
     trueLabel: '正しい', falseLabel: '誤り',
-    chapterComplete: '第{n}章 完了', quickChecks: '確認問題', chapterPractice: '章末練習',
+    chapterComplete: '第{n}章 完了', quickChecks: '確認問題', chapterPractice: '章末練習', sources: 'この章の出典', opensSource: '{label}（出典を新しいタブで開く）',
     firstTryScore: '{name}：1 回目で {t} 問中 {r} 問正解。', notAttempted: '{name}：未挑戦。',
     watchAgain: 'もう一度見る', nextChapter: '次の章へ',
   },
@@ -297,6 +297,81 @@ function T(parent, str, { x = 0, y = 0, size = 30, fill = COL.chalk, font = UI, 
   t.textContent = str;
   t.style.whiteSpace = 'pre';
   return put(t, { x, y, o });
+}
+// A citation drawn in the picture that opens its source (REFS from ../refs.js, built by scripts/refs.py) in a new tab.
+// cite(p, key, opts) takes T's options; str overrides the label (default REFS[key].cite). Returns the <a>; animate it like T.
+const CITED = new Set();
+function cite(parent, key, { str, ...opts } = {}) {
+  const r = (typeof REFS === 'object' && REFS) ? REFS[key] : null;
+  if (!r) throw new Error(`cite: no reference "${key}" in refs.js`);
+  CITED.add(key);
+  if (!r.url) return T(parent, str || r.cite, opts);
+  linkStage();
+  const a = mk('a', { class: 'cite', href: r.url, target: '_blank', rel: 'noopener', 'aria-label': translate('opensSource', { label: r.cite }) }, parent);
+  const { o = 1, x = 0, y = 0, ...rest } = opts;
+  T(a, str || r.cite, { ...rest, fill: rest.fill || COL.chalk });
+  return put(a, { x, y, o });
+}
+// Any text in the picture or a card that equals a reference's cite label or one of its match strings (case-insensitive)
+// becomes a link to the source, so chapters write citations as plain text. Watched by citeObs (set up after the player).
+let CITE_RE = null, CITE_KEY = null;
+function citeIndex() {
+  if (CITE_RE !== null) return CITE_RE;
+  CITE_KEY = new Map();
+  for (const [k, r] of Object.entries(typeof REFS === 'object' && REFS ? REFS : {}))
+    for (const s of [r.cite, ...(r.match || [])]) if (s) CITE_KEY.set(s.toLowerCase(), k);
+  const alts = [...CITE_KEY.keys()].sort((a, b) => b.length - a.length).map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  return (CITE_RE = alts.length ? new RegExp(alts.join('|'), 'gi') : false);
+}
+function autoCite(root) {
+  const re = citeIndex();
+  if (!re) return;
+  const nodes = [];
+  if (root.nodeType === 3) nodes.push(root);
+  else if (root.nodeType === 1) for (let w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), n; (n = w.nextNode());) nodes.push(n);
+  for (const n of nodes) {
+    const host = n.parentElement;
+    if (!host || host.closest('a, button, input, script, style, kbd')) continue;   // no links inside controls
+    const ms = [...n.data.matchAll(re)];
+    if (!ms.length) continue;
+    const svg = host.namespaceURI === NS, frag = document.createDocumentFragment();
+    let i = 0, made = 0;
+    for (const m of ms) {
+      const k = CITE_KEY.get(m[0].toLowerCase()), r = REFS[k];
+      CITED.add(k);
+      if (!r.url) continue;   // a work with no reliable online record stays plain text but is still listed
+      frag.append(n.data.slice(i, m.index));
+      const a = svg ? mk('a', { href: r.url }) : document.createElement('a');
+      if (!svg) a.href = r.url;
+      a.setAttribute('class', 'cite');
+      a.setAttribute('target', '_blank');
+      a.setAttribute('rel', 'noopener');
+      a.setAttribute('aria-label', translate('opensSource', { label: m[0] }));
+      if (svg) mk('tspan', {}, a).textContent = m[0]; else a.textContent = m[0];
+      frag.append(a);
+      i = m.index + m[0].length;
+      made++;
+    }
+    if (!made) continue;   // replacing the node unchanged would re-trigger the observer
+    if (svg) linkStage();
+    frag.append(n.data.slice(i));
+    n.replaceWith(frag);
+  }
+}
+// The stage is announced as one image; once it holds a link it becomes a group, so the link stays reachable.
+function linkStage() { document.getElementById('stage').setAttribute('role', 'group'); }
+// Links that have faded out (or sit in a faded group) must not take clicks or Tab focus.
+function syncLinks() {
+  for (const a of scene.querySelectorAll('a.cite')) {
+    let o = 1;
+    for (let e = a; e && e !== scene; e = e.parentNode) o *= +(e.getAttribute('opacity') ?? 1);
+    const on = o > .5;
+    if (on === a._on) continue;
+    a._on = on;
+    a.style.pointerEvents = on ? '' : 'none';
+    if (on) { a.removeAttribute('tabindex'); a.removeAttribute('aria-hidden'); }
+    else { a.setAttribute('tabindex', '-1'); a.setAttribute('aria-hidden', 'true'); }
+  }
 }
 const ctx2d = document.createElement('canvas').getContext('2d');
 function textW(str, size, italic = false) { ctx2d.font = `${italic ? 'italic ' : ''}${size}px ${MATH}`; return ctx2d.measureText(str).width; }
@@ -1244,7 +1319,7 @@ function finishCard() {
     : isShortcut(e, 'r') ? (restart(), true) : false;
   const guide = mascotEl(240);
   c.append(h('div', 'finwrap', [guide, h('p', 'kicker', translate('chapterComplete', { n: CHAPTER.label ?? CHAPTER.number })), h('p', 'prompt', CHAPTER.title),
-    line(translate('quickChecks'), sum('c-')), line(translate('chapterPractice'), sum('p-')), h('div', 'acts', next ? [home, again, next] : [home, again])]));
+    line(translate('quickChecks'), sum('c-')), line(translate('chapterPractice'), sum('p-')), h('div', 'acts', next ? [home, again, next] : [home, again]), sources()].filter(Boolean)));
   setTimeout(() => mood(guide, 'happy'), 400);
 }
 
@@ -1253,6 +1328,19 @@ const $ = id => document.getElementById(id);
 // The volume control (volume.js, volume.css) lives in its own files next to this one, the same in every book.
 document.head.append(Object.assign(document.createElement('script'), { src: new URL('volume.js', document.currentScript.src) }));
 const kbd = s => h('kbd', '', s);
+// The chapter's sources: every key passed to cite() plus CHAPTER.refs, as full references that link to the source.
+function sources() {
+  for (const m of citeObs.takeRecords()) for (const n of m.addedNodes) autoCite(n);   // link text added just now (a seek to the end)
+  const keys = [...new Set([...(CHAPTER.refs || []), ...CITED])].filter(k => typeof REFS === 'object' && REFS?.[k]);
+  if (!keys.length) return null;
+  const items = keys.map(k => REFS[k]).sort((a, b) => a.ref.localeCompare(b.ref)).map(r => {
+    if (!r.url) return h('li', '', r.ref);
+    const a = h('a', '', r.url.replace(/^https?:\/\//, ''));
+    Object.assign(a, { href: r.url, target: '_blank', rel: 'noopener' });
+    return h('li', '', [r.ref + ' ', a]);
+  });
+  return h('section', 'srcs', [h('h2', '', translate('sources')), h('ol', '', items)]);
+}
 const uiW = (str, size) => { ctx2d.font = `600 ${size}px ${UI}`; return ctx2d.measureText(str).width; };
 const RING_KEYS = ['nat', 'whole', 'int', 'rat', 'irr', 'real'];   // number keys 1–6 in sorting questions
 const SCORE = {};                                          // question id -> first-attempt {right, total}
@@ -1391,6 +1479,13 @@ const choice = (opts, right, yes, no, onRight) => (body, api) => {
     key(e) { const b = bs[+e.key - 1]; if (!b || b.disabled) return false; b.click(); return true; },
   };
 };
+// A choice question from the chapter's item bank: ITEMS from ./items.js, built by scripts/items.py from the
+// mcq-item-writer JSON. mcq('ID', onRight?) returns a quiz entry, so quiz(TOPR, [mcq('MB-03-01')], done) asks it.
+function mcq(id, onRight) {
+  const it = (typeof ITEMS === 'object' && ITEMS) ? ITEMS[id] : null;
+  if (!it) throw new Error(`mcq: no item "${id}" in items.js`);
+  return { id, prompt: it.prompt, build: choice(it.opts, it.right, it.why, it.no, onRight) };
+}
 // The shared body of the stage tap questions: each target ring is a focusable button that answers on click or Enter,
 // and ← / → move the focus between them. targets: [{ g, label, ok, wrong }], wrong() shakes and returns the explanation.
 const stageTap = (api, targets, show, yes, onRight, hint) => {
@@ -1898,6 +1993,7 @@ function frame(now) {
     evalTo(P.t);
     if (P.t >= P.end) beatDone();
   }
+  syncLinks();
   ui();
   requestAnimationFrame(frame);
 }
@@ -1957,9 +2053,13 @@ const back1 = () => seek(P.t > 2.5 || P.i === 0 ? P.i : P.i - 1);
 const restart = () => { for (const k in SCORE) delete SCORE[k]; hideCover(); seek(0, true); };
 $('cover').onclick = togglePlay;
 $('stage').addEventListener('click', e => {
+  if (e.target.closest('a.cite')) { if (P.playing && !P.waiting) setPlaying(false); return; }   // opening a source pauses the lesson
   const b = BEATS[P.i];
   if (!b.ask && !e.target.closest('.qlayer')) togglePlay();
 });
+const citeObs = new MutationObserver(ms => { for (const m of ms) for (const n of m.addedNodes) autoCite(n); });
+citeObs.observe(scene, { childList: true, subtree: true });
+citeObs.observe($('ui'), { childList: true, subtree: true });
 $('bPlay').onclick = togglePlay;
 $('bBack').onclick = () => { hideCover(); back1(); };
 $('bRestart').onclick = restart;

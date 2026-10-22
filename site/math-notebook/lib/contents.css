@@ -26,6 +26,8 @@ a:focus-visible { outline: 3px solid var(--task); outline-offset: 3px; }
 #cover { position: relative; min-height: 100svh; display: flex; flex-direction: column; align-items: center; justify-content: center;
   padding: 48px 16px 64px; text-align: center; overflow: hidden; }
 .open #cover, body:not(.open) #contents { display: none; }
+/* #references is its own view: the full list, reached from one link at the end of the contents. */
+body:not(.refsview) #refpage, .refsview #cover, .refsview #contents { display: none; }
 #cover > * { animation: rise .8s var(--ease) backwards; }
 #cover .mascot { animation: none; margin-bottom: 26px; view-transition-name: guide; }
 #cover .kicker { animation-delay: .9s; }
@@ -92,6 +94,26 @@ main#contents { padding-bottom: 80px; }
 .ch.here:focus-visible { outline-color: var(--c); }
 .ch.here { animation: here 1.8s ease-out .3s; }
 @keyframes here { 0% { box-shadow: 0 0 0 0 var(--c); } 25% { box-shadow: 0 0 0 5px var(--c); } 100% { box-shadow: 0 0 0 14px transparent; } }
+/* ---------- references: every source the book cites, linked to its DOI or catalogue record ---------- */
+.refs-more { max-width: 1212px; margin: 44px auto 0; padding: 0 16px; }
+.refs-more[hidden] { display: none; }
+.refs-more a { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; padding: 16px 20px; border-radius: 16px; background: var(--panel);
+  border: 1.5px solid var(--edge); text-decoration: none; transition: border-color .3s; }
+.refs-more a:hover { border-color: var(--dim); }
+.refs-more b { font: 500 22px/1.2 var(--book); }
+.refs-more span { color: var(--dim); font-size: 15px; }
+.refs-more i { margin-left: auto; font-style: normal; color: var(--quiz); font-weight: 600; font-size: 15px; }
+#refpage { padding-bottom: 80px; }
+.top .back { display: inline-flex; align-items: center; gap: 8px; padding: 6px 4px; font-weight: 600; text-decoration: none; color: var(--quiz); border-radius: 8px; }
+.top .rp-book { margin-left: auto; font: 500 18px/1.2 var(--book); color: var(--dim); }
+.top .rp-book i { color: var(--task); }
+.refs { max-width: 1212px; margin: 32px auto 0; padding: 0 16px; }
+.refs h1 { margin: 0 0 8px; font: 500 clamp(32px, 5vw, 44px)/1.1 var(--book); view-transition-name: none; }
+.refs .lead { margin: 0 0 26px; max-width: 46em; color: var(--dim); }
+.refs ol { margin: 0; padding: 0; list-style: none; color: var(--dim); font-size: 16px; line-height: 1.5; }
+.refs li { margin: 0 0 10px; padding-left: 2em; text-indent: -2em; }
+.refs a { color: var(--chalk); text-underline-offset: 3px; overflow-wrap: anywhere; }
+.refs a:hover { color: var(--quiz); }
 .stagger .top { animation: rise .6s var(--ease) backwards; }
 .stagger .unit h2, .stagger .ch { animation: rise .6s var(--ease) backwards; animation-delay: calc(min(var(--i), 14) * 32ms + 80ms); }
 

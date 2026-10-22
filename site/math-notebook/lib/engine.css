@@ -221,6 +221,22 @@ svg.m { display: inline-block; overflow: visible; }
 @media (prefers-reduced-motion: reduce) { .card, .fb, .opt, .grid .mark, .mascot * { animation: none !important; } }
 
 a.icon { text-decoration: none; }
+/* Citations (cite() and plain-text labels found in refs.js) and the finish card's source list open the source in a new tab. */
+a.cite { cursor: pointer; }
+a.cite text, a.cite tspan { text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 5px; }
+a.cite:hover text, a.cite:hover tspan { fill: var(--quiz); }
+a.cite:focus { outline: none; }
+a.cite:focus-visible text, a.cite:focus-visible tspan { fill: var(--task); }
+a.cite:focus-visible { outline: 3px solid var(--task); outline-offset: 6px; border-radius: 4px; }
+#ui a.cite { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+#ui a.cite:hover { color: var(--quiz); }
+.fin .srcs { margin: 26px 0 0; max-width: 1100px; font-size: 19px; line-height: 1.45; color: var(--dim); text-align: left; }
+.fin .srcs h2 { margin: 0 0 6px; font-size: 18px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--quiz); }
+.fin .srcs ol { margin: 0; padding-left: 0; list-style: none; max-height: 190px; overflow: auto; }
+.fin .srcs li { padding-left: 2em; text-indent: -2em; margin: 0 0 6px; }
+.fin .srcs a { color: var(--chalk); text-underline-offset: 3px; }
+.fin .srcs a:hover { color: var(--quiz); }
+.fin .srcs a:focus-visible { outline: 3px solid var(--task); outline-offset: 2px; }
 a.btn { text-decoration: none; display: inline-block; }
 /* Page-to-page motion: the contents card grows into this frame, and shrinks back on the way out. */
 @view-transition { navigation: auto; }

@@ -1,6 +1,7 @@
 /* The book's cover and contents (index.html): interface text, the chapter list with reading progress, the guide,
    and the cover ↔ contents ↔ lesson motion. Load it in <head>; after the markup, the page calls
-   Contents.book({ units, start, hues }) with its chapter list. */
+   Contents.book({ units, start, hues }) with its chapter list. With refs.js (REFS, built by the skill's
+   scripts/refs.py) loaded first, the page also gets its References view (#references). */
 'use strict';
 // Observe aborted incoming transitions before the first rendering opportunity.
 addEventListener('pagereveal', e => e.viewTransition?.ready.catch(() => {}));
@@ -15,6 +16,10 @@ const Contents = (() => {
       metaUnits: { one: '{n} unit', other: '{n} units' }, metaSamples: { one: ' + {n} sample', other: ' + {n} samples' }, samples: 'Sample chapters, another look',
       chapterCount: { one: '{n} chapter', other: '{n} chapters' }, finished: '{done} of {n} finished',
       doneMark: '✓ Finished · ', lastMark: ' · Last opened',
+      references: 'References', viewAll: 'View all →', backToContents: '← Contents',
+      refsLead: 'Every work cited in the lessons. Each link opens the work’s DOI or library record in a new tab; works with no reliable online record are listed without a link.',
+      refsCount: { one: '{n} work cited in the lessons', other: '{n} works cited in the lessons' },
+      refsAllLinked: ', each linked to its source', refsSomeLinked: ', {n} linked to their sources',
     },
     ru: {
       open: 'Открыть книгу', toCover: 'К обложке', resume: 'Продолжить · Глава {n}', unit: 'Раздел {n}', minutes: '{n} мин',
@@ -25,6 +30,10 @@ const Contents = (() => {
       samples: 'Пробные главы в другом стиле',
       chapterCount: { one: '{n} глава', few: '{n} главы', many: '{n} глав', other: '{n} главы' }, finished: 'Пройдено {done} из {n}',
       doneMark: '✓ Пройдено · ', lastMark: ' · Открыта последней',
+      references: 'Список литературы', viewAll: 'Весь список →', backToContents: '← Оглавление',
+      refsLead: 'Все работы, которые цитируются в уроках. Ссылка открывает DOI или библиотечную запись в новой вкладке; работы без надёжной записи в сети даны без ссылки.',
+      refsCount: { one: '{n} работа цитируется в уроках', few: '{n} работы цитируются в уроках', many: '{n} работ цитируются в уроках', other: '{n} работы цитируются в уроках' },
+      refsAllLinked: ', у каждой есть ссылка на источник', refsSomeLinked: ', ссылок на источник: {n}',
     },
     zh: {
       open: '打开这本书', toCover: '返回封面', resume: '继续 · 第 {n} 章', unit: '第 {n} 单元', minutes: '{n} 分钟',
@@ -32,6 +41,9 @@ const Contents = (() => {
       metaSamples: ' + {n} 个示例章', samples: '示例章，另一种风格',
       chapterCount: '{n} 章', finished: '已完成 {done} / {n}',
       doneMark: '✓ 已完成 · ', lastMark: ' · 上次打开',
+      references: '参考文献', viewAll: '查看全部 →', backToContents: '← 目录',
+      refsLead: '课程中引用的全部作品。每个链接会在新标签页中打开该作品的 DOI 或图书馆记录；没有可靠在线记录的作品不附链接。',
+      refsCount: '课程中引用了 {n} 部作品', refsAllLinked: '，均链接到来源', refsSomeLinked: '，其中 {n} 部链接到来源',
     },
     ja: {
       open: '本を開く', toCover: '表紙に戻る', resume: '続きから · 第{n}章', unit: '単元 {n}', minutes: '{n}分',
@@ -39,6 +51,9 @@ const Contents = (() => {
       metaSamples: ' + サンプル{n}章', samples: 'サンプル章（別のスタイル）',
       chapterCount: '{n}章', finished: '{n}章中 {done}章 完了',
       doneMark: '✓ 完了 · ', lastMark: ' · 最後に開いた章',
+      references: '参考文献', viewAll: 'すべて見る →', backToContents: '← 目次',
+      refsLead: '授業で引用したすべての著作です。リンクは著作の DOI または図書館の記録を新しいタブで開きます。信頼できるオンライン記録のない著作はリンクなしで載せています。',
+      refsCount: '授業で引用した著作 {n} 件', refsAllLinked: '、すべて出典へのリンクつき', refsSomeLinked: '、うち {n} 件は出典へのリンクつき',
     },
   };
   const LANGUAGE = (document.documentElement.lang || 'en').toLowerCase().split('-')[0];
@@ -54,7 +69,7 @@ const Contents = (() => {
   }
   const $ = id => document.getElementById(id);
   const id = n => 'ch' + String(n).padStart(2, '0');
-  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
   const HUES = ['#f4a48c', '#86c9e8', '#f3c95c', '#e8a0c8', '#8fd6b0', '#bba8ee', '#f0b45a'];
 
   // Fixed interface text: data-t replaces an element's first text, data-t-label its aria-label.
@@ -114,6 +129,20 @@ const Contents = (() => {
     }
   }
 
+  // The References view, from refs.js: full entries, each linked to its DOI or catalogue record. It appears as one
+  // link at the end of the contents only when the book cites something.
+  function references() {
+    const all = Object.values(typeof REFS === 'object' && REFS ? REFS : {});
+    if (!$('refList') || !all.length) return;
+    $('refList').innerHTML = all.sort((a, b) => a.ref.localeCompare(b.ref)).map(r => `<li>${esc(r.ref)}${r.url
+      ? ` <a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.url.replace(/^https?:\/\//, ''))}</a>` : ''}</li>`).join('');
+    const linked = all.filter(r => r.url).length;
+    $('refsCount').textContent = translate('refsCount', { n: all.length }) +
+      (linked === all.length ? translate('refsAllLinked') : translate('refsSomeLinked', { n: linked }));
+    $('rpBook').innerHTML = document.querySelector('#contents .home strong')?.innerHTML || '';
+    $('refsMore').hidden = false;
+  }
+
   // The guide, drawn the same way as in the lessons, in the page's chalk (ink) colour.
   function lemniscate(cx, cy, a, k) {
     let d = '';
@@ -134,21 +163,24 @@ const Contents = (() => {
     }
   }
 
-  // The cover and the contents share this page: no hash or #book shows the cover, #contents or #chNN the contents.
+  // The cover, the contents and the references share this page: no hash or #book shows the cover, #references the
+  // reference list, #contents or #chNN the contents.
   // Lessons link back with #chNN, so the reader lands on the chapter they just left.
   function views() {
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
     function show(animate) {
-      const open = location.hash.length > 1 && location.hash !== '#book';
+      const refs = location.hash === '#references';
+      const open = location.hash.length > 1 && location.hash !== '#book' && !refs;
       const apply = () => {
         document.body.classList.toggle('open', open);
+        document.body.classList.toggle('refsview', refs);
         document.body.classList.toggle('stagger', animate && open);
         const here = open ? $(location.hash.slice(1)) : null;
         document.querySelectorAll('.here').forEach(e => e.classList.remove('here'));
         if (here?.classList.contains('ch')) { here.scrollIntoView({ block: 'center' }); here.classList.add('here'); }
         else scrollTo(0, 0);
         if (animate) {
-          const heading = document.querySelector(open ? '#contents .home' : '#cover h1');
+          const heading = document.querySelector(refs ? '#refsTitle' : open ? '#contents .home' : '#cover h1');
           heading?.setAttribute('tabindex', '-1');
           heading?.focus({ preventScroll: true });
         }
@@ -184,6 +216,7 @@ const Contents = (() => {
   function book({ units, start = { unit: 1, chapter: 1 }, hues = HUES, progressKey, ink } = {}) {
     translatePage();
     contents(units, start, hues, progress(progressKey ?? 'animebook:progress:' + new URL('.', location.href).pathname));
+    references();
     guides(ink || getComputedStyle(document.documentElement).getPropertyValue('--chalk').trim() || '#ece8dc');
     views();
   }
