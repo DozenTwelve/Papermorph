@@ -52,6 +52,15 @@ a { color: inherit; }
 .shelf-about p { font: 15px/1.7 var(--ui); }
 .shelf-about .about-kicker { margin: 0; color: #826545; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
 .about-close { position: absolute; right: 16px; top: 12px; padding: 0 7px; background: transparent; border: 0; color: #675542; font: 26px var(--ui); cursor: pointer; }
+/* On a phone the labels scaled with the photo are too small to read: the book's name gets a floor, the line under it
+   (also in the link's label) goes, and the footer follows the photo instead of the bottom of a taller screen. */
+@media (max-width: 700px) {
+  #shelf { min-height: 0; }
+  .book-caption { font-size: max(10px, 1.4cqw); }
+  .book-caption small, .book-caption strong > span { display: none; }
+  .resume-label { font-size: max(10px, 1.03cqw); }
+  .shelf-footer { position: static; height: auto; padding: 14px 3% 22px; }
+}
 @media (prefers-reduced-motion: reduce) {
   .book-caption { transition: none; }
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
