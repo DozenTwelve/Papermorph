@@ -11,6 +11,7 @@
   --task: #e89a00; --quiz: #2d8fd0; --good: #2f9a5c; --bad: #d9473a;
   --ui: "Patrick Hand", "Avenir Next", "Segoe UI", sans-serif;
   --math-font: "Patrick Hand", "Avenir Next", sans-serif;
+  --hover: #eee9de;   /* the volume control under the pointer */
   color-scheme: light;
 }
 /* Lined paper with a red margin: one static image (CSS gradients here cost Firefox ~20 ms a frame under camera moves). */

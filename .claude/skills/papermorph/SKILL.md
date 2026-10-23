@@ -47,7 +47,7 @@ site/<book>/                   the static book (only this is delivered)
   chNN/index.html, audio/<lang>/   a lesson, its beat MP3s + timings.js
 ```
 
-A picture book adds `books/<book>/story.md` (the user's telling, verbatim), `storyboard.md` and `art/` (`sets.js` with the set sketches, generated pictures, `painted.json`, `costs.tsv`); its `site/<book>/lib/` holds the paper kit (`paper.js`, `cast.js`, `shared.js` from `assets/templates/picture-book/`) and `img/` the baked sets, props and puppet pieces; each episode `chNN/` has one script per scene and `audio/<lang>/`, `audio/sfx/`, `audio/bgm/`.
+A picture book adds `books/<book>/story.md` (the user's telling, verbatim), `storyboard.md` and `art/` (`sets.js` with the set sketches, generated pictures, `painted.json`, `costs.tsv`); its `site/<book>/lib/` holds the paper kit (`paper.js`, `cast.js`, `shared.js` from `assets/templates/picture-book/`, which needs engine-v2.1 or later) and `img/` the baked sets, props and puppet pieces; each episode `chNN/` has one script per scene and `audio/<lang>/`, `audio/sfx/`, `audio/bgm/`.
 
 `SKILL` means this skill's absolute folder; `<book>` is the book slug, `<lang>` its primary language code. Needs: `uv`, `ffmpeg`/`ffprobe`, Edge TTS network access (or Kokoro, local: `uv run --python 3.12 --with kokoro`), github.com for `engine.py` when the repository's `engine/` folder is not at hand, and Playwright browsers (`uv run --with playwright playwright install chromium firefox`; where Playwright's Chromium does not run, set `CHROME` to an installed Chrome, Chromium, Brave or Edge). Preview: `python3 SKILL/scripts/serve.py 8765 site` (no browser caching).
 
@@ -58,7 +58,7 @@ A picture book adds `books/<book>/story.md` (the user's telling, verbatim), `sto
 Start with intake whenever `books/<book>/style.json` does not exist yet; reuse answers and approvals already given.
 
 1. **Intake** ([intake.md](references/intake.md)), a short conversation: find the PDF with the user (a story goes to [stories.md](references/stories.md)), split it, say what the book is, agree on one chapter to try and a tier, start the book folder, settle the look the way that tier needs, agree which model does which step, and write `style.json`.
-   - Split: `uv run --with pymupdf SKILL/scripts/outline.py books/<book>/book.pdf`; use `--level N -o books/<book>/sections.json` at chapter depth. For a PDF without usable chapter bookmarks, inspect `split_pages.py … --pages 1-12 --out books/<book>/pages`, then write the map from its contents (schema: `outline.py --help`). Extract chapter text with `split_pages.py … --sections books/<book>/sections.json --out books/<book>/pages --text-only`.
+   - Split: `uv run --with pymupdf SKILL/scripts/outline.py books/<book>/book.pdf`; use `--level N -o books/<book>/sections.json` at chapter depth. A chapter bookmark that points outside its neighbours is moved to the page holding its title or dropped, with a warning: look at those chapters' pages. For a PDF without usable chapter bookmarks, inspect `split_pages.py … --pages 1-12 --out books/<book>/pages`, then write the map from its contents (schema: `outline.py --help`). Extract chapter text with `split_pages.py … --sections books/<book>/sections.json --out books/<book>/pages --text-only`.
    - Start the book folder with [site.md](references/site.md#start-a-book-folder) before showing the user any frames; build agreed shared components once into the book's library ([assets.md](references/assets.md)) and list them in `style.json`.
 2. **Pilot.** Make the chosen chapter through the chapter loop and deliver it for the user's judgement. Fold their feedback into `style.json` and record the chapter under `approved`.
 3. **Remaining chapters and finish**, when the user wants the whole book: write `chapters.md`, produce chapters sequentially (see *Context*), complete cover text, contents and unit sketches using [site.md](references/site.md). Deliver the static book folder, its entry URL for local preview and any unresolved issues.
@@ -84,16 +84,16 @@ All in `SKILL/scripts/`; each prints its usage with `--help` (run it with the `u
 
 | For | Scripts |
 |---|---|
-| Every book | `serve.py` preview without caching · `engine.py` sync the engine into books · `tts.py` narration and word times · `lint.py` static checks · `shot.py` beat screenshots · `strip.py` storyboard sheets and motion strips · `check_blank.py` empty openings · `still.py` stretches where nothing moves · `perf.py` Firefox frame times · `export.py` MP4 and `.srt` |
-| Lessons | `outline.py` and `split_pages.py` page map and chapter text · `overlap.py` arrows through text · `sprites.py` image processing steps |
-| Picture books | `mouths.py` mouth shapes · `join.py` one clip per scene · `sfx.py` synthesized effects · `bake_sets.py` set layers · `bake_puppets.py` puppet bitmaps · `paint.py` / `paint_openai.py` image-model pictures · `painted.py` place them in the book |
+| Every book | `serve.py` preview without caching · `engine.py` sync the engine into books · `tts.py` narration and word times · `lint.py` static checks · `shot.py` beat screenshots · `strip.py` storyboard sheets and motion strips · `still.py` stretches where nothing moves · `perf.py` Firefox frame times · `export.py` MP4 and `.srt` |
+| Lessons | `outline.py` and `split_pages.py` page map and chapter text · `check_blank.py` empty openings · `overlap.py` arrows through text · `sprites.py` image processing steps |
+| Picture books | `mouths.py` mouth shapes · `level.py` even loudness · `join.py` one clip per scene · `sfx.py` synthesized effects · `playlog.py` sounds and captions against the picture · `bake_sets.py` set layers · `bake_puppets.py` puppet bitmaps · `paint.py` / `paint_openai.py` image-model pictures · `painted.py` place them in the book |
 | Course options | `refs.py` verified citations · `items.py` question bank · `scorm.py` LMS package |
 
 `silence.py`, `ledger.py` and `browsers.py` are helpers the others import.
 
 ## Context
 
-- Keep intake and the pilot in the main conversation. Afterwards, when subagents are available, coordinate each chapter as a team: a fresh worker per step of the chapter loop, each on the model the user chose for that step (`models` in `style.json`), chapters one after another ([team.md](references/team.md)); a picture book splits by scene instead ([team.md](references/team.md#picture-books)). Without subagents, run the same loop in the current agent with file-based state.
+- Talk with the user from the main conversation: intake, and every sheet and choice of the pilot. When subagents are available, chapters are made as a team: a fresh worker per step of the chapter loop, each on the model the user chose for that step (`models` in `style.json`), chapters one after another; a picture book splits by scene instead. The main conversation coordinates the pilot, since the user sees its sheets; later chapters are best coordinated from a fresh session ([team.md](references/team.md)). Without subagents, run the same loop in the current agent with file-based state.
 - A worker needs little besides this Skill and `style.json`: the user's words, the look, the approved chapters to watch and read, the element library. A brief adds the chapter, its pages, the step's inputs and outputs and any current user request. Workers reply in a few lines; the coordinator registers the chapter.
 - Use the engine API and inspect individual functions when needed; copy assets rather than reading their full source as instructions.
 - Keep `style.json` current and short. Chapter status, errata and historical feedback stay in `chapters.md` and `chapters/chNN.md`.

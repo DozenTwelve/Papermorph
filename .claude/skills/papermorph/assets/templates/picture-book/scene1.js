@@ -13,13 +13,15 @@ function scene1(p, D) {
   const dad = kidPuppet(cam.stage, { coat: '#3e7fc4', stripe: '#f4f1ea' });
   sfx('scene1', .3, 'knock');                            // audio/sfx/knock.mp3 (SKILL/scripts/sfx.py)
   const enter = clipAt('scene1', PRE1, 's02');           // when the kid's first line starts
+  // the kid side-steps in from the left with planted feet (spStep, cast.js): whole steps (2/3 s each) that end at x 580
+  // just before the line; x comes from the distance the steps cover, so the feet never slide
+  const STEP = 2 / 3, steps = Math.max(0, Math.floor((enter - .2) / STEP)), far = spStep(steps * STEP).d;
 
   stopClock(D, (q, f) => {
     cam.apply(q, f);
-    const walkIn = span(q, .1, enter - .2);              // the kid walks in from the left, then stands
-    const w = spWalk(q), moving = walkIn > 0 && walkIn < 1;
-    kid.pose({ x: -200 + 780 * walkIn, y: 800, s: .95, look: .6, mouth: lips(q, 'scene1', PRE1, 's02', 's03'),
-               ...(moving ? { legL: w.legL, legR: w.legR, bob: w.bob } : {}), shut: blinking(q, [2.4, 6.1]) }, f);
+    const w = spStep(Math.min(Math.floor(q * 6) / 6, steps * STEP));   // on twos, like everything else
+    kid.pose({ x: 580 - .95 * (far - w.d), y: 800, s: .95, look: .6, mouth: lips(q, 'scene1', PRE1, 's02', 's03'),
+               legL: w.legL, legR: w.legR, bob: w.drop, shut: blinking(q, [2.4, 6.1]) }, f);
     dad.pose({ x: 1250, y: 800, s: 1, look: -.6, mouth: lips(q, 'scene1', PRE1, 's02b'), brow: q > enter ? -.3 : 0,
                shut: blinking(q, [3.3]) }, f);
   });

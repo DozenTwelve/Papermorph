@@ -55,7 +55,7 @@ try { done = JSON.parse(localStorage.getItem(key) || '{}').done || []; } catch {
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 document.getElementById('episodes').innerHTML = EPISODES.map((e, i) => `<li${done.includes(+e.ch.slice(2)) ? ' class="watched"' : ''}>
   <a href="${e.ch}/"><img src="${esc(e.still)}" alt="${esc(e.alt)}" loading="lazy">
-  <small>Episode ${i + 1} · ${e.minutes} minutes</small><b>${esc(e.title)}</b><span>${esc(e.line)}</span></a></li>`).join('');
+  <small>Episode ${i + 1} · ${e.minutes} minute${e.minutes == 1 ? "" : "s"}</small><b>${esc(e.title)}</b><span>${esc(e.line)}</span></a></li>`).join('');
 </script>
 </body>
 </html>

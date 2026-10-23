@@ -86,4 +86,4 @@ Leave out blocks the tier does not use. New kinds of book add their own blocks b
 
 Deliver the pilot with a choice: approve and make the rest of the book (recommended when it is good), approve and stop here, or one of two or three concrete changes you would make yourself. Fold the answer and any feedback into `words` and the affected block, and add an approved chapter to `approved`. Approved chapters are the strongest anchor: later chapters watch and read them as worked examples.
 
-When continuing, write `chapters.md` (`# | Title | Pages | Minutes | Status`: planned, ready, user-approved) and go on with the remaining chapters.
+When continuing, write `chapters.md` (a table `| # | Title | Pages | Minutes | Status |`, status planned, ready or user-approved) and go on with the remaining chapters.

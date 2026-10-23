@@ -10,7 +10,11 @@ title pages are put at the start of its first chapter, and "chapter_start" keeps
 page where the chapter itself begins. Pages before the first chapter become
 "00_front"; pages after the last chapter's own bookmark range become "99_back".
 Every PDF page lands in exactly one section, numbered by PDF page order (from 1),
-not by printed page numbers.
+not by printed page numbers. A chapter bookmark that points outside the pages between
+its neighbours (a wrong target, e.g. page 1) is moved to the first page in that gap whose
+text contains its title (after "Chapter N:"; a page of the chapter before that mentions it
+wins too), or dropped so the chapter before it runs on; either way a warning names it: check
+that chapter's pages by hand. Two chapters on one page stop with "Fix by hand".
 
 Without usable chapter bookmarks, render the contents using split_pages.py book.pdf
 --pages 1-12, then write sections.json from those pages. Its JSON array covers every
@@ -21,6 +25,7 @@ Adjust boundaries to the actual PDF; start/end are inclusive PDF page numbers.
 """
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -28,6 +33,32 @@ import pymupdf
 
 FLAT_PDF_HINT = ("Render contents with split_pages.py book.pdf --pages 1-12, "
                  "then write sections.json from them (schema: outline.py --help).")
+
+
+def repair(chapters, doc):
+    """Chapter bookmarks outside the longest run of rising pages (a wrong target): moved to the first page between
+    their neighbours whose text holds the title, or dropped (the chapter before runs on). Each repair is a warning."""
+    pages = [p for _, _, p in chapters]
+    best = []   # best[k]: the longest run of pages that ends at bookmark k, never falling (two on a page: fix by hand)
+    for k, p in enumerate(pages):
+        best.append(max((best[j] for j in range(k) if pages[j] <= p), key=len, default=[]) + [k])
+    keep = set(max(best, key=len))
+    out = []
+    for k, (i, title, page) in enumerate(chapters):
+        if k in keep:
+            out.append((i, title, page)); continue
+        lo = out[-1][2] if out else 0
+        hi = next((pages[j] for j in range(k + 1, len(pages)) if j in keep), len(doc) + 1)
+        key = " ".join(re.sub(r"^\s*(chapter|ch\.?)?\s*\d+[.:]?\s*", "", title, flags=re.I).split()).lower()
+        found = next((p for p in range(lo + 1, hi) if key and key in " ".join(doc[p - 1].get_text().split()).lower()), None)
+        if found:
+            print(f"WARNING bookmark {title!r} points to page {page}, outside {lo}-{hi}: "
+                  f"put at page {found}, the first there that holds its title. Check it.", file=sys.stderr)
+            out.append((i, title, found))
+        else:
+            print(f"WARNING bookmark {title!r} points to page {page}, outside {lo}-{hi}, and its title is on no page "
+                  "there: dropped, the chapter before runs on. Check it.", file=sys.stderr)
+    return out
 
 
 def main():
@@ -56,6 +87,7 @@ def main():
     chapters = [(i, t, p) for i, (lv, t, p) in enumerate(toc) if lv == a.level and p >= 1]
     if not chapters:
         sys.exit(f"No bookmarks at level {a.level}.")
+    chapters = repair(chapters, doc)
     # The first bookmark after the last chapter that is not inside it (an index, appendix, ...) ends the chapters.
     last_i = chapters[-1][0]
     after = next((p for lv, t, p in toc[last_i + 1:] if lv <= a.level and p > chapters[-1][2]), n + 1)

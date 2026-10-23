@@ -9,6 +9,11 @@
     push/0.25@w         also a motion WebP of the beat (0.25 s steps)
     push/0.2@o          also an onion skin: the strip's frames laid over each other in one picture, later ones
                         stronger; even gaps between ghosts mean even speed, bunched ghosts slow-in or slow-out
+    push:4..6/0.2@o     a time range of the beat instead of all of it (ends may be marks: dir..dir+1.5). An onion
+                        skin is only readable inside one shot: give it the range of that shot, never across a cut
+    walk:2..5/0.1@o@c   @c: camera off. Every frame is drawn in the set's own framing (a picture book's paperCam at
+                        its base view, no pan, zoom or shake), so a follow shot or a cut within one set no longer
+                        moves the background: a planted foot is one sharp ghost, a sliding foot a smear
     --sheet storyboard  put every frame into one sheet OUT/storyboard.jpg (layout-first storyboard)
 
 Without --sheet each beat gets OUT/strip_<beat>.jpg (onion skins OUT/onion_<beat>.jpg). Frames are labelled "beat t" and shown at 1/3 size, four
@@ -26,6 +31,17 @@ def sheet(ims, path, cols=4):
     for k, im in enumerate(ims): S.paste(im, ((k % cols) * W, (k // cols) * H))
     S.save(path, quality=84)
 
+CAMERA_OFF = r"""() => {   // paperCam: a set layer is image > layer g > world > view; base view = no transforms
+  for (const im of scene.querySelectorAll('image[href*="img/sets/"]')) {
+    const layer = im.parentNode, view = layer.parentNode.parentNode;
+    layer.removeAttribute('transform'); view.removeAttribute('transform');
+  }
+}"""
+
+def mean_diff(a, b):
+    import numpy as np
+    return float(np.abs(np.asarray(a.convert("L"), dtype=np.float32) - np.asarray(b.convert("L"), dtype=np.float32)).mean())
+
 def onion_skin(ims):
     """Frames over a common background: what stays still is the per-pixel median; what moved is painted from
     each frame, earliest faintest."""
@@ -42,25 +58,28 @@ async def main(a):
     tmp = Path(tempfile.mkdtemp()) / "f.png"
     async with async_playwright() as p:
         b = await (p.firefox.launch(firefox_user_prefs={"media.autoplay.default": 0}) if a.browser == "firefox" else p.chromium.launch(**exe()))
-        pg = await b.new_page(viewport={"width": 1600, "height": 960})
+        pg = await b.new_page(viewport={"width": 1600, "height": 960}, reduced_motion="reduce")   # no wall-clock CSS motion
         errs = []; pg.on("pageerror", lambda e: errs.append(str(e)))
         await pg.goto(f"{a.url}{a.chapter}/?beat=0&t=0"); await pg.wait_for_timeout(800)
         at = {"i": -1, "t": 0.0}
+        cam = {"off": False}
         async def shot(t, scale):
             if t < at["t"]:   # tweens that have finished stay finished: going back needs the beat rebuilt
                 await pg.evaluate(f"seek({at['i']}, false)")
             at["t"] = t
-            await pg.evaluate(f"P.t = {t}; evalTo({t})"); await pg.wait_for_timeout(60)
+            await pg.evaluate(f"P.t = {t}; evalTo({t})")
+            if cam["off"]: await pg.evaluate(CAMERA_OFF)
+            await pg.wait_for_timeout(60)
             r = await pg.evaluate("(() => { const r = document.getElementById('stage').getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; })()")
             await pg.screenshot(path=str(tmp), clip={"x": r[0], "y": r[1], "width": r[2], "height": r[3]})
             im = Image.open(tmp).convert("RGB")
             return im.resize((im.width // scale, im.height // scale))
         allims = []
         for spec in a.specs:
-            m = re.fullmatch(r"(.+?)((?:@[wo])*)", spec); spec, flags = m[1], m[2]
-            webp, onion = "@w" in flags, "@o" in flags
-            m = re.fullmatch(r"([^:/]+)(?::(.+)|/([\d.]+))?", spec)
-            if not m: sys.exit(f"bad spec {spec!r}")
+            m = re.fullmatch(r"(.+?)((?:@[woc])*)", spec); spec, flags = m[1], m[2]
+            webp, onion, cam["off"] = "@w" in flags, "@o" in flags, "@c" in flags
+            m = re.fullmatch(r"([^:/]+)(?::([^/]+))?(?:/([\d.]+))?", spec)
+            if not m or (m[2] and m[3] and ".." not in m[2]): sys.exit(f"bad spec {spec!r}")
             bid, moments, step = m.groups()
             i = await pg.evaluate(f"BEATS.findIndex(b => b.id === '{bid}')")
             if i < 0: sys.exit(f"no beat {bid!r}")
@@ -74,20 +93,25 @@ async def main(a):
                 if mk: sys.exit(f"no mark {mk[1]!r} in {bid}")
                 return float(x)
             st = float(step or 1)
-            ts = [when(x) for x in moments.split(",")] if moments else [k * st for k in range(int(dur / st) + 1)]
+            t0, t1 = (when(x) for x in moments.split("..")) if moments and ".." in moments else (0, dur)
+            ts = ([when(x) for x in moments.split(",")] if moments and ".." not in moments
+                  else [t0 + k * st for k in range(int((t1 - t0) / st + 1e-6) + 1)])
             ims, raw = [], []
             for t in ts:
                 im = await shot(t, 3); raw.append(im.copy())
                 ImageDraw.Draw(im).text((6, 4), f"{bid} t={t:.2f}", fill=(255, 230, 120)); ims.append(im)
             if onion:
+                cuts = [f"{ts[k]:.2f}" for k in range(1, len(raw)) if mean_diff(raw[k - 1], raw[k]) > 30]
+                if cuts: print(f"  {bid}: the picture jumps at t={', '.join(cuts)} (a cut or a pan?): the onion skin blends "
+                               "shots; give it the range of one shot, or @c for a pan")
                 skin = onion_skin([await shot(t, 2) for t in ts] if len(ts) > 1 else raw)
-                ImageDraw.Draw(skin).text((8, 6), f"{bid} onion t={ts[0]:.2f}..{ts[-1]:.2f}, {len(ts)} frames", fill=(255, 230, 120))
+                ImageDraw.Draw(skin).text((8, 6), f"{bid} onion t={ts[0]:.2f}..{ts[-1]:.2f}, {len(ts)} frames{', camera off' if cam['off'] else ''}", fill=(255, 230, 120))
                 skin.save(out / f"onion_{bid}.jpg", quality=86)
             if a.sheet: allims += ims
             else: sheet(ims, out / f"strip_{bid}.jpg")
             if webp:
-                fr, t = [], 0.0
-                while t <= dur:
+                fr, t = [], t0
+                while t <= t1 + 1e-6:
                     fr.append(await shot(t, 2)); t += .25
                 fr[0].save(out / f"motion_{bid}.webp", save_all=True, append_images=fr[1:], duration=250, loop=0, quality=60)
             print(bid, len(ims), "frames")

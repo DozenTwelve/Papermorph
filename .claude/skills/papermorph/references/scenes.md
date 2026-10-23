@@ -15,7 +15,7 @@ Vary the composition with the content (a close-up, a wide shot, a split screen, 
 ## Storyboard: layout first, then motion
 
 1. With narration and beats written, place everything for one to three key moments per beat in the real page: real elements at their real sizes, positions written as the moment's values, no tweens yet.
-2. Capture those moments into one sheet (`strip.py chNN OUT force:push,dir net:add … --sheet storyboard`; times may be marks). Write one line per frame in `chapters/chNN.md`: what it says and where the eye goes. That sheet is the storyboard; composition is cheapest to change now.
+2. Capture those moments into one sheet (`strip.py chNN OUT force:push,dir net:add … --sheet storyboard --url http://localhost:8765/<book>/`; times may be marks). Write one line per frame in `chapters/chNN.md`: what it says and where the eye goes. That sheet is the storyboard; composition is cheapest to change now.
 3. In the pilot the user reviews the sheet before motion is added. In later chapters it is your own check and stays as evidence in `books/<book>/review/chNN/`.
 4. Add motion and camera so that the picture passes through those compositions, then compare finished frames with the sheet.
 

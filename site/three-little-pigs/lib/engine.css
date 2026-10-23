@@ -1,11 +1,20 @@
 @import url(volume.css);
 @import url(book.css);   /* this book's own settings and overrides (not shared), before the rules below */
-:root {
+/* The palette. lib/book.css may redefine any of it in its own ':root' (this one has no specificity), e.g. a light board
+   with dark ink: the stage, COL in engine.js, the cards and the player bar all follow. Colours are #rrggbb. The last
+   lines are shades between those colours, written out so the dark board stays exact: a palette of its own sets them too
+   (the light set in book.css). */
+:where(:root) {
   --page: #0f1613; --board: #1d2b27; --panel: #22322d; --edge: #3a5047;
   --chalk: #ece8dc; --dim: #9aaba3; --faint: #5d7068;
   --task: #f0b45a; --quiz: #86c9e8; --good: #8fd6b0; --bad: #f08c7a;
   --ui: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --vignette: rgba(0, 0, 0, .35);   /* the stage's darkened edges; a light board wants a faint, warm one */
   color-scheme: dark;
+  --rule: #2e433b;                            /* lines between answer rows */
+  --track: #2f4640; --track-ask: #2d4a57;     /* the player bar's steps, and its question steps */
+  --bar-edge: #2a3b35; --hover: #2b3f36;      /* the bar's top line, the volume control under the pointer */
+  --veil: #0a100e;                            /* behind the help panel and the captions */
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; overflow: hidden; background: var(--page); }
@@ -18,11 +27,11 @@ button[hidden] { display: none; }
 #frame { position: absolute; left: 50%; top: 50%; width: 1600px; height: 960px; transform: translate(-50%, -50%) scale(var(--k, .5));
   border-radius: 20px; overflow: hidden; background: var(--board); box-shadow: 0 0 0 1px var(--edge), 0 30px 80px rgba(0, 0, 0, .45); }
 #stage { position: absolute; left: 0; top: 0; width: 1600px; height: 900px; display: block;
-  background: radial-gradient(75% 75% at 50% 45%, rgba(0,0,0,0) 60%, rgba(0,0,0,.35)), var(--grain, none), #1d2b27; }
+  background: radial-gradient(75% 75% at 50% 45%, rgba(0,0,0,0) 60%, var(--vignette)), var(--grain, none), var(--board); }
 #ui { position: absolute; left: 0; top: 0; width: 1600px; height: 900px; pointer-events: none; }
 #ui > * { pointer-events: auto; }
 
-.cover { position: absolute; left: 0; top: 0; width: 1600px; height: 900px; display: grid; place-items: center; background: rgba(15, 22, 19, .5); border: 0; }
+.cover { position: absolute; left: 0; top: 0; width: 1600px; height: 900px; display: grid; place-items: center; background: color-mix(in srgb, var(--page) 50%, transparent); border: 0; }
 .cover[hidden] { display: none; }
 .cover > div { display: flex; flex-direction: column; align-items: center; }
 .cover-k { margin: 0 0 10px; text-align: center; font-size: 22px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--quiz); }
@@ -36,10 +45,10 @@ button[hidden] { display: none; }
 .cover small { display: block; margin-top: 22px; font-size: 22px; text-align: center; color: var(--dim); }
 .paused-mark { position: absolute; left: 0; top: 0; width: 1600px; height: 900px; display: none; place-items: center; pointer-events: none; }
 .paused .paused-mark { display: grid; }
-.paused-mark div { padding: 14px 30px; border-radius: 999px; background: rgba(15, 22, 19, .85); color: var(--dim); font-size: 22px; }
+.paused-mark div { padding: 14px 30px; border-radius: 999px; background: color-mix(in srgb, var(--page) 85%, transparent); color: var(--dim); font-size: 22px; }
 
 /* Question cards inside the picture. */
-.card { position: absolute; padding: 20px 26px; border-radius: 20px; background: rgba(34, 50, 45, .97); border: 1.5px solid var(--edge); border-left: 7px solid var(--quiz); box-shadow: 0 14px 44px rgba(0, 0, 0, .35); }
+.card { position: absolute; padding: 20px 26px; border-radius: 20px; background: color-mix(in srgb, var(--panel) 97%, transparent); border: 1.5px solid var(--edge); border-left: 7px solid var(--quiz); box-shadow: 0 14px 44px rgba(0, 0, 0, .35); }
 .card.band { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-areas: "pic head body acts" "pic fb body acts"; column-gap: 28px; align-items: center; align-content: center; min-height: 150px; }
 .band .mascot { grid-area: pic; }
 .band .head { grid-area: head; align-self: end; }
@@ -55,8 +64,8 @@ button[hidden] { display: none; }
 .opts { display: flex; gap: 12px; flex-wrap: wrap; }
 .opt { padding: 8px 24px; border-radius: 999px; border: 2px solid var(--edge); background: transparent; color: var(--chalk); font-size: 24px; min-height: 58px; display: inline-flex; align-items: center; }
 .opt:hover:not(:disabled) { border-color: var(--dim); }
-.opt[aria-pressed="true"] { background: var(--c, var(--chalk)); border-color: var(--c, var(--chalk)); color: #1b2320; font-weight: 600; }
-.opt.good { border-color: var(--good); box-shadow: 0 0 0 3px rgba(143, 214, 176, .35); }
+.opt[aria-pressed="true"] { background: var(--c, var(--chalk)); border-color: var(--c, var(--chalk)); color: var(--on-fill, #1b2320); font-weight: 600; }
+.opt.good { border-color: var(--good); box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 35%, transparent); }
 .opt.bad { border-color: var(--bad); color: var(--bad); }
 .opt:disabled { cursor: default; }
 .fb { margin-top: 8px; font-size: 22px; line-height: 1.4; color: var(--chalk); }
@@ -72,10 +81,10 @@ button[hidden] { display: none; }
 .card.side { padding: 18px 22px; }
 .btn { padding: 10px 28px; border-radius: 999px; border: 0; background: var(--chalk); color: var(--board); font-weight: 600; font-size: 22px; white-space: nowrap; }
 .btn.quiet { background: transparent; color: var(--dim); border: 1.5px solid var(--edge); }
-.btn.go { background: var(--quiz); color: #10242e; }
+.btn.go { background: var(--quiz); color: var(--on-fill, #10242e); }   /* --on-fill: text on a coloured fill */
 .btn:disabled { background: var(--edge); color: var(--dim); cursor: default; }
 
-.grid .row { display: grid; grid-template-columns: 170px minmax(0, 1fr) 34px; gap: 16px; align-items: center; padding: 5px 0 5px 12px; border-bottom: 1px solid #2e433b; }
+.grid .row { display: grid; grid-template-columns: 170px minmax(0, 1fr) 34px; gap: 16px; align-items: center; padding: 5px 0 5px 12px; border-bottom: 1px solid var(--rule); }
 .grid .num { display: flex; justify-content: flex-end; align-items: center; font-size: 26px; }
 .grid.text .row { grid-template-columns: minmax(0, 1fr) auto 34px; }
 .grid.text .num { justify-content: flex-start; }
@@ -96,17 +105,17 @@ button[hidden] { display: none; }
 .tok { cursor: grab; touch-action: none; }   /* a finger drags the chip instead of scrolling the page */
 
 /* Controls strip, part of the frame. */
-#bar { position: absolute; left: 0; top: 900px; width: 1600px; height: 60px; display: flex; align-items: center; gap: 10px; padding: 0 20px; background: #16211d; border-top: 1px solid #2a3b35; }
+#bar { position: absolute; left: 0; top: 900px; width: 1600px; height: 60px; display: flex; align-items: center; gap: 10px; padding: 0 20px; background: color-mix(in srgb, var(--page) 50%, var(--board)); border-top: 1px solid var(--bar-edge); }
 .icon { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--edge); background: var(--panel); display: grid; place-items: center; flex: none; padding: 0; }
 .icon svg { width: 18px; height: 18px; fill: var(--chalk); }
 .icon .i-pause { display: none; }
 .is-playing .icon .i-play { display: none; }
 .is-playing .icon .i-pause { display: block; }
 .segs { flex: 1; display: flex; gap: 4px; height: 30px; align-items: center; min-width: 0; margin: 0 8px; }
-.seg { position: relative; display: block; min-width: 0; height: 8px; border-radius: 4px; background: #2f4640; border: 0; padding: 0; overflow: hidden; }
+.seg { position: relative; display: block; min-width: 0; height: 8px; border-radius: 4px; background: var(--track); border: 0; padding: 0; overflow: hidden; }
 .seg:hover { height: 12px; }
 .seg i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--chalk); }
-.seg.ask { background: #2d4a57; }
+.seg.ask { background: var(--track-ask); }
 .seg.ask i { background: var(--quiz); }
 .step { width: 300px; flex: none; color: var(--dim); font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; }
 /* Keep the control strip usable without scaling down its touch targets. */
@@ -121,9 +130,9 @@ button[hidden] { display: none; }
   .segs { order: 1; }
   .segs { min-width: 80px; margin: 0; }
 }
-.sound-note { position: absolute; left: 24px; top: 20px; margin: 0; padding: 8px 18px; border-radius: 12px; background: rgba(15, 22, 19, .85); color: var(--dim); font-size: 19px; }
+.sound-note { position: absolute; left: 24px; top: 20px; margin: 0; padding: 8px 18px; border-radius: 12px; background: color-mix(in srgb, var(--page) 85%, transparent); color: var(--dim); font-size: 19px; }
 .sound-note[hidden] { display: none; }
-.blanks .brow { padding: 8px 0; border-bottom: 1px solid #2e433b; }
+.blanks .brow { padding: 8px 0; border-bottom: 1px solid var(--rule); }
 .blanks .brow:last-child { border-bottom: 0; }
 .blanks .bline { line-height: 64px; white-space: nowrap; }
 .blanks .mark { display: inline-block; margin-left: 14px; font-weight: 700; }
@@ -131,8 +140,8 @@ button[hidden] { display: none; }
 .blanks .mark.bad { color: var(--bad); }
 .blanks .why { font-size: 19px; color: var(--dim); line-height: 1.35; }
 .blanks .why:empty { display: none; }
-.box { height: 52px; margin: 0 6px; padding: 0 6px; border: 0; border-bottom: 3px solid var(--quiz); border-radius: 8px 8px 0 0; background: rgba(236, 232, 220, .07); color: var(--chalk); font: 32px var(--math-font, "STIX Two Text", "Cambria Math", "Iowan Old Style", Palatino, Georgia, serif); text-align: center; vertical-align: -6px; }
-.box:focus { outline: none; background: rgba(134, 201, 232, .16); }
+.box { height: 52px; margin: 0 6px; padding: 0 6px; border: 0; border-bottom: 3px solid var(--quiz); border-radius: 8px 8px 0 0; background: color-mix(in srgb, var(--chalk) 7%, transparent); color: var(--chalk); font: 32px var(--math-font, "STIX Two Text", "Cambria Math", "Iowan Old Style", Palatino, Georgia, serif); text-align: center; vertical-align: -6px; }
+.box:focus { outline: none; background: color-mix(in srgb, var(--quiz) 16%, transparent); }
 .box.good { border-color: var(--good); }
 .box.bad { border-color: var(--bad); }
 .box:disabled { opacity: 1; }
@@ -140,8 +149,8 @@ kbd { display: inline-block; min-width: 1.5em; padding: 0 .4em; margin-left: .5e
 .opt kbd { margin: 0 .6em 0 0; }
 .keys { margin: 6px 0 0; font-size: 18px; color: var(--dim); }
 .keys kbd { margin: 0 .15em; }
-.grid .row.cur { background: rgba(236, 232, 220, .05); box-shadow: inset 4px 0 var(--quiz); }
-.help { position: absolute; left: 0; top: 0; width: 1600px; height: 900px; display: grid; place-items: center; background: rgba(10, 16, 14, .72); }
+.grid .row.cur { background: color-mix(in srgb, var(--chalk) 5%, transparent); box-shadow: inset 4px 0 var(--quiz); }
+.help { position: absolute; left: 0; top: 0; width: 1600px; height: 900px; display: grid; place-items: center; background: color-mix(in srgb, var(--veil) 72%, transparent); }
 .help[hidden] { display: none; }
 .help-box { width: 1120px; padding: 40px 50px; border-radius: 22px; background: var(--panel); border: 1.5px solid var(--edge); }
 .help h2 { margin: 0 0 22px; font-size: 32px; font-weight: 600; }
@@ -155,7 +164,7 @@ kbd { display: inline-block; min-width: 1.5em; padding: 0 .4em; margin-left: .5e
 .help-close { margin: 26px 0 0; font-size: 18px; color: var(--dim); }
 .icon.txt { font-size: 20px; font-weight: 700; color: var(--dim); }
 /* Optional captions of the narration, one sentence at a time. Off by default: teaching text lives in the picture. */
-.caption { position: absolute; left: 50%; bottom: 78px; transform: translateX(-50%); width: max-content; max-width: 1180px; padding: 10px 24px; border-radius: 14px; background: rgba(10, 16, 14, .82); color: var(--chalk); font-size: 28px; line-height: 1.35; text-align: center; pointer-events: none; }
+.caption { position: absolute; left: 50%; bottom: 78px; transform: translateX(-50%); width: max-content; max-width: 1180px; padding: 10px 24px; border-radius: 14px; background: color-mix(in srgb, var(--veil) 82%, transparent); color: var(--chalk); font-size: 28px; line-height: 1.35; text-align: center; pointer-events: none; }
 .caption[hidden] { display: none; }
 .icon.cc { font-size: 15px; font-weight: 700; color: var(--dim); }
 .icon.cc[aria-pressed="true"] { background: var(--chalk); border-color: var(--chalk); color: var(--board); }

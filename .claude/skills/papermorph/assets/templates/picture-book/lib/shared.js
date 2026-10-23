@@ -23,7 +23,12 @@ const artSVG = (name, x, y, w, h) => `<image href="../img/props/${name}.webp" x=
    in normal playback (seeking past it does not fire it). Pausing holds them; a seek stops them. They play at half volume under the voices. */
 const SFX = [], sfxOn = [];
 const SFX_BED = {};   // file name -> length in s, for long ambience called once (a seek into the middle starts it part-way)
-const sfx = (beat, at, name, vol = 1, bed = SFX_BED[name] || 0) => SFX.push({ beat, at, name, vol, bed });
+// A scene function runs again at every seek, replay and Home: the same effect (beat, time, name) is listed once.
+const sfx = (beat, at, name, vol = 1, bed = SFX_BED[name] || 0) => {
+  const e = SFX.find(x => x.beat === beat && x.at === at && x.name === name);
+  if (e) Object.assign(e, { vol, bed }); else SFX.push({ beat, at, name, vol, bed });
+};
+const sfxVolume = () => Math.min(1, Math.max(0, +(document.getElementById('volume')?.value ?? 1)));
 let sfxLast = { i: -1, t: 0 };
 function sfxTick() {
   const id = BEATS[P.i]?.id, on = P.started && P.playing && !P.waiting && !P.done;
@@ -37,12 +42,15 @@ function sfxTick() {
   if (on)
     for (const e of SFX) if (e.beat === id && (e.at > from && e.at <= P.t || seeked && e.bed && e.at < P.t && P.t < e.at + e.bed)) {
       const a = new Audio(`audio/sfx/${e.name}.mp3`);
-      a.volume = .5 * e.vol * +(document.getElementById('volume')?.value ?? 1);   // effects sit under the voices
+      a._vol = Math.min(1, Math.max(0, .5 * e.vol));   // effects sit under the voices (vol 2 is full volume); the slider is applied every tick below
+      a.volume = a._vol * sfxVolume();
       a.playbackRate = P.rate || 1;
       a.play().catch(() => {}); sfxOn.push(a); a.onended = () => sfxOn.splice(sfxOn.indexOf(a), 1);
       if (e.at <= from || e.at > P.t) a.addEventListener('loadedmetadata', () => { a.currentTime = P.t - e.at; }, { once: true });   // a long bed joined mid-way
     }
-  for (const a of sfxOn) { a.playbackRate = P.rate || 1; if (on === a.paused && !a.ended) on ? a.play().catch(() => {}) : a.pause(); }   // a pause holds them, play resumes
+  const v = sfxVolume();
+  for (const a of sfxOn) { a.playbackRate = P.rate || 1; if (a.volume !== a._vol * v) a.volume = a._vol * v;   // the slider reaches effects and beds already playing
+    if (on === a.paused && !a.ended) on ? a.play().catch(() => {}) : a.pause(); }   // a pause holds them, play resumes
   // the music follows the playback speed too (BGM is the chapter's own list, when it has one)
   if (typeof BGM !== 'undefined') for (const m of BGM) if (m.a.playbackRate !== (P.rate || 1)) m.a.playbackRate = P.rate || 1;
   sfxLast = { i: P.i, t: on ? P.t : from, pend: !on && (!same || !!sfxLast.pend) };

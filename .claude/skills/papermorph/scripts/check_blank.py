@@ -10,6 +10,8 @@ book_dir holds the chNN folders; --url is where that folder is served. For each 
 (question beats are skipped) whose picture stays empty longer than LIMIT seconds (default 1)
 near its start, prints: chapter, beat index, beat id, empty from, empty until, seconds.
 Otherwise it prints one line saying none were found. Exit status 1 when something is found.
+A lesson tool: a picture book's painted set is always on stage, so a picture-book chapter (paper.js loaded) is
+skipped with a note; check its openings with strip.py and still.py.
 """
 import argparse, asyncio, os, sys
 from pathlib import Path
@@ -40,12 +42,15 @@ PROBE = r"""
 
 
 async def main(book: Path, chapters, url):
-    found = []
+    found, checked = [], []
     async with async_playwright() as p:
         browser = await p.chromium.launch(**exe())
         pg = await browser.new_page(viewport={"width": 1600, "height": 960})
         for ch in chapters:
             await pg.goto(f"{url}{ch}/index.html?beat=0&t=0"); await pg.wait_for_timeout(300)
+            if await pg.evaluate("typeof jit === 'function'"):
+                print(f"{ch}: a picture book, skipped (check_blank is for lessons; use strip.py and still.py)"); continue
+            checked.append(ch)
             for i in range(await pg.evaluate("BEATS.length")):
                 r = await pg.evaluate(PROBE, i)
                 if r["ask"] or r["id"] == "finish":
@@ -60,7 +65,7 @@ async def main(book: Path, chapters, url):
         await browser.close()
     for row in found:
         print(*row)
-    if not found: print(f"no opening blanks in {', '.join(chapters)}")
+    if not found and checked: print(f"no opening blanks in {', '.join(checked)}")
     return 1 if found else 0
 
 

@@ -4,9 +4,12 @@
     uv run --with playwright --with pillow still.py ch15 --url http://localhost:8765/science/ [beat ...] [--min 3]
 
 Prints, per lesson beat, the stretches of at least --min seconds whose consecutive frames differ by less than
---thr (mean absolute pixel difference, 0-255, on a small grey copy of the stage; default 0.03 for a lesson, 2 for a
-picture book, whose puppets jitter and flicker on every frame even when nothing acts). Strips and onion skins cannot
-show that nothing moves; this can. A stretch is worth a look, not automatically wrong: a held moment can be right.
+--thr (mean absolute pixel difference, 0-255, on a small grey copy of the stage). In a picture book the kit's hand
+jitter (`jit` called from the book's lib/, not the camera's shake) and the exposure flicker are switched off while
+measuring; a scene's own `jit` (snowfall, a tremble) keeps working, so what is left is the film as played, less the hand:
+a breathing, blinking puppet that does nothing else measures about 1-1.5, real acting 2 and up (The Chess Dog,
+2026-10-23). Defaults: 0.03 for a lesson, 1.5 for a picture book. Strips and onion skins cannot show that nothing
+moves; this can. A stretch is worth a look, not automatically wrong: a held moment can be right.
 """
 import argparse, asyncio, io
 from playwright.async_api import async_playwright
@@ -19,14 +22,28 @@ ap.add_argument("--step", type=float, default=1); ap.add_argument("--min", type=
 ap.add_argument("--thr", type=float)
 a = ap.parse_args()
 URL = a.url.rstrip("/") + f"/{a.chapter}/"
+# The kit's hand jitter is jit() called from a puppet in the book's lib/ (cast.js, paper.js); the camera's shake is
+# jit() from cam.apply, and scenes call jit() for layout and acting (ch01's snowflakes, ch06's trembling dog): those
+# keep their values. ponytail: tells callers apart by the stack (slow, measuring only); a kit flag would be cheaper.
+STEADY = r"""(() => {
+  if (typeof jit !== 'function') return false;
+  const j0 = jit;
+  window.jit = (f, k) => {
+    const at = new Error().stack.split('\n').find(l => /https?:/.test(l)) || '';
+    return /\/lib\/[^/]+\.js/.test(at) && !/\bapply\b/.test(at) ? 0 : j0(f, k);
+  };
+  if (typeof FLICKER !== 'undefined') FLICKER.style.display = 'none';
+  return true;
+})()"""
 
 async def main():
     async with async_playwright() as p:
         b = await p.firefox.launch(firefox_user_prefs={"media.autoplay.default": 0})
-        pg = await b.new_page(viewport={"width": 1600, "height": 960})
+        pg = await b.new_page(viewport={"width": 1600, "height": 960}, reduced_motion="reduce")
         await pg.goto(URL + "?beat=0&t=0"); await pg.wait_for_timeout(800)
         ids = await pg.evaluate("BEATS.map(b => b.id)"); asks = await pg.evaluate("BEATS.map(b => !!b.ask)")
-        thr = a.thr if a.thr is not None else (2 if await pg.evaluate("typeof jit === 'function'") else .03)   # paper.js jitters
+        film = await pg.evaluate(STEADY)
+        thr = a.thr if a.thr is not None else (1.5 if film else .03)
         r = await pg.evaluate("(() => { const r = document.getElementById('stage').getBoundingClientRect(); return {x: r.x, y: r.y, width: r.width, height: r.height}; })()")
         for i, bid in enumerate(ids):
             if asks[i] or (a.beats and bid not in a.beats): continue

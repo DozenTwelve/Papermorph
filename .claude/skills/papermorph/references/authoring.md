@@ -36,7 +36,7 @@ Before writing code, list the beats. For each lesson beat decide what the eye sh
 - Write for the ear: short sentences, one idea each. Say symbols and units in words ("negative seven halves", "meters per second squared"); the picture shows the symbols.
 - Match the audience: plain, warm, never childish. Explain why, not only how.
 - Question beats get one short line ("Quick check. Find the mean."); the card holds the question.
-- `tts.py` writes `<beat>.mp3` and `timings.js` (duration, marks, captions) and caches each finished beat beside the narration JSON: moving `[[marks]]` reuses the cache, and after a failure the same command resumes rather than starting over.
+- `tts.py` writes `<beat>.mp3` and `timings.js` (duration, marks, captions) and caches each finished beat beside the narration JSON: moving `[[marks]]` reuses the cache, and after a failure the same command resumes rather than starting over. It takes a few seconds a beat, so a long chapter can outlast a tool's foreground time limit: run it in the background and wait for it before `lint.py`.
 - Engine: `"engine": "edge"` (default, online) or `"kokoro"` (local, Apache 2.0; English word timings; voices such as `am_michael`, `af_heart`, `bm_george`), set at the top of the narration file with `voice` and `rate`. Keep one engine and voice per book.
 
 ## Questions
@@ -55,7 +55,7 @@ Pick the type that lets the student act on the picture itself whenever possible 
 New types are welcome when the content calls for one; each needs keyboard play (see engine.md).
 
 - Ids: `c-…` for quick checks, `p-…` for practice; the score card adds them up.
-- The prompt is HTML text; put math in it with `$m(...)`.
+- The prompt is rich text ([engine.md](engine.md#traps)).
 - Feedback: right → `why` (and an animation via `fx`/`onRight`); wrong → a hint aimed at that mistake; after a wrong try, Show answer.
 - Grade meaning: equal values match (6/8 = 3/4) unless the lowest form is asked for; sets and pairs in any order; no denominators of zero; never judge irrationality from finitely many digits.
 - The built-in numeric parser uses safe integer numerators and denominators and exact integer products for equality. For answers outside that range, use a subject-specific input and grader rather than allowing rounded values to pass.
@@ -66,4 +66,4 @@ New types are welcome when the content calls for one; each needs keyboard play (
 
 - Follow the agreed chapter scope and order. Verify facts, calculations and answers actually used in the finished lesson; correct or replace source errors and note them in `books/<book>/chapters/chNN.md` for the user.
 - Check worked examples as the subject, not only as arithmetic (a push on someone standing on the ground is not the net force).
-- Use the notation and rounding in `style.json` (`look.notation`). Record new shared decisions there.
+- Use the notation and rounding in `style.json` (`look.notation`). Record new shared decisions there. Group thousands with a no-break space (U+00A0) or the book's comma: a thin space all but vanishes in bold system fonts (150 000 000 read as 150000000).

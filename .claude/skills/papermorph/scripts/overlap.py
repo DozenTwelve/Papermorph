@@ -8,6 +8,8 @@ Points every 3 px along each visible arrow (shaft and head, widened by half the 
 box of each visible text (getBBox trimmed to the glyph band, tested in the text's own, possibly rotated, frame).
 Text pairs count when their ink boxes overlap by more than 4 px on every axis. Hits are merged into time ranges per
 beat and element pair; look at those frames with strip.py. Runs in Firefox.
+A lesson tool: picture-book scenes have no SVG text or arrows (captions are HTML, signs are painted), so a
+picture-book chapter (paper.js loaded) is skipped with a note.
 """
 import argparse, asyncio, json, sys
 from playwright.async_api import async_playwright
@@ -86,8 +88,9 @@ MEASURE = r"""
 
 async def run(pg, base, ch, step, only):
     await pg.goto(f"{base}{ch}/?beat=0&t=0"); await pg.wait_for_timeout(800)
+    if await pg.evaluate("typeof jit === 'function'"): return None
     beats = await pg.evaluate("BEATS.map(b => [b.id, !!b.ask])")
-    res = {}
+    res = {"": len([1 for bid, ask in beats if not ask and (not only or bid in only)])}   # beats sampled
     for i, (bid, ask) in enumerate(beats):
         if ask or (only and bid not in only): continue
         hits = await pg.evaluate(MEASURE, [i, step])
@@ -116,10 +119,13 @@ async def main():
         errs = []; pg.on("pageerror", lambda e: errs.append(str(e)))
         allres = {}
         for ch in args:
-            res = allres[ch] = await run(pg, base, ch, step, only)
+            res = await run(pg, base, ch, step, only)
+            if res is None:
+                print(f"== {ch}: a picture book, skipped (overlap.py is for lessons: films have no SVG text or arrows)"); continue
+            n = res.pop(""); allres[ch] = res
             na = sum(1 for rows in res.values() for r in rows if r["kind"] == "arrow")
             nt = sum(1 for rows in res.values() for r in rows if r["kind"] == "text")
-            print(f"== {ch}: {na} arrow/text, {nt} text/text pairs in {len(res)} beats")
+            print(f"== {ch}: {na} arrow/text, {nt} text/text pairs, in {len(res)} of {n} beats sampled")
             for bid, rows in res.items():
                 for r in rows:
                     rg = ", ".join(f"{a:g}" if a == c else f"{a:g}-{c:g}" for a, c in r["ranges"])

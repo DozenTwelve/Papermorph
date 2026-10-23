@@ -42,6 +42,7 @@ For a painted look, also `cp "$PB/painted.json" "$BOOK_WORK/art/"` ([painting.md
 ```sh
 A="$BOOK_SITE/ch01/audio/en"; N="content/$BOOK_ID/ch01/narration.en.json"
 uv run --with edge-tts python "$SKILL/scripts/tts.py" "$N" "$A"
+python3 "$SKILL/scripts/level.py" "$A"/*.mp3
 python3 "$SKILL/scripts/mouths.py" "$N" "$A"
 python3 "$SKILL/scripts/join.py" "$A" scene1=s01,s02,s02b,s03 --words "$N"
 uv run --with numpy python "$SKILL/scripts/sfx.py" "$BOOK_SITE/ch01/audio/sfx" knock
@@ -58,7 +59,7 @@ uv run --with playwright --with pillow python "$SKILL/scripts/bake_puppets.py" "
 
 ### Every book
 
-Use the pilot chapter's number in place of `ch01` when the pilot is not the first chapter. Use the agreed primary language: rename the narration source, load `audio/<lang>/timings.js` (a picture-book chapter also loads `mouths.js` and `shots.js` from that folder), and set `CHAPTER.language` to match (default `en`, it picks the audio folder). Set `<html lang>` in `index.html` and every chapter to the same language: the player and the contents page take their interface text from it (English, Russian, Chinese and Japanese are built into the engine; other languages fall back to English until a block is added to the engine's `TRANSLATIONS`). Take `voice` and `rate` for each narration file from `style.json`, and translate the template's own visible text (titles, lede, prompts) before the pilot.
+Use the pilot chapter's number in place of `ch01` when the pilot is not the first chapter. Use the agreed primary language: rename the narration source, load `audio/<lang>/timings.js` (a picture-book chapter also loads `mouths.js` and `shots.js` from that folder), and set `CHAPTER.language` to match (default `en`, it picks the audio folder). A chapter's minutes appear on its title screen (`CHAPTER.minutes`), its contents card and a series card; write the same number in each: the length of its audio (the `dur`s in `timings.js`) plus about 15 s for each question, rounded to whole minutes and never below 1. Set `<html lang>` in `index.html` and every chapter to the same language: the player and the contents page take their interface text from it (English, Russian, Chinese and Japanese are built into the engine; other languages fall back to English until a block is added to the engine's `TRANSLATIONS`). Take `voice` and `rate` for each narration file from `style.json`, and translate the template's own visible text (titles, lede, prompts) before the pilot.
 
 If the book's formulas need LaTeX ([engine.md](engine.md#latex)), add MathJax (with its license) to `lib/`, and load `../lib/mathjax.js` right after `engine.js` in every chapter:
 

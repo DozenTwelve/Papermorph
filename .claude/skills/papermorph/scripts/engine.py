@@ -9,9 +9,9 @@
     python3 engine.py site/stats --latex           # also MathJax, for a book whose chapters use TX()
 
 The engine is not part of this skill: it is the engine/ folder of a repository, versioned by tags (engine-v2,
-engine-v2.0.1, ...; a new major number means books may need a change), and anyone may fork it. Without --from, the
-engine/ folder here or above the target is used (a checkout of that repository), otherwise DEFAULT, the latest major
-release; the source used is printed.
+engine-v2.1, ...; a new major number means books may need a change), and anyone may fork it. Without --from, the
+engine/ folder here or above the target is used (a checkout of that repository), otherwise DEFAULT, the latest release
+compatible with this Skill (its docs and the picture-book kit); the source used is printed.
 Each book keeps a full copy in lib/, so it runs on its own; fix the engine at its source and sync, never edit the
 copies. lib/book.css holds the book's own settings and overrides; it is created from the default and never
 overwritten. MathJax (engine/vendor/mathjax) goes only into books that ask for it with --latex; after that, a book
@@ -20,7 +20,7 @@ with lib/mathjax.js keeps it in step like the rest.
 import argparse, filecmp, io, shutil, sys, tarfile, tempfile, urllib.request
 from pathlib import Path
 
-DEFAULT = 'DozenTwelve/Papermorph@engine-v2'   # moves only with a major release
+DEFAULT = 'DozenTwelve/Papermorph@engine-v2.1'   # follows the latest compatible release
 OWN = 'book.css'
 LATEX = {'vendor/mathjax/tex-svg-full.js': 'mathjax.js', 'vendor/mathjax/LICENSE': 'mathjax-LICENSE.txt'}
 

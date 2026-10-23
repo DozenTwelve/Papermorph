@@ -30,6 +30,8 @@ ENGINE_FILES = {'engine.js', 'math.js', 'volume.js', 'contents.js', 'units.js'}
 LOCAL = re.compile(r'[,(]\s*([A-Za-z_$][\w$]*)\s*=(?![=>])')   # a, name = … or (p, name = 1): declared in a list
 PARAMS = re.compile(r'function\s*[\w$]*\s*\(([^)]*)\)|\(([^()]*)\)\s*=>|([A-Za-z_$][\w$]*)\s*=>')   # parameters
 METHOD = re.compile(r'^\s*([A-Za-z_$][\w$]*)\s*\([^()]*\)\s*\{', re.M)   # name(a, b) { … } in an object
+DESTRUCT = re.compile(r'(?:const|let|var)\s*([\[{][^;]*?[\]}])\s*(?:=|of\b|in\b)')   # const {a, b: c, d = 1} = …, for (const [x, y] of …)
+DKEY = re.compile(r'[A-Za-z_$][\w$]*\s*:|=[^,\]}]*')   # in a pattern, a key (b: c declares c) and a default (= 1) declare nothing
 USE = re.compile(r'(?<![\w$.])([A-Za-z_$][\w$]*)(?![\w$])(?!\s*:)')   # a name, not a property or an object key
 
 
@@ -114,7 +116,7 @@ def words(s):
 def lint_chapter(ch, content, out):
     err = lambda kind, msg: out.append(('E', kind, f'{ch.name}: {msg}'))
     warn = lambda kind, msg: out.append(('W', kind, f'{ch.name}: {msg}'))
-    html = (ch / 'index.html').read_text(encoding='utf-8')
+    html = re.sub(r'<!--.*?-->', '', (ch / 'index.html').read_text(encoding='utf-8'), flags=re.S)   # a commented-out <script> loads nothing
     inline = '\n'.join(INLINE.findall(html))
     # globals: every script the page loads, in order
     seen, own = {}, [inline]   # own: the chapter's code and the book's scripts, not the engine's
@@ -143,6 +145,7 @@ def lint_chapter(ch, content, out):
         code = [depth0(text)[0] for text in own]
         local = {m.group(2) for c in code for m in DECL.finditer(c)} | {n for c in code for n in LOCAL.findall(c)}
         local |= {n for c in code for n in METHOD.findall(c)}
+        local |= {n for c in code for d in DESTRUCT.findall(c) for n in re.findall(r'[A-Za-z_$][\w$]*', DKEY.sub(' ', d))}
         local |= {n for c in code for p in PARAMS.findall(c) for n in re.findall(r'[A-Za-z_$][\w$]*', ''.join(p))}
         used = sorted({w for c in code for w in USE.findall(c)} & names - local)
         if used:

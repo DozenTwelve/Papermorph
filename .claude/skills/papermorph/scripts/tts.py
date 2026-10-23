@@ -143,7 +143,8 @@ def split_marks(raw):
 
 def time_at(clean, words, estimate=False):
     """Return f(pos): start time of the first spoken word at or after char pos. The voice's word list can stop
-    short of the text; with estimate, a position past its last word is timed at the speaking rate so far."""
+    short of the text; with estimate, a position past its last word is timed at the speaking rate so far (seconds
+    per character within sentences) plus the voice's mean pause at each sentence end on the way."""
     cursor, located = 0, []
     for t, w in words:
         i = clean.find(w, cursor)
@@ -151,11 +152,17 @@ def time_at(clean, words, estimate=False):
             continue
         located.append((i, t))
         cursor = i + len(w)
+    ends = lambda a, b: len(SENTENCE_END.findall(clean, a, b))
+    pairs = list(zip(located, located[1:]))
+    inner = [(i1 - i0, t1 - t0) for (i0, t0), (i1, t1) in pairs if not ends(i0, i1)]
+    rate = sum(d for _, d in inner) / max(sum(c for c, _ in inner), 1) if inner else located[-1][1] / max(located[-1][0], 1) if located else 0
+    gaps = [t1 - t0 - (i1 - i0) * rate for (i0, t0), (i1, t1) in pairs if ends(i0, i1)]
+    pause = max(0, sum(gaps) / len(gaps)) if gaps else .4   # ponytail: a guess when the clip shows no sentence end
     def at(pos):
         t = next((t for i, t in located if i >= pos), None)
         if t is None and estimate and located:
             i, t = located[-1]
-            t += (pos - i) * t / max(i, 1)
+            t += (pos - i) * rate + ends(i, pos) * pause
         return None if t is None else round(t, 3)
     return at
 
@@ -169,13 +176,14 @@ def mark_times(clean, marks, words):
     return out
 
 
+SENTENCE_END = re.compile(r"[.?!]\s+|[。！？]\s*")
 ABBREV = re.compile(r"(?<![\w.])(?:Mr|Mrs|Ms|Dr|Prof|St|vs|approx|e\.g|i\.e|cf)\.$")
 
 
 def caption_cues(clean, words):
     """One cue per sentence: [start seconds, sentence]."""
     at, cues, start = time_at(clean, words, estimate=True), [], 0
-    for m in list(re.finditer(r"[.?!]\s+|[。！？]\s*", clean)) + [None]:
+    for m in list(SENTENCE_END.finditer(clean)) + [None]:
         if m and ABBREV.search(clean, 0, m.start() + 1):   # "Mr. Lee", "e.g. a lot" go on
             continue
         end = m.end() if m else len(clean)

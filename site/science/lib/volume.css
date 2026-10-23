@@ -3,7 +3,7 @@
   border: 1px solid var(--edge); border-radius: 999px; background: var(--panel); color: var(--chalk); transition: width .18s ease; }
 .volume .icon { width: 42px; height: 42px; border: 0; background: transparent; }
 .volume:hover, .volume:focus-within { width: 166px; gap: 10px; padding-right: 12px; }
-.volume:hover { background: #2b3f36; border-color: var(--faint); }
+.volume:hover { background: var(--hover, #2b3f36); border-color: var(--faint); }
 .volume:has(:focus-visible) { outline: 2px solid var(--task); outline-offset: 3px; }
 .volume .icon:focus-visible { outline: none; }
 .volume input { appearance: none; flex: none; width: 0; height: 42px; margin: 0; opacity: 0; background: transparent; cursor: pointer; }

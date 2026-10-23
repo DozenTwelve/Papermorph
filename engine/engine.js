@@ -250,13 +250,19 @@ document.body.insertAdjacentHTML('afterbegin', `<div id="frame">
 
 /* ---------- drawing helpers ---------- */
 const NS = 'http://www.w3.org/2000/svg';
-const COL = { nat: '#f4a48c', whole: '#86c9e8', int: '#f3c95c', rat: '#e8a0c8', irr: '#8fd6b0', real: '#bba8ee',
-  chalk: '#ece8dc', dim: '#9aaba3', faint: '#5d7068', task: '#f0b45a', good: '#8fd6b0', bad: '#f08c7a', board: '#1d2b27' };
 const UI = '"Avenir Next","Segoe UI","Helvetica Neue",Arial,sans-serif';
 // Book settings (lib/book.css, next to engine.css and imported by it): --math-font for numbers and formulas,
 // --progress-key for the localStorage key the cover and chapters share.
 const BOOK = getComputedStyle(document.documentElement);
 const bookSetting = name => BOOK.getPropertyValue(name).trim().replace(/^(["'])([^"']*)\1$/, '$2');   // unquote a lone string only
+// The board and ink colours come from the palette in engine.css, which lib/book.css may redefine (a light board):
+// the picture, the cards and the player bar then agree. The six hues are the chapters' meanings, set in JS.
+const COL = { nat: '#f4a48c', whole: '#86c9e8', int: '#f3c95c', rat: '#e8a0c8', irr: '#8fd6b0', real: '#bba8ee',
+  chalk: '#ece8dc', dim: '#9aaba3', faint: '#5d7068', task: '#f0b45a', good: '#8fd6b0', bad: '#f08c7a', board: '#1d2b27' };
+{ // a canvas reads any CSS colour back as #rrggbb, the form colour tweens mix; a missing or bad one keeps the default
+  const c = document.createElement('canvas').getContext('2d');
+  for (const k of ['chalk', 'dim', 'faint', 'task', 'good', 'bad', 'board']) { c.fillStyle = COL[k]; c.fillStyle = bookSetting('--' + k) || COL[k]; COL[k] = c.fillStyle; }
+}
 const MATH = bookSetting('--math-font') || '"STIX Two Text","Cambria Math","Iowan Old Style",Palatino,Georgia,serif';
 const NAME = { nat: translate('natural'), whole: translate('whole'), int: translate('integers'), rat: translate('rational'), irr: translate('irrational'), real: translate('real') };
 // Card positions inside the 1600×900 picture.
@@ -280,7 +286,8 @@ function put(e, o) { Object.assign(st(e), o); render(e); return e; }
 // Unchanged transform/opacity are not rewritten: per-frame updates of still elements cost repaints (notably in Firefox).
 function render(e) {
   const s = e._st, tf = s.x || s.y || s.s !== 1 || s.r ? `translate(${s.x},${s.y}) rotate(${s.r}) scale(${s.s})` : null;
-  if (tf !== e._tf) { if (tf) e.setAttribute('transform', tf); else e.removeAttribute('transform'); e._tf = tf; }
+  // _tf starts unset: an element never moved keeps a transform attribute it was made with
+  if (tf !== (e._tf ?? null)) { if (tf) e.setAttribute('transform', tf); else e.removeAttribute('transform'); e._tf = tf; }
   if (s.o !== e._o) { e.setAttribute('opacity', s.o); e._o = s.o; }
   if (s.d !== undefined) {
     e.setAttribute('stroke-dashoffset', 1 - s.d);
@@ -576,9 +583,9 @@ const back = p => 1 + 2.2 * (p - 1) ** 3 + 1.2 * (p - 1) ** 2;
 const lin = p => p;
 function tw(e, to, t0, dur = .6, ease = io) { TW.push({ e, to, t0, dur, ease }); }
 function prog(pf, t0, dur, ease = io) { TW.push({ pf, t0, dur, ease }); }
-const show = (e, t0, dur = .5) => tw(e, { o: 1 }, t0, dur);
-const hide = (e, t0, dur = .5) => tw(e, { o: 0 }, t0, dur);
-const draw = (e, t0, dur = .9) => tw(e, { d: 1 }, t0, dur);
+const show = (e, t0, dur = .5, ease) => tw(e, { o: 1 }, t0, dur, ease);
+const hide = (e, t0, dur = .5, ease) => tw(e, { o: 0 }, t0, dur, ease);
+const draw = (e, t0, dur = .9, ease) => tw(e, { d: 1 }, t0, dur, ease);
 const pop = (e, t0) => tw(e, { s: 1, o: 1 }, t0, .45, back);
 function pulse(e, t0, k = 1.7) { tw(e, { s: k }, t0, .22, out); tw(e, { s: 1 }, t0 + .22, .4); }
 function stream(t, str, t0, dur) { prog(q => { t.textContent = str.slice(0, Math.round(q * str.length)); }, t0, dur, lin); }
@@ -606,8 +613,11 @@ function evalTo(t, list = TW) {
 /* ---------- world clock and camera ---------- */
 const soft = p => (1 - Math.cos(Math.PI * p)) / 2;   // gentle in-out, for camera moves
 // Continuous motion: f(t) runs on every frame of the beat with t in seconds from its start (0..D).
-// Keep f a pure function of t, so pause, seek and ?beat=N&t=S show the same frame.
-const clockRun = (f, D) => { f(0); prog(q => f(q * D), 0, D, lin); };
+// Keep f a pure function of t, so pause, seek and ?beat=N&t=S show the same frame. A beat holds its picture for HOLD s
+// after its narration and last tween; with { tail: true } f keeps running through that hold (t up to the beat's end)
+// instead of freezing at D, for motion that never stops, as in a film. A camera runs through the hold too when anything
+// in its beat does (its tail is 'follow'), so a follow shot keeps up with a tailed subject.
+const clockRun = (f, D, { tail = false } = {}) => { f(0); const w = { t0: 0, dur: D, ease: lin, tail }; w.pf = q => f(q * w.dur); TW.push(w); };
 // A camera looks at a world group through the stage (or a box, for split screen and picture-in-picture).
 // The view {x, y, z, r} is the world point at the centre, the zoom (screen px per world px) and the roll in degrees.
 // Moves are keyed on the beat clock: to(view, t0, dur, ease) blends each given key from its value at t0; a key may be a
@@ -676,7 +686,7 @@ function camera(p, D, { box, x = 800, y = 450, z, r = 0, bg = COL.board } = {}) 
       put(el, { x: Math.min(bx + bw - m - h, Math.max(bx + m + h, sx)), y: sy, o: Math.max(0, 1 - away / 80) });
     },
   };
-  clockRun(apply, D);
+  clockRun(apply, D, { tail: 'follow' });
   return cam;
 }
 
@@ -1063,9 +1073,12 @@ const grid = (items, cols, { multi = true, text = false } = {}) => (body, api) =
   };
 };
 // Exact value of a typed answer: integer, decimal, fraction a/b or mixed number "w a/b"; returns [num, den] or null.
-// Accepts −, – or - as the sign, and a decimal comma when DECIMAL_SIGN is ','. Never evaluates the text as code.
+// Accepts −, – or - as the sign, a currency sign before or after ($5, -$5, 5 €), thousands grouped by spaces (any kind)
+// or, where the decimal sign is a point, by commas, and a decimal comma when DECIMAL_SIGN is ','. Never evaluates the text as code.
 function rat(str) {
-  let t = String(str).trim().replace(/^[−–]/, '-').replace(/\s+/g, ' ');
+  let t = String(str).trim().replace(/^[−–]/, '-').replace(/\s+/g, ' ').replace(/^(-?) ?\p{Sc} ?|(?<=\d) ?\p{Sc}$/gu, '$1');
+  const group = DECIMAL_SIGN === ',' ? ' ' : '[, ]';   // one kind of separator throughout: 1,000 000 is not a number
+  t = t.replace(new RegExp(`^(-?\\d{1,3})(${group})(\\d{3}(?:\\2\\d{3})*)(?=$|[.,])`), (_, head, sep, rest) => head + rest.split(sep).join(''));
   if (DECIMAL_SIGN === ',') t = t.replace(/^(-?\d+),(\d+)$/, '$1.$2');   // 0,75 where the decimal sign is a comma
   let m = t.match(/^(-?)(\d+)(?:\.(\d+))?$/);
   if (m) { const d = 10 ** (m[3] || '').length, n = (m[1] ? -1 : 1) * (Number(m[2]) * d + Number(m[3] || 0)); return Number.isSafeInteger(n) && Number.isSafeInteger(d) ? [n, d] : null; }
@@ -1126,7 +1139,8 @@ const blanks = rowsIn => (body, api) => {
     if (ok && !r.played) { r.played = true; r.it.fx?.(); }
     return ok;
   };
-  requestAnimationFrame(() => all[0]?.focus({ preventScroll: true }));
+  // not on the frame ?beat=N opens before the lesson has started: there Space starts it rather than typing a space
+  requestAnimationFrame(() => { if (P.started) all[0]?.focus({ preventScroll: true }); });
   return {
     check() {
       const right = rows.filter(judge).length, done = right === rows.length;
@@ -1161,8 +1175,12 @@ function runBeat(i) {
   b.run(m, pre + tm.dur);
   if (S.cleared && b.lead !== false && !pre) leadIn();
   TW.sort((a, c) => a.t0 - c.t0);
-  return Math.max(pre + tm.dur, ...TW.map(w => w.t0 + w.dur)) + .6;
+  const end = Math.max(pre + tm.dur, ...TW.map(w => w.t0 + w.dur)) + HOLD;
+  const tail = TW.some(w => w.tail === true);
+  for (const w of TW) if (w.tail === true || tail && w.tail === 'follow') w.dur = end - w.t0;
+  return end;
 }
+const HOLD = .6;
 // A beat that clears the picture must not leave it empty while the narration has started.
 // If nothing appears before LEAD_MAX, the opening group (every tween that starts within LEAD_GROUP s of the
 // first reveal) moves earlier so it begins at LEAD_AT, just after the old panel has faded. Later steps keep their word timing.
@@ -1229,7 +1247,7 @@ function start(i, play) {
   };
   const b = BEATS[i];
   if (b.ask) b.ask(() => {
-    if (P.i !== i) return;
+    if (P.i !== i || P.done) return;
     evalTo(Infinity);
     if (i + 1 < BEATS.length) start(i + 1, true);
     else { P.done = true; setPlaying(false); filmDone(); }
@@ -1282,10 +1300,13 @@ function beatDone() {
 // counts as done, and CHAPTER.next is offered over that frame. Seeking or replaying clears the button with the cards.
 function filmDone() {
   progress(p => { p.done = [...new Set([...(p.done || []), CHAPTER.number])]; });
+  document.activeElement?.blur();   // a last question's Continue keeps focus, and Enter would press it again
+  // as on the finish card: Enter opens the next chapter (or replays), R and Space replay
+  const go = () => { if (CHAPTER.next) location.href = CHAPTER.next; else restart(); };
+  P.keys = e => e.key === 'Enter' ? (go(), true) : isShortcut(e, 'r') ? (restart(), true) : false;
   if (!CHAPTER.next) return;
   const next = h('button', 'btn go', [translate('nextChapter'), kbd('Enter')]);
-  next.onclick = () => { location.href = CHAPTER.next; };
-  P.keys = e => e.key === 'Enter' ? (next.onclick(), true) : false;   // not focused, so Space still replays
+  next.onclick = go;
   const c = card({ x: 0, y: 770, w: 0, cls: 'side' }, 'next');
   Object.assign(c.style, { left: 'auto', right: '40px', width: 'auto' });
   c.append(h('div', 'acts', [next]));
@@ -1376,10 +1397,15 @@ function setCaptions(on, save = true) {
   if (save) try { localStorage.setItem('captions', on ? '1' : '0'); } catch {}
 }
 setCaptions(captions, false);   // only the reader's own choice is stored, so a book can still pick the first-time default
-function hideCover() { P.started = true; $('cover').hidden = true; }
+function hideCover() {
+  P.started = true; $('cover').hidden = true;
+  // a question that ?beat=N opened before the start (its box waited unfocused, so Space started) now takes the typing
+  if (BEATS[P.i].ask) $('ui').querySelector('input.box:not(:disabled)')?.focus({ preventScroll: true });
+}
 function togglePlay() {
   if (!P.started) { hideCover(); return setPlaying(true); }
-  if (P.waiting || P.done) return;
+  if (P.done) return restart();   // the end of a film (or of a chapter whose last step is a question): play again
+  if (P.waiting) return;
   setPlaying(!P.playing);
 }
 const back1 = () => seek(P.t > 2.5 || P.i === 0 ? P.i : P.i - 1);
@@ -1388,7 +1414,7 @@ $('cover').onclick = togglePlay;
 $('stage').addEventListener('click', e => {
   if (e.target.closest('a.cite')) { if (P.playing && !P.waiting) setPlaying(false); return; }   // opening a source pauses the lesson
   const b = BEATS[P.i];
-  if (!b.ask && !e.target.closest('.qlayer')) togglePlay();
+  if (!b.ask && !P.done && !e.target.closest('.qlayer')) togglePlay();   // a tap on a finished film's last frame does nothing
 });
 const citeObs = new MutationObserver(ms => { for (const m of ms) for (const n of m.addedNodes) autoCite(n); });
 citeObs.observe(scene, { childList: true, subtree: true });
@@ -1440,7 +1466,7 @@ document.addEventListener('keydown', e => {
   if ((k === 'Enter' || k === ' ') && e.target.closest?.('button, [tabindex], a')) return;  // a Tab-focused control acts itself
   if (!P.started) { if (k === ' ' || k === 'Enter') { e.preventDefault(); togglePlay(); } return; }
   if (P.keys && !e.shiftKey && P.keys(e)) { e.preventDefault(); return; }
-  const free = e.shiftKey || !P.keys;
+  const free = e.shiftKey || !P.keys || P.done;   // after the end no question holds the arrows
   let used = true;
   if (k === ' ') togglePlay();
   else if (k === 'ArrowLeft' && free) back1();
@@ -1479,7 +1505,11 @@ function boot() {
   progress(p => { p.last = CHAPTER.number; });
   document.getElementById('stage').setAttribute('aria-label', translate('stageLabelTitled', { title: CHAPTER.title }));
   const film = !BEATS.some(b => b.ask);   // a picture book: no questions, so no "lesson" or "quick checks" on its cover
-  if (film) { $('coverGo').textContent = translate('startFilm'); $('help').querySelector('.help-cols > :last-child').hidden = true; }
+  if (film) {   // the help lists no question keys and needs no column titles
+    $('coverGo').textContent = translate('startFilm');
+    const shift = [...$('help').querySelectorAll('dt')].find(e => e.textContent.startsWith('Shift'));
+    for (const e of [$('help').querySelector('.help-cols > :last-child'), $('help').querySelector('h3'), shift, shift.nextElementSibling]) e.hidden = true;
+  }
   $('coverMeta').textContent = translate(film ? 'aboutMinutesFilm' : 'aboutMinutes', { n: num(CHAPTER.minutes) });
   buildSegs();
   const qs = new URLSearchParams(location.search);

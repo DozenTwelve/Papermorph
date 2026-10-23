@@ -8,7 +8,8 @@ the answers, practice and finish card. Copy to tools/<book>/e2e_chNN.py and fill
 import asyncio, os
 from playwright.async_api import async_playwright
 URL = os.environ.get("URL", "http://localhost:8765/BOOK/ch01/")
-# Question beat id -> keys for each question in turn: '1'..'9' picks a choice; '=a,b' fills the boxes and checks.
+# Question beat id -> one step per question in turn: '1'..'9' picks a choice; '=a,b' fills the boxes and checks;
+# '#2;1+3' answers a grid (rows split by ';', each row's columns counted from 1, '+' for several, '#2;;1' a row left empty) and checks.
 ANSWERS = {"q1": ["=7"], "final1": ["1"]}
 
 # The frame reached by seeking straight to t equals the one reached by stepping through the beat (replays are exact).
@@ -21,11 +22,14 @@ SAME_FRAME = r"""
 }
 """
 # The open quiz card: prompt width and lines, every control inside the card, card bottom on the 900-high stage.
+# Lines count the prompt's prose: a table, figure or picture in the prompt is taken out of its height.
 CARD = r"""
 () => {
   const st = document.getElementById('stage').getBoundingClientRect(), k = st.width / 1600;
-  const c = document.querySelector('.card.quiz'), cr = c.getBoundingClientRect(), pr = c.querySelector('.prompt').getBoundingClientRect();
-  const lines = pr.height / (parseFloat(getComputedStyle(c.querySelector('.prompt')).lineHeight) * k);
+  const c = document.querySelector('.card.quiz'), pe = c.querySelector('.prompt'), cr = c.getBoundingClientRect(), pr = pe.getBoundingClientRect();
+  const blocks = [...pe.querySelectorAll('table, figure, img')].filter(e => !e.parentElement.closest('table, figure'));
+  const prose = pr.height - blocks.reduce((s, e) => s + e.getBoundingClientRect().height, 0);
+  const lines = prose / (parseFloat(getComputedStyle(pe).lineHeight) * k);
   const ctl = [...c.querySelectorAll('.opt, input.box, .btn:not([hidden])')].map(b => b.getBoundingClientRect());
   const inside = b => b.width > 0 && b.left >= cr.left - 1 && b.right <= cr.right + 1 && b.top >= cr.top - 1 && b.bottom <= cr.bottom + 1;
   return { promptW: pr.width / k, lines, ok: ctl.length > 0 && ctl.every(inside), bottom: (cr.bottom - st.top) / k };
@@ -70,6 +74,11 @@ async def main():
             for s in steps:
                 if s.startswith("="):
                     for j, v in enumerate(s[1:].split(",")): await pg.locator(".card input.box").nth(j).fill(v)
+                    await key("Enter")
+                elif s.startswith("#"):
+                    rows = pg.locator(".card.quiz .grid .row")
+                    for r, cols in enumerate(s[1:].split(";")):
+                        for c in filter(None, cols.split("+")): await rows.nth(r).locator(".opt").nth(int(c) - 1).click()   # '' = a row left empty
                     await key("Enter")
                 else: await key(s)
                 assert "Correct" in await pg.inner_text(".card .fb"), (bid, s)

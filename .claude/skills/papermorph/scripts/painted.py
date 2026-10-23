@@ -11,7 +11,8 @@ opaque part and placed by its left x, bottom y and width, so characters can stan
 parallax factor as in the sketch (1, the puppets' plane, if left out). The padding mirrors the picture's edges; a layer
 with "edge": "stretch" repeats its outermost pixels instead (when something near the edge, a post box, would show
 twice). Words for signs and boards
-(the model leaves them blank) are written onto the picture. Props go to SITE/img/props/<name>.webp. Run bake_sets.py
+(the model leaves them blank) are written onto the picture. sets.js is rewritten after each set, so if a set fails the
+sets before it are done and the rest keep their old files and entries. Props go to SITE/img/props/<name>.webp. Run bake_sets.py
 first (it rewrites sets.js); run this again after any change. Paths in the manifest are relative to the manifest.
 
     {
@@ -112,9 +113,8 @@ def main(manifest, site):
         for n, im in made:
             im.save(out / f'{n}.webp', quality=88, method=6)
             im.filter(ImageFilter.GaussianBlur(6)).save(out / f'{n}-soft.webp', quality=80, method=6)
-        sets[name] = entry
-    sets_js.parent.mkdir(parents=True, exist_ok=True)
-    sets_js.write_text('window.SETS = ' + json.dumps(sets) + ';\n')
+        sets[name] = entry   # sets.js follows each finished set, so a later failure leaves files and entries in step
+        tmp = sets_js.with_suffix('.tmp'); tmp.write_text('window.SETS = ' + json.dumps(sets) + ';\n'); tmp.replace(sets_js)
     props = pathlib.Path(site) / 'img/props'; props.mkdir(parents=True, exist_ok=True)
     for name, src in m.get('props', {}).items():
         im = tight(Image.open(base / src).convert('RGBA')); im.thumbnail((800, 800), Image.LANCZOS)
