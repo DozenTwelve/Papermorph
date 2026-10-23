@@ -1,0 +1,850 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Madness and Civilization</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/shared.js"></script>
+<script src="audio/en/timings.js"></script>
+<script src="../img/art.js"></script>
+<script src="../lib/lines.js"></script>
+<script src="../lib/europe.js"></script>
+<script src="../img/frames.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 1, title: 'Madness and Civilization', minutes: 10, language: 'en' };
+
+/* ---------- the look: burgundy ground, cream ink, found pictures ---------- */
+const KEY = '"Oswald", "Arial Narrow", sans-serif', SER = '"EB Garamond", Georgia, serif';
+const CREAM = '#f3ede0', HOT = '#f08a4b', SOFT = '#d9b9b0', INK = '#3a2a24';
+
+// a picture from img/: centred on (x, y), h or w in stage px; `at` makes it enter (from offset dx, dy) at that time
+function pic(p, name, { x = 800, y = 450, h = 600, w, r = 0, s = 1, at, from = [0, 40], dur = .9, o = 1, back = false } = {}) {
+  const sz = ART[name];
+  const g = G(p, at === undefined ? { x, y, r, s, o } : { x: x + from[0], y: y + from[1], r, s, o: 0 });
+  const k = w ? w / sz[0] : h / sz[1], W = sz[0] * k, H = sz[1] * k;
+  if (back) mk('rect', { x: -W / 2 + 4, y: -H / 2 + 4, width: W - 8, height: H - 8, fill: COL.board }, g);   // a solid line drawing (a door)
+  mk('image', { href: `../img/${name}.webp`, x: -W / 2, y: -H / 2, width: W, height: H }, g);
+  g._w = W; g._h = H; g._x = x; g._y = y;
+  if (at !== undefined) tw(g, { x, y, o }, at, dur, out);
+  return g;
+}
+const leave = (g, t0, dx = 0, dy = 0, dur = .7) => tw(g, { x: g._x + dx, y: g._y + dy, o: 0 }, t0, dur, io);
+const push = (g, t0, t1, s1 = 1.06, dx = 0, dy = 0) => tw(g, { s: s1, x: g._x + dx, y: g._y + dy }, t0, t1 - t0, lin);   // slow Ken Burns
+// one picture turning into another in place (the Fool changing era)
+const dissolve = (a, b, t0, dur = 1.2) => { hide(a, t0, dur, lin); show(b, t0, dur, lin); };
+
+// a Foucault line drawing: drawn on stroke by stroke over `draw` s, or shown whole
+function mf(p, name, { x = 800, y = 450, h = 600, at = 0, draw: dd = 0, o = 1, flip = false } = {}) {
+  const L = LINES[name], [x0, y0, x1, y1] = L.box, k = h / (y1 - y0);
+  const g = G(p, { x, y, o: dd ? 1 : 0 });
+  const inner = mk('g', { transform: `scale(${flip ? -k : k},${k}) translate(${-(x0 + x1) / 2},${-(y0 + y1) / 2})` }, g);
+  const total = L.l.reduce((a, b) => a + b, 0);
+  let acc = 0;
+  L.p.forEach((d, i) => {
+    const e = path(inner, d, { stroke: CREAM, 'stroke-width': 2.4 / k }, dd ? { d: 0 } : {});
+    if (dd) { draw(e, at + dd * acc / total, Math.max(.04, dd * L.l[i] / total), lin); acc += L.l[i]; }
+  });
+  if (!dd) tw(g, { o }, at, .6);
+  g._x = x; g._y = y; g._h = h;
+  return g;
+}
+// Foucault the guide, peeking up from the bottom edge when the narration names him
+function peek(p, t0, { x = 1440, y = 870, h = 230, until } = {}) {
+  const g = mf(p, 'mf-peek', { x, y: y + 90, h, at: t0 });
+  tw(g, { y }, t0, .8, out);
+  if (until !== undefined) tw(g, { y: y + 140, o: 0 }, until, .7, io);
+  return g;
+}
+
+// words in a font measured on a canvas (fonts are loaded before boot)
+const CTX = document.createElement('canvas').getContext('2d');
+const wid = (str, size, font, style = '', weight = 400) => { CTX.font = `${style} ${weight} ${size}px ${font}`; return CTX.measureText(str).width; };
+
+// big condensed word(s)
+function key(p, str, x, y, t0, { size = 96, fill = CREAM, anchor = 'middle', from = 24, o = 1 } = {}) {
+  const e = T(p, str.toUpperCase(), { x, y: y + from, size, fill, font: KEY, weight: 600, anchor, o: 0 });
+  e.setAttribute('letter-spacing', '.02em');
+  e._w = wid(str.toUpperCase(), size, KEY, '', 600) * 1.02;
+  tw(e, { y, o }, t0, .55, out);
+  return e;
+}
+// a line struck through a key word (the word's own width)
+function strike(p, e, x, y, t0, size, anchor = 'middle') {
+  const x0 = anchor === 'middle' ? x - e._w / 2 : anchor === 'end' ? x - e._w : x;
+  return line(p, `M${x0 - 16} ${y - size * .32}H${x0 + e._w + 16}`, t0, .4, Math.max(5, size / 12), { stroke: HOT });
+}
+// serif lines typed word by word between t0 and t1
+function say(p, lines, x, y, t0, t1, { size = 44, fill = CREAM, italic = true, anchor = 'start', lh = 1.3, weight = 400 } = {}) {
+  const g = G(p, {}), style = italic ? 'italic' : '', words = [];
+  const sp = wid(' ', size, SER, style, weight);
+  lines.forEach((ln, i) => {
+    const ws = ln.split(' '), W = wid(ln, size, SER, style, weight);
+    let cx = anchor === 'middle' ? x - W / 2 : anchor === 'end' ? x - W : x;
+    ws.forEach(w => {
+      const e = T(g, w, { x: cx, y: y + i * size * lh, size, fill, font: SER, weight, o: 0 });
+      if (italic) e.setAttribute('font-style', 'italic');
+      words.push(e); cx += wid(w, size, SER, style, weight) + sp;
+    });
+  });
+  const chars = words.map(e => e.textContent.length + 1), all = chars.reduce((a, b) => a + b, 0);
+  let acc = 0;
+  words.forEach((e, i) => { show(e, t1 === t0 ? t0 : t0 + (t1 - t0) * acc / all, .25, lin); acc += chars[i]; });
+  return g;
+}
+// a small caption under a picture (a credit or a name tag)
+function tag(p, str, x, y, t0, { size = 24, anchor = 'start', fill = SOFT } = {}) {
+  const e = T(p, str, { x, y, size, fill, font: SER, anchor, o: 0 });
+  e.setAttribute('font-style', 'italic');
+  show(e, t0, .5);
+  return e;
+}
+// the era at the top left, like a chapter opener: the year in italic, a hairline, the place or topic in spaced capitals
+function dateChip(p, year, topic, t0 = .2) {
+  const g = G(p, { x: 80, y: 112, o: 0 });
+  T(g, year, { size: 72, font: SER, weight: 400, fill: HOT }).setAttribute('font-style', 'italic');
+  const tw_ = wid(topic.toUpperCase(), 26, SER) * 1.3 + 8;   // letter-spacing .28em widens the caps by about 30 %
+  const rule = path(g, `M3 22H${Math.max(220, tw_)}`, { stroke: CREAM, 'stroke-width': 1.4, opacity: .7 }, { d: 0 });
+  T(g, topic.toUpperCase(), { x: 3, y: 58, size: 26, font: SER, weight: 400, fill: CREAM }).setAttribute('letter-spacing', '.28em');
+  tw(g, { o: 1 }, t0, .6); draw(rule, t0 + .2, .6);
+  return g;
+}
+// cream line, drawn on
+const line = (p, d, t0, dur = .8, w = 3, extra = {}) => { const e = path(p, d, { stroke: CREAM, 'stroke-width': w, ...extra }, { d: 0 }); draw(e, t0, dur); return e; };
+// wavy water lines that flow forever (pure function of the beat clock); amp may be a function of t
+function water(p, y0, D, { rows = 3, amp = 8, len = 1700, x0 = -50, gap = 26, o = .75 } = {}) {
+  const g = G(p, { o: 0 }); tw(g, { o }, 0, .6);
+  const ps = [...Array(rows)].map((_, i) => path(g, '', { stroke: CREAM, 'stroke-width': 2.2, opacity: 1 - i * .25 }));
+  clockRun(t => { const a = typeof amp === 'function' ? amp(t) : amp; ps.forEach((e, i) => {
+    let d = ''; for (let x = 0; x <= len; x += 20) d += `${x ? 'L' : 'M'}${x0 + x} ${(y0 + i * gap * (a / 8) ** .5 + a * Math.sin(x / 70 + t * 1.6 + i)).toFixed(1)}`;
+    e.setAttribute('d', d);
+  }); }, D, { tail: true });
+  return g;
+}
+// something that bobs on the water (a boat); x may follow a function of t
+const bob = (g, D, a = 6, xf) => clockRun(t => put(g, { y: g._y + a * Math.sin(t * 1.6), r: 1.5 * Math.sin(t * 1.1), ...(xf ? { x: xf(t) } : {}) }), D, { tail: true });
+const span01 = (t, a, b) => Math.min(1, Math.max(0, (t - a) / (b - a)));
+const smooth01 = q => q * q * (3 - 2 * q);
+// a speech balloon, cream outline, its tail to (tx, ty)
+function balloon(p, x, y, w, h, tx, ty, t0) {
+  const bx = Math.min(Math.max(tx, x + 60), x + w - 100);
+  const d = `M${x + 30} ${y}H${x + w - 30}Q${x + w} ${y} ${x + w} ${y + 30}V${y + h - 30}Q${x + w} ${y + h} ${x + w - 30} ${y + h}H${bx + 40}L${tx} ${ty}L${bx} ${y + h}H${x + 30}Q${x} ${y + h} ${x} ${y + h - 30}V${y + 30}Q${x} ${y} ${x + 30} ${y}Z`;
+  return line(p, d, t0, .7, 3);
+}
+// a field of dots (leper houses): positions from a fixed seed so every replay is the same
+function rng(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
+function dots(p, n, box, r, seed, fill = CREAM) {
+  const R = rng(seed), g = G(p, {});
+  return { g, el: [...Array(n)].map(() => mk('circle', { cx: box[0] + R() * box[2], cy: box[1] + R() * box[3], r, fill }, g)).map(e => put(e, { o: 0 })) };
+}
+// close-ups inside a print as their words are spoken: shots [[mark, fx, fy, label, zoom]], fx/fy the point in the picture
+// (0..1 of the picture inside its border); the view never leaves the picture; a band names each one; back to the whole after
+function closeups(p, g, name, shots, m, tBack, home) {
+  const [W, H] = ART[name], k = g._w / W, iw = (W - 112) * k, ih = (H - 112) * k;   // a print's picture sits 56 px in
+  const clamp = (v, lim) => Math.max(-lim, Math.min(lim, v));
+  shots.forEach(([mark, fx, fy, label, Z = 3], i) => {
+    const dx = clamp((fx - .5) * iw, iw / 2 - 800 / Z), dy = clamp((fy - .5) * ih, ih / 2 - 450 / Z), t0 = m(mark) - .15;
+    tw(g, { s: Z, x: 800 - Z * dx, y: 450 - Z * dy, r: 0 }, t0, .35, out);
+    const l = G(p, { x: 800, y: fy > .7 ? 130 : 820, o: 0 }), lw = wid(label.toUpperCase(), 72, KEY, '', 600) + 70;   // clear of a low subject
+    mk('rect', { x: -lw / 2, y: -68, width: lw, height: 92, fill: COL.board }, l);
+    T(l, label.toUpperCase(), { y: 0, size: 72, font: KEY, weight: 600, fill: CREAM, anchor: 'middle' });
+    show(l, t0, .12);
+    hide(l, i < shots.length - 1 ? m(shots[i + 1][0]) - .15 : tBack, .15);
+  });
+  if (home) tw(g, { s: 1, ...home }, tBack, .8, soft);   // no home: stay on the last close-up
+}
+// a generated clip as cream-line frames on one sprite sheet (tools/madness/frames.py), played on the beat clock from t0:
+// the frame is a pure function of the time, so pausing, seeking and the export all show the same picture
+function anim(p, name, { x = 800, y = 450, size = 600, at = 0, t0 = at, D, o = 1 } = {}) {
+  const F = FRAMES[name], rows = Math.ceil(F.n / F.cols);
+  const g = G(p, { x, y, o: 0 });
+  const v = mk('svg', { x: -size / 2, y: -size / 2, width: size, height: size, viewBox: `0 0 ${F.fw} ${F.fh}` }, g);
+  mk('image', { href: `../img/${name}-sheet.webp`, width: F.cols * F.fw, height: rows * F.fh }, v);
+  let last = -1;
+  clockRun(t => {
+    const f = Math.max(0, Math.min(F.n - 1, Math.floor((t - t0) * F.fps)));
+    if (f !== last) { last = f; v.setAttribute('viewBox', `${(f % F.cols) * F.fw} ${Math.floor(f / F.cols) * F.fh} ${F.fw} ${F.fh}`); }
+  }, D, { tail: true });
+  tw(g, { o }, at, .8);
+  return g;
+}
+// Europe (Natural Earth coastline) in its box, faint, with the leper-house dots on land.
+// Outline only: Eurasia's ring crosses the antimeridian, so a fill would flood the whole box.
+function europe(p, t0) {
+  const [bx, by, bw, bh] = EUROPE.box, g = G(p, { o: 0 });
+  const cp = mk('clipPath', { id: 'eu' + t0 }, g); mk('rect', { x: bx, y: by, width: bw, height: bh }, cp);
+  mk('path', { d: EUROPE.d, fill: 'none', stroke: CREAM, 'stroke-width': 1.5, 'stroke-opacity': .6, 'clip-path': `url(#eu${t0})` }, g);
+  tw(g, { o: 1 }, t0, .8);
+  const dg = G(p, {});
+  const el = EUROPE.dots.map(([x, y]) => put(mk('circle', { cx: x, cy: y, r: 4.5, fill: CREAM }, dg), { o: 0 }));
+  return { g, el };
+}
+// an old document: cream paper, lines of ink, a label
+function doc(p, label, x, y, r, t0, seed) {
+  const R = rng(seed), g = G(p, { x: x - 700, y, r, o: 0 });
+  mk('rect', { x: -150, y: -200, width: 300, height: 400, fill: CREAM, stroke: '#cdbfa6' }, g);
+  for (let i = 0; i < 13; i++) {
+    const yy = -130 + i * 24, ww = 160 + R() * 70;
+    path(g, `M-118 ${yy}q${ww / 4} ${-3 + R() * 6} ${ww / 2} 0t${ww / 2} 0`, { stroke: INK, 'stroke-width': 2, opacity: .7 });
+  }
+  T(g, label.toUpperCase(), { y: -160, size: 22, font: KEY, weight: 600, fill: '#7a1a20', anchor: 'middle' }).setAttribute('letter-spacing', '.06em');
+  tw(g, { x, o: 1 }, t0, .8, out);
+  g._x = x; g._y = y;
+  return g;
+}
+// a point moving along a polyline [[x, y], …] as q goes 0..1
+function along(pts, q) {
+  const seg = pts.slice(1).map((b, i) => Math.hypot(b[0] - pts[i][0], b[1] - pts[i][1])), L = seg.reduce((a, b) => a + b, 0);
+  let d = q * L, i = 0;
+  while (i < seg.length - 1 && d > seg[i]) d -= seg[i++];
+  const f = seg[i] ? d / seg[i] : 0, a = pts[i], b = pts[i + 1];
+  return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
+}
+// the epigraphs, each in its own frame: portrait left, the quote large beside it
+const PASCAL = ['“Men are so necessarily mad,', 'that not to be mad would amount', 'to another form of madness.”'];
+const DOSTO = ['“It is not by confining', 'one’s neighbor that one', 'is convinced of one’s own sanity.”'];
+function epigraph(p, name, who, lines, tin, tq, tq1, tout) {
+  const g = G(p, {});
+  pic(g, name, { x: 330, y: 430, h: 440, r: -2, at: tin, from: [-500, 0] });
+  tag(g, who, 330, 690, tin + .5, { anchor: 'middle', size: 30, fill: CREAM });
+  say(g, lines, 620, 330, tq, tq1, { size: 62 });
+  if (tout !== undefined) tw(g, { x: -200, o: 0 }, tout, .7, io);
+  return g;
+}
+
+const OPEN_PRE = 5;
+
+// the confined, one figure per word (inmates), then small in the lower half (idle); without m, all shown at once
+const INMATES = [['beg', 'beggars', 'callot1'], ['unemp', 'the unemployed', 'callot2'], ['vag', 'vagrants', 'callot3'],
+  ['pros', 'prostitutes', 'callot4'], ['blas', 'blasphemers', 'callot1'], ['old', 'the old', 'callot2'], ['mad', 'the mad', 'fool-1656']];
+const ROW_SMALL = { s: .55, x: 800 * .45, y: 735 - 470 * .55 };   // scaled about the stage origin: centre (800, 470) lands at (800, 735)
+function inmatesRow(p, m) {
+  const row = G(p, {});
+  INMATES.forEach(([mark, label, img], i) => {
+    const x = 130 + i * 223, t0 = m ? m(mark) - .2 : undefined;
+    const g = pic(row, img, { x, y: 470, h: 400, ...(m ? { at: t0, from: [0, 60], dur: .6 } : {}) });
+    if (i === 4 || i === 5) g.firstChild.setAttribute('transform', 'scale(-1,1)');
+    const l = T(row, label, { x, y: 760, size: 32, fill: i === 6 ? HOT : CREAM, font: SER, anchor: 'middle', o: m ? 0 : 1 });
+    l.setAttribute('font-style', 'italic');
+    if (m) show(l, m(mark), .5);
+  });
+  return row;
+}
+
+/* ---------- beats ---------- */
+const BEATS = [
+  // 0. Cold open
+  ['open', 'A town and its madmen', (m, D) => {
+    const p = panel(0), P0 = OPEN_PRE;   // P0 s of music and title before the first line
+    const ti = key(p, 'Madness and Civilization', 800, 420, .5, { size: 96 });
+    const su = tag(p, 'after Michel Foucault, 1961', 800, 490, 1.6, { anchor: 'middle', size: 32, fill: CREAM });
+    hide(ti, P0 - .9, .6); hide(su, P0 - .9, .6);
+    pic(p, 'town', { x: 800, y: 760, w: 1500, at: P0 - .6, from: [0, 120], dur: 1.2 });
+    say(p, ['Imagine a town that no longer wants its madmen.'], 800, 250, P0 + .2, P0 + 2.9, { size: 52, anchor: 'middle' });
+    const f = pic(p, 'fool', { x: 760, y: 640, h: 200, at: m('mad'), from: [0, 30] });
+    say(p, ['What does it do with them?'], 800, 340, m('do') - 1, m('do') + .8, { size: 52, anchor: 'middle', fill: HOT });
+    tw(f, { x: 1700 }, m('do') + .4, D - m('do') + .4, io);
+  }, { pre: OPEN_PRE }],
+  ['bosch', 'Bosch', (m, D) => {
+    const p = panel(0);
+    const b = pic(p, 'bosch', { x: 620, y: 470, h: 800, at: .1, from: [0, 900], dur: 1.2 });
+    push(b, 1.3, D + .6, 1.08, 0, -30);
+    tag(p, 'Hieronymus Bosch, The Ship of Fools, c. 1500', 1080, 820, m('bosch'));
+    key(p, 'Put them in a boat.', 1300, 360, m('boat'), { size: 60 });
+    key(p, 'Let them drift.', 1300, 450, m('drift'), { size: 60, fill: HOT });
+  }],
+  ['foucault', 'Michel Foucault', (m, D) => {
+    const p = panel(0);
+    dateChip(p, '1950s', 'Paris');
+    mf(p, 'mf-front', { x: 1130, y: 500, h: 760, at: m('mf') - .6, draw: 4.2 });
+    key(p, 'Michel Foucault', 80, 380, m('mf') + .2, { size: 84, anchor: 'start' });
+    tag(p, '1926 – 1984', 84, 430, m('mf') + .8, { size: 30 });
+    tag(p, 'psychologist at a psychiatric hospital in Paris', 84, 490, m('hosp'), { size: 30, fill: CREAM });
+    say(p, ['who may speak,', 'and who is only spoken about'], 84, 600, m('about') - 2.6, m('about') + .9, { size: 46, fill: SOFT });
+  }],
+  ['uppsala', 'Uppsala', (m, D) => {
+    const p = panel(0);
+    dateChip(p, '1955', 'Uppsala, Sweden', m('upp') - .2);
+    const g = mf(p, 'mf-glass', { x: 1180, y: 480, h: 560, at: .1 });
+    const ds = [['city accounts', -7, 330, 380], ['royal edicts', 5, 560, 470], ['hospital registers', -3, 420, 600]]
+      .map(([l, r, x, y], i) => { const t = m('edicts') - 1.6 + i * .9; sfx('uppsala', t + .2, 'page', .5); return doc(p, l, x, y, r, t, 3 + i); });
+    ds.forEach(d => leave(d, m('title') - .9, -200, 0));
+    hide(g, m('title') - .9, .6);
+    key(p, 'Madness and Civilization', 800, 440, m('title') - .1, { size: 100 });
+    tag(p, 'Michel Foucault · Histoire de la folie, 1961', 800, 510, m('title') + .6, { size: 30, anchor: 'middle' });
+  }],
+  ['preface', 'Two sentences', (m, D) => {
+    const p = panel(0);
+    key(p, 'The preface', 800, 300, .2, { size: 70, fill: SOFT });
+    say(p, ['two sentences'], 800, 380, 1.4, 2.4, { size: 50, anchor: 'middle' });
+    [...p.children].forEach(e => hide(e, m('pascal') - .6, .4));
+    epigraph(p, 'pascal', 'Blaise Pascal, Pensées', PASCAL, m('pascal') - .3, m('q1'), m('fd') - .7, m('fd') - .6);
+    epigraph(p, 'dosto', 'Fyodor Dostoevsky, Diary of a Writer', DOSTO, m('fd') - .1, m('q2'), D - .3);
+  }],
+  ['thesis', 'The sane and the mad', (m, D) => {
+    const p = panel(0);
+    const top = tag(p, 'Pascal', 800, 115, 0, { anchor: 'middle', size: 34, fill: SOFT });
+    const bot = tag(p, 'Dostoevsky', 800, 835, 0, { anchor: 'middle', size: 34, fill: SOFT });
+    const r1 = line(p, 'M300 140H1300', .4, .9, 2, { opacity: .6 }), r2 = line(p, 'M300 790H1300', .6, .9, 2, { opacity: .6 });
+    const C = TIMINGS.thesis.cues;
+    const mi = key(p, 'A history of mental illness', 800, 470, C[1][0] + .2, { size: 74 });
+    const ms = strike(p, mi, 800, 470, C[1][0] + 2, 74);
+    hide(mi, C[2][0] - .3, .5); hide(ms, C[2][0] - .3, .5);
+    const a = key(p, 'The sane', 540, 470, m('sane'), { size: 110 });
+    const b = key(p, 'The mad', 1060, 470, m('mad'), { size: 110, fill: HOT });
+    const l = line(p, 'M800 360V500', m('sane') + .6, .6, 3);
+    [a, b, l, top, bot, r1, r2].forEach(e => hide(e, C[3][0] - .2, .6));
+    // the timeline the fool will walk
+    line(p, 'M240 860H1360', C[3][0] + .2, 1.2, 2, { opacity: .6 });
+    [['1400', 240], ['1500', 470], ['1656', 760], ['1790', 1020], ['1889', 1360]].forEach(([y, x], i) =>
+      tag(p, y, x, 840, C[3][0] + .4 + i * .2, { anchor: 'middle', size: 22 }));
+    pic(p, 'fool', { x: 300, y: 560, h: 520, at: m('fool') - .4, from: [0, 30], dur: .8 });
+  }],
+
+  // 1. The empty leper house
+  ['lepers', 'Leper houses', (m, D) => {
+    const p = panel(0);
+    dateChip(p, 'c. 1200', 'Leper houses');
+    pic(p, 'leper', { x: 320, y: 480, h: 560, r: -2, at: .3, from: [-500, 0] });
+    const ds = europe(p, .4);
+    ds.el.forEach((e, i) => show(e, m('houses') + (i / ds.el.length) * 2.2, .3));
+    key(p, '19,000', 1090, 790, m('n'), { size: 120, fill: HOT });
+    tag(p, 'leper houses in Christendom, by one medieval count', 1090, 840, m('n') + .5, { anchor: 'middle' });
+  }],
+  ['outside', 'Outside the walls', (m, D) => {
+    const p = panel(0);
+    pic(p, 'town', { x: 620, y: 700, w: 1200, at: .1, from: [0, 60] });
+    const lep = pic(p, 'leper', { x: 620, y: 470, h: 360, at: .3 });
+    tw(lep, { x: 1340 }, m('walls'), 1.6, io);
+    pic(p, 'clapper', { x: 1340, y: 760, h: 170, r: -10, at: m('clap'), from: [0, 30] });
+    key(p, 'clack', 1480, 680, m('clap') + .3, { size: 44, fill: HOT });
+    sfx('outside', m('clap') + .2, 'clack', .9); sfx('outside', m('clap') + .55, 'clack', .7); sfx('outside', m('clap') + 1.6, 'bell', .45);
+  }],
+  ['empty', 'Leprosy fades', (m, D) => {
+    const p = panel(0);
+    const ds = europe(p, 0);
+    put(ds.g, { o: 1 });
+    ds.el.forEach(e => put(e, { o: 1 }));
+    const R = rng(11);
+    ds.el.forEach(e => hide(e, m('fade') + R() * 2.4, .4));
+    pic(p, 'leper-house', { x: 430, y: 470, h: 480, r: 2, at: .2, from: [-500, 0] });
+    key(p, 'Empty', 1090, 470, m('emptied'), { size: 120 });
+  }],
+  ['remain', 'The place of exclusion', (m, D) => {
+    const p = panel(0);
+    const C = TIMINGS.remain.cues;
+    const h = pic(p, 'leper-house', { x: 640, y: 430, h: 560 });
+    push(h, 0, D + .6, 1.06, 0, 10);
+    tag(p, 'the buildings remained', 640, 790, m('bld'), { anchor: 'middle', size: 34, fill: CREAM });
+    say(p, ['and the habit of mind that built them'], 640, 850, C[2][0] + .2, C[2][0] + 2.2, { size: 40, anchor: 'middle', fill: SOFT });
+    const lep = pic(p, 'leper', { x: 1300, y: 450, h: 300, at: C[2][0] + 1.5, from: [0, 30] });
+    const hand = pic(p, 'hand', { x: 1080, y: 420, h: 130, at: m('push') - .6, from: [-160, 0], dur: .6 });
+    tw(hand, { x: 1260 }, m('push') + .1, .35, io);
+    tw(lep, { x: 1850, r: 8 }, m('push') + .25, .9, io);
+    hide(hand, m('push') + 1.4, .5);
+    tw(h, { o: .3 }, m('wait'), 1.2);
+    say(p, ['Who would fill it?'], 800, 460, m('who'), m('who') + 1.2, { size: 84, anchor: 'middle', fill: CREAM });
+  }],
+
+  // 2. The Ship of Fools
+  ['float', 'The answer floated', (m, D) => {
+    const p = panel(0);
+    dateChip(p, '1494', 'The Ship of Fools');
+    water(p, 690, D + 1);
+    const b = pic(p, 'fool-boat', { x: 800, y: 560, h: 380, at: .1, from: [-1100, 0], dur: 2.6 });
+    bob(b, D + 1);
+    key(p, 'The Ship of Fools', 800, 300, m('ship'), { size: 110 });
+  }],
+  ['brant', 'Brant', (m, D) => {
+    const p = panel(0);
+    pic(p, 'brant-title', { x: 300, y: 450, h: 640, r: -3, at: m('brant') - .3, from: [0, 700], dur: 1 });
+    sfx('brant', m('brant') + .2, 'page', .5);
+    tag(p, 'Sebastian Brant, Das Narrenschiff, Basel 1494', 300, 820, m('brant') + 1, { anchor: 'middle', size: 26 });
+    const w = pic(p, 'nar-1549', { x: 1040, y: 470, w: 960, r: 2, at: m('greedy') - 1.7, from: [0, 700], dur: .9 });
+    sfx('brant', m('greedy') - 1.3, 'page', .5);
+    // a close-up on each fool as he is named (points measured on a grid over the woodcut)
+    closeups(p, w, 'nar-1549', [['greedy', .12, .34, 'the greedy', 3.4], ['vain', .48, .44, 'the vain', 3.4],
+      ['drunk', .69, .37, 'the drunk', 3.4], ['idle', .89, .34, 'the idle', 3.4]], m, m('idle') + .9, { x: 1040, y: 470, r: 2 });
+    // the section ends on the fools' giggle (ElevenLabs v4 'callum', first 2 s; books/madness/voices/laugh): the beat runs on
+    // past the narration so the effect finishes before the next beat cuts it
+    sfx('brant', D + .1, 'laugh-jester', .9);
+    prog(() => {}, D, 1.6, lin);
+    push(w, m('cuts') + .2, D + .6, 1.08, -20, 10);
+  }],
+  ['records', 'The real ships', (m, D) => {
+    const p = panel(0);
+    pic(p, 'rhine', { x: 560, y: 470, w: 1040, r: -1, at: .1, from: [-600, 0] });
+    mf(p, 'mf-glass', { x: 1240, y: 520, h: 560, at: m('real') - .3, draw: 3.2 });
+    dateChip(p, '1399', 'Frankfurt', m('ffm') - .2);
+    const pin = G(p, { x: 510, y: 500, o: 0, s: 0 }); mk('circle', { r: 13, fill: HOT, stroke: CREAM, 'stroke-width': 3 }, pin);
+    pop(pin, m('ffm'));
+    const fl = G(p, { x: 510, y: 548, o: 0 }), fw = wid('FRANKFURT', 30, KEY, '', 600) + 30;   // on the light map: a band
+    mk('rect', { x: -fw / 2, y: -28, width: fw, height: 40, fill: COL.board }, fl);
+    T(fl, 'FRANKFURT', { y: 2, size: 30, font: KEY, weight: 600, fill: CREAM, anchor: 'middle' });
+    show(fl, m('ffm') + .3, .4);
+    tag(p, 'sailors paid to take a madman away', 560, 800, m('away') - .4, { anchor: 'middle', fill: CREAM, size: 32 });
+    const route = [[520, 492], [600, 468], [690, 440], [760, 405], [790, 350], [840, 250]];
+    line(p, 'M' + route.map(q => q.join(' ')).join('L'), m('down'), 2.4, 5, { 'stroke-dasharray': '10 12', stroke: HOT });
+    const b = pic(p, 'fool-boat-ink', { x: 520, y: 470, h: 90, at: m('down') - .4, from: [0, 0], dur: .4 });
+    prog(q => { const [x, y] = along(route, q); put(b, { x, y: y - 26 }); }, m('down'), D - m('down') + .4, io);
+  }],
+  ['passage', 'Prisoner of the passage', (m, D) => {
+    const p = panel(0);
+    const C = TIMINGS.passage.cues;
+    water(p, 650, D + 1);
+    pic(p, 'town', { x: 160, y: 600, w: 700, at: .1, from: [-300, 0] });
+    pic(p, 'town', { x: 1440, y: 600, w: 700, at: .1, from: [300, 0] });
+    const b = pic(p, 'fool-boat', { x: 330, y: 560, h: 280, at: .3, from: [0, 0] });
+    const t0 = C[2][0] + .4, t1 = m('land') - .2;
+    bob(b, D + 1, 6, t => 330 + 470 * smooth01(span01(t, t0, t1)));
+    const bars = pic(p, 'bars', { x: 800, y: 260, h: 200, at: C[1][0] - .1, from: [0, -30] });
+    const nl = key(p, 'Not locked up', 800, 420, C[1][0] + .4, { size: 60 });
+    tw(bars, { o: 0, y: 140 }, C[2][0], .6); hide(nl, C[2][0], .5);
+    const sa = key(p, 'Sent away', 800, 300, C[2][0] + .2, { size: 64, fill: HOT });
+    hide(sa, m('pris') - .5, .5);
+    tag(p, 'land', 160, 700, m('land'), { anchor: 'middle', size: 34 });
+    tag(p, 'water', 800, 790, m('land') + .4, { anchor: 'middle', size: 34 });
+    tag(p, 'land', 1440, 700, m('land') + .8, { anchor: 'middle', size: 34 });
+    say(p, ['“the prisoner of the passage”'], 800, 240, m('pris'), m('pris') + 1.6, { size: 74, anchor: 'middle' });
+    peek(p, m('pris') - .6);
+  }],
+  ['water', 'Water', (m, D) => {
+    const p = panel(0);
+    water(p, 640, D + 1, { rows: 5, gap: 30, amp: t => 10 + 18 * smooth01(span01(t, m('unknown') - .3, m('unknown') + 1.5)) });
+    const b = pic(p, 'fool-boat', { x: 980, y: 520, h: 300 });
+    bob(b, D + 1, 9, t => 980 + 900 * smooth01(span01(t, m('carry') - .2, m('carry') + 3)));
+    key(p, 'Washes', 120, 260, m('wash'), { size: 84, anchor: 'start' });
+    key(p, 'Carries away', 120, 370, m('carry'), { size: 84, anchor: 'start' });
+    key(p, 'The unknown', 120, 480, m('unknown'), { size: 84, anchor: 'start', fill: HOT });
+  }],
+  ['speaks', 'Madness speaks', (m, D) => {
+    const p = panel(0);
+    const g = G(p, {});
+    const b = pic(g, 'fool-boat', { x: 620, y: 560, h: 300, at: .2, from: [-300, 0] });
+    balloon(g, 780, 230, 360, 150, 700, 430, m('say') - .2);
+    say(g, ['…'], 960, 320, m('say') + .3, m('say') + .3, { size: 60, anchor: 'middle' });
+    tw(g, { o: 0, x: -200 }, m('lear') - .9, .6);
+    pic(p, 'lear', { x: 440, y: 440, h: 600, r: -3, at: m('lear') - .4, from: [-600, 0] });
+    tag(p, 'King Lear and his Fool', 440, 790, m('lear') + .5, { anchor: 'middle', size: 28 });
+    pic(p, 'folly', { x: 1150, y: 440, h: 600, r: 3, at: m('folly') - .4, from: [600, 0] });
+    tag(p, 'Erasmus, The Praise of Folly, 1511', 1150, 790, m('folly') + .5, { anchor: 'middle', size: 28 });
+    say(p, ['and the wise look ridiculous'], 800, 860, m('rid'), m('rid') + 1.2, { size: 54, anchor: 'middle', fill: HOT });
+  }],
+  ['voice', 'Still talking', (m, D) => {
+    const p = panel(0);
+    const C = TIMINGS.voice.cues;
+    const SING = 5.9;   // the fool's own line after the narrator (ElevenLabs v4 'callum'; books/madness/voices/fool/sings-a)
+    water(p, 700, D + SING + 1);
+    const b = pic(p, 'fool-boat', { x: 600, y: 580, h: 360 });
+    bob(b, D + SING + 1, 5);
+    key(p, 'Knowledge', 1180, 230, m('know'), { size: 90 });
+    tag(p, 'a voice from the edge of the world', 1180, 290, m('know') + 1.5, { anchor: 'middle', size: 34, fill: CREAM });
+    // punch in on the Fool's face as he drifts
+    const cam = G(p, {}); cam.appendChild(b); p.insertBefore(cam, p.children[1]);
+    tw(cam, { s: 1.9, x: -560, y: -420 }, C[1][0] - .4, 2.2, soft);
+    balloon(p, 900, 330, 600, 250, 860, 470, m('talk') - .5);
+    const s0 = D + .2;   // word times measured in the clip: "king" .14, "all" 1.78, "vanity" ends 2.74, cackle, "death" 4.34
+    sfx('voice', s0, 'fool-sings', 2);
+    say(p, ['the king is a fool!'], 1200, 400, s0, s0 + 1.1, { size: 50, anchor: 'middle' });
+    say(p, ['all is vanity!'], 1200, 465, s0 + 1.75, s0 + 2.7, { size: 50, anchor: 'middle' });
+    say(p, ['death laughs last!'], 1200, 530, s0 + 4.3, s0 + 5.1, { size: 50, anchor: 'middle', fill: HOT });
+    prog(() => {}, D, SING + .3, lin);   // hold the picture while he sings
+  }],
+
+  // 3. The Great Confinement
+  ['ashore', 'Ashore', (m, D) => {
+    const p = panel(0);
+    dateChip(p, '1656', 'The Great Confinement');
+    line(p, 'M1000 900C1060 760 1160 690 1600 680', .1, 1);
+    water(p, 720, D + 1, { len: 1150 });
+    const b = pic(p, 'fool-boat', { x: 260, y: 600, h: 300 });
+    tw(b, { x: 960 }, .2, m('ashore') + .2, io);
+    tw(b, { r: -4 }, m('ashore') + .4, .25, out); tw(b, { r: 0 }, m('ashore') + .65, .5, io);
+    sfx('ashore', m('ashore') + .4, 'thud', .8);
+    // on land the woodcut fool becomes Callot's beggar-fool: the era changes
+    const f = pic(p, 'fool-1656', { x: 1280, y: 480, h: 420, o: 0 });
+    put(f, { o: 0 });
+    show(f, m('ashore') + .6, 1.1, lin);
+    tw(b, { o: .25 }, m('ashore') + .6, 1.1, lin);
+  }],
+  ['edict', 'The General Hospital', (m, D) => {
+    const p = panel(0);
+    const C = TIMINGS.edict.cues;
+    pic(p, 'louis', { x: 330, y: 450, h: 720, r: -2, at: m('decree') - .3, from: [-500, 0] });
+    tag(p, 'Louis XIV', 330, 850, m('decree') + .4, { anchor: 'middle' });
+    pic(p, 'hg', { x: 1060, y: 330, w: 820, r: 2, at: m('hg') - .2, from: [500, 0] });
+    tag(p, 'Hôpital Général, Paris, founded 1656', 1060, 590, m('hg') + .6, { anchor: 'middle' });
+    const hk = key(p, 'Hospital', 1060, 730, C[1][0] + .3, { size: 90 });
+    const hs = strike(p, hk, 1060, 730, C[1][0] + 2.2, 90);
+    hide(hk, m('conf') - .5, .4); hide(hs, m('conf') - .5, .4);
+    key(p, 'House of confinement', 1060, 760, m('conf') - .2, { size: 84, fill: HOT });
+  }],
+  ['hundred', 'One in a hundred', (m, D) => {
+    const p = panel(0);
+    const g = G(p, {}), cells = [];
+    for (let i = 0; i < 100; i++) {
+      const c = G(g, { x: 440 + (i % 10) * 66, y: 150 + Math.floor(i / 10) * 66, o: 0 });
+      c._dot = mk('circle', { r: 20, fill: CREAM }, c);
+      show(c, .1 + i * .012, .3); cells.push(c);
+    }
+    const one = cells[67];
+    tw(one._dot, { c_fill: HOT }, m('one'), .4);
+    pulse(one, m('one') + .3);
+    key(p, '1 in 100', 1290, 470, m('one') + .3, { size: 90, fill: HOT });
+    tag(p, 'of the people of Paris', 1290, 520, m('one') + .8, { anchor: 'middle', size: 30 });
+    // only he is shut inside: a cell drawn around the one dot
+    line(p, `M${440 + 7 * 66 - 30} ${150 + 6 * 66 - 30}h60v60h-60Z`, m('inside'), .6, 4, { stroke: HOT });
+    pulse(one, m('inside') + .6, 1.3);
+  }],
+  ['inmates', 'Who was there', (m, D) => {
+    const p = panel(0);
+    const row = inmatesRow(p, m);
+    tw(row, ROW_SMALL, D - .4, 1, soft);   // the whole row steps down into the lower half: it stays for the next beat
+  }],
+  ['idle', 'Idleness', (m, D) => {
+    const p = panel(0);
+    put(inmatesRow(p), ROW_SMALL);
+    const sick = key(p, 'Sick', 800, 300, .8, { size: 140 });
+    strike(p, sick, 800, 300, 2.6, 140);
+    hide(sick, 4.4, .4); hide(p.lastElementChild, 4.4, .4);
+    key(p, 'did not work', 800, 240, m('work'), { size: 64 });
+    key(p, 'did not obey · did not fit', 800, 330, m('work') + 1.1, { size: 44, fill: SOFT });
+    key(p, 'Idleness', 800, 520, m('idle'), { size: 150, fill: HOT });
+    [...p.children].forEach(e => hide(e, m('door') - .1, .4));
+    pic(p, 'door', { x: 800, y: 470, h: 860, at: m('door') - .3, from: [1200, 0], dur: .7, back: true });
+    sfx('idle', m('door') - .3, 'whoosh', .35);
+  }],
+  ['great', 'The door is shut', (m, D) => {
+    const p = panel(0);
+    // before the narrator: the fool starts talking and the door slams on him mid-word (clip cut at 2.62 s)
+    const SLAM = .3 + 2.62;
+    pic(p, 'fool-1656', { x: 760, y: 540, h: 520 });
+    balloon(p, 120, 200, 520, 190, 700, 330, .1);
+    say(p, ['all is vanity, and', 'the king is a f—'], 380, 280, .3, SLAM, { size: 40, anchor: 'middle' });
+    sfx('great', .3, 'fool-cut', 2);
+    const d = pic(p, 'door', { x: 1900, y: 520, h: 720, back: true });
+    tw(d, { x: 760 }, SLAM - .5, .5, soft);
+    prog(q => put(d, { x: 760 + 7 * Math.sin(q * 40) * (1 - q) }), SLAM, .5, lin);
+    sfx('great', SLAM - .02, 'door', 1.6);
+    key(p, 'The Great Confinement', 800, 110, m('gc'), { size: 72 });
+    sfx('great', m('shut') + .1, 'latch', 1.2);   // and locked
+  }, { pre: 3.2 }],
+  ['dosto', 'Reason and its walls', (m, D) => {
+    const p = panel(0);
+    pic(p, 'door', { x: 1350, y: 520, h: 720, o: .12 });
+    pic(p, 'dosto', { x: 300, y: 400, h: 400, r: -2, at: .1, from: [-500, 0] });
+    tag(p, 'Fyodor Dostoevsky', 300, 640, .6, { anchor: 'middle', size: 30, fill: CREAM });
+    key(p, 'Proving its sanity', 900, 360, m('sane') - .2, { size: 70 });
+    key(p, 'by locking up its neighbours', 900, 460, m('nb') - .2, { size: 50, fill: HOT });
+    say(p, ['Reason knew itself by the walls it built.'], 800, 800, m('walls') - 1.4, m('walls') + .4, { size: 46, anchor: 'middle', fill: HOT });
+    line(p, 'M40 40H1560V860H40Z', m('walls') - .2, 1.6, 6);
+  }],
+
+  // 4. The Beast
+  ['behind', 'Behind the walls', (m, D) => {
+    const p = panel(0);
+    dateChip(p, '1700s', 'The beast');
+    const b = pic(p, 'bars', { x: 800, y: 430, h: 600, at: .1, from: [0, 40] });
+    tw(b, { s: 1.08 }, .6, m('beasts') - .6, lin);
+    // the fool's laugh in the cell sinks into a growl (tools/madness/beast.py): its peak lands on "beasts"
+    sfx('behind', m('beasts') - 3.6, 'laugh-to-beast', 2);
+    const dark = put(mk('rect', { x: -50, y: -50, width: 1700, height: 1000, fill: '#0a0103' }, p), { o: 0 });
+    tw(dark, { o: .5 }, m('beasts') - .3, .5, out);
+    tw(b, { s: 1.22 }, m('beasts') - .2, .35, out);   // the bars lunge
+    prog(q => put(b, { x: 800 + 9 * Math.sin(q * 70) * (1 - q), y: 430 + 5 * Math.sin(q * 53) * (1 - q) }), m('beasts') - .2, 1.2, lin);
+    const k = key(p, 'Beasts', 800, 868, m('beasts'), { size: 120, fill: HOT });
+    prog(q => put(k, { x: 800 + 2.5 * Math.sin(q * 160), y: 868 + 1.5 * Math.sin(q * 117) }), m('beasts') + .5, 2.2, lin);
+    prog(() => {}, D, 1.8, lin);   // the growl dies away before the next beat
+  }],
+  ['chains', 'Chained', (m, D) => {
+    const p = panel(0);
+    // the chained fool comes alive (Kling 3.0 image-to-video from fool-1735, books/madness/art/video): he looks up, tugs the
+    // chain twice, lets go and sinks his head onto his knees, then holds that last frame
+    const go = m('chain') + .4;
+    anim(p, 'chained', { x: 440, y: 450, size: 690, at: m('chain') - .5, t0: go, D });
+    sfx('chains', go + 1.5, 'chain', .7); sfx('chains', go + 2.6, 'chain', .5);
+    tag(p, 'sleeping on straw, fed through bars', 440, 840, m('straw'), { anchor: 'middle', size: 30 });
+    pic(p, 'norris', { x: 1180, y: 430, h: 640, r: 2, at: m('norris') - .3, from: [500, 0] });
+    tag(p, 'James Norris, Bethlem, 1815', 1180, 800, m('norris') + .5, { anchor: 'middle' });
+  }],
+  ['animal', 'Reason lost', (m, D) => {
+    const p = panel(0);
+    const C = TIMINGS.animal.cues;
+    anim(p, 'chained', { x: 1230, y: 470, size: 640, at: 0, t0: -99, D });   // as the last beat left him: head on his knees
+    const r = key(p, 'Reason', 600, 400, m('reason'), { size: 170 });
+    tag(p, 'what makes us human', 600, 460, m('reason') + 1.6, { anchor: 'middle', size: 34, fill: CREAM });
+    tw(r, { y: 620, r: 12, o: 0 }, m('animal') - .3, .8, io);
+    hide(p.lastElementChild, m('animal') - .3, .5);
+    key(p, 'Animal', 600, 400, m('animal'), { size: 170, fill: HOT });
+    ['no cold', 'no hunger', 'no pain'].forEach((s, i) => key(p, s, 600, 500 + i * 70, m('animal') + 1.3 + i * .8, { size: 50 }));
+    key(p, 'Not cruelty', 600, 760, C[3][0] + .2, { size: 60, fill: SOFT });
+    const ch = pic(p, 'chain', { x: 600, y: 845, w: 340, at: C[4][0] + .3, from: [0, -300], dur: .5 });
+    sfx('animal', C[4][0] + .7, 'chain', .7);
+  }],
+  ['show', 'Bedlam', (m, D) => {
+    const p = panel(0);
+    pic(p, 'hogarth', { x: 700, y: 450, h: 760, at: m('shown') - .2, from: [0, 900], dur: 1.1 });
+    tag(p, 'Bethlem Hospital, London', 1380, 260, m('bedlam') + .3, { anchor: 'middle', size: 32, fill: CREAM });
+    const c = G(p, { x: 1380, y: 420, o: 0, s: .4 });
+    mk('circle', { r: 70, fill: 'none', stroke: HOT, 'stroke-width': 5 }, c);
+    T(c, '1d', { y: 22, size: 64, font: KEY, weight: 600, fill: HOT, anchor: 'middle' });
+    pop(c, m('penny'));
+    sfx('show', m('penny') + .1, 'coin', .8);
+    key(p, '96,000', 1380, 650, m('n'), { size: 100 });
+    tag(p, 'visits a year', 1380, 700, m('n') + .5, { anchor: 'middle', size: 32 });
+  }],
+  ['hogarth', 'The ladies', (m, D) => {
+    const p = panel(0);
+    const h = pic(p, 'hogarth', { x: 700, y: 450, h: 760 });
+    const cap = tag(p, 'William Hogarth, A Rake’s Progress, plate 8, 1735', 1560, 870, .1, { anchor: 'end', fill: CREAM });
+    hide(cap, 1.6, .4);
+    tw(h, { s: 2.6, x: 700 + HOG[0], y: 450 + HOG[1] }, 1.8, m('ladies'), soft);
+  }],
+  ['watched', 'A spectacle', (m, D) => {
+    const p = panel(0);
+    pic(p, 'fool-1735', { x: 800, y: 470, h: 440 });
+    line(p, 'M520 700H1080', .1, .6, 3);
+    tag(p, 'silent, but visible', 800, 760, m('visible'), { anchor: 'middle', size: 36, fill: CREAM });
+    const R = rng(5);
+    [[330, 230], [1270, 230], [250, 480], [1350, 480], [520, 110], [1080, 110]].forEach(([x, y], i) =>
+      pic(p, 'eye', { x, y, h: 90, r: (R() - .5) * 20, at: m('watched') + i * .25, from: [0, 0], dur: .4 }));
+    say(p, ['Look at them,'], 790, 850, m('look'), m('look') + .8, { size: 54, anchor: 'end' });
+    say(p, ['and you are not one of them.'], 810, 850, m('not') - .8, m('not') + .6, { size: 54, fill: HOT });
+  }],
+
+  // 5. Unchained
+  ['pinel', 'Pinel', (m, D) => {
+    const p = panel(0);
+    dateChip(p, '1795', 'The Revolution');
+    const C = TIMINGS.pinel.cues;
+    const a = pic(p, 'fool-1735', { x: 800, y: 470, h: 560, at: .2, from: [0, 40] });
+    key(p, 'A moment every history book loves', 800, 120, 1.2, { size: 44, fill: SOFT });
+    key(p, 'Philippe Pinel', 800, 210, m('pinel'), { size: 90 });
+    // the chains struck off: the Hogarth fool becomes the painted fool of the 1790s
+    const t = m('pinel') + 1.4;
+    const b = pic(p, 'fool-1795', { x: 800, y: 500, h: 520 }); put(b, { o: 0 });
+    dissolve(a, b, t, 1.2);
+    pic(p, 'chain', { x: 800, y: 790, w: 360, at: t, from: [0, -120], dur: .5 });
+    sfx('pinel', t + .3, 'chain', .9);
+    key(p, 'Bicêtre', 330, 560, m('bic'), { size: 64, fill: HOT });
+    key(p, 'Salpêtrière', 1270, 560, m('salp'), { size: 64, fill: HOT });
+  }],
+  ['painting', 'Robert-Fleury', (m, D) => {
+    const p = panel(0);
+    const g = pic(p, 'pinel-painting', { x: 800, y: 430, h: 740, at: .1, from: [0, 60] });
+    const cap = tag(p, 'Tony Robert-Fleury, Pinel at the Salpêtrière, 1876', 800, 880, m('trf') + .3, { anchor: 'middle', fill: CREAM });
+    hide(cap, m('calm') - .4, .3); show(cap, m('iron') + 1.6, .4);
+    closeups(p, g, 'pinel-painting', [['calm', .29, .27, 'the calm doctor', 2.6], ['grateful', .16, .56, 'the grateful women', 2.6],
+      ['iron', .62, .92, 'the iron on the floor', 2.4]], m, m('iron') + 1.3, { x: 800, y: 430, r: 0 });
+  }],
+  ['tuke', 'The York Retreat', (m, D) => {
+    const p = panel(0);
+    pic(p, 'york', { x: 520, y: 430, w: 820, r: -2, at: m('tuke') - .3, from: [-600, 0] });
+    tag(p, 'The Retreat, York, opened 1796', 520, 740, m('tuke') + .6, { anchor: 'middle' });
+    ['Kindness', 'Work', 'Family'].forEach((w, i) => key(p, w, 1300, 320 + i * 130, m('kind') + i * .7, { size: 84 }));
+  }],
+  ['triumph', 'A triumph', (m, D) => {
+    const p = panel(0);
+    pic(p, 'fool-1795', { x: 1290, y: 470, h: 640, at: .2, from: [300, 0] });
+    key(p, 'A triumph', 520, 400, m('triumph'), { size: 110 });
+    key(p, 'of humanity', 520, 520, m('triumph') + .5, { size: 110, fill: HOT });
+    tag(p, 'science and compassion, freeing the mad', 520, 600, TIMINGS.triumph.cues[1][0] + .2, { anchor: 'middle', size: 34, fill: CREAM });
+  }],
+  ['turn', 'Foucault turns', (m, D) => {
+    const p = panel(0);
+    key(p, 'A triumph', 520, 400, 0, { size: 110, from: 0 });
+    const h = key(p, 'of humanity', 520, 520, 0, { size: 110, fill: HOT, from: 0 });
+    mf(p, 'mf-profile', { x: 1220, y: 470, h: 720, at: m('mf') - .1, draw: 2.8, flip: true });
+    tw(h, { x: 340, y: 640, r: 9, o: 0 }, m('what') - .2, .9, io);
+    key(p, '?', 520, 660, m('what') + .4, { size: 180, fill: HOT });
+  }],
+  ['watch2', 'Watched and judged', (m, D) => {
+    const p = panel(0);
+    pic(p, 'fool-1795', { x: 800, y: 500, h: 640 });
+    key(p, 'No longer beaten', 330, 200, m('beaten') - .2, { size: 50, fill: SOFT });
+    pic(p, 'eye', { x: 800, y: 110, h: 120, at: m('watched') - .2, from: [0, -40] });
+    pic(p, 'hand', { x: 330, y: 400, h: 140, at: m('judged') - .2, from: [-400, 0] });
+    key(p, 'Shame', 1260, 380, m('ashamed'), { size: 96, fill: HOT });
+    key(p, 'Father', 1260, 560, m('doctor') + .9, { size: 64 });
+    key(p, 'Judge', 1260, 650, m('doctor') + 1.7, { size: 64 });
+  }],
+  ['tea', 'Tea parties', (m, D) => {
+    const p = panel(0);
+    const C = TIMINGS.tea.cues;
+    // the fools at their best behaviour (image model, after the 1790s fool), the guard watching from the door
+    const g = pic(p, 'tea-party', { x: 800, y: 400, w: 1180, at: m('tea') - .5, from: [0, 60] });
+    const dr = say(p, ['dress in your best clothes', 'and behave impeccably'], 800, 760, m('imp') - 2.2, m('imp') + .8, { size: 54, anchor: 'middle' });
+    hide(dr, C[1][0] + .4, .4);
+    const at = { door: C[1][0] + .6, inside: m('inside') - .1 };
+    closeups(p, g, 'tea-party', [['door', .9, .3, 'the guard at the door', 2.4], ['inside', .19, .27, 'inside his own head', 2.8]],
+      k => at[k], D, null);
+    // the guard's eye, now on the fool's own forehead
+    const e = pic(p, 'eye', { x: 935, y: 352, h: 64, at: m('inside') + .5, from: [0, 0], dur: .4 });
+    pulse(e, m('inside') + 1.1, 1.4);
+  }],
+  ['moral', 'A gigantic moral imprisonment', (m, D) => {
+    const p = panel(0);
+    mf(p, 'mf-hands', { x: 1330, y: 560, h: 560, at: .2 });
+    say(p, ['“that gigantic moral imprisonment', 'which we are in the habit of calling,', 'doubtless by antiphrasis,'], 90, 220, m('q'), m('lib') - .3, { size: 52 });
+    say(p, ['the liberation of the insane', 'by Pinel and Tuke.”'], 90, 440, m('lib'), D, { size: 52, fill: HOT });
+    tag(p, 'Madness and Civilization, ch. 9', 90, 580, D - 1, { size: 28 });
+  }],
+  ['anti', 'Antiphrasis', (m, D) => {
+    const p = panel(0);
+    const R = rng(3);
+    for (let x = 80; x < 1600; x += 110) line(p, `M${x} 0V900`, m('prison') + R() * .5, .8, 2, { 'stroke-dasharray': '4 14', opacity: .55 });
+    tag(p, 'antiphrasis: calling a thing by its opposite', 800, 200, .3, { anchor: 'middle', size: 40, fill: CREAM });
+    key(p, 'Liberation', 800, 400, m('opp') - .2, { size: 150 });
+    line(p, 'M340 345H1260', m('prison') - .1, .5, 10, { stroke: HOT });
+    key(p, 'Prison', 800, 620, m('prison') + .2, { size: 150, fill: HOT });
+  }],
+
+  // 6. Where there is a work of art
+  ['silenced', 'Silenced', (m, D) => {
+    const p = panel(0);
+    dateChip(p, '1800s', 'The asylum');
+    key(p, 'Silenced', 800, 330, m('sil'), { size: 110 });
+    key(p, 'Judged', 800, 480, m('jud'), { size: 110 });
+    key(p, 'Managed', 800, 630, m('man'), { size: 110, fill: HOT });
+  }],
+  ['few', 'A handful', (m, D) => {
+    const p = panel(0);
+    const C = TIMINGS.few.cues;
+    [['goya', 400], ['nietzsche', 800], ['starry', 1200]].forEach(([n, x], i) =>
+      pic(p, n, { x, y: 640, h: 320, r: [-3, 2, -2][i], at: C[1][0] + i * .5, from: [0, 80], dur: .7 }));
+    balloon(p, 460, 110, 680, 250, 800, 470, m('spoke') - .2);
+    say(p, ['a voice reason', 'could not file away'], 800, 220, m('spoke') + .4, m('file') + .6, { size: 54, anchor: 'middle' });
+  }],
+  ['goya', 'Goya', (m, D) => {
+    const p = panel(0);
+    dateChip(p, '1819', 'Goya');
+    pic(p, 'goya', { x: 560, y: 450, h: 640, r: -2, at: m('goya') - .3, from: [-600, 0] });
+    tag(p, 'Francisco Goya, The Madhouse, 1812–19', 560, 820, m('goya') + .6, { anchor: 'middle' });
+    pic(p, 'fool-goya', { x: 1230, y: 470, h: 600, r: 3, at: m('night') - .2, from: [600, 0] });
+  }],
+  ['nietzsche', 'Nietzsche', (m, D) => {
+    const p = panel(0);
+    dateChip(p, '1889', 'Turin');
+    pic(p, 'nietzsche', { x: 470, y: 450, h: 640, r: -2, at: m('fn') - .3, from: [-600, 0] });
+    tag(p, 'Friedrich Nietzsche, 1882', 470, 820, m('fn') + .6, { anchor: 'middle' });
+    pic(p, 'turin', { x: 1150, y: 450, w: 720, r: 2, at: m('turin') - .3, from: [600, 0] });
+    key(p, 'Turin, January 1889', 1150, 760, m('turin') + .4, { size: 48 });
+  }],
+  ['vangogh', 'Van Gogh', (m, D) => {
+    const p = panel(0);
+    dateChip(p, '1889', 'Saint-Rémy');
+    const g = pic(p, 'starry', { x: 900, y: 460, h: 780, at: m('vg') - .5, from: [0, 900], dur: 1.1 });
+    push(g, m('vg') + .6, D + .6, 1.05);
+    tag(p, 'Vincent van Gogh, The Starry Night, painted at the asylum of Saint-Rémy, 1889', 800, 880, m('sr'), { anchor: 'middle', fill: CREAM });
+  }],
+  ['work', 'No madness', (m, D) => {
+    const p = panel(0);
+    // the painting tears in two: two copies, each clipped to one side of a jagged line
+    const half = (id, pts, dx) => {
+      const g = G(p, { x: 0, y: 0 });
+      const cp = mk('clipPath', { id }, g); mk('polygon', { points: pts }, cp);
+      const inner = mk('g', { 'clip-path': `url(#${id})` }, g);
+      pic(inner, 'starry', { x: 800, y: 450, h: 800, s: 1.05 });
+      tw(g, { x: dx }, m('wins') - .2, 1, io);
+      return g;
+    };
+    const jag = [[800, 0], [770, 120], [830, 230], [780, 360], [840, 470], [770, 600], [820, 730], [790, 900]];
+    half('tl', '0,0 ' + jag.map(q => q.join(',')).join(' ') + ' 0,900', -380);
+    half('tr', '1600,0 ' + jag.map(q => q.join(',')).join(' ') + ' 1600,900', 380);
+    sfx('work', m('wins') - .2, 'page', .9);
+    key(p, 'The work stops', 800, 250, m('wins') + .8, { size: 54, fill: HOT });
+    say(p, ['“where there is a work of art,', 'there is no madness”'], 800, 420, m('q'), D - .1, { size: 56, anchor: 'middle' });
+  }],
+  ['question', 'The world questioned', (m, D) => {
+    const p = panel(0);
+    const C = TIMINGS.question.cues;
+    mf(p, 'mf-smoke', { x: 430, y: 500, h: 640, at: .2 });
+    pic(p, 'fool-vangogh', { x: 1150, y: 410, h: 600, r: 2, at: .6, from: [500, 0] });
+    key(p, '?', 800, 300, m('quest'), { size: 140, fill: HOT });
+    tag(p, 'the work interrupts us', 800, 380, C[1][0] + .2, { anchor: 'middle', size: 36, fill: CREAM });
+    say(p, ['the world must justify', 'itself before madness'], 1150, 800, m('just'), D, { size: 46, anchor: 'middle', fill: HOT });
+  }],
+  ['pascal2', 'Back to Pascal', (m, D) => {
+    const p = panel(0);
+    say(p, ['where Foucault began'], 800, 450, .4, 2.2, { size: 60, anchor: 'middle', fill: SOFT });
+    hide(p.lastElementChild, m('pascal') - .7, .5);
+    epigraph(p, 'pascal', 'Blaise Pascal', PASCAL, m('pascal') - .3, m('q1'), D - .3);
+  }],
+  ['last', 'Walls', (m, D) => {
+    const p = panel(0);
+    const [tx, ty] = [800, 150];
+    key(p, 'Madness and Civilization', tx, ty, .4, { size: 64 });
+    tag(p, 'Michel Foucault, 1961', tx, ty + 50, 1, { anchor: 'middle', size: 28 });
+    // every fool of the film, one after another, in order of the centuries: outside reason's walls
+    const fools = [['fool', '1494'], ['fool-1656', '1656'], ['fool-1735', '1735'], ['fool-1795', '1795'], ['fool-goya', '1819'], ['fool-vangogh', '1889']];
+    line(p, 'M80 760H1520', .3, 1.2, 2, { opacity: .5 });
+    const H = 330, GAP = 28, ws = fools.map(([n]) => ART[n][0] * H / ART[n][1]);   // laid out by each picture's own width
+    let x = 800 - (ws.reduce((s, w) => s + w, 0) + GAP * (ws.length - 1)) / 2;
+    fools.forEach(([n, y], i) => {
+      const cx = x + ws[i] / 2, t0 = .8 + i * .95; x += ws[i] + GAP;
+      pic(p, n, { x: cx, y: 580, h: H, r: i > 2 ? [-2, 2][i % 2] : 0, at: t0, from: [0, 50], dur: .7 });
+      tag(p, y, cx, 800, t0 + .3, { anchor: 'middle', size: 30, fill: CREAM });
+    });
+    // the walls go up around reason's own title, the fools left outside them
+    ['M380 70H1220', 'M1220 70V240', 'M1220 240H380', 'M380 240V70'].forEach((d, i) => line(p, d, m('walls') + i * .25, .35, 6));
+    sfx('last', m('walls') + .95, 'door', .6);
+    prog(() => {}, D, 3.5, lin);   // hold the last picture: the end of the film
+  }],
+].map(([id, title, run, extra]) => ({ id, title, run, lead: false, ...extra }));   // every opening is deliberate: no lead-in
+
+/* ---------- music ----------
+   Public-domain recordings (books/madness/music/SOURCES.tsv), one per part of the film, loudness-matched (-20 LUFS).
+   Each plays through its beats from where it is; a 3 s crossfade at each change of part; ducked to 30 % under the voice
+   and up to 70 % in the opening's music-only lead-in. export.py mixes it by the same rules (fade, MUSIC_UP_IN_PRE). */
+window.MUSIC_UP_IN_PRE = ['open'];   // only the title's lead-in; the fool speaks in another beat's lead-in
+const PARTS = [
+  ['m1-vivaldi', ['open', 'bosch'], .55],
+  ['m2-mozart-k421', ['foucault', 'uppsala', 'preface', 'thesis', 'lepers', 'outside', 'empty', 'remain'], .5],
+  ['m3-praetorius', ['float', 'brant', 'records', 'passage', 'water', 'speaks', 'voice'], .45],
+  ['m4-handel', ['ashore', 'edict', 'hundred', 'inmates', 'idle', 'great', 'dosto'], .5],
+  ['m5-bach', ['behind', 'chains', 'animal', 'show', 'hogarth', 'watched'], .55],
+  ['m6-mozart-40', ['pinel', 'painting', 'tuke', 'triumph', 'turn', 'watch2', 'tea', 'moral', 'anti'], .5],
+  ['m7-satie', ['silenced', 'few', 'goya', 'nietzsche', 'vangogh', 'work', 'question', 'pascal2', 'last'], .55],
+];
+const BGM = PARTS.map(([n, beats, gain]) => ({ n, beats, gain, fade: 3,
+  a: Object.assign(new Audio(`audio/bgm/${n}.mp3`), { preload: 'auto', volume: 0 }), v: 0 }));
+// where the track should be: the beats before this one in its part (picture before the line, narration, hold) plus now.
+// Only used after a jump; in plain playback the track runs on by itself, so beats that hold longer never make it skip.
+const beatLen = id => { const b = BEATS.find(x => x.id === id); return (b.pre || 0) + TIMINGS[id].dur + HOLD; };
+let lastTick = performance.now(), duck = .3, was = { i: -1, t: 0 };
+function bgmTick(now) {
+  const dt = Math.min(.1, (now - lastTick) / 1000); lastTick = now;
+  const id = BEATS[P.i]?.id, on = P.started && P.playing && !P.waiting && !P.done;
+  const flowing = (P.i === was.i && P.t >= was.t && P.t - was.t < .5) || (P.i === was.i + 1 && P.t < .5);
+  was = { i: P.i, t: P.t };
+  duck += Math.max(-dt, Math.min(dt, (P.t < (BEATS[P.i]?.pre || 0) && MUSIC_UP_IN_PRE.includes(id) ? .7 : .3) - duck));
+  const vol = +(document.getElementById('volume')?.value ?? 1) * duck;
+  for (const m of BGM) {
+    const k = m.beats.indexOf(id), current = on && k >= 0;
+    m.v = Math.max(0, Math.min(1, m.v + (current ? 1 : -1) * dt / m.fade));
+    m.a.volume = Math.min(1, m.v * m.gain * vol);
+    if (current) {
+      const want = (m.beats.slice(0, k).reduce((s, b) => s + beatLen(b), 0) + P.t) % (m.a.duration || 1e9);
+      if (!flowing && Math.abs(m.a.currentTime - want) > .5) m.a.currentTime = want;
+      if (m.a.paused) m.a.play().catch(() => {});
+    } else if (m.v === 0 && !m.a.paused) m.a.pause();
+  }
+  if (!on && !P.done) for (const m of BGM) m.a.pause();
+  requestAnimationFrame(bgmTick);
+}
+requestAnimationFrame(bgmTick);
+
+// the zoomed print's centre in Hogarth's plate 8 so the two ladies sit mid-frame (at zoom 2.6) and the print fills it
+const HOG = [-220, 203];
+
+// the fonts must be in before the words are measured
+Promise.all(['600 40px Oswald', '500 40px Oswald', 'italic 400 40px "EB Garamond"', '400 40px "EB Garamond"']
+  .map(f => document.fonts.load(f))).then(boot);
+</script>
+</body>
+</html>

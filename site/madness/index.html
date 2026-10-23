@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Madness and Civilization</title>
+<meta name="description" content="One line about the series.">
+<link rel="stylesheet" href="lib/fonts.css">
+<link rel="stylesheet" href="lib/book.css"><!-- only for --progress-key, if the book sets one -->
+<!-- A picture book's cover and episode list. A starting point, not a design: give it the book's own look. -->
+<style>
+  :root { --ink: #f3ede0; --soft: #d9b9b0; --paper: #5a0e16; --card: #4a0b12; --line: #7a2a30; --accent: #f08a4b;
+    --ui: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif; --serif: "Iowan Old Style", Palatino, Georgia, serif; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 18px/1.6 var(--ui); }
+  header { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 40px; align-items: center; max-width: 1180px; margin: 0 auto; padding: 48px 24px 24px; }
+  header img { width: 100%; height: auto; border-radius: 10px; box-shadow: 0 14px 40px #4a33182e; }
+  h1 { margin: 0 0 8px; font: 700 clamp(34px, 4.6vw, 56px)/1.05 var(--serif); }
+  .lede { font-size: 20px; color: var(--soft); }
+  main { max-width: 1000px; margin: 0 auto; padding: 8px 24px 80px; }
+  .episodes { list-style: none; padding: 0; margin: 18px 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .episodes a { display: flex; flex-direction: column; height: 100%; background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    overflow: hidden; color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; }
+  .episodes a:hover, .episodes a:focus-visible { border-color: var(--accent); transform: translateY(-2px); }
+  .episodes img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
+  .episodes small { margin: 12px 16px 0; color: var(--soft); font-size: 13px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; }
+  .episodes b { margin: 2px 16px 4px; font: 700 21px/1.25 var(--serif); }
+  .episodes span { margin: 0 16px 16px; color: var(--soft); font-size: 15px; line-height: 1.5; }
+  .watched small::after { content: " · ✓ watched"; color: var(--accent); }
+  @media (max-width: 760px) { header { grid-template-columns: 1fr; padding-top: 28px; } .episodes { grid-template-columns: 1fr; } }
+  .credits { max-width: 1100px; margin: 40px auto 60px; padding: 0 24px; color: var(--soft); font-size: 14px; line-height: 1.6; }
+  .credits h2 { font: 600 20px/1.3 var(--serif); color: inherit; } .credits h3 { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; margin: 18px 0 6px; }
+  .credits ul { margin: 0; padding-left: 18px; columns: 2 340px; } .credits a { color: inherit; }
+</style>
+</head>
+<body>
+<header>
+  <img src="img/cover.webp" width="1400" height="788" alt="The six fools of the film in a row, from a 1494 woodcut to Van Gogh, under the walled title Madness and Civilization.">
+  <div>
+    <h1>Madness and Civilization</h1>
+    <p class="lede">A short documentary on Michel Foucault’s 1961 book: how Europe sent its madmen down the rivers, then locked them up, then “freed” them — and what that says about reason.</p>
+  </div>
+</header>
+<main>
+  <ul class="episodes" id="episodes"></ul>
+</main>
+<section class="credits">
+  <h2>Sources and credits</h2>
+  <p>Narration written from Michel Foucault, <i>Madness and Civilization</i> (1961; English translation by Richard Howard, 1965); quotations are his and those of Pascal and Dostoevsky as he cites them. Voices by ElevenLabs v4; music and pictures are public-domain or CC0 works from Wikimedia Commons, listed below. The line drawings of Foucault, the Fool in each era, the tea party and the props were made with an image model (gpt-image via OpenRouter), the chained Fool animated with Kling 3.0. Map data from Natural Earth (public domain). Type: Oswald and EB Garamond (SIL Open Font License, <code>lib/fonts/</code>).</p>
+  <h3>Pictures</h3><ul><li><a href="https://commons.wikimedia.org/wiki/File%3ALa_Nef_des_fous_-_J%C3%A9r%C3%B4me_Bosch_-_Mus%C3%A9e_du_Louvre_Peintures_RF_2218.jpg">La Nef des fous - Jérôme Bosch - Musée du Louvre Peintures RF 2218.jpg</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3AShip_of_Fools_WDL8973.pdf">Ship of Fools WDL8973.pdf (page 5)</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3ANarrenschiff_%281549%29.jpg">Narrenschiff (1549).jpg</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3ALeper_with_bell_-_Pontifical_%28c.1400%29%2C_f.127_-_BL_Lansdowne_MS_451.jpg">Leper with bell - Pontifical (c.1400), f.127 - BL Lansdowne MS 451.jpg</a> · CC0</li><li><a href="https://commons.wikimedia.org/wiki/File%3ALeprozenhuis_in_Haarlem_Gezichten_bij_Haarlem_%28serietitel%29%2C_RP-P-1879-A-3470.jpg">Leprozenhuis in Haarlem Gezichten bij Haarlem (serietitel), RP-P-1879-A-3470.jpg</a> · CC0</li><li><a href="https://commons.wikimedia.org/wiki/File%3ARhenus_Fluviorum_Europae_celeberrimus_cum_Mosa_Mosella%2C_et_reliquis_in_illum_se_exonerantibus_fluminibus_%28Nicolaas_Visscher%29.jpg">Rhenus Fluviorum Europae celeberrimus cum Mosa Mosella, et reliquis in illum se exonerantibus fluminibus (Nicolaas Visscher).jpg</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3A%22Off%2C_off%2C_you_lendings%E2%80%93Come_unbutton_here%22_%28Shakespeare%2C_King_Lear%2C_Act_3%2C_Scene_4%29_MET_49J_149R3.jpg">&quot;Off, off, you lendings–Come unbutton here&quot; (Shakespeare, King Lear, Act 3, Scene 4) MET 49J 149R3.jpg</a> · CC0</li><li><a href="https://commons.wikimedia.org/wiki/File%3ABook%2C_print%2C_title-page_%28BM_1949%2C0411.4992%29.jpg">Book, print, title-page (BM 1949,0411.4992).jpg</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3APortrait_of_Louis_XIV_of_France_in_Coronation_Robes_%28by_Hyacinthe_Rigaud%29_-_Louvre_Museum.jpg">Portrait of Louis XIV of France in Coronation Robes (by Hyacinthe Rigaud) - Louvre Museum.jpg</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3AL%27Hospital_de_la_Salpestriere_hors_la_Porte_St._Bernart%2C_G.22845%282%29.jpg">L&#x27;Hospital de la Salpestriere hors la Porte St. Bernart, G.22845(2).jpg</a> · CC0</li><li><a href="https://commons.wikimedia.org/wiki/File%3ACallot%2C_Les_Gueux%2C_Le_Mendiant_au_couvet.jpg">Callot, Les Gueux, Le Mendiant au couvet.jpg</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3AJacques_Callot_-_Les_Gueux_%2802%29_-_Le_joueur_de_vielle.jpg">Jacques Callot - Les Gueux (02) - Le joueur de vielle.jpg</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3AJacques_Callot_-_Les_Gueux_%2813%29_-_Le_malingreux.jpg">Jacques Callot - Les Gueux (13) - Le malingreux.jpg</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3AJacques_Callot_-_Les_Gueux_%2816%29_-_La_mendiante_aux_b%C3%A9quilles.jpg">Jacques Callot - Les Gueux (16) - La mendiante aux béquilles.jpg</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3ABlaise_Pascal_Versailles.JPG">Blaise Pascal Versailles.JPG</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3AVasily_Perov_-_%D0%9F%D0%BE%D1%80%D1%82%D1%80%D0%B5%D1%82_%D0%A4.%D0%9C.%D0%94%D0%BE%D1%81%D1%82%D0%BE%D0%B5%D0%B2%D1%81%D0%BA%D0%BE%D0%B3%D0%BE_-_Google_Art_Project.jpg">Vasily Perov - Портрет Ф.М.Достоевского - Google Art Project.jpg</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3AWilliam_Norris_-_An_Insane_American_%281815%29.jpg">William Norris - An Insane American (1815).jpg</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3AA_Rake%27s_Progress%2C_Plate_8_MET_DP827030.jpg">A Rake&#x27;s Progress, Plate 8 MET DP827030.jpg</a> · CC0</li><li><a href="https://commons.wikimedia.org/wiki/File%3APhilippe_Pinel_%C3%A0_la_Salp%C3%AAtri%C3%A8re_.jpg">Philippe Pinel à la Salpêtrière .jpg</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3AEngraving_of_the_original_Retreat_near_York_instituted_1792.jpg">Engraving of the original Retreat near York instituted 1792.jpg</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3AFrancisco_de_Goya_-_La_casa_de_locos_-_Google_Art_Project.jpg">Francisco de Goya - La casa de locos - Google Art Project.jpg</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3ANietzsche1882.jpg">Nietzsche1882.jpg</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3AVan_Gogh_-_Starry_Night_-_Google_Art_Project.jpg">Van Gogh - Starry Night - Google Art Project.jpg</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3ATorino_e_suoi_dintorni_9.jpg">Torino e suoi dintorni 9.jpg</a> · Public domain</li></ul>
+  <h3>Music</h3><ul><li><a href="https://commons.wikimedia.org/wiki/File%3A20091104_Awadagin_Pratt_-_Bach%27s_Passacaglia_and_Fugue_in_C_minor%2C_BWV_582.ogg">20091104 Awadagin Pratt - Bach&#x27;s Passacaglia and Fugue in C minor, BWV 582.ogg</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3AHandel%27s_Water_Music_-_16._Sarabande_-_Chamber_Orchestra_-_United_States_Marine_Band.opus">Handel&#x27;s Water Music - 16. Sarabande - Chamber Orchestra - United States Marine Band.opus</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3AMozart_-_String_Quartet_No._15_in_D_minor%2C_K421_-_II._Andante_%28Musopen_String_Quartet%29.flac">Mozart - String Quartet No. 15 in D minor, K421 - II. Andante (Musopen String Quartet).flac</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3AMozart_-_Symphony_No._40_in_G_minor%2C_K550_-_II._Andante_%28Musopen_Symphony%29.flac">Mozart - Symphony No. 40 in G minor, K550 - II. Andante (Musopen Symphony).flac</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3ASatie_Gymnopedie_No_1_performed_by_Michael_Laucke.flac">Satie Gymnopedie No 1 performed by Michael Laucke.flac</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3AThe_Modena_Chamber_Orchestra_-_Vivaldi%27s_Summer%2C_RV_315_-_III._Presto.ogg">The Modena Chamber Orchestra - Vivaldi&#x27;s Summer, RV 315 - III. Presto.ogg</a> · PDM-owner</li><li><a href="https://commons.wikimedia.org/wiki/File%3AVolte_-_Stellar_Brass_-_United_States_Air_Force_Band_of_the_Rockies.mp3">Volte - Stellar Brass - United States Air Force Band of the Rockies.mp3</a> · Public domain</li></ul>
+</section>
+
+<script>
+'use strict';
+// One entry per finished episode, in order: its folder, title, a still (16:9) with alt text, and one line.
+const EPISODES = [
+  { ch: 'ch01', title: 'Madness and Civilization', minutes: 10, still: 'img/still-ch01.webp', alt: 'A line drawing of Michel Foucault beside his name and dates.', line: 'From the Ship of Fools to the asylum, with Foucault and a fool who crosses four centuries.' },
+];
+// The player records finished episodes under the same key as here (engine progress(): lib/book.css --progress-key,
+// else this folder's path).
+const key = getComputedStyle(document.documentElement).getPropertyValue('--progress-key').trim().replace(/^["']|["']$/g, '')
+  || 'animebook:progress:' + new URL('.', location.href).pathname;
+let done = [];
+try { done = JSON.parse(localStorage.getItem(key) || '{}').done || []; } catch {}
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+document.getElementById('episodes').innerHTML = EPISODES.map((e, i) => `<li${done.includes(+e.ch.slice(2)) ? ' class="watched"' : ''}>
+  <a href="${e.ch}/"><img src="${esc(e.still)}" alt="${esc(e.alt)}" loading="lazy">
+  <small>Episode ${i + 1} · ${e.minutes} minute${e.minutes == 1 ? "" : "s"}</small><b>${esc(e.title)}</b><span>${esc(e.line)}</span></a></li>`).join('');
+</script>
+</body>
+</html>

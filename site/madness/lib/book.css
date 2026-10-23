@@ -1,0 +1,10 @@
+/* Madness and Civilization: burgundy ground, cream ink. Imported by engine.css; never overwritten by a sync. */
+@import url("fonts.css");
+:root {
+  --page: #2a060a; --board: #5a0e16; --panel: #4a0b12; --edge: #7a2a30;
+  --chalk: #f3ede0; --dim: #d9b9b0; --faint: #9a5a58;
+  --task: #f0b45a; --quiz: #e8c8a0; --good: #c8e0b0; --bad: #ffb0a0;
+  --vignette: rgba(20, 0, 4, .45);
+  --rule: #6e2028; --track: #6a1a22; --track-ask: #6a1a22;
+  --bar-edge: #6a1a22; --hover: #6e1e26; --veil: #22050a;
+}
