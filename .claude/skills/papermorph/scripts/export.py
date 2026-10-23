@@ -57,6 +57,9 @@ def srt_time(t):
     return f'{ms // 3600000:02d}:{ms // 60000 % 60:02d}:{ms // 1000 % 60:02d},{ms % 1000:03d}'
 
 
+SFX_JS = "typeof SFX === 'undefined' ? [] : SFX.map(e => ({...e, src: new URL(`audio/sfx/${e.name}.mp3`, location.href).href}))"
+
+
 async def open_beat(pg, base, i):
     await pg.goto(f'{base}?beat={i}&t=0')
     await pg.add_style_tag(content=FLAT)
@@ -77,9 +80,9 @@ async def main(a):
         if errs:
             sys.exit(f'page errors: {errs}')
         info = await pg.evaluate("""({lang: CHAPTER.language || 'en', beats: BEATS.map(b => ({id: b.id, ask: !!b.ask, pre: b.pre || 0})),
-          sfx: typeof SFX === 'undefined' ? [] : SFX.map(e => ({...e, src: new URL(`audio/sfx/${e.name}.mp3`, location.href).href})),
           bgm: typeof BGM === 'undefined' ? [] : BGM.map(m => ({src: m.a.src, beats: m.beats, gain: m.gain}))})""")
         beats = [(i, x['id']) for i, x in enumerate(info['beats']) if not x['ask']]
+        info['sfx'] = []
         asks = len(beats) < len(info['beats'])
         box = await pg.locator('#stage').bounding_box()
         clip = {k: box[k] for k in ('x', 'y', 'width', 'height')}
@@ -91,6 +94,10 @@ async def main(a):
         for i, bid in beats:
             await open_beat(pg, base, i)
             end, T = await pg.evaluate('[P.end, TIMINGS[BEATS[P.i].id]]')
+            # a scene lists its sfx() when its beat is built, so they are collected beat by beat
+            for e in await pg.evaluate(SFX_JS):
+                if e not in info['sfx']:
+                    info['sfx'].append(e)
             pre = info['beats'][i]['pre']
             # frames counted on the running clock, so rounding never drifts the picture away from the sound
             count = round((offset + end) * a.fps) - round(offset * a.fps)
