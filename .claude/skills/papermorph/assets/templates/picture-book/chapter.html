@@ -34,36 +34,11 @@ const BEATS = [
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
 
 /* ---------- background music ----------
-   One track per listed scene group: [file in audio/bgm/ without .mp3, [scene ids], gain]. A track's position is the
-   time since its first scene began, so pausing and seeking keep it in step; 0.8 s crossfades between tracks; the music
-   ducks to 30 % while anyone speaks and sits at 70 % otherwise. Leave BGM empty for a silent film; a scene can mute its
-   music for a moment with window.MUSIC_OFF = { sceneId: t => boolean }. */
-const BGM = [/* ['theme', ['scene1', 'scene2'], .3] */]
-  .map(([n, beats, gain]) => ({ n, beats, gain, a: Object.assign(new Audio(`audio/bgm/${n}.mp3`), { preload: 'auto', loop: true, volume: 0 }), v: 0 }));
-const beatLen = id => { const b = BEATS.find(x => x.id === id); return (b.pre || 0) + TIMINGS[id].dur + .6; };
-let lastTick = performance.now(), duck = .3;
-function bgmTick(now) {
-  const dt = Math.min(.1, (now - lastTick) / 1000); lastTick = now;
-  const id = BEATS[P.i]?.id, on = P.started && P.playing && !P.waiting && !P.done;
-  // the music ducks well under the voices for the whole of a scene that has them (its silent opening and tail too, so
-  // it does not swell between lines), easing over about half a second
-  duck += Math.max(-dt, Math.min(dt, (P.audio ? .3 : .7) - duck));
-  const vol = +(document.getElementById('volume')?.value ?? 1) * duck;
-  for (const m of BGM) {
-    const k = m.beats.indexOf(id), current = on && k >= 0 && !(window.MUSIC_OFF?.[id]?.(P.t));
-    m.v = Math.max(0, Math.min(1, m.v + (current ? 1 : -1) * dt / .8));
-    m.a.volume = m.v * m.gain * vol;
-    if (m.a.playbackRate !== (P.rate || 1)) m.a.playbackRate = P.rate || 1;   // in step at 0.75× and 1.5× too, no re-seeking
-    if (current) {
-      const want = (m.beats.slice(0, k).reduce((s, b) => s + beatLen(b), 0) + P.t) % (m.a.duration || 1e9);
-      if (Math.abs(m.a.currentTime - want) > .5) m.a.currentTime = want;
-      if (m.a.paused) m.a.play().catch(() => {});
-    } else if (m.v === 0 && !m.a.paused) m.a.pause();
-  }
-  if (!on && !P.done) for (const m of BGM) m.a.pause();
-  requestAnimationFrame(bgmTick);
-}
-requestAnimationFrame(bgmTick);
+   The engine's music(file, [scene ids], gain, fade): one looping track per scene group, placed by the time since its
+   first scene began, so pausing and seeking keep it in step; 0.8 s crossfades between tracks (or `fade` s); ducked to
+   30 % under the voices. Leave it out for a silent film; a scene can mute its music for a moment with
+   window.MUSIC_OFF = { sceneId: t => boolean }. */
+// music('audio/bgm/theme.mp3', ['scene1', 'scene2'], .3);
 // Build every puppet and prop once at load, off screen, so their bitmaps are ready before the first beat needs them.
 paperWarm(g => { kidPuppet(g); });
 boot();

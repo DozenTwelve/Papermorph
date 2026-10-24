@@ -41,6 +41,12 @@ HTMLMediaElement.prototype.play = function () {
   } catch {}
   return play0.apply(this, arguments);
 };
+// the engine's effects play through Web Audio, not an element
+const start0 = AudioBufferSourceNode.prototype.start;
+AudioBufferSourceNode.prototype.start = function () {
+  try { if (this._sfx && P.playing) __log.push({ kind: 'sfx', what: this._sfx, i: P.i, t: P.t, vol: this._vol }); } catch {}
+  return start0.apply(this, arguments);
+};
 addEventListener('DOMContentLoaded', () => {
   const c = document.getElementById('caption'); if (!c) return;
   let last = '';

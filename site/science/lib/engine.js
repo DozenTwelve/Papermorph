@@ -1162,6 +1162,104 @@ const blanks = rowsIn => (body, api) => {
   };
 };
 
+/* ---------- sound effects and music ----------
+   sfx(beat, at, name, vol, bed): play audio/sfx/<name>.mp3 when the clock of beat `beat` passes `at` in normal playback
+   (a seek past it fires nothing), at half volume (vol 2 is full). A long ambience is listed in SFX_BED with its length
+   (SFX_BED.birds = 10): a seek into it joins it part-way. A beat function runs again at every seek; an effect is listed once.
+   music(file, beats, gain, fade): a looping track under the listed beats (all of them by default). Its place is the
+   length of its earlier beats plus the clock. It ducks to 30 % under the voice, or 70 % in the music-only lead-in (`pre`)
+   of the beats in window.MUSIC_UP_IN_PRE (true: every beat). It crossfades over `fade` s, and
+   window.MUSIC_OFF = { beat: t => true } fades it out for a moment.
+   export.py reads SFX, BGM and these settings, and mixes the film by the same rules.
+   Effects and music go through one Web Audio graph: ducks, fades and the volume slider work on phones too (iOS ignores
+   an element's .volume), and effects are decoded before they are due. A pause holds everything; a seek stops the effects. */
+const SND = { sfx: [], bed: {}, bgm: [], len: [], on: [], buf: {}, ctx: null, out: null, last: { i: -1, t: 0 }, duck: .3 };
+// window properties, not declarations: a book with its own older sfx() or BGM declares them over these
+Object.assign(window, { SFX: SND.sfx, SFX_BED: SND.bed, BGM: SND.bgm,
+  sfx(beat, at, name, vol = 1, bed = SND.bed[name] || 0) {
+    const e = SND.sfx.find(x => x.beat === beat && x.at === at && x.name === name);
+    if (e) Object.assign(e, { vol, bed }); else SND.sfx.push({ beat, at, name, vol, bed });
+    sfxLoad(name);
+  },
+  music(file, beats = BEATS.map(b => b.id), gain = 1, fade = .8) {
+    const m = { n: file, beats, gain, fade, v: 0, a: Object.assign(new Audio(file), { preload: 'auto', loop: true, volume: 0 }) };
+    SND.bgm.push(m);
+    if (SND.ctx) bgmWire(m);
+  },
+});
+function sfxLoad(name) {
+  const s = SND.buf[name] ??= { data: fetch(`audio/sfx/${name}.mp3`).then(r => r.ok ? r.arrayBuffer() : null).catch(() => null) };
+  if (SND.ctx && !s.decoded) s.decoded = s.data.then(d => d && SND.ctx.decodeAudioData(d)).then(b => { s.b = b; }, () => {});
+}
+function bgmWire(m) {
+  m.g = SND.ctx.createGain();
+  SND.ctx.createMediaElementSource(m.a).connect(m.g).connect(SND.out);
+  m.a.volume = 1;
+}
+// A browser starts sound only after a click or a key: the first one builds the graph (films only) and readies the music.
+function soundUnlock() {
+  if (!SND.ctx && window.AudioContext && !BEATS.some(b => b.ask)) {
+    if (navigator.audioSession) navigator.audioSession.type = 'playback';   // iOS: the silent switch must not mute the film
+    SND.ctx = new AudioContext();
+    SND.out = SND.ctx.createGain();
+    SND.out.connect(SND.ctx.destination);
+    for (const n in SND.buf) sfxLoad(n);
+    for (const m of SND.bgm) bgmWire(m);
+  }
+  if (SND.ctx?.state === 'suspended') SND.ctx.resume();
+  for (const m of SND.bgm) if (!m.blessed) {   // iOS lets an element play later only if it once played inside a click
+    m.blessed = true; m.a.muted = true;
+    m.a.play().then(() => { m.a.pause(); m.a.muted = false; }, () => { m.a.muted = false; });
+  }
+}
+addEventListener('pointerdown', soundUnlock, true);
+addEventListener('keydown', soundUnlock, true);
+function soundTick(dt) {
+  const id = BEATS[P.i]?.id, pre = BEATS[P.i]?.pre || 0, on = P.started && P.playing && !P.waiting && !P.done, L = SND.last;
+  const held = P.started && !P.playing && !P.done, ctx = SND.ctx;
+  if (ctx?.state === 'running' && held) ctx.suspend();
+  else if (ctx?.state === 'suspended' && !held) ctx.resume();
+  // the clock ran on (or stood still, paused) in the same beat; anything else is a seek, a replay or the next beat
+  const same = L.i === P.i && P.t >= L.t && P.t - Math.max(0, L.t) < .5;
+  if (!same) while (SND.on.length) SND.on.pop().stop();
+  // a beat that has just begun fires its effects from 0 on; a seek fires nothing it skipped, but joins a bed
+  const from = same ? L.t : P.t < .25 ? -1 : P.t, seeked = !same || L.pend;
+  if (on && ctx) for (const e of SND.sfx) {
+    const b = SND.buf[e.name]?.b;
+    if (!b || e.beat !== id || !(e.at > from && e.at <= P.t || seeked && e.bed && e.at < P.t && P.t < e.at + e.bed)) continue;
+    const src = ctx.createBufferSource(), g = ctx.createGain();
+    src.buffer = b; src._sfx = e.name; g.gain.value = src._vol = .5 * e.vol;
+    src.connect(g).connect(SND.out);
+    src.start(0, Math.max(0, P.t - e.at));
+    SND.on.push(src);
+    src.onended = () => { const k = SND.on.indexOf(src); if (k >= 0) SND.on.splice(k, 1); };
+  }
+  SND.last = { i: P.i, t: on ? P.t : from, pend: !on && (!same || !!L.pend) };
+  if (!SND.bgm.length) return;
+  const vol = +($('volume')?.value ?? 1), up = window.MUSIC_UP_IN_PRE;
+  if (SND.out) SND.out.gain.value = vol;
+  SND.duck += Math.max(-dt, Math.min(dt, (P.t < pre && (up === true || up?.includes?.(id)) ? .7 : .3) - SND.duck));
+  for (const m of SND.bgm) {
+    const k = m.beats.indexOf(id), current = on && k >= 0 && !window.MUSIC_OFF?.[id]?.(P.t);
+    m.v = Math.max(0, Math.min(1, m.v + (current ? 1 : -1) * dt / m.fade));
+    const g = m.v * m.gain * SND.duck;
+    if (m.g) m.g.gain.value = g; else m.a.volume = Math.min(1, g * vol);
+    if (current) {
+      // where the film is: the beats before this one in the track as they really ran (P.end), plus now
+      const dur = m.a.duration || Infinity;
+      const want = (m.beats.slice(0, k).reduce((s, b) => s + (SND.len[BEATS.findIndex(x => x.id === b)] || 0), 0) + P.t) % dur;
+      let d = m.a.currentTime - want;
+      if (d > dur / 2) d -= dur; else if (d < -dur / 2) d += dur;
+      // far off (a jump, a start): seek; a little off (a slow start, a stall): run up to 5 % faster or slower to catch up
+      if (m.a.paused || Math.abs(d) > .3) { m.a.currentTime = want; d = 0; }
+      const rate = P.rate * (Math.abs(d) > .03 ? 1 - Math.max(-.05, Math.min(.05, d)) : 1);
+      if (Math.abs(m.a.playbackRate - rate) > .001) m.a.playbackRate = rate;
+      if (m.a.paused) m.a.play().catch(() => {});
+    } else if (m.v === 0 && !m.a.paused) m.a.pause();
+  }
+  if (!on && !P.done) for (const m of SND.bgm) m.a.pause();
+}
+
 /* ---------- player ---------- */
 const P = { i: 0, t: 0, end: 1, playing: false, waiting: false, done: false, started: false, audio: null, afail: false, stall: 0, cleanup: [], rate: 1, nextClip: null };
 function runBeat(i) {
@@ -1178,7 +1276,7 @@ function runBeat(i) {
   const end = Math.max(pre + tm.dur, ...TW.map(w => w.t0 + w.dur)) + HOLD;
   const tail = TW.some(w => w.tail === true);
   for (const w of TW) if (w.tail === true || tail && w.tail === 'follow') w.dur = end - w.t0;
-  return end;
+  return SND.len[i] = end;   // the music places itself by how long each beat really runs
 }
 const HOLD = .6;
 // A beat that clears the picture must not leave it empty while the narration has started.
@@ -1331,6 +1429,7 @@ function frame(now) {
     evalTo(P.t);
     if (P.t >= P.end) beatDone();
   }
+  soundTick(dt);
   syncLinks();
   ui();
   requestAnimationFrame(frame);

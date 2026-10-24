@@ -799,7 +799,7 @@ const BEATS = [
 
 /* ---------- music ----------
    Public-domain recordings (books/madness/music/SOURCES.tsv), one per part of the film, loudness-matched (-20 LUFS).
-   Each plays through its beats from where it is; a 3 s crossfade at each change of part; ducked to 30 % under the voice
+   The engine's music(): a 3 s crossfade at each change of part; ducked to 30 % under the voice
    and up to 70 % in the opening's music-only lead-in. export.py mixes it by the same rules (fade, MUSIC_UP_IN_PRE). */
 window.MUSIC_UP_IN_PRE = ['open'];   // only the title's lead-in; the fool speaks in another beat's lead-in
 const PARTS = [
@@ -811,33 +811,7 @@ const PARTS = [
   ['m6-mozart-40', ['pinel', 'painting', 'tuke', 'triumph', 'turn', 'watch2', 'tea', 'moral', 'anti'], .5],
   ['m7-satie', ['silenced', 'few', 'goya', 'nietzsche', 'vangogh', 'work', 'question', 'pascal2', 'last'], .55],
 ];
-const BGM = PARTS.map(([n, beats, gain]) => ({ n, beats, gain, fade: 3,
-  a: Object.assign(new Audio(`audio/bgm/${n}.mp3`), { preload: 'auto', volume: 0 }), v: 0 }));
-// where the track should be: the beats before this one in its part (picture before the line, narration, hold) plus now.
-// Only used after a jump; in plain playback the track runs on by itself, so beats that hold longer never make it skip.
-const beatLen = id => { const b = BEATS.find(x => x.id === id); return (b.pre || 0) + TIMINGS[id].dur + HOLD; };
-let lastTick = performance.now(), duck = .3, was = { i: -1, t: 0 };
-function bgmTick(now) {
-  const dt = Math.min(.1, (now - lastTick) / 1000); lastTick = now;
-  const id = BEATS[P.i]?.id, on = P.started && P.playing && !P.waiting && !P.done;
-  const flowing = (P.i === was.i && P.t >= was.t && P.t - was.t < .5) || (P.i === was.i + 1 && P.t < .5);
-  was = { i: P.i, t: P.t };
-  duck += Math.max(-dt, Math.min(dt, (P.t < (BEATS[P.i]?.pre || 0) && MUSIC_UP_IN_PRE.includes(id) ? .7 : .3) - duck));
-  const vol = +(document.getElementById('volume')?.value ?? 1) * duck;
-  for (const m of BGM) {
-    const k = m.beats.indexOf(id), current = on && k >= 0;
-    m.v = Math.max(0, Math.min(1, m.v + (current ? 1 : -1) * dt / m.fade));
-    m.a.volume = Math.min(1, m.v * m.gain * vol);
-    if (current) {
-      const want = (m.beats.slice(0, k).reduce((s, b) => s + beatLen(b), 0) + P.t) % (m.a.duration || 1e9);
-      if (!flowing && Math.abs(m.a.currentTime - want) > .5) m.a.currentTime = want;
-      if (m.a.paused) m.a.play().catch(() => {});
-    } else if (m.v === 0 && !m.a.paused) m.a.pause();
-  }
-  if (!on && !P.done) for (const m of BGM) m.a.pause();
-  requestAnimationFrame(bgmTick);
-}
-requestAnimationFrame(bgmTick);
+PARTS.forEach(([n, beats, gain]) => music(`audio/bgm/${n}.mp3`, beats, gain, 3));
 
 // the zoomed print's centre in Hogarth's plate 8 so the two ladies sit mid-frame (at zoom 2.6) and the print fills it
 const HOG = [-220, 203];

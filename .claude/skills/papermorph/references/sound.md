@@ -16,13 +16,13 @@ Voices carry the story; everything else sits under them. In early cuts the music
 
 `sfx.py` synthesizes effects as small MP3s, free and consistent (knock, door, creak, bell, chop, crash, coin, rain, wind, room tone, surf, gulls, crickets, footsteps (`patter`, `step1`), a dog and more; `--list` names them all). A sound the list lacks goes in the book's own `books/<book>/sfx_recipes.py`, passed with `--recipes`: each top-level function without required arguments is a recipe named after it, returning samples at `sfx.SR`, built from sfx's own helpers, its docstring's first line shown by `--list` (the script's header has the details). Keep them soft and natural: the first rain was a high hiss and read as scary; pink noise with patter and taps on umbrellas read as rain.
 
-- Place an effect on the scene clock with `sfx(scene, t, name, volume)`; it plays at half volume under the voices, a pause holds it and the next scene stops it.
+- Place an effect on the scene clock with the engine's `sfx(scene, t, name, volume)`; it plays at half volume under the voices, a pause holds it and the next scene stops it.
 - Cut an effect to its shot: a six-second rain under a one-second shot spills into the next.
 - A long bed (wind, room tone, the 10 s `birds` of a park) is listed in `SFX_BED` with its length (`SFX_BED.birds = 10`), so a seek into the middle joins it part-way; a bed that loops overlaps its seams by about half a second, and room tone runs under the silences too, where its absence is heard first.
 
 ## Music
 
-Music is optional and goes under everything: about 70 % of its own level, and 30 % for the whole of a scene that has voices (its silent opening and tail too, so it does not swell between lines), fading in and out over most of a second. Give a scene silence when silence is the joke: `window.MUSIC_OFF = { scene: t => … }` fades it out for a stare. Don't let music stop dead in the middle of a scene; carry it to the end or fade it, and bring an earlier theme back when the story returns to an earlier place. Use tracks the book may redistribute (generated for the book, or openly licensed) and credit them.
+Music is optional and goes under everything: `music('audio/bgm/theme.mp3', [scene ids], gain, fade)` in the chapter page, one call per track. It sits at 30 % of its own level for the whole of a scene with voices (its silent opening and tail too, so it does not swell between lines); `window.MUSIC_UP_IN_PRE = ['scene']` lifts it to 70 % in that scene's music-only opening. Tracks crossfade over `fade` seconds (0.8 by default). Give a scene silence when silence is the joke: `window.MUSIC_OFF = { scene: t => … }` fades it out for a stare. Don't let music stop dead in the middle of a scene; carry it to the end or fade it, and bring an earlier theme back when the story returns to an earlier place. Use tracks the book may redistribute (generated for the book, or openly licensed) and credit them.
 
 ## Captions
 
