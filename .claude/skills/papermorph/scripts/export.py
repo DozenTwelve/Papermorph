@@ -80,7 +80,8 @@ async def main(a):
         if errs:
             sys.exit(f'page errors: {errs}')
         info = await pg.evaluate("""({lang: CHAPTER.language || 'en', beats: BEATS.map(b => ({id: b.id, ask: !!b.ask, pre: b.pre || 0})),
-          bgm: typeof BGM === 'undefined' ? [] : BGM.map(m => ({src: m.a.src, beats: m.beats, gain: m.gain}))})""")
+          bgm: typeof BGM === 'undefined' ? [] : BGM.map(m => ({src: m.a.src, beats: m.beats, gain: m.gain, fade: m.fade || .8})),
+          upInPre: window.MUSIC_UP_IN_PRE || false})""")
         beats = [(i, x['id']) for i, x in enumerate(info['beats']) if not x['ask']]
         info['sfx'] = []
         asks = len(beats) < len(info['beats'])
@@ -116,20 +117,25 @@ async def main(a):
             for e in info['sfx']:   # effects sit at half volume under the voices; a new scene stops them
                 if e['beat'] == bid and 0 <= e['at'] < lengths[k]:
                     put(track, o + e['at'], decode(e['src']), .5 * e['vol'], o + lengths[k])
-        # music: the page's bgmTick, frame by frame: 0.8 s crossfades, ducked to 30 % in a scene with voices
+        # music: the engine's music player (soundTick), frame by frame: crossfades of the track's `fade` (0.8 s by default), ducked to 30 % in a
+        # scene with voices; with MUSIC_UP_IN_PRE (true, or a list of beat ids) the music comes up to 70 % while a beat's
+        # picture runs before its narration
         fps, n = a.fps, sum(len(m) for m in music_off)
         frames_id = [bid for k, (_, bid) in enumerate(beats) for _ in music_off[k]]
         frames_t = [f / fps for m in music_off for f in range(len(m))]
         frames_off = [x for m in music_off for x in m]
         beat_len = {bid: lengths[k] for k, (_, bid) in enumerate(beats)}
+        beat_pre = {x['id']: x['pre'] for x in info['beats']}
         for m in info['bgm']:
             song, v, duck, pos = decode(m['src']), 0.0, .3, 0.0
             gain = np.zeros(n); at = np.zeros(n, int)
             for f in range(n):
                 bid, t = frames_id[f], frames_t[f]
                 current = bid in m['beats'] and not frames_off[f]
-                v = max(0.0, min(1.0, v + (1 if current else -1) / fps / .8))
-                duck += max(-1 / fps, min(1 / fps, .3 - duck))
+                v = max(0.0, min(1.0, v + (1 if current else -1) / fps / m['fade']))
+                up = info['upInPre']
+                want = .7 if up and (up is True or bid in up) and t < beat_pre[bid] else .3
+                duck += max(-1 / fps, min(1 / fps, want - duck))
                 if current: pos = sum(beat_len.get(b, 0) for b in m['beats'][:m['beats'].index(bid)]) + t
                 else: pos += 1 / fps
                 gain[f], at[f] = v * m['gain'] * duck, round(pos * RATE) % len(song)
