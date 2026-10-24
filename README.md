@@ -97,11 +97,13 @@ An illustrated physics chapter costs about $10–18 of model usage. The painted 
 
 ## Roadmap
 
+Ticked items are in the Skill today. The Skill currently goes as far as picture books.
+
 - [x] **Maths books:** formulas and diagrams that change step by step, with quizzes.
 - [x] **Science books:** illustrated scenes, acting characters, camera work.
 - [x] **Picture books:** paper-puppet films from a story, a joke or a fairy tale.
 - [ ] **Choosing the model for every step**, with defaults that depend on how much animation a book needs.
-- [ ] **Documentaries:** history and social-science titles.
+- [ ] **Documentaries:** history and social-science titles, wide films and vertical shorts. *Madness and Civilization* on the shelf is a hand-made sample. The Skill can't make one yet.
 
 ## FAQ
 
