@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sound effects for a picture book, synthesized with numpy (no samples): named recipes written as mono 44.1 kHz MP3s.
+"""Sound effects for a film, synthesized with numpy (no samples): named recipes written as mono 44.1 kHz MP3s.
 
     uv run --with numpy python sfx.py site/<book>/ch01/audio/sfx knock door rain   # these effects, OUT_DIR/<name>.mp3
     uv run --with numpy python sfx.py site/<book>/ch01/audio/sfx all               # every recipe
@@ -8,8 +8,9 @@
     uv run --with numpy python sfx.py --selftest                                   # checks the --recipes loading
 
 Needs ffmpeg. Every file is faded (5 ms) and peak-normalised to -3 dBFS; each recipe is seeded by its name, so a name
-always renders the same sound. Play them from a chapter with sfx(beat, seconds, 'name', volume) (paper-cutout kit,
-shared.js), which plays them at half volume under the voices. Even out voices and effects afterwards with level.py.
+always renders the same sound. Play them from a chapter with sfx(beat, seconds, 'name', volume) (the engine's sfx(), in
+any film: a picture book or a documentary), which plays them at half volume under the voices. Even out voices and
+effects afterwards with level.py.
 
 A book's own recipes: --recipes FILE.py (repeatable) imports FILE; every top-level function in it that takes no
 required argument and whose name does not start with _ becomes a recipe (underscores in the name become hyphens; the

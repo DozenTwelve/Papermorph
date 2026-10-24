@@ -23,7 +23,8 @@ ap.add_argument("--lines", help="lines.js to add or replace this drawing's entry
 ap.add_argument("--name", help="its key in LINES (default: OUT's file name without .svg)")
 a = ap.parse_args()
 
-im = Image.open(a.src).convert("L")
+src = Image.open(a.src).convert("RGBA")   # transparent paper counts as white paper
+im = Image.alpha_composite(Image.new("RGBA", src.size, "white"), src).convert("L")
 im = im.resize((a.width, round(im.height * a.width / im.width)), Image.LANCZOS)
 ink = np.asarray(im) < 140
 sk = skeletonize(ink)
@@ -81,7 +82,7 @@ if a.lines:
     head, data = "// centreline traces of line drawings (trace.py)\n", {}
     if lf.exists():
         t = lf.read_text()
-        head, data = t[:t.index("window.LINES")], json.loads(t[t.index("{"):t.rindex("}") + 1])
+        i = t.index("window.LINES"); head, data = t[:i], json.loads(t[t.index("{", i):t.rindex("}") + 1])
     data[a.name or pathlib.Path(a.out).stem] = entry
     lf.write_text(head + "window.LINES = " + json.dumps(data, separators=(",", ":")) + ";\n")
     print(len(data), "drawings in", lf)

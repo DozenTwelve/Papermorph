@@ -6,8 +6,8 @@
 
 The engine draws every frame as a pure function of the beat time, so frames are rendered by seeking, not by
 recording playback: the video is exact and the same on every run. The sound is mixed the way the page plays it:
-each beat's clip from its `pre` on, and in a picture book the sfx() effects (cut at the end of their scene, as a
-scene change stops them) and the BGM tracks with their crossfades, ducking and MUSIC_OFF. Question beats (quick
+each beat's clip from its `pre` on, and in a film (a picture book or a documentary) the sfx() effects (cut at the end
+of their scene, as a scene change stops them) and the BGM tracks with their crossfades, ducking and MUSIC_OFF. Question beats (quick
 checks and practice) are left out, and then the video ends on a card saying they are in the interactive lesson
 (--link adds its address). Captions are not burned in: upload OUT/chNN.srt with the video. Needs ffmpeg; serve the
 site over HTTP first.
@@ -80,7 +80,7 @@ async def main(a):
         if errs:
             sys.exit(f'page errors: {errs}')
         info = await pg.evaluate("""({lang: CHAPTER.language || 'en', beats: BEATS.map(b => ({id: b.id, ask: !!b.ask, pre: b.pre || 0})),
-          bgm: typeof BGM === 'undefined' ? [] : BGM.map(m => ({src: m.a.src, beats: m.beats, gain: m.gain, fade: m.fade || .8})),
+          bgm: typeof BGM === 'undefined' ? [] : BGM.map(m => ({src: m.a.src, beats: m.beats, gain: m.gain, fade: m.fade ?? .8})),
           upInPre: window.MUSIC_UP_IN_PRE || false})""")
         beats = [(i, x['id']) for i, x in enumerate(info['beats']) if not x['ask']]
         info['sfx'] = []
@@ -132,7 +132,7 @@ async def main(a):
             for f in range(n):
                 bid, t = frames_id[f], frames_t[f]
                 current = bid in m['beats'] and not frames_off[f]
-                v = max(0.0, min(1.0, v + (1 if current else -1) / fps / m['fade']))
+                v = max(0.0, min(1.0, v + (1 if current else -1) / fps / m['fade'])) if m['fade'] > 0 else float(current)   # 0: a cut
                 up = info['upInPre']
                 want = .7 if up and (up is True or bid in up) and t < beat_pre[bid] else .3
                 duck += max(-1 / fps, min(1 / fps, want - duck))

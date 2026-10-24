@@ -36,6 +36,8 @@ def ink(rgb, colour=CREAM):
 def line(src, side, inset=0, colour=CREAM):
     rgba = ink(Image.open(src).convert("RGB"), colour)
     box = rgba.getchannel("A").point(lambda v: 255 if v > 40 else 0).getbbox()
+    if not box:
+        return None
     if inset:   # shave a printed plate mark off the edges of the ink box
         dx, dy = int((box[2] - box[0]) * inset), int((box[3] - box[1]) * inset)
         box = (box[0] + dx, box[1] + dy, box[2] - dx, box[3] - dy)
@@ -49,7 +51,7 @@ def print_(src, side, paper=CREAM, border=16, pad=40):
     g = np.asarray(im.convert("L"), float)   # trim a near-black scanner mat at the edges (never more than 6 % a side)
     def edge(means):
         n, lim = len(means), int(len(means) * .06)
-        a = next((i for i in range(lim) if means[i] > 30), 0); b = next((i for i in range(lim) if means[n - 1 - i] > 30), 0)
+        a = next((i for i in range(lim) if means[i] > 30), lim); b = next((i for i in range(lim) if means[n - 1 - i] > 30), lim)
         return a, n - b
     (y0, y1), (x0, x1) = edge(g.mean(1)), edge(g.mean(0))
     im = im.crop((x0, y0, x1, y1))
@@ -79,10 +81,13 @@ def main():
     src, out = pathlib.Path(a.src), pathlib.Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     jf = out / "art.js"
-    sizes = json.loads(jf.read_text().split("=", 1)[1].strip().rstrip(";")) if jf.exists() else {}
+    t = jf.read_text() if jf.exists() else ""
+    sizes = json.loads(t[t.index("{", t.index("window.ART")):t.rindex("}") + 1]) if t else {}
     for name, f, mode, side, *rest in json.loads(pathlib.Path(a.list).read_text()):
         if mode == "line":
             im = line(src / f, side, rest[0] if rest else 0, rest[1] if len(rest) > 1 else a.ink)
+            if im is None:
+                print(f"{name}: WARNING no lines in {f} (is it dark lines on light paper?), skipped"); continue
         elif mode == "print":
             im = print_(src / f, side, a.paper)
         else:
