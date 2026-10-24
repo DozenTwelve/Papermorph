@@ -24,18 +24,18 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--task);
 button[hidden] { display: none; }
 
 /* One fixed 1600×960 frame (900 stage + 60 controls), scaled to fit the window. */
-#frame { position: absolute; left: 50%; top: 50%; width: 1600px; height: 960px; transform: translate(-50%, -50%) scale(var(--k, .5));
+#frame { position: absolute; left: 50%; top: 50%; width: var(--sw, 1600px); height: calc(var(--sh, 900px) + 60px); transform: translate(-50%, -50%) scale(var(--k, .5));
   border-radius: 20px; overflow: hidden; background: var(--board); box-shadow: 0 0 0 1px var(--edge), 0 30px 80px rgba(0, 0, 0, .45); }
-#stage { position: absolute; left: 0; top: 0; width: 1600px; height: 900px; display: block;
+#stage { position: absolute; left: 0; top: 0; width: var(--sw, 1600px); height: var(--sh, 900px); display: block;
   background: radial-gradient(75% 75% at 50% 45%, rgba(0,0,0,0) 60%, var(--vignette)), var(--grain, none), var(--board); }
-#ui { position: absolute; left: 0; top: 0; width: 1600px; height: 900px; pointer-events: none; }
+#ui { position: absolute; left: 0; top: 0; width: var(--sw, 1600px); height: var(--sh, 900px); pointer-events: none; }
 #ui > * { pointer-events: auto; }
 
-.cover { position: absolute; left: 0; top: 0; width: 1600px; height: 900px; display: grid; place-items: center; background: color-mix(in srgb, var(--page) 50%, transparent); border: 0; }
+.cover { position: absolute; left: 0; top: 0; width: var(--sw, 1600px); height: var(--sh, 900px); display: grid; place-items: center; background: color-mix(in srgb, var(--page) 50%, transparent); border: 0; }
 .cover[hidden] { display: none; }
 .cover > div { display: flex; flex-direction: column; align-items: center; }
 .cover-k { margin: 0 0 10px; text-align: center; font-size: 22px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--quiz); }
-.cover-t { margin: 0 0 44px; max-width: 1200px; text-align: center; font: 500 64px/1.15 "Iowan Old Style", Palatino, Georgia, serif; color: var(--chalk); text-wrap: balance; }
+.cover-t { margin: 0 0 44px; max-width: min(1200px, calc(var(--sw, 1600px) - 100px)); text-align: center; font: 500 64px/1.15 "Iowan Old Style", Palatino, Georgia, serif; color: var(--chalk); text-wrap: balance; }
 .cover > div > * { animation: rise .7s cubic-bezier(.2, .8, .2, 1) backwards; }
 .cover-t { animation-delay: .08s; }
 .cover .go { animation-delay: .18s; }
@@ -43,7 +43,7 @@ button[hidden] { display: none; }
 @keyframes rise { from { opacity: 0; transform: translateY(14px); } }
 .cover .go { display: inline-flex; align-items: center; gap: 16px; padding: 20px 40px; border-radius: 999px; background: var(--chalk); color: var(--board); font-weight: 600; font-size: 32px; }
 .cover small { display: block; margin-top: 22px; font-size: 22px; text-align: center; color: var(--dim); }
-.paused-mark { position: absolute; left: 0; top: 0; width: 1600px; height: 900px; display: none; place-items: center; pointer-events: none; }
+.paused-mark { position: absolute; left: 0; top: 0; width: var(--sw, 1600px); height: var(--sh, 900px); display: none; place-items: center; pointer-events: none; }
 .paused .paused-mark { display: grid; }
 .paused-mark div { padding: 14px 30px; border-radius: 999px; background: color-mix(in srgb, var(--page) 85%, transparent); color: var(--dim); font-size: 22px; }
 
@@ -105,7 +105,7 @@ button[hidden] { display: none; }
 .tok { cursor: grab; touch-action: none; }   /* a finger drags the chip instead of scrolling the page */
 
 /* Controls strip, part of the frame. */
-#bar { position: absolute; left: 0; top: 900px; width: 1600px; height: 60px; display: flex; align-items: center; gap: 10px; padding: 0 20px; background: color-mix(in srgb, var(--page) 50%, var(--board)); border-top: 1px solid var(--bar-edge); }
+#bar { position: absolute; left: 0; top: var(--sh, 900px); width: var(--sw, 1600px); height: 60px; display: flex; align-items: center; gap: 10px; padding: 0 20px; background: color-mix(in srgb, var(--page) 50%, var(--board)); border-top: 1px solid var(--bar-edge); }
 .icon { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--edge); background: var(--panel); display: grid; place-items: center; flex: none; padding: 0; }
 .icon svg { width: 18px; height: 18px; fill: var(--chalk); }
 .icon .i-pause { display: none; }
@@ -121,7 +121,7 @@ button[hidden] { display: none; }
 /* Keep the control strip usable without scaling down its touch targets. */
 @media (max-width: 700px) {
   #frame { top: calc(50% - 50px); overflow: visible; }
-  #bar { width: calc(1600px * var(--k)); height: auto; flex-wrap: wrap; gap: 6px; padding: 8px;
+  #bar { width: calc(var(--sw, 1600px) * var(--k)); height: auto; flex-wrap: wrap; gap: 6px; padding: 8px;
     transform: scale(calc(1 / var(--k))); transform-origin: left top; border-radius: 0 0 12px 12px; }
   #bar .icon { width: 36px; height: 40px; }
   .step { display: none; }
@@ -150,9 +150,9 @@ kbd { display: inline-block; min-width: 1.5em; padding: 0 .4em; margin-left: .5e
 .keys { margin: 6px 0 0; font-size: 18px; color: var(--dim); }
 .keys kbd { margin: 0 .15em; }
 .grid .row.cur { background: color-mix(in srgb, var(--chalk) 5%, transparent); box-shadow: inset 4px 0 var(--quiz); }
-.help { position: absolute; left: 0; top: 0; width: 1600px; height: 900px; display: grid; place-items: center; background: color-mix(in srgb, var(--veil) 72%, transparent); }
+.help { position: absolute; left: 0; top: 0; width: var(--sw, 1600px); height: var(--sh, 900px); display: grid; place-items: center; background: color-mix(in srgb, var(--veil) 72%, transparent); }
 .help[hidden] { display: none; }
-.help-box { width: 1120px; padding: 40px 50px; border-radius: 22px; background: var(--panel); border: 1.5px solid var(--edge); }
+.help-box { width: min(1120px, calc(var(--sw, 1600px) - 80px)); padding: 40px 50px; border-radius: 22px; background: var(--panel); border: 1.5px solid var(--edge); }
 .help h2 { margin: 0 0 22px; font-size: 32px; font-weight: 600; }
 .help h3 { margin: 0 0 12px; font-size: 20px; font-weight: 600; color: var(--quiz); }
 .help-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 44px; }
@@ -164,7 +164,7 @@ kbd { display: inline-block; min-width: 1.5em; padding: 0 .4em; margin-left: .5e
 .help-close { margin: 26px 0 0; font-size: 18px; color: var(--dim); }
 .icon.txt { font-size: 20px; font-weight: 700; color: var(--dim); }
 /* Optional captions of the narration, one sentence at a time. Off by default: teaching text lives in the picture. */
-.caption { position: absolute; left: 50%; bottom: 78px; transform: translateX(-50%); width: max-content; max-width: 1180px; padding: 10px 24px; border-radius: 14px; background: color-mix(in srgb, var(--veil) 82%, transparent); color: var(--chalk); font-size: 28px; line-height: 1.35; text-align: center; pointer-events: none; }
+.caption { position: absolute; left: 50%; bottom: 78px; transform: translateX(-50%); width: max-content; max-width: min(1180px, calc(var(--sw, 1600px) - 80px)); padding: 10px 24px; border-radius: 14px; background: color-mix(in srgb, var(--veil) 82%, transparent); color: var(--chalk); font-size: 28px; line-height: 1.35; text-align: center; pointer-events: none; }
 .caption[hidden] { display: none; }
 .icon.cc { font-size: 15px; font-weight: 700; color: var(--dim); }
 .icon.cc[aria-pressed="true"] { background: var(--chalk); border-color: var(--chalk); color: var(--board); }
@@ -186,7 +186,7 @@ svg.m { display: inline-block; overflow: visible; }
 .screen .body { margin-top: 30px; }
 .card.screen { display: flex; flex-direction: column; }
 .screen .head { order: 1; } .screen .body { order: 2; }
-.screen .fb { order: 3; max-width: 1080px; margin: 26px 0 0; font-size: 24px; }   /* feedback right under the answers */
+.screen .fb { order: 3; max-width: min(1080px, calc(var(--sw, 1600px) - 140px)); margin: 26px 0 0; font-size: 24px; }   /* feedback right under the answers */
 /* Practice screens: the bottom 130 px hold the buttons. Long answers scroll inside the body, so the feedback under
    them stays in view after a wrong answer adds a 'why' line to each row. */
 .card.screen:not(.sort):not(.fin) { padding-bottom: 130px; }
@@ -240,7 +240,7 @@ a.cite:focus-visible text, a.cite:focus-visible tspan { fill: var(--task); }
 a.cite:focus-visible { outline: 3px solid var(--task); outline-offset: 6px; border-radius: 4px; }
 #ui a.cite { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
 #ui a.cite:hover { color: var(--quiz); }
-.fin .srcs { margin: 26px 0 0; max-width: 1100px; font-size: 19px; line-height: 1.45; color: var(--dim); text-align: left; }
+.fin .srcs { margin: 26px 0 0; max-width: min(1100px, calc(var(--sw, 1600px) - 100px)); font-size: 19px; line-height: 1.45; color: var(--dim); text-align: left; }
 .fin .srcs h2 { margin: 0 0 6px; font-size: 18px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--quiz); }
 .fin .srcs ol { margin: 0; padding-left: 0; list-style: none; max-height: 190px; overflow: auto; }
 .fin .srcs li { padding-left: 2em; text-indent: -2em; margin: 0 0 6px; }
@@ -259,3 +259,5 @@ a.btn { text-decoration: none; display: inline-block; }
 .fin .kicker { font-size: 20px; letter-spacing: .14em; text-transform: uppercase; }
 .fin .prompt { margin: 6px 0 14px; font: 500 56px/1.15 "Iowan Old Style", Palatino, Georgia, serif; }
 .icon.speed { width: auto; min-width: 44px; padding: 0 10px; border-radius: 22px; font-size: 16px; }
+/* An upright stage is seen at about half the scale of a wide one on the same screen: bigger caption text. */
+:root[data-stage="portrait"] .caption { font-size: 38px; bottom: 60px; }

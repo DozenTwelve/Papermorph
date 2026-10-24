@@ -9,6 +9,7 @@ The maths helpers (number lines, tiles, fraction rows, planes, chance objects, t
 ## Stage and state
 
 - The stage is SVG, `viewBox 0 0 1600 900`; animated things live in `#scene`. HTML cards go in `#ui`, in the same coordinates.
+- **Upright stage** *(portrait)*. `<html data-stage="portrait">` turns the stage to 900 × 1600 for a phone feed ([shorts.md](shorts.md)). `SW` and `SH` hold the stage size (1600 and 900 otherwise), CSS has `--sw` and `--sh`, and the camera, the bottom band card, the captions, the window fit and `export.py` follow them. The side and top-right question cards and `header()` are still placed for the wide stage, so an upright chapter is a film without questions.
 - Every animated element carries a state object written to the DOM by `render()`: `x y` (translate), `s` (scale), `r` (rotate, degrees), `o` (opacity), `d` (stroke drawn, 0–1), `a_<attr>` (numeric attribute, e.g. `'a_stroke-width'`), `c_<attr>` (hex colour). Give a key a starting value before tweening it; an `a_`/`c_` key without one starts from the element's attribute.
 - Scale and rotation are about the element's own origin: draw around (0,0) and place with `x/y`.
 - `S` holds objects shared across beats (`S.panel`, `S.line`, …). `reset()` clears it, so anything a later beat needs must be stored on `S`.

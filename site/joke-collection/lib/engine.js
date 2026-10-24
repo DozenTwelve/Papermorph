@@ -151,6 +151,11 @@ const TRANSLATIONS = {
     watchAgain: 'もう一度見る', nextChapter: '次の章へ',
   },
 };
+// <html data-stage="portrait"> turns the stage upright: 900 wide, 1600 tall. Landscape (1600×900) otherwise.
+const PORTRAIT = document.documentElement.dataset.stage === 'portrait';
+const SW = PORTRAIT ? 900 : 1600, SH = PORTRAIT ? 1600 : 900;
+document.documentElement.style.setProperty('--sw', SW + 'px');
+document.documentElement.style.setProperty('--sh', SH + 'px');
 const LANGUAGE = (document.documentElement.lang || 'en').toLowerCase().split('-')[0];
 const pluralRules = {};
 // Interface text in LANGUAGE: translate('chapterNumber', { n: 3 }) → 'Chapter 3'. Chapters may use it too, e.g. for practice labels.
@@ -173,7 +178,7 @@ const isShortcut = (event, letter) => event.key.toLowerCase() === letter.toLower
 const isShortcutCode = (event, code) => /^\p{L}$/u.test(event.key) && !isLatinLetter(event.key) && event.code === code;
 
 document.body.insertAdjacentHTML('afterbegin', `<div id="frame">
-  <svg id="stage" viewBox="0 0 1600 900" role="img" aria-label="${translate('stageLabel')}">
+  <svg id="stage" viewBox="0 0 ${SW} ${SH}" role="img" aria-label="${translate('stageLabel')}">
     <g id="scene"></g>
   </svg>
   <div id="ui"></div>
@@ -265,12 +270,13 @@ const COL = { nat: '#f4a48c', whole: '#86c9e8', int: '#f3c95c', rat: '#e8a0c8', 
 }
 const MATH = bookSetting('--math-font') || '"STIX Two Text","Cambria Math","Iowan Old Style",Palatino,Georgia,serif';
 const NAME = { nat: translate('natural'), whole: translate('whole'), int: translate('integers'), rat: translate('rational'), irr: translate('irrational'), real: translate('real') };
-// Card positions inside the 1600×900 picture.
-const BAND = { x: 96, y: 686, w: 1408, cls: 'band' };      // bottom band (moves up when taller than the space left)
+// Card positions inside the picture. BAND and the screens follow the stage; RIGHT and TOPR are placed for the wide
+// stage's number line and map and have no upright layout yet.
+const BAND = { x: 96 * SW / 1600, y: SH - 214, w: SW - 192 * SW / 1600, cls: 'band' };   // bottom band (moves up when taller than the space left)
 const RIGHT = { x: 1258, y: 546, w: 330, cls: 'side', maxH: 346 };    // right of the number map
 const TOPR = { x: 960, y: 70, w: 624, cls: 'side', maxH: 470 };   // top right, above the number line
-const SCREEN = { x: 0, y: 0, w: 1600, cls: 'screen' };
-const SORT_SCREEN = { x: 0, y: 0, w: 1600, cls: 'screen sort' };
+const SCREEN = { x: 0, y: 0, w: SW, cls: 'screen' };
+const SORT_SCREEN = { x: 0, y: 0, w: SW, cls: 'screen sort' };
 const $m = (...parts) => ({ m: parts });
 
 function mk(tag, attrs = {}, parent) {
@@ -623,8 +629,8 @@ const clockRun = (f, D, { tail = false } = {}) => { f(0); const w = { t0: 0, dur
 // Moves are keyed on the beat clock: to(view, t0, dur, ease) blends each given key from its value at t0; a key may be a
 // function of t (follow). Unspecified keys keep following the earlier moves. dur 0 is a hard cut.
 let camN = 0;
-function camera(p, D, { box, x = 800, y = 450, z, r = 0, bg = COL.board } = {}) {
-  const [bx, by, bw, bh] = box || [0, 0, 1600, 900];
+function camera(p, D, { box, x = SW / 2, y = SH / 2, z, r = 0, bg = COL.board } = {}) {
+  const [bx, by, bw, bh] = box || [0, 0, SW, SH];
   const el = G(p, { x: bx + bw / 2, y: by + bh / 2 });
   let hold = el;
   if (box) {
@@ -635,7 +641,7 @@ function camera(p, D, { box, x = 800, y = 450, z, r = 0, bg = COL.board } = {}) 
   }
   const view = mk('g', {}, hold), world = G(view);
   if (box) mk('rect', { x: -bw / 2, y: -bh / 2, width: bw, height: bh, rx: 18, fill: 'none', stroke: COL.faint, 'stroke-width': 2 }, el);
-  const v0 = { x, y, z: z ?? (box ? Math.min(bw / 1600, bh / 900) : 1), r };
+  const v0 = { x, y, z: z ?? (box ? Math.min(bw / SW, bh / SH) : 1), r };
   const ops = [], shakes = [], layers = [];
   const val = (v, t) => typeof v === 'function' ? v(t) : v;
   // The view at time t after the first n moves; each move remembers the view it starts from.
@@ -693,7 +699,7 @@ function camera(p, D, { box, x = 800, y = 450, z, r = 0, bg = COL.board } = {}) 
 /* ---------- scene ---------- */
 const scene = document.getElementById('scene');
 const S = {};
-const AXIS = { o: 800, u: 120 };             // number line: x of 0, pixels per unit; a chapter may change it
+const AXIS = { o: SW / 2, u: 120 };             // number line: x of 0, pixels per unit; a chapter may change it
 const X = v => AXIS.o + AXIS.u * v, Y0 = 610;
 const num = v => (v < 0 ? '−' : '') + String(Math.abs(v)).replace('.', DECIMAL_SIGN);
 function reset() {
@@ -813,7 +819,7 @@ function card(pos, cls) {
   if (pos.maxH) c.style.maxHeight = pos.maxH + 'px';
   $('ui').append(c);
   if (pos.cls === 'band') {
-    const fit = () => { c.style.top = Math.max(16, Math.min(pos.y, 900 - 16 - c.offsetHeight)) + 'px'; };
+    const fit = () => { c.style.top = Math.max(16, Math.min(pos.y, SH - 16 - c.offsetHeight)) + 'px'; };
     const ro = new ResizeObserver(fit);
     ro.observe(c); fit();
     P.cleanup.push(() => ro.disconnect());
@@ -1514,7 +1520,7 @@ let capAt = '';
 function placeCaption(asking) {
   const c = asking ? $('ui').querySelector('.card.band, .card.side') : null;
   let at = '';
-  if (c?.classList.contains('band')) at = `${960 - c.offsetTop + 12}||`;
+  if (c?.classList.contains('band')) at = `${SH + 60 - c.offsetTop + 12}||`;
   else if (c && c.offsetLeft > 800 && c.offsetTop + c.offsetHeight > 700) at = `|${c.offsetLeft / 2}|${c.offsetLeft - 60}`;
   if (at === capAt) return;
   capAt = at;
@@ -1614,7 +1620,7 @@ document.addEventListener('keydown', e => {
 // Mouse clicks should not leave focus on a control, so Enter and Space keep meaning "check" and "play".
 $('frame').addEventListener('mousedown', e => { if (e.target.closest('button, [tabindex]')) e.preventDefault(); });
 $('bHelp').onclick = toggleHelp;
-const fit = () => document.documentElement.style.setProperty('--k', Math.min(innerWidth / 1640, (innerHeight - (innerWidth <= 700 ? 120 : 0)) / 1000));
+const fit = () => document.documentElement.style.setProperty('--k', Math.min(innerWidth / (SW + 40), (innerHeight - (innerWidth <= 700 ? 120 : 0)) / (SH + 100)));
 addEventListener('resize', fit);
 fit();
 
