@@ -25,11 +25,11 @@ FLAT = '#frame { border-radius: 0 !important; box-shadow: none !important; }'   
 END_CARD = """(link) => {
   const d = document.createElement('div');
   d.id = 'exportEnd';
-  d.style.cssText = 'position:absolute;left:0;top:0;width:1600px;height:900px;display:flex;flex-direction:column;' +
+  d.style.cssText = 'position:absolute;left:0;top:0;width:'+SW+'px;height:'+SH+'px;display:flex;flex-direction:column;' +
     'align-items:center;justify-content:center;gap:26px;background:var(--board,#1d2b27);color:var(--chalk,#ece8dc);' +
     'font-family:inherit;text-align:center;z-index:50';
   d.innerHTML = `<div style="font-size:30px;opacity:.65;letter-spacing:.08em;text-transform:uppercase">${translate('chapterNumber', { n: CHAPTER.label ?? CHAPTER.number })}</div>
-    <div style="font-size:64px;font-weight:600;max-width:1300px">${CHAPTER.title}</div>
+    <div style="font-size:64px;font-weight:600;max-width:${SW - 300}px">${CHAPTER.title}</div>
     <div style="font-size:34px;opacity:.85;margin-top:30px">${translate('checksInLesson')}</div>
     ${link ? `<div style="font-size:30px;opacity:.65">${link}</div>` : ''}`;
   document.getElementById('frame').append(d);
@@ -61,23 +61,31 @@ def srt_time(t):
 SFX_JS = "typeof SFX === 'undefined' ? [] : SFX.map(e => ({...e, src: new URL(`audio/sfx/${e.name}.mp3`, location.href).href}))"
 
 
+QUERY = ''   # extra page query (--query), e.g. 'tags&'
+
+
 async def open_beat(pg, base, i):
-    await pg.goto(f'{base}?beat={i}&t=0')
+    await pg.goto(f'{base}?{QUERY}beat={i}&t=0')
     await pg.add_style_tag(content=FLAT)
     await pg.wait_for_timeout(300)
 
 
 async def main(a):
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
-    scale = a.height / 900
     async with async_playwright() as p:
         b = await p.chromium.launch(**exe())
-        # The page fits a 1640 x 1000 frame at scale 1: the 1600 x 900 stage, rendered at the requested height.
-        pg = await b.new_page(viewport={'width': 1640, 'height': 1000}, device_scale_factor=scale)
+        base = f'{a.url}{a.chapter}/index.html'
+        # The stage is 1600 x 900, or 900 x 1600 for a book with <html data-stage="portrait">.
+        probe = await b.new_page()
+        await probe.goto(base + f'?{QUERY}beat=0&t=0')
+        sw, sh = await probe.evaluate('[SW, SH]')
+        await probe.close()
+        scale = (a.height or 1080 * sh / min(sw, sh)) / sh
+        # The page fits the stage plus its control strip at scale 1, rendered at the requested height.
+        pg = await b.new_page(viewport={'width': sw + 40, 'height': sh + 100}, device_scale_factor=scale)
         errs = []
         pg.on('pageerror', lambda e: errs.append(str(e)))
-        base = f'{a.url}{a.chapter}/index.html'
-        await pg.goto(base + '?beat=0&t=0'); await pg.wait_for_timeout(500)
+        await pg.goto(base + f'?{QUERY}beat=0&t=0'); await pg.wait_for_timeout(500)
         if errs:
             sys.exit(f'page errors: {errs}')
         info = await pg.evaluate("""({lang: CHAPTER.language || 'en', film: !!CHAPTER.film,
@@ -192,6 +200,9 @@ if __name__ == '__main__':
     ap.add_argument('--url', default='http://localhost:8765/', help='the book served over HTTP, ending in /')
     ap.add_argument('--out', default='export', help='output folder')
     ap.add_argument('--fps', type=int, default=30)
-    ap.add_argument('--height', type=int, default=1080, help='video height; width is 16:9')
+    ap.add_argument('--height', type=int, help='video height (default 1080 landscape, 1920 portrait)')
     ap.add_argument('--link', help='address of the interactive lesson, shown on the end card')
-    asyncio.run(main(ap.parse_args()))
+    ap.add_argument('--query', default='', help='extra page query, e.g. tags (the source and AI-illustration tags)')
+    args = ap.parse_args()
+    QUERY = args.query + '&' if args.query else ''
+    asyncio.run(main(args))

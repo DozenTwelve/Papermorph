@@ -128,7 +128,7 @@ def lint_chapter(ch, content, out):
             if f.suffix != '.js' or not f.exists() or f.name in ('timings.js', 'mathjax.js'):   # MathJax declares no globals
                 continue
             text, name = f.read_text(encoding='utf-8'), f.name
-            if f.parent.name != 'lib' or f.name not in ENGINE_FILES:
+            if (f.parent.name != 'lib' or f.name not in ENGINE_FILES) and not f.name.endswith('.min.js'):   # a vendored library is not the book's code
                 own.append(text)
         for ident, kind, line in decls(text):
             if ident in seen:
