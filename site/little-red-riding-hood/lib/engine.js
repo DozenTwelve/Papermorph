@@ -1271,7 +1271,7 @@ function runBeat(i) {
   };
   S.cleared = false;
   b.run(m, pre + tm.dur);
-  if (S.cleared && b.lead !== false && !pre) leadIn();
+  if (S.cleared && b.lead !== false && CHAPTER.lead !== false && !pre) leadIn();   // CHAPTER.lead false: no beat gets one (a film)
   TW.sort((a, c) => a.t0 - c.t0);
   const end = Math.max(pre + tm.dur, ...TW.map(w => w.t0 + w.dur)) + HOLD;
   const tail = TW.some(w => w.tail === true);

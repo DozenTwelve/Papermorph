@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FILM TITLE</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<!-- A documentary chapter: one beat per paragraph of the script. Copy lib/ (film.js, book.css with the ground colours,
+     fonts.css and fonts/) into site/<book>/lib/ next to the engine, and this file to site/<book>/chNN/index.html. img/art.js (prep.py) lists the
+     found pictures; add lib/lines.js (trace.py) and img/frames.js (frames.py) when the film uses traced drawings or clips. -->
+<script src="../lib/engine.js"></script>
+<script src="../lib/film.js"></script>
+<script src="audio/en/timings.js"></script>
+<script src="../img/art.js"></script>
+<script>
+'use strict';
+// lead: false — every opening is timed by hand, so the engine never pulls a beat's first reveal earlier
+const CHAPTER = { number: 1, title: 'FILM TITLE', minutes: 10, language: 'en', lead: false };
+
+const OPEN_PRE = 5;   // seconds of title and music before the first line
+
+/* ---------- beats ----------
+   [id, title, run, extra]: id names audio/en/<id>.mp3 and its TIMINGS entry; m('mark') is the time a word is heard.
+   `pre` gives the picture (and music) seconds before the narration starts. */
+const BEATS = [
+  ['open', 'Title', (m, D) => {
+    const p = panel(0);
+    const ti = key(p, 'FILM TITLE', 800, 420, .5, { size: 96 });
+    hide(ti, OPEN_PRE - .9, .6);
+    const g = pic(p, 'first-picture', { x: 800, y: 470, h: 640, at: OPEN_PRE - .6 });
+    push(g, OPEN_PRE, D);   // a slow push-in while it is talked about
+    say(p, ['The first line, typed as it is spoken.'], 800, 820, m('first'), m('first') + 2, { size: 48, anchor: 'middle' });
+  }, { pre: OPEN_PRE }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+/* ---------- music ----------
+   One music(file, [beat ids], gain, fade) per part of the film; window.MUSIC_UP_IN_PRE lifts it in a music-only opening. */
+window.MUSIC_UP_IN_PRE = ['open'];
+// music('audio/bgm/part1.mp3', ['open'], .5, 3);
+
+// the fonts must be in before words are measured
+Promise.all(['600 40px Oswald', '500 40px Oswald', 'italic 400 40px "EB Garamond"', '400 40px "EB Garamond"']
+  .map(f => document.fonts.load(f))).then(boot);
+</script>
+</body>
+</html>

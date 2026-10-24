@@ -1,0 +1,45 @@
+#!/usr/bin/env python3
+"""A short clip from a still (image-to-video through OpenRouter: POST /api/v1/videos, poll, download).
+
+    python3 video.py OUT.mp4 FIRST_FRAME.png "prompt" --model kwaivgi/kling-v3.0-std --ledger books/<book>/art/costs.tsv
+    ... [--duration 5] [--resolution 720p] [--aspect 1:1]
+
+The still is the first frame; the clip has no sound. Then frames.py turns it into an ink-line sprite sheet, so it
+plays on the beat clock like the rest of the film (pause, seek and export match, which a <video> would not).
+Kling 3.0 std, 5 s, cost about $0.42 and kept an engraving's style; Veo 3.1 lite refused 1:1. A job takes minutes;
+the script polls every 20 s. The key is read from ~/.config/openrouter/key or $OPENROUTER_API_KEY.
+
+Prints the cost OpenRouter reports and appends a row to the ledger (date, file, model, "video<N>s", cost), the same
+ledger paint.py writes, so `python3 paint.py --total LEDGER` sums both.
+"""
+import argparse, base64, datetime, json, mimetypes, pathlib, time, urllib.error, urllib.request
+from paint import key
+
+ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+ap.add_argument("out"); ap.add_argument("frame"); ap.add_argument("prompt")
+ap.add_argument("--model", required=True); ap.add_argument("--duration", type=int, default=5); ap.add_argument("--resolution", default="720p")
+ap.add_argument("--aspect", default="1:1")
+ap.add_argument("--ledger", required=True, help="tab-separated cost log, e.g. books/<book>/art/costs.tsv")
+a = ap.parse_args()
+k = key()
+H = {"Authorization": f"Bearer {k}", "Content-Type": "application/json"}
+def call(url, body=None):
+    try:
+        return urllib.request.urlopen(urllib.request.Request(url, json.dumps(body).encode() if body else None, H), timeout=300)
+    except urllib.error.HTTPError as e:
+        raise SystemExit(f"{e.code} {e.read().decode(errors='replace').replace(k, '***')[:500]}")
+img = f"data:{mimetypes.guess_type(a.frame)[0] or 'image/png'};base64," + base64.b64encode(pathlib.Path(a.frame).read_bytes()).decode()
+body = {"model": a.model, "prompt": a.prompt, "duration": a.duration, "resolution": a.resolution, "aspect_ratio": a.aspect,
+        "generate_audio": False, "frame_images": [{"type": "image_url", "image_url": {"url": img}, "frame_type": "first_frame"}]}
+jid = json.load(call("https://openrouter.ai/api/v1/videos", body))["id"]; print(a.model, "job", jid, flush=True)
+while True:
+    time.sleep(20)
+    s = json.load(call(f"https://openrouter.ai/api/v1/videos/{jid}"))
+    if s["status"] in ("completed", "failed"): break
+if s["status"] == "failed": raise SystemExit(f"failed: {s.get('error')}")
+out = pathlib.Path(a.out); out.parent.mkdir(parents=True, exist_ok=True)
+out.write_bytes(call(f"https://openrouter.ai/api/v1/videos/{jid}/content?index=0").read())
+cost = (s.get("usage") or {}).get("cost", 0) or 0
+led = pathlib.Path(a.ledger); led.parent.mkdir(parents=True, exist_ok=True)
+with led.open("a", encoding="utf-8") as f: f.write(f"{datetime.date.today()}\t{a.out}\t{a.model}\tvideo{a.duration}s\t{cost}\n")
+print(a.out, f"cost {cost} USD")

@@ -1,6 +1,6 @@
 ---
 name: papermorph
-description: Make or edit animated, narrated, interactive web books from reference PDFs, and animated picture books (paper-puppet films) from a story, a joke or a fairy tale. Use for book planning, storyboards, chapter animation and exercises, narration, and cover and contents pages, including "make the next chapter", "turn this story into a picture book" or "fix this animation". Deliver runnable static book files; bookshelf design, bookshelf registration and hosting are separate tasks.
+description: Make or edit animated, narrated, interactive web books from reference PDFs, animated picture books (paper-puppet films) from a story, a joke or a fairy tale, and narrated documentaries about a book or an idea, built from public-domain pictures. Use for book planning, storyboards, chapter animation and exercises, narration, and cover and contents pages, including "make the next chapter", "turn this story into a picture book", "make a documentary about this book" or "fix this animation". Deliver runnable static book files; bookshelf design, bookshelf registration and hosting are separate tasks.
 ---
 
 # Papermorph
@@ -20,9 +20,10 @@ What the picture should be depends on the book and on the user, so the work star
 |---|---|---|
 | A textbook PDF | [Lessons](#lessons) | [intake.md](references/intake.md), then [diagrams.md](references/diagrams.md) (tier 1) or [scenes.md](references/scenes.md) (tier 2), [authoring.md](references/authoring.md), [assets.md](references/assets.md), [review.md](references/review.md) |
 | A story, a joke, a fairy tale, or a story book's PDF | [Picture books](#picture-books) | [stories.md](references/stories.md), [puppets.md](references/puppets.md), [sound.md](references/sound.md), [painting.md](references/painting.md) for a painted look |
+| A book, an idea or a stretch of history to explain as a narrated film | [Documentaries](#documentaries) | [documentary.md](references/documentary.md), [sound.md](references/sound.md) for music |
 | A course book (cites works, reviewed questions, an LMS) | Lessons plus options | [courses.md](references/courses.md), only when the book calls for them |
 
-Both paths share [site.md](references/site.md) (the book folder, cover or series page, preview, video export), [engine.md](references/engine.md) (the player and drawing API), [team.md](references/team.md) (making chapters with subagents) and the models step of [intake.md](references/intake.md#5-models). Read only the reference the current step needs.
+Every path shares [site.md](references/site.md) (the book folder, cover or series page, preview, video export), [engine.md](references/engine.md) (the player and drawing API), [team.md](references/team.md) (making chapters with subagents) and the models step of [intake.md](references/intake.md#5-models). Read only the reference the current step needs.
 
 ## Project layout
 
@@ -78,6 +79,10 @@ A course book may also want verified citation links, a reviewed question bank or
 
 Start with the story intake in [stories.md](references/stories.md#intake-for-a-story) whenever `books/<book>/style.json` does not exist yet; agree the models ([intake.md](references/intake.md#5-models)) and write `style.json`. Then follow [the order of work](references/stories.md#the-order-of-work): the script and storyboard shown to the user before anything is built, the book folder ([site.md](references/site.md#a-picture-book)), sound, sets, scenes, [review rounds](references/stories.md#review-rounds), and the user's viewing of the first cut. Each episode is a chapter (`chNN`); a series shares its cast, sets and series page.
 
+## Documentaries
+
+Start with the intake in [documentary.md](references/documentary.md#intake) whenever `books/<book>/style.json` does not exist yet. Then follow [the order of work](references/documentary.md#the-order-of-work): research, the script and storyboard shown to the user, the folder from `assets/templates/documentary/`, pictures found and treated, voice, music, the beats, [review rounds](references/documentary.md#review-rounds) and the user's viewing. *Madness and Civilization* on the shelf is the approved reference.
+
 ## Scripts
 
 All in `SKILL/scripts/`; each prints its usage with `--help` (run it with the `uv run --with …` its docstring names).
@@ -87,6 +92,7 @@ All in `SKILL/scripts/`; each prints its usage with `--help` (run it with the `u
 | Every book | `serve.py` preview without caching · `engine.py` sync the engine into books · `tts.py` narration and word times · `lint.py` static checks · `shot.py` beat screenshots · `strip.py` storyboard sheets and motion strips · `still.py` stretches where nothing moves · `perf.py` Firefox frame times · `export.py` MP4 and `.srt` |
 | Lessons | `outline.py` and `split_pages.py` page map and chapter text · `check_blank.py` empty openings · `overlap.py` arrows through text · `sprites.py` image processing steps |
 | Picture books | `mouths.py` mouth shapes · `level.py` even loudness · `join.py` one clip per scene · `sfx.py` synthesized effects · `playlog.py` sounds and captions against the picture · `bake_sets.py` set layers · `bake_puppets.py` puppet bitmaps · `paint.py` / `paint_openai.py` image-model pictures · `painted.py` place them in the book |
+| Documentaries | `commons.py` public-domain pictures and recordings with their licences · `prep.py` print and line treatments · `trace.py` drawings that draw themselves on · `video.py` a clip from a still · `frames.py` a clip as treated frames · `eleven.py` ElevenLabs narration with word times |
 | Course options | `refs.py` verified citations · `items.py` question bank · `scorm.py` LMS package |
 
 `silence.py`, `ledger.py` and `browsers.py` are helpers the others import.
