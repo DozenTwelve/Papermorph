@@ -75,6 +75,23 @@ cp "$DK/narration.en.json" "content/$BOOK_ID/ch01/"
 echo 'window.ART = {};' > "$BOOK_SITE/img/art.js"
 ```
 
+### A short
+
+Like a documentary: `engine.py` first, then the shorts kit's `lib/` over it, with the documentary kit's fonts. Each episode is a chapter; its sound effects come from `sfx.py`. The commands for an empty book (a series page and shelf registration come later, as for any book):
+
+```sh
+BOOK_ID=short
+BOOK_SITE="site/$BOOK_ID"
+SK="$SKILL/assets/templates/shorts"
+DK="$SKILL/assets/templates/documentary"
+mkdir -p "$BOOK_SITE/lib" "$BOOK_SITE/img" "$BOOK_SITE/ch01/audio/sfx" "content/$BOOK_ID/ch01" "books/$BOOK_ID/art"
+python3 "$SKILL/scripts/engine.py" "$BOOK_SITE"
+cp -R "$SK"/lib/. "$BOOK_SITE/lib/"
+cp -R "$DK/lib/fonts.css" "$DK/lib/fonts" "$BOOK_SITE/lib/"
+cp "$SK/chapter.html" "$BOOK_SITE/ch01/index.html"
+uv run --with numpy python "$SKILL/scripts/sfx.py" "$BOOK_SITE/ch01/audio/sfx" whoosh bang tick thud
+```
+
 The chapter loads `../img/art.js`, which `prep.py` fills as pictures are treated; until then the kit's sample beat needs one picture named `first-picture`. Voice the sample with `uv run --with edge-tts python "$SKILL/scripts/tts.py" "content/$BOOK_ID/ch01/narration.en.json" "$BOOK_SITE/ch01/audio/en"` to check the folder works, then replace the narration with the film's script ([documentary.md](documentary.md#the-order-of-work)).
 
 ### Every book

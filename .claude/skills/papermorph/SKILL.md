@@ -1,17 +1,18 @@
 ---
 name: papermorph
-description: Make or edit animated, narrated, interactive web books from reference PDFs, animated picture books (paper-puppet films) from a story, a joke or a fairy tale, and narrated documentaries about a book or an idea, built from public-domain pictures. Use for book planning, storyboards, chapter animation and exercises, narration, and cover and contents pages, including "make the next chapter", "turn this story into a picture book", "make a documentary about this book" or "fix this animation". Deliver runnable static book files; bookshelf design, bookshelf registration and hosting are separate tasks.
+description: Make or edit animated, narrated, interactive web books from reference PDFs, animated picture books (paper-puppet films) from a story, a joke or a fairy tale, narrated documentaries about a book or an idea, built from public-domain pictures, and upright shorts for a phone feed that make one point in under three minutes. Use for book planning, storyboards, chapter animation and exercises, narration, and cover and contents pages, including "make the next chapter", "turn this story into a picture book", "make a documentary about this book", "make a short about this for YouTube Shorts" or "fix this animation". Deliver runnable static book files; bookshelf design, bookshelf registration and hosting are separate tasks.
 ---
 
 # Papermorph
 
-Papermorph makes three kinds of book on one machine:
+Papermorph makes four kinds of book on one machine:
 
 - **Lessons**, from a textbook PDF: each chapter is a short animated lesson film where the picture carries the explanation, the narration says it, and quick checks and practice happen inside the picture.
 - **Picture books**, from a story, a joke or a fairy tale: short films of paper puppets in front of sets, drawn in code or painted by an image model, with voices, effects and music.
 - **Documentaries**, from a book or an idea: narrated films of found public-domain pictures, words and maps moved in step with the voice, with music.
+- **Shorts**, from an argument the user outlines: upright films for a phone feed that make one point in under three minutes.
 
-All are a 1600×900 SVG stage plus a player; **beats** pair narration clips with timed actions. Good means **alive** (things act and change with weight and timing), **composed** (each moment reads as one picture, text beside what it names), **true** (motion, labels and numbers agree at every moment) and **smooth** (it plays without stutter, Firefox included).
+All are an SVG stage (1600×900, or 900×1600 for a short) plus a player; **beats** pair narration clips with timed actions. Good means **alive** (things act and change with weight and timing), **composed** (each moment reads as one picture, text beside what it names), **true** (motion, labels and numbers agree at every moment) and **smooth** (it plays without stutter, Firefox included).
 
 What the picture should be depends on the book and on the user, so the work starts with a conversation that ends in `style.json`: the user's words, the look they chose, the voices, which model does which step, and later the approved chapters. Every chapter is made against it; how each beat is laid out and choreographed is yours to judge against it and the approved chapters. User requests override defaults. Re-create explanations, examples and drawings; keep source PDFs, page images and extracted text outside the static output folder and out of version control (`.gitignore`: `*.pdf`, `books/*/pages/`). Deliver a self-contained book folder with local preview instructions.
 
@@ -22,6 +23,7 @@ What the picture should be depends on the book and on the user, so the work star
 | A textbook PDF | [Lessons](#lessons) | [intake.md](references/intake.md), then [diagrams.md](references/diagrams.md) (tier 1) or [scenes.md](references/scenes.md) (tier 2), [authoring.md](references/authoring.md), [assets.md](references/assets.md), [review.md](references/review.md) |
 | A story, a joke, a fairy tale, or a story book's PDF | [Picture books](#picture-books) | [stories.md](references/stories.md), [puppets.md](references/puppets.md), [sound.md](references/sound.md), [painting.md](references/painting.md) for a painted look |
 | A book, an idea or a stretch of history to explain as a narrated film | [Documentaries](#documentaries) | [documentary.md](references/documentary.md), [sound.md](references/sound.md) for music |
+| One point to make in under three minutes, upright, for a phone feed (YouTube Shorts, TikTok, Reels) | [Shorts](#shorts) | [shorts.md](references/shorts.md), [documentary.md](references/documentary.md) for voice, pictures and review |
 | A course book (cites works, reviewed questions, an LMS) | Lessons plus options | [courses.md](references/courses.md), only when the book calls for them |
 
 Every path shares [site.md](references/site.md) (the book folder, cover or series page, preview, video export), [engine.md](references/engine.md) (the player and drawing API), [team.md](references/team.md) (making chapters with subagents) and the models step of [intake.md](references/intake.md#5-models). Read only the reference the current step needs.
@@ -85,6 +87,10 @@ Start with the story intake in [stories.md](references/stories.md#intake-for-a-s
 ## Documentaries
 
 Start with the intake in [documentary.md](references/documentary.md#intake) whenever `books/<book>/style.json` does not exist yet. Then follow [the order of work](references/documentary.md#the-order-of-work): research, the script and storyboard shown to the user, the folder from `assets/templates/documentary/` ([site.md](references/site.md#a-documentary)), pictures found and treated, voice, music, the beats, [review rounds](references/documentary.md#review-rounds) and the user's viewing. *Madness and Civilization* on the shelf is the approved reference.
+
+## Shorts
+
+Start with the questions in [shorts.md](references/shorts.md#questions-for-the-user) whenever `books/<book>/style.json` does not exist yet; the user's outline comes before any script. Then follow [the order of work](references/shorts.md#the-order-of-work): the script written beat by beat with the user, the cast, the folder from `assets/templates/shorts/` on the upright stage, voice and music levels, the beats, a director pass and the user's viewing, then `export.py` for a 1080 × 1920 video. *Madness and Civilization* episode 1, *The Ship* (`site/madness-shorts/`), is the worked example.
 
 ## Scripts
 

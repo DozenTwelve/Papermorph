@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en" data-stage="portrait">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SERIES · EPISODE TITLE</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<!-- A short: one beat per line of the script. Run engine.py on site/<book> first, then copy lib/ (shorts.js, book.css,
+     icons.js and its licence) over it with the documentary kit's fonts.css and fonts/; this file goes to
+     site/<book>/chNN/index.html. The film's own pieces (its cast's sizes, its recurring cards) go in a second lib file,
+     loaded after shorts.js. -->
+<script src="../lib/engine.js"></script>
+<script src="audio/en/timings.js"></script>
+<script src="../lib/icons.js"></script>
+<script src="../lib/shorts.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 1, title: 'EPISODE TITLE', minutes: 2, language: 'en' };
+
+/* ---------- beats ----------
+   [id, title, run, extra]: id names audio/en/<id>.mp3 and its TIMINGS entry; m('mark') is when the picture for that word
+   lands (shortsBeat puts it LEAD s before the word is heard). shot() starts a full-frame shot; a beat's first shot is
+   on screen from its first frame. */
+const OPEN_PRE = .3;
+const BEATS = [
+  // The hook: the first frame is already a picture in motion, and the first line is the hook itself
+  ['hook', 'The hook', (m, D) => {
+    const p = panel(0);
+    const s = shot(p, 0, undefined);
+    photo(s, 'hook-picture', 0, D, { s0: 1.0, s1: 1.15, dim: .2 });
+    word(s, 'Big word', CX, 640, m('big'), { size: 140, fill: '#fff', stroke: INK });
+    label(s, 'Series · part 1', CX, 1200, .3, { size: 44, fill: RED });
+  }, { pre: OPEN_PRE }],
+].map(shortsBeat);
+
+// One track for the whole film, cut to its timeline; ?bgm= sets its level by ear (gain under the ducking to 30 %)
+music('audio/bgm/ep1.mp3', undefined, +(new URLSearchParams(location.search).get('bgm') || .5), .05);
+startShorts();
+</script>
+</body>
+</html>

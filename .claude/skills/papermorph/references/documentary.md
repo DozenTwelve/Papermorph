@@ -65,4 +65,4 @@ After the first cut, an independent director pass: a fresh agent on a strong mod
 
 ## Later
 
-Vertical shorts (a 9:16 stage, faster cuts, a single music track cut to the timeline) are being worked out on their own branch and are not yet part of this path.
+Upright shorts for a phone feed (a 9:16 stage, faster cuts, one music track for the whole film) have their own path: [shorts.md](shorts.md).
