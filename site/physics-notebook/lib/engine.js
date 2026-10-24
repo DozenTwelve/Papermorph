@@ -1362,7 +1362,7 @@ function seekInto(i, frac) {
 }
 function start(i, play) {
   stopAudio(); clearCards();
-  Object.assign(P, { i, t: 0, waiting: false, done: false, afail: false, stall: 0 });
+  Object.assign(P, { i, t: 0, waiting: false, done: false, afail: false, stall: 0, lost: 0 });
   P.end = runBeat(i);
   evalTo(0);
   const a = P.audio = beatClip(i, true);
@@ -1456,7 +1456,7 @@ function step(now, most) {
   clock += dt;
   if (FX.length) { evalTo(clock, FX); FX = FX.filter(w => !w.done); }
   if (P.playing && !P.waiting && !P.done) {
-    const a = P.audio;
+    const a = P.audio, t0 = P.t;
     // While the clip plays, its clock drives the picture; before it starts or after it ends, wall time does.
     const pre = BEATS[P.i].pre || 0;
     if (a && P.t < pre) {   // the picture's lead before the narration, on wall time; then the clip starts
@@ -1467,7 +1467,12 @@ function step(now, most) {
       else if ((P.stall += dt) > (a.readyState < 2 ? 8 : 15)) soundFailed();   // nothing to play after 8 s, or stuck for 15
     } else P.t += dt * P.rate;
     evalTo(P.t);
-    if (P.t >= P.end) beatDone();
+    // P.lost: how long the clock stood still while the film played (a clip getting going, buffering). Music runs on
+    // through it, so a beat under music gives that time back from its closing hold: each beat then lasts as long in
+    // real time as on the music's timeline, and the music stays with the picture instead of drifting ahead beat by beat.
+    P.lost += dt * P.rate - (P.t - t0);
+    const back = SND.bgm.some(m => m.beats.includes(BEATS[P.i].id)) ? Math.max(0, Math.min(HOLD, P.lost)) : 0;
+    if (P.t >= P.end - back) beatDone();
   }
   soundTick(dt);
   syncLinks();
