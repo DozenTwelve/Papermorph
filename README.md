@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <strong>A Claude Code Skill that turns textbooks into narrated, interactive web lessons,<br>and stories into paper-puppet films.</strong>
+  <strong>A Claude Code Skill that turns textbooks into narrated, interactive web lessons,<br>stories into paper-puppet films, and books into narrated documentaries.</strong>
 </p>
 
 <p align="center">
@@ -29,6 +29,7 @@
 | A textbook PDF (maths) | Lessons where formulas and diagrams change step by step as the narration explains, with quick checks and chapter practice that grade the maths, not the string | [Elementary Algebra](https://papermorph.diamonddoge.org/elementary-algebra/) (68 chapters), [Elementary Mathematics](https://papermorph.diamonddoge.org/math-notebook/) (23) |
 | A textbook PDF (science) | Illustrated scenes with acting characters and camera work, plus the same quizzes | [Elementary Physics](https://papermorph.diamonddoge.org/science/) (9 chapters and a sample) |
 | A story, a joke or a fairy tale | A short film of paper puppets in front of sets drawn in code or painted by an image model, with voices, subtitles, sound effects and music | [Joke Collection](https://papermorph.diamonddoge.org/joke-collection/) (7 episodes), [Little Red Riding Hood](https://papermorph.diamonddoge.org/little-red-riding-hood/) |
+| A book or an idea | A narrated documentary of public-domain engravings, paintings and maps, moved in step with the voice, with music | [Madness and Civilization](https://papermorph.diamonddoge.org/madness/) (10 minutes) |
 
 <p align="center">
   <a href="https://papermorph.diamonddoge.org/science/ch12/"><img src="img/readme/physics-pulleys.webp" alt="Elementary Physics: one fixed pulley changes the direction of the pull; two pulleys halve the force" width="49%"></a>
@@ -53,13 +54,15 @@ Then, in Claude Code:
 
 It finds the PDF in your project (or asks for your story), tells you what kind of book it is, suggests a chapter to try first and how much animation it needs, and offers a recommended option at every step. Your choices are saved in `style.json`, so every later chapter is made to the same style.
 
-You need [uv](https://docs.astral.sh/uv/), ffmpeg, and Playwright's browsers (`uv run --with playwright playwright install chromium firefox`). Narration uses Edge TTS (online) or Kokoro (local). Painted sets for picture books need an image-model API key; everything else runs without one.
+You need [uv](https://docs.astral.sh/uv/), ffmpeg, and Playwright's browsers (`uv run --with playwright playwright install chromium firefox`). Narration uses Edge TTS (online) or Kokoro (local), free. A few steps are paid, optional and need an API key: painted sets for picture books (OpenRouter or OpenAI), and ElevenLabs narration and clips made from a still for documentaries ([OpenRouter](https://openrouter.ai/)). Everything else runs without one.
 
 ## How it works
 
 **Textbooks:** the PDF is split into chapters → each chapter gets a beat plan and narration → the narration is voiced, and every word gets a time → the picture is laid out as a storyboard first, then animated in time with those words → quizzes go between the steps → the model watches its own output (contact sheets, overlap and blank-frame checks, end-to-end tests) and fixes what it sees.
 
 **Picture books:** your telling becomes a script and a shot list → puppets and sets are built (or painted) once and reused across episodes → voices, mouth shapes, sound effects and music are made and joined per scene → scenes are filmed in parallel → review rounds (a director, picture reviewers and a sound reviewer) send scenes back until they hold up next to approved episodes.
+
+**Documentaries:** the source becomes an argument, a script and a storyboard → public-domain pictures are found, their licences recorded, and treated to one look → the narration is voiced and music laid under it → the beats are built in step with the words → a director pass checks every beat against the narration.
 
 Large chapters can be made by a team of subagents, each step on the model that suits it ([team.md](.claude/skills/papermorph/references/team.md)).
 
@@ -74,7 +77,7 @@ python3 .claude/skills/papermorph/scripts/engine.py site                        
 python3 .claude/skills/papermorph/scripts/engine.py site --from you/your-fork@main
 ```
 
-Engine versions are tags (`engine-v2`, `engine-v2.1`, …); a new major number means a book may need a change, described in its [release notes](https://github.com/DozenTwelve/Papermorph/releases). Outside this repository, `engine.py` syncs from the latest compatible release, now `engine-v2.1`. Since `engine-v2` the maths helpers (number lines, tiles, planes, the number-set diagram) are in `lib/math.js`: a chapter that uses them loads `../lib/math.js` right after `engine.js`, and `lint.py` names the chapters that need it. `--from DozenTwelve/Papermorph@engine-v1` keeps the earlier engine.
+Engine versions are tags (`engine-v2`, `engine-v2.1`, …); a new major number means a book may need a change, described in its [release notes](https://github.com/DozenTwelve/Papermorph/releases). Outside this repository, `engine.py` syncs from the latest compatible release, now `engine-v2.2`. Since `engine-v2` the maths helpers (number lines, tiles, planes, the number-set diagram) are in `lib/math.js`: a chapter that uses them loads `../lib/math.js` right after `engine.js`, and `lint.py` names the chapters that need it. `--from DozenTwelve/Papermorph@engine-v1` keeps the earlier engine.
 
 ## Video and LMS export
 
@@ -97,13 +100,14 @@ An illustrated physics chapter costs about $10–18 of model usage. The painted 
 
 ## Roadmap
 
-Ticked items are in the Skill today. The Skill currently goes as far as picture books.
+Ticked items are in the Skill today. The Skill currently goes as far as widescreen documentaries.
 
 - [x] **Maths books:** formulas and diagrams that change step by step, with quizzes.
 - [x] **Science books:** illustrated scenes, acting characters, camera work.
 - [x] **Picture books:** paper-puppet films from a story, a joke or a fairy tale.
 - [ ] **Choosing the model for every step**, with defaults that depend on how much animation a book needs.
-- [ ] **Documentaries:** history and social-science titles, wide films and vertical shorts. *Madness and Civilization* on the shelf is a hand-made sample. The Skill can't make one yet.
+- [x] **Documentaries:** narrated films of public-domain pictures about a book or an idea. *Madness and Civilization* on the shelf is the reference film.
+- [ ] **Vertical shorts** of documentaries.
 
 ## FAQ
 

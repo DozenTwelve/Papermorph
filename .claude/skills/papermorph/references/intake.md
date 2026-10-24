@@ -50,17 +50,17 @@ Then start the book folder ([site.md](site.md#start-a-book-folder)): the look is
 
 Which model does which step is the user's choice. Users run the Skill with different models and providers, and a book can mix them. Show the defaults for the chosen tier as one table, one row per step in [team.md](team.md#steps), and ask: keep it (recommended), or change some rows. Any model the user names is fine.
 
-| Step | Tier 1 | Tier 2 | Picture book |
-|---|---|---|---|
-| Extract the chapter (or the story) | small | small | strong (script and storyboard with the user) |
-| Narration and beats | middle | middle | strong (voices, the episode kit) |
-| Picture: storyboard, motion, questions | middle | strong | middle, one worker per scene |
-| Checks | small | small | small (sound effects too) |
-| Review | middle | middle | strong director, middle picture and sound reviewers |
-| Rework | strong | strong | middle, per scene |
-| Register | small | small | small |
+| Step | Tier 1 | Tier 2 | Picture book | Documentary |
+|---|---|---|---|---|
+| Extract the chapter (or the story) | small | small | strong (script and storyboard with the user) | strong (research, script and storyboard with the user; then voice and music) |
+| Narration and beats | middle | middle | strong (voices, the episode kit) | middle (pictures found and treated) |
+| Picture: storyboard, motion, questions | middle | strong | middle, one worker per scene | middle, one worker per part of the film |
+| Checks | small | small | small (sound effects too) | small |
+| Review | middle | middle | strong director, middle picture and sound reviewers | strong director |
+| Rework | strong | strong | middle, per scene | middle, per part |
+| Register | small | small | small | small |
 
-**small**, **middle** and **strong** stand for the user's current fast, balanced and most capable models; write the actual model names into `models`, keyed by step as in the [course](../assets/templates/style.json) or [picture-book](../assets/templates/picture-book/style.json) template (a picture book's keys name its roles: `script`, `kit`, `scenes`, `sound`, `director`, `reviewers`). Without subagents one agent does every step on its own model, and the table only records that. The user can change a row at any time; later chapters follow the table as it stands.
+**small**, **middle** and **strong** stand for the user's current fast, balanced and most capable models; write the actual model names into `models`, keyed by step as in the [course](../assets/templates/style.json) or [picture-book](../assets/templates/picture-book/style.json) template (a picture book's keys name its roles: `script`, `kit`, `scenes`, `sound`, `director`, `reviewers`; a [documentary](../assets/templates/documentary/style.json)'s: `script`, `pictures`, `beats`, `checks`, `director`). Without subagents one agent does every step on its own model, and the table only records that. The user can change a row at any time; later chapters follow the table as it stands.
 
 ## 6. style.json
 
@@ -68,10 +68,10 @@ Start from [the template](../assets/templates/style.json). Blocks are grouped by
 
 | Block | What it holds | Present in |
 |---|---|---|
-| `schema`, `tier`, `book` | schema version; `1`, `2`, `"custom"` or `"picture"`; title, slug, language, readers, pilot chapter | all |
+| `schema`, `tier`, `book` | schema version; `1`, `2`, `"custom"`, `"picture"` or `"documentary"`; title, slug, language, readers, pilot chapter | all |
 | `words` | the user's own words about the look, verbatim, with later feedback that changed the bar | all |
 | `look` | palette, what each colour means, text and maths fonts, notation and rounding | all |
-| `voice` | TTS engine (`edge`, or `kokoro` when Edge is unavailable or local audio is wanted), voice, rate | all |
+| `voice` | TTS engine (`edge`, or `kokoro` when Edge is unavailable or local audio is wanted; a documentary may choose `eleven`, paid: [documentary.md](documentary.md#intake)), voice, rate | all |
 | `pacing` | minutes per chapter, where checks and practice go | all |
 | `engine` | engine source and version used to build the book | all |
 | `scenes` | art style, cast, how storyboards are reviewed | tier 2 |

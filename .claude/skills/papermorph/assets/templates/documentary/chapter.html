@@ -8,8 +8,8 @@
 <link rel="expect" href="#bar" blocking="render">
 </head>
 <body>
-<!-- A documentary chapter: one beat per paragraph of the script. Copy lib/ (film.js, book.css with the ground colours,
-     fonts.css and fonts/) into site/<book>/lib/ next to the engine, and this file to site/<book>/chNN/index.html. img/art.js (prep.py) lists the
+<!-- A documentary chapter: one beat per paragraph of the script. After engine.py has made site/<book>/lib/, copy lib/
+     (film.js, book.css with the film's colours, fonts.css and fonts/) over it, and this file to site/<book>/chNN/index.html. img/art.js (prep.py) lists the
      found pictures; add lib/lines.js (trace.py) and img/frames.js (frames.py) when the film uses traced drawings or clips. -->
 <script src="../lib/engine.js"></script>
 <script src="../lib/film.js"></script>
@@ -30,7 +30,7 @@ const BEATS = [
     const p = panel(0);
     const ti = key(p, 'FILM TITLE', 800, 420, .5, { size: 96 });
     hide(ti, OPEN_PRE - .9, .6);
-    const g = pic(p, 'first-picture', { x: 800, y: 470, h: 640, at: OPEN_PRE - .6 });
+    const g = pic(p, 'first-picture', { x: 800, y: 420, h: 600, at: OPEN_PRE - .6 });   // clear of the line typed under it
     push(g, OPEN_PRE, D);   // a slow push-in while it is talked about
     say(p, ['The first line, typed as it is spoken.'], 800, 820, m('first'), m('first') + 2, { size: 48, anchor: 'middle' });
   }, { pre: OPEN_PRE }],

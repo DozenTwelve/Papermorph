@@ -52,3 +52,9 @@ Review comes in rounds ([stories.md](stories.md#review-rounds) says what to look
 - **Closing**: the next round starts by checking which findings were fixed; a last read-only pass counts them as fixed, partly fixed, not fixed or worse. Two or three rounds made the best episodes. The rounds come before the user watches, and what the user says then still decides.
 
 A fresh session as coordinator matters even more here: contact sheets are large, and a long conversation rereads them at every step. An episode made in one night from a bedtime telling, before the review rounds existed, took about 22 million tokens, most of them the coordinator rereading its own context.
+
+## Documentaries
+
+The same shape as a picture book, split by part of the film (a turn of the argument, often one music track) instead of by scene. The **strong** coordinator researches and writes the script and storyboard with the user, then builds what every part shares: the voice and `timings.js`, the music, and the film's own recurring pieces at the end of `film.js`. A **middle** worker finds and treats the pictures from the storyboard (`commons.py`, `prep.py`, and `trace.py` or `frames.py` where the storyboard asks), recording each source.
+
+One **middle** worker per part then builds its beats, given the storyboard rows, the marks to land on, the kit's API (to read, not to edit), the first and last frame of the parts beside it, and how to look at its own frames ([documentary.md](documentary.md#building-the-beats)); it replies with contact sheets of its beats and what they showed. The director pass ([documentary.md](documentary.md#review-rounds)) is **strong** and report-only; the coordinator merges its findings and sends parts back to their workers.

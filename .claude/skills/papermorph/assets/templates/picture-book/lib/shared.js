@@ -1,4 +1,4 @@
-/* shared.js — what every scene of the book uses: timing helpers, painted props, and the sound effects. Put the book's
+/* shared.js — what every scene of the book uses: timing helpers and painted props. Put the book's
    recurring places and props here too (a classroom or a street built the same way whenever it appears, so the staging
    matches across cuts): a function like `function room(p) { const cam = paperCam(p, 'room'); … return { cam, … }; }`. */
 'use strict';

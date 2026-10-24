@@ -22,7 +22,7 @@ Voices carry the story; everything else sits under them. In early cuts the music
 
 ## Music
 
-Music is optional and goes under everything: `music('audio/bgm/theme.mp3', [scene ids], gain, fade)` in the chapter page, one call per track. It sits at 30 % of its own level for the whole of a scene with voices (its silent opening and tail too, so it does not swell between lines); `window.MUSIC_UP_IN_PRE = ['scene']` lifts it to 70 % in that scene's music-only opening. Tracks crossfade over `fade` seconds (0.8 by default). Give a scene silence when silence is the joke: `window.MUSIC_OFF = { scene: t => … }` fades it out for a stare. Don't let music stop dead in the middle of a scene; carry it to the end or fade it, and bring an earlier theme back when the story returns to an earlier place. Use tracks the book may redistribute (generated for the book, or openly licensed) and credit them.
+Music is optional and goes under everything: `music('audio/bgm/theme.mp3', [scene ids], gain, fade)` in the chapter page, one call per track. It sits at 30 % of its own level for the whole of every scene, with voices or without (its silent opening and tail too, so it does not swell between lines); `window.MUSIC_UP_IN_PRE = ['scene']` lifts it to 70 % in that scene's `pre`, its music-only opening. Tracks crossfade over `fade` seconds (0.8 by default; 0 is a cut). Give a scene silence when silence is the joke: `window.MUSIC_OFF = { scene: t => … }` fades it out for a stare. Don't let music stop dead in the middle of a scene; carry it to the end or fade it, and bring an earlier theme back when the story returns to an earlier place. Use tracks the book may redistribute (generated for the book, or openly licensed) and credit them.
 
 ## Captions
 

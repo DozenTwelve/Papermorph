@@ -5,12 +5,13 @@ description: Make or edit animated, narrated, interactive web books from referen
 
 # Papermorph
 
-Papermorph makes two kinds of book on one machine:
+Papermorph makes three kinds of book on one machine:
 
 - **Lessons**, from a textbook PDF: each chapter is a short animated lesson film where the picture carries the explanation, the narration says it, and quick checks and practice happen inside the picture.
 - **Picture books**, from a story, a joke or a fairy tale: short films of paper puppets in front of sets, drawn in code or painted by an image model, with voices, effects and music.
+- **Documentaries**, from a book or an idea: narrated films of found public-domain pictures, words and maps moved in step with the voice, with music.
 
-Both are a 1600×900 SVG stage plus a player; **beats** pair narration clips with timed actions. Good means **alive** (things act and change with weight and timing), **composed** (each moment reads as one picture, text beside what it names), **true** (motion, labels and numbers agree at every moment) and **smooth** (it plays without stutter, Firefox included).
+All are a 1600×900 SVG stage plus a player; **beats** pair narration clips with timed actions. Good means **alive** (things act and change with weight and timing), **composed** (each moment reads as one picture, text beside what it names), **true** (motion, labels and numbers agree at every moment) and **smooth** (it plays without stutter, Firefox included).
 
 What the picture should be depends on the book and on the user, so the work starts with a conversation that ends in `style.json`: the user's words, the look they chose, the voices, which model does which step, and later the approved chapters. Every chapter is made against it; how each beat is laid out and choreographed is yours to judge against it and the approved chapters. User requests override defaults. Re-create explanations, examples and drawings; keep source PDFs, page images and extracted text outside the static output folder and out of version control (`.gitignore`: `*.pdf`, `books/*/pages/`). Deliver a self-contained book folder with local preview instructions.
 
@@ -34,7 +35,7 @@ books/<book>/
   style.json                  the agreed style every chapter anchors to (assets/templates/style.json)
   chapters.md                 chapter map and status
   chapters/chNN.md            storyboard, errata, feedback
-  images/                     inbox, SOURCES.md, image-requests.md, processing scripts
+  images/                     inbox, SOURCES.md (where each image came from), image-requests.md, processing scripts
   review/chNN/                storyboard sheets, strips, check output
 content/<book>/chNN/           narration.<lang>.json and TTS cache
 tools/<book>/                 tests and evidence scripts
@@ -50,7 +51,9 @@ site/<book>/                   the static book (only this is delivered)
 
 A picture book adds `books/<book>/story.md` (the user's telling, verbatim), `storyboard.md` and `art/` (`sets.js` with the set sketches, generated pictures, `painted.json`, `costs.tsv`); its `site/<book>/lib/` holds the paper kit (`paper.js`, `cast.js`, `shared.js` from `assets/templates/picture-book/`, which needs engine-v2.2 or later: `sfx()` and `music()` are in the engine) and `img/` the baked sets, props and puppet pieces; each episode `chNN/` has one script per scene and `audio/<lang>/`, `audio/sfx/`, `audio/bgm/`.
 
-`SKILL` means this skill's absolute folder; `<book>` is the book slug, `<lang>` its primary language code. Needs: `uv`, `ffmpeg`/`ffprobe`, Edge TTS network access (or Kokoro, local: `uv run --python 3.12 --with kokoro`), github.com for `engine.py` when the repository's `engine/` folder is not at hand, and Playwright browsers (`uv run --with playwright playwright install chromium firefox`; where Playwright's Chromium does not run, set `CHROME` to an installed Chrome, Chromium, Brave or Edge). Preview: `python3 SKILL/scripts/serve.py 8765 site` (no browser caching).
+A documentary adds `books/<book>/storyboard.md`, `art/` (`found/` with the downloaded pictures, the `prep.py` list, generated clips, `costs.tsv`) and `music/`, where `commons.py` keeps a `SOURCES.tsv` beside its downloads; its `site/<book>/lib/` holds `film.js`, `fonts.css` and `fonts/` from `assets/templates/documentary/` (its `book.css` too, with the film's colours) and, when the film uses them, `lines.js` (`trace.py`); `img/` holds the treated pictures with `art.js` (`prep.py`) and clip sheets with `frames.js` (`frames.py`); `index.html` is the series page with the credits; each film `chNN/` has `audio/<lang>/` and `audio/bgm/`.
+
+`SKILL` means this skill's absolute folder; `<book>` is the book slug, `<lang>` its primary language code. Needs: `uv`, `ffmpeg`/`ffprobe`, Edge TTS network access (or Kokoro, local: `uv run --python 3.12 --with kokoro`), github.com for `engine.py` when the repository's `engine/` folder is not at hand, an OpenRouter key only for the paid steps the user chooses (`paint.py`, `eleven.py`, `video.py`; `paint_openai.py` takes an OpenAI key), and Playwright browsers (`uv run --with playwright playwright install chromium firefox`; where Playwright's Chromium does not run, set `CHROME` to an installed Chrome, Chromium, Brave or Edge). Preview: `python3 SKILL/scripts/serve.py 8765 site` (no browser caching).
 
 ## Lessons
 
@@ -81,7 +84,7 @@ Start with the story intake in [stories.md](references/stories.md#intake-for-a-s
 
 ## Documentaries
 
-Start with the intake in [documentary.md](references/documentary.md#intake) whenever `books/<book>/style.json` does not exist yet. Then follow [the order of work](references/documentary.md#the-order-of-work): research, the script and storyboard shown to the user, the folder from `assets/templates/documentary/`, pictures found and treated, voice, music, the beats, [review rounds](references/documentary.md#review-rounds) and the user's viewing. *Madness and Civilization* on the shelf is the approved reference.
+Start with the intake in [documentary.md](references/documentary.md#intake) whenever `books/<book>/style.json` does not exist yet. Then follow [the order of work](references/documentary.md#the-order-of-work): research, the script and storyboard shown to the user, the folder from `assets/templates/documentary/` ([site.md](references/site.md#a-documentary)), pictures found and treated, voice, music, the beats, [review rounds](references/documentary.md#review-rounds) and the user's viewing. *Madness and Civilization* on the shelf is the approved reference.
 
 ## Scripts
 
@@ -99,7 +102,7 @@ All in `SKILL/scripts/`; each prints its usage with `--help` (run it with the `u
 
 ## Context
 
-- Talk with the user from the main conversation: intake, and every sheet and choice of the pilot. When subagents are available, chapters are made as a team: a fresh worker per step of the chapter loop, each on the model the user chose for that step (`models` in `style.json`), chapters one after another; a picture book splits by scene instead. The main conversation coordinates the pilot, since the user sees its sheets; later chapters are best coordinated from a fresh session ([team.md](references/team.md)). Without subagents, run the same loop in the current agent with file-based state.
+- Talk with the user from the main conversation: intake, and every sheet and choice of the pilot. When subagents are available, chapters are made as a team: a fresh worker per step of the chapter loop, each on the model the user chose for that step (`models` in `style.json`), chapters one after another; a picture book splits by scene instead, a documentary by part of the film. The main conversation coordinates the pilot, since the user sees its sheets; later chapters are best coordinated from a fresh session ([team.md](references/team.md)). Without subagents, run the same loop in the current agent with file-based state.
 - A worker needs little besides this Skill and `style.json`: the user's words, the look, the approved chapters to watch and read, the element library. A brief adds the chapter, its pages, the step's inputs and outputs and any current user request. Workers reply in a few lines; the coordinator registers the chapter.
 - Use the engine API and inspect individual functions when needed; copy assets rather than reading their full source as instructions.
 - Keep `style.json` current and short. Chapter status, errata and historical feedback stay in `chapters.md` and `chapters/chNN.md`.

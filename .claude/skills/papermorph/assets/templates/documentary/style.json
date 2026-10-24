@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "tier": "documentary",
+  "book": { "title": "Film title", "slug": "madness", "language": "en", "readers": "curious adults, no background needed", "pilot": "ch01" },
+  "words": [
+    "The user's own words about the subject, the angle and the look, verbatim.",
+    "ch01 feedback: later words that changed the bar, with the film they came from."
+  ],
+  "angle": "The one thing a viewer should leave with, and what must be in the film (a scene, a quote, an ending)",
+  "look": {
+    "palette": { "ground": "#5a0e16", "ink": "#f3ede0", "captions": "#d9b9b0", "accent": "#f08a4b" },
+    "fonts": { "key words": "Oswald 600", "quotes and captions": "EB Garamond italic" },
+    "pictures": "print for paintings and photographs, line for clean engravings; a drawing that draws itself on once or twice"
+  },
+  "voice": { "engine": "edge", "voice": "en-GB-RyanNeural", "rate": "-4%" },
+  "music": "public-domain classical recordings, one per part of the film, changing at the turns",
+  "pacing": { "minutes": 10, "turns": "one argument with five or six turns; one idea or picture every two to four seconds" },
+  "engine": { "source": "DozenTwelve/Papermorph", "ref": "engine-v2.2" },
+  "models": { "script": "claude-opus-5-5", "pictures": "claude-sonnet-5-5", "beats": "claude-sonnet-5-5", "checks": "claude-haiku-5-5", "director": "claude-opus-5-5" },
+  "approved": [{ "chapter": "ch01", "why": "close-ups on what is named; few words on screen" }]
+}

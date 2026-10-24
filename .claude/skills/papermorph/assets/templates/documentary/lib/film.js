@@ -1,5 +1,5 @@
 /* film.js — the documentary kit: found pictures, line drawings, words and maps on the engine's beat clock.
-   This is the book's own copy: set its look here (fonts in lib/fonts.css, colours below) and add the film's recurring
+   This is the book's own copy: its look is set in lib/book.css (colours) and lib/fonts.css; add the film's recurring
    pieces at the end. Every helper is a pure function of the beat clock, so pause, seek, ?beat=N&t=S and export.py agree.
    Pictures are img/<name>.webp with their sizes in ART (img/art.js, from prep.py); traced drawings are LINES (lib/lines.js,
    from trace.py); clips are FRAMES (img/frames.js, from frames.py). The fonts must be loaded before boot(): words are
@@ -7,7 +7,10 @@
 'use strict';
 /* ---------- the look ---------- */
 const KEY = '"Oswald", "Arial Narrow", sans-serif', SER = '"EB Garamond", Georgia, serif';   // titles and key words; quotes and captions
-const CREAM = '#f3ede0', HOT = '#f08a4b', SOFT = '#d9b9b0', INK = '#3a2a24';   // ink on the ground, the accent, captions, ink on paper
+// colours from lib/book.css (read by the engine into COL, or with bookSetting): ink on the ground, the accent, captions,
+// a document's paper, ink on paper, a document's heading
+const CREAM = COL.chalk, SOFT = COL.dim, HOT = bookSetting('--accent') || '#f08a4b', PAPER = bookSetting('--paper') || CREAM,
+  INK = bookSetting('--paper-ink') || '#3a2a24', STAMP = bookSetting('--stamp') || '#7a1a20';
 
 // a picture from img/: centred on (x, y), h or w in stage px; `at` makes it enter (from offset dx, dy) at that time
 function pic(p, name, { x = 800, y = 450, h = 600, w, r = 0, s = 1, at, from = [0, 40], dur = .9, o = 1, back = false } = {}) {
@@ -57,18 +60,19 @@ function strike(p, e, x, y, t0, size, anchor = 'middle') {
   const x0 = anchor === 'middle' ? x - e._w / 2 : anchor === 'end' ? x - e._w : x;
   return line(p, `M${x0 - 16} ${y - size * .32}H${x0 + e._w + 16}`, t0, .4, Math.max(5, size / 12), { stroke: HOT });
 }
-// serif lines typed word by word between t0 and t1
+// serif lines typed word by word between t0 and t1 (Chinese, Japanese and Korean characters one by one)
+const CJK = /[⺀-鿿가-힯豈-﫿＀-￯]|[^⺀-鿿가-힯豈-﫿＀-￯]+/g;
 function say(p, lines, x, y, t0, t1, { size = 44, fill = CREAM, italic = true, anchor = 'start', lh = 1.3, weight = 400 } = {}) {
   const g = G(p, {}), style = italic ? 'italic' : '', words = [];
   const sp = wid(' ', size, SER, style, weight);
   lines.forEach((ln, i) => {
-    const ws = ln.split(' '), W = wid(ln, size, SER, style, weight);
+    const W = wid(ln, size, SER, style, weight);
     let cx = anchor === 'middle' ? x - W / 2 : anchor === 'end' ? x - W : x;
-    ws.forEach(w => {
+    ln.split(' ').forEach(word => (word.match(CJK) || ['']).forEach((w, j, ws) => {
       const e = T(g, w, { x: cx, y: y + i * size * lh, size, fill, font: SER, weight, o: 0 });
       if (italic) e.setAttribute('font-style', 'italic');
-      words.push(e); cx += wid(w, size, SER, style, weight) + sp;
-    });
+      words.push(e); cx += wid(w, size, SER, style, weight) + (j === ws.length - 1 ? sp : 0);
+    }));
   });
   const chars = words.map(e => e.textContent.length + 1), all = chars.reduce((a, b) => a + b, 0);
   let acc = 0;
@@ -151,15 +155,15 @@ function anim(p, name, { x = 800, y = 450, size = 600, at = 0, t0 = at, D, o = 1
   tw(g, { o }, at, .8);
   return g;
 }
-// an old document: cream paper, lines of ink, a label
+// an old document: paper, lines of ink, a label
 function doc(p, label, x, y, r, t0, seed) {
   const R = rng(seed), g = G(p, { x: x - 700, y, r, o: 0 });
-  mk('rect', { x: -150, y: -200, width: 300, height: 400, fill: CREAM, stroke: '#cdbfa6' }, g);
+  mk('rect', { x: -150, y: -200, width: 300, height: 400, fill: PAPER, stroke: '#cdbfa6' }, g);
   for (let i = 0; i < 13; i++) {
     const yy = -130 + i * 24, ww = 160 + R() * 70;
     path(g, `M-118 ${yy}q${ww / 4} ${-3 + R() * 6} ${ww / 2} 0t${ww / 2} 0`, { stroke: INK, 'stroke-width': 2, opacity: .7 });
   }
-  T(g, label.toUpperCase(), { y: -160, size: 22, font: KEY, weight: 600, fill: '#7a1a20', anchor: 'middle' }).setAttribute('letter-spacing', '.06em');
+  T(g, label.toUpperCase(), { y: -160, size: 22, font: KEY, weight: 600, fill: STAMP, anchor: 'middle' }).setAttribute('letter-spacing', '.06em');
   tw(g, { x, o: 1 }, t0, .8, out);
   g._x = x; g._y = y;
   return g;

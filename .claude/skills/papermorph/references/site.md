@@ -57,6 +57,26 @@ uv run --with playwright --with pillow python "$SKILL/scripts/bake_sets.py" "$BO
 uv run --with playwright --with pillow python "$SKILL/scripts/bake_puppets.py" "$BOOK_SITE" --url "http://localhost:8765/$BOOK_ID/"
 ```
 
+### A documentary
+
+Instead of the first block, like a picture book's. `engine.py` runs first, on the new folder: it refuses a `lib/` that already holds files but no engine. The kit's `lib/` then goes over it, its `book.css` replacing the default one. The book's `index.html` is the picture-book series page, given the film's colours and fonts and a credits section listing every picture and recording from `SOURCES.tsv` (as *Madness and Civilization* does); a single film is a series of one.
+
+```sh
+BOOK_ID=film
+BOOK_SITE="site/$BOOK_ID"
+BOOK_WORK="books/$BOOK_ID"
+DK="$SKILL/assets/templates/documentary"
+mkdir -p "$BOOK_SITE/lib" "$BOOK_SITE/img" "$BOOK_SITE/ch01" "$BOOK_WORK/art/found" "content/$BOOK_ID/ch01" "tools/$BOOK_ID"
+python3 "$SKILL/scripts/engine.py" "$BOOK_SITE"
+cp -R "$DK"/lib/. "$BOOK_SITE/lib/"
+cp "$DK/chapter.html" "$BOOK_SITE/ch01/index.html"
+cp "$SKILL/assets/templates/picture-book/series.html" "$BOOK_SITE/index.html"
+cp "$DK/narration.en.json" "content/$BOOK_ID/ch01/"
+echo 'window.ART = {};' > "$BOOK_SITE/img/art.js"
+```
+
+The chapter loads `../img/art.js`, which `prep.py` fills as pictures are treated; until then the kit's sample beat needs one picture named `first-picture`. Voice the sample with `uv run --with edge-tts python "$SKILL/scripts/tts.py" "content/$BOOK_ID/ch01/narration.en.json" "$BOOK_SITE/ch01/audio/en"` to check the folder works, then replace the narration with the film's script ([documentary.md](documentary.md#the-order-of-work)).
+
 ### Every book
 
 Use the pilot chapter's number in place of `ch01` when the pilot is not the first chapter. Use the agreed primary language: rename the narration source, load `audio/<lang>/timings.js` (a picture-book chapter also loads `mouths.js` and `shots.js` from that folder), and set `CHAPTER.language` to match (default `en`, it picks the audio folder). A chapter's minutes appear on its title screen (`CHAPTER.minutes`), its contents card and a series card; write the same number in each: the length of its audio (the `dur`s in `timings.js`) plus about 15 s for each question, rounded to whole minutes and never below 1. Set `<html lang>` in `index.html` and every chapter to the same language: the player and the contents page take their interface text from it (English, Russian, Chinese and Japanese are built into the engine; other languages fall back to English until a block is added to the engine's `TRANSLATIONS`). Take `voice` and `rate` for each narration file from `style.json`, and translate the template's own visible text (titles, lede, prompts) before the pilot.
@@ -73,7 +93,7 @@ A chapter returns to its book's index. Preserve cover → contents → chapter n
 
 ## Cover and contents (`index.html`)
 
-A textbook's cover and contents; a picture book uses its series page instead ([stories.md](stories.md#delivering)).
+A textbook's cover and contents; a picture book or a documentary uses the series page instead ([stories.md](stories.md#delivering), [above](#a-documentary)).
 
 One page: no hash or `#book` shows the cover, `#references` the reference list, `#contents` or `#chNN` the contents; a lesson's home button returns to `#chNN`, and the card grows into the lesson frame through a view transition.
 

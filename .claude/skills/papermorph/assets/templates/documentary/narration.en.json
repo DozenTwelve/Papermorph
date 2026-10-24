@@ -1,0 +1,8 @@
+{
+  "engine": "edge",
+  "voice": "en-GB-RyanNeural",
+  "rate": "-4%",
+  "beats": {
+    "open": "[[first]]The first line, typed as it is spoken."
+  }
+}
