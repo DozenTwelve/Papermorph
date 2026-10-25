@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en" data-stage="portrait">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Madness and Civilization · 1 · The Ship</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="audio/en/timings.js"></script>
+<script src="../img/art.js"></script>
+<script src="../lib/icons.js"></script>
+<script src="../lib/lines.js"></script>
+<script src="../lib/europe.js"></script>
+<script src="../lib/shorts.js"></script>
+<script src="../lib/madness.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 1, title: 'The Ship', minutes: 2, language: 'en' };
+
+/* ---------- beats ---------- */
+const OPEN_PRE = .3;
+const BEATS = [
+  // 0. The hook: tight on the fool in Bosch's tree, already pushing in; the cut back to the whole boat is the reveal
+  ['hook', 'The hook', (m, D) => {
+    const p = panel(0);
+    const s = shot(p, 0, undefined), bt = m('boats');
+    wide(s, 'bosch', [[0, .76, .56, 2.4], [bt - .3, .75, .57, 2.75], [bt + .35, .5, .62, 1.0], [D + .8, .5, .66, 1.07]]);
+    rect(s, 0, 0, W, H, { fill: '#000', opacity: .12 });
+    tag(s, 'Bosch, The Ship of Fools, c. 1500', 50, 150, 0);
+    word(s, '500 years ago', CX, 250, 0, { size: 96, fill: '#fff', stroke: INK });
+    const lk = word(s, 'Locked up', CX, 1180, m('mad') - .9, { size: 150, fill: '#fff', stroke: INK });
+    const st = strike(s, lk, CX, 1180, m('mad') - .2, 150);
+    hide(lk, bt - .1, .1, lin); hide(st, bt - .1, .1, lin);
+    sfx('hook', m('mad') - .2, 'whoosh', .4);
+    word(s, 'On boats', CX, 1180, bt, { size: 200, fill: RED, stroke: INK });
+    sfx('hook', bt, 'thud', 1.4); sfx('hook', bt - .1, 'whoosh', .5);
+  }, { pre: OPEN_PRE }],
+
+  // 1. Who says so, and which episode this is
+  ['card', 'Part one', (m, D) => {
+    const p = panel(0);
+    const one = m('one');
+    let s = shot(p, 0, one, { bg: BURG });
+    traced(s, 'mf-front', { x: CX, y: 720, h: 860, at: 0, draw: 1.0 });
+    label(s, 'Michel Foucault', CX, 1230, 0, { size: 60, fill: PAPER, colour: INK });
+    quote(s, ['Madness and Civilization, 1961'], 1330, m('mc'), { size: 52, fill: SOFT });
+    s = shot(p, one, undefined, { bg: BURG, swipe: true });
+    seriesCard(s, one, 1, m('ship'));
+  }],
+
+  // 2. The empty room: 19,000 leper houses go dark, the buildings stay, and the habit of pushing someone out
+  ['empty', 'An empty room', (m, D) => {
+    const p = panel(0);
+    const C = TIMINGS.empty.cues, cue = k => Math.max(0, C[k][0] - LEAD), hs = m('houses'), bl = m('bld'), pu = m('push');
+    const t2 = cue(1), fd = cue(2), id = cue(4);   // "In the Middle Ages", "Then leprosy faded", "And so did the idea"
+    let s = shot(p, 0, t2);
+    photo(s, 'e1-ward', 0, t2, { s0: 1.0, s1: 1.08, dim: .25 });
+    word(s, 'An empty room', CX, 1150, .2, { size: 120, fill: '#fff', stroke: INK });
+    // Europe lights up with leper houses; the number lands on the word
+    s = shot(p, t2, id, { bg: BURG, whip: true });
+    word(s, 'Leper houses', CX, 250, t2 + .1, { size: 100, fill: PAPER });
+    const eu = europeMap(s, 40, 360, 820, t2 + .05);
+    eu.el.forEach((e, i) => show(e, t2 + .2 + (i / eu.el.length) * (hs - t2), .15, lin));
+    const n = counter(s, 19000, CX, 1180, t2 + .1, { size: 180, fill: RED, dur: hs - t2 + .1 });
+    tag(s, 'Matthew Paris, 13th c., quoted by Foucault', 50, 150, t2);
+    // leprosy fades: the dots go out; the buildings stay: an empty ring where each stood
+    const R = rng(11);
+    eu.el.forEach(e => hide(e, fd + R() * 1.2, .2));
+    hide(n, fd, .2);
+    const lf = word(s, 'Leprosy fades', CX, 1180, fd + .1, { size: 110, fill: SOFT });
+    hide(lf, bl - .1, .15);
+    const rings = G(eu.g, { o: 0 });
+    EUROPE.dots.forEach(([cx, cy], i) => { if (i % 3 === 0) mk('circle', { cx, cy, r: 6, fill: 'none', stroke: PAPER, 'stroke-width': 1.6 }, rings); });
+    show(rings, bl, .4);
+    word(s, 'The buildings stayed', CX, 1180, bl + .05, { size: 110, fill: PAPER });
+    // and so did the idea: push someone out
+    s = shot(p, id, undefined, { whip: true });
+    photo(s, 'e1-gate', id, D + .6, { s0: 1.04, s1: 1.16, dx: 30 });
+    word(s, 'And the idea', CX, 280, id + .1, { size: 110, fill: '#fff', stroke: INK });
+    band(s, ['Keep the town clean:', 'push someone out'], 1120, pu + .1, { size: 66, step: 1.1 });
+  }],
+
+  // 3. Brant's bestseller: a boat of every kind of fool
+  ['brant', 'Brant', (m, D) => {
+    const p = panel(0);
+    const g = m('greedy'), v = m('vain'), d = m('drunk'), i = m('idle'), nw = m('nowhere');
+    let s = shot(p, 0, g);
+    wide(s, 'narragonien', [[0, .5, .4, 1.55], [g, .5, .42, 1.85]]);   // into the woodcut's boat
+    tag(s, 'Sebastian Brant, Das Narrenschiff, Basel 1494', 50, 150, 0);
+    label(s, '1494', CX, 250, 0, { size: 90 });
+    label(s, 'A bestseller', CX, 1200, m('brant') + .3, { size: 76, fill: RED, colour: INK });
+    sfx('brant', m('brant'), 'page', .6);
+    // one fool per word, a quick move between them
+    s = shot(p, g, nw, { swipe: true });
+    const F = [[g, .13, .42], [v, .46, .46], [d, .70, .46], [i, .88, .42]];
+    const keys = [];
+    F.forEach(([t, fx, fy], k) => { if (k) keys.push([t - .05, F[k - 1][1], F[k - 1][2], 1.3]); keys.push([t + .25, fx, fy, 1.3]); });
+    wide(s, 'nar-1549', [[g, .13, .42, 1.3], ...keys.slice(1)]);
+    tag(s, 'Das Narrenschiff, 1549 edition', 50, 150, g);
+    ['The greedy', 'The vain', 'The drunk', 'The idle'].forEach((str, k) => {
+      const e = label(s, str, CX, 1180, F[k][0] + .05, { size: 80 });
+      if (k < 3) hide(e, F[k + 1][0] - .05, .05, lin);
+      sfx('brant', F[k][0], 'whoosh', .25);
+    });
+    // the whole boat, going nowhere; the fools' giggle closes the section
+    s = shot(p, nw, undefined, { bg: BURG });
+    wide(s, 'nar-1549', [[nw, .2, .5, 1.0], [D + 1.3, .8, .5, 1.0]]);
+    word(s, 'Sailing nowhere', CX, 1180, nw, { size: 120, fill: '#fff', stroke: INK });
+    sfx('brant', D - .2, 'laugh-jester', .9);
+    prog(() => {}, D, 1.3, lin);
+  }],
+
+  // 4. Foucault finds real ones: Frankfurt pays sailors, the madman is handed over and left downriver
+  ['records', 'Real ships', (m, D) => {
+    const p = panel(0);
+    const C = TIMINGS.records.cues, ff = m('ffm'), pd = m('paid'), aw = m('away'), dn = m('down'), hd = C[2][0] - LEAD;
+    let s = shot(p, 0, ff, { bg: BURG });
+    traced(s, 'mf-glass', { x: CX, y: 700, h: 620, at: 0, draw: 1.0 });
+    word(s, 'Real ones?', CX, 1180, m('real'), { size: 140, fill: RED });
+    // Frankfurt on the Rhine, pushing in; 1399 stamped
+    s = shot(p, ff, pd, { whip: true });
+    const map = wide(s, 'rhine-full', [[ff, .452, .563, 1.0], [pd + .3, .452, .563, 1.6]]);
+    const [iw, ih] = ART['rhine-full'], Ws = iw * H / ih;
+    const pin = G(map, { x: (.452 - .5) * Ws, y: (.563 - .5) * H, o: 0, s: 0 });
+    mk('circle', { r: 16, fill: RED, stroke: INK, 'stroke-width': 5 }, pin);
+    pop(pin, ff + .2);
+    tag(s, 'Visscher, map of the Rhine, c. 1690', 50, 150, ff);
+    label(s, 'Frankfurt', CX, 1200, ff + .2, { size: 80 });
+    stamp(s, '1399', CX, 360, ff + .8, { size: 170, colour: '#b3201a' });
+    // the city pays
+    s = shot(p, pd, aw);
+    photo(s, 'e1-paid', pd, aw, { s0: 1.02, s1: 1.1, dy: 30 });
+    sfx('records', pd + .05, 'coin', 1);
+    stamp(s, 'PAID', CX, 1150, pd + .35, { size: 150, colour: '#b3201a' });
+    // away; handed to a boatman; left downriver
+    s = shot(p, aw, hd, { whip: true });
+    photo(s, 'e1-river', aw, hd + .3, { s0: 1.0, s1: 1.08, dy: 60 });
+    word(s, 'Away', CX, 300, aw + .05, { size: 160, fill: '#fff', stroke: INK });
+    s = shot(p, hd, dn, { swipe: true });
+    photo(s, 'e1-handover', hd, dn + .3, { s0: 1.0, s1: 1.08 });
+    label(s, 'Handed to boatmen', CX, 1200, hd + .1, { size: 72 });
+    s = shot(p, dn, undefined, { swipe: true });
+    photo(s, 'e1-left', dn, D + .6, { s0: 1.0, s1: 1.1, dy: -40 });
+    band(s, ['Downriver.', 'Somewhere else.'], 260, dn + .05, { size: 72, step: .9 });
+  }],
+
+  // 5. Not locked up: between two towns, on the water
+  ['passage', 'Between', (m, D) => {
+    const p = panel(0);
+    const bt = m('between'), ld = m('land'), pr = m('pris');
+    let s = shot(p, 0, bt, { bg: BURG });
+    plate(s, 'bars', CX, 650, { h: 560 });
+    const lk = word(s, 'Locked up', CX, 1150, 0, { size: 150, fill: PAPER });
+    strike(s, lk, CX, 1150, .6, 150);
+    s = shot(p, bt, undefined, { swipe: true });
+    photo(s, 'e1-between', bt, D + .6, { s0: 1.0, s1: 1.14, dy: -30 });
+    const sb = word(s, 'Sent between', CX, 640, bt + .05, { size: 120, fill: '#fff', stroke: INK });
+    hide(sb, ld - .3, .2);
+    const L = [['Land', 270, 0], ['Water', 640, .35], ['Land', 1260, .7]].map(([str, y, dt]) => label(s, str, CX, y, ld + dt, { size: 70 }));
+    // Foucault's phrase over the whole picture
+    const dim = G(s, { o: 0 }); rect(dim, 0, 0, W, H, { fill: INK, opacity: .62 });
+    show(dim, pr - .4, .4);
+    L.forEach(e => hide(e, pr - .4, .2));
+    quote(s, ['“the prisoner', 'of the passage”'], 720, pr, { size: 104 });
+    T(s, '— FOUCAULT', { x: CX, y: 1010, size: 56, fill: SOFT, font: KEY, weight: 500, anchor: 'middle', o: 0 });
+    show(s.lastChild, pr + .6, .3);
+  }],
+
+  // 6. And madness still talked: people listen; Lear's Fool, Erasmus's Folly
+  ['speaks', 'Still talking', (m, D) => {
+    const p = panel(0);
+    const tk = m('talked'), lr = m('lear'), fo = m('folly'), ws = m('wise');
+    let s = shot(p, 0, lr);
+    photo(s, 'e1-calling', 0, lr + .3, { s0: 1.0, s1: 1.1, dx: -30 });
+    word(s, 'Out there', CX, 280, .1, { size: 120, fill: '#fff', stroke: INK });
+    word(s, 'Madness talked', CX, 1200, tk, { size: 130, fill: RED, stroke: INK });
+    // the Fool looks up at the king and tells him: close on the fool, then up to Lear
+    s = shot(p, lr, fo, { whip: true });
+    wide(s, 'lear', [[lr, .5, .72, 1.6], [lr + .8, .5, .71, 1.66], [lr + 1.7, .67, .43, 1.3], [fo, .66, .43, 1.36]]);
+    tag(s, 'William Dyce, King Lear and the Fool in the Storm, 1851', 50, 150, lr);
+    label(s, 'Shakespeare · King Lear', CX, 200, lr + .1, { size: 52 });
+    band(s, ['The fool', 'tells the king', 'the truth'], 330, lr + .2, { size: 70, step: 1.4 });
+    // Folly takes the pulpit; then the listeners
+    s = shot(p, fo, undefined, { whip: true });
+    wide(s, 'holbein-full', [[fo, .82, .6, 1.5], [ws - .1, .84, .6, 1.6], [ws + .3, .55, .67, 1.7], [D + .8, .55, .67, 1.76]]);
+    tag(s, 'Holbein, margin drawing in The Praise of Folly, 1515', 50, 150, fo);
+    label(s, 'Erasmus · The Praise of Folly', CX, 200, fo + .1, { size: 52 });
+    const fs = word(s, 'Folly speaks', CX, 1180, fo + .5, { size: 140, fill: RED, stroke: INK });
+    hide(fs, ws + .1, .15);
+    band(s, ['The wise', 'look ridiculous'], 1120, ws + .3, { size: 72, step: .5 });
+  }],
+
+  // 7. The end answers the hook: the boat comes ashore, the empty rooms wait; part two
+  ['end', 'Ashore', (m, D) => {
+    const p = panel(0);
+    const y6 = m('y1656'), as = m('ashore'), wt = m('wait'), nx = m('next');
+    let s = shot(p, 0, y6, { bg: BURG });
+    const b = plate(s, 'fool-boat', CX, 880, { w: 760 });
+    clockRun(t => { const q = smooth(Math.min(1, t / y6)); put(b, { x: CX + 170 * q, y: 880 - 140 * q + 10 * Math.sin(t * 1.7), r: 2 * Math.sin(t * 1.1), s: 1 - .5 * q }); }, D);
+    word(s, 'He drifted', CX, 330, .1, { size: 120, fill: PAPER });
+    word(s, 'Still talking', CX, 1250, m('talking'), { size: 130, fill: RED });
+    s = shot(p, y6, as, { bg: INK, whip: true });
+    word(s, '1656', CX, 860, y6 + .05, { size: 330, fill: PAPER });
+    s = shot(p, as, wt);
+    photo(s, 'e1-ashore', as, wt, { s0: 1.06, s1: 1.12 });
+    sfx('end', as + .05, 'thud', 1.6);
+    tw(s, { y: 18 }, as + .05, .06, out); tw(s, { y: 0 }, as + .11, .25, out);   // the bump of the bank
+    label(s, 'Ashore', CX, 1200, as + .1, { size: 100 });
+    // the rooms from the beginning, waiting
+    s = shot(p, wt, nx);
+    photo(s, 'e1-ward', wt, nx, { s0: 1.1, s1: 1.3, dy: -60 });
+    band(s, ['The empty rooms', 'were waiting'], 1120, wt + .1, { size: 72, step: .6 });
+    sfx('end', wt, 'door', .6);
+    s = shot(p, nx, D, { bg: BURG, swipe: true });
+    seriesCard(s, nx, 2, nx + .9);
+    // and the next episode, full frame
+    s = shot(p, D, undefined, { bg: INK });
+    label(s, 'Next', CX, 660, D, { size: 70, fill: RED, colour: INK });
+    word(s, 'Locked up', CX, 880, D + .05, { size: 220, fill: PAPER });
+    T(s, 'PART 2 OF 4', { x: CX, y: 990, size: 52, fill: SOFT, font: KEY, weight: 500, anchor: 'middle', o: 0 }); show(s.lastChild, D + .2, .2);
+    prog(() => {}, D, 1.8, lin);
+  }],
+].map(shortsBeat);
+
+// One track for the whole film; ?bgm= sets its level by ear (gain under the ducking to 30 %)
+music('audio/bgm/ep1.mp3', undefined, +(new URLSearchParams(location.search).get('bgm') || .4), .05);
+startShorts();
+</script>
+</body>
+</html>
