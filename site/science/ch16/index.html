@@ -1114,7 +1114,7 @@ const BEATS = [
     build: choice([['when it has more protons than electrons'], ['when it has no neutrons'], ['when it has more electrons than protons']], 2,
       'Extra electrons make it negative.',
       ['More protons makes it positive.', 'Neutrons have no charge.', null]) },
-]), done, 'Chapter practice, set 1 of 2 · question') }],
+]), done, 'Chapter practice, set 1 of 2') }],
 ['final2', 'Chapter practice: circuits and resistance', () => { PRACTICE = panel(0); }, { ask: done => quiz(SCREEN, withPics([
   { id: 'p-hair', prompt: ['A negatively charged hairbrush is held near your hair. What charge appears on the hair near it, and what happens?'],
     build: choice([['Negative, so the hair is pushed away.'], ['Positive is induced, so the hair is pulled toward the brush.'], ['No charge; nothing happens.']], 1,
@@ -1136,7 +1136,7 @@ const BEATS = [
     build: choice([['Yes, all go out.'], ['Only half go out.'], ['No: charges still flow through the other branches.']], 2,
       'Each bulb has its own branch, so the rest stay closed loops.',
       ['That is a series circuit.', 'Every other branch still works.', null]) },
-]), done, 'Chapter practice, set 2 of 2 · question') }],
+]), done, 'Chapter practice, set 2 of 2') }],
 ['finish', 'Finished', () => {
   // under the card, the chapter in four small pictures with their names
   const p = panel(0);

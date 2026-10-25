@@ -584,7 +584,7 @@ const BEATS = [
     build: choice([['radiation'], ['conduction'], ['convection']], 0,
       'Microwaves are electromagnetic waves: radiation.',
       [null, 'Nothing hot touches the food; the oven sends electromagnetic waves.', 'The air doesn’t carry it; microwaves are electromagnetic waves.']) },
-]), done, 'Chapter practice, set 1 of 2 · question') }],
+]), done, 'Chapter practice, set 1 of 2') }],
 ['final2', 'Chapter practice: how heat moves', () => { PRACTICE = panel(0); }, { ask: done => quiz(SCREEN, withPics([
   { id: 'p-pop', prompt: ['You lick a Popsicle.'],
     build: grid([
@@ -605,7 +605,7 @@ const BEATS = [
       { parts: ['When an object heats up, it'], ans: ['e'], why: 'Its molecules speed up and spread apart: it expands.' },
       { parts: ['When an object cools down, it'], ans: ['c'], why: 'Its molecules slow down and pull together: it contracts.' },
     ], [['e', 'expands', HEAT, 'e'], ['c', 'contracts', COLD, 'c']], { multi: false, text: true }) },
-]), done, 'Chapter practice, set 2 of 2 · question') }],
+]), done, 'Chapter practice, set 2 of 2') }],
 ['finish', 'Finished', () => {
   // under the card, the chapter in four small pictures with their names
   const p = panel(0);

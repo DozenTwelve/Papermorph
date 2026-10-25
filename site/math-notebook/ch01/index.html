@@ -274,15 +274,15 @@ const BEATS = [
   ['final1', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
     id: 'p-classify1', prompt: ['Pick every family each number belongs to.'],
     build: grid(PRACTICE1, FAM_COLS),
-  }], done, 'Chapter practice   1 of 3') }],
+  }], done, 'Chapter practice · set 1 of 3') }],
   ['final2', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
     id: 'p-classify2', prompt: ['Pick every family each number belongs to. In ', $m('0.1010010001…'), ' each run of zeros is one longer.'],
     build: grid(PRACTICE2, FAM_COLS),
-  }], done, 'Chapter practice   2 of 3') }],
+  }], done, 'Chapter practice · set 2 of 3') }],
   ['final3', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
     id: 'p-side', prompt: ['Is each number left or right of 0 on a number line?'],
     build: grid(PRACTICE3, [['l', 'Left of 0', COL.nat, 'L'], ['r', 'Right of 0', COL.whole, 'R']], { multi: false }),
-  }], done, 'Chapter practice   3 of 3') }],
+  }], done, 'Chapter practice · set 3 of 3') }],
   ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
 

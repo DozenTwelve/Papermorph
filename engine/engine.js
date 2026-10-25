@@ -24,7 +24,7 @@ const TRANSLATIONS = {
     checksInLesson: 'Quick checks and practice are in the interactive lesson.',
     volumeLabel: 'Adjust volume', volumeTitle: 'Volume (0 = muted)', volumeSlider: 'Volume',
     helpLabel: 'Keyboard shortcuts (?)', speedLabel: 'Playback speed (< and >)', captionsLabel: 'Captions (C)', fullScreenLabel: 'Full screen', goToStep: 'Go to step {n}: {title}',
-    quickCheck: 'Quick check', countOf: '{k} of {n}', check: 'Check', showAnswer: 'Show answer', nextQuestion: 'Next question', continue: 'Continue',
+    quickCheck: 'Quick check', countOf: 'question {k} of {n}', check: 'Check', showAnswer: 'Show answer', nextQuestion: 'Next question', continue: 'Continue',
     correct: 'Correct. ', notQuite: 'Not quite. ', answerPrefix: 'Answer: ', keysPrefix: 'Keys: ',
     hintMove: ' move, ', hintChoose: ' choose', hintChooseOrClickGrid: ' choose, or click the grid', hintMoveAlongLine: ' move along the line, ',
     hintChooseOrClick: ' choose, or click', hintRow: ' row, ', hintTypeFraction: 'type numbers like 3/4 or −2 1/4, ', hintTypeNumber: 'type the number, ',
@@ -61,7 +61,7 @@ const TRANSLATIONS = {
     checksInLesson: 'Проверочные вопросы и практика — в интерактивном уроке.',
     volumeLabel: 'Настроить громкость', volumeTitle: 'Громкость (0 — без звука)', volumeSlider: 'Громкость',
     helpLabel: 'Горячие клавиши (?)', speedLabel: 'Скорость воспроизведения (< и >)', captionsLabel: 'Субтитры (C)', fullScreenLabel: 'Полный экран', goToStep: 'Перейти к шагу {n}: {title}',
-    quickCheck: 'Проверь себя', countOf: '{k} из {n}', check: 'Проверить', showAnswer: 'Показать ответ', nextQuestion: 'Следующий вопрос', continue: 'Продолжить',
+    quickCheck: 'Проверь себя', countOf: 'вопрос {k} из {n}', check: 'Проверить', showAnswer: 'Показать ответ', nextQuestion: 'Следующий вопрос', continue: 'Продолжить',
     correct: 'Верно. ', notQuite: 'Не совсем. ', answerPrefix: 'Ответ: ', keysPrefix: 'Клавиши: ',
     hintMove: ' двигаться, ', hintChoose: ' выбрать', hintChooseOrClickGrid: ' выбрать или щёлкнуть по сетке', hintMoveAlongLine: ' двигаться по прямой, ',
     hintChooseOrClick: ' выбрать или щёлкнуть', hintRow: ' строка, ', hintTypeFraction: 'вводите числа вида 3/4 или −2 1/4, ', hintTypeNumber: 'введите число, ',
@@ -96,7 +96,7 @@ const TRANSLATIONS = {
     checksInLesson: '小测验和练习在互动课程里。',
     volumeLabel: '调节音量', volumeTitle: '音量（0 为静音）', volumeSlider: '音量',
     helpLabel: '键盘快捷键（?）', speedLabel: '播放速度（< 和 >）', captionsLabel: '字幕（C）', fullScreenLabel: '全屏', goToStep: '跳到第 {n} 步：{title}',
-    quickCheck: '小测', countOf: '{k} / {n}', check: '检查', showAnswer: '显示答案', nextQuestion: '下一题', continue: '继续',
+    quickCheck: '小测', countOf: '第 {k}/{n} 题', check: '检查', showAnswer: '显示答案', nextQuestion: '下一题', continue: '继续',
     correct: '正确。', notQuite: '还不对。', answerPrefix: '答案：', keysPrefix: '按键：',
     hintMove: ' 移动，', hintChoose: ' 选择', hintChooseOrClickGrid: ' 选择，或点击网格', hintMoveAlongLine: ' 沿数轴移动，',
     hintChooseOrClick: ' 选择，或点击', hintRow: ' 换行，', hintTypeFraction: '可输入 3/4 或 −2 1/4 这样的数，', hintTypeNumber: '输入数字，',
@@ -131,7 +131,7 @@ const TRANSLATIONS = {
     checksInLesson: '確認問題と練習はインタラクティブな授業の中にあります。',
     volumeLabel: '音量を調整', volumeTitle: '音量（0 でミュート）', volumeSlider: '音量',
     helpLabel: 'キーボードショートカット（?）', speedLabel: '再生速度（< と >）', captionsLabel: '字幕（C）', fullScreenLabel: '全画面', goToStep: 'ステップ {n}：{title} へ移動',
-    quickCheck: '確認問題', countOf: '{k} / {n}', check: '答え合わせ', showAnswer: '答えを見る', nextQuestion: '次の問題', continue: '続ける',
+    quickCheck: '確認問題', countOf: '問 {k}/{n}', check: '答え合わせ', showAnswer: '答えを見る', nextQuestion: '次の問題', continue: '続ける',
     correct: '正解。', notQuite: 'おしい。', answerPrefix: '答え：', keysPrefix: 'キー：',
     hintMove: ' 移動、', hintChoose: ' 選ぶ', hintChooseOrClickGrid: ' 選ぶ、またはマス目をクリック', hintMoveAlongLine: ' 数直線上を移動、',
     hintChooseOrClick: ' 選ぶ、またはクリック', hintRow: ' 行、', hintTypeFraction: '3/4 や −2 1/4 のように入力、', hintTypeNumber: '数を入力、',
@@ -899,7 +899,7 @@ function quiz(pos, qs, done, label = translate('quickCheck')) {
       if (isShortcut(e, 's') && !bShow.hidden) { bShow.click(); return true; }
       return false;
     };
-    const kick = label + (qs.length > 1 ? '   ' + translate('countOf', { k: k + 1, n: qs.length }) : '');
+    const kick = label + (qs.length > 1 ? '  ·  ' + translate('countOf', { k: k + 1, n: qs.length }) : '');
     const head = h('div', 'head', [h('p', 'kicker', kick), h('p', 'prompt', [rich(q.prompt, pos.cls.startsWith('screen') ? 38 : 28)])]);   // match the prompt's type size
     if (ctl.hint) head.append(h('p', 'keys', [translate('keysPrefix'), ...ctl.hint]));
     c.replaceChildren(...(guide ? [guide] : []), head, fb, body, acts);

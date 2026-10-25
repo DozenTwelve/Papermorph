@@ -629,51 +629,51 @@ window.TIMINGS = {
   ]
  },
  "temperature": {
-  "dur": 42.936,
+  "dur": 39.936,
   "marks": {
-   "change": 7.812,
-   "gap": 20.182,
-   "labels": 31.289
+   "change": 6.901,
+   "gap": 17.969,
+   "labels": 28.75
   },
   "cues": [
    [
-    0.091,
+    0.104,
     "A thermometer starts at eight degrees and later reads negative six degrees."
    ],
    [
-    5.755,
+    4.948,
     "We can ask two different questions."
    ],
    [
-    7.812,
+    6.901,
     "The signed change is the final reading minus the initial reading: negative six minus eight."
    ],
    [
-    14.31,
+    12.409,
     "This equals negative fourteen degrees."
    ],
    [
-    17.07,
+    15.117,
     "The negative sign tells us the temperature fell."
    ],
    [
-    20.182,
+    17.969,
     "The positive gap between the readings is fourteen degrees, the magnitude of that change."
    ],
    [
-    25.768,
-    "On the line, eight units down reach zero and six more reach negative six."
+    23.542,
+    "On the line, eight units left reach zero and six more reach negative six."
    ],
    [
-    31.289,
+    28.75,
     "A fourteen-degree fall has signed change negative fourteen."
    ],
    [
-    35.013,
+    32.305,
     "A fourteen-degree gap is a positive distance."
    ],
    [
-    37.995,
+    35.352,
     "Read the question carefully so your answer describes the requested quantity."
    ]
   ]

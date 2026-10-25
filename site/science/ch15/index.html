@@ -1156,7 +1156,7 @@ const BEATS = [
     build: choice([['radio waves'], ['infrared'], ['gamma rays']], 2,
       'Gamma rays have the most energy of all and can damage living cells.',
       ['Radio waves have the lowest energy.', 'Infrared is warmth from warm things.', null]) },
-]), done, 'Chapter practice, set 1 of 2 · question') }],
+]), done, 'Chapter practice, set 1 of 2') }],
 ['final2', 'Chapter practice: the spectrum and sound', () => { PRACTICE = panel(0); }, { ask: done => quiz(SCREEN, withPics([
   { id: 'p-sun', prompt: ['What kind of wave causes sunburn?'],
     build: choice([['infrared'], ['visible light'], ['ultraviolet']], 2,
@@ -1178,7 +1178,7 @@ const BEATS = [
     build: choice([['Longer waves mean more of them pass each second.'], ['Louder sounds are higher.'], ['At the same speed, shorter waves mean more of them pass each second.']], 2,
       'Sound’s speed stays the same, so short waves pass more often: a higher frequency, a higher pitch.',
       ['Longer waves pass less often: fewer each second.', 'Loudness is amplitude; pitch is frequency.', null]) },
-]), done, 'Chapter practice, set 2 of 2 · question') }],
+]), done, 'Chapter practice, set 2 of 2') }],
 ['finish', 'Finished', () => {
   // under the card, the chapter in four small pictures with their names
   const p = panel(0);

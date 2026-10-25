@@ -37,10 +37,13 @@ function pnBand(v0, v1, col, t0) {
 }
 // n unit hops from 0 in direction dir (+1 right, −1 left), one arc per step.
 function pnHops(p, n, dir, t0, col, step = .28) {
+  const out = [];
   for (let k = 0; k < n; k++) {
     const a = X(dir * k), b = X(dir * (k + 1));
-    draw(path(p, `M${a} ${Y0 - 14}Q${(a + b) / 2} ${Y0 - 72} ${b} ${Y0 - 14}`, { stroke: col, 'stroke-width': 3 }, { d: 0 }), t0 + k * step, step, lin);
+    const h = path(p, `M${a} ${Y0 - 14}Q${(a + b) / 2} ${Y0 - 72} ${b} ${Y0 - 14}`, { stroke: col, 'stroke-width': 3 }, { d: 0 });
+    draw(h, t0 + k * step, step, lin); out.push(h);
   }
+  return out;
 }
 // Flip a dot across zero from a to b along an arc whose top is at y = peak; the dot changes to b's sign colour.
 // Pass g to move an existing dot (from landDot or an earlier flip); returns the dot.
@@ -152,7 +155,7 @@ const BEATS = [
   }],
   ['signs', 'Writing the signs', (m) => {
     const p = panel(0);
-    const [d4] = mark(p, 4, ['+4'], .3);
+    const [d4] = mark(p, 4, ['+4'], m('plus'));
     mline(p, ['+4 = 4'], X(4), 330, m('same'), POS, 60);
     text(p, 'the + sign is optional', X(4), 384, m('same', 1), { size: 28, fill: COL.dim, anchor: 'middle' });
     mark(p, -4, ['−4'], m('minus'));
@@ -162,11 +165,10 @@ const BEATS = [
     const tr = pnTip(p, 1, COL.task), tl = pnTip(p, -1, COL.task);
     show(tr, m('ends'), .3); show(tl, m('ends'), .3);
     hide(tr, m('inf', 1.2), .5); hide(tl, m('ninf', 1.2), .5);
-    text(p, '∞', 1550, Y0 + 18, m('inf'), { size: 60, fill: POS, anchor: 'middle', font: MATH });
-    text(p, 'infinity', 1540, 690, m('inf', .4), { size: 22, fill: POS, anchor: 'middle', weight: 600 });
-    text(p, '−∞', 50, Y0 + 18, m('ninf'), { size: 52, fill: NEG, anchor: 'middle', font: MATH });
-    text(p, 'negative', 60, 690, m('ninf', .4), { size: 22, fill: NEG, anchor: 'middle', weight: 600 });
-    text(p, 'infinity', 60, 716, m('ninf', .4), { size: 22, fill: NEG, anchor: 'middle', weight: 600 });
+    text(p, '∞', 1450, Y0 - 34, m('inf'), { size: 64, fill: POS, anchor: 'middle', font: MATH });
+    text(p, 'infinity', 1450, Y0 - 100, m('inf', .4), { size: 28, fill: POS, anchor: 'middle', weight: 600 });
+    text(p, '−∞', 150, Y0 - 34, m('ninf'), { size: 64, fill: NEG, anchor: 'middle', font: MATH });
+    text(p, 'negative infinity', 150, Y0 - 100, m('ninf', .4), { size: 28, fill: NEG, anchor: 'middle', weight: 600 });
     text(p, 'Infinity (∞): endless, without any limit', 800, 790, m('word'), { size: 30, fill: COL.dim, anchor: 'middle' });
   }],
   ['q1', 'Quick check', () => { panel(0); }, { ask: done => quiz(Q1POS, [{
@@ -220,7 +222,7 @@ const BEATS = [
   ], done) }],
   ['vertical', 'Upright number lines', (m) => {
     const p = panel(0);
-    hide(S.line, 0, .4);
+    hide(S.line, m('up'), .4);
     const Z = 480;   // y of zero on both scales
     const above = put(mk('rect', { x: 240, y: 170, width: 1220, height: Z - 170, fill: POS }, p), { o: 0 });
     tw(above, { o: .08 }, m('rule'), .6);
@@ -228,8 +230,8 @@ const BEATS = [
     tw(below, { o: .08 }, m('rule'), .6);
     const gT = G(p, { o: 0 });
     const th = thermometer(gT, { x: 430, bottom: 760, top: 200, lo: -30, hi: 30, step: 10, value: 20, color: COL.task });
-    show(gT, .3, .6);
-    text(p, '°C', 430, 160, .5, { size: 26, fill: COL.dim, anchor: 'middle' });
+    show(gT, m('up'), .6);
+    text(p, '°C', 430, 160, m('up', .3), { size: 26, fill: COL.dim, anchor: 'middle' });
     mline(p, ['+20°'], 474, th.Yt(20) + 12, m('warm', .6), POS, 40, 'start');
     th.set(-10, m('drop'), tw, 2.4);
     mline(p, ['−10°'], 474, th.Yt(-10) + 12, m('cold'), NEG, 40, 'start');
@@ -241,10 +243,11 @@ const BEATS = [
     draw(wave, m('sea', .6), .8);
     text(p, 'sea level', 1436, Z + 8, m('sea', 1), { size: 22, fill: COL.dim, weight: 600 });
     const gull = G(p, { x: 1300, y: Yf(30), o: 0 });
-    path(gull, 'M-24 0Q-12 -14 0 0Q12 -14 24 0', { stroke: COL.chalk, 'stroke-width': 3.5 });
+    path(gull, 'M-46 4Q-24 -26 0 2Q24 -26 46 4', { stroke: COL.chalk, 'stroke-width': 5 });
+    mk('ellipse', { cy: 4, rx: 12, ry: 7, fill: COL.chalk }, gull);
     show(gull, m('gull'));
     const dg = G(p, { x: 1150, y: Yf(30), s: 0, o: 0 }); mk('circle', { r: 10, fill: POS }, dg); pop(dg, m('gull', .4));
-    text(p, '+30 ft', 1340, Yf(30) + 10, m('gull', .8), { size: 32, fill: POS, weight: 600 });
+    text(p, '+30 ft', 1372, Yf(30) + 10, m('gull', .8), { size: 32, fill: POS, weight: 600 });
     const sub = G(p, { x: 1300, y: Yf(-30), o: 0 });
     mk('ellipse', { rx: 44, ry: 15, fill: COL.board, stroke: COL.chalk, 'stroke-width': 3 }, sub);
     mk('rect', { x: -10, y: -28, width: 22, height: 14, rx: 3, fill: COL.board, stroke: COL.chalk, 'stroke-width': 3 }, sub);
@@ -264,10 +267,11 @@ const BEATS = [
     const p = panel(0);
     show(S.line, .2, .5);
     landDot(p, 5, .4, POS); landDot(p, -5, .6, NEG);
-    pnHops(p, 5, 1, m('five'), POS);
-    text(p, '5 steps', X(2.5), Y0 - 88, m('five', 1.4), { size: 28, fill: POS, anchor: 'middle', weight: 600 });
-    pnHops(p, 5, -1, m('nfive'), NEG);
-    text(p, '5 steps', X(-2.5), Y0 - 88, m('nfive', 1.4), { size: 28, fill: NEG, anchor: 'middle', weight: 600 });
+    const old = pnHops(p, 5, 1, m('five'), POS);
+    old.push(text(p, '5 steps', X(2.5), Y0 - 88, m('five', 1.4), { size: 28, fill: POS, anchor: 'middle', weight: 600 }));
+    old.push(...pnHops(p, 5, -1, m('nfive'), NEG));
+    old.push(text(p, '5 steps', X(-2.5), Y0 - 88, m('nfive', 1.4), { size: 28, fill: NEG, anchor: 'middle', weight: 600 }));
+    old.forEach(e => hide(e, m('flip'), .4));
     text(p, 'Opposites: same distance from 0, opposite sides', 800, 250, m('opp'), { size: 36, anchor: 'middle', weight: 700 });
     text(p, '5 and −5 are opposites.', 800, 304, m('opp', 1.4), { size: 30, fill: COL.dim, anchor: 'middle' });
     pnFlip(p, 5, -5, m('flip', .3), { peak: 400 });
@@ -310,25 +314,25 @@ const BEATS = [
      ['A negative number always shows its − sign; the + is optional.', 'w2'],
      ['Opposite quantities get opposite signs: owe −2, save +2.', 'w3'],
      ['Opposites: same distance from 0. Flip twice to get back.', 'w4']].forEach(([str, mk_], i) => {
-      const g = G(p, { x: -16, y: 250 + i * 130, o: 0 });
+      const g = G(p, { x: 69, y: 240 + i * 150, o: 0 });
       mk('circle', { cx: 200, cy: -12, r: 26, fill: COL.task }, g);
       T(g, String(i + 1), { x: 200, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
-      T(g, str, { x: 260, size: 34, weight: 600 });
-      tw(g, { o: 1, x: 0 }, m(mk_), .6);
+      T(g, str, { x: 260, size: 38, weight: 600 });
+      tw(g, { o: 1, x: 85 }, m(mk_), .6);
     });
   }],
   ['final1', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
     id: 'p-quantities', prompt: ['Write the integer for each quantity.'],
     build: pnBlanks(PRACTICE1),
-  }], done, 'Chapter practice   1 of 3') }],
+  }], done, 'Chapter practice · set 1 of 3') }],
   ['final2', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
-    id: 'p-opposites', prompt: ['Find each number.'],
+    id: 'p-opposites', prompt: ['Find each opposite.'],
     build: pnBlanks(PRACTICE2),
-  }], done, 'Chapter practice   2 of 3') }],
+  }], done, 'Chapter practice · set 2 of 3') }],
   ['final3', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
     id: 'p-truefalse', prompt: ['True or false?'],
     build: grid(PRACTICE3, TF, { multi: false, text: true }),
-  }], done, 'Chapter practice   3 of 3') }],
+  }], done, 'Chapter practice · set 3 of 3') }],
   ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
 

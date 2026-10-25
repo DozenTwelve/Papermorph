@@ -956,7 +956,7 @@ const BEATS = [
     build: choice([['a hydroelectric dam'], ['a wind farm'], ['a photovoltaic solar panel']], 2,
       'It turns sunlight directly into electricity.',
       ['Water spins its turbine.', 'Wind spins its turbines.', null]) },
-]), done, 'Chapter practice, set 1 of 2 · question') }],
+]), done, 'Chapter practice, set 1 of 2') }],
 ['final2', 'Chapter practice: how each source works', () => { PRACTICE = panel(0); }, { ask: done => quiz(SCREEN, withPics([
   { id: 'p-solar', prompt: ['How are the two kinds of solar collector different?'],
     build: choice([['thermal ones make electricity directly; photovoltaic ones heat water'], ['thermal ones absorb sunlight to heat water; photovoltaic ones turn sunlight directly into electricity'], ['thermal ones use wind; photovoltaic ones use tides']], 1,
@@ -981,7 +981,7 @@ const BEATS = [
       { parts: ['natural gas'], ans: ['n'], why: 'That is a fossil fuel.' },
       { parts: ['uranium'], ans: ['n'], why: 'Uranium is a mined metal, not a living thing.' },
     ], [['y', 'yes', COL.good, 'y'], ['n', 'no', COL.bad, 'n']], { multi: false, text: true }) },
-]), done, 'Chapter practice, set 2 of 2 · question') }],
+]), done, 'Chapter practice, set 2 of 2') }],
 ['finish', 'Finished', (m, D) => {
   // under the card, the chapter in four small pictures with their names
   const p = panel(0);

@@ -945,7 +945,7 @@ const BEATS = [
   { id: 'p-feather', prompt: ['Why does a feather drift back and forth as it falls?'],
     build: choice([['air resistance pushes up against its fall'], ['gravity doesn’t act on feathers'], ['it has no mass']], 0,
       'A feather has a big surface for its tiny weight, so air resistance nearly balances gravity.', [null, 'Gravity pulls on everything with mass, feathers too.', 'It has a little mass; that’s why it does fall.']) },
-]), done, 'Chapter practice, set 1 of 2 · question') }],
+]), done, 'Chapter practice, set 1 of 2') }],
 ['final2', 'Chapter practice: more forces', () => { PRACTICE = panel(0); }, { ask: done => quiz(SCREEN, withPics([
   { id: 'p-term', prompt: ['When air resistance equals the force of gravity, a falling object…'],
     build: choice([['reaches terminal velocity: it falls at a steady speed'], ['stops in midair'], ['speeds up faster']], 0,
@@ -959,7 +959,7 @@ const BEATS = [
     build: choice([['the buoyant force'], ['centripetal force'], ['friction']], 0, 'Buoyancy: the upward push of a fluid.', [null, 'That keeps things moving in circles.', 'Friction opposes motion; it doesn’t hold boats up.']) },
   { id: 'p-dog', prompt: ['A dog swimming in a lake pushes aside 10 pounds of water. What is the buoyant force on the dog?'],
     build: blanks([{ parts: ['buoyant force = ', { box: '10' }, ' pounds'], why: 'It equals the weight of the water pushed aside: 10 pounds.', hint: 'Archimedes’ principle.' }]) },
-]), done, 'Chapter practice, set 2 of 2 · question') }],
+]), done, 'Chapter practice, set 2 of 2') }],
 ['finish', 'Finished', () => {
   // under the card, the chapter in four small pictures with their names
   const p = panel(0);

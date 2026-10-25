@@ -886,7 +886,7 @@ const BEATS = [
       [null, 'That is Sam’s speed measured from the road, not from the driver.', 'Nothing adds up to 80 here. Sam rides along with the driver.']) },
   { id: 'p-cyclist', prompt: ['A cyclist rides 90 meters in 15 seconds. What is her speed?'],
     build: blanks([{ parts: ['speed = 90 ÷ 15 = ', { box: '6' }, ' meters per second'], why: '90 ÷ 15 = 6.', hint: 'Divide the distance by the time.' }]) },
-], done, 'Chapter practice, set 1 of 2 · question') }],   // the engine appends "k of n"
+], done, 'Chapter practice, set 1 of 2') }],   // the engine appends "k of n"
 ['final2', 'Chapter practice: velocity and acceleration', () => { panel(0); }, { ask: done => quiz(SCREEN, [
   { id: 'p-jog', prompt: ['A jogger runs at +3 meters per second, then turns around and jogs at the same pace. What is her new velocity?'],
     build: blanks([{ parts: ['velocity = ', { box: '-3' }, ' meters per second'], why: 'Same speed, opposite direction: the sign flips.', hint: 'The speed stays 3; the direction is opposite, so the sign changes.' }]) },
@@ -898,7 +898,7 @@ const BEATS = [
     build: blanks([{ parts: ['acceleration = (16 − 4) ÷ 3 = ', { box: '4' }, ' meters per second squared'], why: '16 − 4 = 12, and 12 ÷ 3 = 4.', hint: 'Final velocity minus starting velocity, then divide by the time.' }]) },
   { id: 'p-dec', prompt: ['A bike slows down from 8 to 2 meters per second in 3 seconds. What is its acceleration?'],
     build: blanks([{ parts: ['acceleration = (2 − 8) ÷ 3 = ', { box: '-2' }, ' meters per second squared'], why: '2 − 8 = −6, and −6 ÷ 3 = −2: negative, because it slows down.', hint: 'Final minus starting velocity is negative here. Divide it by the time.' }]) },
-], done, 'Chapter practice, set 2 of 2 · question') }],
+], done, 'Chapter practice, set 2 of 2') }],
 ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
 

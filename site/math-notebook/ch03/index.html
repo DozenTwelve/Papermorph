@@ -271,6 +271,8 @@ const BEATS = [
     const d6 = landDot(p, 6, m('inside', .8), POS);
     pulse(r1[0], m('then', .2), 1.6);
     pnFlip(p, 6, -6, m('flip'), { peak: 420, g: d6 });
+    const arc6 = p.lastElementChild;
+    hide(arc6, m('seven'), .4); hide(d6, m('seven'), .4);
     showT(r1, 8, 9, m('flip', 1.4));
     showT(r2, 0, 3, m('seven'));
     showT(r2, 4, 7, m('inside2', .3));
@@ -279,8 +281,8 @@ const BEATS = [
     M(ghost, ['7'], { size: 60, fill: COL.bad });
     path(ghost, 'M-24 8L24 -48', { stroke: COL.bad, 'stroke-width': 4 });
     show(r2[8], m('wrong'), .4); show(ghost, m('wrong', .3), .4);
-    text(p, 'not 7', r2[9]._px + 46, 290, m('wrong', 1), { size: 26, fill: COL.bad, weight: 600 });
-    hide(ghost, m('flip2'), .4);
+    const not7 = text(p, 'not 7', r2[9]._px + 46, 290, m('wrong', 1), { size: 26, fill: COL.bad, weight: 600 });
+    hide(ghost, m('flip2'), .4); hide(not7, m('flip2'), .4);
     pnFlip(p, 7, -7, m('flip2'), { peak: 380, g: d7 });
     show(r2[9], m('flip2', 1.4), .4);
     text(p, 'Inside first, then outside.', 800, 780, m('rule'), { size: 34, anchor: 'middle', weight: 600 });
@@ -323,7 +325,7 @@ const BEATS = [
     text(p, 'with letters', 1170, 170, m('var'), { size: 28, fill: COL.dim, anchor: 'middle', weight: 600 });
     eqLine(p, ['ab'], ['a · b'], 300, m('ab'), { xEq: 1170, size: 56 });
     eqLine(p, ['3x'], ['3 · x'], 410, m('three'), { xEq: 1170, size: 56 });
-    show(put(mk('circle', { cx: 1170 - 56 * .6 - mathW(['x'], 56) / 2 + 6, cy: 395, r: 21, fill: 'none', stroke: COL.task, 'stroke-width': 3 }, p), { o: 0 }), m('word', .2), .4);
+    show(put(mk('circle', { cx: 1170 - 56 * .6 - mathW(['x'], 56) / 2 - 1, cy: 396, r: 18, fill: 'none', stroke: COL.task, 'stroke-width': 3 }, p), { o: 0 }), m('word', .2), .4);
     text(p, 'Variable: a letter that stands for a number we don’t know yet', 800, 740, m('word', .6), { size: 34, fill: COL.task, anchor: 'middle', weight: 600 });
   }],
   ['wrap', 'Summary', (m) => {
@@ -342,19 +344,19 @@ const BEATS = [
   ['final1', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
     id: 'p-evaluate', prompt: ['Find each absolute value.'],
     build: blanks(PRACTICE1),
-  }], done, 'Chapter practice   1 of 4') }],
+  }], done, 'Chapter practice · set 1 of 4') }],
   ['final2', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
     id: 'p-steps', prompt: ['Evaluate: inside the bars first, then outside.'],
     build: blanks(PRACTICE2),
-  }], done, 'Chapter practice   2 of 4') }],
+  }], done, 'Chapter practice · set 2 of 4') }],
   ['final3', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
     id: 'p-world', prompt: ['Answer with a number (no sign needed).'],
     build: pnBlanks(PRACTICE3),
-  }], done, 'Chapter practice   3 of 4') }],
+  }], done, 'Chapter practice · set 3 of 4') }],
   ['final4', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
     id: 'p-truefalse', prompt: ['True or false?'],
     build: grid(PRACTICE4, TF, { multi: false, text: true }),
-  }], done, 'Chapter practice   4 of 4') }],
+  }], done, 'Chapter practice · set 4 of 4') }],
   ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
 

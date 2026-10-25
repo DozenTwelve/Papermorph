@@ -689,7 +689,7 @@ const BEATS = [
     build: choice([['its mass and its height'], ['its color and its height'], ['its speed and its temperature']], 0,
       'More mass or more height: more potential energy.',
       [null, 'Color doesn’t matter; mass does.', 'Speed is about kinetic energy; the book isn’t moving.']) },
-]), done, 'Chapter practice, set 1 of 2 · question') }],
+]), done, 'Chapter practice, set 1 of 2') }],
 ['final2', 'Chapter practice: energy changes form', () => { PRACTICE = panel(0); }, { ask: done => quiz(SCREEN, withPics([
   { id: 'p-change', prompt: ['Energy is constantly ________ from one form to another.'],
     build: choice([['changing'], ['disappearing'], ['being created']], 0,
@@ -707,7 +707,7 @@ const BEATS = [
     build: choice([['a bowling ball rolling fast'], ['a bowling ball rolling slowly'], ['a tennis ball rolling slowly']], 0,
       'The most mass and the most speed: the most kinetic energy.',
       [null, 'The same ball rolling faster has more.', 'Less mass and less speed: the least of the three.']) },
-]), done, 'Chapter practice, set 2 of 2 · question') }],
+]), done, 'Chapter practice, set 2 of 2') }],
 ['finish', 'Finished', () => {
   // under the card, the chapter in four small pictures with their names
   const p = panel(0);

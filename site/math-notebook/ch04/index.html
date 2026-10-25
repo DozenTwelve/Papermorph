@@ -120,7 +120,7 @@ const BEATS=[
  const p=panel(0);fcTitle(p,'Twenty-four stools for the drama club','Find every pair, then read both ends.');const d=fcDots(p,24,{cx:570,cy:440,cols:6,gap:55,r:10});
  [[1,24,'one',30],[2,12,'two',55],[3,8,'three',65],[4,6,'five',72]].forEach(([a,b,k,gap],i)=>{fcArrange(d,b,m(k),{cx:570,cy:440,gap});fcPair(p,a,b,1060,295+i*90,m(k,1),40);});
  fcText(p,'6 × 4 repeats 4 × 6',1050,690,m('reverse'),28,COL.dim);
- fcText(p,'factors:',130,785,m('all'),30,COL.dim);fcMath(p,'1, 2, 3, 4, 6, 8, 12, 24',870,785,m('all',1),39,COL.task);
+ fcText(p,'factors of 24:',560,785,m('all'),32,COL.dim,'end');fcMath(p,'1, 2, 3, 4, 6, 8, 12, 24',590,785,m('all',1),39,COL.task,'start');
 }],
 ['lastdigit','Read the last digit',m=>{
  const p=panel(0);fcTitle(p,'Divisibility shortcuts','Divisible = no remainder');
@@ -129,14 +129,14 @@ const BEATS=[
  draw(path(p,`M${x-20} ${y+16}H${x+22}`,{stroke:COL.task,'stroke-width':5},{d:0}),m(k),.5);
  fcText(p,`divisible by ${n}`,570,y,m(k,.4),34,COL.task);fcText(p,`last digit: ${rule}`,1020,y,m(k,1),32,COL.dim);
  });
- fcText(p,'Ends in 0 → passes 5 AND 10',800,820,m('overlap'),34,COL.task,'middle');
+ fcText(p,'Ends in 0 → passes 5 AND 10',800,790,m('overlap'),34,COL.task,'middle');fcText(p,'65: passes 5 ✓   fails 10 ✗',800,850,m('overlap',4.8),30,COL.dim,'middle');
 }],
 ['digitsum','Add the digits for 3 and 9',m=>{
  const p=panel(0);fcTitle(p,'For 3 and 9, test the digit sum');
  const a=[4,2].map((v,i)=>fcMath(p,String(v),285+i*65,340,.3,65));const b=[2,9,7].map((v,i)=>fcMath(p,String(v),270+i*65,520,.3,65));
- fcText(p,'42',130,340,.3,36,COL.dim);fcText(p,'297',130,520,.3,36,COL.dim);
- a.forEach((e,i)=>tw(e,{x:620+i*160},m('sum3'),1,io));fcMath(p,'+',700,340,m('sum3',.4),52,COL.dim);fcMath(p,'= 6',965,340,m('sum3',1),52);fcText(p,'passes 3',1210,340,m('sum3',1.7),34,COL.task);
- b.forEach((e,i)=>tw(e,{x:570+i*150},m('sum9'),1,io));[645,795].forEach(x=>fcMath(p,'+',x,520,m('sum9',.4),48,COL.dim));fcMath(p,'= 18',1010,520,m('sum9',1),52);fcText(p,'passes 9',1210,520,m('sum9',1.7),34,COL.task);
+ fcText(p,'42',450,340,m('sum3'),36,COL.dim);fcText(p,'297',400,520,m('sum9'),36,COL.dim);
+ a.forEach((e,i)=>tw(e,{x:620+i*160},m('sum3'),1,io));fcMath(p,'+',700,340,m('sum3',.4),52,COL.dim);fcMath(p,'= 6',900,340,m('sum3',1),65);fcText(p,'passes 3',1210,340,m('sum3',1.7),34,COL.task);
+ b.forEach((e,i)=>tw(e,{x:570+i*150},m('sum9'),1,io));[645,795].forEach(x=>fcMath(p,'+',x,520,m('sum9',.4),48,COL.dim));fcMath(p,'= 18',1000,520,m('sum9',1),65);fcText(p,'passes 9',1210,520,m('sum9',1.7),34,COL.task);
  fcText(p,'42: sum 6 → passes 3, fails 9',800,675,m('compare'),35,COL.task,'middle');
  fcText(p,'Multiple of 9 → multiple of 3',800,775,m('rule'),34,COL.chalk,'middle');fcText(p,'The reverse is not always true.',800,823,m('rule',3),28,COL.dim,'middle');
 }],
@@ -188,8 +188,8 @@ const BEATS=[
  blues.slice(12).forEach((e,i)=>tw(e,{x:575+i*90,y:655},m('eight')+i*.01,1.1,io));
  const badLabel=fcText(p,'12 kits leave 6 blue counters outside.',800,745,m('eight',1.5),32,COL.task,'middle');
  const badOutline=path(p,'M535 615H1070V695H535Z',{stroke:COL.task,'stroke-width':3},{d:0});draw(badOutline,m('eight',1.3),.6);
- badBoxes.forEach(e=>hide(e,m('greatest')));hide(badLabel,m('greatest'));hide(badOutline,m('greatest'));six.forEach(e=>show(e,m('greatest')));show(lab6,m('greatest'));moveSets(6,m('greatest'));
- fcText(p,'Greatest number of kits = GCF(12, 18) = 6',800,245,m('greatest'),32,COL.task,'middle');
+ badBoxes.forEach(e=>hide(e,m('greatest')));hide(badLabel,m('greatest'));hide(badOutline,m('greatest'));six.forEach(e=>show(e,m('greatest')));moveSets(6,m('greatest'));
+ fcText(p,'Greatest number of kits = GCF(12, 18) = 6',800,800,m('greatest'),32,COL.task,'middle');
 }],
 ['coprime','The GCF can be 1 — or the smaller number',m=>{
  const p=panel(0);fcTitle(p,'Two useful edge cases');
@@ -201,12 +201,12 @@ const BEATS=[
 }],
 ['wrap','Summary',m=>{
  const p=panel(0);const rows=[['Factors: equal whole rows, with no leftovers.','w1'],['Divisibility: last digit, or sum of the digits.','w2'],['Prime: exactly two factors. 1 is not prime; 2 is.','w3'],['GCF: largest shared factor; greatest matching groups.','w4']];
- rows.forEach(([s,k],i)=>{const g=G(p,{x:-16,y:260+i*140,o:0});mk('circle',{cx:170,cy:-12,r:26,fill:COL.task},g);T(g,String(i+1),{x:170,y:-1,size:30,fill:COL.board,anchor:'middle',weight:700});T(g,s,{x:230,size:36,weight:600});tw(g,{x:0,o:1},m(k),.6);});
+ rows.forEach(([s,k],i)=>{const g=G(p,{x:124,y:260+i*140,o:0});mk('circle',{cx:170,cy:-12,r:26,fill:COL.task},g);T(g,String(i+1),{x:170,y:-1,size:30,fill:COL.board,anchor:'middle',weight:700});T(g,s,{x:230,size:36,weight:600});tw(g,{x:140,o:1},m(k),.6);});
 }],
 ['final1','Chapter practice',()=>panel(0),{ask:done=>quiz(SCREEN,[{id:'p-factors',prompt:['Select ',h('b','','every'),' positive factor of each number.'],build:grid([
  {parts:['18'],ans:['1','2','3','6','9','18'],why:'18 = 1×18 = 2×9 = 3×6. Collect both ends of each pair.'},
  {parts:['24'],ans:['1','2','3','4','6','8','12','24'],why:'24 = 1×24 = 2×12 = 3×8 = 4×6.'}
- ],[1,2,3,4,6,8,9,12,18,24].map((v,i)=>[String(v),String(v),COL.chalk,String((i+1)%10)]))}],done,'Chapter practice   1 of 4')}],
+ ],[1,2,3,4,6,8,9,12,18,24].map((v,i)=>[String(v),String(v),COL.chalk,String((i+1)%10)]))}],done,'Chapter practice · set 1 of 4')}],
 ['final2','Chapter practice',()=>panel(0),{ask:done=>quiz(SCREEN,[{id:'p-divisibility',prompt:'Is each statement true?',build:grid([
  {parts:['462 is divisible by 2.'],ans:['y'],why:'Its last digit is 2, which is even.'},
  {parts:['537 is divisible by 3.'],ans:['y'],why:'5 + 3 + 7 = 15, and 15 is divisible by 3.'},
@@ -214,13 +214,13 @@ const BEATS=[
  {parts:['2,145 is divisible by 10.'],ans:['n'],why:'The last digit must be 0, not 5.'},
  {parts:['51 is divisible by 9.'],ans:['n'],why:'5 + 1 = 6. It passes 3, but fails 9.'},
  {parts:['Every multiple of 9 is a multiple of 3.'],ans:['y'],why:'9 = 3×3, so any whole number of nines is also a whole number of threes.'}
- ],FC_YN,{multi:false,text:true})}],done,'Chapter practice   2 of 4')}],
+ ],FC_YN,{multi:false,text:true})}],done,'Chapter practice · set 2 of 4')}],
 ['final3','Chapter practice',()=>panel(0),{ask:done=>quiz(SCREEN,[{id:'p-gcf',prompt:'Find each greatest common factor.',build:blanks([
  {parts:['GCF(14, 35) = ',{box:'7'}],why:'Shared factors: 1 and 7. The greatest is 7.'},
  {parts:['GCF(35, 64) = ',{box:'1'}],why:'35 has factors 1,5,7,35; 64 has factors 1,2,4,8,16,32,64. Only 1 is shared.'},
  {parts:['GCF(16, 48) = ',{box:'16'}],why:'16 itself divides 48: 16 × 3 = 48.'},
  {parts:['GCF(20, 50) = ',{box:'10'}],why:'Shared factors: 1,2,5,10. The greatest is 10.'}
- ])}],done,'Chapter practice   3 of 4')}],
+ ])}],done,'Chapter practice · set 3 of 4')}],
 ['final4','Chapter practice',()=>panel(0),{ask:done=>quiz(SCREEN,[
  {id:'p-kits',prompt:['An art club has ',h('b','','15 blue counters'),' and ',h('b','','25 coral counters'),'. Make the greatest number of identical kits, with no leftovers.'],build:blanks([
  {parts:['number of kits = ',{box:'5'}],why:'GCF(15,25) = 5. A smaller common factor would not give the greatest number of kits.'},
@@ -228,7 +228,7 @@ const BEATS=[
  {parts:['coral in each = ',{box:'5'}],why:'25 ÷ 5 = 5 coral counters per kit. The blue/coral counts can differ; the kits match.'}
  ])},
  {id:'p-primes',prompt:'Is each number prime?',build:grid([{parts:['1'],ans:['n'],why:'1 has only one positive factor, so it is not prime.'},{parts:['2'],ans:['y'],why:'2 has exactly two positive factors: 1 and 2.'}],FC_YN,{multi:false})}
- ],done,'Chapter practice   4 of 4')}],
+ ],done,'Chapter practice · set 4 of 4')}],
 ['finish','Finished',()=>panel(0),{ask:finishCard}]
 ].map(([id,title,run,extra])=>({id,title,run,...extra}));
 boot();

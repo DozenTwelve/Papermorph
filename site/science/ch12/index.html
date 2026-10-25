@@ -767,7 +767,7 @@ const BEATS = [
     build: choice([['second class'], ['first class'], ['third class']], 0,
       'The load is between the fulcrum (the wheel) and the effort: second class.',
       [null, 'In a first-class lever the fulcrum is in the middle.', 'In a third-class lever the effort is in the middle.']) },
-]), done, 'Chapter practice, set 1 of 2 · question') }],
+]), done, 'Chapter practice, set 1 of 2') }],
 ['final2', 'Chapter practice: machines and power', () => { PRACTICE = panel(0); }, { ask: done => quiz(SCREEN, withPics([
   { id: 'p-ful', prompt: ['What is the point a lever turns on called?'],
     build: choice([['the fulcrum'], ['the axle'], ['the load']], 0, 'A lever pivots on its fulcrum.',
@@ -785,7 +785,7 @@ const BEATS = [
       [null, 'That is a lever.', 'That is closer to a screw, an inclined plane wrapped around.']) },
   { id: 'p-power', prompt: ['You do 120 J of work in 4 s. What is your power?'],
     build: blanks([{ parts: ['power = 120 J ÷ 4 s = ', { box: '30' }, ' W'], why: 'Power is work divided by time: 120 ÷ 4 = 30 W.', hint: 'Divide the work by the time.' }]) },
-]), done, 'Chapter practice, set 2 of 2 · question') }],
+]), done, 'Chapter practice, set 2 of 2') }],
 ['finish', 'Finished', () => {
   // under the card, the chapter in four small pictures with their names
   const p = panel(0);

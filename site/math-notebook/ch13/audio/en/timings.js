@@ -146,6 +146,7 @@ window.TIMINGS = {
   "marks": {
    "zero": 6.745,
    "split": 17.344,
+   "gives": 24.557,
    "opposite": 32.695
   },
   "cues": [
@@ -352,7 +353,10 @@ window.TIMINGS = {
   "dur": 40.512,
   "marks": {
    "same": 5.625,
-   "different": 18.034
+   "four": 12.656,
+   "groups": 14.271,
+   "different": 18.034,
+   "neg4": 25.286
   },
   "cues": [
    [
@@ -417,7 +421,10 @@ window.TIMINGS = {
   "dur": 44.184,
   "marks": {
    "decimal": 5.794,
-   "divide": 27.904
+   "sign": 12.995,
+   "order": 19.766,
+   "divide": 27.904,
+   "sign2": 34.232
   },
   "cues": [
    [

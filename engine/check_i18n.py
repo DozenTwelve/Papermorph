@@ -212,7 +212,7 @@ async def check_russian_lesson(browser, errors):
     ], () => { window.quizDone = true; })""")
     await page.wait_for_timeout(100)
     assert "вводите числа вида 0,75" in await text(".card .keys")
-    assert await text(".card .kicker") == "Проверь себя   1 из 3"
+    assert await text(".card .kicker") == "Проверь себя  ·  вопрос 1 из 3"
     await page.locator(".box").fill("0,75")
     await page.locator(".box").press("Enter")
     assert (await text(".card .fb")).startswith("Верно."), "0,75 is accepted"
