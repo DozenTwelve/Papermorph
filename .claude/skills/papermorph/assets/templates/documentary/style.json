@@ -15,7 +15,7 @@
   "voice": { "engine": "edge", "voice": "en-GB-RyanNeural", "rate": "-4%" },
   "music": "public-domain classical recordings, one per part of the film, changing at the turns",
   "pacing": { "minutes": 10, "turns": "one argument with five or six turns; one idea or picture every two to four seconds" },
-  "engine": { "source": "DozenTwelve/Papermorph", "ref": "engine-v2.3.1" },
+  "engine": { "source": "DozenTwelve/Papermorph", "ref": "engine-v2.4" },
   "models": { "script": "claude-opus-5-5", "pictures": "claude-sonnet-5-5", "beats": "claude-sonnet-5-5", "checks": "claude-haiku-5-5", "director": "claude-opus-5-5" },
   "approved": [{ "chapter": "ch01", "why": "close-ups on what is named; few words on screen" }]
 }
