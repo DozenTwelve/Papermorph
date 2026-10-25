@@ -9,7 +9,8 @@ recording playback: the video is exact and the same on every run. The sound is m
 each beat's clip from its `pre` on, and in a film (a picture book or a documentary) the sfx() effects (cut at the end
 of their scene, as a scene change stops them) and the BGM tracks with their crossfades, ducking and MUSIC_OFF. Question beats (quick
 checks and practice) are left out, and then the video ends on a card saying they are in the interactive lesson
-(--link adds its address). Captions are not burned in: upload OUT/chNN.srt with the video. Needs ffmpeg; serve the
+(--link adds its address); in a film with interactive moments (CHAPTER.film, e.g. the reader fires a rifle) they stay in,
+each holding its last picture for its `hold` seconds (1.5 by default) before the next beat plays as if the reader had acted. Captions are not burned in: upload OUT/chNN.srt with the video. Needs ffmpeg; serve the
 site over HTTP first.
 """
 import argparse, asyncio, functools, json, shutil, subprocess, sys, tempfile, wave
@@ -79,10 +80,13 @@ async def main(a):
         await pg.goto(base + '?beat=0&t=0'); await pg.wait_for_timeout(500)
         if errs:
             sys.exit(f'page errors: {errs}')
-        info = await pg.evaluate("""({lang: CHAPTER.language || 'en', beats: BEATS.map(b => ({id: b.id, ask: !!b.ask, pre: b.pre || 0})),
+        info = await pg.evaluate("""({lang: CHAPTER.language || 'en', film: !!CHAPTER.film,
+          beats: BEATS.map(b => ({id: b.id, ask: !!b.ask, pre: b.pre || 0, hold: b.hold ?? 1.5})),
           bgm: typeof BGM === 'undefined' ? [] : BGM.map(m => ({src: m.a.src, beats: m.beats, gain: m.gain, fade: m.fade ?? .8})),
           upInPre: window.MUSIC_UP_IN_PRE || false})""")
-        beats = [(i, x['id']) for i, x in enumerate(info['beats']) if not x['ask']]
+        # a film's question beats (CHAPTER.film: the reader acts, e.g. fires) stay in the video: their picture holds `hold` s
+        # (BEATS[i].hold, 1.5 by default) where the page waits for the reader, then the next beat plays as if they had acted
+        beats = [(i, x['id']) for i, x in enumerate(info['beats']) if not x['ask'] or info['film']]
         info['sfx'] = []
         asks = len(beats) < len(info['beats'])
         box = await pg.locator('#stage').bounding_box()
@@ -95,6 +99,7 @@ async def main(a):
         for i, bid in beats:
             await open_beat(pg, base, i)
             end, T = await pg.evaluate('[P.end, TIMINGS[BEATS[P.i].id]]')
+            if info['beats'][i]['ask']: end += info['beats'][i]['hold']
             # a scene lists its sfx() when its beat is built, so they are collected beat by beat
             for e in await pg.evaluate(SFX_JS):
                 if e not in info['sfx']:

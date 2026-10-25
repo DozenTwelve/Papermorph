@@ -1210,7 +1210,7 @@ function bgmWire(m) {
 }
 // A browser starts sound only after a click or a key: the first one builds the graph (films only) and readies the music.
 function soundUnlock() {
-  if (!SND.ctx && window.AudioContext && !BEATS.some(b => b.ask)) {
+  if (!SND.ctx && window.AudioContext && (!BEATS.some(b => b.ask) || CHAPTER.film)) {   // a film with a question (CHAPTER.film) keeps its sound
     if (navigator.audioSession) navigator.audioSession.type = 'playback';   // iOS: the silent switch must not mute the film
     SND.ctx = new AudioContext();
     SND.out = SND.ctx.createGain();
@@ -1228,6 +1228,8 @@ function soundUnlock() {
 for (const type of ['pointerdown', 'touchend', 'click', 'keydown']) addEventListener(type, soundUnlock, true);
 function soundTick(dt) {
   const id = BEATS[P.i]?.id, pre = BEATS[P.i]?.pre || 0, on = P.started && P.playing && !P.waiting && !P.done, L = SND.last;
+  // a film waiting for the reader (CHAPTER.film, a question beat after its narration): the music plays on, louder
+  const wait = P.started && P.playing && P.waiting && !P.done && !!CHAPTER.film;
   const held = P.started && !P.playing && !P.done, ctx = SND.ctx;
   if (ctx?.state === 'running' && held) ctx.suspend();
   else if (ctx && ctx.state !== 'running' && ctx.state !== 'closed' && !held) ctx.resume().catch(() => {});
@@ -1250,9 +1252,11 @@ function soundTick(dt) {
   if (!SND.bgm.length) return;
   // the film's clock moved this frame (a clip loading or buffering holds it), or jumped (a seek, a replay)
   const runs = on && same && P.t > L.t, jump = !same && !(L.i === P.i - 1 && P.t < .5);
-  if (!held) SND.duck += Math.max(-dt, Math.min(dt, (P.t < pre && (up === true || up?.includes?.(id)) ? .7 : .3) - SND.duck));
+  if (!held) SND.duck += Math.max(-dt, Math.min(dt, (wait || P.t < pre && (up === true || up?.includes?.(id)) ? .7 : .3) - SND.duck));
   for (const m of SND.bgm) {
-    const k = m.beats.indexOf(id), current = on && k >= 0 && !window.MUSIC_OFF?.[id]?.(P.t);
+    const k = m.beats.indexOf(id), current = (on || wait) && k >= 0 && !window.MUSIC_OFF?.[id]?.(P.t);
+    if (jump) m.off = 0;   // a seek or a replay puts every track back where the film's own timing says
+    if (wait && current) m.off = (m.off || 0) + dt * P.rate;   // the time it ran on while the reader decided
     m.cur = current;
     if (!held) m.v = m.fade > 0 ? Math.max(0, Math.min(1, m.v + (current ? 1 : -1) * dt / m.fade)) : +current;
     const g = m.v * m.gain * SND.duck;
@@ -1260,7 +1264,7 @@ function soundTick(dt) {
     if (current) {
       // where the film is: the beats before this one in the track as they really ran (P.end), plus now
       const dur = m.a.duration || Infinity;
-      const want = (m.beats.slice(0, k).reduce((s, b) => s + (SND.len[BEATS.findIndex(x => x.id === b)] || 0), 0) + P.t) % dur;
+      const want = (m.beats.slice(0, k).reduce((s, b) => s + (SND.len[BEATS.findIndex(x => x.id === b)] || 0), 0) + P.t + (m.off || 0)) % dur;
       let d = m.a.currentTime - want;
       if (d > dur / 2) d -= dur; else if (d < -dur / 2) d += dur;
       // a start, a jump, or more than a second out once the clock runs again: seek. Less: ease back while the clock runs,
@@ -1280,7 +1284,7 @@ function soundTick(dt) {
       if (m.v === 0 && !m.a.paused) m.a.pause();
     }
   }
-  if (!on && !P.done) for (const m of SND.bgm) m.a.pause();
+  if (!on && !wait && !P.done) for (const m of SND.bgm) m.a.pause();
 }
 
 /* ---------- player ---------- */
@@ -1344,7 +1348,7 @@ function seek(i, play = P.playing) {
 // Jump to a point inside beat i (frac of its narration); question beats always start at their beginning.
 function seekInto(i, frac) {
   seek(i, true);
-  const pre = BEATS[i].pre || 0, t = BEATS[i].ask ? 0 : frac * (pre + TIMINGS[BEATS[i].id].dur);
+  const pre = BEATS[i].pre || 0, t = BEATS[i].ask && !CHAPTER.film ? 0 : frac * (pre + TIMINGS[BEATS[i].id].dur);   // a film's question beats seek like any other
   if (t < .3) return;
   P.t = t;
   evalTo(t);
@@ -1626,7 +1630,7 @@ function boot() {
   $('bHome').href = `../#ch${String(CHAPTER.number).padStart(2, '0')}`;
   progress(p => { p.last = CHAPTER.number; });
   document.getElementById('stage').setAttribute('aria-label', translate('stageLabelTitled', { title: CHAPTER.title }));
-  const film = !BEATS.some(b => b.ask);   // a picture book: no questions, so no "lesson" or "quick checks" on its cover
+  const film = !!CHAPTER.film || !BEATS.some(b => b.ask);   // a picture book or a film: no "lesson" or "quick checks" on its cover
   if (film) {   // the help lists no question keys and needs no column titles
     $('coverGo').textContent = translate('startFilm');
     const shift = [...$('help').querySelectorAll('dt')].find(e => e.textContent.startsWith('Shift'));
