@@ -1306,7 +1306,8 @@ const BEATS = [
     tag(plate, 'where I aimed', ax - 26, ay + 60, m('inches') + .3, { size: 34, fill: HOT, anchor: 'end' });
     // and the sight: the same picture as the film's first frame; the reader fires
     t = m('forward') + .5; p = cut(t, .3);
-    scope(p, a => { const g = pic(a, 'elephant-side', { x: SCOPE.x + 150, y: SCOPE.y + 70, h: 880 }); g.setAttribute('filter', 'grayscale(1) contrast(1.1)'); a.shot = { g, name: 'elephant-side', n: 0 }; });
+    // larger than the first frame's (880), so the aim has room to move up and down (±205 px, not ±70)
+    scope(p, a => { const g = pic(a, 'elephant-side', { x: SCOPE.x + 196, y: SCOPE.y + 91, h: 1150 }); g.setAttribute('filter', 'grayscale(1) contrast(1.1)'); a.shot = { g, name: 'elephant-side', n: 0 }; });
   }, { pre: .6, ask: fireAsk(1, 'p5b', { head: 0 }), hold: 1.5 }],
 
   ['p5b', 'The first shot', (m, D) => {
