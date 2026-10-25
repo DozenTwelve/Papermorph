@@ -1438,7 +1438,14 @@ function filmDone() {
 }
 let last = performance.now();
 function frame(now) {
-  const dt = Math.min(.1, (now - last) / 1000);
+  step(now, .1);
+  requestAnimationFrame(frame);
+}
+// A hidden tab gets no animation frames: a timer keeps the film going, so a beat that ends there still starts the next
+// one (a tab playing sound keeps its timers). Its ticks come late, so they may move the clock further at once.
+setInterval(() => { if (document.hidden) step(performance.now(), 1.5); }, 250);
+function step(now, most) {
+  const dt = Math.min(most, Math.max(0, now - last) / 1000);
   last = now;
   clock += dt;
   if (FX.length) { evalTo(clock, FX); FX = FX.filter(w => !w.done); }
@@ -1459,7 +1466,6 @@ function frame(now) {
   soundTick(dt);
   syncLinks();
   ui();
-  requestAnimationFrame(frame);
 }
 let segs = [];
 function buildSegs() {
