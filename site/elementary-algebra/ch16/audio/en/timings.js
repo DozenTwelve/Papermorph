@@ -16,40 +16,40 @@ window.TIMINGS = {
   ]
  },
  "terms": {
-  "dur": 27.504,
+  "dur": 24.864,
   "marks": {
-   "p": 6.458,
-   "r": 9.805,
-   "t": 14.284,
-   "f": 18.255
+   "p": 5.859,
+   "r": 8.984,
+   "t": 12.695,
+   "f": 16.719
   },
   "cues": [
    [
-    0.104,
+    0.117,
     "When you save, the bank pays you interest."
    ],
    [
-    3.346,
+    2.839,
     "When you borrow, you pay interest to the lender."
    ],
    [
-    6.458,
+    5.859,
     "The principal is the amount you save or borrow."
    ],
    [
-    9.805,
+    8.984,
     "The interest rate is the percent charged or paid each year."
    ],
    [
-    14.284,
+    12.695,
     "And the time is how many years the money is saved or borrowed."
    ],
    [
-    18.255,
+    16.719,
     "Simple interest multiplies all three: interest equals principal times rate times time."
    ],
    [
-    24.922,
+    23.008,
     "I equals P R T."
    ]
   ]

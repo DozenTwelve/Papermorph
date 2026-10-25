@@ -9,7 +9,7 @@
   "look": "Whatever the user chose: for example paper puppets in front of sets painted as torn-paper collage, warm light",
   "voice": {
     "engine": "edge",
-    "narrator": { "voice": "en-US-AndrewMultilingualNeural", "rate": "-4%" },
+    "narrator": { "voice": "en-US-AndrewNeural", "rate": "-4%" },
     "cast": { "Bo": { "voice": "en-US-AnaNeural", "rate": "+0%" }, "Clerk": { "voice": "ja-JP-NanamiNeural", "rate": "+0%", "subtitles": "en" } }
   },
   "illustration": {

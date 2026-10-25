@@ -505,8 +505,7 @@ const BEATS = [
   show(vg, b0);
   clockRun(t => {
     const s = tau(t), x = sx(t);
-    const still = t >= fz && t < f1;   // frozen for the snapshot
-    put(run, { x }); if (!still) { if (s > 0 && s < 10) walkTo(run, x, 30); else phPose(run); }
+    put(run, { x }); if (s > 0 && s < 10) walkTo(run, x, 30); else phPose(run);   // the pose follows x, so it holds while frozen
     clk.set(s);
     phText(vLab, `now: ${Math.round(sprintV(s))} m/s`); cam.track(vLab, x, TY - 150, t);
   }, D);

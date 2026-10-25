@@ -1,8 +1,8 @@
 window.TIMINGS = {
  "intro": {
-  "dur": 14.448,
+  "dur": 13.464,
   "marks": {
-   "sub": 3.802
+   "sub": 3.607
   },
   "cues": [
    [
@@ -10,27 +10,27 @@ window.TIMINGS = {
     "Chapter four."
    ],
    [
-    1.341,
+    1.25,
     "Factors and greatest common factor."
    ],
    [
-    3.802,
+    3.607,
     "Can the same objects fit into different equal rows?"
    ],
    [
-    7.734,
+    7.044,
     "That little question will help us find factors, spot primes, and make the greatest number of matching groups."
    ]
   ]
  },
  "factors": {
-  "dur": 30.672,
+  "dur": 27.576,
   "marks": {
-   "rows": 6.654,
-   "four": 9.05,
-   "pair": 10.312,
-   "divide": 15.612,
-   "rule": 21.602
+   "rows": 5.885,
+   "four": 8.099,
+   "pair": 9.245,
+   "divide": 13.971,
+   "rule": 19.453
   },
   "cues": [
    [
@@ -38,31 +38,31 @@ window.TIMINGS = {
     "Here are twelve dots."
    ],
    [
-    1.836,
+    1.706,
     "We will use positive factors in this chapter."
    ],
    [
-    4.701,
+    4.479,
     "Watch the dots arrange into three equal rows."
    ],
    [
-    8.594,
+    7.578,
     "Each row has four dots."
    ],
    [
-    10.312,
+    9.245,
     "Three times four equals twelve, so three and four are factors of twelve."
    ],
    [
-    15.612,
+    13.971,
     "The same picture says twelve divided by three equals four, with nothing left over."
    ],
    [
-    21.602,
+    19.453,
     "A factor divides a number exactly."
    ],
    [
-    24.219,
+    21.836,
     "The rectangle gives us two factors at once: the number of rows, and the number in each row."
    ]
   ]

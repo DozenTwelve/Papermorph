@@ -52,13 +52,13 @@ window.TIMINGS = {
   ]
  },
  "slide": {
-  "dur": 35.76,
+  "dur": 33.504,
   "marks": {
-   "fam": 1.445,
-   "c3": 5.013,
-   "up": 15.065,
-   "c9": 20.182,
-   "c11": 28.021
+   "fam": 1.471,
+   "c3": 5.339,
+   "up": 14.701,
+   "c9": 19.089,
+   "c11": 26.276
   },
   "cues": [
    [
@@ -66,31 +66,31 @@ window.TIMINGS = {
     "Watch it on a graph."
    ],
    [
-    1.445,
+    1.471,
     "Here's y equals x squared plus six x plus c."
    ],
    [
-    5.013,
+    5.339,
     "With c equal to three, the discriminant is thirty-six minus twelve, twenty-four: positive."
    ],
    [
-    11.927,
+    11.654,
     "The parabola crosses the x-axis twice."
    ],
    [
-    15.065,
+    14.701,
     "Now raise c."
    ],
    [
-    16.641,
+    15.964,
     "The parabola rises, and the discriminant shrinks."
    ],
    [
-    20.182,
+    19.089,
     "At c equals nine, the discriminant is zero, and the parabola just touches the axis: one solution."
    ],
    [
-    28.021,
+    26.276,
     "At c equals eleven, it's negative eight, and the parabola floats above the axis: no real solutions."
    ]
   ]

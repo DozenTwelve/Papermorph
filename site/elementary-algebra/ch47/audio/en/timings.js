@@ -1,8 +1,8 @@
 window.TIMINGS = {
  "intro": {
-  "dur": 6.96,
+  "dur": 6.216,
   "marks": {
-   "sub": 1.992
+   "sub": 1.628
   },
   "cues": [
    [
@@ -10,126 +10,126 @@ window.TIMINGS = {
     "Chapter forty-seven."
    ],
    [
-    1.992,
+    1.628,
     "Not every function graphs as a straight line."
    ],
    [
-    5.169,
+    4.492,
     "Let's put functions to work."
    ]
   ]
  },
  "kinds": {
-  "dur": 33.0,
+  "dur": 32.256,
   "marks": {
-   "lin": 2.031,
-   "lsteps": 4.167,
-   "lline": 8.425,
-   "sq": 12.37,
-   "qsteps": 14.505,
-   "qcurve": 21.641,
-   "form": 26.432
+   "lin": 1.745,
+   "lsteps": 3.854,
+   "lline": 8.216,
+   "sq": 12.175,
+   "qsteps": 14.115,
+   "qcurve": 21.471,
+   "form": 26.289
   },
   "cues": [
    [
-    0.091,
+    0.104,
     "Compare two functions."
    ],
    [
-    2.031,
+    1.745,
     "y equals two x plus one."
    ],
    [
-    4.167,
+    3.854,
     "Each time x goes up by one, y goes up by the same amount, two."
    ],
    [
-    8.425,
+    8.216,
     "Equal steps make a straight line: this is a linear function."
    ],
    [
-    12.37,
+    12.175,
     "Now y equals x squared."
    ],
    [
-    14.505,
+    14.115,
     "Going up by one in x, y changes by negative three, then negative one, then one, then three."
    ],
    [
-    21.641,
+    21.471,
     "The steps change, so the graph bends: this is a nonlinear function."
    ],
    [
-    26.432,
+    26.289,
     "A linear function can be written as y equals m x plus b."
    ],
    [
-    31.211,
+    30.664,
     "A nonlinear one can't."
    ]
   ]
  },
  "table": {
-  "dur": 26.64,
+  "dur": 26.088,
   "marks": {
-   "rows": 4.115,
-   "pts": 12.539,
-   "curve": 14.805,
-   "name": 19.258
+   "rows": 3.997,
+   "pts": 12.201,
+   "curve": 14.531,
+   "name": 18.685
   },
   "cues": [
    [
-    0.091,
+    0.104,
     "To graph a nonlinear function, make a table of values."
    ],
    [
-    4.115,
+    3.997,
     "Pick some inputs, and find each output: negative three squared is nine, negative two squared is four, and so on."
    ],
    [
-    12.539,
+    12.201,
     "Each row is a point."
    ],
    [
-    13.828,
+    13.581,
     "Plot them all."
    ],
    [
-    14.805,
+    14.531,
     "Then connect them with a smooth curve, not with straight segments."
    ],
    [
-    19.258,
+    18.685,
     "The graph of y equals x squared is a U-shaped curve called a parabola."
    ],
    [
-    23.88,
+    23.398,
     "You'll study parabolas in unit thirteen."
    ]
   ]
  },
  "q1": {
-  "dur": 2.664,
+  "dur": 2.592,
   "marks": {},
   "cues": [
    [
-    0.104,
+    0.117,
     "Quick check."
    ],
    [
-    1.12,
+    1.133,
     "Plot a point from the table."
    ]
   ]
  },
  "cubic": {
-  "dur": 21.984,
+  "dur": 20.424,
   "marks": {
-   "cube": 2.773,
-   "vals": 4.831,
-   "s": 12.552,
-   "neg": 14.974,
-   "steep": 17.839
+   "cube": 2.734,
+   "vals": 4.714,
+   "s": 11.888,
+   "neg": 14.18,
+   "steep": 16.589
   },
   "cues": [
    [
@@ -137,27 +137,27 @@ window.TIMINGS = {
     "Nonlinear functions come in many shapes."
    ],
    [
-    2.773,
+    2.734,
     "Here's y equals x cubed."
    ],
    [
-    4.831,
+    4.714,
     "Negative two cubed is negative eight, negative one cubed is negative one, zero, one, and eight."
    ],
    [
-    12.552,
+    11.888,
     "The points make an S-shaped curve: negative inputs give negative outputs, and the curve grows steeper as x moves away from zero."
    ]
   ]
  },
  "walk": {
-  "dur": 36.648,
+  "dur": 34.824,
   "marks": {
-   "story": 3.997,
-   "go": 9.453,
-   "stay": 14.375,
-   "back": 22.565,
-   "read": 28.307
+   "story": 3.737,
+   "go": 9.258,
+   "stay": 13.815,
+   "back": 21.029,
+   "read": 26.719
   },
   "cues": [
    [
@@ -165,49 +165,49 @@ window.TIMINGS = {
     "Graphs of functions also describe real situations."
    ],
    [
-    3.997,
+    3.737,
     "Maya walks to a friend's house and back."
    ],
    [
-    6.471,
+    6.302,
     "The graph shows her distance from home over time."
    ],
    [
-    9.453,
+    9.258,
     "For the first twenty minutes, the distance grows: she's walking away."
    ],
    [
-    14.375,
+    13.815,
     "From twenty to forty-five minutes the graph is flat."
    ],
    [
-    18.307,
+    17.201,
     "Her distance doesn't change, so she's at her friend's house."
    ],
    [
-    22.565,
+    21.029,
     "Then the distance drops to zero in ten minutes: she heads home, faster than she came."
    ],
    [
-    28.307,
+    26.719,
     "To read the graph, go up from a time to the line, then across to the distance."
    ],
    [
-    33.516,
+    31.823,
     "At ten minutes, she's one kilometer from home."
    ]
   ]
  },
  "q2": {
-  "dur": 2.28,
+  "dur": 2.256,
   "marks": {},
   "cues": [
    [
-    0.104,
+    0.117,
     "Quick check."
    ],
    [
-    1.12,
+    1.094,
     "Read the graph."
    ]
   ]

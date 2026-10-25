@@ -31,7 +31,7 @@ const text = (p, str, x, y, t0, { size = 30, fill = COL.chalk, anchor = 'start',
 // Notes beside the map: a family name and a short line under it.
 // The title opens the beat; the lines follow the words.
 function note(p, title, k, lines, t0) {
-  text(p, title, SX, 230, .3, { size: 36, fill: COL[k], weight: 700 });
+  text(p, title, SX, 230, .3, { size: 32, fill: COL[k], weight: 700 });
   lines.forEach((l, i) => text(p, l, SX, 276 + i * 36, t0 + i * .3, { size: 26, fill: COL.dim }));
 }
 // Draw one ring of the number map: outline, then its fill and name.
@@ -45,6 +45,8 @@ function vnum(parts, k, x, y, t0, size = 36) {
   pop(e, t0);
   return e;
 }
+// The map starts close on the first ring and pulls back as rings are added; identity once Rational arrives.
+const cam = (s, cx) => ({ s, x: cx - s * 500, y: 480 - s * 540 });
 // A copy of a number flies from the notes into its ring.
 function fly(parts, k, from, to, t0, size = 36) {
   const e = M(S.vnums, [].concat(parts), { x: from[0], y: from[1], size, fill: COL[k], o: 0 });
@@ -103,11 +105,12 @@ const BEATS = [
     const p = panel(0);
     S.ring = buildVenn(S.venn, true);
     S.vnums = G(S.venn);
+    put(S.venn, cam(1.6, 640));
     S.n = {};
     // counting: one number per word, then the ring closes around them
-    [['1', 440, 592], ['2', 500, 592], ['3', 560, 592], ['4', 470, 646], ['5', 530, 646]].forEach(([v, x, y], i) => { S.n[v] = vnum(v, 'nat', x, y, i ? m('one', i * .55) : .3); });
+    [['1', 440, 592], ['2', 500, 592], ['3', 560, 592], ['4', 460, 646], ['5', 510, 646]].forEach(([v, x, y], i) => { S.n[v] = vnum(v, 'nat', x, y, i ? m('one', i * .55) : .3); });
     pulse(S.n['1'], m('one'), 1.3);
-    mline(S.vnums, '…', 580, 646, m('one', 2.8), COL.nat, 36);
+    mline(S.vnums, '…', 555, 646, m('one', 2.8), COL.nat, 36);
     ringIn('nat', m('ring'));
     note(p, 'Natural numbers', 'nat', ['the counting numbers'], m('ring', .4));
     mline(p, '1, 2, 3, 4, 5, …', SX, 360, m('ring', 1.4), COL.nat, 36, 'start');
@@ -116,6 +119,7 @@ const BEATS = [
   }],
   ['whole', 'Whole numbers', (m) => {
     const p = panel(0);
+    tw(S.venn, cam(1.35, 620), .2, 1.2);
     S.n['0'] = vnum('0', 'whole', 333, 582, m('zero'), 40);
     ringIn('whole', m('ring'));
     note(p, 'Whole numbers', 'whole', ['natural numbers and 0'], m('ring', .4));
@@ -126,6 +130,7 @@ const BEATS = [
   }],
   ['integers', 'Integers', (m) => {
     const p = panel(0);
+    tw(S.venn, cam(1.1, 540), .2, 1.2);
     [['−1', 263, 466], ['−2', 258, 530], ['−3', 258, 594]].forEach(([v, x, y], i) => { S.n[v] = vnum(v, 'int', x, y, m('neg', i * .75)); });
     mline(S.vnums, '…', 280, 648, m('neg', 2.4), COL.int, 36);
     ringIn('int', m('ring'));
@@ -145,6 +150,7 @@ const BEATS = [
   }], done) }],
   ['rational', 'Rational numbers', (m) => {
     const p = panel(0);
+    tw(S.venn, { s: 1, x: 0, y: 0 }, .2, 1.2);
     note(p, 'Rational numbers', 'rat', ['one integer over another'], m('ratio'));
     text(p, 'think: ratio', SX, 318, m('ratio', 2.6), { size: 26, fill: COL.task, weight: 600 });
     const a = sideEq(p, [F(1, 2)], ['0.5'], 400, m('half'), COL.rat);

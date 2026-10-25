@@ -1,8 +1,8 @@
 window.TIMINGS = {
  "intro": {
-  "dur": 6.192,
+  "dur": 5.592,
   "marks": {
-   "sub": 2.76
+   "sub": 2.539
   },
   "cues": [
    [
@@ -10,79 +10,79 @@ window.TIMINGS = {
     "Chapter three."
    ],
    [
-    1.289,
+    1.172,
     "Absolute value."
    ],
    [
-    2.76,
+    2.539,
     "Forget which way."
    ],
    [
-    4.18,
+    3.672,
     "How far is a number from zero?"
    ]
   ]
  },
  "distance": {
-  "dur": 30.888,
+  "dur": 29.616,
   "marks": {
-   "far": 1.68,
-   "hops": 4.492,
-   "h1": 5.742,
-   "h2": 6.055,
+   "far": 1.667,
+   "hops": 4.036,
+   "h1": 5.339,
+   "h2": 6.081,
    "h3": 6.719,
-   "h4": 7.175,
-   "steps": 8.112,
-   "def": 15.039,
-   "bars": 22.422,
-   "read": 25.547
+   "h4": 7.37,
+   "steps": 8.242,
+   "def": 14.922,
+   "bars": 22.057,
+   "read": 25.234
   },
   "cues": [
    [
-    0.117,
+    0.13,
     "Here's our number line again."
    ],
    [
-    1.68,
+    1.667,
     "How far is negative four from zero?"
    ],
    [
-    4.492,
+    4.036,
     "Let's count the steps: one, two, three, four."
    ],
    [
-    8.112,
+    8.242,
     "Four steps."
    ],
    [
-    9.18,
+    9.284,
     "Walking left or walking right, a distance is just a length, so the distance is four."
    ],
    [
-    15.039,
+    14.922,
     "That distance has a special name: absolute value."
    ],
    [
-    18.75,
+    18.438,
     "The absolute value of a number is its distance from zero."
    ],
    [
-    22.422,
+    22.057,
     "To write it, put two straight bars around the number."
    ],
    [
-    25.547,
+    25.234,
     "You read this as: the absolute value of negative four is four."
    ]
   ]
  },
  "itself": {
-  "dur": 27.6,
+  "dur": 25.536,
   "marks": {
-   "seven": 2.305,
-   "same": 5.938,
-   "zero": 13.568,
-   "never": 21.562
+   "seven": 2.552,
+   "same": 5.599,
+   "zero": 12.786,
+   "never": 19.479
   },
   "cues": [
    [
@@ -90,59 +90,59 @@ window.TIMINGS = {
     "What about a positive number, like seven?"
    ],
    [
-    2.305,
+    2.552,
     "Seven is seven steps from zero, to the right."
    ],
    [
-    5.938,
+    5.599,
     "So the absolute value of seven is seven."
    ],
    [
-    8.945,
+    8.372,
     "For a positive number, the absolute value is just the number itself."
    ],
    [
-    13.568,
+    12.786,
     "And zero?"
    ],
    [
-    14.675,
+    13.737,
     "Zero is zero steps away from itself, so the absolute value of zero is zero."
    ],
    [
-    21.562,
+    19.479,
     "A distance can be zero, but it can never be negative."
    ],
    [
-    24.87,
+    22.799,
     "So an absolute value is never negative."
    ]
   ]
  },
  "q1": {
-  "dur": 3.384,
+  "dur": 3.216,
   "marks": {},
   "cues": [
    [
-    0.104,
+    0.117,
     "Quick check."
    ],
    [
-    1.159,
+    1.133,
     "Think distance, not direction."
    ]
   ]
  },
  "pair": {
-  "dur": 33.312,
+  "dur": 31.656,
   "marks": {
-   "five": 2.669,
-   "nfive": 5.247,
-   "lift": 8.516,
-   "same": 12.539,
-   "split": 23.633,
-   "sign": 27.188,
-   "size": 29.766
+   "five": 2.435,
+   "nfive": 5.013,
+   "lift": 7.773,
+   "same": 11.641,
+   "split": 22.24,
+   "sign": 25.586,
+   "size": 28.477
   },
   "cues": [
    [
@@ -150,47 +150,47 @@ window.TIMINGS = {
     "Now look at five and negative five."
    ],
    [
-    2.669,
+    2.435,
     "Five is five steps to the right of zero."
    ],
    [
-    5.247,
+    5.013,
     "Negative five is five steps to the left."
    ],
    [
-    8.516,
+    7.773,
     "Lift both distances off the line and lay them side by side."
    ],
    [
-    12.539,
+    11.641,
     "Exactly the same length."
    ],
    [
-    14.388,
+    13.346,
     "Opposites always have the same absolute value: the absolute value of negative five and the absolute value of five are both five."
    ],
    [
-    23.633,
+    22.24,
     "So a number like negative five tells you two things."
    ],
    [
-    27.188,
+    25.586,
     "Its sign tells you which side of zero it's on."
    ],
    [
-    29.766,
+    28.477,
     "Its absolute value tells you how far away it is."
    ]
   ]
  },
  "world": {
-  "dur": 39.336,
+  "dur": 36.504,
   "marks": {
-   "diver": 4.935,
-   "depth": 11.315,
-   "bal": 17.995,
-   "owe": 23.867,
-   "how": 32.109
+   "diver": 4.844,
+   "depth": 10.339,
+   "bal": 16.484,
+   "owe": 21.888,
+   "how": 29.779
   },
   "cues": [
    [
@@ -198,62 +198,62 @@ window.TIMINGS = {
     "Absolute value shows up whenever you care about how much, and not which way."
    ],
    [
-    4.935,
+    4.844,
     "A diver swims thirty feet below sea level."
    ],
    [
-    8.789,
+    8.086,
     "Her position is negative thirty."
    ],
    [
-    11.315,
+    10.339,
     "But her depth, how far down she is, is thirty feet: the absolute value of negative thirty."
    ],
    [
-    17.995,
+    16.484,
     "Or say Maya's bank balance is negative forty-two dollars and seventy-five cents."
    ],
    [
-    23.867,
+    21.888,
     "That means she owes forty-two dollars and seventy-five cents."
    ],
    [
-    28.151,
+    25.938,
     "The size of her debt is the absolute value of her balance."
    ],
    [
-    32.109,
+    29.779,
     "Positions and balances carry a sign."
    ],
    [
-    34.948,
+    32.318,
     "Depths, distances and amounts owed are absolute values."
    ]
   ]
  },
  "q2": {
-  "dur": 2.952,
+  "dur": 2.976,
   "marks": {},
   "cues": [
    [
-    0.091,
+    0.117,
     "Quick check."
    ],
    [
-    1.159,
+    1.107,
     "How much, without the sign?"
    ]
   ]
  },
  "inside": {
-  "dur": 24.384,
+  "dur": 23.4,
   "marks": {
-   "first": 4.779,
-   "five": 7.969,
-   "back": 10.846,
-   "inside": 13.737,
-   "abs": 15.781,
-   "rule": 21.484
+   "first": 4.609,
+   "five": 7.643,
+   "back": 10.365,
+   "inside": 13.06,
+   "abs": 14.948,
+   "rule": 20.456
   },
   "cues": [
    [
@@ -261,51 +261,51 @@ window.TIMINGS = {
     "Absolute value bars are also grouping symbols, like parentheses."
    ],
    [
-    4.779,
+    4.609,
     "That means you finish the work inside the bars first."
    ],
    [
-    7.969,
+    7.643,
     "Here it's five minus three."
    ],
    [
-    9.805,
+    9.323,
     "Start at five, and step three back."
    ],
    [
-    12.461,
+    11.849,
     "You land on two."
    ],
    [
-    13.737,
+    13.06,
     "So the inside becomes two."
    ],
    [
-    15.781,
+    14.948,
     "Then take the absolute value."
    ],
    [
-    17.826,
+    16.966,
     "Two is two steps from zero, so the answer is two."
    ],
    [
-    21.484,
+    20.456,
     "Inside first, then the absolute value."
    ]
   ]
  },
  "outside": {
-  "dur": 40.8,
+  "dur": 38.448,
   "marks": {
-   "six": 2.708,
-   "inside": 9.115,
-   "then": 12.917,
-   "flip": 16.732,
-   "seven": 19.779,
-   "inside2": 24.505,
-   "wrong": 28.854,
-   "flip2": 34.544,
-   "rule": 38.672
+   "six": 2.591,
+   "inside": 8.802,
+   "then": 12.331,
+   "flip": 15.898,
+   "seven": 18.789,
+   "inside2": 22.969,
+   "wrong": 26.979,
+   "flip2": 32.526,
+   "rule": 36.224
   },
   "cues": [
    [
@@ -313,106 +313,106 @@ window.TIMINGS = {
     "Sometimes there's a sign outside the bars."
    ],
    [
-    2.708,
+    2.591,
     "This one says: negative, the absolute value of six."
    ],
    [
-    7.214,
+    6.823,
     "Think inside, then outside."
    ],
    [
-    9.115,
+    8.802,
     "Inside: the absolute value of six is six."
    ],
    [
-    12.917,
+    12.331,
     "Outside: a minus sign in front means the opposite."
    ],
    [
-    16.732,
+    15.898,
     "And the opposite of six is negative six."
    ],
    [
-    19.779,
+    18.789,
     "Now try: negative, the absolute value of negative seven."
    ],
    [
-    24.505,
+    22.969,
     "Inside: the absolute value of negative seven is seven."
    ],
    [
-    28.854,
+    26.979,
     "Careful here."
    ],
    [
-    29.961,
+    28.034,
     "The two minus signs don't cancel each other, so the answer is not seven."
    ],
    [
-    34.544,
+    32.526,
     "The minus outside flips seven over to negative seven."
    ],
    [
-    38.672,
+    36.224,
     "Inside first, then outside."
    ]
   ]
  },
  "q3": {
-  "dur": 3.36,
+  "dur": 3.288,
   "marks": {},
   "cues": [
    [
-    0.104,
+    0.117,
     "Quick check."
    ],
    [
-    1.133,
+    1.094,
     "Inside first, then outside."
    ]
   ]
  },
  "times": {
-  "dur": 18.72,
+  "dur": 17.304,
   "marks": {
-   "front": 1.198,
-   "inside": 6.862,
-   "times": 11.68,
-   "tapes": 14.583,
-   "eight": 17.604
+   "front": 1.172,
+   "inside": 6.68,
+   "times": 10.69,
+   "tapes": 13.281,
+   "eight": 16.367
   },
   "cues": [
    [
-    0.104,
+    0.117,
     "One more thing."
    ],
    [
-    1.198,
+    1.172,
     "A number right in front of the bars means multiply, just like a number in front of parentheses."
    ],
    [
-    6.862,
+    6.68,
     "Inside first: the absolute value of negative four is four."
    ],
    [
-    11.68,
+    10.69,
     "Then multiply: two times four."
    ],
    [
-    14.583,
+    13.281,
     "Two distances of four, laid end to end, make eight."
    ]
   ]
  },
  "ways": {
-  "dur": 27.768,
+  "dur": 26.376,
   "marks": {
-   "ways": 6.458,
-   "same": 11.719,
-   "var": 15.052,
-   "ab": 17.76,
-   "three": 19.596,
-   "word": 22.721
+   "ways": 5.859,
+   "same": 11.237,
+   "var": 14.362,
+   "ab": 17.161,
+   "three": 18.919,
+   "word": 21.549
   },
   "cues": [
    [
@@ -420,39 +420,39 @@ window.TIMINGS = {
     "By the way, multiplication can be written in several ways, not only with a times sign."
    ],
    [
-    6.458,
+    5.859,
     "You can use a dot, two sets of parentheses, or a number touching parentheses."
    ],
    [
-    11.719,
+    11.237,
     "All of these mean two times four, which is eight."
    ],
    [
-    15.052,
+    14.362,
     "With letters, you just write them side by side."
    ],
    [
-    17.76,
+    17.161,
     "a b means a times b, and three x means three times x."
    ],
    [
-    22.721,
+    21.549,
     "A letter like x is called a variable."
    ],
    [
-    25.521,
+    24.01,
     "It stands for a number we don't know yet."
    ]
   ]
  },
  "wrap": {
-  "dur": 18.408,
+  "dur": 17.184,
   "marks": {
-   "w1": 1.133,
-   "w2": 3.828,
-   "w3": 8.164,
-   "w4": 12.956,
-   "end": 16.211
+   "w1": 1.146,
+   "w2": 3.659,
+   "w3": 7.643,
+   "w4": 12.513,
+   "end": 15.3
   },
   "cues": [
    [
@@ -460,29 +460,29 @@ window.TIMINGS = {
     "Let's wrap up."
    ],
    [
-    1.133,
+    1.146,
     "Absolute value is distance from zero."
    ],
    [
-    3.828,
+    3.659,
     "It's never negative, and opposites share the same absolute value."
    ],
    [
-    8.164,
+    7.643,
     "The bars group: work inside first, then apply any sign outside."
    ],
    [
-    12.956,
+    12.513,
     "And a number in front of the bars means multiply."
    ],
    [
-    16.211,
+    15.3,
     "Now try the chapter practice."
    ]
   ]
  },
  "final1": {
-  "dur": 3.792,
+  "dur": 3.6,
   "marks": {},
   "cues": [
    [
@@ -490,23 +490,23 @@ window.TIMINGS = {
     "Chapter practice."
    ],
    [
-    1.562,
+    1.497,
     "Find each absolute value."
    ]
   ]
  },
  "final2": {
-  "dur": 3.216,
+  "dur": 3.144,
   "marks": {},
   "cues": [
    [
-    0.091,
+    0.104,
     "Now some with work inside or outside the bars."
    ]
   ]
  },
  "final3": {
-  "dur": 2.424,
+  "dur": 2.4,
   "marks": {},
   "cues": [
    [
@@ -516,7 +516,7 @@ window.TIMINGS = {
   ]
  },
  "final4": {
-  "dur": 2.616,
+  "dur": 2.4,
   "marks": {},
   "cues": [
    [
@@ -524,21 +524,21 @@ window.TIMINGS = {
     "Last set."
    ],
    [
-    1.198,
+    1.146,
     "True or false?"
    ]
   ]
  },
  "finish": {
-  "dur": 2.592,
+  "dur": 2.496,
   "marks": {},
   "cues": [
    [
-    0.104,
+    0.117,
     "That's chapter three."
    ],
    [
-    1.55,
+    1.523,
     "Nice work."
    ]
   ]

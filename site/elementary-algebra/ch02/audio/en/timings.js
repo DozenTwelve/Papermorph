@@ -1,41 +1,41 @@
 window.TIMINGS = {
  "intro": {
-  "dur": 18.72,
+  "dur": 16.536,
   "marks": {
-   "names": 6.25,
-   "list": 12.617,
-   "c": 15.013,
-   "a": 16.159,
-   "d": 17.435
+   "names": 5.26,
+   "list": 10.781,
+   "c": 12.943,
+   "a": 14.062,
+   "d": 15.286
   },
   "cues": [
    [
-    0.104,
+    0.117,
     "Some rules of arithmetic feel so natural that you use them without noticing."
    ],
    [
-    6.25,
+    5.26,
     "In algebra we give them names, because they let us rearrange expressions with confidence."
    ],
    [
-    12.617,
+    10.781,
     "This chapter covers three of them: one about order, one about grouping, and one about sharing."
    ]
   ]
  },
  "commAdd": {
-  "dur": 17.592,
+  "dur": 16.92,
   "marks": {
-   "j3a": 1.445,
-   "j5a": 2.383,
-   "land1": 3.789,
-   "swap": 5.026,
-   "j5b": 6.419,
-   "j3b": 7.435,
-   "land2": 8.646,
-   "def": 9.596,
-   "name": 12.227,
-   "rule": 14.779
+   "j3a": 1.302,
+   "j5a": 2.135,
+   "land1": 3.425,
+   "swap": 4.648,
+   "j5b": 6.055,
+   "j3b": 7.292,
+   "land2": 8.32,
+   "def": 9.219,
+   "name": 11.81,
+   "rule": 14.323
   },
   "cues": [
    [
@@ -43,44 +43,44 @@ window.TIMINGS = {
     "Start at zero."
    ],
    [
-    1.445,
+    1.302,
     "Jump three, then jump five."
    ],
    [
-    3.789,
+    3.425,
     "You land on eight."
    ],
    [
-    5.026,
+    4.648,
     "Now swap the order."
    ],
    [
-    6.419,
+    6.055,
     "Jump five first, then three."
    ],
    [
-    8.646,
+    8.32,
     "Eight again."
    ],
    [
-    9.596,
+    9.219,
     "When you add, the order does not matter."
    ],
    [
-    12.227,
+    11.81,
     "This is the commutative property of addition: a plus b equals b plus a."
    ]
   ]
  },
  "commMul": {
-  "dur": 27.792,
+  "dur": 25.464,
   "marks": {
-   "arr": 2.721,
-   "turn": 7.63,
-   "now": 9.961,
-   "same": 13.411,
-   "rule": 18.19,
-   "dot": 24.74
+   "arr": 2.5,
+   "turn": 6.979,
+   "now": 8.932,
+   "same": 12.331,
+   "rule": 16.523,
+   "dot": 22.448
   },
   "cues": [
    [
@@ -88,94 +88,94 @@ window.TIMINGS = {
     "Multiplication works the same way."
    ],
    [
-    2.721,
+    2.5,
     "Here are three rows of five dots."
    ],
    [
-    5.195,
+    4.844,
     "Three times five is fifteen."
    ],
    [
-    7.63,
+    6.979,
     "Now give the picture a quarter turn."
    ],
    [
-    9.961,
+    8.932,
     "It shows five rows of three: five times three."
    ],
    [
-    13.411,
+    12.331,
     "No dot was added or taken away, so the answer is still fifteen."
    ],
    [
-    18.19,
+    16.523,
     "This is the commutative property of multiplication: x times y equals y times x."
    ],
    [
-    24.74,
+    22.448,
     "In algebra, a raised dot means times."
    ]
   ]
  },
  "commNot": {
-  "dur": 19.032,
+  "dur": 17.952,
   "marks": {
-   "s1": 3.425,
-   "s2": 5.833,
-   "s2b": 6.953,
-   "d1": 9.675,
-   "d2": 11.745,
-   "d2b": 13.203,
-   "rule": 14.531
+   "s1": 3.294,
+   "s2": 5.391,
+   "s2b": 6.25,
+   "d1": 8.763,
+   "d2": 10.885,
+   "d2b": 12.448,
+   "rule": 13.698
   },
   "cues": [
    [
-    0.104,
+    0.117,
     "But order does matter for subtraction and division."
    ],
    [
-    3.425,
+    3.294,
     "Seven minus two is five."
    ],
    [
-    5.833,
+    5.391,
     "Swap them, and two minus seven is negative five."
    ],
    [
-    9.675,
+    8.763,
     "Eight divided by two is four, but two divided by eight is one quarter."
    ],
    [
-    14.531,
+    13.698,
     "So the commutative property works only for addition and multiplication."
    ]
   ]
  },
  "q1": {
-  "dur": 4.704,
+  "dur": 4.368,
   "marks": {},
   "cues": [
    [
-    0.104,
+    0.117,
     "Quick check."
    ],
    [
-    1.172,
+    1.094,
     "Decide whether each statement is true or false."
    ]
   ]
  },
  "assocAdd": {
-  "dur": 26.304,
+  "dur": 25.344,
   "marks": {
-   "g1": 4.753,
-   "g1a": 6.484,
-   "g1b": 8.359,
+   "g1": 4.805,
+   "g1a": 6.55,
+   "g1b": 8.49,
    "g2": 10.43,
-   "g2a": 12.461,
-   "g2b": 14.518,
-   "same": 16.667,
-   "rule": 19.258
+   "g2a": 12.253,
+   "g2b": 13.958,
+   "same": 15.82,
+   "rule": 18.672
   },
   "cues": [
    [
@@ -183,11 +183,11 @@ window.TIMINGS = {
     "Now let's add three numbers: one, plus two, plus five."
    ],
    [
-    4.753,
+    4.805,
     "You could group the first two."
    ],
    [
-    6.484,
+    6.55,
     "One plus two is three, and three plus five is eight."
    ],
    [
@@ -195,34 +195,34 @@ window.TIMINGS = {
     "Or you could group the last two."
    ],
    [
-    12.461,
+    12.253,
     "Two plus five is seven, and one plus seven is eight."
    ],
    [
-    16.667,
+    15.82,
     "The grouping changed, but the sum did not."
    ],
    [
-    19.258,
+    18.672,
     "This is the associative property of addition."
    ],
    [
-    22.474,
+    21.706,
     "The parentheses can move, and the sum stays the same."
    ]
   ]
  },
  "assocMul": {
-  "dur": 23.928,
+  "dur": 22.656,
   "marks": {
-   "arr": 2.721,
-   "g1": 7.734,
-   "g1a": 10.365,
-   "g1b": 12.214,
-   "g2": 13.724,
-   "g2a": 16.198,
-   "g2b": 18.268,
-   "rule": 20.286
+   "arr": 2.539,
+   "g1": 6.823,
+   "g1a": 9.219,
+   "g1b": 11.25,
+   "g2": 12.812,
+   "g2a": 15.195,
+   "g2b": 17.201,
+   "rule": 18.997
   },
   "cues": [
    [
@@ -230,94 +230,94 @@ window.TIMINGS = {
     "Grouping works for multiplication too."
    ],
    [
-    2.721,
+    2.539,
     "Here are two blocks, and each block has three rows of five dots."
    ],
    [
-    7.734,
+    6.823,
     "Group two times three first."
    ],
    [
-    10.365,
+    9.219,
     "That makes six rows of five, which is thirty dots."
    ],
    [
-    13.724,
+    12.812,
     "Or group three times five first."
    ],
    [
-    16.198,
+    15.195,
     "Each block holds fifteen dots, and two blocks make thirty."
    ],
    [
-    20.286,
+    18.997,
     "This is the associative property of multiplication."
    ]
   ]
  },
  "assocNot": {
-  "dur": 20.784,
+  "dur": 19.032,
   "marks": {
-   "s1": 5.3,
-   "s2": 9.453,
-   "diff": 16.849
+   "s1": 5.286,
+   "s2": 8.919,
+   "diff": 15.247
   },
   "cues": [
    [
-    0.091,
+    0.104,
     "Like the commutative property, this one works only for addition and multiplication."
    ],
    [
-    5.3,
+    5.286,
     "Eight minus four is four, and four minus two is two."
    ],
    [
-    9.453,
+    8.919,
     "But if you group the four and the two first, four minus two is two, and eight minus two is six."
    ],
    [
-    16.849,
+    15.247,
     "Two is not six, so grouping matters for subtraction."
    ]
   ]
  },
  "orderGroup": {
-  "dur": 12.6,
+  "dur": 11.664,
   "marks": {
-   "c": 2.018,
-   "cs": 4.089,
-   "a": 5.911,
-   "as": 8.49
+   "c": 2.135,
+   "cs": 4.05,
+   "a": 5.755,
+   "as": 7.956
   },
   "cues": [
    [
-    0.104,
+    0.117,
     "So what's the difference between the two?"
    ],
    [
-    2.018,
+    2.135,
     "Commutative is about order."
    ],
    [
-    4.089,
+    4.05,
     "The numbers trade places."
    ],
    [
-    5.911,
+    5.755,
     "Associative is about grouping."
    ],
    [
-    8.49,
+    7.956,
     "The numbers stay where they are, and only the parentheses move."
    ]
   ]
  },
  "q2": {
-  "dur": 3.432,
+  "dur": 3.36,
   "marks": {},
   "cues": [
    [
-    0.104,
+    0.117,
     "Quick check."
    ],
    [
@@ -327,69 +327,69 @@ window.TIMINGS = {
   ]
  },
  "distIntro": {
-  "dur": 33.192,
+  "dur": 30.768,
   "marks": {
-   "q": 4.141,
-   "whole": 7.083,
-   "split": 13.919,
-   "p1": 16.589,
-   "p2": 20.104,
-   "sum": 23.346,
-   "share": 27.5,
-   "name": 30.938
+   "q": 3.698,
+   "whole": 6.341,
+   "split": 12.604,
+   "p1": 15.104,
+   "p2": 18.19,
+   "sum": 21.393,
+   "share": 25.534,
+   "name": 28.711
   },
   "cues": [
    [
-    0.104,
+    0.117,
     "The third property mixes multiplication with addition."
    ],
    [
-    4.141,
+    3.698,
     "What is three times the sum of six and eight?"
    ],
    [
-    7.083,
+    6.341,
     "Picture a rectangle three squares tall and fourteen squares wide."
    ],
    [
-    11.914,
+    10.768,
     "That's forty-two squares."
    ],
    [
-    13.919,
+    12.604,
     "Now split it where the six meets the eight."
    ],
    [
-    16.589,
+    15.104,
     "The left part is three times six, eighteen."
    ],
    [
-    20.104,
+    18.19,
     "The right part is three times eight, twenty-four."
    ],
    [
-    23.346,
+    21.393,
     "Eighteen plus twenty-four is forty-two, the same as before."
    ],
    [
-    27.5,
+    25.534,
     "The three was shared with both the six and the eight."
    ],
    [
-    30.938,
+    28.711,
     "This is the distributive property."
    ]
   ]
  },
  "distLetters": {
-  "dur": 22.392,
+  "dur": 20.736,
   "marks": {
-   "rule": 4.349,
-   "ab": 9.154,
-   "pic": 13.229,
-   "h": 15.065,
-   "w": 16.536,
-   "parts": 19.076
+   "rule": 3.906,
+   "ab": 8.425,
+   "pic": 12.539,
+   "h": 14.297,
+   "w": 15.547,
+   "parts": 17.917
   },
   "cues": [
    [
@@ -397,32 +397,32 @@ window.TIMINGS = {
     "In general, for any numbers a, b, and c, a times the sum of b and c equals a b plus a c."
    ],
    [
-    9.154,
+    8.425,
     "Two letters side by side, like a b, mean a times b."
    ],
    [
-    13.229,
+    12.539,
     "The rectangle shows why."
    ],
    [
-    15.065,
+    14.297,
     "Its height is a, and its width is b plus c."
    ],
    [
-    19.076,
+    17.917,
     "So its area is a b plus a c."
    ]
   ]
  },
  "distSub": {
-  "dur": 28.752,
+  "dur": 26.472,
   "marks": {
-   "q": 2.148,
-   "big": 5.378,
-   "cut": 10.625,
-   "left": 15.443,
-   "check": 17.07,
-   "rule": 23.164
+   "q": 2.188,
+   "big": 5.156,
+   "cut": 10.182,
+   "left": 14.648,
+   "check": 16.237,
+   "rule": 21.693
   },
   "cues": [
    [
@@ -430,37 +430,37 @@ window.TIMINGS = {
     "It works with subtraction as well."
    ],
    [
-    2.148,
+    2.188,
     "Take two times the difference of ten and seven."
    ],
    [
-    5.378,
+    5.156,
     "Start with a rectangle two squares tall and ten wide: twenty squares."
    ],
    [
-    10.625,
+    10.182,
     "Take away a piece two tall and seven wide: fourteen squares."
    ],
    [
-    15.443,
+    14.648,
     "Six squares remain."
    ],
    [
-    17.07,
+    16.237,
     "And that matches: ten minus seven is three, and two times three is six."
    ],
    [
-    23.164,
+    21.693,
     "So a times the difference of b and c equals a b minus a c."
    ]
   ]
  },
  "q3": {
-  "dur": 5.136,
+  "dur": 4.944,
   "marks": {},
   "cues": [
    [
-    0.091,
+    0.117,
     "Quick check."
    ],
    [
@@ -470,50 +470,50 @@ window.TIMINGS = {
   ]
  },
  "distMulti": {
-  "dur": 27.048,
+  "dur": 26.28,
   "marks": {
-   "q": 4.128,
-   "a1": 9.544,
-   "a2": 13.138,
-   "a3": 14.492,
-   "calc": 16.354,
-   "res": 19.57,
-   "check": 21.081
+   "q": 3.88,
+   "a1": 9.258,
+   "a2": 12.578,
+   "a3": 14.154,
+   "calc": 16.016,
+   "res": 19.076,
+   "check": 20.612
   },
   "cues": [
    [
-    0.104,
+    0.117,
     "The same idea works with more terms inside the parentheses."
    ],
    [
-    4.128,
+    3.88,
     "Take six times two, minus one, plus five, all in parentheses."
    ],
    [
-    9.544,
+    9.258,
     "Share the six with every term."
    ],
    [
-    11.849,
+    11.315,
     "Six times two, minus six times one, plus six times five."
    ],
    [
-    16.354,
+    16.016,
     "That's twelve, minus six, plus thirty, which is thirty-six."
    ],
    [
-    21.081,
+    20.612,
     "Check: two minus one plus five is six, and six times six is thirty-six."
    ]
   ]
  },
  "distNotDiv": {
-  "dur": 19.2,
+  "dur": 18.072,
   "marks": {
-   "div": 1.159,
-   "left": 4.792,
-   "right": 10.547,
-   "diff": 17.721
+   "div": 1.133,
+   "left": 4.427,
+   "right": 9.714,
+   "diff": 16.576
   },
   "cues": [
    [
@@ -521,19 +521,19 @@ window.TIMINGS = {
     "One warning."
    ],
    [
-    1.159,
+    1.133,
     "A number divided by a sum cannot be split this way."
    ],
    [
-    4.792,
+    4.427,
     "Forty divided by the sum of eight and two is forty divided by ten, which is four."
    ],
    [
-    10.547,
+    9.714,
     "But forty divided by eight, plus forty divided by two, is five plus twenty, which is twenty-five."
    ],
    [
-    17.721,
+    16.576,
     "Four is not twenty-five."
    ]
   ]
@@ -543,53 +543,53 @@ window.TIMINGS = {
   "marks": {},
   "cues": [
    [
-    0.104,
+    0.117,
     "Quick check."
    ],
    [
-    1.146,
+    1.107,
     "Which statement is true?"
    ]
   ]
  },
  "wrap": {
-  "dur": 22.896,
+  "dur": 21.6,
   "marks": {
-   "c": 2.292,
-   "a": 6.706,
-   "d": 9.675,
-   "warn": 14.622,
-   "end": 20.638
+   "c": 1.979,
+   "a": 6.25,
+   "d": 9.102,
+   "warn": 13.763,
+   "end": 19.714
   },
   "cues": [
    [
-    0.169,
+    0.143,
     "Three properties to remember."
    ],
    [
-    2.292,
+    1.979,
     "Commutative: you can change the order of numbers you add or multiply."
    ],
    [
-    6.706,
+    6.25,
     "Associative: you can change how they are grouped."
    ],
    [
-    9.675,
+    9.102,
     "Distributive: a number that multiplies a sum is shared with every term."
    ],
    [
-    14.622,
+    13.763,
     "Subtraction and division don't follow the first two, so check before you swap or regroup."
    ],
    [
-    20.638,
+    19.714,
     "Now try the chapter practice."
    ]
   ]
  },
  "final1": {
-  "dur": 8.256,
+  "dur": 7.464,
   "marks": {},
   "cues": [
    [
@@ -597,17 +597,17 @@ window.TIMINGS = {
     "Chapter practice."
    ],
    [
-    1.602,
+    1.51,
     "First, name the property each statement uses."
    ],
    [
-    5.195,
+    4.714,
     "If a statement is false, choose not true."
    ]
   ]
  },
  "final2": {
-  "dur": 4.944,
+  "dur": 4.488,
   "marks": {},
   "cues": [
    [
@@ -617,7 +617,7 @@ window.TIMINGS = {
   ]
  },
  "final3": {
-  "dur": 4.656,
+  "dur": 4.32,
   "marks": {},
   "cues": [
    [
@@ -625,13 +625,13 @@ window.TIMINGS = {
     "Last one."
    ],
    [
-    1.133,
+    1.042,
     "Decide whether each statement is true or false."
    ]
   ]
  },
  "finish": {
-  "dur": 4.56,
+  "dur": 4.416,
   "marks": {},
   "cues": [
    [
@@ -639,7 +639,7 @@ window.TIMINGS = {
     "Well done."
    ],
    [
-    1.094,
+    1.016,
     "That's the end of chapter two, algebraic properties."
    ]
   ]

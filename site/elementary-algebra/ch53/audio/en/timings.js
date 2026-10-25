@@ -16,15 +16,15 @@ window.TIMINGS = {
   ]
  },
  "idea": {
-  "dur": 26.352,
+  "dur": 25.8,
   "marks": {
-   "none": 3.294,
-   "group": 6.237,
-   "f1": 10.052,
-   "f2": 14.089,
-   "same": 17.708,
-   "pull": 21.849,
-   "ans": 23.789
+   "none": 3.685,
+   "group": 6.471,
+   "f1": 10.391,
+   "f2": 14.115,
+   "same": 17.617,
+   "pull": 21.289,
+   "ans": 23.464
   },
   "cues": [
    [
@@ -32,27 +32,27 @@ window.TIMINGS = {
     "Take a x plus a y plus b x plus b y."
    ],
    [
-    3.294,
+    3.685,
     "No factor is shared by all four terms."
    ],
    [
-    6.237,
+    6.471,
     "So group them in pairs: the first two, and the last two."
    ],
    [
-    10.052,
+    10.391,
     "Factor a out of the first pair: a times x plus y."
    ],
    [
-    14.089,
+    14.115,
     "Factor b out of the second: b times x plus y."
    ],
    [
-    17.708,
+    17.617,
     "Now both parts share the same factor, x plus y."
    ],
    [
-    21.849,
+    21.289,
     "Pull it out, just like a GCF: x plus y, times a plus b."
    ]
   ]
@@ -138,15 +138,15 @@ window.TIMINGS = {
   ]
  },
  "neg": {
-  "dur": 30.264,
+  "dur": 28.32,
   "marks": {
-   "q": 3.229,
-   "f1": 7.279,
-   "f2": 10.859,
-   "flip": 13.932,
-   "same": 19.701,
-   "ans": 22.565,
-   "warn": 26.419
+   "q": 3.021,
+   "f1": 7.135,
+   "f2": 10.052,
+   "flip": 12.878,
+   "same": 17.917,
+   "ans": 20.495,
+   "warn": 24.518
   },
   "cues": [
    [
@@ -154,23 +154,23 @@ window.TIMINGS = {
     "Watch the signs when the third term is negative."
    ],
    [
-    3.229,
+    3.021,
     "Factor m x minus m y minus n x plus n y."
    ],
    [
-    7.279,
+    7.135,
     "The first pair gives m times x minus y."
    ],
    [
-    10.859,
+    10.052,
     "For the second pair, factor out negative n, and the signs inside both flip: negative n times x minus y."
    ],
    [
-    19.701,
+    17.917,
     "Now both parts share x minus y, so the answer is x minus y, times m minus n."
    ],
    [
-    26.419,
+    24.518,
     "If the parentheses don't match, check the signs before giving up."
    ]
   ]

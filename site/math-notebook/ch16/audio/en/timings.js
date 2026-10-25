@@ -61,35 +61,35 @@ window.TIMINGS = {
   ]
  },
  "groups": {
-  "dur": 23.904,
+  "dur": 22.92,
   "marks": {
-   "share": 3.958,
-   "each": 11.458,
-   "rate": 19.362
+   "share": 3.815,
+   "each": 11.003,
+   "rate": 18.073
   },
   "cues": [
    [
-    0.091,
+    0.104,
     "Let's spread the work across the time."
    ],
    [
-    2.253,
+    2.279,
     "To understand the average, move the same twelve parcels into three equal groups, one beside each minute."
    ],
    [
-    9.675,
+    9.336,
     "No parcels disappear."
    ],
    [
-    11.458,
+    11.003,
     "Each group has four parcels."
    ],
    [
-    13.607,
+    12.943,
     "The real team might work unevenly, but this equal sharing shows its average."
    ],
    [
-    19.362,
+    18.073,
     "Twelve parcels in three minutes means four parcels for each one minute."
    ]
   ]

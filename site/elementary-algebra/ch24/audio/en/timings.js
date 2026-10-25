@@ -1,8 +1,8 @@
 window.TIMINGS = {
  "intro": {
-  "dur": 9.0,
+  "dur": 8.136,
   "marks": {
-   "q": 6.172
+   "q": 5.404
   },
   "cues": [
    [
@@ -10,20 +10,20 @@ window.TIMINGS = {
     "Unit five is about equations: math sentences that say two things are equal."
    ],
    [
-    6.172,
+    5.404,
     "They're the tool for finding unknown numbers."
    ]
   ]
  },
  "define": {
-  "dur": 23.832,
+  "dur": 22.08,
   "marks": {
-   "eq": 3.763,
-   "scale": 9.883,
-   "left": 11.25,
-   "right": 13.88,
-   "level": 16.003,
-   "sol": 18.945
+   "eq": 3.333,
+   "scale": 8.932,
+   "left": 10.273,
+   "right": 12.8,
+   "level": 14.688,
+   "sol": 17.565
   },
   "cues": [
    [
@@ -31,36 +31,36 @@ window.TIMINGS = {
     "An expression is a phrase, like x plus two."
    ],
    [
-    3.763,
+    3.333,
     "An equation joins two expressions with an equals sign: x plus two equals six."
    ],
    [
-    9.883,
+    8.932,
     "Picture a balance."
    ],
    [
-    11.25,
+    10.273,
     "The left side holds x plus two, the right side holds six, and the equals sign says the scale is level."
    ],
    [
-    18.945,
+    17.565,
     "A value that keeps it level is called a solution."
    ],
    [
-    22.253,
+    20.547,
     "Here, x is four."
    ]
   ]
  },
  "check": {
-  "dur": 38.928,
+  "dur": 34.584,
   "marks": {
-   "q": 5.391,
-   "sub": 10.898,
-   "yes": 13.945,
-   "q2": 17.747,
-   "sub2": 25.638,
-   "no": 33.971
+   "q": 5.169,
+   "sub": 9.44,
+   "yes": 12.318,
+   "q2": 16.081,
+   "sub2": 22.63,
+   "no": 30.404
   },
   "cues": [
    [
@@ -68,57 +68,57 @@ window.TIMINGS = {
     "To check whether a value is a solution, substitute it and compare both sides."
    ],
    [
-    5.391,
+    5.169,
     "Is negative three a solution of four x equals negative twelve?"
    ],
    [
-    10.898,
+    9.44,
     "Four times negative three is negative twelve."
    ],
    [
-    13.945,
+    12.318,
     "Both sides match, so yes, the scale stays level."
    ],
    [
-    17.747,
+    16.081,
     "Is x equals negative two and y equals five a solution of six y equals four x plus fifteen?"
    ],
    [
-    25.638,
+    22.63,
     "The left side is six times five, thirty."
    ],
    [
-    28.828,
+    25.729,
     "The right side is four times negative two plus fifteen, which is seven."
    ],
    [
-    33.971,
+    30.404,
     "Thirty is not seven, so the scale tips: not a solution."
    ]
   ]
  },
  "q1": {
-  "dur": 2.352,
+  "dur": 2.232,
   "marks": {},
   "cues": [
    [
-    0.104,
+    0.117,
     "Quick check."
    ],
    [
-    1.159,
+    1.094,
     "Is it a solution?"
    ]
   ]
  },
  "machine": {
-  "dur": 27.528,
+  "dur": 26.04,
   "marks": {
-   "q": 2.422,
-   "in": 4.661,
-   "out": 10.807,
-   "ex": 19.792,
-   "ex2": 25.078
+   "q": 2.435,
+   "in": 4.792,
+   "out": 10.482,
+   "ex": 19.036,
+   "ex2": 23.75
   },
   "cues": [
    [
@@ -126,38 +126,38 @@ window.TIMINGS = {
     "Many equations work like a machine."
    ],
    [
-    2.422,
+    2.435,
     "In y equals four x plus ten, you choose x and feed it in."
    ],
    [
-    7.474,
+    7.07,
     "That's the input, also called the independent variable."
    ],
    [
-    10.807,
+    10.482,
     "The machine multiplies by four and adds ten, and y comes out."
    ],
    [
-    15.859,
+    14.948,
     "That's the output, the dependent variable, because it depends on x."
    ],
    [
-    19.792,
+    19.036,
     "Feed in negative one: four times negative one plus ten is six."
    ],
    [
-    25.078,
+    23.75,
     "Feed in two: out comes eighteen."
    ]
   ]
  },
  "linear": {
-  "dur": 30.168,
+  "dur": 28.152,
   "marks": {
-   "yes": 5.104,
-   "no": 11.51,
-   "noeq": 18.034,
-   "why": 24.805
+   "yes": 5.117,
+   "no": 10.911,
+   "noeq": 17.109,
+   "why": 23.177
   },
   "cues": [
    [
@@ -165,45 +165,45 @@ window.TIMINGS = {
     "A linear equation is one where the variables have no exponent higher than one."
    ],
    [
-    5.104,
+    5.117,
     "Four a plus six equals nine a, and y equals three x plus seven, are linear."
    ],
    [
-    11.51,
+    10.911,
     "Three m squared plus seven m minus six equals zero is not, because of the square."
    ],
    [
-    18.034,
+    17.109,
     "And nine c plus seven d minus four isn't an equation at all: there's no equals sign."
    ],
    [
-    24.805,
+    23.177,
     "They're called linear because, as you'll see later, their graphs are straight lines."
    ]
   ]
  },
  "q2": {
-  "dur": 2.328,
+  "dur": 2.256,
   "marks": {},
   "cues": [
    [
-    0.104,
+    0.117,
     "Quick check."
    ],
    [
-    1.198,
+    1.094,
     "Use the machine."
    ]
   ]
  },
  "write": {
-  "dur": 24.816,
+  "dur": 22.824,
   "marks": {
-   "q": 2.995,
-   "vars": 7.891,
-   "parts": 11.94,
-   "eq": 16.029,
-   "use": 18.659
+   "q": 2.956,
+   "vars": 7.539,
+   "parts": 11.198,
+   "eq": 14.818,
+   "use": 17.37
   },
   "cues": [
    [
@@ -211,27 +211,27 @@ window.TIMINGS = {
     "You can turn a situation into an equation."
    ],
    [
-    2.995,
+    2.956,
     "A bike shop charges a twenty-dollar fee, plus five dollars for each hour."
    ],
    [
-    7.891,
+    7.539,
     "Let x be the number of hours, and y the total cost."
    ],
    [
-    11.94,
+    11.198,
     "The hours cost five times x."
    ],
    [
-    14.479,
+    13.62,
     "Then add the fee."
    ],
    [
-    16.029,
+    14.818,
     "So y equals five x plus twenty."
    ],
    [
-    18.659,
+    17.37,
     "For three hours, y is five times three plus twenty: thirty-five dollars."
    ]
   ]
