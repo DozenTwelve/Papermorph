@@ -1444,13 +1444,13 @@ function filmDone() {
 }
 let last = performance.now();
 function frame(now) {
-  step(now, .1);
+  frameStep(now, .1);
   requestAnimationFrame(frame);
 }
 // A hidden tab gets no animation frames: a timer keeps the film going, so a beat that ends there still starts the next
 // one (a tab playing sound keeps its timers). Its ticks come late, so they may move the clock further at once.
-setInterval(() => { if (document.hidden) step(performance.now(), 1.5); }, 250);
-function step(now, most) {
+setInterval(() => { if (document.hidden) frameStep(performance.now(), 1.5); }, 250);
+function frameStep(now, most) {
   const dt = Math.min(most, Math.max(0, now - last) / 1000);
   last = now;
   clock += dt;
