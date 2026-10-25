@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shooting an Elephant</title>
+<meta name="description" content="A short interactive documentary of George Orwell’s 1936 essay, in his own words: the reader holds the rifle.">
+<link rel="stylesheet" href="lib/fonts.css">
+<link rel="stylesheet" href="lib/book.css"><!-- only for --progress-key, if the book sets one -->
+<!-- A picture book's cover and episode list. A starting point, not a design: give it the book's own look. -->
+<style>
+  :root { --ink: #f3ede0; --soft: #bccdb9; --paper: #1d3527; --card: #172b20; --line: #355443; --accent: #c0392b;
+    --ui: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif; --serif: "Iowan Old Style", Palatino, Georgia, serif; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 18px/1.6 var(--ui); }
+  header { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 40px; align-items: center; max-width: 1180px; margin: 0 auto; padding: 48px 24px 24px; }
+  header img { width: 100%; height: auto; border-radius: 10px; box-shadow: 0 14px 40px #4a33182e; }
+  h1 { margin: 0 0 8px; font: 700 clamp(34px, 4.6vw, 56px)/1.05 var(--serif); }
+  .lede { font-size: 20px; color: var(--soft); }
+  main { max-width: 1000px; margin: 0 auto; padding: 8px 24px 80px; }
+  .episodes { list-style: none; padding: 0; margin: 18px 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .episodes a { display: flex; flex-direction: column; height: 100%; background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    overflow: hidden; color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; }
+  .episodes a:hover, .episodes a:focus-visible { border-color: var(--accent); transform: translateY(-2px); }
+  .episodes img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
+  .episodes small { margin: 12px 16px 0; color: var(--soft); font-size: 13px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; }
+  .episodes b { margin: 2px 16px 4px; font: 700 21px/1.25 var(--serif); }
+  .episodes span { margin: 0 16px 16px; color: var(--soft); font-size: 15px; line-height: 1.5; }
+  .watched small::after { content: " · ✓ watched"; color: var(--accent); }
+  @media (max-width: 760px) { header { grid-template-columns: 1fr; padding-top: 28px; } .episodes { grid-template-columns: 1fr; } }
+  .credits { max-width: 1100px; margin: 40px auto 60px; padding: 0 24px; color: var(--soft); font-size: 14px; line-height: 1.6; }
+  .credits h2 { font: 600 20px/1.3 var(--serif); color: inherit; } .credits h3 { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; margin: 18px 0 6px; }
+  .credits ul { margin: 0; padding-left: 18px; columns: 2 340px; } .credits a { color: inherit; }
+</style>
+</head>
+<body>
+<header>
+  <img src="img/cover.webp" width="1400" height="788" alt="An elephant grazing in a flooded paddy field, in black and white.">
+  <div>
+    <h1>Shooting an Elephant</h1>
+    <p class="lede">George Orwell’s 1936 essay, told in his own words: a young police officer in Burma, an elephant in a paddy field, and a crowd that wants a shot. This time the reader holds the rifle.</p>
+  </div>
+</header>
+<main>
+  <ul class="episodes" id="episodes"></ul>
+</main>
+<section class="credits">
+  <h2>Sources and credits</h2>
+  <p>The words are George Orwell’s, from “Shooting an Elephant” (<i>New Writing</i>, 1936), cut but not rewritten, read by an ElevenLabs v4 voice (“daniel”); the crowd’s laughter is six more ElevenLabs voices. Archive pictures, music and two sound recordings are public-domain or CC0 works from Wikimedia Commons, listed below. Where no photograph exists, the scenes are reconstructions made with an image model (gpt-image via OpenRouter): Orwell as the young officer, the orderly, the football match, the rampage, the body, the double rifle, the club, the painted town of Moulmein, and the grazing elephant and every stage of its shooting, including the cover; the novice who turns and grins is an altered archive photograph. The silhouettes, maps and theatre are drawn in code, as are the other sound effects. Type: Oswald and EB Garamond (SIL Open Font License, <code>lib/fonts/</code>).</p>
+  <h3>Pictures</h3><ul><li><a href="https://commons.wikimedia.org/wiki/File%3AOrwellBurmaPassport.jpg">OrwellBurmaPassport.jpg</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3ABurmese_Funeral_procession_1900.jpg">Burmese Funeral procession 1900.jpg</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3ABurmese_monks_and_novices.jpg">Burmese monks and novices.jpg</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3ABurma_showing_British_acquisitions_%281826-1890%29.jpg">Burma showing British acquisitions (1826-1890).jpg</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3ABurma_Military_Police_1898.jpg">Burma Military Police 1898.jpg</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3ARangoon_Government_House.jpg">Rangoon Government House.jpg</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3APrivate_audience-room_in_the_Palace_at_Mandalay%2C_used_as_the_British_Head-quarters_mess_ILN-1886-0320-0024.jpg">Private audience-room in the Palace at Mandalay, used as the British Head-quarters mess ILN-1886-0320-0024.jpg</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3AA_Burmese_Lady%2C_photograph_by_Philip_Adolphe_Klier.jpg">A Burmese Lady, photograph by Philip Adolphe Klier.jpg</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3AImperial_Federation%2C_Map_of_the_World_Showing_the_Extent_of_the_British_Empire_in_1886_%28levelled%29.jpg">Imperial Federation, Map of the World Showing the Extent of the British Empire in 1886 (levelled).jpg</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3ACandlestick_Telephone_with_Note_Pad.png">Candlestick Telephone with Note Pad.png</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3AWinchester_1873_Rifle.jpg">Winchester 1873 Rifle.jpg</a> · CC0</li><li><a href="https://commons.wikimedia.org/wiki/File%3AElephant%2C_India%2C_ca._1920_%28IMP-CSCNWW33-OS16-17%29.jpg">Elephant, India, ca. 1920 (IMP-CSCNWW33-OS16-17).jpg</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3AA_coolie_in_Calcutta_in_the_1920s.jpg">A coolie in Calcutta in the 1920s.jpg</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3AWhite_Horse_Final1923.jpg">White Horse Final1923.jpg</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3AFlickr_-_%E2%80%A6trialsanderrors_-_Kellar%2C_Levitation%2C_magician_poster%2C_ca._1894.jpg">Flickr - …trialsanderrors - Kellar, Levitation, magician poster, ca. 1894.jpg</a> · Public domain</li></ul>
+  <h3>Music</h3><ul><li><a href="https://commons.wikimedia.org/wiki/File%3AThe_Crown_of_India_Suite%2C_2._Menuetto_-_U.S._Marine_Band.ogg">The Crown of India Suite, 2. Menuetto - U.S. Marine Band.ogg</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3AMusopen_-_In_the_Hall_Of_The_Mountain_King.ogg">Musopen - In the Hall Of The Mountain King.ogg</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3AGrieg_-_Peer_Gynt_Suite_No._1%2C_Op._46_-_II._The_Death_of_Aase_%28Musopen_Symphony%29.flac">Grieg - Peer Gynt Suite No. 1, Op. 46 - II. The Death of Aase (Musopen Symphony).flac</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3AGrieg_-_Peer_Gynt_Suite_No._1%2C_Op._46_-_I._Morning_Mood_%28Musopen_Symphony%29.flac">Grieg - Peer Gynt Suite No. 1, Op. 46 - I. Morning Mood (Musopen Symphony).flac</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3ASatie_Gymnopedie_No_1_performed_by_Michael_Laucke.flac">Satie Gymnopedie No 1 performed by Michael Laucke.flac</a> · Public domain</li></ul>
+  <h3>Sound</h3><ul><li><a href="https://commons.wikimedia.org/wiki/File%3AGunshots_8.ogg">Gunshots 8.ogg</a> · Public domain</li><li><a href="https://commons.wikimedia.org/wiki/File%3AElephant_voice_-_trumpeting.ogg">Elephant voice - trumpeting.ogg</a> · CC0</li></ul>
+</section>
+
+<script>
+'use strict';
+// One entry per finished episode, in order: its folder, title, a still (16:9) with alt text, and one line.
+const EPISODES = [
+  { ch: 'ch01', title: 'Shooting an Elephant', minutes: 9, still: 'img/still-ch01.webp', alt: 'An elephant grazing in a flooded paddy field, in black and white.', line: 'Moulmein, 1920s: Orwell tells how he shot an elephant “solely to avoid looking a fool.” You aim, and you fire.' },
+];
+// The player records finished episodes under the same key as here (engine progress(): lib/book.css --progress-key,
+// else this folder's path).
+const key = getComputedStyle(document.documentElement).getPropertyValue('--progress-key').trim().replace(/^["']|["']$/g, '')
+  || 'animebook:progress:' + new URL('.', location.href).pathname;
+let done = [];
+try { done = JSON.parse(localStorage.getItem(key) || '{}').done || []; } catch {}
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+document.getElementById('episodes').innerHTML = EPISODES.map((e, i) => `<li${done.includes(+e.ch.slice(2)) ? ' class="watched"' : ''}>
+  <a href="${e.ch}/"><img src="${esc(e.still)}" alt="${esc(e.alt)}" loading="lazy">
+  <small>Episode ${i + 1} · ${e.minutes} minute${e.minutes == 1 ? "" : "s"}</small><b>${esc(e.title)}</b><span>${esc(e.line)}</span></a></li>`).join('');
+</script>
+</body>
+</html>

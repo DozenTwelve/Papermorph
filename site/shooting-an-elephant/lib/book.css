@@ -1,0 +1,15 @@
+/* The film's colours: jungle green and cream (ground test: books/shooting-an-elephant/review/ground/sheet.png).
+   --board is the ground, --chalk the ink on it, --dim captions; --accent (betel red: only for the betel juice and the
+   elephant's blood), and an old document's --paper, --paper-ink and --stamp, are read by film.js. Bake pictures to match
+   (prep.py and frames.py --ink is --chalk, prep.py --paper the paper). Imported by engine.css; engine.py never
+   overwrites it. */
+@import url("fonts.css");
+:root {
+  --page: #0e1d14; --board: #1d3527; --panel: #172b20; --edge: #355443;
+  --chalk: #f3ede0; --dim: #bccdb9; --faint: #6f8a76;
+  --task: #f0b45a; --quiz: #e8c8a0; --good: #c8e0b0; --bad: #ffb0a0;
+  --vignette: rgba(4, 14, 8, .5);
+  --rule: #2c4a39; --track: #26402f; --track-ask: #26402f;
+  --bar-edge: #26402f; --hover: #2a4636; --veil: #0b1710;
+  --accent: #c0392b; --paper: #f3ede0; --paper-ink: #3a2a24; --stamp: #7a1a20;
+}

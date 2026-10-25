@@ -1,0 +1,1489 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shooting an Elephant</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+<style>
+/* The film opens on the sight, not on a title card: the cover stays as the click target (it starts the film and the
+   sound), but shows nothing: the reticle is the cursor (the picture moves under it), and after a few idle seconds a
+   line says how to fire. */
+.cover { background: transparent; cursor: none; }
+.cover > div { display: none; }
+.cover::after { content: 'move to aim  ·  click to fire  ·  with sound'; position: absolute; left: 0; right: 0; bottom: 60px; text-align: center;
+  font: italic 400 38px "EB Garamond", Georgia, serif; letter-spacing: .04em; color: var(--chalk); opacity: 0; animation: hint 1s 1.5s forwards; }
+@keyframes hint { to { opacity: .95; } }
+@media (pointer: coarse) { .cover::after { content: 'tap to fire  ·  with sound'; } }
+/* the sight drifts with the shooter's breath while it waits (wall clock: only before the first click) */
+body:has(.cover:not([hidden])) .breath { animation: breath 4.2s ease-in-out infinite; }
+@keyframes breath { 0%, 100% { transform: translate(0, 0); } 30% { transform: translate(5px, -7px); } 65% { transform: translate(-4px, 4px); } }
+</style>
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/film.js"></script>
+<script src="audio/en/timings.js"></script>
+<script src="../img/art.js"></script>
+<script src="../lib/lines.js"></script>
+<script src="../lib/shapes.js"></script>
+<script src="../lib/puppets.js"></script>
+<script>
+'use strict';
+// lead: false — every opening is timed by hand, so the engine never pulls a beat's first reveal earlier
+const CHAPTER = { number: 1, title: 'Shooting an Elephant', minutes: 9, language: 'en', lead: false, film: true };   // film: its shots are question beats
+
+const OPEN_PRE = 5.5;   // the shot, the trumpet and the title in the black, before Orwell's first sentence
+const SIGHT = { x: 800, y: 430, r: 330 };
+
+// the view through the rifle's sight: the elephant in a circle, black around it, a post-and-crosshair reticle
+function sight(p, name, id) {
+  const outer = G(p, {}), g = mk('g', { class: 'breath' }, outer);
+  const cp = mk('clipPath', { id }, mk('defs', {}, g));
+  mk('circle', { cx: SIGHT.x, cy: SIGHT.y, r: SIGHT.r }, cp);
+  const view = G(mk('g', { 'clip-path': `url(#${id})` }, g), {});
+  mk('rect', { x: 0, y: 0, width: 1600, height: 900, fill: '#7d8277' }, view);
+  pic(aimable(view), name, { x: SIGHT.x + 150, y: SIGHT.y + 70, h: 880 }).setAttribute('filter', 'grayscale(1) contrast(1.1)');
+  const { x, y, r } = SIGHT;
+  mk('path', { d: `M-200 -200H1800V1100H-200Z M${x - r} ${y}a${r} ${r} 0 1 0 ${2 * r} 0a${r} ${r} 0 1 0 ${-2 * r} 0Z`, fill: '#040805', 'fill-rule': 'evenodd' }, g);
+  const ink = { stroke: '#0b0b0b', fill: 'none' };
+  mk('path', { d: `M${x - r} ${y}H${x - 26}M${x + 26} ${y}H${x + r}M${x} ${y - r}V${y - 26}`, 'stroke-width': 2, ...ink }, g);
+  mk('path', { d: `M${x - r} ${y}H${x - 150}M${x + 150} ${y}H${x + r}M${x} ${y + r}V${y + 18}`, 'stroke-width': 9, ...ink }, g);
+  mk('circle', { cx: x, cy: y, r: r - 2, 'stroke-width': 6, stroke: '#000', fill: 'none' }, g);
+  return outer;
+}
+// a point (fx, fy, 0..1 of the picture inside its border) of a print placed by pic(), in stage coordinates
+const spot = (g, name, fx, fy) => { const [W, H] = ART[name], k = g._w / W; return [g._x + (fx - .5) * (W - 112) * k, g._y + (fy - .5) * (H - 112) * k]; };
+// a new picture for the next sentence: the old one fades as this one comes in, on the beat clock
+const cut = (t, dur = .35) => { if (S.panel) hide(S.panel, t - .1, .2, lin); const q = panel(t); put(q, { o: 0 }); show(q, t + .05, dur, lin); return q; };   // the old one (its words too) is gone before the new one is half in
+// a slow push toward (fx, fy) of a picture placed by pic(), never past its edges (closeups() without the label)
+function toward(g, name, fx, fy, Z, t0, dur) {
+  const b = 56 * g._w / ART[name][0];   // a print's border: the view stays on the picture inside it
+  const lim = (v, half, screen) => Math.max(-(half - screen / Z), Math.min(half - screen / Z, v));
+  const dx = lim((fx - .5) * g._w, g._w / 2 - b, 800), dy = lim((fy - .5) * g._h, g._h / 2 - b, 450);
+  tw(g, { s: Z, x: 800 - Z * dx, y: 450 - Z * dy }, t0, dur, soft);
+}
+// a close-up of a rifle laid beside a photograph, with a cream line from it to the rifle in the picture (gx, gy: 0..1)
+function gunInset(p0, photo, photoName, [gx, gy], name, label, { x, y, w, r = 0 }, t0) {
+  const p = G(p0, {}), [px, py] = spot(photo, photoName, gx, gy);
+  line(p, `M${px} ${py}L${x - w * .3} ${y - 40}`, t0, .35, 3, { opacity: .9 });
+  put(mk('circle', { cx: px, cy: py, r: 9, fill: 'none', stroke: CREAM, 'stroke-width': 3 }, p), { o: 0 });
+  const dot = p.lastChild; show(dot, t0, .2);
+  pic(p, name, { x, y, w, r, at: t0 + .2, from: [60, 0], dur: .45 });
+  tag(p, label, x, y + w * .17 + 36, t0 + .5, { anchor: 'middle', size: 36, fill: CREAM });
+  return p;
+}
+// a comic panel: a print's picture cropped to fill the box [x, y, w, h] around a point of interest (fx, fy), with a
+// cream frame; it slides in from `from` ([dx, dy], or [x, y, scale] for one that starts large and stays there until
+// moved) at t0. Returns the group, with at(fx, fy) giving a point of the picture on stage.
+let panelN = 0;
+function comicPanel(p, name, [bx, by, bw, bh], [fx, fy], t0, from = [0, 40]) {
+  const [W, H] = ART[name], iw = W - 112, ih = H - 112;   // the picture inside the print's border
+  const k = Math.max(bw / iw, bh / ih);
+  const ox = Math.min(0, Math.max(bw - iw * k, bw / 2 - fx * iw * k)), oy = Math.min(0, Math.max(bh - ih * k, bh / 2 - fy * ih * k));
+  const big = from.length > 2, g = G(p, { x: from[0], y: from[1], s: from[2] || 1, o: 0 }), id = `panel${panelN++}`;
+  mk('rect', { x: bx, y: by, width: bw, height: bh }, mk('clipPath', { id }, mk('defs', {}, g)));
+  const c = mk('g', { 'clip-path': `url(#${id})` }, g);
+  mk('image', { href: `../img/${name}.webp`, x: bx + ox - 56 * k, y: by + oy - 56 * k, width: W * k, height: H * k }, c);
+  mk('rect', { x: bx, y: by, width: bw, height: bh, fill: 'none', stroke: CREAM, 'stroke-width': 6 }, g);
+  tw(g, big ? { o: 1 } : { x: 0, y: 0, o: 1 }, t0, .35, out);   // a large one keeps its place until it is moved
+  g.at = (u, v) => [bx + ox + u * iw * k, by + oy + v * ih * k];
+  return g;
+}
+// a figure of the jeering crowd (SHAPES man0..7), standing on `base`, rocking with laughter on the beat clock
+function shadow(p, i, x, base, h, at, phase, D, { o = 1, flip = false } = {}) {
+  const g = G(p, { x, y: base + 40, o: 0 });
+  const c = cutout(g, `man${i}`, 0, 0, h, { flip, rough: false });
+  tw(g, { y: base, o }, at, .35, out);
+  clockRun(t => { const q = (t - at) * 3.1 + phase * 6.3; put(c, t < at ? { y: 0, r: 0 } : { y: -4 * Math.abs(Math.sin(q)), r: 2.2 * Math.sin(q * .5) }); }, D, { tail: true });
+  return g;
+}
+// spaced capitals for a plan's labels
+function label(p, str, x, y, t0, { size = 22, o = .7 } = {}) {
+  const e = T(p, str, { x, y, size, font: KEY, weight: 500, fill: CREAM, anchor: 'middle', o: 0 });
+  e.setAttribute('letter-spacing', '.3em'); tw(e, { o }, t0, .5); return e;
+}
+// puppets (lib/puppets.js) on the beat clock: mounted into p, posed every frame from t0; at(tt) may move them
+PUP.defs(document.getElementById('stage'));
+function puppet(p, fig, x, y, k, { flip = false, t0 = 0, D, filter = true, at, rate = 1 } = {}) {
+  PUP.mount(p, fig, x, y, k, flip, filter);
+  clockRun(tt => {
+    fig.pose((tt - t0) * rate);
+    if (filter) PUP.boilAt(fig, tt);
+    if (at) { const q = at(tt); fig.g.setAttribute('transform', `translate(${q.x.toFixed(1)},${q.y.toFixed(1)}) scale(${flip ? -k : k},${k})`); }
+  }, D, { tail: true });
+  return fig;
+}
+// a crowd: one group carrying one boiling filter, its figures mounted without their own
+function troupe(p, D) { const g = G(p, {}); g.setAttribute('filter', 'url(#pupRim0)'); clockRun(tt => PUP.boilAt(g, tt), D, { tail: true }); return g; }
+// a small theatre drawn in SVG: the proscenium with its valance and tassels, curtains that part, the boards, footlights,
+// a spotlight, and an audience in silhouette in the foreground. Returns the groups the action needs.
+function theatre(p, t0, D) {
+  const g = G(p, {}), FLOOR = 640, L = 250, R = 1350, TOP = 110;
+  // the stage's back: dark, a faint painted backdrop of palms and a pagoda, as a touring company would hang
+  mk('rect', { x: L, y: TOP, width: R - L, height: FLOOR - TOP, fill: '#0c1610' }, g);
+  const back = G(g, { o: 0 });
+  for (const [x, h] of [[360, 300], [470, 240], [1130, 280], [1240, 220]]) {
+    mk('path', { d: `M${x} ${FLOOR}C${x + 6} ${FLOOR - h * .5} ${x - 4} ${FLOOR - h * .8} ${x + 10} ${FLOOR - h}`, fill: 'none', stroke: CREAM, 'stroke-width': 5, opacity: .18 }, back);
+    for (let k = 0; k < 6; k++) { const a = -2.6 + k * .55; mk('path', { d: `M${x + 10} ${FLOOR - h}q${40 * Math.cos(a)} ${30 * Math.sin(a) - 10} ${80 * Math.cos(a)} ${70 * Math.sin(a) + 20}`, fill: 'none', stroke: CREAM, 'stroke-width': 4, opacity: .18 }, back); }
+  }
+  show(back, t0 + .6, .8);
+  // the boards in perspective, and the footlights along the front edge
+  const boards = G(g, { o: 0 });
+  mk('path', { d: `M${L - 60} 700L${L} ${FLOOR}H${R}L${R + 60} 700Z`, fill: '#1a2a20', stroke: CREAM, 'stroke-width': 2.5 }, boards);
+  for (let i = 1; i < 12; i++) { const x = L + (R - L) * i / 12, xb = L - 60 + (R - L + 120) * i / 12; mk('path', { d: `M${x} ${FLOOR}L${xb} 700`, stroke: CREAM, 'stroke-width': 1.2, opacity: .3 }, boards); }
+  const lights = G(boards, {});
+  for (let i = 0; i < 14; i++) { const x = L + 20 + (R - L - 40) * i / 13; mk('ellipse', { cx: x, cy: 704, rx: 16, ry: 8, fill: CREAM, opacity: .85 }, lights); mk('ellipse', { cx: x, cy: 700, rx: 34, ry: 22, fill: CREAM, opacity: .12 }, lights); }
+  show(boards, t0 + .2, .6);
+  // the spotlight: a soft cone from above and a pool of light on the boards (it widens on "leading actor")
+  const spot = G(g, { o: 0 });
+  mk('path', { d: `M760 ${TOP}L860 ${TOP}L980 ${FLOOR + 10}L620 ${FLOOR + 10}Z`, fill: CREAM, opacity: .07 }, spot);
+  mk('ellipse', { cx: 800, cy: FLOOR + 14, rx: 200, ry: 26, fill: CREAM, opacity: .16 }, spot);
+  // the proscenium: pillars, an arch of double lines, a scalloped valance with tassels
+  const frame = G(g, {});
+  const stroke = { fill: 'none', stroke: CREAM, 'stroke-linejoin': 'round' };
+  mk('path', { d: `M${L - 70} 720V${TOP - 10}H${R + 70}V720H${R}V${TOP + 40}H${L}V720Z`, fill: CARD }, frame);
+  mk('path', { d: `M${L - 50} 720V${TOP + 10}H${R + 50}V720M${L - 30} 720V${TOP + 26}H${R + 30}V720`, ...stroke, 'stroke-width': 2.4 }, frame);
+  for (const x of [L - 40, R + 40]) for (let y = 160; y < 700; y += 60) mk('path', { d: `M${x - 10} ${y}h20M${x} ${y - 8}v16`, stroke: CREAM, 'stroke-width': 1.6, opacity: .6 }, frame);
+  let val = `M${L} ${TOP + 40}`;
+  for (let i = 0; i < 16; i++) { const x0 = L + (R - L) * i / 16, x1 = L + (R - L) * (i + 1) / 16; val += `Q${(x0 + x1) / 2} ${TOP + 96} ${x1} ${TOP + 40}`; }
+  mk('path', { d: val + `V${TOP + 26}H${L}Z`, fill: CARD, stroke: CREAM, 'stroke-width': 2.4 }, frame);
+  for (let i = 1; i < 16; i++) { const x = L + (R - L) * i / 16; mk('path', { d: `M${x} ${TOP + 40}v26m-7 0h14l-3 18h-8Z`, fill: CREAM, stroke: CREAM, 'stroke-width': 2 }, frame); }
+  // the sign on the valance (filled in later) and the curtains, which part from the middle
+  const sign = G(g, {});
+  const cid = 'stageOpening' + (theatre.n = (theatre.n || 0) + 1);
+  mk('rect', { x: L, y: TOP, width: R - L, height: FLOOR + 40 - TOP }, mk('clipPath', { id: cid }, mk('defs', {}, g)));
+  const drapes = mk('g', { 'clip-path': `url(#${cid})` }, g);
+  g.insertBefore(drapes, frame);   // behind the proscenium
+  const curtains = [-1, 1].map(sx => {
+    const c = G(drapes, {}), x0 = 800, x1 = sx < 0 ? L : R;
+    let d = `M${x0} ${TOP + 40}L${x1} ${TOP + 40}L${x1} ${FLOOR + 10}`;
+    for (let i = 8; i >= 0; i--) d += `Q${x1 + (x0 - x1) * (i + .5) / 8} ${FLOOR + 30} ${x1 + (x0 - x1) * i / 8} ${FLOOR + 10}`;
+    mk('path', { d: d + 'Z', fill: '#2a0d0d', stroke: CREAM, 'stroke-width': 2.4 }, c);
+    for (let i = 1; i < 8; i++) { const x = x1 + (x0 - x1) * i / 8; mk('path', { d: `M${x} ${TOP + 44}C${x - 10 * sx} ${TOP + 240} ${x + 10 * sx} ${FLOOR - 200} ${x} ${FLOOR + 12}`, fill: 'none', stroke: CREAM, 'stroke-width': 1.4, opacity: .45 }, c); }
+    return c;
+  });
+  // the audience in the foreground: rows of heads and shoulders, black against the light, each one a little different:
+  // a gaung baung head-cloth with its knot to one side, a hair knot, a bare head, now and then an umbrella
+  const aud = G(p, {});
+  const R2 = rng(1936), ink = { fill: CARD, stroke: CREAM, 'stroke-width': 2.2, 'paint-order': 'stroke', 'stroke-linejoin': 'round' };
+  for (let row = 0; row < 3; row++) for (let i = 0; i < 16 - row * 2; i++) {
+    const x = 40 + i * (1520 / (15 - row * 2)) + (R2() - .5) * 40 + row * 30, y = 940 - row * 70, k = (1.3 - row * .2) * (.92 + R2() * .16), h = G(aud, {});
+    const sw = 66 + R2() * 14, hr = 33 + R2() * 6, kind = ['cloth', 'bare', 'knot', 'cloth', 'bare', 'umbrella'][Math.floor(R2() * 6)];
+    if (false) {   // (umbrellas stood up over the stage: left out)   // held up behind the head, its ribs as notches
+      mk('path', { d: `M${x + 20 * k} ${y - 120 * k}V${y - 230 * k}`, stroke: CREAM, 'stroke-width': 3 }, h);
+      let d = `M${x - 70 * k} ${y - 210 * k}Q${x + 20 * k} ${y - 300 * k} ${x + 110 * k} ${y - 210 * k}`;
+      for (let j = 6; j >= 0; j--) d += `Q${x - 70 * k + 180 * k * (j + .5) / 7} ${y - 200 * k} ${x - 70 * k + 180 * k * j / 7} ${y - 210 * k}`;
+      mk('path', { d, ...ink }, h);
+    }
+    mk('path', { d: `M${x - sw * k} ${y}C${x - (sw - 4) * k} ${y - 58 * k} ${x - 34 * k} ${y - 68 * k} ${x - 20 * k} ${y - 76 * k}L${x - 16 * k} ${y - 92 * k}C${x - hr * k} ${y - 100 * k} ${x - hr * k} ${y - 152 * k} ${x} ${y - 154 * k}C${x + hr * k} ${y - 152 * k} ${x + hr * k} ${y - 100 * k} ${x + 16 * k} ${y - 92 * k}L${x + 20 * k} ${y - 76 * k}C${x + 34 * k} ${y - 68 * k} ${x + (sw - 4) * k} ${y - 58 * k} ${x + sw * k} ${y}Z`, ...ink }, h);
+    if (kind === 'cloth') {   // the cloth wound round the head, its knot standing out at one side
+      const sd = R2() < .5 ? -1 : 1;
+      mk('path', { d: `M${x - (hr + 4) * k} ${y - 128 * k}C${x - hr * k} ${y - 162 * k} ${x + hr * k} ${y - 162 * k} ${x + (hr + 4) * k} ${y - 128 * k}C${x + 10 * k} ${y - 136 * k} ${x - 10 * k} ${y - 136 * k} ${x - (hr + 4) * k} ${y - 128 * k}Z`, ...ink }, h);
+      mk('circle', { cx: x + sd * (hr - 6) * k, cy: y - 146 * k, r: 8 * k, ...ink }, h);   // its knot
+    }
+    if (kind === 'knot') mk('circle', { cx: x, cy: y - 160 * k, r: 13 * k, ...ink }, h);
+    h._x = x; h._y = y - 154 * k;
+  }
+  return { g, frame, curtains, spot, sign, aud, FLOOR };
+}
+// a wooden marionette of the officer, drawn in SVG: pith helmet, tunic, belt, shorts, socks and boots, the rifle slung
+// across his back; limbs in two pieces with pegs at the joints. pose({ x, y, a, arms: [u, f, u, f], legs: [u, f, u, f] })
+// places it: (x, y) is the neck, a the body's lean, limb angles in degrees from hanging straight down (+ swings forward).
+// Returns the stage points of the head, the hands and the knees for the strings.
+function marionette(p) {
+  const g = G(p, {}), part = (d, host = g) => mk('path', { d, fill: CARD, stroke: CREAM, 'stroke-width': 2.4, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, host);
+  const seg = host => mk('g', {}, host || g);
+  const legB = [seg(), seg()], armB = [seg(), seg()], body = seg(), legF = [seg(), seg()], armF = [seg(), seg()], head = seg();
+  const limb = (gs, upper, lower, w0, w1, end) => {
+    part(`M${-w0} -6C${-w0} ${upper * .5} ${-w1} ${upper - 8} ${-w1} ${upper}H${w1}C${w1} ${upper - 8} ${w0} ${upper * .5} ${w0} -6Z`, gs[0]);
+    mk('circle', { cx: 0, cy: upper, r: 6, fill: CREAM }, gs[0]);
+    part(`M${-w1} -4V${lower - 10}H${w1}V-4Z` + end, gs[1]);
+  };
+  limb(legB, 80, 76, 15, 11, 'M-12 62H14L34 70C40 72 40 80 32 80H-14Z');
+  limb(legF, 80, 76, 15, 11, 'M-12 62H14L34 70C40 72 40 80 32 80H-14Z');
+  limb(armB, 70, 64, 11, 8, 'M-10 54C-12 70 12 72 10 54Z');
+  limb(armF, 70, 64, 11, 8, 'M-10 54C-12 70 12 72 10 54Z');
+  // the rifle across his back, stock at the hip, muzzle up past the shoulder
+  part('M-40 150L-34 146L44 -64L52 -60L-20 152L-24 170C-28 178 -44 176 -42 166Z', body);
+  part('M-34 0C-12 -8 12 -8 34 0L38 104C40 120 36 136 30 150H-30C-36 136 -40 120 -38 104Z', body);   // the tunic
+  mk('path', { d: 'M-36 112H36M-30 4L34 104', stroke: CREAM, 'stroke-width': 3, opacity: .75 }, body);   // belt and strap
+  for (const y of [30, 60, 90]) mk('circle', { cx: 8, cy: y, r: 3, fill: CREAM, opacity: .7 }, body);   // buttons
+  part('M-10 -2V-14H10V-2Z', head);
+  part('M-28 -50C-28 -82 30 -84 30 -50L34 -40L28 -38C28 -26 18 -14 2 -14C-18 -14 -28 -28 -28 -50Z', head);   // the face, carved
+  part('M-52 -58C-46 -66 -30 -70 -24 -72C-24 -104 26 -110 30 -74C40 -72 52 -66 56 -58C20 -62 -20 -62 -52 -58Z', head);   // the helmet
+  mk('circle', { cx: 14, cy: -46, r: 3.5, fill: CREAM }, head);   // a painted eye
+  mk('path', { d: 'M10 -30q10 -4 18 0', stroke: CREAM, 'stroke-width': 3, fill: 'none' }, head);   // a painted moustache
+  const rad = d => d * Math.PI / 180, dir = d => [Math.sin(rad(d)), Math.cos(rad(d))];
+  const place = (e, x, y, d) => e.setAttribute('transform', `translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${(-d).toFixed(2)})`);
+  function pose({ x, y, a = 0, arms = [6, 4, -6, 4], legs = [3, 0, -3, 0] }) {
+    const ca = Math.cos(rad(a)), sa = Math.sin(rad(a)), W = (lx, ly) => [x + lx * ca - ly * sa, y + lx * sa + ly * ca];
+    place(body, x, y, -a); place(head, x, y, -a * 1.4);
+    const out = { head: W(0, -96) };
+    [[armF, 22, arms[0], arms[1], 'handF'], [armB, -18, arms[2], arms[3], 'handB']].forEach(([gs, sx, u, f, key]) => {
+      const [sx0, sy0] = W(sx, 10), [ux, uy] = dir(u), ex = sx0 + 70 * ux, ey = sy0 + 70 * uy, [fx, fy] = dir(u + f);
+      place(gs[0], sx0, sy0, u); place(gs[1], ex, ey, u + f); out[key] = [ex + 60 * fx, ey + 60 * fy];
+    });
+    [[legF, 12, legs[0], legs[1], 'kneeF'], [legB, -10, legs[2], legs[3], 'kneeB']].forEach(([gs, hx, u, f, key]) => {
+      const [hx0, hy0] = W(hx, 146), [ux, uy] = dir(u);
+      place(gs[0], hx0, hy0, u); place(gs[1], hx0 + 80 * ux, hy0 + 80 * uy, u + f); out[key] = [hx0 + 80 * ux, hy0 + 80 * uy];
+    });
+    return out;
+  }
+  return { g, pose };
+}
+
+// the elephant as a jointed shadow puppet: its silhouette (SHAPES.elephant, facing left) cut into the body, the forelegs,
+// the hind legs and the trunk, each turning about its joint; one rim round the whole (PUP's filter, boiling).
+// pose({ x, y, h, r, s, fore, hind, trunk, breathe }): (x, y) the middle of its feet on the ground, h its height,
+// r a lean of the whole about the point `about` (0..1 of the shape, default its feet), angles in degrees.
+function elephantPuppet(p, D) {
+  const S = SHAPES.elephant, W = S.w, H = S.h, wrap = G(p, {}), uid = 'ep' + (elephantPuppet.n = (elephantPuppet.n || 0) + 1);
+  wrap.setAttribute('filter', 'url(#pupRim0)'); clockRun(tt => PUP.boilAt(wrap, tt), D, { tail: true });
+  const all = mk('g', {}, wrap), defs = mk('defs', {}, all);
+  const poly = (id, pts) => { const c = mk('clipPath', { id: uid + id }, defs); mk('polygon', { points: pts.map(([u, v]) => `${u * W},${v * H}`).join(' ') }, c); };
+  poly('body', [[0, 0], [1, 0], [1, .66], [.62, .66], [.58, .6], [.48, .61], [.33, .59], [.25, .52], [.25, .47], [0, .47]]);
+  poly('fore', [[.19, .5], [.5, .56], [.5, 1.02], [.19, 1.02]]);
+  poly('hind', [[.55, .57], [1.02, .6], [1.02, 1.02], [.55, 1.02]]);
+  poly('trunk', [[-.02, .4], [.24, .4], [.24, 1.02], [-.02, 1.02]]);
+  const part = (id, px, py) => { const g = mk('g', {}, all); mk('path', { d: S.d, fill: CARD, 'fill-rule': 'evenodd', 'clip-path': `url(#${uid + id})` }, g); g.pv = [px * W, py * H]; return g; };
+  const hind = part('hind', .74, .6), fore = part('fore', .36, .56), body = part('body', 0, 0), trunk = part('trunk', .12, .43);
+  const turn = (g, a) => g.setAttribute('transform', `rotate(${a.toFixed(2)} ${g.pv[0]} ${g.pv[1]})`);
+  function pose({ x = 800, y = 740, h = 400, r = 0, s = 1, fore: f = 0, hind: hd = 0, trunk: tr = 0, breathe = 0, about = [.5, 1] } = {}) {
+    const k = h / H * s, ax = about[0] * W, ay = about[1] * H;
+    all.setAttribute('transform', `translate(${(x - (.5 - about[0]) * W * k).toFixed(1)},${(y - (1 - about[1]) * H * k).toFixed(1)}) rotate(${r.toFixed(2)}) scale(${k.toFixed(4)},${(k * (1 + breathe)).toFixed(4)}) translate(${-ax},${-ay})`);
+    turn(fore, f); turn(hind, hd); turn(trunk, tr);
+  }
+  pose();
+  return { g: wrap, all, pose, at: (u, v) => [u * W, v * H] };
+}
+
+// the elephant down: his own silhouette toppled over on its side, the legs thrust out stiffly, the head low on the left;
+// one rim round it (PUP's filter, boiling). pose({ x, y, h, breathe }): (x, y) where his side meets the ground, h the
+// size, breathe lifts the great mound of his side. heart(): a point over his heart, on stage.
+function lyingElephant(p, D) {
+  const S = SHAPES.elephant, wrap = G(p, {}); wrap.setAttribute('filter', 'url(#pupRim0)'); clockRun(tt => PUP.boilAt(wrap, tt), D, { tail: true });
+  const all = mk('g', {}, wrap);
+  mk('path', { d: S.d, fill: CARD, 'fill-rule': 'evenodd', transform: `translate(${-S.w / 2},${-S.h / 2})` }, all);
+  const A = 168 * Math.PI / 180, SY = .78;
+  let cur = { x: 800, y: 760, k: .3, b: 0 };
+  function pose({ x = 800, y = 760, h = 300, breathe = 0 } = {}) {
+    const k = h / S.h; cur = { x, y, k, b: breathe };
+    // the shape's middle sits half a body above the ground
+    all.setAttribute('transform', `translate(${x},${(y - S.h * k * SY * .42).toFixed(1)}) rotate(168) scale(${(-k).toFixed(4)},${(k * SY * (1 + breathe)).toFixed(4)})`);
+  }
+  // a point (u, v) of the shape (0..1 of its box), on stage, for the current pose
+  const at = (u, v) => {
+    const lx = -(u - .5) * S.w * cur.k, ly = (v - .5) * S.h * cur.k * SY * (1 + cur.b);
+    return [cur.x + lx * Math.cos(A) - ly * Math.sin(A), cur.y - S.h * cur.k * SY * .42 + lx * Math.sin(A) + ly * Math.cos(A)];
+  };
+  pose();
+  return { g: wrap, pose, heart: () => at(.4, .45) };
+}
+
+// the bullet holes, drawn on each photograph in the same place (in front of the ear-hole, where he aimed) so that every
+// picture agrees: one after the first shot, two after the second, three after the third, each with a thin red trickle.
+// WOUND: that place in each picture (0..1 of the picture inside its print border)
+const WOUND = { 'elephant-side': [.39, .41], 'e-gasp-blood': [.3, .4], 'e-down-blood': [.22, .5], 'e-stricken': [.33, .315], 'e-knees': [.33, .36], 'e-rise': [.33, .37], 'e-topple': [.35, .31], 'e-down': [.22, .5], 'e-gasp': [.3, .4] };
+// where the reader's head shots landed, as offsets from WOUND's place in the picture they were fired at (fractions of the
+// picture, held near the head so that the holes stay on him in the other poses); empty in the video: a default spread
+const HITS = [];
+function woundDefs() {
+  if (document.getElementById('woundRag')) return;   // once: a ragged edge for holes and drips, and a soft damp halo
+  const d = mk('defs', {}, document.getElementById('stage'));
+  const f = mk('filter', { id: 'woundRag', x: '-50%', y: '-50%', width: '200%', height: '200%' }, d);
+  mk('feTurbulence', { type: 'fractalNoise', baseFrequency: .9, numOctaves: 2, seed: 7, result: 'n' }, f);
+  mk('feDisplacementMap', { in: 'SourceGraphic', in2: 'n', scale: 3.5, result: 'r' }, f);
+  mk('feGaussianBlur', { in: 'r', stdDeviation: .45 }, f);
+  const h = mk('filter', { id: 'woundHalo', x: '-100%', y: '-100%', width: '300%', height: '300%' }, d);
+  mk('feGaussianBlur', { stdDeviation: 2.4 }, h);
+}
+// one bullet hole at (x, y) in a print's own coordinates, u = one stage pixel of an 800-high print; seed i, so the same
+// hole looks the same wherever it is drawn
+function hole(box, x, y, i, u) {
+  const R = rng(4711 + i * 97);
+  mk('ellipse', { cx: x, cy: y + 2 * u, rx: 7 * u, ry: 8 * u, fill: '#3b2a24', opacity: .55, filter: 'url(#woundHalo)' }, box);
+  const runs = 2 + Math.floor(R() * 2);
+  for (let r = 0; r < runs; r++) {   // the blood running down: thin runs, uneven, tapering, wandering a little
+    const px = x + (R() - .5) * 3 * u, py = y + 2 * u, w = (1.6 + R() * 1.2) * u, len = (14 + R() * 26) * u;
+    let left = '', right = '';
+    for (let s_ = 0; s_ <= 8; s_++) {
+      const q = s_ / 8, ww = w * (1 - .85 * q) * (.8 + .4 * R()), yy = py + len * q, xx = px + Math.sin(q * 3 + r * 2) * 1.6 * u + (R() - .5) * .8 * u;
+      left += `${s_ ? 'L' : 'M'}${(xx - ww / 2).toFixed(1)} ${yy.toFixed(1)}`; right = `L${(xx + ww / 2).toFixed(1)} ${yy.toFixed(1)}` + right;
+    }
+    mk('path', { d: left + right + 'Z', fill: '#2a120d', opacity: .82, filter: 'url(#woundRag)' }, box);
+    mk('circle', { cx: px + Math.sin(3 + r * 2) * 1.6 * u, cy: py + len + .6 * u, r: w * .35, fill: '#2a120d', opacity: .8 }, box);
+  }
+  let hd = '';
+  const rr = 3.2 * u;   // the hole: a ragged dark opening, its torn rim a little lighter
+  for (let a = 0; a < 12; a++) { const ang = a / 12 * 2 * Math.PI, rad = rr * (.75 + R() * .5); hd += `${a ? 'L' : 'M'}${(x + rad * Math.cos(ang)).toFixed(1)} ${(y + rad * .85 * Math.sin(ang)).toFixed(1)}`; }
+  mk('path', { d: hd + 'Z', fill: '#4a332b', opacity: .7, transform: `translate(${x},${y}) scale(1.45) translate(${-x},${-y})`, filter: 'url(#woundRag)' }, box);
+  mk('path', { d: hd + 'Z', fill: '#0b0605', filter: 'url(#woundRag)' }, box);
+}
+function wounds(g, name, n) {
+  woundDefs();
+  const [W, H] = ART[name], k = g._w / W, [fx, fy] = WOUND[name], u = k * 1.9, iw = (W - 112) * k, ih = (H - 112) * k;
+  const box = mk('g', { style: 'mix-blend-mode:multiply' }, g);
+  for (let i = 0; i < n; i++) {
+    const hit = HITS[i], x = (fx - .5) * iw + (hit ? hit[0] * iw : i * 13 * u), y = (fy - .5) * ih + (hit ? hit[1] * ih : -(i % 2) * 8 * u);
+    hole(box, x, y, i, u);
+  }
+  return g;
+}
+// a print that breathes: the picture's group rises and falls about the ground line, slowly, like a heaving side
+function breathing(g, D, { amp = .012, period = 2, y0 = 760 } = {}) {
+  const inner = mk('g', {}, g.parentNode); inner.appendChild(g);
+  clockRun(tt => { const b = amp * Math.max(0, Math.sin(tt * Math.PI * 2 / period)); inner.setAttribute('transform', `translate(0,${y0}) scale(1,${(1 + b).toFixed(4)}) translate(0,${-y0})`); }, D, { tail: true });
+  return inner;
+}
+// a shot felt in the picture: a quick jolt of the whole panel
+function jolt(p, t, a = 14) { clockRun(tt => { const q = tt - t; if (q < 0 || q > .5) return; put(p, { x: a * Math.exp(-q * 9) * Math.sin(q * 70), y: a * .5 * Math.exp(-q * 9) * Math.sin(q * 53) }); }, t + .6); }   // (its length counts in the beat's: keep it short)
+// the sight on a photograph: the picture placed big inside the scope's circle, the point (fx, fy) of it under the cross
+function scopeOn(p, name, fx, fy, h = 1500, opts, n = 0) {
+  return scope(p, a => { const g = pic(a, name, { x: 800, y: 450, h }), [sx, sy] = spot(g, name, fx, fy); put(g, { x: 800 + SCOPE.x - sx, y: 450 + SCOPE.y - sy }); if (n) wounds(g, name, n); a.shot = { g, name, n }; }, opts);
+}
+// the view through the rifle's telescopic sight: a circle cut in the dark, cross-hairs, and inside it whatever `fill`
+// draws into `view`; `aim` is the group the reader's mouse moves while the page waits for the shot
+const SCOPE = { x: 800, y: 430, r: 330 };
+function scope(p, fill, { small = false } = {}) {
+  const g = G(p, {}), id = 'scope' + (scope.n = (scope.n || 0) + 1);
+  mk('circle', { cx: SCOPE.x, cy: SCOPE.y, r: SCOPE.r }, mk('clipPath', { id }, mk('defs', {}, g)));
+  const view = G(mk('g', { 'clip-path': `url(#${id})` }, g), {});
+  mk('rect', { x: 0, y: 0, width: 1600, height: 900, fill: '#7d8277' }, view);
+  const aim = G(view, {});
+  fill(aim);
+  const { x, y, r } = SCOPE;
+  mk('path', { d: `M-200 -200H1800V1100H-200Z M${x - r} ${y}a${r} ${r} 0 1 0 ${2 * r} 0a${r} ${r} 0 1 0 ${-2 * r} 0Z`, fill: '#040805', 'fill-rule': 'evenodd' }, g);
+  const ink = { stroke: '#0b0b0b', fill: 'none' };
+  if (small) {   // the small rifle's plain post and notch
+    mk('path', { d: `M${x - r} ${y + 120}H${x + r}M${x} ${y + 120}V${y + 12}`, 'stroke-width': 7, ...ink }, g);
+  } else {
+    mk('path', { d: `M${x - r} ${y}H${x - 26}M${x + 26} ${y}H${x + r}M${x} ${y - r}V${y - 26}`, 'stroke-width': 2, ...ink }, g);
+    mk('path', { d: `M${x - r} ${y}H${x - 150}M${x + 150} ${y}H${x + r}M${x} ${y + r}V${y + 18}`, 'stroke-width': 9, ...ink }, g);
+  }
+  mk('circle', { cx: x, cy: y, r: r - 2, 'stroke-width': 6, stroke: '#000', fill: 'none' }, g);
+  window.CURRENT_SCOPE = aim;
+  return g;
+}
+
+// a shot the reader fires: the beat's ask. While the page waits (after the narration), the mouse moves the view under the
+// cross-hairs and a line says how to fire; each click (or Space, Enter) fires: a flash, the bang at once; after n shots
+// the film goes on. The next beat opens with the same bang for the video, which the page silences when it was fired here.
+const LIVE = {};
+function fireAsk(n, next, { small = false, head } = {}) {
+  return done => {
+    const i = P.i, stage = document.getElementById('stage');
+    let fired = 0, ox = 0, oy = 0, tx = 0, ty = 0, alive = true;
+    const hint = mk('text', { x: 800, y: 870, 'text-anchor': 'middle', 'font-family': SER, 'font-style': 'italic', 'font-size': 34, fill: CREAM, opacity: 0 }, stage);
+    hint.textContent = n > 1 ? `click to fire  ·  ${n} shots` : 'click to fire';
+    const flash = mk('rect', { x: 0, y: 0, width: 1600, height: 900, fill: '#fff8e8', opacity: 0, 'pointer-events': 'none' }, stage);
+    const shotSnd = `audio/sfx/${small ? 'rifle-small' : 'rifle'}.mp3`;
+    const clamp1 = v => Math.max(-1, Math.min(1, v));
+    // how far the picture can be moved and still fill the sight (its print border, about 40 px, kept out too); the mouse,
+    // anywhere in the window, maps onto that range, so the aim never runs off the picture
+    let room = null;
+    const measure = () => {
+      const a = window.CURRENT_SCOPE, bb = a && a.getBBox(), r = SCOPE.r, m_ = 40;
+      if (!bb || !bb.width) return [[0, 0], [0, 0]];
+      const span = (lo, size, c) => { const a0 = c + r - (lo + size) + m_, a1 = c - r - lo - m_; return a0 <= a1 ? [a0, a1] : [0, 0]; };
+      return [span(bb.x, bb.width, SCOPE.x), span(bb.y, bb.height, SCOPE.y)];
+    };   // measured while waiting, when the sight's picture is in place
+    const move = e => {   // the whole window: leaving the player holds the aim at its edge
+      if (!P.waiting) return;
+      if (!room || !(room[0][1] - room[0][0] + room[1][1] - room[1][0])) room = measure();
+      const b = stage.getBoundingClientRect(), mx = clamp1(((e.clientX - b.left) / b.width - .5) * 2), my = clamp1(((e.clientY - b.top) / b.height - .5) * 2);
+      tx = (room[0][0] + room[0][1]) / 2 - mx * (room[0][1] - room[0][0]) / 2; ty = (room[1][0] + room[1][1]) / 2 - my * (room[1][1] - room[1][0]) / 2;
+    };
+    const fire = () => {
+      if (!alive || P.i !== i || !P.waiting) return;
+      fired++;
+      const a = new Audio(shotSnd); a.volume = Math.min(1, +($('volume')?.value ?? 1)); a.play().catch(() => {});
+      flash.animate([{ opacity: .8 }, { opacity: 0 }], { duration: 260, easing: 'ease-out' });
+      const sc = window.CURRENT_SCOPE?.shot;
+      if (sc) {   // where the cross-hairs are on the picture, in the picture's own coordinates
+        const st = stage.getScreenCTM(), gm = sc.g.getScreenCTM(), pt = stage.createSVGPoint(); pt.x = SCOPE.x; pt.y = SCOPE.y;
+        const q = pt.matrixTransform(st).matrixTransform(gm.inverse()), [W, H] = ART[sc.name], k = sc.g._w / W, iw = (W - 112) * k, ih = (H - 112) * k;
+        woundDefs(); hole(mk('g', { style: 'mix-blend-mode:multiply' }, sc.g), q.x, q.y, (head ?? 3) + fired, k * 1.9);
+        if (head !== undefined && WOUND[sc.name]) {
+          const [ax, ay] = WOUND[sc.name], c = v => Math.max(-.07, Math.min(.07, v));
+          HITS[head] = [c(q.x / iw + .5 - ax), c(q.y / ih + .5 - ay)];
+        }
+      }
+      if (window.CURRENT_SCOPE) window.CURRENT_SCOPE.animate([{ transform: `translate(${ox}px,${oy - 40}px)` }, { transform: `translate(${ox}px,${oy}px)` }], { duration: 220 });
+      if (fired >= n) { LIVE[next] = true; cleanup(); setTimeout(() => { if (P.i === i) done(); }, small ? 250 : 500); }
+    };
+    const key = e => { if ((e.key === ' ' || e.key === 'Enter') && P.waiting && P.i === i) { e.preventDefault(); e.stopPropagation(); fire(); } };
+    const cleanup = () => { alive = false; stage.style.cursor = ''; stage.removeEventListener('click', fire); removeEventListener('pointermove', move); removeEventListener('keydown', key, true); hint.remove(); setTimeout(() => flash.remove(), 400); };
+    stage.addEventListener('click', fire); addEventListener('pointermove', move); addEventListener('keydown', key, true);
+    const tick = () => {
+      if (!alive) return;
+      if (P.i !== i) { cleanup(); return; }   // a seek away
+      stage.style.cursor = P.waiting ? 'none' : '';   // while he aims, the cross-hairs are the cursor
+      if (P.waiting) {
+        hint.setAttribute('opacity', .9);
+        ox += (tx - ox) * .2; oy += (ty - oy) * .2;
+        const br = performance.now() / 1000, bx = 5 * Math.sin(br * 1.5), by = 7 * Math.sin(br * 1.1);
+        window.CURRENT_SCOPE?.setAttribute('transform', `translate(${(ox + bx).toFixed(1)},${(oy + by).toFixed(1)})`);
+      }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  };
+}
+// the bang that opens a beat after a shot (silent on the page when the reader fired it there)
+function openingShots(id, times, small = false) {
+  times.forEach(t => sfx(id, t, small ? 'rifle-small' : 'rifle', LIVE[id] ? 0 : 2));
+  if (!LIVE[id]) times.forEach(() => {});
+}
+// a flash on the beat clock (for the video, and the page when the shot came from the previous beat)
+function flashAt(p, t, live) { if (live) return; const f = put(mk('rect', { x: -10, y: -10, width: 1620, height: 920, fill: '#fff8e8' }, p), { o: 0 }); tw(f, { o: .8 }, t, .03, lin); tw(f, { o: 0 }, t + .05, .3, out); }
+// the ground of the shooting: a paddy field drawn as lines, a road at the foot
+function paddy(p, GY) {
+  const g = G(p, {});
+  line(g, `M0 ${GY}H1600`, 0, .01, 2, { opacity: .5 });
+  const R = rng(55);
+  for (let x = -20; x < 1620; x += 50 + R() * 50) mk('path', { d: `M${x} ${GY}l-5 -${10 + R() * 12}M${x} ${GY}l3 -${12 + R() * 10}M${x} ${GY}l10 -${8 + R() * 8}`, stroke: CREAM, 'stroke-width': 2, opacity: .4 }, g);
+  return g;
+}
+// the town as a police plan: the Salween on the west, the Strand and the main roads along it, blocks of houses, the
+// pagoda ridge on the east, the police station at the north end, my bungalow at the south end, and the telephone wire
+// between them on its poles. Draws itself on from t0; returns the page and the wire's points (page coordinates)
+function townPlan(p, t0, D) {
+  const PEN = INK, rnd = rng(1852);
+  const page = G(p, { x: 0, y: 30, o: 0 }), sheet = mk('g', { transform: 'rotate(1 800 450)' }, page);
+  tw(page, { y: 0, o: 1 }, t0, .45, out);
+  mk('rect', { x: 84, y: 54, width: 1452, height: 812, fill: '#000', opacity: .35 }, sheet);
+  mk('rect', { x: 70, y: 40, width: 1452, height: 812, fill: PAPER }, sheet);
+  mk('path', { d: 'M70 446H1522', stroke: PEN, 'stroke-width': 1.2, opacity: .12 }, sheet);
+  mk('rect', { x: 86, y: 56, width: 1420, height: 780, fill: 'none', stroke: PEN, 'stroke-width': 2, opacity: .55 }, sheet);
+  const ink = (d, w = 2, extra = {}, host = sheet) => mk('path', { d, fill: 'none', stroke: PEN, 'stroke-width': w, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', ...extra }, host);
+  const drawOn = (e, at, dur) => { const L = e.getTotalLength(); e.setAttribute('stroke-dasharray', `${L} ${L}`); e.setAttribute('stroke-dashoffset', L); prog(q => e.setAttribute('stroke-dashoffset', L * (1 - q)), at, dur, io); };
+  const write = (str, x, y, at, { size = 22, italic = true, font = SER, anchor = 'start', fill = PEN, ls, rot = 0, host = sheet } = {}) => {
+    const h = rot ? mk('g', { transform: `rotate(${rot} ${x} ${y})` }, host) : host;
+    const e = T(h, str, { x, y, size, font, weight: 400, fill, anchor, o: 0 });
+    if (italic) e.setAttribute('font-style', 'italic');
+    if (ls) e.setAttribute('letter-spacing', ls);
+    show(e, at, .35); return e;
+  };
+  const TYPE = '"Courier New", Courier, monospace';
+  write('BURMA POLICE  ·  MOULMEIN TOWN', 1490, 96, t0 + .3, { size: 22, italic: false, font: TYPE, anchor: 'end' });
+  write('PLAN  ·  telephone line, police station to S.D.P.O.', 1490, 126, t0 + .35, { size: 18, italic: false, font: TYPE, anchor: 'end' });
+  ink('M1050 140H1490', 1.2, { opacity: .5 });
+
+  // the river Salween, along the west side: its bank, water drawn in short level strokes, an island, two steamers
+  const bank = x => 330 + 26 * Math.sin(x / 140) + 12 * Math.sin(x / 47);   // the bank's x for a y
+  let bd = ''; for (let y = 56; y <= 836; y += 12) bd += `${y > 56 ? 'L' : 'M'}${bank(y).toFixed(1)} ${y}`;
+  drawOn(ink(bd, 2.6), t0 + .2, .6);
+  const water = G(sheet, { o: 0 });
+  for (let y = 70; y < 830; y += 14) for (let x = 100 + (y % 28 ? 14 : 0); x < bank(y) - 30; x += 46 + rnd() * 20)
+    mk('path', { d: `M${x} ${y}h${16 + rnd() * 14}`, stroke: PEN, 'stroke-width': 1.1, opacity: .45 }, water);
+  show(water, t0 + .5, .5);
+  ink('M96 600C120 560 170 548 200 570C220 600 190 660 150 690C120 700 100 670 96 640', 1.8, { fill: PAPER });   // an island
+  write('Bilu Kyun', 112, 712, t0 + .9, { size: 18 });
+  for (const [x, y] of [[190, 260], [150, 420]]) {   // steamers at anchor
+    const g = G(sheet, { o: 0 });
+    mk('path', { d: `M${x - 34} ${y}h68l-10 12h-48Z`, fill: PEN }, g); mk('path', { d: `M${x - 6} ${y}v-16h12v16`, fill: PEN }, g);
+    mk('path', { d: `M${x + 3} ${y - 18}q8 -10 20 -8`, fill: 'none', stroke: PEN, 'stroke-width': 1.4, opacity: .6 }, g);
+    show(g, t0 + .8, .2);
+  }
+  write('R. SALWEEN', 206, 520, t0 + .9, { size: 20, italic: false, font: KEY, ls: '.45em', rot: -84 });
+  for (const y of [180, 330, 480, 720]) ink(`M${bank(y)} ${y}h-44M${bank(y) - 44} ${y - 6}v12`, 2.2);   // jetties
+
+  // the roads: the Strand along the bank, two main roads behind it, cross streets
+  const along_ = (dx) => { let d = ''; for (let y = 60; y <= 832; y += 16) d += `${y > 60 ? 'L' : 'M'}${(bank(y) + dx).toFixed(1)} ${y}`; return d; };
+  const roads = [[30, 'STRAND ROAD'], [260, 'LOWER MAIN ROAD'], [520, 'UPPER MAIN ROAD']];
+  roads.forEach(([dx, name], i) => {
+    for (const o of [-8, 8]) drawOn(ink(along_(dx + o), 1.8), t0 + .4 + i * .1, .7);
+    write(name, bank(330) + dx + 18, 330, t0 + 1.1, { size: 14, italic: false, font: KEY, ls: '.35em', rot: 86 });
+  });
+  const cross = [130, 250, 370, 500, 620, 750];
+  cross.forEach((y, i) => drawOn(ink(`M${bank(y) + 22} ${y}L${bank(y) + 1120} ${y + 6}`, 1.6), t0 + .6 + i * .05, .6));
+  // the blocks: little houses seen from above, crowded near the Strand, thinning towards the ridge
+  const houses = G(sheet, {});
+  for (let r = 0; r < cross.length - 1; r++) for (let c = 0; c < 3; c++) {
+    const x0 = bank(cross[r]) + [46, 276, 536][c], x1 = bank(cross[r]) + [246, 506, 860][c], y0 = cross[r] + 14, y1 = cross[r + 1] - 12;
+    const dens = [1, .7, .35][c];
+    for (let y = y0; y < y1 - 12; y += 22) for (let x = x0; x < x1 - 16; x += 24) {
+      if (rnd() > dens) continue;
+      const w = 12 + rnd() * 9, h = 10 + rnd() * 7, b = mk('rect', { x: x + rnd() * 4, y: y + rnd() * 3, width: w, height: h, fill: rnd() < .55 ? PEN : PAPER, stroke: PEN, 'stroke-width': 1.2, opacity: .8 }, houses);
+      put(b, { o: 0 }); show(b, t0 + .7 + (y - 60) / 780 * .6 + rnd() * .1, .12, lin);
+    }
+  }
+  // the pagoda ridge on the east: hachures down its slopes, stupas along the crest, the great one named
+  const ridgeX = y => 1310 + 40 * Math.sin(y / 120);
+  const hach = G(sheet, { o: 0 });
+  for (let y = 70; y < 830; y += 9) { const x = ridgeX(y); mk('path', { d: `M${x - 14} ${y}l-${30 + rnd() * 30} ${4 + rnd() * 4}M${x + 14} ${y}l${24 + rnd() * 26} ${3 + rnd() * 4}`, stroke: PEN, 'stroke-width': 1.1, opacity: .45 }, hach); }
+  show(hach, t0 + .9, .6);
+  for (const y of [170, 300, 420, 560, 680]) {
+    const x = ridgeX(y), big = y === 420, k = big ? 1.6 : 1, g = G(sheet, { o: 0 });
+    mk('path', { d: `M${x - 14 * k} ${y}h${28 * k}l-${4 * k} -${8 * k}C${x + 9 * k} ${y - 20 * k} ${x + 5 * k} ${y - 26 * k} ${x} ${y - 40 * k}C${x - 5 * k} ${y - 26 * k} ${x - 9 * k} ${y - 20 * k} ${x - 10 * k} ${y - 8 * k}Z`, fill: PEN }, g);
+    mk('path', { d: `M${x} ${y - 40 * k}v-${12 * k}`, stroke: PEN, 'stroke-width': 1.6 }, g);
+    show(g, t0 + 1.1 + y / 2000, .2);
+  }
+  write('Kyaikthanlan Pagoda', ridgeX(420) + 30, 432, t0 + 1.3, { size: 20 });
+  write('PAGODA  RIDGE', ridgeX(640) - 10, 760, t0 + 1.3, { size: 16, italic: false, font: KEY, ls: '.35em', anchor: 'middle' });
+
+  // the police station at the north end, with its flag, and my bungalow at the south end, at the foot of the ridge
+  const ST = [bank(98) + 150, 98], ME = [ridgeX(780) - 120, 790];
+  const st = G(sheet, { o: 0 });
+  mk('rect', { x: ST[0] - 34, y: ST[1] - 18, width: 68, height: 36, fill: PEN }, st);
+  mk('path', { d: `M${ST[0] + 26} ${ST[1] - 18}v-34`, stroke: PEN, 'stroke-width': 2 }, st);
+  mk('path', { d: `M${ST[0] + 27} ${ST[1] - 52}l22 6-22 7Z`, fill: STAMP }, st);
+  show(st, t0 + 1.2, .25);
+  write('Police Station', ST[0] + 60, ST[1] + 2, t0 + 1.3, { size: 24 });
+  write('the sub-inspector', ST[0] + 60, ST[1] + 30, t0 + 1.4, { size: 20, fill: STAMP });
+  const me = G(sheet, { o: 0 });
+  mk('path', { d: `M${ME[0] - 30} ${ME[1] + 14}V${ME[1] - 8}L${ME[0]} ${ME[1] - 28}L${ME[0] + 30} ${ME[1] - 8}V${ME[1] + 14}Z`, fill: PAPER, stroke: PEN, 'stroke-width': 2.4 }, me);
+  mk('path', { d: `M${ME[0] - 40} ${ME[1] - 4}L${ME[0]} ${ME[1] - 34}L${ME[0] + 40} ${ME[1] - 4}`, fill: 'none', stroke: PEN, 'stroke-width': 2.4 }, me);
+  show(me, t0 + 1.3, .25);
+  write('S.D.P.O.’s bungalow', ME[0] - 44, ME[1] + 40, t0 + 1.4, { size: 22, anchor: 'end' });
+  write('me', ME[0] + 44, ME[1] + 6, t0 + 1.5, { size: 26, fill: HOT });
+
+  // the telephone wire on its poles: down Lower Main Road, along the last cross street, to the bungalow
+  const wy = y => bank(y) + 260 + 16;
+  const wire = [[ST[0] + 34, ST[1]], [wy(130), 130], [wy(250), 250], [wy(370), 370], [wy(500), 500], [wy(620), 620], [wy(750), 750], [ME[0] - 60, 760], [ME[0] - 30, ME[1] - 4]];
+  const wd = 'M' + wire.map(q => q.map(v => v.toFixed(1)).join(' ')).join('L');
+  drawOn(ink(wd, 1.4, { 'stroke-dasharray': '3 5' }), t0 + 1.4, .8);
+  const poles = G(sheet, { o: 0 });
+  for (let q = 0; q <= 1; q += .04) { const [x, y] = along(wire, q); mk('path', { d: `M${x - 6} ${y - 4}h12M${x} ${y - 4}v8`, stroke: PEN, 'stroke-width': 1.6 }, poles); }
+  show(poles, t0 + 1.6, .4);
+  // compass and scale
+  const cp = G(sheet, { o: 0 }); cp.setAttribute('transform', 'translate(1440,240)');
+  mk('path', { d: 'M0 -40L9 0L0 40L-9 0Z', fill: 'none', stroke: PEN, 'stroke-width': 2 }, cp);
+  mk('path', { d: 'M0 -40L9 0H-9Z', fill: PEN }, cp);
+  T(cp, 'N', { y: -50, size: 22, font: KEY, weight: 600, fill: PEN, anchor: 'middle' });
+  show(cp, t0 + 1.2, .3);
+  const sc = G(sheet, { o: 0 });
+  for (let i = 0; i < 4; i++) mk('rect', { x: 1260 + i * 50, y: 806, width: 50, height: 8, fill: i % 2 ? PAPER : PEN, stroke: PEN, 'stroke-width': 1.4 }, sc);
+  T(sc, '0', { x: 1260, y: 798, size: 15, font: SER, fill: PEN, anchor: 'middle' });
+  T(sc, '½ mile', { x: 1460, y: 798, size: 15, font: SER, fill: PEN, anchor: 'middle' });
+  show(sc, t0 + 1.3, .3);
+  return { page, sheet, wire, ME };
+}
+// a page of a police report: a sketch plan of the quarter, the road and the paddy, drawn in ink on cream paper and laid
+// on the ground slightly askew. Everything draws itself on from t0; returns the page's groups and the places the action
+// needs (the huts, the path, the elephant), in the page's own coordinates (the stage's, before the page's tilt)
+function sketchPlan(p, t0, tPaddy, tYards, D) {
+  const PEN = INK, RED = HOT, rnd = rng(1926);
+  const page = G(p, { x: 0, y: 30, o: 0 }), sheet = mk('g', { transform: 'rotate(-1.2 800 450)' }, page);
+  tw(page, { y: 0, o: 1 }, t0, .5, out);
+  mk('rect', { x: 84, y: 54, width: 1452, height: 812, fill: '#000', opacity: .35 }, sheet);   // its shadow
+  mk('rect', { x: 70, y: 40, width: 1452, height: 812, fill: PAPER }, sheet);
+  mk('path', { d: 'M796 40V852', stroke: PEN, 'stroke-width': 1.2, opacity: .12 }, sheet);       // where it was folded
+  mk('rect', { x: 86, y: 56, width: 1420, height: 780, fill: 'none', stroke: PEN, 'stroke-width': 2, opacity: .55 }, sheet);
+  const ink = (d, w = 2.4, extra = {}) => mk('path', { d, fill: 'none', stroke: PEN, 'stroke-width': w, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', ...extra }, sheet);
+  const drawOn = (e, at, dur) => { const L = e.getTotalLength(); e.setAttribute('stroke-dasharray', `${L} ${L}`); e.setAttribute('stroke-dashoffset', L); prog(q => e.setAttribute('stroke-dashoffset', L * (1 - q)), at, dur, io); };
+  const write = (str, x, y, at, { size = 26, italic = true, font = SER, anchor = 'start', fill = PEN, r = 0, ls } = {}) => {
+    const e = T(sheet, str, { x, y, size, font, weight: 400, fill, anchor, o: 0 });
+    if (italic) e.setAttribute('font-style', 'italic');
+    if (ls) e.setAttribute('letter-spacing', ls);
+    show(e, at, .4); return e;
+  };
+  const TYPE = '"Courier New", Courier, monospace';
+  // the typed head of the form, and the officer's stamp
+  write('BURMA POLICE  ·  MOULMEIN DISTRICT', 1490, 96, t0 + .5, { size: 22, italic: false, font: TYPE, anchor: 'end' });
+  write('SKETCH PLAN  ·  not to scale', 1490, 126, t0 + .6, { size: 22, italic: false, font: TYPE, anchor: 'end' });
+  ink('M1120 140H1490', 1.2, { opacity: .5 });
+  const stamp = G(sheet, { o: 0 }); stamp.setAttribute('transform', 'rotate(-14 1380 230)');
+  mk('circle', { cx: 1380, cy: 230, r: 52, fill: 'none', stroke: STAMP, 'stroke-width': 4, opacity: .8 }, stamp);
+  mk('circle', { cx: 1380, cy: 230, r: 42, fill: 'none', stroke: STAMP, 'stroke-width': 1.5, opacity: .8 }, stamp);
+  T(stamp, 'S.D.P.O.', { x: 1380, y: 240, size: 24, font: KEY, weight: 600, fill: STAMP, anchor: 'middle' });
+  tw(stamp, { o: .85 }, t0 + 1.1, .08, lin);
+
+  // the hill: closed contours round a summit, and hachures down its slopes between them
+  const C = [330, 250], ring = (k, a) => { const r = 55 + 48 * k; return [C[0] + 1.55 * r * (1 + .14 * Math.sin(2 * a + 1) + .07 * Math.sin(3 * a + k)) * Math.cos(a), C[1] + .9 * r * (1 + .12 * Math.sin(2 * a + 2.3) + .06 * Math.sin(4 * a + k)) * Math.sin(a)]; };
+  for (let k = 0; k < 5; k++) {
+    let d = ''; for (let i = 0; i <= 72; i++) { const [x, y] = ring(k, i / 72 * 2 * Math.PI); d += `${i ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`; }
+    const e = ink(d + 'Z', 1.4, { opacity: .55 });
+    drawOn(e, t0 + .4 + k * .12, .7);
+  }
+  const hach = G(sheet, { o: 0 });
+  for (let k = 0; k < 4; k++) for (let i = 0; i < 64; i++) {
+    const a = i / 64 * 2 * Math.PI + k * .05, [x0, y0] = ring(k + .12, a), [x1, y1] = ring(k + .78, a);
+    mk('path', { d: `M${x0.toFixed(1)} ${y0.toFixed(1)}L${x1.toFixed(1)} ${y1.toFixed(1)}`, stroke: PEN, 'stroke-width': 1.1, opacity: .35 + .1 * (3 - k) }, hach);
+  }
+  show(hach, t0 + 1.1, .8);
+  // the quarter on the hillside: huts as a map draws them, hipped roofs seen from above, the shaded side hatched;
+  // palms among them
+  const homes = [], H = G(sheet, {});
+  for (let i = 0; i < 26; i++) {
+    const a = rnd() * 2 * Math.PI, k = 1 + rnd() * 2.6, [x, y] = ring(k, a);
+    if (y > 420 || x < 120) { i--; continue; }
+    const w = 30 + rnd() * 14, h = 20 + rnd() * 6, ang = -20 + rnd() * 40, g = G(H, { o: 0 });
+    g.setAttribute('transform', `translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${ang.toFixed(1)})`);
+    const r = (w - h) / 2;
+    mk('path', { d: `M${-w / 2} ${-h / 2}H${w / 2}V${h / 2}H${-w / 2}Z`, fill: PAPER, stroke: PEN, 'stroke-width': 2 }, g);
+    mk('path', { d: `M${-w / 2} ${h / 2}L${-r} 0H${r}L${w / 2} ${h / 2}Z`, fill: PEN, opacity: .28 }, g);
+    mk('path', { d: `M${-w / 2} ${-h / 2}L${-r} 0L${-w / 2} ${h / 2}M${w / 2} ${-h / 2}L${r} 0L${w / 2} ${h / 2}M${-r} 0H${r}`, fill: 'none', stroke: PEN, 'stroke-width': 1.6 }, g);
+    show(g, t0 + 1 + i * .035, .15, lin);
+    homes.push([x, y]);
+  }
+  for (let i = 0; i < 9; i++) {
+    const [x, y] = ring(.8 + rnd() * 3.2, rnd() * 2 * Math.PI), g = G(sheet, { o: 0 });
+    let d = ''; for (let j = 0; j < 7; j++) { const a = j / 7 * 2 * Math.PI + rnd() * .3; d += `M${x} ${y}q${(9 * Math.cos(a + .6)).toFixed(1)} ${(9 * Math.sin(a + .6)).toFixed(1)} ${(17 * Math.cos(a)).toFixed(1)} ${(17 * Math.sin(a)).toFixed(1)}`; }
+    mk('path', { d, fill: 'none', stroke: PEN, 'stroke-width': 1.6 }, g); mk('circle', { cx: x, cy: y, r: 2.5, fill: PEN }, g);
+    show(g, t0 + 1.5 + i * .05, .2);
+  }
+  write('the quarter', 640, 118, t0 + 1.4, { size: 32 });
+  ink('M636 110q-40 -4 -70 22', 1.4);
+  // where the coolie lay: a cross, and a note
+  const [bx, by] = ring(3.3, 1.15);
+  ink(`M${bx - 11} ${by - 11}l22 22M${bx + 11} ${by - 11}l-22 22`, 3);
+  write('body of coolie', bx + 22, by + 30, t0 + 2.3, { size: 22 });
+  // the path down the hill, a double dashed line
+  const path = [[430, 380], [452, 430], [420, 470], [446, 512], [500, 548]];
+  const pd = 'M' + path.map(q => q.join(' ')).join('L');
+  for (const dx of [-5, 5]) { const e = ink(pd, 1.6, { transform: `translate(${dx},0)`, 'stroke-dasharray': '8 7' }); show(e, t0 + 1.9, .5); }
+  // the metalled road, a firm double line, named along its length
+  const road = 'M86 566C380 548 700 560 980 548S1360 538 1506 546';
+  for (const dy of [0, 22]) drawOn(ink(road, 2.6, { transform: `translate(0,${dy})` }), t0 + 1.6, .9);
+  write('METALLED  ROAD', 1180, 530, t0 + 2.3, { size: 18, italic: false, font: KEY, ls: '.4em' });
+  // the compass and the scale
+  const cp = G(sheet, { o: 0 }); cp.setAttribute('transform', 'translate(1250,250)');
+  mk('path', { d: 'M0 -46L10 0L0 46L-10 0Z', fill: 'none', stroke: PEN, 'stroke-width': 2 }, cp);
+  mk('path', { d: 'M0 -46L10 0H-10Z', fill: PEN }, cp);
+  mk('path', { d: 'M-34 0H34', stroke: PEN, 'stroke-width': 1.2 }, cp);
+  T(cp, 'N', { y: -56, size: 24, font: KEY, weight: 600, fill: PEN, anchor: 'middle' });
+  show(cp, t0 + 2, .4);
+  const sc = G(sheet, { o: 0 });
+  for (let i = 0; i < 4; i++) mk('rect', { x: 130 + i * 60, y: 800, width: 60, height: 9, fill: i % 2 ? PAPER : PEN, stroke: PEN, 'stroke-width': 1.5 }, sc);
+  T(sc, '0', { x: 130, y: 790, size: 16, font: SER, fill: PEN, anchor: 'middle' });
+  T(sc, '100', { x: 250, y: 790, size: 16, font: SER, fill: PEN, anchor: 'middle' });
+  T(sc, '200 yds', { x: 370, y: 790, size: 16, font: SER, fill: PEN, anchor: 'middle' });
+  show(sc, t0 + 2.1, .4);
+  const notes = [['Tame elephant, gone ‘must’.', 0], ['Broke its chain in the night.', 1], ['Mahout twelve hours’ journey away.', 2], ['Destroyed a hut, killed a cow,', 3], ['raided fruit-stalls. One coolie killed.', 4]];
+  notes.forEach(([str, i]) => write(str, 860, 250 + i * 40, t0 + 2.4 + i * .18, { size: 27 }));
+  ink('M860 236H1160', 1, { opacity: .35 });
+  const key = G(sheet, { o: 0 });
+  mk('rect', { x: 1220, y: 340, width: 260, height: 150, fill: 'none', stroke: PEN, 'stroke-width': 1.5 }, key);
+  T(key, 'REFERENCES', { x: 1350, y: 368, size: 16, font: KEY, weight: 600, fill: PEN, anchor: 'middle' }).setAttribute('letter-spacing', '.25em');
+  mk('path', { d: 'M1240 384H1268V402H1240ZM1240 402L1248 393H1260L1268 402M1240 384L1248 393M1268 384L1260 393', fill: 'none', stroke: PEN, 'stroke-width': 1.6 }, key);
+  T(key, 'hut', { x: 1290, y: 400, size: 20, font: SER, fill: PEN });
+  mk('path', { d: 'M1244 420l16 16M1260 420l-16 16', stroke: PEN, 'stroke-width': 2.4 }, key);
+  T(key, 'body', { x: 1290, y: 436, size: 20, font: SER, fill: PEN });
+  mk('circle', { cx: 1254, cy: 466, r: 5, fill: PEN }, key);
+  T(key, 'persons', { x: 1290, y: 472, size: 20, font: SER, fill: PEN });
+  show(key, t0 + 2.6, .4);
+  // the paddy fields below the road: uneven plots between bunds, tufts of coarse grass, standing water
+  const plots = G(sheet, {});
+  const X = [560, 760, 965, 1170, 1380, 1500], Y = [610, 712, 820];
+  const jx = (i, j) => X[i] + (i > 0 && i < 5 ? (rnd() - .5) * 40 : 0) + j * 14, jy = (i, j) => Y[j] + (j === 1 ? (rnd() - .5) * 26 : 0);
+  const P = Y.map((_, j) => X.map((_, i) => [jx(i, j), jy(i, j)]));
+  let n = 0;
+  for (let j = 0; j < 2; j++) for (let i = 0; i < 5; i++) {
+    const [a, b, c, d] = [P[j][i], P[j][i + 1], P[j + 1][i + 1], P[j + 1][i]];
+    const e = ink(`M${a.join(' ')}L${b.join(' ')}L${c.join(' ')}L${d.join(' ')}Z`, 1.8, { opacity: .8 });
+    drawOn(e, tPaddy - .5 + n * .05, .5);
+    const cx = (a[0] + b[0] + c[0] + d[0]) / 4, cy = (a[1] + b[1] + c[1] + d[1]) / 4, g = G(plots, { o: 0 });
+    for (let k = 0; k < 4; k++) { const x = cx - 60 + rnd() * 120, y = cy - 22 + rnd() * 44; mk('path', { d: `M${x} ${y}l-5 -10M${x} ${y}v-12M${x} ${y}l5 -10`, stroke: PEN, 'stroke-width': 1.4, opacity: .7 }, g); }
+    if ((i + j) % 2) for (let k = 0; k < 3; k++) { const x = cx - 40 + k * 22, y = cy + 18 + k * 6; mk('path', { d: `M${x} ${y}q8 -4 16 0`, fill: 'none', stroke: PEN, 'stroke-width': 1.2, opacity: .6 }, g); }
+    show(g, tPaddy + n * .05, .3); n++;
+  }
+  write('paddy  ·  unploughed, soggy from the first rains', 540, 700, tPaddy + .3, { size: 22, anchor: 'end' });
+  // the elephant, small, inked, and named
+  const S = SHAPES.elephant, k = 64 / S.h, E = [1160, 700];
+  const el = G(sheet, { o: 0 }); el.setAttribute('transform', `translate(${E[0] - S.w * k / 2},${E[1] - 64}) scale(${k})`);
+  mk('path', { d: S.d, fill: PEN, 'fill-rule': 'evenodd' }, el);
+  show(el, tPaddy + .4, .3);
+  write('the elephant', E[0] + 50, E[1] - 52, tPaddy + .6, { size: 26 });
+  ink(`M${E[0] + 48} ${E[1] - 60}q-20 -6 -26 6`, 1.4);
+  // "only a few hundred yards away": a red pencil line from the foot of the path to the elephant, an arrowhead, a note
+  const rd = `M500 572C640 640 860 690 ${E[0] - 50} ${E[1] - 26}`;
+  const redline = mk('path', { d: rd, fill: 'none', stroke: RED, 'stroke-width': 3.2, 'stroke-dasharray': '12 9', 'stroke-linecap': 'round' }, sheet);
+  put(redline, { o: 0 }); show(redline, tYards - .3, .5, lin);
+  const ah = mk('path', { d: `M${E[0] - 50} ${E[1] - 26}l-22 -4l8 14Z`, fill: RED }, sheet); put(ah, { o: 0 }); show(ah, tYards + .1, .2);
+  write('a few hundred yards', 760, 690, tYards, { size: 28, fill: RED });
+  return { page, sheet, homes, path, road: [[505, 576], [640, 574], [780, 571]] };   // down the middle of the road
+}
+// a rifle cartridge, drawn: the case, the shoulder, the bullet; base at (0, 0), about 250 tall
+function cartridge(p) {
+  mk('path', { d: 'M-20 0V-12H-17V-150L-12 -170V-185C-12 -215 -6 -235 0 -246C6 -235 12 -215 12 -185V-170L17 -150V-12H20V0Z', fill: CARD, stroke: CREAM, 'stroke-width': 4, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, p);
+  mk('path', { d: 'M-12 -185H12', stroke: CREAM, 'stroke-width': 2, opacity: .6 }, p);
+}
+const blackout = (p, o = 0) => put(mk('rect', { x: -10, y: -10, width: 1620, height: 920, fill: '#030604' }, p), { o });
+
+/* ---------- beats ----------
+   [id, title, run, extra]: id names audio/en/<id>.mp3 and its TIMINGS entry; m('mark') is the time a word is heard.
+   `pre` gives the picture (and music) seconds before the narration starts. */
+const BEATS = [
+  // Part 1, Moulmein: one take, told without a stop; each picture comes in on its sentence's first word (s2, s3 …)
+  // and is gone when the next sentence begins, so the picture keeps the voice's pace.
+  ['open', 'Moulmein', (m, D) => {
+    let p = panel(0);
+    const s = sight(p, 'elephant-side', 'sight0');
+    // the click fires: flash, the sight kicks up, black
+    const flash = put(mk('rect', { x: 0, y: 0, width: 1600, height: 900, fill: '#fff8e8' }, p), { o: 0 });
+    tw(flash, { o: .85 }, 0, .03, lin); tw(flash, { o: 0 }, .05, .25, out);
+    tw(s, { y: -70, r: -2.5, s: 1.04 }, 0, .07, out);
+    const b = blackout(p);
+    tw(b, { o: 1 }, .12, .06, lin);
+    hide(s, .2, .01, lin); hide(flash, .3, .01, lin);   // gone behind the black, so it never shows again
+    // the title, in the black while the trumpet's echo dies away
+    const ti = key(p, 'Shooting an Elephant', 800, 440, 1.6, { size: 110, from: 0 });
+    const by = tag(p, 'George Orwell · 1936', 800, 520, 2.2, { anchor: 'middle', size: 36, fill: CREAM });
+    hide(ti, m('moulmein') - 1.6, .6); hide(by, m('moulmein') - 1.6, .6);
+
+    // "In Moulmein …": the town, alive (shot 1.2 of the film experiments), then laid down as a print on the ground
+    const t0 = m('moulmein') - 1.2;
+    const frame = G(p, { x: 800, y: 450 });
+    const border = put(mk('rect', { x: -820, y: -470, width: 1640, height: 940, fill: PAPER }, frame), { o: 0 });
+    clip(frame, 'moulmein-live', D, { x: 0, y: 0, at: t0, dur: 1.4 });
+    hide(b, t0 + 1.5, .01, lin);   // the town fades in over the black; the ground is behind it from then on
+    const tDown = m('only') - .3;   // the town holds the screen through "hated by large numbers of people"
+    tw(frame, { s: .56, x: 560, y: 470, r: -1.5 }, tDown, 1.2, soft);
+    show(border, tDown + .4, .5);
+    dateChip(p, '1926', 'Moulmein · Lower Burma', m('moulmein') + .3);
+    const crowd = pic(p, 'crowd', { x: 1150, y: 520, h: 470, r: 2.5, at: tDown + .9, from: [80, 0] });
+    push(crowd, tDown + 1, m('s2'), 1.04);
+    sfx('open', t0, 'moulmein-amb', 1.2);
+
+    // "I was sub-divisional police officer of the town."
+    let t = m('s2') - .2; p = cut(t);
+    const map = pic(p, 'map-burma', { x: 400, y: 450, h: 830, r: -1, at: t, from: [-60, 0], dur: .6 });
+    const [px, py] = spot(map, 'map-burma', .70, .65);
+    const pin = G(p, { x: px, y: py, o: 0 });
+    mk('circle', { r: 9, fill: '#1d3527' }, pin);
+    mk('circle', { r: 22, fill: 'none', stroke: '#1d3527', 'stroke-width': 4 }, pin);
+    show(pin, t + .4, .25);
+    line(p, `M${px + 24} ${py}H680`, t + .5, .35, 2.5);
+    key(p, 'Moulmein', 700, py + 18, t + .7, { size: 56, anchor: 'start' });
+    pic(p, 'orwell-passport', { x: 1250, y: 450, h: 520, r: -3, at: m('police') - .3, from: [60, 40], dur: .6 });
+    tag(p, 'Eric Blair — later George Orwell', 1250, 760, m('police') + .4, { anchor: 'middle', size: 32, fill: CREAM });
+
+    // "When a nimble Burman tripped me up on the football field …"
+    t = m('s3') - .2; p = cut(t);
+    const fb = pic(p, 'football', { x: 800, y: 450, h: 720, at: t, from: [0, 30], dur: .6 });
+    push(fb, t, m('ref') - .3, 1.06);
+    closeups(p, fb, 'football', [['ref', .89, .42, 'the referee', 3], ['laugh', .2, .42, 'the crowd', 2.2]], m, m('s4') - .5, { x: 800, y: 450 });
+    // "… looked the other way": close on him, he looks back over his shoulder and grins (the same photograph, altered)
+    const refGrin = pic(fb, 'football-grin', { x: 0, y: 0, h: 720, o: 0 });
+    show(refGrin, m('ref') + 1.6, .3, lin);
+    sfx('open', m('laugh') - .15, 'jeer', .6);
+
+    // "The young Buddhist priests were the worst of all."
+    t = m('s4') - .2; p = cut(t);
+    const mk1 = pic(p, 'monks', { x: 800, y: 450, h: 720, at: t, from: [0, 30], dur: .5 });
+    // "… were the worst of all": the smallest novice looks back and grins at him (the same photograph, altered)
+    const grin = pic(mk1, 'monks-turn', { x: 0, y: 0, h: 720, o: 0 });
+    show(grin, m('priests') + 1, .35, lin);
+    closeups(p, mk1, 'monks', [['priests', .3, .82, 'young priests', 2.8]], m, m('s5'));
+
+    // "I had already made up my mind that imperialism was an evil thing."
+    t = m('s5') - .2; p = cut(t);
+    const em = pic(p, 'map-empire', { x: 800, y: 450, h: 800, at: t, from: [0, 0], dur: .6 });
+    push(em, t, m('theo'), 1.05);
+    tag(p, 'Imperial Federation: the British Empire in 1886', 800, 880, t + .5, { anchor: 'middle', size: 24 });
+    tw(em, { o: .16 }, m('imp') - .3, .5);
+    key(p, 'Imperialism', 800, 470, m('imp') - .1, { size: 160 });
+    sayRed(p, ['an evil thing'], 800, 580, m('evil'), m('evil') + .7, { size: 58, anchor: 'middle' });
+
+    // "Theoretically — and secretly, of course — I was all for the Burmese and all against their oppressors, the British."
+    // and on into "All I knew was that I was stuck …": both sides are there from "Theoretically", and he slides in between
+    t = m('theo') - .2; p = cut(t);
+    say(p, ['Theoretically — and secretly, of course —'], 800, 110, m('theo'), m('for') - .3, { size: 44, anchor: 'middle', fill: COL.dim });
+    const side = G(p, {});   // the two sides, which give way to the next picture's while he stays
+    const bu = pic(side, 'burmese', { x: 380, y: 560, h: 520, r: -2, at: t + .1, from: [-60, 0], dur: .6, o: .35 });
+    const rj = pic(side, 'raj', { x: 1250, y: 540, w: 540, r: 1.5, at: t + .3, from: [60, 0], dur: .6, o: .35 });
+    keyRed(side, 'For', 380, 245, m('for'), { size: 120 });
+    tw(bu, { o: 1 }, m('for'), .4);
+    tag(side, 'the Burmese', 380, 860, m('for') + .5, { anchor: 'middle', size: 34, fill: CREAM });
+    keyRed(side, 'Against', 1220, 245, m('against'), { size: 120 });
+    tw(rj, { o: 1 }, m('against'), .4);
+    tag(side, 'the British — Government House, Rangoon', 1220, 780, m('british'), { anchor: 'middle', size: 34, fill: CREAM });
+    hide(side, m('empire') - 1.2, .5);
+    const POR = { x: 800, y: 470, h: 380 };   // his portrait: the same place here and in the next picture, where it tears
+    pic(p, 'orwell-passport', { ...POR, at: m('stuck') - .4, from: [0, 60], dur: .6 });
+
+    // "All I knew was that I was stuck between my hatred of the empire I served and my rage against … beasts …"
+    // and on through "One day …": the picture stays, and at the end it tears apart down the middle of him.
+    // It is built once in <defs> and shown twice, each half clipped by the same jagged line, so the halves can part.
+    // the same layout as the one before (the Burmese left, the British right, he in the middle, not moving): the new
+    // picture comes in at once over the old, and only its two sides change
+    t = m('empire') - .6; p = panel(t); put(p, { o: 0 }); show(p, t, .01, lin);   // (built at the beat's start: hidden until then)
+    put(blackout(p), { o: 1 });
+    const defs = mk('defs', {}, p);
+    const all = G(mk('g', { id: 'torn' }, defs), {});
+    mk('rect', { x: -60, y: -60, width: 1720, height: 1020, fill: COL.board }, all);   // each half carries its ground
+    const left = G(all, {}), right = G(all, {});
+    const mess = pic(right, 'raj-mess', { x: 1270, y: 460, h: 470, r: 1.5, at: m('empire') - .5, from: [80, 0], dur: .6, o: .45 });
+    key(right, 'Empire', 1270, 500, m('empire'), { size: 140 });
+    // the "little beasts": the jeering crowd as he felt it, in silhouette, no one's face; a crowd that grows, back row
+    // first, smaller and dimmer behind; each figure rocks with laughter on its own beat. The word stays in quotation
+    // marks: his word, not the film's
+    const rows = [[515, 280, .5, 9, 10, 610], [610, 320, .75, 7, 20, 600], [695, 350, 1, 5, 40, 570]];   // the front row's feet on the engraving's bottom edge
+    let k = 0;
+    const mob = G(left, {}); boil(mob, D);   // one filter for the whole crowd: cheaper than one per figure
+    rows.forEach(([base, h, o, n, x0, x1]) => { for (let i = 0; i < n; i++) {
+      const x = x0 + (x1 - x0) * i / (n - 1) + ((k * 37) % 23 - 11);
+      shadow(mob, k % 8, x, base, h, m('empire') + 1 + k * .12, (k * .37) % 1, D, { o, flip: k % 3 === 1 });
+      k++;
+    } });
+    key(left, '“Beasts”', 310, 500, m('beasts'), { size: 140 });
+    const me = pic(all, 'orwell-passport', POR);
+    // the two sides close in on him until the sentence ends
+    tw(left, { x: 95 }, m('beasts'), m('one') - .4 - m('beasts'), soft);
+    tw(right, { x: -95 }, m('beasts'), m('one') - .4 - m('beasts'), soft);
+    // the tear: a jagged line down x = 800 (fixed seed, so every replay tears the same way)
+    const R = rng(1936), zig = [];
+    for (let y = -60; y <= 960; y += 34) zig.push([800 + (R() - .5) * 26, y]);
+    const pts = zig.map(([x, y]) => `${x.toFixed(1)} ${y}`).join(' L');
+    const halves = [`M-400 -60 L${pts} L-400 960Z`, `M2000 -60 L${pts} L2000 960Z`].map((d, i) => {
+      const cp = mk('clipPath', { id: `tear${i}` }, defs);
+      mk('path', { d }, cp);
+      const h = G(p, {});
+      mk('use', { href: '#torn', 'clip-path': `url(#tear${i})` }, h);
+      return h;
+    });
+    // until the crack, one whole copy covers the halves, so their seam never shows before it should
+    const whole = G(p, {});
+    mk('use', { href: '#torn' }, whole);
+    hide(whole, m('one') + .1, .01, lin);
+    // "One day": the crack opens a little; "enlightening": the halves come apart
+    tw(halves[0], { x: -7, r: -.4 }, m('one') + .1, .25, out); tw(halves[1], { x: 7, r: .4 }, m('one') + .1, .25, out);
+    tw(halves[0], { x: -980, r: -5, y: 40 }, m('enl') - .1, 1.3, io); tw(halves[1], { x: 980, r: 5, y: 40 }, m('enl') - .1, 1.3, io);
+    sfx('open', m('one') + .05, 'tear', 1.2);
+    sfx('open', m('enl') - .15, 'tear-long', 1.4);
+  }, { pre: OPEN_PRE }],
+
+  // Part 2, the elephant: one take; the phone rings in the black the first part tore open
+  ['p2', 'The elephant', (m, D) => {
+    let p = panel(0);
+    const dark = put(mk('rect', { x: -10, y: -10, width: 1620, height: 920, fill: '#030604' }, p), { o: 1 });
+    // "Early one morning": the town in the first light; the phone is heard before it is seen
+    const dawn = pic(p, 'dawn', { x: 800, y: 450, w: 1720, at: .15, from: [0, 0], dur: 1 });
+    toward(dawn, 'dawn', .42, .3, 1.7, 0, .01); toward(dawn, 'dawn', .5, .32, 1.85, .2, 3);   // the river at dawn, closer than part 1's view
+    hide(dark, 1.2, .01, lin);
+    sfx('p2', .25, 'phone-ring', 1.1);
+    // "the sub-inspector at a police station the other end of the town rang me up on the phone": the town as a police
+    // plan draws itself; the call runs down the telephone wire from the station to my bungalow, and the phone rings there,
+    // in a callout on the plan
+    let t = 4.1; p = cut(t);
+    const town = townPlan(p, t, D);
+    const tCall = m('phone') - 1.5;
+    const pulse = G(town.sheet, { o: 0 }); mk('circle', { r: 9, fill: HOT }, pulse); mk('circle', { r: 18, fill: 'none', stroke: HOT, 'stroke-width': 2 }, pulse);
+    show(pulse, tCall, .1);
+    clockRun(tt => { const q = Math.min(1, Math.max(0, (tt - tCall) / 1.1)); const [x, y] = along(town.wire, q); put(pulse, { x, y, s: 1 + .25 * Math.sin(tt * 20) }); }, D, { tail: true });
+    hide(pulse, tCall + 1.2, .2);
+    // the callout: a disc of the ground beside the bungalow, a leader line, the found drawing of the phone in it, rattling
+    const tr = tCall + 1.05;
+    const [cx, cy] = [town.ME[0] - 260, town.ME[1] - 250];
+    line(town.sheet, `M${town.ME[0] - 34} ${town.ME[1] - 30}L${cx + 120} ${cy + 90}`, tr, .25, 2.4, { stroke: INK });
+    const call = G(town.sheet, { x: cx, y: cy, o: 0, s: .6 });
+    mk('circle', { r: 150, fill: COL.board, stroke: INK, 'stroke-width': 4 }, call);
+    const ph = pic(call, 'phone', { x: 0, y: 6, h: 210 });
+    tw(call, { o: 1, s: 1 }, tr, .25, out);
+    const rings = G(call, { o: 0 });
+    for (const sx of [-1, 1]) for (const k of [0, 1]) path(rings, `M${-34 + sx * (60 + k * 22)} ${-82 - k * 4}q${sx * 13} 26 0 52`, { stroke: CREAM, 'stroke-width': 4, fill: 'none', 'stroke-linecap': 'round' });
+    clockRun(tt => {
+      const on = tt > tr && tt < tr + 2.2, w = tt * 2 * Math.PI * 12;
+      put(ph, on ? { r: 4 * Math.sin(w), x: 5 * Math.sin(w + 1), y: 6 - 5 * Math.abs(Math.sin(w)) } : { r: 0, x: 0, y: 6 });
+      put(rings, { o: on ? (Math.sin(w * .5) > 0 ? 1 : .55) : 0 });
+    }, D, { tail: true });
+    sfx('p2', tr, 'phone-ring-long', 1.3);
+    tw(town.page, { s: 1.25, x: 800 - 1.25 * 1000, y: 450 - 1.25 * 560 }, tCall - .3, 1.6, soft);   // in towards the south end as the call arrives
+
+    // "… an elephant was ravaging the bazaar. Would I please come and do something about it?"
+    t = m('eleph') - .2; p = cut(t);
+    const ch = pic(p, 'rampage', { x: 800, y: 450, h: 780, at: t, from: [0, 0], dur: .45 });
+    push(ch, t, m('q3'), 1.07);
+    tw(ch, { o: .16 }, m('would') - .3, .4);
+    const ask = say(p, ['“Would I please come and', 'do something about it?”'], 800, 420, m('would'), m('q3') - .7, { size: 64, anchor: 'middle', mark: ['do', 'something'] });
+    hide(ask, m('q3') - .45, .25);
+
+    // "I took my rifle, an old .44 Winchester and much too small to kill an elephant." — he holds it
+    t = m('q3') - .2; p = cut(t);
+    const of = pic(p, 'officer', { x: 800, y: 450, h: 760, at: t, from: [0, 0], dur: .5 });
+    push(of, t, m('small'), 1.04);
+    // the rifle itself beside the one in his hands, joined by a line
+    const gi = gunInset(p, of, 'officer', [.38, .455], 'winchester-bw', 'an old .44 Winchester', { x: 1150, y: 690, w: 780, r: -1.5 }, m('w44') - .3);
+    hide(gi, m('small') - .3, .3);
+    // "… and much too small to kill an elephant": the man and his rifle against the elephant, both in silhouette
+    t = m('small') - .3; p = cut(t, .3);
+    line(p, 'M0 780H1600', t, .4, 2, { opacity: .45 });
+    const man = G(p, {}), manL = G(p, { o: 0 });   // facing the elephant, and turned to run
+    cutout(man, 'officer', 400, 790, 330, { at: t + .05, from: [-40, 0], D });
+    cutout(manL, 'officer', 0, 0, 330, { flip: true, D });
+    const big = cutout(p, 'elephant', 1060, 790, 560, { at: t + .2, from: [60, 0], D });
+    key(p, 'Much too small', 800, 170, m('small') - .6, { size: 110 });
+    // then the elephant lunges at him, and he runs: it rocks back, steps forward hard; he jumps, turns and is gone
+    const tl = m('small') + .9;
+    tw(big, { x: 1085, r: 2 }, tl - .25, .25, io);
+    tw(big, { x: 940, r: -5 }, tl, .22, out);
+    tw(big, { x: 965, r: 0 }, tl + .22, .5, soft);
+    sfx('p2', tl + .05, 'thud', 1.4);
+    tw(man, { y: -40 }, tl + .08, .12, out);
+    tw(man, { y: 0 }, tl + .2, .12, io);
+    show(manL, tl + .32, .01, lin); hide(man, tl + .32, .01, lin);
+    // the run: off to the left, bobbing
+    clockRun(tt => { const q = Math.max(0, tt - tl - .32); put(manL, { x: 400 - 900 * q, y: 790 - 18 * Math.abs(Math.sin(q * 16)) }); }, D, { tail: true });
+
+    // "It was not, of course, a wild elephant, but a tame one which had gone 'must'."
+    t = m('q4') - .2; p = cut(t);
+    const cn = pic(p, 'chained', { x: 800, y: 450, h: 760, at: t, from: [0, 30], dur: .6, o: .08 });
+    push(cn, t, m('must'), 1.05);
+    const wild = key(p, 'Wild', 800, 500, m('q4') + 1.0, { size: 190 });
+    const ws = strike(p, wild, 800, 500, m('tame') - .3, 190);
+    hide(wild, m('tame') + .1, .3); hide(ws, m('tame') + .1, .3);
+    tw(cn, { o: 1 }, m('tame'), .4);
+    tag(p, 'a tame elephant and its mahouts, about 1920', 800, 875, m('tame'), { anchor: 'middle', size: 26 });
+    // "… which had gone 'must'": chained by the foreleg, it snaps the chain and charges; then a tracking shot: the elephant
+    // runs on the spot while the ground rolls in from the left with a bamboo hut, a cow and a fruit stall on it, each
+    // knocked down as its word is said ("… destroyed somebody's bamboo hut, killed a cow and raided some fruit-stalls")
+    t = m('must') - .45; p = cut(t, .25);
+    const GY = 800, V = 620, tm = m('must'), tRun = tm + .25;
+    const world = G(p, {});   // everything on the ground; it rolls right while the elephant runs left
+    line(p, `M0 ${GY}H1600`, t, .3, 2, { opacity: .45 });
+    const R = rng(1926);
+    for (let x = -4200; x < 1700; x += 70 + R() * 90) mk('path', { d: `M${x} ${GY}l-6 -${10 + R() * 14}M${x} ${GY}l4 -${12 + R() * 12}M${x} ${GY}l12 -${8 + R() * 10}`, stroke: CREAM, 'stroke-width': 2, opacity: .4 }, world);
+    const EH = 380, EW = SHAPES.elephant.w * EH / SHAPES.elephant.h, X0 = 1290, XR = 960;   // chained, and running
+    const front = XR - EW * .48;   // where the trunk is while it runs
+    const roll = tt => tt < tRun ? 0 : V * (tt - tRun);
+    clockRun(tt => put(world, { x: roll(tt) }), D, { tail: true });
+    const things = [['hut', m('hut'), 300], ['cow', m('cow'), 190], ['stall', m('fruit'), 250]].map(([n, th, h]) => {
+      const w = SHAPES[n].w * h / SHAPES[n].h, x = front - V * (th - tRun) - w * .45;   // its near edge meets the trunk at th
+      return [n, x, h, th, cutout(world, n, x, GY + 4, h, { D })];
+    });
+    const stakeX = X0 - EW * .19 - 150;
+    mk('path', { d: `M${stakeX} ${GY + 6}V${GY - 50}`, stroke: CREAM, 'stroke-width': 8, 'stroke-linecap': 'round' }, world);
+    const debris = G(world, {});
+    const el2 = cutout(p, 'elephant', X0, GY + 8, EH, { D });   // drawn after the ground and the debris: it is in front
+    const [fx, fy] = el2.foot(.31, .8);
+    const L = [...Array(8)].map((_, i) => [stakeX + (fx - stakeX) * i / 7, GY - 34 + (fy - GY + 34) * i / 7 + 10 * Math.sin(Math.PI * i / 7)]);
+    const links = (a, b) => { const g = G(p, {}); L.slice(a, b).forEach(([x, y], i) => mk('ellipse', { cx: x, cy: y, rx: 13, ry: 7, fill: 'none', stroke: CREAM, 'stroke-width': 4, transform: `rotate(${(a + i) % 2 ? 90 : 18} ${x} ${y})` }, g)); return g; };
+    const ca = links(0, 4), cb = links(4, 8);
+    tw(ca, { x: -40, y: 14, o: 0 }, tm, .45, out); tw(cb, { x: 30, y: 10, o: 0 }, tm, .45, out);
+    clockRun(tt => {   // rears back, runs forward to its place, then strides on the spot as the ground rolls
+      if (tt < tm) return put(el2, { x: X0, y: GY + 8, r: 0 });
+      if (tt < tRun) { const k = Math.sin(Math.PI * Math.min(1, (tt - tm) / .25)); return put(el2, { x: X0 + 25 * k, y: GY + 8, r: 4 * k }); }
+      const q = tt - tRun, x = q < .6 ? X0 + (XR - X0) * (1 - (1 - q / .6) ** 2) : XR;
+      put(el2, { x, y: GY + 8 - 14 * Math.abs(Math.sin(q * 13)), r: -3 + 2.5 * Math.sin(q * 13) });
+    }, D, { tail: true });
+    for (const [n, x, h, th, g] of things) {
+      tw(g, { r: -78, x: x - h * .55, y: GY + 4 }, th, .38, out);
+      sfx('p2', th, n === 'hut' ? 'crash' : 'thud', 1.5);
+      const Rb = rng(n.length * 97), bits = n === 'stall' ? 14 : n === 'hut' ? 8 : 0;
+      for (let k = 0; k < bits; k++) {
+        const vx = 220 + Rb() * 380, vy = 360 + Rb() * 360, x0 = x + (Rb() - .5) * 80, y0 = GY - h * (.3 + Rb() * .5), spin = (Rb() - .5) * 1400;
+        const b = n === 'stall' ? mk('circle', { r: 7 + Rb() * 5, fill: CREAM, opacity: .85 }, debris) : mk('rect', { x: -34, y: -3, width: 68, height: 6, rx: 3, fill: CREAM }, debris);
+        put(b, { o: 0 });
+        const tLand = (vy + Math.sqrt(vy * vy + 4 * 1300 * (GY - 10 - y0))) / 2600;
+        clockRun(tt => {
+          const q = tt - th; if (q < 0) return;
+          const qq = Math.min(q, tLand), yy = y0 - vy * qq + 1300 * qq * qq, xx = x0 - vx * qq;
+          b.setAttribute('transform', `translate(${xx.toFixed(1)},${Math.min(GY - 10, yy).toFixed(1)}) rotate(${q < tLand ? spin * q : 0})`);
+          b.style.opacity = q > 1.4 ? Math.max(0, 1 - (q - 1.4) * 2) : 1;
+        }, D, { tail: true });
+      }
+    }
+    for (let i = 0; i < 9; i++) sfx('p2', tRun + .1 + i * .48, 'thud', .7);   // its strides
+    const ttl = key(p, 'Must', 800, 200, tm - .05, { size: 150 });
+    const def = tag(p, 'a bull elephant’s yearly frenzy', 800, 270, tm + .1, { anchor: 'middle', size: 40, fill: CREAM });
+    hide(ttl, m('q6') + .4, .4); hide(def, m('q6') + .4, .4);
+
+    // "I rounded the hut and saw a man's dead body sprawling in the mud.": first the corner of the hut, then, on "dead", him
+    t = m('q7') - .2; p = cut(t, .8);
+    const bd = pic(p, 'body', { x: 800, y: 450, h: 780, at: t, from: [0, 0], dur: .9 });
+    toward(bd, 'body', .82, .38, 1.9, t, .01);                 // the corner of the hut
+    toward(bd, 'body', .6, .66, 1.7, m('dead') - .5, 1.6);     // round it, to the man in the mud
+    toward(bd, 'body', .5, .52, 1.6, m('q8'), 2.5);            // out a little: the Indian labourers standing over him
+    toward(bd, 'body', .6, .68, 2.3, m('coolie') + .8, 3);     // and close on him: "almost naked … dead many minutes"
+
+    // "Never tell me, by the way, that the dead look peaceful. Most of the corpses I have seen looked devilish."
+    t = m('never') - .2; p = cut(t, .6);
+    put(mk('rect', { x: -10, y: -10, width: 1620, height: 920, fill: '#030604' }, p), { o: 1 });
+    pic(p, 'orwell-passport', { x: 360, y: 450, h: 520, r: -2, at: m('never') - .1, from: [-40, 0], dur: .8, o: .55 });
+    say(p, ['Never tell me, by the way,', 'that the dead look peaceful.'], 640, 400, m('never'), m('never') + 3.2, { size: 58 });
+    say(p, ['Most of the corpses', 'I have seen looked devilish.'], 640, 590, m('never') + 3.7, m('devil') + .5, { size: 58, mark: ['devilish'] });
+
+    // "As soon as I saw the dead man, I sent an orderly … to borrow an elephant rifle." — three moments in a row, so
+    // they are laid out as a comic page, panel by panel, each staying while the next comes in
+    t = m('q10') - .2; p = cut(t, .25);
+    const b1 = comicPanel(p, 'body', [40, 40, 560, 400], [.6, .62], t, [800 - 320 * 2.2, 450 - 240 * 2.2, 2.2]);
+    tw(b1, { x: 0, y: 0, s: 1 }, m('q10') + 1.8, .55, io);
+    comicPanel(p, 'orderly', [40, 460, 1520, 400], [.5, .52], m('q10') + 2.1, [0, 50]);
+    const sw = comicPanel(p, 'swap', [620, 40, 940, 400], [.4, .3], m('erifle') - .45, [50, 0]);
+    const [lx, ly] = sw.at(.32, .34);
+    line(p, `M${lx} ${ly}L1110 640`, m('erifle') - .1, .35, 3, { opacity: .9 });
+    put(mk('circle', { cx: lx, cy: ly, r: 9, fill: 'none', stroke: CREAM, 'stroke-width': 3 }, p), { o: 0 });
+    show(p.lastChild, m('erifle') - .1, .2);
+    pic(p, 'double-rifle-bw', { x: 1260, y: 690, w: 560, r: 1.5, at: m('erifle') + .1, from: [60, 0], dur: .45 });
+    key(p, 'An elephant rifle', 1260, 820, m('erifle') + .3, { size: 46 });
+  }, { pre: 1.6 }],
+
+  // Part 3, the crowd: one take; the rifle comes, the crowd follows him down to the paddy, the elephant grazes
+  ['p3', 'The crowd', (m, D) => {
+    // the words that have no mark of their own, from the voice's word times (books/…/review/ch01/p3-words.json) + pre
+    const W = { yards: 10.75 + .8, but: 24.8 + .8, english: 29.6 + .8, besides: 31.84 + .8, meat: 32.68 + .8, not: 51.3 + .8 };
+    // "The orderly came back in a few minutes with a rifle and five cartridges"
+    let p = panel(0);
+    pic(p, 'double-rifle-bw', { x: 800, y: 320, w: 1150, at: .05, from: [0, 0], dur: .4 });
+    for (let i = 0; i < 5; i++) {
+      const c = G(p, { x: 560 + i * 120, y: 700, o: 0 }); cartridge(c);
+      tw(c, { o: 1, y: 680 }, m('five') + i * .16, .25, out);
+      sfx('p3', m('five') + i * .16, 'clack', .9);
+    }
+    tag(p, 'five cartridges', 800, 790, m('five') + 1, { anchor: 'middle', size: 40, fill: CREAM });
+
+    // "… some Burmans had arrived and told us that the elephant was in the paddy fields below, only a few hundred yards
+    // away": a page of the police report's sketch plan, drawing itself
+    let t = m('s2') - .2; p = cut(t);
+    const plan = sketchPlan(p, t, m('paddy'), W.yards, D);
+
+    // "As I started forward practically the whole population of the quarter flocked out of the houses and followed me."
+    // On the plan: he, a red dot, sets off down the path; the people pour out of every hut after him, a stream of ink dots
+    // that keeps growing, down the path and along the road; the view closes in on them
+    const route = [...plan.path, ...plan.road];
+    const tGo = m('s3') + .2, goDur = m('s4') - .3 - tGo, go = tt => Math.min(1, Math.max(0, (tt - tGo) / goDur));
+    const me = G(plan.sheet, { o: 0 }); mk('circle', { r: 11, fill: HOT, stroke: PAPER, 'stroke-width': 3 }, me);
+    show(me, m('s3') - .4, .3);
+    const meT = T(plan.sheet, 'me', { x: 0, y: 0, size: 26, font: SER, weight: 400, fill: HOT, anchor: 'middle', o: 0 });
+    meT.setAttribute('font-style', 'italic'); show(meT, m('s3') - .3, .3);
+    clockRun(tt => { const [x, y] = along(route, go(tt)); put(me, { x, y }); meT.setAttribute('x', x + 34); meT.setAttribute('y', y + 40); }, D, { tail: true });
+    const flock = G(plan.sheet, {}), Rf = rng(77);
+    for (let k = 0; k < 140; k++) {
+      const [hx, hy] = plan.homes[k % plan.homes.length], t1 = m('pop') - .5 + k * .03, lag = .05 + k * .0055;
+      const jx = (Rf() - .5) * 30, jy = (Rf() - .5) * 18, d = mk('circle', { r: 4.2, fill: INK }, flock);
+      put(d, { o: 0 });
+      clockRun(tt => {
+        if (tt < t1) return;
+        const out = Math.min(1, (tt - t1) / .6), q = Math.max(0, go(tt) - lag), [x0, y0] = route[0], [rx, ry] = along(route, q);
+        const x = out < 1 ? hx + (x0 - hx) * out : rx, y = out < 1 ? hy + (y0 - hy) * out : ry;
+        d.setAttribute('transform', `translate(${(x + jx * Math.min(1, out * 2)).toFixed(1)},${(y + jy * Math.min(1, out * 2)).toFixed(1)})`);
+        d.style.opacity = Math.min(.85, (tt - t1) / .2);
+      }, D, { tail: true });
+    }
+    tw(plan.page, { s: 1.45, x: 800 - 1.45 * 560, y: 450 - 1.45 * 480 }, m('s3') - .2, 3.5, soft);
+    sfx('p3', m('pop'), 'murmur', .7);
+
+    // "They had not shown much interest in the elephant when he was merely ravaging their homes, but it was different
+    // now that he was going to be shot."
+    t = m('s4') - .2; p = cut(t);
+    const eg = pic(p, 'aftermath', { x: 800, y: 450, h: 800, at: t, from: [0, 0], dur: .5 });
+    toward(eg, 'aftermath', .3, .45, 1.3, t, m('ravaging') - t);      // the crushed hut, the dead cow
+    toward(eg, 'aftermath', .7, .5, 1.15, m('ravaging') + .3, 2.5);   // the stalls, and the people standing by
+    tw(eg, { o: .32 }, W.but - .4, .4);
+    say(p, ['“… but it was different now', 'that he was going to be shot.”'], 800, 420, W.but, m('shot') + .2, { size: 60, anchor: 'middle', mark: ['shot'] });   // held into the next sentence, to "fun"
+    sfx('p3', m('shot') - .2, 'cheer', .7);
+
+    // "It was a bit of fun to them, as it would be to an English crowd; besides they wanted the meat."
+    t = m('fun') - .3; p = cut(t);   // the quote above stays up until here
+    // the two crowds side by side: the Burmese one is laid down on the left at once, the English one joins it on its word
+    const fn = pic(p, 'fun', { x: 470, y: 450, h: 520, r: -1.5, at: t, from: [-60, 0], dur: .5 });
+    push(fn, t, W.besides, 1.04);
+    sfx('p3', m('fun') - .1, 'jeer', .4);
+    pic(p, 'english-crowd', { x: 1150, y: 450, h: 520, r: 1.5, at: W.english - .2, from: [80, 0], dur: .5 });   // … the English one beside it
+    tag(p, 'as it would be to an English crowd: Wembley, 1923', 1150, 760, W.english + .2, { anchor: 'middle', size: 28, fill: CREAM });
+    t = W.besides - .2; p = cut(t);
+    cutout(p, 'elephant', 860, 800, 560, { D });
+    const chart = G(p, { o: 0 });   // a butcher's chart drawn over him
+    for (const d of ['M560 300C580 420 590 560 560 720', 'M760 270C780 420 790 580 780 760', 'M1000 280C1020 430 1020 600 1010 760', 'M560 500C760 480 980 480 1150 520'])
+      mk('path', { d, fill: 'none', stroke: CREAM, 'stroke-width': 4, 'stroke-dasharray': '16 12' }, chart);
+    show(chart, W.meat + .1, .3);
+    keyRed(p, 'Meat', 800, 190, W.meat + .2, { size: 130 });
+
+    // "The elephant was standing eight yards from the road, his left side towards us." — the picture, and a measure on it
+    t = m('s6') - .2; p = cut(t);
+    const ey = pic(p, 'eight', { x: 800, y: 450, h: 800, at: t, from: [0, 0], dur: .5 });
+    push(ey, t, m('s7'), 1.04);
+    const [ax, ay] = spot(ey, 'eight', .36, .62), [bx, by] = spot(ey, 'eight', .56, .62);
+    line(p, `M${ax} ${ay}H${bx}M${ax} ${ay - 14}v28M${bx} ${by - 14}v28`, m('eight') - .2, .5, 3, { 'stroke-dasharray': '12 8' });
+    key(p, 'Eight yards', (ax + bx) / 2, ay - 36, m('eight') + .1, { size: 50 });
+    say(p, ['his left side towards us'], 1520, 200, m('left'), m('left') + 1, { size: 46, anchor: 'end' });
+
+    // "He was tearing up bunches of grass, beating them against his knees to clean them and stuffing them into his mouth."
+    t = m('s7') - .2; p = cut(t);
+    const gz = pic(p, 'graze', { x: 800, y: 450, h: 800, at: t, from: [0, 0], dur: .5 });
+    closeups(p, gz, 'graze', [['grass', .32, .55, 'grass', 2.2], ['knees', .38, .68, 'his knees', 2.2], ['mouth', .3, .37, 'his mouth', 2.4]], m, m('s8') - .5, { x: 800, y: 450 });
+    sfx('p3', m('knees') + .1, 'thud', .5); sfx('p3', m('knees') + .55, 'thud', .5);
+
+    // "As soon as I saw the elephant, I knew with perfect certainty that I ought not to shoot him." "Moreover, I did not
+    // in the least want to shoot him." — behind him, looking at it; the words on screen
+    t = m('s8') - .2; p = cut(t, .5);
+    const og = pic(p, 'ought', { x: 800, y: 450, h: 800, at: t, from: [0, 0], dur: .6 });
+    push(og, t, D, 1.06);
+    tw(og, { o: .4 }, m('cert') - .5, .4);
+    say(p, ['“I knew with perfect certainty', 'that I ought not to shoot him.”'], 800, 380, m('cert') - .3, m('s9') - .4, { size: 58, anchor: 'middle', mark: ['not'] });
+    say(p, ['“… I did not in the least want to shoot him.”'], 800, 600, m('s9') + .4, m('want') + 1, { size: 48, anchor: 'middle', mark: ['want'] });
+  }, { pre: .8 }],
+
+  // Part 4, the turn: one take; the crowd, the conjurer, the wills that push him, the theatre and the puppet, the mask
+  ['p4', 'The turn', (m, D) => {
+    // "But at that moment I glanced round at the crowd that had followed me. It was an immense crowd, two thousand at the
+    // least and growing every minute." — one picture for both sentences, the view travelling back along the crowd; a count
+    let p = panel(0);
+    const gl = pic(p, 'glance', { x: 800, y: 450, h: 800, at: 0, from: [0, 0], dur: .5 });
+    toward(gl, 'glance', .7, .45, 1.2, 0, .01);
+    toward(gl, 'glance', .25, .4, 1.3, m('crowd') - .4, m('s3') - m('crowd'));
+    const cnt = G(p, { x: 1240, y: 790, o: 0 });
+    mk('rect', { x: -220, y: -96, width: 360, height: 136, fill: COL.board, opacity: .88 }, cnt);
+    const num = T(cnt, '0', { x: 120, y: 0, size: 96, font: KEY, weight: 600, fill: CREAM, anchor: 'end' });
+    const sub = T(cnt, 'and growing every minute', { x: 120, y: 30, size: 22, font: SER, fill: CREAM, anchor: 'end', o: 0 }); sub.setAttribute('font-style', 'italic');
+    show(cnt, m('s2') + .4, .3); show(sub, m('growing'), .4);
+    clockRun(tt => {
+      const a = m('s2') + .5, b = m('two') + .2, n = tt < a ? 0 : tt < b ? 2000 * smooth01((tt - a) / (b - a)) : 2000 + Math.floor((tt - b) * 3.2);
+      num.textContent = Math.floor(n).toLocaleString('en');
+    }, D, { tail: true });
+
+    // "They were watching me as they would watch a conjurer about to perform a trick."
+    let t = m('s3') - .2; p = cut(t);
+    const cj = pic(p, 'conjurer', { x: 800, y: 450, h: 820, at: t, from: [0, 0], dur: .5 });
+    push(cj, t, m('shoot') + 1.5, 1.08);
+    tag(p, 'a conjurer: Kellar’s levitation, a poster of 1894', 800, 885, m('conjurer'), { size: 26, fill: CREAM, anchor: 'middle' });
+
+    // "And suddenly I realized that I should have to shoot the elephant after all."
+    tw(cj, { o: .25 }, m('s4') + .6, .6);
+    say(p, ['“… I should have to shoot', 'the elephant after all.”'], 800, 400, m('s4') + 1.2, m('shoot') + 1.4, { size: 72, anchor: 'middle', mark: ['shoot'] });
+
+    // "The people expected it of me and I had got to do it; I could feel their two thousand wills pressing me forward,
+    // irresistibly." — seen from above: the crowd an arc of dots, each throwing an arrow at him; he is pushed towards it
+    t = m('s5') + 1; p = cut(t);   // the quote above stays 1.5 s after its last word
+    const C = [700, 520], R3 = rng(2000), arrows = G(p, { o: 0 }), dotsG = G(p, {});
+    const meDot = G(p, { x: C[0], y: C[1], o: 0 }); mk('circle', { r: 13, fill: HOT }, meDot);
+    show(meDot, t + .3, .3);
+    const meTag = key(p, 'Me', C[0], C[1] - 34, t + .5, { size: 40 });
+    const eT = cutout(p, 'elephant', 1360, 560, 110, { D, at: t + .5, from: [0, 0] });
+    label(p, 'THE ELEPHANT', 1360, 610, t + .8, { size: 20 });
+    for (let k = 0; k < 420; k++) {
+      const a = Math.PI * (.55 + R3() * .9), r = 170 + R3() * 260, x = C[0] + 1.25 * r * Math.cos(a), y = C[1] + .8 * r * Math.sin(a);
+      const d = mk('circle', { cx: x, cy: y, r: 3.6, fill: CREAM }, dotsG); put(d, { o: 0 }); show(d, t + .2 + k * .004, .2);
+      if (k % 4 === 0) {   // every fourth throws its will at him
+        const dx = C[0] - x, dy = C[1] - y, L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L, x1 = x + ux * (L - 17), y1 = y + uy * (L - 17);
+        mk('path', { d: `M${(x + ux * 10).toFixed(1)} ${(y + uy * 10).toFixed(1)}L${x1.toFixed(1)} ${y1.toFixed(1)}l${(-ux * 12 - uy * 6).toFixed(1)} ${(-uy * 12 + ux * 6).toFixed(1)}M${x1.toFixed(1)} ${y1.toFixed(1)}l${(-ux * 12 + uy * 6).toFixed(1)} ${(-uy * 12 - ux * 6).toFixed(1)}`, fill: 'none', stroke: CREAM, 'stroke-width': 1.3, opacity: .45 }, arrows);
+      }
+    }
+    tw(arrows, { o: .35 }, t + .6, .8); tw(arrows, { o: 1 }, m('wills') - .3, .4);
+    keyRed(p, 'Two thousand wills', 800, 150, m('wills') - .1, { size: 90 });
+    // pushed forward: he, the crowd and its arrows all slide towards the elephant
+    tw(meDot, { x: C[0] + 330, y: C[1] + 10 }, m('irres') - .3, 1.4, io); tw(meTag, { x: C[0] + 330, y: C[1] - 24 }, m('irres') - .3, 1.4, io);   // pushed …
+    for (const e of [dotsG, arrows]) tw(e, { x: 300, y: 10 }, m('irres') + .1, 1.4, io);   // … and the crowd after him
+
+    // "Here was I, the white man with his gun, standing in front of the unarmed native crowd — seemingly the leading actor
+    // of the piece; but in reality I was only an absurd puppet pushed to and fro by the will of those yellow faces behind."
+    t = m('s6') - .2; p = cut(t);
+    const th = theatre(p, t, D);
+    th.curtains.forEach((c, i) => tw(c, { x: (i ? 1 : -1) * 560, o: .9 }, t + .3, 1.4, io));
+    const actor = G(p, {});
+    p.insertBefore(actor, th.aud);   // on the boards, behind the audience
+    const pup = marionette(actor), NECK = th.FLOOR - 312;
+    show(th.spot, m('gun') - .4, .4);
+    tw(th.spot, { s: 1.15, x: -120, y: -100 }, m('actor') - .2, .5, out);
+    th.aud.childNodes.forEach((h, i) => { put(h, { o: 0 }); show(h, m('gun') + 1.2 + i * .03, .25); });
+    // the playbill, high on the left of the valance, clear of the strings: struck out in red when he turns out a puppet
+    const bill = G(th.sign, { o: 0 });
+    mk('rect', { x: 290, y: 30, width: 400, height: 74, fill: PAPER, stroke: INK, 'stroke-width': 3 }, bill);
+    const bt = T(bill, 'THE LEADING ACTOR', { x: 490, y: 82, size: 40, font: KEY, weight: 600, fill: INK, anchor: 'middle' }); bt.setAttribute('letter-spacing', '.06em');
+    show(bill, m('actor') - .1, .3);
+    const st = path(bill, 'M300 70L680 64', { stroke: HOT, 'stroke-width': 7, 'stroke-linecap': 'round' }, { d: 0 }); draw(st, m('puppet') - .1, .35);
+    // the control bar: a cross, the long bar for the hands, the short one for the knees, the head on the middle
+    const bar = G(p, { x: 800, y: 112, o: 0 });
+    mk('path', { d: 'M-120 0H120M0 -30V60M-70 46H70', stroke: CREAM, 'stroke-width': 10, 'stroke-linecap': 'round' }, bar);
+    const strings = G(p, { o: 0 }), sl = [0, 1, 2, 3, 4].map(() => mk('path', { d: '', stroke: CREAM, 'stroke-width': 2, fill: 'none' }, strings));
+    // the will of the faces behind: two long lines from the bar's ends down to the audience
+    const ropes = G(p, { o: 0 }), heads = [5, 9].map(i => th.aud.childNodes[i]);
+    const rl = heads.map(() => mk('path', { d: '', stroke: CREAM, 'stroke-width': 1.8, fill: 'none', opacity: .55 }, ropes));
+    const tP = m('puppet') - .2;
+    show(bar, tP, .3); show(strings, tP + .1, .3); show(ropes, tP + .6, .5);
+    const wave_ = (q, f, ph = 0) => Math.sin(q * f + ph);
+    clockRun(tt => {
+      const q = Math.max(0, tt - tP), on = Math.min(1, q / .5), swing = q < .5 ? 0 : q - .5;
+      // each push bigger than the last, the bar tilting with it; the puppet follows late, its limbs later still
+      const amp = on * Math.min(1, .35 + swing * .18), sway = amp * (90 * wave_(swing, 2.4) + 20 * wave_(swing, 5.3)), tilt = amp * 14 * wave_(swing, 2.4, .4);
+      const bx = 800 + sway * .55, by = 112 + 8 * wave_(swing, 4.8);
+      put(bar, { x: bx, y: by, r: tilt });
+      const lag = (d, k) => amp * k * wave_(swing - d, 2.4), lift = on * (34 + 10 * Math.abs(wave_(swing, 2.4)));
+      const pts = pup.pose({
+        x: 800 + amp * (90 * wave_(swing - .12, 2.4) + 20 * wave_(swing - .12, 5.3)), y: NECK - lift, a: lag(.25, 8),
+        arms: [6 + lag(.35, 34) + on * 18, 4 + on * (10 + 12 * Math.abs(wave_(swing, 4.8))), -6 + lag(.45, 30) - on * 10, 4 + on * 14],
+        legs: [3 + lag(.4, 20), on * (12 + 16 * Math.abs(wave_(swing - .3, 2.4))), -3 + lag(.5, 18), on * (8 + 14 * Math.abs(wave_(swing - .4, 2.4)))],
+      });
+      const ca = Math.cos(tilt * Math.PI / 180), sa = Math.sin(tilt * Math.PI / 180), B = (lx, ly) => [bx + lx * ca - ly * sa, by + lx * sa + ly * ca];
+      [[B(0, -30), pts.head], [B(120, 0), pts.handF], [B(-120, 0), pts.handB], [B(70, 46), pts.kneeF], [B(-70, 46), pts.kneeB]].forEach(([a, b], i) =>
+        sl[i].setAttribute('d', `M${a[0].toFixed(1)} ${a[1].toFixed(1)}L${b[0].toFixed(1)} ${b[1].toFixed(1)}`));
+      heads.forEach((h, i) => {   // each line runs from the bar's end to a head, which tugs on it
+        const tug = on * 10 * wave_(swing, 2.4, i * 1.5), [ex, ey] = B(i ? 120 : -120, 0);
+        h.setAttribute('transform', `translate(0,${tug.toFixed(1)})`);
+        rl[i].setAttribute('d', `M${ex.toFixed(1)} ${ey.toFixed(1)}L${h._x.toFixed(1)} ${(h._y + tug).toFixed(1)}`);   // straight, taut
+      });
+    }, D, { tail: true });
+
+    // "I perceived in this moment that when the white man turns tyrant it is his own freedom that he destroys." — the
+    // stage stays, darkened, the sentence over it
+    const veil = put(mk('rect', { x: -10, y: -10, width: 1620, height: 920, fill: '#030604' }, p), { o: 0 });
+    tw(veil, { o: .72 }, m('s7') - .3, .6);
+    say(p, ['“… when the white man turns tyrant', 'it is his own freedom that he destroys.”'], 800, 400, m('s7') + .9, m('freedom') + 1.2, { size: 66, anchor: 'middle', mark: ['freedom'] });
+
+    // "He wears a mask, and his face grows to fit it." — an iron face-plate comes down over his face, a slot across the
+    // eyes and down to the mouth, cheek-guards, a row of rivets (black card and a cream line, like the film's cut-outs);
+    // on "grows" the photograph is cut to the plate's outline and the iron sinks into the skin: the face has taken its
+    // shape. Then what shows through the slot goes black: there is no one behind it. The view closes in throughout.
+    t = m('mask') - .3; p = cut(t);   // (the quote above held 1.5 s)
+    const FACE = [800, 372];
+    const OUTER = 'M-120 -168C-60 -196 60 -196 120 -168C140 -96 140 -10 124 64C114 112 96 146 70 168L28 158C30 128 30 100 26 78H-26C-30 100 -30 128 -28 158L-70 168C-96 146 -114 112 -124 64C-140 -10 -140 -96 -120 -168Z';
+    const SLOT = 'M-104 -38C-86 -58 -32 -60 -10 -44C-6 -41 6 -41 10 -44C32 -60 86 -58 104 -38C88 -18 40 -12 13 -24V78H-13V-24C-40 -12 -88 -18 -104 -38Z';
+    const at = `translate(${FACE[0]},${FACE[1] - 8}) scale(.78)`, uid = Math.floor(t * 100);   // sized to his face, the slot on his eyes
+    const shot = G(p, {});
+    const defs = mk('defs', {}, shot);
+    const cpp = mk('clipPath', { id: 'visorClip' + uid }, defs), cut_ = mk('path', { d: OUTER.replace('L28 158C30 128 30 100 26 78H-26C-30 100 -30 128 -28 158L-70 168', 'Q0 192 -70 168') }, cpp);   // closed below: no bite out of the picture while it closes
+    const face = G(mk('g', { 'clip-path': `url(#visorClip${uid})` }, shot), {});
+    pic(face, 'orwell-passport', { x: 806, y: 402, h: 640 });   // placed so his eyes sit in the slot
+    // the clip starts as large as the picture and closes to the plate's outline on "grows"
+    clockRun(tt => { const q = smooth01(span01(tt, m('grows') - .1, m('grows') + 1.2)), k = 9 - 8 * q ** .6; cut_.setAttribute('transform', `${at} scale(${k})`); /* large at first: its notch off the picture */ }, D, { tail: true });
+    // the plate: iron with the slot cut out of it (a mask), then its lines and rivets
+    const mkid = 'visorMask' + uid, msk = mk('mask', { id: mkid, maskUnits: 'userSpaceOnUse', x: -400, y: -400, width: 800, height: 800 }, defs);
+    mk('path', { d: OUTER, fill: '#fff' }, msk); mk('path', { d: SLOT, fill: '#000' }, msk);
+    const plate = G(p, { x: 0, y: -260, o: 0 });
+    const inner = mk('g', { transform: at }, plate);
+    const iron = mk('path', { d: OUTER, fill: '#161d19', mask: `url(#${mkid})` }, inner);
+    mk('path', { d: OUTER, fill: 'none', stroke: CREAM, 'stroke-width': 4, 'stroke-linejoin': 'round' }, inner);
+    mk('path', { d: SLOT, fill: 'none', stroke: CREAM, 'stroke-width': 2.6, 'stroke-linejoin': 'round' }, inner);
+    mk('path', { d: 'M-112 -104C-60 -132 60 -132 112 -104M-96 6C-70 30 -50 60 -40 104M96 6C70 30 50 60 40 104', fill: 'none', stroke: CREAM, 'stroke-width': 2, opacity: .6 }, inner);   // brow ridge, cheek-guards
+    const tmp = mk('path', { d: OUTER, fill: 'none' }, inner), LL = tmp.getTotalLength();
+    for (let k = 0; k < 26; k++) { const pt = tmp.getPointAtLength(LL * (k + .5) / 26), cx = pt.x * .9, cy = pt.y * .9 + 4; mk('circle', { cx, cy, r: 3.6, fill: CREAM, opacity: .8 }, inner); }
+    tmp.remove();
+    tw(plate, { y: 0, o: 1 }, m('mask') - .1, .45, out);
+    tw(iron, { o: .5 }, m('grows'), 1.4, io);   // the iron sinks into the skin
+    // nothing behind it: what shows through the slot goes black
+    const voidS = mk('path', { d: SLOT, fill: '#000', transform: at }, p); put(voidS, { o: 0 });
+    tw(voidS, { o: 1 }, m('grows') + .5, 1.3, io);
+    tw(p, { s: 1.35, x: 800 - 1.35 * FACE[0], y: 450 - 1.35 * FACE[1] }, t, m('laugh') - t + .2, soft);
+    // then the dark closes in from the edges until only the mask-face hangs in a small pool of light. (Heart of Darkness)
+    const gid = 'dark' + Math.floor(t * 100), gr = mk('radialGradient', { id: gid, gradientUnits: 'userSpaceOnUse', cx: FACE[0], cy: FACE[1], r: 1600 }, mk('defs', {}, p));
+    mk('stop', { offset: .55, 'stop-color': '#000', 'stop-opacity': 0 }, gr); mk('stop', { offset: 1, 'stop-color': '#000', 'stop-opacity': 1 }, gr);
+    mk('rect', { x: -1600, y: -1200, width: 4800, height: 3300, fill: `url(#${gid})` }, p);
+    // then, on "laugh", the faces come up out of the dark all round it, laughing at him; the mask stays where it is
+    clockRun(tt => gr.setAttribute('r', (1600 - 1360 * smooth01(span01(tt, m('grows') + .5, m('laugh') - .4)) + 760 * smooth01(span01(tt, m('laugh') - .1, m('laugh') + 1))).toFixed(0)), D, { tail: true });
+    const crowdL = G(p, { o: 0 }); p.insertBefore(crowdL, p.firstChild);   // behind the mask
+    pic(crowdL, 'eager', { x: FACE[0], y: FACE[1], h: 800 / 1.35 });
+    show(crowdL, m('laugh') - .1, .6);
+    tw(crowdL, { o: .45 }, m('laughed') - 3.4, .5);   // the faces sink back a little for the last words
+    sfx('p4', m('laugh') - .1, 'jeer', .45);
+    // the last words under the mask, in the dark at the foot of the frame (the panel is zoomed 1.35 about the face)
+    say(p, ['“… one long struggle not to be laughed at.”'], FACE[0], FACE[1] + 300 / 1.35, m('laughed') - 3, m('laughed') + .6, { size: 64 / 1.35, anchor: 'middle', mark: ['laughed'] });
+
+
+
+  }, { pre: .8 }],
+
+  // Part 5, the shooting. Seven beats; between them the reader fires (on the page) or the shot is fired for them (video)
+  ['p5a', 'The aim', (m, D) => {
+    // "I shoved the cartridges into the magazine and lay down on the road to get a better aim."
+    let p = panel(0);
+    const pr = pic(p, 'prone', { x: 800, y: 450, h: 800, at: 0, from: [0, 0], dur: .5 });
+    toward(pr, 'prone', .45, .6, 1.25, 0, .01); toward(pr, 'prone', .5, .5, 1.1, m('lay'), 4);
+    sfx('p5a', m('cart'), 'clack', .7); sfx('p5a', m('cart') + .4, 'clack', .7);
+    // "The crowd grew very still, and a deep, low, happy sigh, as of people who see the theatre curtain go up at last,
+    // breathed from innumerable throats." — the theatre of part 4: the curtain goes up on the elephant in the paddy
+    let t = m('sigh') - .8; p = cut(t);
+    const th = theatre(p, t, D);
+    const stageEl = elephantPuppet(G(p, {}), D); p.insertBefore(stageEl.g.parentNode, th.aud);
+    stageEl.pose({ x: 820, y: th.FLOOR + 6, h: 300 });
+    th.curtains.forEach((c, i) => tw(c, { x: (i ? 1 : -1) * 560, o: .9 }, m('curtain') - .3, 1.6, io));
+    th.aud.childNodes.forEach(h => put(h, { o: 1 }));
+    show(th.spot, m('curtain'), .6);
+    sfx('p5a', m('sigh') - .2, 'sigh', 1.2);
+    // "The rifle was a beautiful German thing with cross-hair sights."
+    t = m('s3') - .2; p = cut(t);
+    scope(p, a => { mk('rect', { x: 0, y: 0, width: 1600, height: 900, fill: '#59604f' }, a); paddy(a, 600); });
+    label(p, 'CROSS-HAIR SIGHTS', 800, 850, m('cross') + .2, { size: 26, o: .9 });
+    // "… an imaginary bar running from ear-hole to ear-hole. I ought … to have aimed straight at his ear-hole; actually I
+    // aimed several inches in front of this, thinking the brain would be further forward." — a hunting manual's plate
+    t = m('s4') - .2; p = cut(t);
+    const hd = pic(p, 'e-head', { x: 800, y: 450, h: 820, at: t, from: [0, 0], dur: .5 });
+    push(hd, t, m('forward') + .4, 1.04);
+    tw(hd, { o: .55 }, m('bar') - .5, .5);
+    const [bx_, by_] = spot(hd, 'e-head', .52, .3), [ex, ey] = spot(hd, 'e-head', .6, .43), [ax, ay] = spot(hd, 'e-head', .46, .44);
+    const plate = G(p, {});
+    const brain = path(plate, `M${bx_ - 70} ${by_}a70 46 0 1 0 140 0a70 46 0 1 0 -140 0`, { stroke: CREAM, 'stroke-width': 3.5, 'stroke-dasharray': '10 8', fill: 'none' }, { d: 0 });
+    draw(brain, m('bar') - .4, .6);
+    tag(plate, 'the brain', bx_ + 84, by_ - 40, m('bar'), { size: 32, fill: CREAM });
+    line(plate, `M${ex - 260} ${ey}H${ex + 160}`, m('bar') + .2, .6, 3, { 'stroke-dasharray': '6 6' });
+    tag(plate, 'an imaginary bar, ear-hole to ear-hole', ex + 170, ey + 8, m('bar') + .5, { size: 30, fill: CREAM });
+    const eh = G(plate, { x: ex, y: ey, o: 0 }); mk('circle', { r: 15, fill: 'none', stroke: CREAM, 'stroke-width': 4 }, eh); show(eh, m('ear') - .1, .3);
+    tag(plate, 'ear-hole: where to aim', ex + 24, ey + 52, m('ear') + .2, { size: 30, fill: CREAM });
+    const xx = path(plate, `M${ax - 18} ${ay - 18}l36 36M${ax + 18} ${ay - 18}l-36 36`, { stroke: HOT, 'stroke-width': 8, 'stroke-linecap': 'round' }, { d: 0 });
+    draw(xx, m('inches') - .1, .35);
+    tag(plate, 'where I aimed', ax - 26, ay + 60, m('inches') + .3, { size: 34, fill: HOT, anchor: 'end' });
+    // and the sight: the same picture as the film's first frame; the reader fires
+    t = m('forward') + .5; p = cut(t, .3);
+    scope(p, a => { const g = pic(a, 'elephant-side', { x: SCOPE.x + 150, y: SCOPE.y + 70, h: 880 }); g.setAttribute('filter', 'grayscale(1) contrast(1.1)'); a.shot = { g, name: 'elephant-side', n: 0 }; });
+  }, { pre: .6, ask: fireAsk(1, 'p5b', { head: 0 }), hold: 1.5 }],
+
+  ['p5b', 'The first shot', (m, D) => {
+    let p = panel(0);
+    openingShots('p5b', [.01]); flashAt(p, 0, LIVE.p5b); jolt(p, 0);
+    // "… I heard the devilish roar of glee that went up from the crowd."
+    const e0 = pic(p, 'graze', { x: 800, y: 450, h: 800 });
+    sfx('p5b', m('roar') - .2, 'roar', 1.4);
+    const cr = G(p, { o: 0 }); pic(cr, 'glance', { x: 800, y: 450, h: 800 }); show(cr, m('roar') - .3, .25); hide(cr, m('s2') + .2, .4);
+    // "… a mysterious, terrible change had come over the elephant. He looked suddenly stricken, shrunken, immensely old"
+    const e1 = wounds(pic(p, 'e-stricken', { x: 800, y: 450, h: 800, o: 0 }), 'e-stricken', 1);
+    tw(e1, { o: 1 }, m('change') - .2, .5, lin);   // the change, quicker than a dissolve should be
+    push(e1, m('change'), m('s4'), 1.06); hide(e0, m('change') + .4, .01, lin);
+    // "… he sagged flabbily to his knees."
+    const e2 = wounds(pic(p, 'e-knees', { x: 800, y: 450, h: 800, o: 0 }), 'e-knees', 1);
+    tw(e2, { o: 1 }, m('knees') - 1.6, 1.8, io);
+    toward(e2, 'e-knees', .38, .5, 1.25, m('knees'), m('thousands') + 1 - m('knees')); hide(e1, m('knees') + .3, .01, lin);
+    // "One could have imagined him thousands of years old."
+    tw(e2, { o: .4 }, m('s5') - .3, .4);
+    say(p, ['“… thousands of years old.”'], 800, 470, m('s5') + .3, m('thousands') + .9, { size: 70, anchor: 'middle', mark: ['thousands'] });
+    // the sight again, on him kneeling
+    const t = m('thousands') + 2.6; p = cut(t, .3);
+    scopeOn(p, 'e-knees', .32, .42, 1500, undefined, 1);
+  }, { pre: .6, ask: fireAsk(1, 'p5c', { head: 1 }), hold: 1.5 }],
+
+  ['p5c', 'The second shot', (m, D) => {
+    let p = panel(0);
+    openingShots('p5c', [.01]); flashAt(p, 0, LIVE.p5c); jolt(p, 0);
+    wounds(pic(p, 'e-knees', { x: 800, y: 450, h: 800 }), 'e-knees', 2);
+    // "… climbed with desperate slowness to his feet and stood weakly upright, with legs sagging and head drooping."
+    const e = wounds(pic(p, 'e-rise', { x: 800, y: 450, h: 800, o: 0 }), 'e-rise', 2);
+    tw(e, { o: 1 }, m('climbed') - .3, 3.2, io);
+    push(e, m('climbed'), m('upright') + 2, 1.05);
+    const t = m('upright') + 2.4; p = cut(t, .3);
+    scopeOn(p, 'e-rise', .3, .4, 1500, undefined, 2);
+  }, { pre: .6, ask: fireAsk(1, 'p5d', { head: 2 }), hold: 1.5 }],
+
+  ['p5d', 'The third shot', (m, D) => {
+    let p = panel(0);
+    openingShots('p5d', [.01]); flashAt(p, 0, LIVE.p5d); jolt(p, 0);
+    // "That was the shot that did for him."
+    const e0 = wounds(pic(p, 'e-rise', { x: 800, y: 450, h: 800 }), 'e-rise', 3);
+    // "… he seemed to tower upward like a huge rock toppling, his trunk reaching skyward like a tree."
+    const e1 = wounds(pic(p, 'e-topple', { x: 800, y: 450, h: 800, o: 0 }), 'e-topple', 3);
+    tw(e1, { o: 1 }, m('rise') - .4, 1.4, io);
+    toward(e1, 'e-topple', .3, .35, 1.3, m('rise'), m('s3') - m('rise')); hide(e0, m('rise') + 1.1, .01, lin);
+    // "He trumpeted, for the first and only time."
+    sfx('p5d', m('trumpet'), 'trumpet', 2);
+    tw(e1, { o: .38 }, m('trumpet') + .4, .4);
+    say(p, ['“He trumpeted,', 'for the first and only time.”'], 800, 400, m('trumpet') + .2, m('s4') - .2, { size: 64, anchor: 'middle', mark: ['only'] });
+    // "And then down he came, his belly towards me, with a crash that seemed to shake the ground even where I lay."
+    const tc = m('crash') - .3, e2 = wounds(pic(p, 'e-down', { x: 800, y: 450, h: 800, o: 0 }), 'e-down', 3);
+    tw(e2, { o: 1 }, tc, .08, lin); hide(e1, tc + .1, .01, lin);
+    sfx('p5d', tc, 'crash', 2);
+    clockRun(tt => { const q = tt - tc; if (q < 0) return; const a = 20 * Math.exp(-q * 4); put(p, { x: a * Math.sin(q * 61), y: a * Math.sin(q * 47) }); }, D, { tail: true });
+    push(e2, tc, D, 1.04);
+  }, { pre: .6 }],
+
+  ['p5e', 'Not dead', (m, D) => {
+    let p = panel(0);
+    // "… he was not dead. He was breathing very rhythmically with long rattling gasps, his great mound of a side painfully
+    // rising and falling."
+    for (let k = 0; k < 4; k++) sfx('p5e', .2 + k * 8, 'gasps', 1.1);
+    const e0 = wounds(pic(p, 'e-down', { x: 800, y: 450, h: 800 }), 'e-down', 3); breathing(e0, D, { y0: 700 });
+    const e1 = wounds(pic(p, 'e-gasp', { x: 800, y: 450, h: 800, o: 0 }), 'e-gasp', 3); breathing(e1, D, { y0: 720, amp: .016 });
+    tw(e1, { o: 1 }, m('s2') - .3, 1, io); hide(e0, m('s2') + .8, .01, lin);
+    toward(e1, 'e-gasp', .3, .55, 1.25, m('gasps'), 4);
+    const t = m('gasps') + 3.2; p = cut(t, .3);
+    scopeOn(p, 'e-down', .5, .55, 950, undefined, 3);
+  }, { pre: .4, ask: fireAsk(2, 'p5f'), hold: 2 }],
+
+  ['p5f', 'Still he did not die', (m, D) => {
+    let p = panel(0);
+    openingShots('p5f', [.01, .6]); flashAt(p, 0, LIVE.p5f); flashAt(p, .6, LIVE.p5f); jolt(p, 0); jolt(p, .6, 9);
+    for (let k = 0; k < 2; k++) sfx('p5f', .2 + k * 8, 'gasps', 1.1);
+    const e0 = wounds(pic(p, 'e-down', { x: 800, y: 450, h: 800 }), 'e-down', 3); const br = breathing(e0, D, { y0: 700 });
+    // "The thick blood welled out of him like red velvet, but still he did not die." — the only red that spreads
+    // "The thick blood welled out of him like red velvet" — the same photograph with the blood in it (its blood alone
+    // tinted betel red), dissolving in slowly as the words are said
+    const eb = wounds(pic(br, 'e-down-blood', { x: 800, y: 450, h: 800, o: 0 }), 'e-down', 3);
+    tw(eb, { o: 1 }, m('blood') - .2, 2.6, io);
+    toward(e0, 'e-down', .5, .55, 1.2, 0, m('s2')); toward(eb, 'e-down-blood', .5, .55, 1.2, 0, m('s2'));
+    // "I sent back for my small rifle" — the small rifle's sight
+    const t = m('small') - .2; p = cut(t, .3);
+    scopeOn(p, 'e-down-blood', .5, .55, 950, { small: true }, 3);
+  }, { pre: .4, ask: fireAsk(8, 'p5g', { small: true }), hold: 2.4 }],
+
+  ['p5g', 'Half an hour', (m, D) => {
+    let p = panel(0);
+    const shots = [...Array(8)].map((_, k) => .02 + k * .28);
+    openingShots('p5g', shots, true); shots.forEach(t => { flashAt(p, t, LIVE.p5g); jolt(p, t, 5); });
+    for (let k = 0; k < 3; k++) sfx('p5g', .2 + k * 8, 'gasps', 1);
+    const e0 = wounds(pic(p, 'e-gasp-blood', { x: 800, y: 450, h: 800 }), 'e-gasp-blood', 3); breathing(e0, D, { y0: 720, amp: .016 });
+    // "They seemed to make no impression. The tortured gasps continued as steadily as the ticking of a clock."
+    for (let k = 0; k < 9; k++) sfx('p5g', m('s3') + k, 'tick', 1.2);
+    // "In the end I could not stand it any longer and went away." — the view draws back and the light goes
+    tw(e0, { s: .8 }, m('away') - .5, D - m('away'), soft);
+    const dark = put(mk('rect', { x: -2000, y: -2000, width: 6000, height: 5000, fill: '#000' }, p), { o: 0 });
+    tw(dark, { o: 1 }, m('away'), D - m('away') - .2, io);
+    // "I heard later that it took him half an hour to die."
+    say(p, ['“… it took him half an hour to die.”'], 800, 460, m('s5') + .3, m('hour') + .8, { size: 56, anchor: 'middle', mark: ['hour'] });
+  }, { pre: .4 }],
+
+  // Part 6, afterwards: one take; then the title, the author, the year, and The End
+  ['p6', 'Afterwards', (m, D) => {
+    // "Afterwards, of course, there were endless discussions about the shooting of the elephant. Among the Europeans
+    // opinion was divided. The older men said I was right, the younger men said it was a damn shame …"
+    let p = panel(0);
+    const cl = pic(p, 'club', { x: 800, y: 450, h: 800, at: 0, from: [0, 0], dur: .8 });
+    push(cl, 0, m('s3'), 1.04);
+    closeups(p, cl, 'club', [['older', .17, .45, 'the older men', 1.8], ['younger', .78, .45, 'the younger men', 1.8]], m, m('s4') - .3, { x: 800, y: 450 });
+    // "And afterwards I was very glad that the coolie had been killed; it put me legally in the right and it gave me a
+    // sufficient pretext for shooting the elephant."
+    let t = m('s4') - .2; p = cut(t);
+    const bd = pic(p, 'body', { x: 800, y: 450, h: 800, at: t, from: [0, 0], dur: .6 });
+    push(bd, t, m('s5'), 1.05);
+    tw(bd, { o: .3 }, m('pretext') - 2.2, .5);
+    say(p, ['“… a sufficient pretext', 'for shooting the elephant.”'], 800, 400, m('pretext') - 2, m('s5') + .6, { size: 64, anchor: 'middle', mark: ['pretext'] });
+    // "I often wondered whether any of the others grasped that I had done it solely to avoid looking a fool."
+    t = m('s5') + 1.2; p = cut(t);
+    const of = pic(p, 'officer', { x: 800, y: 450, h: 800, at: t, from: [0, 0], dur: .6 });
+    toward(of, 'officer', .48, .3, 1.3, t, D - t + 1);
+    tw(of, { o: .3 }, m('fool') - 2.4, .5);
+    say(p, ['“… solely to avoid', 'looking a fool.”'], 800, 400, m('fool') - 2.2, m('fool') + .5, { size: 70, anchor: 'middle', mark: ['fool'] });
+    // the end card
+    t = D + 2.2; p = cut(t, 1);
+    put(mk('rect', { x: -10, y: -10, width: 1620, height: 920, fill: '#030604' }, p), { o: 1 });
+    key(p, 'Shooting an Elephant', 800, 400, t + .8, { size: 110 });
+    tag(p, 'George Orwell  ·  1936', 800, 480, t + 1.8, { anchor: 'middle', size: 40, fill: CREAM });
+    const end = T(p, 'The End', { x: 800, y: 650, size: 44, font: SER, weight: 400, fill: CREAM, anchor: 'middle', o: 0 });
+    end.setAttribute('font-style', 'italic'); end.setAttribute('letter-spacing', '.12em');
+    show(end, t + 4, 1.2);
+    hide(end, t + 9, .01, lin);   // (the beat's length: the card holds about 5 s)
+  }, { pre: .8 }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+/* ---------- music ----------
+   Elgar's Crown of India (1912, written for the imperial Durbar) under Moulmein: it waits until the black has passed. */
+// Grieg's Mountain King, one piece through the whole part: it sinks to a fifth as he finds the body and comes back as the
+// orderly runs for the rifle (the levels are in m2-grieg-p2.mp3, mixed to the beat clock: down 1.2 s before "I rounded
+// the hut", up 1.6 s after "As soon as I saw the dead man"; MUSIC_OFF would silence it, not lower it)
+music('audio/bgm/m2-grieg-p2.mp3', ['p2'], .55, 1.5);
+// Grieg's Morning Mood under part 3: the morning, the crowd, the elephant at peace
+music('audio/bgm/m3-grieg-morning.mp3', ['p3'], .5, 2);
+// Grieg's Death of Aase under part 4: grave, rising
+music('audio/bgm/m4-grieg-aase.mp3', ['p4'], .5, 2.5);
+// Satie's first Gymnopédie under the shooting: slow and plain against what happens; it plays on while the page waits
+// for the reader to fire (rising a little, engine v2.3), and plays on through the end
+music('audio/bgm/m5-satie.mp3', ['p5a', 'p5b', 'p5c', 'p5d', 'p5e', 'p5f', 'p5g', 'p6'], .4, 2.5);   // and on to the end
+music('audio/bgm/m1-crown-menuetto.mp3', ['open'], .5, 3);
+window.MUSIC_OFF = { open: t => t < OPEN_PRE - .8 };
+sfx('open', .01, 'rifle', 2);
+// the first shot can miss: the elephant only trumpets if the crosshair was on it when the reader fired; a miss sends
+// birds up instead (as Orwell's own first shot was misplaced). Decided at the click, before the film starts.
+sfx('open', .5, 'trumpet', 1.6);
+sfx('open', .35, 'flee', 0);
+// the elephant in elephant-grazing-gen.png, as fractions of the picture (inside the print's border)
+const ELEPHANT = [[.42, .02], [.62, 0], [1, .1], [1, 1], [.6, 1], [.55, .72], [.5, .86], [.4, .87], [.33, .75], [.33, .45], [.37, .22]];
+function onElephant() {
+  // the crosshair (SIGHT) over the picture, which sits at SIGHT + (150, 70) + the aim, 880 high with its border
+  const [W, H] = ART['elephant-side'], k = 880 / H, iw = (W - 112) * k, ih = (H - 112) * k;
+  const fx = .5 + (SIGHT.x - (SIGHT.x + 150 + AIM.x)) / iw, fy = .5 + (SIGHT.y - (SIGHT.y + 70 + AIM.y)) / ih;
+  let inside = false;   // point in polygon (even-odd)
+  for (let i = 0, j = ELEPHANT.length - 1; i < ELEPHANT.length; j = i++) {
+    const [xi, yi] = ELEPHANT[i], [xj, yj] = ELEPHANT[j];
+    if ((yi > fy) !== (yj > fy) && fx < (xj - xi) * (fy - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+const fire = () => { if (P.started) return; const hit = onElephant(); sfx('open', .5, 'trumpet', hit ? 1.6 : 0); sfx('open', .35, 'flee', hit ? 0 : 1.4); };
+$('cover').addEventListener('click', fire, true);
+addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') fire(); }, true);
+sfx('open', 1.6, 'ring', .8);
+
+// the fonts must be in before words are measured
+Promise.all(['600 40px Oswald', '500 40px Oswald', 'italic 400 40px "EB Garamond"', '400 40px "EB Garamond"']
+  .map(f => document.fonts.load(f))).then(boot);
+</script>
+</body>
+</html>
