@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en" data-stage="portrait">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Madness and Civilization · 2 · Locked Up</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="audio/en/timings.js"></script>
+<script src="../img/art.js"></script>
+<script src="../img/e2-art.js"></script>
+<script src="../lib/icons.js"></script>
+<script src="../lib/lines.js"></script>
+<script src="../lib/shorts.js"></script>
+<script src="../lib/madness.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 2, title: 'Locked Up', minutes: 2, language: 'en' };
+
+/* ---------- this episode's own pieces ---------- */
+// the chained Fool (Kling 3.0 from the documentary's fool-1735, its frames.py sheet): looks up, tugs the chain twice,
+// sinks his head onto his knees; frame f at t0 + f / fps, the last frame held. size px square, centred on (x, y)
+const CHAINED = { fw: 560, fh: 560, cols: 10, n: 61, fps: 12 };
+function chained(g, x, y, size, t0, D) {
+  const F = CHAINED, e = G(g, { x, y });
+  const v = mk('svg', { x: -size / 2, y: -size / 2, width: size, height: size, viewBox: `0 0 ${F.fw} ${F.fh}` }, e);
+  mk('image', { href: '../img/e2-chained-sheet.webp', width: F.cols * F.fw, height: Math.ceil(F.n / F.cols) * F.fh }, v);
+  let last = -1;
+  clockRun(t => {
+    const f = Math.max(0, Math.min(F.n - 1, Math.floor((t - t0) * F.fps)));
+    if (f !== last) { last = f; v.setAttribute('viewBox', `${(f % F.cols) * F.fw} ${Math.floor(f / F.cols) * F.fh} ${F.fw} ${F.fh}`); }
+  }, D, { tail: true });
+  return e;
+}
+// a line of speech typed word by word in a cream balloon, its tail down to (tx, ty)
+function speech(g, words, x, y, w, t0, t1, tx, ty) {
+  const b = G(g, { o: 0 });
+  path(b, `M${x - w / 2} ${y - 70}H${x + w / 2}V${y + 70}H${tx + 40}L${tx} ${ty}L${tx - 10} ${y + 70}H${x - w / 2}Z`, { fill: LIGHT, stroke: DARK, 'stroke-width': 6, 'stroke-linejoin': 'round' });
+  show(b, t0, .12, lin);
+  const t = T(b, '', { x, y: y + 18, size: 56, fill: DARK, font: SERIF, weight: 500, anchor: 'middle' });
+  t.setAttribute('font-style', 'italic');
+  prog(q => { t.textContent = words.slice(0, Math.max(1, Math.ceil(q * words.length))).join(' '); }, t0, t1 - t0, lin);
+  return b;
+}
+
+// the door as a solid slab: the line picture with dark wood behind its lines, so what it shuts on is hidden
+function door(g, x, y, h) {
+  const d = plate(g, 'e2-door', x, y, { h }), [iw, ih] = ART['e2-door'], w = iw * h / ih;
+  d.insertBefore(rect(d, -w / 2 + 6, -h / 2 + 6, w - 12, h - 12, { fill: '#3a0a10' }), d.firstChild);
+  return d;
+}
+
+/* ---------- beats ---------- */
+const OPEN_PRE = .3;
+const FOOL_LINE = 3.2, SLAM = .3 + 2.62;   // the Fool's line before the narrator; the clip is cut at 2.62 s by the door
+const BEATS = [
+  // 0. The hook: the crowd marched in through the hospital gate; one in a hundred; not sick; idle
+  ['hook', 'The hook', (m, D) => {
+    const p = panel(0);
+    const lk = m('locked'), on = m('one'), hd = m('hundred'), sk = m('sick'), id = m('idle');
+    let s = shot(p, 0, on);
+    photo(s, 'e2-gate', 0, on + .3, { s0: 1.12, s1: 1.6, dy: -260 });   // into the gate, with the crowd
+    rect(s, 0, 0, W, H, { fill: '#000', opacity: .15 });
+    word(s, '1656 · Paris', CX, 250, 0, { size: 104, fill: '#fff', stroke: DARK });
+    word(s, 'Locked up', CX, 1180, lk, { size: 170, fill: RED, stroke: DARK });
+    sfx('hook', lk + .05, 'thud', 1.2);
+    // a hundred Parisians; one turns red and is boxed in
+    s = shot(p, on, sk, { bg: BURG, whip: true });
+    const grid = icons(s, 'person', 100, 10, 90, 340, 72, LIGHT, on, .5);
+    const one = grid[57];
+    tw(one, { s: 1.35 }, on + .5, .25, back);
+    const red = ico(s, 'person', 90 + 7 * 72 + 36, 340 + 5 * 72 + 36, 72 * .86, RED, on + .5, { from: 1, dur: .15 });
+    tw(red, { s: 1.35 }, on + .5, .25, back);
+    const box = path(s, `M${90 + 7 * 72 - 4} ${340 + 5 * 72 - 4}h80v80h-80Z`, { stroke: RED, 'stroke-width': 7 }, { d: 0 });
+    draw(box, hd - .2, .4, out);
+    sfx('hook', hd - .2, 'latch', 1.2);
+    word(s, '1 in 100', CX, 1180, hd, { size: 190, fill: RED });
+    // not sick
+    s = shot(p, sk, id, { bg: DARK, whip: true });
+    const sw = word(s, 'Sick', CX, 860, sk, { size: 260, fill: LIGHT });
+    strike(s, sw, CX, 860, sk + .45, 260);
+    sfx('hook', sk + .45, 'whoosh', .4);
+    // idle: a beggar sitting on the ground, stamped
+    s = shot(p, id, undefined, { bg: BURG, swipe: true });
+    const b = plate(s, 'e2-callot3', CX, 760, { h: 980 });
+    tw(b, { s: 1.1 }, id, D - id + .2, lin);
+    stamp(s, 'IDLE', CX, 1180, id + .15, { size: 190, colour: '#c8281e' });
+  }, { pre: OPEN_PRE }],
+
+  // 1. Who says so, and which episode this is
+  ['card', 'Part two', (m, D) => {
+    const p = panel(0);
+    const two = m('two');
+    let s = shot(p, 0, two, { bg: BURG });
+    traced(s, 'mf-front', { x: CX, y: 720, h: 860, at: 0, draw: 1.0 });
+    label(s, 'Michel Foucault', CX, 1230, 0, { size: 60, fill: LIGHT, colour: DARK });
+    quote(s, ['Madness and Civilization, 1961'], 1330, m('mc'), { size: 52, fill: MUTED });
+    s = shot(p, two, undefined, { bg: BURG, swipe: true });
+    seriesCard(s, two, 2, m('locked'));
+  }],
+
+  // 2. The decree: the king founds a "hospital" that heals no one: a house of confinement
+  ['decree', 'The General Hospital', (m, D) => {
+    const p = panel(0);
+    const hg = m('hg'), he = m('healed'), cf = m('conf');
+    let s = shot(p, 0, hg);
+    wide(s, 'e2-louis', [[0, .5, .2, 2.1], [hg + .3, .5, .32, 1.5]]);   // the king's face, out to the robe
+    srcTag(s, 'Hyacinthe Rigaud, Louis XIV, 1701', 50, 150, 0);
+    label(s, 'Louis XIV', CX, 1200, m('king'), { size: 80 });
+    s = shot(p, hg, cf, { whip: true });
+    wide(s, 'e2-salpetriere', [[hg, .3, .45, 1.0], [cf + .3, .62, .45, 1.15]]);
+    srcTag(s, 'Perelle, the Salpêtrière, Paris, c. 1680', 50, 150, hg);
+    label(s, 'General Hospital of Paris', CX, 260, hg + .1, { size: 60 });
+    const hw = word(s, 'Hospital?', CX, 1180, hg + .5, { size: 170, fill: '#fff', stroke: DARK });
+    strike(s, hw, CX, 1180, he + .2, 170);
+    s = shot(p, cf, undefined);
+    photo(s, 'e2-inside', cf, D + .2, { s0: 1.0, s1: 1.16, dx: -40 });
+    band(s, ['A house of', 'confinement'], 1100, cf + .05, { size: 84, step: .3 });
+    sfx('decree', cf + .9, 'latch', 1.4);
+  }],
+
+  // 3. Who was inside: the camera goes to each as named; the Fool last
+  ['inmates', 'Who was there', (m, D) => {
+    const p = panel(0);
+    const W6 = [['beg', .075, 'Beggars'], ['jobless', .235, 'The jobless'], ['vag', .41, 'Vagrants'],
+                ['pros', .575, 'Prostitutes'], ['old', .745, 'The old'], ['mad', .915, 'The mad']];
+    const s = shot(p, 0, undefined);
+    // a quick move to each as named, then a hold (a slow ease across the whole gap read as late)
+    const am = m('mad') - 1.25;   // "And among them"
+    const keys = [[0, .075, .45, 1.2]];
+    W6.forEach(([k, fx], i) => {
+      const t = m(k);
+      if (i === 5) keys.push([am, ...keys[keys.length - 1].slice(1)], [am + .45, .5, .45, 1.0], [t - .05, .5, .45, 1.0]);
+      else keys.push([t - .05, ...keys[keys.length - 1].slice(1)]);
+      keys.push([t + .3, fx, .42, i === 5 ? 1.55 : 1.45]);
+    });
+    keys.push([D + .2, .915, .36, 1.75]);
+    wide(s, 'e2-crowd', keys);
+    srcTag(s, 'AI illustration', 50, 150, 0);
+    word(s, 'Inside', CX, 260, 0, { size: 130, fill: '#fff', stroke: DARK });
+    W6.forEach(([k, , str], i) => {
+      const t = m(k), e = label(s, str, CX, 1220, t + .05, { size: i === 5 ? 96 : 80, fill: i === 5 ? RED : DARK, colour: i === 5 ? DARK : LIGHT });
+      if (i < 5) hide(e, i === 4 ? m('mad') - 1.25 : m(W6[i + 1][0]) - .02, .05, lin);
+      sfx('inmates', t, 'whoosh', .22);
+    });
+    sfx('inmates', m('mad') + .1, 'thud', 1);
+  }],
+
+  // 4. No trial, no diagnosis; they didn't work; idleness the sin; the locked door its cure
+  ['idle', 'Idleness', (m, D) => {
+    const p = panel(0);
+    const tr = m('trial'), dg = m('diag'), wk = m('work'), sn = m('sin'), dr = m('door');
+    let s = shot(p, 0, wk, { bg: BURG });
+    ico(s, 'gavel', CX, 520, 300, MUTED, 0, { from: .7 });
+    stamp(s, 'NO TRIAL', CX, 900, tr + .05, { size: 130, colour: '#c8281e', r: -7 });
+    stamp(s, 'NO DIAGNOSIS', CX, 1140, dg + .05, { size: 110, colour: '#c8281e', r: 5 });
+    s = shot(p, wk, sn, { whip: true });
+    wide(s, 'e2-crowd', [[wk, .235, .42, 1.3], [sn + .3, .235, .38, 1.45]]);   // the jobless man again, closer
+    word(s, "Didn't work", CX, 1180, wk + .05, { size: 150, fill: '#fff', stroke: DARK });
+    const cu = sn + (dr - sn) * .5;   // "and its cure"
+    s = shot(p, sn, cu, { bg: DARK, whip: true });
+    label(s, "The age's great sin", CX, 640, sn + .1, { size: 64, fill: LIGHT, colour: DARK });
+    const iw = word(s, 'Idleness', CX, 860, sn, { size: 200, fill: RED });
+    tw(iw, { s: 1.15 }, sn + .3, cu - sn, lin);
+    // the cure: the door edges in, then slides shut on "door"
+    s = shot(p, cu, undefined, { bg: BURG, swipe: 'quiet' });
+    word(s, 'The cure', CX, 235, cu + .05, { size: 120, fill: LIGHT });
+    const d = door(s, W + 160, 740, 900);
+    tw(d, { x: W + 40 }, cu + .1, dr - cu - .5, lin);
+    tw(d, { x: CX }, dr - .35, .35, out);
+    prog(q => put(d, { x: CX + 10 * Math.sin(q * 40) * (1 - q) }), dr, .5, lin);
+    sfx('idle', dr - .02, 'door', 1.6);
+    sfx('idle', dr + .5, 'latch', 1.2);
+    word(s, 'A locked door', CX, 1280, dr + .1, { size: 120, fill: RED });
+    prog(() => {}, D, .5, lin);
+  }],
+
+  // 5. The Fool, who still talked in part one, is cut off mid-word by the door: the Great Confinement
+  ['great', 'The Great Confinement', (m, D) => {
+    const p = panel(0);
+    const gc = m('gc'), st = m('stop');
+    let s = shot(p, 0, gc, { bg: BURG });
+    const f = plate(s, 'e2-fool-1656', CX, 900, { h: 980 });
+    speech(s, ['all', 'is', 'vanity,', 'and', 'the', 'king', 'is', 'a', 'f—'], 430, 270, 700, .3, SLAM, CX + 40, 410);
+    prog(q => put(f, { r: 3 * Math.sin(q * 14), y: 900 - 8 * Math.abs(Math.sin(q * 7)) }), .3, SLAM - .3, lin);
+    sfx('great', .3, 'fool-cut', 2);
+    const d = door(s, W + 500, 860, 1300);
+    tw(d, { x: CX }, SLAM - .4, .4, soft);
+    prog(q => put(d, { x: CX + 12 * Math.sin(q * 40) * (1 - q) }), SLAM, .5, lin);
+    sfx('great', SLAM - .02, 'door', 1.6);
+    sfx('great', SLAM + .5, 'latch', 1.2);
+    // Foucault names it
+    s = shot(p, gc, st, { bg: BURG, whip: true });
+    traced(s, 'mf-profile', { x: CX, y: 640, h: 720, at: gc, draw: 1.0 });
+    word(s, 'The Great', CX, 1130, gc + .1, { size: 130, fill: LIGHT });
+    word(s, 'Confinement', CX, 1260, gc + .25, { size: 130, fill: RED });
+    s = shot(p, st, undefined, { bg: DARK, swipe: 'quiet' });
+    const fq = plate(s, 'e2-fool-1656', CX, 820, { h: 820 }); put(fq, { o: .45 });
+    tw(fq, { s: 1.12 }, st, D - st + .3, lin);
+    path(s, `M120 200H780V340H490L450 400L440 340H120Z`, { fill: 'none', stroke: MUTED, 'stroke-width': 6, 'stroke-dasharray': '18 14' });   // his balloon, empty
+    word(s, 'Madness', CX, 1080, st, { size: 170, fill: LIGHT });
+    word(s, 'stopped talking', CX, 1240, st + .25, { size: 120, fill: RED });
+    prog(() => {}, D, .3, lin);
+  }, { pre: FOOL_LINE }],
+
+  // 6. Behind the walls: the laugh in the cell sinks into a growl
+  ['beasts', 'Beasts', (m, D) => {
+    const p = panel(0);
+    const bs = m('beasts');
+    const pt = bs - 1.05;   // "not as patients"
+    let s = shot(p, 0, pt, { bg: BURG });
+    const b = plate(s, 'bars', CX, 720, { h: 760 });
+    tw(b, { s: 1.3 }, 0, pt + .3, lin);
+    word(s, 'Behind the walls', CX, 250, .1, { size: 110, fill: LIGHT });
+    sfx('beasts', bs - 3.6, 'laugh-to-beast', 2);   // its peak lands on "beasts"
+    s = shot(p, pt, bs, { bg: DARK, whip: true });
+    const pw = word(s, 'Patients', CX, 860, pt, { size: 220, fill: LIGHT });
+    strike(s, pw, CX, 860, pt + .45, 220);
+    // the Fool in a cage, gripping the bars like an animal; the cage lunges with the growl
+    s = shot(p, bs, undefined, { whip: true });
+    photo(s, 'e2-cage', bs, D + 1.0, { s0: 1.5, s1: 1.3, dy: 40 });   // close on his face, back to the keeper
+    prog(q => put(s, { x: 12 * Math.sin(q * 70) * (1 - q), y: 7 * Math.sin(q * 53) * (1 - q) }), bs + .3, 1.0, lin);
+    const k = word(s, 'Beasts', CX, 1240, bs, { size: 230, fill: RED, stroke: DARK });
+    prog(q => put(k, { x: CX + 3 * Math.sin(q * 160), y: 1240 + 2 * Math.sin(q * 117) }), bs + .3, 1.6, lin);
+    prog(() => {}, D, 1.0, lin);   // the growl dies away
+  }],
+
+  // 7. Chained, straw, fed through bars; James Norris in his collar
+  ['chains', 'Chained', (m, D) => {
+    const p = panel(0);
+    const sw = m('straw'), br = m('bars'), nr = m('norris'), cl = m('collar'), pl = m('pole'), go = .3;
+    let s = shot(p, 0, sw, { bg: BURG });
+    chained(s, CX, 760, 900, go, D);
+    word(s, 'Chained', CX, 270, 0, { size: 150, fill: LIGHT });
+    sfx('chains', go + 1.5, 'chain', .7); sfx('chains', go + 2.6, 'chain', .5);
+    // the same moment, close on the straw under him
+    s = shot(p, sw, br, { bg: BURG });
+    chained(s, CX + 100, -120, 2000, go, D);
+    label(s, 'Straw', CX, 1220, sw + .05, { size: 90 });
+    s = shot(p, br, nr, { whip: true });
+    photo(s, 'e2-fed', br, nr + .3, { s0: 1.0, s1: 1.18, dy: 40 });
+    label(s, 'Fed through bars', CX, 1220, br + .05, { size: 76 });
+    // Norris: the whole print, then the collar, then the pole
+    s = shot(p, nr, undefined, { swipe: true });
+    wide(s, 'e2-norris', [[nr, .5, .5, 1.0], [cl - .1, .5, .5, 1.12], [cl + .4, .4, .45, 2.2], [pl + .1, .4, .45, 2.2], [pl + .6, .22, .4, 2.0], [D + .2, .22, .4, 2.1]]);
+    srcTag(s, 'G. Cruikshank after G. Arnald, James Norris in Bethlem, 1815', 50, 150, nr);
+    const nl = label(s, 'James Norris · London', CX, 1220, nr + .05, { size: 72 });
+    hide(nl, cl - .02, .05, lin);
+    const cll = label(s, 'An iron collar', CX, 1220, cl + .3, { size: 80, fill: RED, colour: DARK });
+    hide(cll, pl - .02, .05, lin);
+    label(s, 'Chained to a pole', CX, 1220, pl + .3, { size: 80, fill: RED, colour: DARK });
+    sfx('chains', cl + .35, 'chain', .6);
+  }],
+
+  // 8. The logic: no reason, an animal; an animal feels nothing
+  ['animal', 'Reason lost', (m, D) => {
+    const p = panel(0);
+    const rs = m('reason'), an = m('animal'), cd = m('cold'), hu = m('hunger'), pn = m('pain');
+    let s = shot(p, 0, an, { bg: BURG });
+    const f0 = chained(s, CX, 980, 760, -99, D);   // as the last beat left him: head on his knees
+    tw(f0, { s: 1.18, y: 940 }, 0, an, lin);
+    const r = word(s, 'Reason', CX, 380, rs, { size: 190, fill: LIGHT }), rk = strike(s, r, CX, 380, rs + .35, 190);
+    tw(r, { y: 760, r: 14, o: 0 }, an - .35, .5, io); hide(rk, an - .35, .2);
+    s = shot(p, an, cd, { bg: BURG });
+    chained(s, CX, 980, 760, -99, D);
+    word(s, 'Animal', CX, 380, an, { size: 230, fill: RED });
+    sfx('animal', an, 'thud', 1.2);
+    s = shot(p, cd, undefined, { whip: true });
+    photo(s, 'e2-fed', cd, D + .5, { s0: 1.05, s1: 1.25, dim: .55 });   // the cell: straw, a chain, a bowl through the bars
+    label(s, 'An animal feels', CX, 420, cd, { size: 60, fill: LIGHT, colour: DARK });
+    [['No cold', cd], ['No hunger', hu], ['No pain', pn]].forEach(([str, t], i) => {
+      word(s, str, CX, 640 + i * 230, t, { size: 170, fill: i === 2 ? RED : LIGHT, stroke: DARK });
+      sfx('animal', t, 'tick', 1);
+    });
+    sfx('animal', pn + .4, 'chain', .7);
+    prog(() => {}, D, .8, lin);
+  }],
+
+  // 9. Animals can be shown: Bedlam, a penny, 96,000 visits (Foucault's count)
+  ['show', 'Bedlam', (m, D) => {
+    const p = panel(0);
+    const sh = m('shown'), bd = m('bedlam'), pe = m('penny'), mf = m('mf'), n = m('n');
+    let s = shot(p, 0, pe);
+    wide(s, 'e2-hogarth', [[0, .5, .5, 1.0], [sh, .5, .5, 1.05], [bd + .2, .66, .42, 2.2], [pe + .3, .67, .42, 2.35]]);   // into the two ladies
+    srcTag(s, 'Hogarth, A Rake’s Progress, plate 8 (Bedlam), 1735', 50, 150, 0);
+    word(s, 'On show', CX, 260, sh, { size: 140, fill: '#fff', stroke: DARK });
+    label(s, 'Bedlam · London', CX, 1220, bd + .05, { size: 80 });
+    s = shot(p, pe, mf, { bg: DARK, whip: true });
+    const c = G(s, { x: CX, y: 720, o: 0, s: .4 });
+    mk('circle', { r: 220, fill: 'none', stroke: RED, 'stroke-width': 14 }, c);
+    T(c, '1d', { y: 70, size: 220, font: SANS, weight: 600, fill: RED, anchor: 'middle' });
+    pop(c, pe);
+    sfx('show', pe + .1, 'coin', 1);
+    band(s, ['A penny', 'to stare'], 1120, pe + .3, { size: 80, step: .4 });
+    s = shot(p, mf, undefined, { bg: BURG, swipe: true });
+    label(s, 'Foucault counts', CX, 560, mf, { size: 64, fill: LIGHT, colour: DARK });
+    icons(s, 'person', 40, 10, 90, 620, 72, MUTED, mf + .1, n - mf - .2);
+    counter(s, 96000, CX, 1130, n - .05, { size: 220, fill: RED, dur: .45 });
+    word(s, 'Visits a year', CX, 1270, n + .4, { size: 100, fill: LIGHT });
+    srcTag(s, 'Foucault, citing a report to the House of Commons, 1815', 50, 150, mf);
+  }],
+
+  // 10. Silent now, but seen: eyes open around the Fool
+  ['watched', 'A spectacle', (m, D) => {
+    const p = panel(0);
+    const sn = m('seen');
+    const s = shot(p, 0, undefined, { bg: BURG });
+    const fo = plate(s, 'e2-fool-1735', CX, 720, { h: 600 });
+    tw(fo, { s: 1.15 }, 0, D + .8, lin);
+    word(s, 'Silent', CX, 1150, 0, { size: 150, fill: LIGHT });
+    const R = seeded(5);
+    [[180, 330], [720, 330], [110, 640], [790, 640], [450, 210], [130, 930], [770, 930]].forEach(([x, y], i) => {
+      const e = plate(s, 'e2-eye', x, y, { h: 120, r: (R() - .5) * 20, t0: sn - .1 + i * .12, dy: 0 });
+      if (i % 3 === 0) sfx('watched', sn - .1 + i * .12, 'tick', .7);
+    });
+    word(s, 'but seen', CX, 1285, sn, { size: 120, fill: RED });
+    prog(() => {}, D, .8, lin);
+  }],
+
+  // 11. Dostoevsky's line; the chains come off in the 1790s; part three
+  ['end', 'Dostoevsky', (m, D) => {
+    const p = panel(0);
+    const C = TIMINGS.end.cues, q = m('q'), sa = m('sanity'), th = m('then'), of = m('off'), nx = m('next');
+    const half = q + (sa - q) * .5;
+    let s = shot(p, 0, q);
+    wide(s, 'e2-dosto', [[0, .5, .45, 1.15], [q + .3, .5, .32, 1.5]]);
+    srcTag(s, 'Vasily Perov, Fyodor Dostoevsky, 1872', 50, 150, 0);
+    label(s, 'Fyodor Dostoevsky', CX, 1220, .05, { size: 72 });
+    s = shot(p, q, half);
+    wide(s, 'e2-dosto', [[q, .5, .27, 2.3], [half + .3, .5, .27, 2.6]]);
+    rect(s, 0, 0, W, H, { fill: DARK, opacity: .8 });
+    quote(s, ['“It is not by confining', 'one’s neighbor'], 560, q, { size: 82 });
+    s = shot(p, half, th);
+    wide(s, 'e2-hogarth', [[half, .67, .42, 2.35], [th + .3, .67, .42, 2.7]]);   // the visitors, sure of themselves
+    rect(s, 0, 0, W, H, { fill: DARK, opacity: .8 });
+    quote(s, ['“It is not by confining', 'one’s neighbor'], 560, 0, { size: 82 });
+    quote(s, ['that one is convinced', 'of one’s own sanity.”'], 830, half, { size: 82 });
+    T(s, '— DOSTOEVSKY', { x: CX, y: 1080, size: 52, fill: MUTED, font: SANS, weight: 500, anchor: 'middle', o: 0 });
+    show(s.lastChild, sa + .2, .3);
+    s = shot(p, th, of, { bg: DARK, whip: true });
+    const yr = G(s, { s: .82, o: 0 }); T(yr, '1790s', { x: CX, y: 860, size: 300, fill: LIGHT, font: SANS, weight: 600, anchor: 'middle' });
+    tw(yr, { s: 1, o: 1 }, th + .05, .22, out);
+    s = shot(p, of, nx, { bg: BURG });
+    const ch = plate(s, 'chain', CX, 560, { w: 820 });
+    tw(ch, { y: 900, r: 10 }, of + .15, .45, q => q * q);
+    sfx('end', of + .55, 'chain', 1);
+    word(s, 'The chains came off', CX, 1250, of + .2, { size: 110, fill: LIGHT });
+    s = shot(p, nx, D, { bg: BURG, swipe: true });
+    seriesCard(s, nx, 3, nx + .9);
+    // the next episode, full frame
+    s = shot(p, D, undefined, { bg: DARK });
+    label(s, 'Next', CX, 660, D, { size: 70, fill: RED, colour: DARK });
+    word(s, 'Liberation', CX, 880, D + .05, { size: 220, fill: LIGHT });
+    T(s, 'PART 3 OF 4', { x: CX, y: 990, size: 52, fill: MUTED, font: SANS, weight: 500, anchor: 'middle', o: 0 }); show(s.lastChild, D + .2, .2);
+    prog(() => {}, D, 1.8, lin);
+  }],
+].map(shortsBeat);
+
+// One track for the whole film; ?bgm= sets its level by ear (gain under the ducking to 30 %)
+music('audio/bgm/ep2.mp3', undefined, +(new URLSearchParams(location.search).get('bgm') || .4), .05);
+startShorts();
+</script>
+</body>
+</html>
