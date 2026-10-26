@@ -48,12 +48,16 @@ function blurOn(el, axis = 'x') {
    dir: 1 = the camera swings right (the picture moves left). */
 const WHIP = .32;
 function whipOut(g, D, dir = 1, axis = 'x', dist = 1300) {
-  const b = blurOn(g, axis), E = D + HOLD;
-  clockRun(t => {
-    const q = ease3(span01(t, E - WHIP, E)), o = -dir * dist * q;
+  const b = blurOn(g, axis);
+  // clockRun inline: a tail's dur is stretched to the beat's real end, which can pass D + HOLD (a clock run to D + HOLD
+  // adds another HOLD), so the throw lands on that end and the frame never freezes thrown
+  const w = { t0: 0, dur: D, ease: lin, tail: true };
+  w.pf = q => {
+    const t = q * w.dur, E = w.dur, k = ease3(span01(t, E - WHIP, E)), o = -dir * dist * k;
     put(g, axis === 'x' ? { x: o } : { y: o });
-    axis === 'x' ? b(q * 90, o) : b(q * 90, 0, o);
-  }, D, { tail: true });
+    axis === 'x' ? b(k * 90, o) : b(k * 90, 0, o);
+  };
+  TW.push(w);
 }
 function whipIn(g, dir = 1, axis = 'x', dist = 1300, dur = WHIP + .1) {
   const b = blurOn(g, axis);
@@ -69,28 +73,6 @@ function still(p, name, at, until, { s0 = 1.04, s1 = 1.14, focus = [.5, .5], o =
   mk('image', { href: `../img/${name}.webp`, x: -W * fx, y: -H * fy, width: W, height: H, preserveAspectRatio: 'none' }, g);
   tw(g, { o }, at, .01, lin);   // a cut, never a dip
   tw(g, { s: s1 }, at, until - at, lin);
-  return g;
-}
-// a stamped word (CLOSED) slamming onto a still
-function stamp(p, str, x, y, t0, { size = 150, fill = RED, r = -6 } = {}) {
-  const g = G(p, { x, y, s: 1.6, o: 0, r });
-  const w = wid(str, size, KEY, '', 700) + 60;
-  mk('rect', { x: -w / 2, y: -size * .78, width: w, height: size * 1.02, fill: 'none', stroke: fill, 'stroke-width': 9, rx: 8 }, g);
-  T(g, str, { x: 0, y: size * .02, size, fill, font: KEY, weight: 700, anchor: 'middle' });
-  tw(g, { s: 1, o: 1 }, t0, .16, out);
-  return g;
-}
-// a roller shutter coming down over the frame, landing at t0 + dur
-function shutter(p, t0, dur = .45) {
-  const g = G(p, { y: -SH - 20 });
-  mk('rect', { x: -20, y: 0, width: SW + 40, height: SH + 20, fill: '#3a3d42' }, g);
-  for (let y = 10; y < SH + 20; y += 26) {
-    mk('rect', { x: -20, y, width: SW + 40, height: 3, fill: '#24262a' }, g);
-    mk('rect', { x: -20, y: y + 3, width: SW + 40, height: 2, fill: '#55595f' }, g);
-  }
-  mk('rect', { x: -20, y: SH - 14, width: SW + 40, height: 34, fill: '#1c1d20' }, g);
-  tw(g, { y: 0 }, t0, dur, p2 => p2 * p2);
-  tw(g, { y: -14 }, t0 + dur, .08, out); tw(g, { y: 0 }, t0 + dur + .08, .1, io);   // a small bounce
   return g;
 }
 // a number that rolls from a to b; fmt turns a value into text
@@ -137,24 +119,124 @@ function dateTag(p, str, t0, { fill = CREAM, x = 70, y = 86 } = {}) {
   return g;
 }
 
+/* ---------- level of detail for the map's paths ----------
+   The map holds ~2.8 M characters of path, far finer than a screen pixel at most zooms, and the browser repaints every
+   point on every frame the camera moves: one core flat out, 7–16 fps (thinning the points 4× gives ~55–60). So each
+   source path is parsed once into rings; the view picks a tolerance and a clip box (lodKey), and a path's d
+   is rebuilt only when either changes: clipped to the box, then simplified (Douglas–Peucker). Pure in t, like the rest. */
+const LOD_SRC = new Map();   // source d -> { rings: [{ p: Float64Array, closed, bb }], cache: Map(key -> d) }
+function lodSource(d) {
+  let s = LOD_SRC.get(d);
+  if (s) return s;
+  const rings = d.split('M').filter(Boolean).map(sub => {
+    const p = Float64Array.from(sub.match(/-?\d+(?:\.\d+)?(?:e-?\d+)?/g), Number), bb = [Infinity, Infinity, -Infinity, -Infinity];
+    for (let i = 0; i < p.length; i += 2) { bb[0] = Math.min(bb[0], p[i]); bb[1] = Math.min(bb[1], p[i + 1]); bb[2] = Math.max(bb[2], p[i]); bb[3] = Math.max(bb[3], p[i + 1]); }
+    return { p, closed: sub.includes('Z'), bb };
+  });
+  LOD_SRC.set(d, s = { rings, cache: new Map() });
+  return s;
+}
+// a closed ring clipped to a box (Sutherland–Hodgman); the cut edges run along the box, off screen
+function clipRing(p, [x0, y0, x1, y1]) {
+  let pts = p;
+  for (const [k, v, keep] of [[0, x0, 1], [0, x1, -1], [1, y0, 1], [1, y1, -1]]) {
+    const out = [], n = pts.length;
+    if (!n) break;
+    for (let i = 0; i < n; i += 2) {
+      const j = (i + 2) % n, a = (pts[i + k] - v) * keep, b = (pts[j + k] - v) * keep;
+      if (a >= 0) out.push(pts[i], pts[i + 1]);
+      if ((a >= 0) !== (b >= 0)) { const q = a / (a - b); out.push(pts[i] + (pts[j] - pts[i]) * q, pts[i + 1] + (pts[j + 1] - pts[i + 1]) * q); }
+    }
+    pts = out;
+  }
+  return pts;
+}
+// an open line cut to the box: runs of points inside, each with its outside neighbours so it reaches the edge
+function clipLine(p, [x0, y0, x1, y1]) {
+  const ins = i => p[i] >= x0 && p[i] <= x1 && p[i + 1] >= y0 && p[i + 1] <= y1, runs = [];
+  let run = null;
+  for (let i = 0; i < p.length; i += 2) {
+    if (ins(i) || (i > 0 && ins(i - 2)) || (i + 2 < p.length && ins(i + 2))) (run || (runs.push(run = []), run)).push(p[i], p[i + 1]);
+    else run = null;
+  }
+  return runs;
+}
+function simplify(p, tol) {   // Douglas–Peucker on a flat [x, y, ...] list
+  const n = p.length / 2;
+  if (n < 3 || tol <= 0) return p;
+  const keep = new Uint8Array(n), st = [0, n - 1], t2 = tol * tol;
+  keep[0] = keep[n - 1] = 1;
+  while (st.length) {
+    const b = st.pop(), a = st.pop(), ax = p[2 * a], ay = p[2 * a + 1], dx = p[2 * b] - ax, dy = p[2 * b + 1] - ay, L = dx * dx + dy * dy;
+    let m = -1, md = t2;
+    for (let i = a + 1; i < b; i++) {
+      let u = L ? ((p[2 * i] - ax) * dx + (p[2 * i + 1] - ay) * dy) / L : 0; u = u < 0 ? 0 : u > 1 ? 1 : u;
+      const ex = p[2 * i] - ax - u * dx, ey = p[2 * i + 1] - ay - u * dy, e = ex * ex + ey * ey;
+      if (e > md) { md = e; m = i; }
+    }
+    if (m > 0) { keep[m] = 1; st.push(a, m, m, b); }
+  }
+  const out = [];
+  for (let i = 0; i < n; i++) if (keep[i]) out.push(p[2 * i], p[2 * i + 1]);
+  return out;
+}
+const lodPts = (p, closed) => p.length < 4 ? '' : 'M' + Array.from({ length: p.length / 2 }, (_, i) => `${+p[2 * i].toFixed(2)},${+p[2 * i + 1].toFixed(2)}`).join('L') + (closed ? 'Z' : '');
+function lodBuild(src, tol, box) {
+  const key = tol + '|' + box;
+  let d = src.cache.get(key);
+  if (d !== undefined) return d;
+  if (src.cache.size >= 6) src.cache.delete(src.cache.keys().next().value);   // the oldest: a beat revisits few keys
+  const parts = [];
+  for (const r of src.rings) {
+    const bb = r.bb;
+    if (box && (bb[2] < box[0] || bb[0] > box[2] || bb[3] < box[1] || bb[1] > box[3])) continue;
+    const inside = !box || (bb[0] >= box[0] && bb[2] <= box[2] && bb[1] >= box[1] && bb[3] <= box[3]);
+    if (r.closed) { const c = inside ? r.p : clipRing(r.p, box); if (c.length >= 6) parts.push(lodPts(simplify(c, tol), true)); }
+    else for (const c of inside ? [r.p] : clipLine(r.p, box)) parts.push(lodPts(simplify(c, tol), false));
+  }
+  src.cache.set(key, d = parts.join(''));
+  return d;
+}
+// the tolerance and box for a view {x, y, z}: a tolerance of half to one screen px (stepping by 2), and a box of 5 x 5
+// cells of at least one view each, so the screen keeps 1.5 views of margin (a whip throws the panel 1300 px, 1.44
+// views tall; a shake a few px). At wide zooms it covers everything (null: no clip). Measured on the RTX, headed
+// Chromium: 12–21 ms a frame on every map beat (half a px with 7 x 7 cells: 16–29 ms)
+function lodKey(s) {
+  const tol = 2 ** Math.floor(Math.log2(1 / s.z)), k = 1 / tol;   // k: the bucket's widest zoom, <= s.z
+  const cw = SW / k, ch = SH / k;
+  if (5 * cw > 6000) return [tol, null];
+  const gx = Math.floor(s.x / cw), gy = Math.floor(s.y / ch);
+  return [tol, [(gx - 2) * cw, (gy - 2) * ch, (gx + 3) * cw, (gy + 3) * ch]];
+}
+
 /* ---------- the paper map of China on a camera ---------- */
 function paperMap(p, D, view, { rails = false } = {}) {
   const cam = camera(p, D, view);
-  const w = cam.world, nz = sw => ({ 'stroke-width': sw, 'data-sw': sw });
-  // strokes keep their screen width: data-sw px at any zoom (vector-effect: non-scaling-stroke drops WebKit to ~12 fps)
-  clockRun(t => { const z = cam.at(t).z; w.querySelectorAll('[data-sw]').forEach(e => e.setAttribute('stroke-width', e.dataset.sw / z));
-    w.querySelectorAll('[data-dash]').forEach(e => e.setAttribute('stroke-dasharray', e.dataset.dash.split(' ').map(v => v / z).join(' '))); }, D, { tail: true });
+  const w = cam.world, nz = sw => ({ 'stroke-width': sw, 'data-sw': sw }), lods = [];
+  const lp = (d, attrs, g = w) => { const e = mk('path', { ...attrs, d: '' }, g); e._lod = lodSource(d); lods.push(e); return e; };
   mk('rect', { x: -6000, y: -6000, width: 12000, height: 12000, fill: MAPSEA }, w);
-  mk('path', { d: GEO.land, fill: MAPLAND, stroke: MAPLINE, ...nz(1.1) }, w);
-  mk('path', { d: GEO.china, fill: MAPCN, stroke: MAPINK, ...nz(1.6) }, w);
+  lp(GEO.land, { fill: MAPLAND, stroke: MAPLINE, ...nz(1.1) });
+  lp(GEO.china, { fill: MAPCN, stroke: MAPINK, ...nz(1.6) });
   const provs = G(w, {});
-  for (const n in GEO.provinces) mk('path', { d: GEO.provinces[n], fill: 'none', stroke: MAPLINE, 'data-dash': '4 3', ...nz(.9) }, provs);
-  const hubei = mk('path', { d: GEO.provinces.Hubei, fill: RED, 'fill-opacity': 0, stroke: 'none' }, w);
-  mk('path', { d: GEO.urban, fill: '#cdb995', stroke: 'none' }, w);
-  mk('path', { d: GEO.lakes, fill: MAPSEA, stroke: '#8fa9ad', ...nz(.8) }, w);
-  mk('path', { d: GEO.rivers10, fill: 'none', stroke: '#8fa9ad', ...nz(1.6) }, w);
-  const rail = rails ? GEO.rails.map(d => mk('path', { d, fill: 'none', stroke: MAPINK, opacity: 0, ...nz(1.3) }, w)) : [];
+  for (const n in GEO.provinces) lp(GEO.provinces[n], { fill: 'none', stroke: MAPLINE, 'data-dash': '4 3', ...nz(.9) }, provs);
+  const hubei = lp(GEO.provinces.Hubei, { fill: RED, 'fill-opacity': 0, stroke: 'none' });
+  lp(GEO.urban, { fill: '#cdb995', stroke: 'none' });
+  lp(GEO.lakes, { fill: MAPSEA, stroke: '#8fa9ad', ...nz(.8) });
+  lp(GEO.rivers10, { fill: 'none', stroke: '#8fa9ad', ...nz(1.6) });
+  const rail = rails ? GEO.rails.map(d => lp(d, { fill: 'none', stroke: MAPINK, opacity: 0, ...nz(1.3) })) : [];
   const marks = G(w, {});   // dots, rings, routes: drawn by the beat
+  // strokes keep their screen width: data-sw px at any zoom (vector-effect: non-scaling-stroke drops WebKit to ~12 fps);
+  // the paths take the detail the view needs
+  let lastKey = '';
+  clockRun(t => {
+    const s = cam.at(t), z = s.z, [tol, box] = lodKey(s), key = tol + '|' + box;
+    if (key !== lastKey) {
+      lastKey = key;
+      for (const e of lods) { const d = lodBuild(e._lod, tol, box); if (d !== e._d) e.setAttribute('d', e._d = d); }
+    }
+    w.querySelectorAll('[data-sw]').forEach(e => e.setAttribute('stroke-width', e.dataset.sw / z));
+    w.querySelectorAll('[data-dash]').forEach(e => e.setAttribute('stroke-dasharray', e.dataset.dash.split(' ').map(v => v / z).join(' ')));
+  }, D, { tail: true });
   return { cam, w, hubei, rail, marks };
 }
 // a city dot that keeps its screen size whatever the zoom: r px at zoom z

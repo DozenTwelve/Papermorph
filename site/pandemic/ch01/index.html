@@ -22,15 +22,14 @@ const CHAPTER = { number: 1, title: 'The Forgotten Crisis', minutes: 2, language
 const CN = ['Beijing', 'Shanghai', 'Guangzhou', 'Chongqing', 'Chengdu', 'Xian', 'Zhengzhou', 'Changsha', 'Nanjing', 'Hangzhou', 'Shenzhen', 'Harbin', 'Kunming'];
 const C = n => GEO.cities[n];
 
-// Li Wenliang's chip: a red disc with a paper silhouette (no likeness is claimed: there is no free photograph)
-function liChip(p, x, y, r, t0, { o = 1 } = {}) {
-  const g = G(p, { x, y, s: 0, o: 0 });
+// a doctor's chip: a toned portrait in a red ring. li-wenliang is his own selfie (fair use); doctor-1..7 are AI
+// illustrations standing in for the other seven, who are not identified here
+const LI_CLIP = mk('clipPath', { id: 'liclip', clipPathUnits: 'objectBoundingBox' }, DEFS);
+mk('circle', { cx: .5, cy: .5, r: .5 }, LI_CLIP);
+function liChip(p, x, y, r, t0, { o = 1, img = 'li-wenliang' } = {}) {
+  const g = G(p, { x, y, s: 0, o: 0 }), k = r * .9;
   mk('circle', { r, fill: RED }, g);
-  const s = G(g, { s: r / 150 });
-  mk('path', { d: 'M-118 150C-112 70-70 40-28 30L-22 6C-46-8-56-36-56-66C-56-112-30-142 0-142C30-142 56-112 56-66C56-36 46-8 22 6L28 30C70 40 112 70 118 150Z', fill: CHAR }, s);
-  mk('rect', { x: -46, y: -82, width: 32, height: 22, rx: 6, fill: 'none', stroke: '#9aa0a8', 'stroke-width': 4 }, s);
-  mk('rect', { x: 14, y: -82, width: 32, height: 22, rx: 6, fill: 'none', stroke: '#9aa0a8', 'stroke-width': 4 }, s);
-  mk('path', { d: 'M-14-72h28', stroke: '#9aa0a8', 'stroke-width': 4 }, s);
+  mk('image', { href: `../img/${img}.webp`, x: -k, y: -k, width: 2 * k, height: 2 * k, 'clip-path': 'url(#liclip)' }, g);
   tw(g, { s: 1, o }, t0, .5, back);
   return g;
 }
@@ -43,13 +42,24 @@ function caseDots(g, on = () => 1) {
 // the city framing where Li's story plays: Wuhan on screen at (BX, BY)
 const BX = 420, BY = 440, ZL = 9, VIEW_LI = { x: (800 - BX) / ZL, y: (450 - BY) / ZL, z: ZL };
 
-// the people who left before the gates closed: a destination, a phase, a speed; positions are fractions of the way
-const EXO = (() => { const R = rng(8); return [...Array(260)].map(() => [CN[Math.floor(R() * CN.length)], R(), .18 + R() * .2]); })();
+// the people who left before the gates closed: 30 trains of about 10,000 (the 300,000), each a destination, a phase and
+// a speed; positions are fractions of the way. People are ink: red is kept for the virus, which lights a city on arrival
+const EXO = (() => { const R = rng(8); return [...Array(30)].map((_, i) => [CN[i % CN.length], i / 30 + R() * .03, .18 + R() * .2]); })();
 const exoLaunch = (tS, ph) => tS + ph * 2.6;
+// a train: three cars heading away from Wuhan, and a faint wake back to it (data-sw: the paper map keeps its width)
+function trainMk(g) {
+  const tr = mk('path', { d: '', fill: 'none', stroke: MAPINK, 'data-sw': 1.6, opacity: 0 }, g), car = G(g, { o: 0 });
+  for (let k = 0; k < 3; k++) mk('rect', { x: -33 + k * 11.5, y: -3.6, width: 10, height: 7.2, rx: k === 2 ? 3.6 : 1.2, fill: MAPINK, stroke: '#f6f1e4', 'stroke-width': 1.2 }, car);
+  return { tr, car };
+}
+function trainAt({ tr, car }, x, y, z, car_, wake) {
+  put(car, { x, y, r: Math.atan2(y, x) * 180 / Math.PI, s: 1 / z, o: car_ ? 1 : 0 });
+  tr.setAttribute('d', `M0 0L${x.toFixed(1)} ${y.toFixed(1)}`); tr.setAttribute('opacity', wake ? .35 : 0);
+}
 
 /* ---------- beats ---------- */
 const BEATS = [
-  // 0. Cold open: the flicker, the list, the shutter, the two numbers, the words that crumble, a breath, the globe dives
+  // 0. Cold open: the flicker, the list, the wall going dark, the two numbers, the words that crumble, a breath, the globe dives
   ['open', 'The only story on Earth', (m, D) => {
     const p = panel(0);
     ground(p, NIGHT);
@@ -64,7 +74,7 @@ const BEATS = [
       return { lon, lat, H, gain };
     });
     clockRun(t => gb(Math.sin(Math.PI * span01(t, tA, tB)) ** 3 * 46), D, { tail: true });
-    tw(glob, { o: .55 }, m('count') - 1, 1.2, lin);
+    tw(glob, { o: .55 }, m('shut') + .75, .9, lin);
     tw(glob, { o: 1 }, tA - .3, .6, lin);
 
     // the flicker under 2020: the world's pictures at seven a second, then one picture per word
@@ -80,25 +90,45 @@ const BEATS = [
     const y20 = key(mon, '2020', 800, 560, m('y2020'), { size: 300, from: 0 });
     put(y20, { s: 1.25 }); tw(y20, { s: 1 }, m('y2020'), .18, out); tw(y20, { s: 1.06 }, m('y2020') + .2, 1.6, lin); hide(y20, tN, .01);
     sfx('open', m('y2020'), 'thud', 1.2);
+    // "shut": the last picture pulls back into a wall of the year's pictures, and they go dark one by one, like windows
+    // 4 x 4 tiles of the stage's shape; tile 5 (the street) starts exactly where the street still is: the same picture
+    // scale (the still's push at tS) and the same picture row (focus .55) at the centre of the screen
+    const tS = m('shut') - .35, sT = 1.04 + .1 * (tS - m('whole')) / (m('shut') + 1.2 - m('whole'));
+    const [aw, ah] = ART['street-hwy407'], kS = sT * Math.max(SW / aw, SH / ah), kT = 394 / aw;   // screen px per picture px
+    const rowT = ah - 219 / kT / 2;   // the tile shows the picture's bottom (YMax): the row at its centre
+    const W4 = kS / kT, wall = G(mon, { x: SW / 2 - W4 * 600, y: SH / 2 - W4 * (337.5 - (rowT - .55 * ah) * kT), s: W4, o: 0 });
+    mk('rect', { x: 0, y: 0, width: SW, height: SH, fill: '#000' }, wall);
+    const offs = ['virus-sem-red', 'airport-pek-empty', 'street-glenview-24', 'school-empty-classroom', 'closed-sign-temporary', 'street-hwy407',
+      'ppe-nurses-faceshields', 'mask-cbp-officer', 'mask-hawaii-guard', 'school-closed-banner', 'airport-pek-empty', 'virus-sem-red',
+      'street-glenview-24', 'school-empty-classroom', 'mask-hawaii-guard', 'closed-sign-temporary'].map((n, i) => {
+      const x = (i % 4) * 400 + 3, y = Math.floor(i / 4) * 225 + 3;
+      // the picture itself fades to the black behind it: a black cover the same size leaves a hairline at its edges
+      return put(mk('image', { href: `../img/${n}.webp`, x, y, width: 394, height: 219, preserveAspectRatio: i === 5 ? 'xMidYMax slice' : 'xMidYMid slice' }, wall), { o: .7 });
+    });
+    tw(wall, { o: 1 }, tS, .01, lin); tw(wall, { x: 0, y: 0, s: 1 }, tS, .5, out);
+    [3, 9, 14, 0, 12, 6, 11, 2, 15, 8, 4, 13, 10, 1, 7, 5].forEach((k, i) => tw(offs[k], { o: 0 }, m('shut') + i * .045, .06, lin));   // the street goes last
     const labs = [['Schools', 'schools', 'borders'], ['Borders', 'borders', 'whole'], ['Whole countries', 'whole', 'shut']]
       .map(([l, a, b]) => { const c = chipLabel(mon, l, 110, 810, m(a), { size: 66 }); hide(c, m(b), .01); return c; });
-    shutter(mon, m('shut') - .42, .42);
-    stamp(mon, 'SHUT', 800, 500, m('shut') + .05, { size: 190 });
-    hide(mon, m('count') - .9, .5);
-    sfx('open', m('shut') - .05, 'shutter', 1.6);
-    [tN, m('y2020') + 3.1, m('schools'), m('borders'), m('whole')].forEach(t => sfx('open', t, 'tick', .7));
+    hide(mon, m('shut') + .75, .4);   // the wall is dark: the globe comes up at once, no dead black before the count
 
     // the two numbers, and the gap between them
     const n1 = counter(p, 800, 470, 0, 7115706, m('count'), 1.7, { size: 150 });
     const t1 = tag(p, 'confirmed COVID-19 deaths', 800, 535, m('count') + 1, { anchor: 'middle', size: 30, fill: CREAM });
     tw(n1, { y: 330, s: .62 }, m('real') - .2, .6, io); tw(t1, { y: 385 }, m('real') - .2, .6, io);
     const n2 = counter(p, 800, 600, 0, 27000000, m('twentyseven') - .3, 1.4, { size: 190, fill: RED, weight: 600 });
-    sfx('open', m('twentyseven') + 1.05, 'thud', 1.4);
-    const t2 = tag(p, 'estimated from excess deaths (The Economist, 2024)', 800, 665, m('twentyseven') + .9, { anchor: 'middle', size: 28, fill: CREAM });
-    const arr = path(p, 'M1080 330C1200 340 1240 420 1190 520', { stroke: RED, 'stroke-width': 4, 'marker-end': 'url(#arrowR)' }, { d: 0 });
-    draw(arr, m('twentyseven') + .1, .5);
-    const x4 = key(p, '× 4', 1300, 450, m('twentyseven') + .35, { size: 90, fill: RED });
-    [n1, t1, n2, t2, x4, arr].forEach(e => hide(e, m('biggest') - .2, .25));
+    const t2 = tag(p, 'estimated from excess deaths (The Economist, 2024)', 800, 665, m('twentyseven') + .2, { anchor: 'middle', size: 28, fill: CREAM });
+    // the gap as lengths: a cream bar for the confirmed deaths, then red lengths of the same size push out to the estimate
+    const bars = G(p, {}), U = 340, K = 27000000 / 7115706, bx = 800 - U * K / 2;
+    const conf = mk('rect', { x: bx, y: 720, width: 0, height: 26, fill: CREAM }, bars);
+    prog(q => conf.setAttribute('width', U * q), m('real') - .1, .5, out);
+    for (let j = 1; j < Math.ceil(K); j++) {
+      const seg = mk('rect', { x: bx + U * j, y: 720, width: 0, height: 26, fill: RED }, bars), w = U * Math.min(1, K - j) - 4;
+      prog(q => seg.setAttribute('width', w * q), m('twentyseven') - .2 + (j - 1) * .2, .22, out);
+    }
+    st(conf).c_fill = CREAM; tw(conf, { c_fill: RED }, m('twentyseven') + 1.05, .3);   // one red length
+    tag(bars, 'nearly 4×', bx + U * K, 790, m('twentyseven') + .6, { anchor: 'end', size: 30, fill: RED });
+    [n1, t1, n2, t2].forEach(e => hide(e, m('biggest') - .2, .25));
+    hide(bars, m('forget'), 1);   // the bars stay under the words, so "nearly 4×" can be read
 
     // the words that crumble, and the lights going out with them; then nothing is said for two seconds
     crumble(p, 'THE BIGGEST CRISIS', 800, 400, m('forget') + .1, 1.7, { size: 120, appear: m('biggest') - .1 });
@@ -115,7 +145,6 @@ const BEATS = [
     const mp = G(p, { o: 0 }), M = paperMap(mp, D + HOLD, { x: 0, y: 0, z: z1 }), cam = M.cam;
     paperTop(mp, .4);
     tw(mp, { o: 1 }, tH - .12, .14, lin); hide(glob, tH + .05, .01);   // the style change hides in the fastest moment
-    sfx('wuhan', tH - .25, 'whoosh', .8);
     cam.to({ z: z1 * 1.8 }, tH, 1.2, out);
     cam.to({ z: .62 }, m('eleven') + 1.3, 1.4, soft);                     // "right in the middle of China"
     cam.to({ z: .56 }, m('eleven') + 2.7, m('dec') - m('eleven') - 3.3, lin);   // a creep while it sinks in
@@ -138,6 +167,14 @@ const BEATS = [
     dateTag(p, 'December 2019', m('dec') - .1, { fill: MAPINK });
     const unk = chipLabel(p, 'Pneumonia of unknown cause', 1000, 300, m('explain') - .6, { tx: 830, ty: 430, fill: MAPINK });
     hide(unk, m('more') - .2, .3);
+    // under the label, a lung CT on dark film: the hazy patches circled
+    const ct = G(p, { x: 1040, y: 350, o: 0 });
+    mk('rect', { x: -10, y: -10, width: 440, height: 342, rx: 6, fill: '#0b0f12' }, ct);
+    mk('image', { href: '../img/ct-pneumonia.webp', x: 0, y: 0, width: 420, height: 322 }, ct);
+    [[93, 256], [322, 256]].forEach(([x, y], i) => draw(mk('ellipse', { cx: x, cy: y, rx: 62, ry: 44, fill: 'none', stroke: RED, 'stroke-width': 3 }, ct), m('explain') + .5 + i * .25, .5));
+    tag(ct, 'CT scan, COVID-19 pneumonia · Hellerhoff, CC BY-SA 3.0, toned', 0, 352, m('explain') + .2, { size: 15, fill: MAPINK });
+    tw(ct, { o: 1, y: 330 }, m('explain') - .3, .4, out);
+    hide(ct, m('more') - .2, .3);
     // the cases: one, a cluster, another cluster
     const ds = caseDots(M.marks);
     ds.forEach((d, i) => {
@@ -145,13 +182,11 @@ const BEATS = [
       put(d, { o: 0 }); tw(d, { o: 1 }, t0, .12, lin);
       const ring = mk('circle', { cx: CASES[i][0], cy: CASES[i][1], r: .9, fill: 'none', stroke: RED, 'data-sw': 2, opacity: 0 }, M.marks);
       prog(q => { ring.setAttribute('r', .9 + q * 4); ring.setAttribute('opacity', 1 - q); }, t0, .8, out);
-      sfx('wuhan', t0, 'pop', .5);
     });
     // push through the first case into red
     cam.to({ x: CASES[0][0], y: CASES[0][1], z: 1600 }, D, HOLD, ease3);
     const red = mk('rect', { x: 0, y: 0, width: SW, height: SH, fill: RED, opacity: 0 }, p);
     clockRun(t => red.setAttribute('opacity', span01(t, D + HOLD - .16, D + HOLD)), D, { tail: true });
-    sfx('wuhan', D - .1, 'whoosh', 1);
   }],
 
   // 2. The doctor: his badge on the Wuhan map, his message and the letter as cards beside it, then eight badges
@@ -176,20 +211,19 @@ const BEATS = [
     const nm = G(pin, { o: 1 });
     key(nm, 'Li Wenliang', 0, 175, m('li') - .1, { size: 52 });
     tag(nm, 'eye doctor, Wuhan Central Hospital', 0, 212, m('li') + .5, { anchor: 'middle', size: 26, fill: CREAM });
+    tag(nm, 'photo: his own selfie, Weibo', 0, 240, m('li') + .5, { anchor: 'middle', size: 16 });
     // the message: a dark card beside the badge
     const card = G(p, { x: 1700 });
     mk('rect', { x: 0, y: 0, width: 740, height: 420, rx: 22, fill: '#1b1e24', stroke: '#3a3f48', 'stroke-width': 2 }, card);
     T(card, 'MEDICAL SCHOOL CLASSMATES', { x: 40, y: 56, size: 22, fill: '#aeb4bd', font: KEY, weight: 500 }).setAttribute('letter-spacing', '.14em');
     mk('path', { d: 'M40 78H700', stroke: '#3a3f48', 'stroke-width': 2 }, card);
     tw(card, { x: 720, y: 210 }, m('classmates') - .45, .5, out); put(card, { y: 210 });
-    sfx('message', m('classmates') - .45, 'whoosh', .6);
     const bub = G(card, { o: 0, x: 40, y: 110 });
     mk('rect', { x: 0, y: 0, width: 600, height: 190, rx: 18, fill: '#f2f0ea' }, bub);
     ['7 confirmed cases of SARS were', 'reported … from Huanan', 'Seafood Market.'].forEach((l, i) =>
       stream(T(bub, '', { x: 28, y: 56 + i * 46, size: 34, fill: '#16181c', font: UI, weight: 500 }), l, m('msg') + .05 + i * .6, .65));
     T(bub, '17:43', { x: 580, y: 178, size: 18, fill: '#7a7f88', font: UI, anchor: 'end' });
     tw(bub, { o: 1 }, m('msg') - .1, .15);
-    sfx('message', m('msg') - .1, 'pop', .6);
     tag(card, 'his message, translated', 40, 395, m('msg') + 1.4, { size: 24 });
     // "tell your families": the message is forwarded, copy after copy sliding out of frame
     for (let i = 0; i < 5; i++) {
@@ -217,19 +251,19 @@ const BEATS = [
     hide(card, four + .2, .01);
     sfx('message', four - .25, 'page', .9);
     tw(doc_, { s: .62 }, four + .2, m('eight') - four - .6, lin);
-    draw(sig, m('sign'), .9, lin); sfx('message', m('sign'), 'chalk', .5);
+    draw(sig, m('sign'), .9, lin);
     prog(q => hl.setAttribute('width', 600 * q), m('untrue') - .3, .6, io);
     // one of eight: the letter goes, seven more badges ring Wuhan
     tw(doc_, { x: 1500, y: 1300, r: 12 }, m('eight') - .45, .45, p => p * p);
     hide(nm, m('eight') - .4, .2);
     for (let i = 0; i < 7; i++) {
       const a = (-90 + i * (360 / 7)) * Math.PI / 180;
-      liChip(pin, Math.cos(a) * 215, Math.sin(a) * 215, 50, m('eight') + .15 + i * .07);
-      sfx('message', m('eight') + .15 + i * .07, 'clack', .35);
+      liChip(pin, Math.cos(a) * 215, Math.sin(a) * 215, 50, m('eight') + .15 + i * .07, { img: `doctor-${i + 1}` });
     }
     tw(chip, { s: .7 }, m('eight') - .2, .4, io);
     key(p, '8 doctors', 1110, 430, m('eight') + .4, { size: 110 });
     tag(p, 'punished for “spreading rumours”', 1110, 490, m('eight') + .9, { anchor: 'middle', size: 32, fill: CREAM });
+    tag(p, 'the other seven: AI illustrations', 1110, 525, m('eight') + .9, { anchor: 'middle', size: 18 });
   }],
 
   // 3. Meanwhile, on the same map, the cases double
@@ -245,21 +279,21 @@ const BEATS = [
     mk('rect', { x: 0, y: 0, width: SW, height: SH, fill: '#0b0d11', opacity: .55 }, left);
     const pin = G(left, {}), [bx, by] = cam.screen(0, 0, 0); put(pin, { x: bx, y: by });
     put(liChip(pin, 0, 0, 110, -1), { s: .7 });
-    for (let i = 0; i < 7; i++) { const a = (-90 + i * (360 / 7)) * Math.PI / 180; liChip(pin, Math.cos(a) * 215, Math.sin(a) * 215, 50, -1); }
+    for (let i = 0; i < 7; i++) { const a = (-90 + i * (360 / 7)) * Math.PI / 180; liChip(pin, Math.cos(a) * 215, Math.sin(a) * 215, 50, -1, { img: `doctor-${i + 1}` }); }
     T(left, '8 DOCTORS', { x: 1110, y: 430, size: 110, fill: CREAM, font: KEY, weight: 600, anchor: 'middle' });
+    T(left, 'the other seven: AI illustrations', { x: 1110, y: 525, size: 18, fill: SOFT, font: SER, anchor: 'middle' });
     tw(left, { o: 0 }, .05, .4, lin);
     cam.to({ x: 2, y: 0, z: 3 }, .2, D + .2, soft);
-    // generations: each doubles the dots, spreading over the city (screen-size dots: non-scaling round strokes)
+    // generations: a red stain whose area doubles at each one (the first cases' dots under it); every size it leaves
+    // stays as a thin ring, like a tree's
     const times = [m('d1'), m('d2'), m('d2') + .55, m('d2') + 1.05, m('week') - .15, m('week') + .35, m('week') + .8, D - .35];
-    let n = CASES.length;
+    const rOf = g => 7 * 2 ** ((g + 1) / 2);
+    const stain = put(mk('circle', { cx: 1, cy: 0, r: rOf(-1), fill: RED, 'fill-opacity': .28, stroke: RED, 'data-sw': 2.5 }, M.marks), { o: 0 });
+    tw(stain, { o: 1 }, times[0] - .15, .15, lin);
     times.forEach((t, g) => {
-      const R = rng(30 + g), rg = 7 * 2 ** ((g + 1) / 2);
-      let d = '';
-      for (let i = 0; i < n; i++) { const r = rg * Math.sqrt(R()), a = R() * Math.PI * 2; d += `M${(1 + r * Math.cos(a)).toFixed(2)} ${(r * Math.sin(a) * .8).toFixed(2)}h0`; }
-      const e = path(M.marks, d, { stroke: RED, 'data-sw': 7 }, { o: 0 });
-      tw(e, { o: .9 }, t, .12, lin);
-      sfx('double', t, 'pop', g < 3 ? .7 : .35);
-      n *= 2;
+      const r0 = rOf(g - 1), r1 = rOf(g);
+      prog(q => stain.setAttribute('r', r0 + (r1 - r0) * q), t, .3, back);
+      tw(put(mk('circle', { cx: 1, cy: 0, r: r0, fill: 'none', stroke: RED, 'data-sw': 1.2 }, M.marks), { o: 0 }), { o: .6 }, t, .05, lin);
     });
     // the count and the date, from the later studies
     const box = G(p, { x: 1180, y: 120, o: 0 });
@@ -275,7 +309,6 @@ const BEATS = [
     const band = mk('rect', { x: 0, y: 790, width: SW, height: 100, fill: '#0b0d11', opacity: 0 }, p); tw(band, { o: .85 }, m('week') - .2, .3);
     key(p, 'Cases double every 7½ days', 800, 860, m('week') - .05, { size: 60, fill: CREAM });
     whipOut(p, D, 1, 'y');
-    sfx('double', D + HOLD - .3, 'whoosh', 1);
   }],
 
   // 4. The migration, the order, the rewind: they left before the gates closed
@@ -337,22 +370,19 @@ const BEATS = [
     prog(q => setClock(2 + 8 * q), a0, a1 - a0, lin);
     prog(q => { setClock(10 - 8 * soft(q)); hb(Math.sin(Math.PI * q) * 14); }, r0, r1 - r0, lin);
     prog(q => setClock(2 + 8 * q), r1, b1 - r1, lin);
-    for (let i = 0; i < 9; i++) sfx('migration', a0 + i * (a1 - a0) / 8, 'tick', .45);
-    for (let i = 0; i < 8; i++) sfx('migration', r0 + i * .06, 'tick', .3);
     chipLabel(all, '10:00 · everything stops', 1530, 400, m('ten'), { fill: RED, size: 30, anchor: 'end' });
     const rw = chipLabel(all, '◀◀ before 10:00', 1530, 440, r0, { fill: MAPINK, size: 26, anchor: 'end' });
     // the trains leave during the second pass and freeze where they are when the ring closes
-    const fd = EXO.map(() => mk('circle', { r: 1, fill: RED, opacity: 0 }, M.marks));
+    const fd = EXO.map(() => trainMk(M.marks));
     clockRun(t => {
       const z = cam.at(t).z, tt = Math.min(t, b1);
       EXO.forEach(([n, ph, v], i) => {
-        const L = exoLaunch(r1, ph), q = Math.max(0, (tt - L) * v), [x, y] = C(n);
-        fd[i].setAttribute('opacity', tt > L && q < 1 ? 1 : 0);
-        fd[i].setAttribute('cx', x * Math.min(1, q)); fd[i].setAttribute('cy', y * Math.min(1, q)); fd[i].setAttribute('r', 3.4 / z);
+        const L = exoLaunch(r1, ph), q = Math.min(1, Math.max(0, (tt - L) * v)), [x, y] = C(n);
+        trainAt(fd[i], x * q, y * q, z, tt > L && q < 1, tt > L);
       });
     }, D, { tail: true });
     cam.to({ x: -60, y: -10, z: 1.05 }, r1 + .2, b1 - r1 - .2, soft);
-    counter(all, 800, 820, 0, 300000, m('k300') - .2, 1.6, { size: 96, fill: RED, font: KEY, weight: 600 });
+    counter(all, 800, 820, 0, 300000, m('k300') - .2, 1.6, { size: 96, fill: MAPINK, font: KEY, weight: 600 });
     tag(all, 'left Wuhan by train before 10 a.m.', 800, 860, m('k300') + .5, { anchor: 'middle', size: 28, fill: MAPINK });
   }],
 
@@ -384,23 +414,27 @@ const BEATS = [
     const Tm = TIMINGS.migration, mb1 = Tm.dur - .15, mr1 = Tm.marks.before - .25 + .5;   // the last beat's freeze, in its own clock
     const fd = EXO.map(([n, ph, v], i) => {
       const L = exoLaunch(mr1, ph), q0 = Math.max(0, Math.min(1, (mb1 - L) * v)), ta = but + .05 + ph * .9;
-      return { n, q0, ta, launched: mb1 > L, e: mk('circle', { r: 1, fill: RED, opacity: 0 }, M.marks) };
+      return { n, q0, ta, launched: mb1 > L, e: trainMk(M.marks) };
     });
     clockRun(t => {
       const z = cam.at(t).z;
       fd.forEach(f => {
-        if (!f.launched || f.q0 >= 1) return;
+        if (!f.launched) return;
         const q = f.q0 + (1 - f.q0) * span01(t, 0, f.ta), [x, y] = C(f.n);
-        f.e.setAttribute('opacity', q < 1 ? 1 : 0); f.e.setAttribute('cx', x * q); f.e.setAttribute('cy', y * q); f.e.setAttribute('r', 3.4 / z);
+        trainAt(f.e, x * q, y * q, z, q < 1, true);
       });
     }, D, { tail: true });
     cam.to({ z: .95 }, 0, m('locks'), lin);
     // "Wuhan locks down": the slam on the word
     prog(q => lockFill.setAttribute('fill-opacity', q), m('locks'), .2, lin);
     cam.shake(7, m('locks'), .45);
-    sfx('gone', m('locks'), 'clang', 1.4);
-    const st_ = stamp(mp, 'LOCKED DOWN', 870, 340, m('locks') + .05, { size: 90 });
-    hide(st_, but - .3, .3);
+    // a news print drops beside the ring: the Yangtze bridge, empty, six days in
+    const ph = G(mp, { x: 1230, y: 380, r: -3, s: 1.05, o: 0 });
+    mk('rect', { x: -296, y: -228, width: 592, height: 476, fill: '#f6f1e4' }, ph);
+    mk('image', { href: '../img/wuhan-bridge-empty.webp', x: -280, y: -212, width: 560, height: 420 }, ph);
+    T(ph, 'Wuhan, 29 January 2020 · photo 汮汐, CC BY-SA 4.0, toned', { x: -280, y: 234, size: 18, fill: MAPINK, font: SER });
+    tw(ph, { s: .85, o: 1 }, m('locks') + .05, .16, out);
+    hide(ph, but - .3, .3);
     tag(mp, 'Wuhan, then all of Hubei: about 57 million people', 800, 860, m('locks') + .6, { anchor: 'middle', size: 28, fill: MAPINK });
     // "But the virus has already left": each city lights as the first train reaches it
     cam.to({ x: 0, y: 0, z: .62 }, but - .1, 1.2, soft);
@@ -409,11 +443,9 @@ const BEATS = [
       const d = mk('circle', { cx: x, cy: y, r: 0, fill: RED }, M.marks), r = mk('circle', { cx: x, cy: y, r: 0, fill: 'none', stroke: RED, 'data-sw': 2 }, M.marks);
       prog(q => d.setAttribute('r', 12 * q), t, .2, back);
       prog(q => { r.setAttribute('r', 12 + 50 * q); r.setAttribute('opacity', 1 - q); }, t, .7, out);
-      sfx('gone', t, 'pop', .3);
     });
     // the paper map gives way to the night globe in the fastest moment of the pull-out
     tw(glob, { o: 1 }, t0g - .05, .01); hide(mp, t0g, .18, lin);
-    sfx('gone', t0g - .2, 'whoosh', .8);
     const dl = dateTag(p, '23 January 2020', t0g + .2), txt = dl.lastChild;
     const fmtD = w => new Date(Date.parse(w)).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase();
     weeks.forEach((w, i) => prog(() => { txt.textContent = fmtD(w); }, tD0 + i * wk, 0, lin));
@@ -421,15 +453,15 @@ const BEATS = [
     tw(cnt, { o: 1 }, tD0, .2);
     weeks.forEach((w, i) => prog(() => { cnt.textContent = String(list.filter(s => wOf(s) <= i).length); }, tD0 + i * wk, 0, lin));
     const cntTag = tag(p, 'countries with cases', 1530, 136, tD0 + .3, { anchor: 'end', size: 24, fill: CREAM });
+    const owid = tag(p, 'data: Our World in Data, CC BY 4.0', 1530, 162, tD0 + .3, { anchor: 'end', size: 16 });
     const ant = chipLabel(p, 'Antarctica: not until December 2020', 800, 830, tilt1 - .15, { size: 30, anchor: 'middle' });
     // the old-TV switch-off: the world squashes to a line, the line to a point, then black
-    const tv = G(p, {}); p.insertBefore(tv, glob); tv.appendChild(glob); [cnt, cntTag, dl, ant].forEach(e => tv.appendChild(e));
+    const tv = G(p, {}); p.insertBefore(tv, glob); tv.appendChild(glob); [cnt, cntTag, owid, dl, ant].forEach(e => tv.appendChild(e));
     const tOff = m('lw') - .45;
     prog(q => tv.setAttribute('transform', `translate(800 450) scale(${1 - .98 * q * q},${Math.max(.004, 1 - q)}) translate(-800 -450)`), tOff, .14, lin);
     prog(q => tv.setAttribute('transform', `translate(800 450) scale(${.02 * (1 - q) + .001},.004) translate(-800 -450)`), tOff + .14, .1, lin);
     const flash = mk('rect', { x: 0, y: 447, width: SW, height: 6, fill: '#fff', opacity: 0 }, p);
     prog(q => flash.setAttribute('opacity', Math.sin(Math.PI * q)), tOff + .08, .22, lin);
-    sfx('gone', tOff, 'whoosh', .4);
     // Li Wenliang, over black
     const L = G(p, { o: 0 });
     ground(L, '#000');
@@ -454,7 +486,7 @@ const BEATS = [
 
 window.MUSIC_UP_IN_PRE = ['open'];
 // One track for the whole film, never stopped; ?bgm= sets its level by ear (gain under the ducking to 30 %)
-music('audio/bgm/theme.mp3', BEATS.map(b => b.id), +(new URLSearchParams(location.search).get('bgm') || .3), 0);
+music('audio/bgm/theme.mp3', BEATS.map(b => b.id), +(new URLSearchParams(location.search).get('bgm') || .6), 0);
 
 Promise.all([...['600 40px Oswald', '500 40px Oswald', '700 40px Oswald', 'italic 400 40px "EB Garamond"', '400 40px "EB Garamond"', '500 40px "EB Garamond"']
   .map(f => document.fonts.load(f)), import('../lib/globe.js'), new Promise(r => { (function w() { window.GLOBE_READY ? r() : setTimeout(w, 30); })(); })])
