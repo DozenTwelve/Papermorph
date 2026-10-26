@@ -1523,7 +1523,9 @@ function ui() {
     // a cue is [start, line], [start, line, end] or [start, line, end, 1]: with an end, the caption clears once its
     // words are over; a 1 marks a line in another language, whose subtitle shows even with captions off (as does every
     // cue of a beat whose timings say forced: true, from tts.py or eleven.py)
-    for (const [t, line, end, forced] of TIMINGS[b.id].cues) {
+    // the last line without an end clears a second after the narration, so it does not sit on a closing title
+    const cues = TIMINGS[b.id].cues;
+    for (const [k, [t, line, end = k === cues.length - 1 ? TIMINGS[b.id].dur + 1 : null, forced]] of cues.entries()) {
       if (t + (b.pre || 0) > P.t + .05) break;
       text = (captions || forced || TIMINGS[b.id].forced) && !(end != null && P.t > end + (b.pre || 0)) ? line : '';
     }
