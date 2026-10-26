@@ -140,7 +140,7 @@ const BEATS = [
     mline(p, ['9x', E(2), ' − 4x + ', F(5, 2), ' + 10x', E(3), '   →   10x', E(3), ' + 9x', E(2), ' − 4x + ', F(5, 2)], 800, 560, m('move', 3), COL.good, 44);
     caption(p, 'each term keeps its sign: −4x is still subtracted', m('sign'), 680, COL.task);
   }],
-  ['q3', 'Quick check', () => { panel(0); }, { ask: done => quiz(BAND, [{
+  ['q3', 'Quick check', () => { panel(0); }, { ask: done => quiz({ x: 250, y: 260, w: 1100, cls: 'side' }, [{   // a band squeezes the prompt beside three long choices
     id: 'c-std', prompt: ['Which is ', $m('3.2x − 0.8x', E(3), ' + 5'), ' in standard form?'],
     build: choice([[$m('0.8x', E(3), ' + 3.2x + 5')], [$m('−0.8x', E(3), ' + 3.2x + 5')], [$m('5 + 3.2x − 0.8x', E(3))]], 1, 'The x³ term goes first, and it keeps its minus sign.',
       ['The x³ term lost its minus sign.', null, 'That is ascending order. Standard form starts with the highest exponent.']),

@@ -65,14 +65,14 @@ const BEATS = [
   }],
   ['count', 'How many solutions?', (m) => {
     const p = panel(0);
-    [[x => -.6 * x * x + 2.5, 'two', 'two', HIT], [x => .5 * (x + 0) ** 2, 'one', 'one', VTX], [x => .4 * x * x + 1.2, 'none', 'no real solution', COL.bad]].forEach(([f, k, lab, c], i) => {
+    [[x => -.6 * x * x + 2.5, 'two', 'two', HIT], [x => 2 / 3 * (x + 2) ** 2, 'one', 'one', VTX], [x => x * x - 3 * x + 4, 'none', 'no real solution', COL.bad]].forEach(([f, k, lab, c], i) => {
       const P = plane(p, { cx: 300 + i * 500, cy: 460, u: 44, x0: -4, x1: 4, y0: -4, y1: 5, t0: m(k), labels: false });
       P.layer = p;
       xGlow(p, P, m(k, .2));
       P.fn(f, -4, 4, PAR, m(k, .4));
       if (i === 0) [-Math.sqrt(2.5 / .6), Math.sqrt(2.5 / .6)].forEach(r => P.dot(r, 0, ROOT, m(k, 1.4)));
-      if (i === 1) P.dot(0, 0, ROOT, m(k, 1.4));
-      text(p, lab, 300 + i * 500, 800, m(k, 1.4), { size: 32, fill: c, anchor: 'middle', weight: 700 });
+      if (i === 1) P.dot(-2, 0, ROOT, m(k, 1.4));
+      text(p, lab, 300 + i * 500, 700, m(k, 1.4), { size: 32, fill: c, anchor: 'middle', weight: 700 });
     });
     mline(p, ['y = ', F(2, 3), '(x + 2)', E(2)], 800, 150, m('one', .5), VTX, 36);
     mline(p, ['y = x', E(2), ' − 3x + 4'], 1300, 150, m('none', .5), COL.bad, 36);

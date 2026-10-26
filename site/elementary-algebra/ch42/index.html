@@ -174,7 +174,7 @@ const BEATS = [
     show(hit, m('ev'));
     mline(p, ['P(heads and 6) = ', F(1, 12)], 1120, 420, m('one'), COL.good, 40, 'start');
   }],
-  ['q2', 'Quick check', () => {}, { ask: done => quiz({ x: 1090, y: 500, w: 470, cls: 'side' }, [{
+  ['q2', 'Quick check', () => {}, { ask: done => quiz({ x: 1040, y: 465, w: 530, cls: 'side' }, [{   // wide and high enough that the answer and Continue stay above the controls
     id: 'c-tree', prompt: ['What is the probability of tails and an even number?'],
     build: blanks([{ parts: ['P = ', { box: '1/4' }], why: 'T2, T4 and T6: 3 of the 12 outcomes, and 3/12 = 1/4.', hint: 'Count the outcomes that start with T and end in 2, 4 or 6.',
       fx: () => { const L = S.q || qlayer(); S.leaves.filter(l => l.side === 'T' && l.n % 2 === 0).forEach((l, i) => fx(put(mk('rect', { x: TREE.l2 + 90, y: l.y - 24, width: 90, height: 44, rx: 12, fill: 'none', stroke: COL.good, 'stroke-width': 3.5 }, L), { o: 0 }), { o: 1 }, i * .2, .3)); } }]),

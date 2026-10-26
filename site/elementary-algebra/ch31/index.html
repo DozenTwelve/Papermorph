@@ -86,7 +86,7 @@ const BEATS = [
     side(p, ['counterclockwise from top right'], 250, .2, COL.dim, 28);
     side(p, ['(−2, 0): on an axis, no quadrant'], 400, m('axis'), COL.int, 30);
   }],
-  ['q2', 'Quick check', () => { S.P.layer = panel(0); }, { ask: done => quiz(RIGHT, [{
+  ['q2', 'Quick check', () => { S.P.layer = panel(0); }, { ask: done => quiz({ x: 1060, y: 360, w: 520, cls: 'side', maxH: 520 }, [{   // wider and higher than RIGHT: the answer line fits without scrolling
     id: 'c-quad', prompt: ['Which quadrant holds ', $m('(1, −2)'), '?'],
     build: choice([['I'], ['II'], ['III'], ['IV']], 3, 'x is positive and y is negative: quadrant IV.',
       ['Quadrant I needs y positive too.', 'Quadrant II has x negative.', 'Quadrant III has both negative.', null],

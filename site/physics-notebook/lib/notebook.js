@@ -17,7 +17,7 @@ const HL = { yellow: '#fff06a', pink: '#f7a8c8', green: '#c5e15a', blue: '#8fd3f
 
 // Fonts must be ready before anything is measured or drawn: call nbBoot() instead of boot().
 function nbBoot() {
-  Promise.all(['40px "Patrick Hand"', '40px "Luckiest Guy"'].map(f => document.fonts.load(f))).finally(boot);
+  return Promise.all(['40px "Patrick Hand"', '40px "Luckiest Guy"'].map(f => document.fonts.load(f))).finally(boot);
 }
 
 // Text in the hand font (o: 0 unless shown later).

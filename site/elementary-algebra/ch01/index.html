@@ -221,7 +221,7 @@ const BEATS = [
     for (const e of [S.axR, S.axL, S.arR, S.arL]) tw(e, { c_stroke: COL.real, 'a_stroke-width': 4 }, m('fill', .4), 1.2);
     row(5, m('def'));
   }],
-  ['q4', 'Quick check', () => { hide(S.panel, 0, .4); }, { ask: done => quiz(TOPR, [{
+  ['q4', 'Quick check', () => { hide(S.panel, 0, .4); hide(S.list, 0, .4); }, { ask: done => quiz({ x: 40, y: 30, w: 760, cls: 'side', maxH: 840 }, [{   // tall for five rows and their answers; on the left, where the list was, so the effects on the positive half stay in view
     id: 'c-ratirr', prompt: ['Is each number rational or irrational?'],
     build: grid([
       { parts: ['0.25'], ans: ['rat'], why: ['0.25 = ', $m(F(1, 4)), ', a fraction of integers.'], fx: () => popDotFx('rat', .25) },
@@ -324,7 +324,7 @@ const BEATS = [
     hide(S.panel, 0, .4);
     [...S.chips, ...S.samples].forEach(e => hide(e, 0, .4));
   }, { ask: done => quiz(SORT_SCREEN, [{ id: 'p-sort', prompt: ['Drag each number into its smallest ring. Simplify first.'],
-    build: sorter(SORT, i => [1362 + (i % 2) * 128, 250 + Math.floor(i / 2) * 100]) }], done, 'Chapter practice   1 of 3') }],
+    build: sorter(SORT, i => [1362 + (i % 2) * 128, 290 + Math.floor(i / 2) * 90]) }], done, 'Chapter practice   1 of 3') }],
   ['final2', 'Chapter practice', () => { tw(S.venn, { o: 0 }, 0, .6); }, { ask: done => quiz(SCREEN, [{
     id: 'p-fam', prompt: ['Choose every family each number belongs to.'], build: grid(FAMQ, FAM_COLS) }], done, 'Chapter practice   2 of 3') }],
   ['final3', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
