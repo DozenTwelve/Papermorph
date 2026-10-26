@@ -136,7 +136,7 @@ const BEATS = [
       { parts: ['3fm − gm + 6fn − 2gn = (3f − g)(m + ', { box: '2' }, 'n)'], why: 'm(3f − g) + 2n(3f − g).', hint: 'Factor m from the first pair and 2n from the second.' },
       { parts: ['10a', E(2), ' + 14a − 15ab − 21b = (5a + ', { box: '7' }, ')(2a − ', { box: '3' }, 'b)'], why: '2a(5a + 7) − 3b(5a + 7).', hint: 'Factor 2a from the first pair and −3b from the second.' },
       { parts: ['2m + 7am − 6n − 21a\u200Bn = (2 + ', { box: '7' }, 'a)(m − ', { box: '3' }, 'n)'], why: 'm(2 + 7a) − 3n(2 + 7a).', hint: 'Factor −3n from the second pair.' },
-      { parts: ['x', E(2), ' + 3x + 2x + 6 = (x + ', { box: '3' }, ')(x + ', { box: '2' }, ')'], why: 'x(x + 3) + 2(x + 3).', hint: 'Factor x from the first pair and 2 from the second.' },
+      { parts: ['x', E(2), ' + 3x + 2x + 6 = (x + ', { box: '3' }, ')(x + ', { box: '2' }, ')'], test: ([a, b]) => (a === 3 && b === 2) || (a === 2 && b === 3), why: 'x(x + 3) + 2(x + 3).', hint: 'Factor x from the first pair and 2 from the second.' },
     ]),
   }], done, 'Chapter practice   1 of 3') }],
   ['final2', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{

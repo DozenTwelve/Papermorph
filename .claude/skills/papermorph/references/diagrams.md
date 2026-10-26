@@ -1,6 +1,6 @@
 # Symbols and diagrams that change
 
-For abstract and procedural ideas (the maths books on the showcase site). The picture explains through change: things are rearranged, split, balanced, counted and compared while the narration says why. The change is the argument, so each move must be one the idea allows.
+For abstract and procedural ideas (the maths books on the showcase site, `site/elementary-algebra/` and `site/math-notebook/`). The picture explains through change: things are rearranged, split, balanced, counted and compared while the narration says why. The change is the argument, so each move must be one the idea allows.
 
 - **One reading line.** A derivation or a procedure reads in one direction, each step under or beside the last, aligned on what stays the same (the `=` sign, the place values). The eye never searches for the next step.
 - **Change the thing, don't replace it.** Tokens that combine move together and collapse into the result (`tokens`, `collapse`); a tile pair cancels where it stands; a dot hops along the number line. A fresh line of text is a weaker picture than the old one transforming.

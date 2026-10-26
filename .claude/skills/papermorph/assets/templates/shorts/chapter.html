@@ -31,13 +31,14 @@ const BEATS = [
     const p = panel(0);
     const s = shot(p, 0, undefined);
     photo(s, 'hook-picture', 0, D, { s0: 1.0, s1: 1.15, dim: .2 });
-    word(s, 'Big word', CX, 640, m('big'), { size: 140, fill: '#fff', stroke: INK });
+    word(s, 'Big word', CX, 640, m('big'), { size: 140, fill: '#fff', stroke: DARK });
     label(s, 'Series · part 1', CX, 1200, .3, { size: 44, fill: RED });
   }, { pre: OPEN_PRE }],
 ].map(shortsBeat);
 
-// One track for the whole film, cut to its timeline; ?bgm= sets its level by ear (gain under the ducking to 30 %)
-music('audio/bgm/ep1.mp3', undefined, +(new URLSearchParams(location.search).get('bgm') || .5), .05);
+// One track for the whole film, cut to its timeline; ?bgm= sets its level by ear (gain under the ducking to 30 %).
+// Uncomment once audio/bgm/ep1.mp3 is in place.
+// music('audio/bgm/ep1.mp3', undefined, +(new URLSearchParams(location.search).get('bgm') || .4), .05);
 startShorts();
 </script>
 </body>

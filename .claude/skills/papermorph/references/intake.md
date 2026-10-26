@@ -15,7 +15,7 @@ The conversation should feel light: the user tries one chapter first and decides
 
 Greet briefly as Papermorph. Look for PDFs in the working folder and its subfolders (then the user's Downloads and Desktop if none are found) and ask "Is it this one?", listing up to four candidates. If none are found, offer to search another folder or to take a path. Choose a short slug and place the file at `books/<book>/book.pdf`, a copy or a link.
 
-When the user brings a story, a joke or a fairy tale instead (or a story book's PDF), it becomes a picture book: go to [stories.md](stories.md), which has its own short intake, and come back here for the models (§5) and `style.json` (§6).
+When the user brings a story, a joke or a fairy tale instead (or a story book's PDF), it becomes a picture book: go to [stories.md](stories.md), which has its own short intake, and come back here for the models (§5) and `style.json` (§6). A documentary ([documentary.md](documentary.md#intake)) and a short ([shorts.md](shorts.md#questions-for-the-user)) have their own questions too, and come back the same way.
 
 ## 2. What this book is
 
@@ -27,8 +27,8 @@ If the book is for a course, notice it here: when it cites other works (author�
 
 Offer the animation tiers as reference points; the books at https://papermorph.diamonddoge.org/ show each of them (and the picture books); link them.
 
-1. **Diagrams that change**: symbols, number lines, graphs and shapes built in code, rearranged as the narration explains (the maths books). The lightest; a smaller model can do most steps.
-2. **Illustrated scenes**: characters act out the idea, the camera moves, external images and a storyboard before motion (the science book). Several times the work of tier 1 per chapter, and the picture step wants a strong model.
+1. **Diagrams that change**: symbols, number lines, graphs and shapes built in code, rearranged as the narration explains (the maths books, `site/elementary-algebra/` and `site/math-notebook/`). The lightest; a smaller model can do most steps.
+2. **Illustrated scenes**: characters act out the idea, the camera moves, external images and a storyboard before motion (the science book, `site/science/`). Several times the work of tier 1 per chapter, and the picture step wants a strong model.
 3. **Custom**: the user describes what they want; you judge which abilities it needs and say so.
 
 Recommend one from the chapter's content: abstract and procedural ideas fit tier 1 ([diagrams.md](diagrams.md)); physical and narrative ones fit tier 2 ([scenes.md](scenes.md)). Mixing per beat is allowed under any tier.
@@ -50,25 +50,25 @@ Then start the book folder ([site.md](site.md#start-a-book-folder)): the look is
 
 Which model does which step is the user's choice. Users run the Skill with different models and providers, and a book can mix them. Show the defaults for the chosen tier as one table, one row per step in [team.md](team.md#steps), and ask: keep it (recommended), or change some rows. Any model the user names is fine.
 
-| Step | Tier 1 | Tier 2 | Picture book | Documentary |
-|---|---|---|---|---|
-| Extract the chapter (or the story) | small | small | strong (script and storyboard with the user) | strong (research, script and storyboard with the user; then voice and music) |
-| Narration and beats | middle | middle | strong (voices, the episode kit) | middle (pictures found and treated) |
-| Picture: storyboard, motion, questions | middle | strong | middle, one worker per scene | middle, one worker per part of the film |
-| Checks | small | small | small (sound effects too) | small |
-| Review | middle | middle | strong director, middle picture and sound reviewers | strong director |
-| Rework | strong | strong | middle, per scene | middle, per part |
-| Register | small | small | small | small |
+| Step | Tier 1 | Tier 2 | Picture book | Documentary | Shorts |
+|---|---|---|---|---|---|
+| Extract the chapter (or the story) | small | small | strong (script and storyboard with the user) | strong (research, script and storyboard with the user; then voice and music) | strong (the script and storyboard with the user; then voice and music) |
+| Narration and beats | middle | middle | strong (voices, the episode kit) | middle (pictures found and treated) | middle (pictures generated or found) |
+| Picture: storyboard, motion, questions | middle | strong | middle, one worker per scene | middle, one worker per part of the film | middle (the beats) |
+| Checks | small | small | small (sound effects too) | small | small |
+| Review | middle | middle | strong director, middle picture and sound reviewers | strong director | strong director |
+| Rework | strong | strong | middle, per scene | middle, per part | middle |
+| Register | small | small | small | small | small |
 
-**small**, **middle** and **strong** stand for the user's current fast, balanced and most capable models; write the actual model names into `models`, keyed by step as in the [course](../assets/templates/style.json) or [picture-book](../assets/templates/picture-book/style.json) template (a picture book's keys name its roles: `script`, `kit`, `scenes`, `sound`, `director`, `reviewers`; a [documentary](../assets/templates/documentary/style.json)'s: `script`, `pictures`, `beats`, `checks`, `director`). Without subagents one agent does every step on its own model, and the table only records that. The user can change a row at any time; later chapters follow the table as it stands.
+**small**, **middle** and **strong** stand for the user's current fast, balanced and most capable models; write the actual model names into `models`, keyed by step as in the [course](../assets/templates/style.json) or [picture-book](../assets/templates/picture-book/style.json) template (a picture book's keys name its roles: `script`, `kit`, `scenes`, `sound`, `director`, `reviewers`; a [documentary](../assets/templates/documentary/style.json)'s and a [short](../assets/templates/shorts/style.json)'s: `script`, `pictures`, `beats`, `checks`, `director`). Without subagents one agent does every step on its own model, and the table only records that. The user can change a row at any time; later chapters follow the table as it stands.
 
 ## 6. style.json
 
-Start from [the template](../assets/templates/style.json). Blocks are grouped by ability, not by tier; a tier is just which blocks are present:
+Start from [the template](../assets/templates/style.json), or for a picture book, a documentary or a short from its kit's own `style.json`. Blocks are grouped by ability, not by tier; a tier is just which blocks are present:
 
 | Block | What it holds | Present in |
 |---|---|---|
-| `schema`, `tier`, `book` | schema version; `1`, `2`, `"custom"`, `"picture"` or `"documentary"`; title, slug, language, readers, pilot chapter | all |
+| `schema`, `tier`, `book` | schema version; `1`, `2`, `"custom"`, `"picture"`, `"documentary"` or `"shorts"`; title, slug, language, readers, pilot chapter | all |
 | `words` | the user's own words about the look, verbatim, with later feedback that changed the bar | all |
 | `look` | palette, what each colour means, text and maths fonts, notation and rounding | all |
 | `voice` | TTS engine (`edge`, or `kokoro` when Edge is unavailable or local audio is wanted; a documentary may choose `eleven`, paid: [documentary.md](documentary.md#intake)), voice, rate | all |
@@ -79,6 +79,9 @@ Start from [the template](../assets/templates/style.json). Blocks are grouped by
 | `images` | where images may come from, credit rules | tier 2 |
 | `models` | the model for each step, as agreed in §5 | all |
 | `illustration` | a picture book's look, budget, cast and sets ([stories.md](stories.md#intake-for-a-story)) | picture books |
+| `angle` | the one thing a viewer leaves with, and what must be in the film | documentaries |
+| `music` | the music and where it came from | documentaries, shorts |
+| `platform`, `source`, `series`, `sources` | the feed and export size; where the argument comes from (the user's outline or a long film); the series' name and each episode's point; how strict to be about sources ([shorts.md](shorts.md#questions-for-the-user)) | shorts |
 | `courses` | the course options chosen ([courses.md](courses.md)) | when chosen |
 | `approved` | chapters the user approved and what each shows well | filled as chapters are approved |
 

@@ -373,7 +373,7 @@ function scope(p, fill, { small = false } = {}) {
 const LIVE = {};
 function fireAsk(n, next, { small = false, head } = {}) {
   return done => {
-    const i = P.i, stage = document.getElementById('stage');
+    const i = P.i, gen = P.gen, stage = document.getElementById('stage');   // gen: this start of the beat (a replay is another)
     let fired = 0, ox = 0, oy = 0, tx = 0, ty = 0, alive = true;
     const hint = mk('text', { x: 800, y: 870, 'text-anchor': 'middle', 'font-family': SER, 'font-style': 'italic', 'font-size': 34, fill: CREAM, opacity: 0 }, stage);
     hint.textContent = n > 1 ? `click to fire  ·  ${n} shots` : 'click to fire';
@@ -396,7 +396,7 @@ function fireAsk(n, next, { small = false, head } = {}) {
       tx = (room[0][0] + room[0][1]) / 2 - mx * (room[0][1] - room[0][0]) / 2; ty = (room[1][0] + room[1][1]) / 2 - my * (room[1][1] - room[1][0]) / 2;
     };
     const fire = () => {
-      if (!alive || P.i !== i || !P.waiting) return;
+      if (!alive || P.gen !== gen || !P.waiting) return;
       fired++;
       const a = new Audio(shotSnd); a.volume = Math.min(1, +($('volume')?.value ?? 1)); a.play().catch(() => {});
       flash.animate([{ opacity: .8 }, { opacity: 0 }], { duration: 260, easing: 'ease-out' });
@@ -411,14 +411,14 @@ function fireAsk(n, next, { small = false, head } = {}) {
         }
       }
       if (window.CURRENT_SCOPE) window.CURRENT_SCOPE.animate([{ transform: `translate(${ox}px,${oy - 40}px)` }, { transform: `translate(${ox}px,${oy}px)` }], { duration: 220 });
-      if (fired >= n) { LIVE[next] = true; cleanup(); setTimeout(() => { if (P.i === i) done(); }, small ? 250 : 500); }
+      if (fired >= n) { LIVE[next] = true; cleanup(); setTimeout(() => { if (P.gen === gen) done(); }, small ? 250 : 500); }
     };
-    const key = e => { if ((e.key === ' ' || e.key === 'Enter') && P.waiting && P.i === i) { e.preventDefault(); e.stopPropagation(); fire(); } };
+    const key = e => { if ((e.key === ' ' || e.key === 'Enter') && P.waiting && P.gen === gen) { e.preventDefault(); e.stopPropagation(); fire(); } };
     const cleanup = () => { alive = false; stage.style.cursor = ''; stage.removeEventListener('click', fire); removeEventListener('pointermove', move); removeEventListener('keydown', key, true); hint.remove(); setTimeout(() => flash.remove(), 400); };
     stage.addEventListener('click', fire); addEventListener('pointermove', move); addEventListener('keydown', key, true);
     const tick = () => {
       if (!alive) return;
-      if (P.i !== i) { cleanup(); return; }   // a seek away
+      if (P.gen !== gen) { cleanup(); return; }   // a seek away, or the beat replayed
       stage.style.cursor = P.waiting ? 'none' : '';   // while he aims, the cross-hairs are the cursor
       if (P.waiting) {
         hint.setAttribute('opacity', .9);

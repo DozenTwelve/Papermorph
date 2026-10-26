@@ -31,7 +31,7 @@ function scene6(p, D) {
 
     /* --- Pedro: ¡Vamos, mi casa! (pointing at the farmhouse); crosses to the barn; paints; steps back proud --- */
     const walkHome = span(q, 1.2, 3.2), walkBarn = span(q, N6.s07, N6.sp7 - .1);
-    const px = 560 + 200 * walkHome + 240 * walkBarn - 60 * span(q, N6.cue2 + .5, N6.cue2 + 1.2);
+    const px = 560 + 200 * walkHome + 240 * walkBarn + 30 * span(q, N6.cue2 + .5, N6.cue2 + 1.2);   // steps back from the sign, clear of Yui
     const pedro = { x: px, y: BK.GROUND, s: .92, look: 0, eyeX: 0, mouth: 'grin', headR: 2,
       armR: 24, armL: 24, brow: 0, shut: b(q, 1.6, 5.2, 9.0, 14.6) };
     if (q < N6.y3) Object.assign(pedro, { mouth: lips(q, 'scene6', PRE6, 'p5') !== 'X' ? lips(q, 'scene6', PRE6, 'p5') : 'grin',
@@ -49,7 +49,7 @@ function scene6(p, D) {
     }
     if (q >= N6.cue2) {   // steps back to admire it, arms wide
       const back = span(q, N6.cue2 + .5, N6.cue2 + 1.1);
-      Object.assign(pedro, { mouth: 'grin', armR: 50, armL: 50, headR: 4, eyeY: -.3, look: 0, eyeX: 0,
+      Object.assign(pedro, { mouth: 'grin', armR: 50, armL: 6, headR: 4, eyeY: -.3, look: 0, eyeX: 0,
         bob: -2 * back });
     }
 

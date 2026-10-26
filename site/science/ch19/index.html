@@ -825,9 +825,9 @@ const BEATS = [
     pen(p, 'this week: the moon is here', { x: 600, y: 300, size: 30, anchor: 'middle', o: 1 });
   }, { ask: done => quiz({ x: 880, y: 140, w: 680, cls: 'side' }, [{
     id: 'c-tide', prompt: ['Sun, Earth and moon are lined up like this (a full moon). What kind of tides will we get?'],
-    build: choice([['Spring tides: extra high and extra low'], ['Neap tides: smaller than usual'], ['No tides at all']], 0,
+    build: choice([['Neap tides: smaller than usual'], ['Spring tides: extra high and extra low'], ['No tides at all']], 1,
       'Lined up, the sun and moon pull along the same line, so their effects add up, at full moon as well as at new moon.',
-      [null, 'Neap tides come at first and last quarter, when the pulls are at right angles.', 'The moon still pulls on the oceans, so there are always tides.']),
+      ['Neap tides come at first and last quarter, when the pulls are at right angles.', null, 'The moon still pulls on the oceans, so there are always tides.']),
   }], done) }],
   ['wrap', 'Summary', (m, D) => {
     const p = panel(0); spaceBg(p, { seed: 60, o: .7 });
@@ -854,15 +854,15 @@ const BEATS = [
 /* ---------- practice ---------- */
 const FINAL1 = [
   { id: 'p-axis', prompt: ['What is the imaginary line through the North and South Poles that Earth spins around?'],
-    build: choice([['its axis'], ['the equator'], ['its orbit'], ['magnetic north']], 0, 'Earth rotates around its axis, once about every 24 hours.',
-      [null, 'The equator runs around the middle of Earth, halfway between the poles.', 'The orbit is the path Earth follows around the sun.', 'Magnetic north is where a compass points, not a line Earth spins around.']) },
+    build: choice([['the equator'], ['its orbit'], ['its axis'], ['magnetic north']], 2, 'Earth rotates around its axis, once about every 24 hours.',
+      ['The equator runs around the middle of Earth, halfway between the poles.', 'The orbit is the path Earth follows around the sun.', null, 'Magnetic north is where a compass points, not a line Earth spins around.']) },
   { id: 'p-year', prompt: ['What motion does Earth complete once every year?'],
-    build: choice([['one revolution around the sun'], ['one rotation on its axis'], ['one wobble of its tilt']], 0, 'One trip around the sun takes 365¼ days: a year.',
-      [null, 'One rotation takes about a day, not a year.', "Earth's axis doesn't wobble from season to season; it keeps pointing the same way."]) },
+    build: choice([['one rotation on its axis'], ['one revolution around the sun'], ['one wobble of its tilt']], 1, 'One trip around the sun takes 365¼ days: a year.',
+      ['One rotation takes about a day, not a year.', null, "Earth's axis doesn't wobble from season to season; it keeps pointing the same way."]) },
   { id: 'p-summer', prompt: ['Why is it summer in the northern hemisphere in June?'],
-    build: choice([['The north leans toward the sun, so sunlight is higher and days are longer.'], ['Earth is closest to the sun in June.'], ['The sun gives off more light in June.']], 0,
+    build: choice([['Earth is closest to the sun in June.'], ['The sun gives off more light in June.'], ['The north leans toward the sun, so sunlight is higher and days are longer.']], 2,
       'Higher, more direct sunlight for more hours a day warms the north.',
-      [null, 'Earth is actually farthest from the sun in early July, and closest in January.', 'The sun shines about the same all year; what changes is how the light reaches us.']) },
+      ['Earth is actually farthest from the sun in early July, and closest in January.', 'The sun shines about the same all year; what changes is how the light reaches us.', null]) },
   { id: 'p-tilt', prompt: ['If Earth were tilted more than 23.44°, how would the seasons change?'],
     build: choice([['They would be more extreme.'], ['They would be milder.'], ['They would stay the same.']], 0,
       'Summer sunlight would be even more direct and days even longer; winters would be darker and colder.',
@@ -877,21 +877,21 @@ const FINAL1 = [
 ];
 const FINAL2 = [
   { id: 'p-spin', prompt: ['The moon takes 27.3 days to orbit Earth. How long does it take to spin once on its axis?'],
-    build: choice([['27.3 days'], ['1 day'], ['29.5 days'], ["It doesn't spin."]], 0, 'The same time as one orbit, which is why one face always points at us.',
-      [null, 'That is how long Earth takes to spin, not the moon.', '29.5 days is the cycle of phases, not one spin.', 'If it never spun, we would see all of its sides as it orbited.']) },
+    build: choice([['1 day'], ['29.5 days'], ["It doesn't spin."], ['27.3 days']], 3, 'The same time as one orbit, which is why one face always points at us.',
+      ['That is how long Earth takes to spin, not the moon.', '29.5 days is the cycle of phases, not one spin.', 'If it never spun, we would see all of its sides as it orbited.', null]) },
   { id: 'p-wax', prompt: ['Each night the lit part of the moon looks bigger. The moon is …'],
-    build: choice([['waxing'], ['waning'], ['in a lunar eclipse']], 0, 'Waxing means growing: from new moon to full.',
-      [null, 'Waning means shrinking, from full back to new.', 'An eclipse lasts a few hours, not night after night.']) },
+    build: choice([['waning'], ['in a lunar eclipse'], ['waxing']], 2, 'Waxing means growing: from new moon to full.',
+      ['Waning means shrinking, from full back to new.', 'An eclipse lasts a few hours, not night after night.', null]) },
   { id: 'p-solar', prompt: ['During a solar eclipse, where is the moon?'],
-    build: choice([['between the sun and Earth'], ["in Earth's shadow"], ['at right angles to the sun']], 0, 'The moon blocks the sun and its shadow falls on Earth.',
-      [null, "That is a lunar eclipse: Earth's shadow on the moon.", 'At right angles we see a quarter moon, not an eclipse.']) },
+    build: choice([["in Earth's shadow"], ['between the sun and Earth'], ['at right angles to the sun']], 1, 'The moon blocks the sun and its shadow falls on Earth.',
+      ["That is a lunar eclipse: Earth's shadow on the moon.", null, 'At right angles we see a quarter moon, not an eclipse.']) },
   { id: 'p-tides', prompt: ['How does the moon affect the water on Earth?'],
     build: choice([["Its gravity pulls the oceans into two bulges, making high and low tides."], ['Its light warms the water so it rises.'], ['It only affects lakes, not oceans.']], 0,
       'One bulge faces the moon, the other is on the far side; Earth turns under both.',
       [null, "Moonlight is only reflected sunlight and far too weak; it's gravity that raises the tides.", 'Gravity pulls on all water, but the effect is easiest to see on the huge oceans.']) },
   { id: 'p-count', prompt: ['How many high tides do most beaches get each day?'],
-    build: choice([['2'], ['1'], ['4']], 0, 'Earth turns under two bulges a day: two highs and two lows.',
-      [null, 'There are two bulges, one facing the moon and one on the far side.', 'Four is the total of highs and lows together: two of each.']) },
+    build: choice([['1'], ['4'], ['2']], 2, 'Earth turns under two bulges a day: two highs and two lows.',
+      ['There are two bulges, one facing the moon and one on the far side.', 'Four is the total of highs and lows together: two of each.', null]) },
 ];
 document.fonts.load('30px "Patrick Hand"').then(boot);
 </script>

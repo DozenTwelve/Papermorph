@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "tier": "shorts",
+  "book": { "title": "Series title", "slug": "series", "language": "en", "readers": "who the feed is: an overseas English feed, no background needed", "pilot": "ch01" },
+  "platform": "YouTube Shorts first; 1080 x 1920 export",
+  "source": "where the argument comes from: the user's outline, or a long film this series remakes (its checked quotes, pictures, voice and music carry over)",
+  "words": [
+    "The user's own words about the point, the outline and the look, verbatim.",
+    "ch01 feedback: later words that changed the bar, with the episode they came from."
+  ],
+  "series": {
+    "name": "Series title",
+    "episodes": [
+      { "chapter": "ch01", "title": "Episode title", "point": "the one thing a viewer believes or wonders about at the end" },
+      { "chapter": "ch02", "title": "Next episode", "point": "what the ending of ch01 hands on to" }
+    ]
+  },
+  "look": {
+    "palette": { "ground": "#ece4d3", "ink": "#1f1b16", "accent": "#c8281e" },
+    "fonts": { "key words": "Oswald 600", "quotes": "EB Garamond italic" },
+    "pictures": "full-bleed generated or found pictures, a new one every one to three seconds; how real people appear"
+  },
+  "voice": { "engine": "edge", "voice": "en-US-AndrewNeural", "rate": "+4%", "level": "-14 LUFS, peak -1.5" },
+  "music": { "ch01": "one track under the whole episode, and where it came from" },
+  "sources": "which numbers and quotes need a source on screen, and how strict to be about anonymous reports",
+  "engine": { "source": "DozenTwelve/Papermorph", "ref": "engine-v2.4.2" },
+  "models": { "script": "claude-opus-5-5", "pictures": "claude-sonnet-5-5", "beats": "claude-sonnet-5-5", "checks": "claude-haiku-5-5", "director": "claude-opus-5-5" },
+  "approved": [{ "chapter": "ch01", "why": "what the user liked: the hook's first frame, the pace, the ending" }]
+}

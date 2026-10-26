@@ -150,7 +150,7 @@ const BEATS = [
     show(M(p, [F(1, 4)], { x: 200 + d2.w + 4, y: 640, size: 52, fill: COL.bad, anchor: 'start', o: 0 }), m('d2b'));
     show(T(p, 'Commutative works only for + and ×.', { x: 200, y: 780, size: 30, fill: PC, weight: 600, o: 0 }), m('rule'));
   }],
-  ['q1', 'Quick check', () => {}, { ask: done => quiz(TOPR, [{
+  ['q1', 'Quick check', () => {}, { ask: done => quiz({ ...TOPR, maxH: 810 }, [{   // tall enough for four rows and their answers
     id: 'c-order', prompt: ['True or false? Each statement swaps the order.'],
     build: grid([
       { parts: [$m('4 + 9 = 9 + 4')], ans: ['t'], why: 'Addition is commutative, so the order does not matter.' },

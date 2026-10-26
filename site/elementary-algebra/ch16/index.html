@@ -114,7 +114,9 @@ const BEATS = [
     c.add(20.4 * 3, CP, m('y2c'), '+$20.40');
     mline(p, ['$1040'], 500, 770, m('y2s', 1), IN, 40);
     mline(p, ['$1040.40'], 1100, 770, m('y2c', 2), CP, 40);
-    caption(p, 'compound interest earns interest on interest', m('gap'), 845, COL.task, 30, 800);
+    // between the columns, clear of the optional captions at the bottom of the frame
+    caption(p, 'compound interest earns', m('gap'), 580, COL.task);
+    caption(p, 'interest on interest', m('gap'), 622, COL.task);
     show(T(p, 'interest blocks drawn larger to be visible', { x: 800, y: 460, size: 20, fill: COL.faint, anchor: 'middle', o: 0 }), m('y1'));
   }],
   ['q3', 'Quick check', () => { panel(0); }, { ask: done => quiz(BAND, [{
@@ -149,7 +151,7 @@ const MARIO = [
   { parts: ['rate as a decimal: R = ', { box: '0.0325' }], why: '3.25 ÷ 100 = 0.0325.' },
   { parts: ['interest after 5 years: $', { box: '243.75' }], why: '1500 × 0.0325 × 5 = 243.75.' },
   { parts: ['balance after 5 years: $', { box: '1743.75' }], why: '1500 + 243.75 = 1743.75.' },
-  { parts: ['a $1200 loan at 5.4% for 1.5 years: repay $', { box: '1297.2' }], why: '1200 × 0.054 × 1.5 = 97.20, and 1200 + 97.20 = 1297.20.' },
+  { parts: ['a $1200 loan at 5.4% for 1.5 years: repay $', { box: '1297.20' }], why: '1200 × 0.054 × 1.5 = 97.20, and 1200 + 97.20 = 1297.20.' },
 ];
 const BACK = [
   { parts: ['$5000 at 8.5%: extra interest for 3 years instead of 2: $', { box: '425' }], why: 'One extra year: 5000 × 0.085 = 425.' },

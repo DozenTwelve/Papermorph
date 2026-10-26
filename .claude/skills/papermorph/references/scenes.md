@@ -1,6 +1,6 @@
 # Illustrated scenes
 
-For physical, spatial and narrative ideas: people and things act out the idea, the camera shows what matters, and the words live inside the picture (the science book on the showcase site).
+For physical, spatial and narrative ideas: people and things act out the idea, the camera shows what matters, and the words live inside the picture (the science book on the showcase site, `site/science/`).
 
 ## Each moment is one picture
 

@@ -68,6 +68,7 @@ async def main(a):
         url = f"{a.url}{a.chapter}/index.html"
         await pg.goto(url); await pg.wait_for_timeout(1000)
         ids = await pg.evaluate("BEATS.map(b => b.id)")
+        cw, ch = 400, round(400 * await pg.evaluate("SH / SW"))   # a frame 400 wide, in the stage's shape (upright too)
         def beat(s):
             if s.isdigit() and int(s) < len(ids): return int(s)
             if s in ids: return ids.index(s)
@@ -92,18 +93,18 @@ async def main(a):
                 await pg.evaluate(f"seek({e['i']}, false)")
             await pg.evaluate(f"P.t = {e['t']}; evalTo({e['t']})"); await pg.wait_for_timeout(120)
             r = await pg.evaluate("(() => { const r = document.getElementById('stage').getBoundingClientRect(); return {x: r.x, y: r.y, width: r.width, height: r.height}; })()")
-            shots.append((e, Image.open(io.BytesIO(await pg.screenshot(clip=r))).convert("RGB").resize((400, 225))))
+            shots.append((e, Image.open(io.BytesIO(await pg.screenshot(clip=r))).convert("RGB").resize((cw, ch))))
         await b.close()
     lines = [f"{ids[e['i']]:10} {e['t']:6.2f}  {e['kind']:5}  {e['what']}" + (f"   vol {e['vol']:.2f}" if e['kind'] == 'sfx' else '') for e, _ in shots]
     if afail: lines.append("note: sound did not play in this browser; the clock ran on wall time")
     (a.out / f"{a.chapter}_playlog.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("\n".join(lines))
     if shots:
-        S = Image.new("RGB", (1600, 225 * ((len(shots) + 3) // 4)), (20, 30, 27))
+        S = Image.new("RGB", (4 * cw, ch * ((len(shots) + 3) // 4)), (20, 30, 27))
         for k, (e, im) in enumerate(shots):
             d = ImageDraw.Draw(im); label = f"{ids[e['i']]} {e['t']:.2f} {e['kind']} {e['what'][:40]}"
             d.rectangle((0, 0, 7 * len(label) + 8, 16), fill=(0, 0, 0)); d.text((4, 3), label, fill=(255, 230, 120))
-            S.paste(im, ((k % 4) * 400, (k // 4) * 225))
+            S.paste(im, ((k % 4) * cw, (k // 4) * ch))
         S.save(a.out / f"{a.chapter}_playlog.jpg", quality=84)
     print(f"{len(shots)} events | log and frames in {a.out}" + (f" | PAGE ERRORS: {errs[:5]}" if errs else ""))
     return 1 if errs else 0

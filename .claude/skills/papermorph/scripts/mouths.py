@@ -16,7 +16,7 @@ import json, re, subprocess, sys, pathlib
 if len(sys.argv) < 3 or sys.argv[1] in ('-h', '--help'):
     print(__doc__); sys.exit(0 if sys.argv[1:2] in (['-h'], ['--help']) else 2)
 src, out = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
-cache = json.loads(src.with_suffix('.timings.json').read_text())
+cache = json.loads(src.with_suffix('.timings.json').read_text(encoding='utf-8'))
 RULES = [('oo', 'F'), ('ou', 'F'), ('ow', 'F'), ('th', 'B'), ('ee', 'C'), ('ea', 'C'), ('ai', 'C'), ('ay', 'C'),
          ('m', 'A'), ('b', 'A'), ('p', 'A'), ('f', 'G'), ('v', 'G'), ('w', 'F'), ('u', 'F'), ('o', 'E'), ('a', 'D'),
          ('e', 'C'), ('i', 'C'), ('y', 'C'), ('l', 'H')]

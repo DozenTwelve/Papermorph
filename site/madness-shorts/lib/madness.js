@@ -27,7 +27,7 @@ function wide(g, name, keys) {
 }
 
 // a Foucault line drawing (LINES from the documentary's trace.py), drawn on stroke by stroke over `draw` s
-function traced(p, name, { x = CX, y = 800, h = 600, at = 0, draw: dd = 1.5, colour = PAPER } = {}) {
+function traced(p, name, { x = CX, y = 800, h = 600, at = 0, draw: dd = 1.5, colour = LIGHT } = {}) {
   const L = LINES[name], [x0, y0, x1, y1] = L.box, k = h / (y1 - y0);
   const g = G(p, { x, y });
   const inner = mk('g', { transform: `scale(${k}) translate(${-(x0 + x1) / 2},${-(y0 + y1) / 2})` }, g);
@@ -45,7 +45,7 @@ function europeMap(g, x, y, w, t0) {
   const [bx, by, bw, bh] = EUROPE.box, k = w / bw, m = G(g, { x: x - bx * k, y: y - by * k, s: k, o: 0 });
   const id = 'eu' + (++fxN), cp = mk('clipPath', { id }, mk('defs', {}, m));
   mk('rect', { x: bx, y: by, width: bw, height: bh }, cp);
-  mk('path', { d: EUROPE.d, fill: 'none', stroke: PAPER, 'stroke-width': 1.6 / k, 'stroke-opacity': .7, 'clip-path': `url(#${id})` }, m);
+  mk('path', { d: EUROPE.d, fill: 'none', stroke: LIGHT, 'stroke-width': 1.6 / k, 'stroke-opacity': .7, 'clip-path': `url(#${id})` }, m);
   const el = EUROPE.dots.map(([cx, cy]) => put(mk('circle', { cx, cy, r: 5 / k, fill: RED }, m), { o: 0 }));
   if (t0 <= .01) put(m, { o: 1 }); else show(m, t0, .4);
   return { g: m, el };
@@ -54,18 +54,18 @@ function europeMap(g, x, y, w, t0) {
 // the series card: four episodes, `n` (1-based) lit at tLit; the rest dim
 const EPISODES = [['The ship', 'fool-boat'], ['Locked up', 'bars'], ['Liberation', 'chain'], ['The last voices', 'fool-vangogh']];
 function seriesCard(s, t0, n, tLit) {
-  word(s, 'Madness &', CX, 250, t0, { size: 96, fill: PAPER });
-  word(s, 'Civilization', CX, 360, t0 + .15, { size: 96, fill: PAPER });
-  T(s, 'AFTER MICHEL FOUCAULT, 1961', { x: CX, y: 430, size: 42, fill: SOFT, font: KEY, weight: 500, anchor: 'middle' });
+  word(s, 'Madness &', CX, 250, t0, { size: 96, fill: LIGHT });
+  word(s, 'Civilization', CX, 360, t0 + .15, { size: 96, fill: LIGHT });
+  T(s, 'AFTER MICHEL FOUCAULT, 1961', { x: CX, y: 430, size: 42, fill: MUTED, font: SANS, weight: 500, anchor: 'middle' });
   sfx(BEAT_ID, t0, 'thud', 1);
   const pos = [[250, 640], [650, 640], [250, 1040], [650, 1040]], sz = 340;
   const tiles = EPISODES.map(([title, img], i) => {
     const [x, y] = pos[i], c = G(s, { x, y, o: 0 });
-    rect(c, -sz / 2, -sz / 2, sz, sz, { rx: 18, fill: INK });
+    rect(c, -sz / 2, -sz / 2, sz, sz, { rx: 18, fill: DARK });
     const [iw, ih] = ART[img], k = Math.min((sz - 70) / iw, (sz - 110) / ih);
     mk('image', { href: `../img/${img}.webp`, x: -iw * k / 2, y: -ih * k / 2 - 18, width: iw * k, height: ih * k }, c);
-    T(c, String(i + 1), { x: -sz / 2 + 22, y: -sz / 2 + 62, size: 56, fill: PAPER, font: KEY, weight: 600 });
-    T(c, title.toUpperCase(), { x: 0, y: sz / 2 - 22, size: 42, fill: PAPER, font: KEY, weight: 600, anchor: 'middle' });
+    T(c, String(i + 1), { x: -sz / 2 + 22, y: -sz / 2 + 62, size: 56, fill: LIGHT, font: SANS, weight: 600 });
+    T(c, title.toUpperCase(), { x: 0, y: sz / 2 - 22, size: 42, fill: LIGHT, font: SANS, weight: 600, anchor: 'middle' });
     tw(c, { o: 1 }, t0 + .3 + i * .12, .25);
     return c;
   });
@@ -84,9 +84,9 @@ function strike(g, e, x, y, t0, size, colour = RED) {
 }
 
 // a quote in the serif, centred lines, shown whole at t0
-function quote(g, lines, y, t0, { size = 74, fill = PAPER, lh = 1.2 } = {}) {
+function quote(g, lines, y, t0, { size = 74, fill = LIGHT, lh = 1.2 } = {}) {
   const e = G(g, { o: 0, y: 20 });
-  lines.forEach((l, i) => T(e, l, { x: CX, y: y + i * size * lh, size, fill, font: SER, weight: 400, anchor: 'middle' }).setAttribute('font-style', 'italic'));
+  lines.forEach((l, i) => T(e, l, { x: CX, y: y + i * size * lh, size, fill, font: SERIF, weight: 400, anchor: 'middle' }).setAttribute('font-style', 'italic'));
   tw(e, { o: 1, y: 0 }, t0, .3, out);
   return e;
 }

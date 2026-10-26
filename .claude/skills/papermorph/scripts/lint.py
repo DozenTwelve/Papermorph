@@ -6,8 +6,9 @@
     python3 lint.py site/<book> --content content/<book> --brief books/<book>
 
 Errors (exit status 1):
-  global    a top-level name in the chapter or a lib file it loads is also declared by the engine or another of
-            its scripts; a second const/let/class stops the page script, a second function silently replaces one
+  global    a top-level name in the chapter or a lib file it loads (every name of const a = 1, b = 2) is also
+            declared by the engine or another of its scripts; a second const/let/class stops the page script, a
+            second function silently replaces one
   math      the chapter uses a maths helper from lib/math.js but does not load it after engine.js
   beat      a beat id has no entry in audio/<lang>/timings.js or no MP3
   mark      m('name') is not a mark of any beat
@@ -15,17 +16,21 @@ Errors (exit status 1):
   style     style.json is not valid JSON or lacks schema, tier, book, words, look or voice
 Warnings: a beat's m('name') not among that beat's own marks (beats built by shared helpers can mislead this);
   no beats recognised in a chapter; no narration file to check against.
---content defaults to content/<book> (content/ for the first book's legacy layout), --brief to books/<book>.
+--content defaults to content/<book> (content/ when that is missing and content/chNN exists: the first book's legacy
+layout), --brief to books/<book>. ElevenLabs audio tags such as [whispers] are not counted as narration text.
 """
 import argparse, json, re, sys
 from pathlib import Path
 
 DECL = re.compile(r'(?<![\w$.])(?:async\s+)?(function\*?|const|let|var|class)\s+([A-Za-z_$][\w$]*)')
+KW = re.compile(r'(?<![\w$.])(const|let|var)\s+')
+NEXT = re.compile(r',\s*([A-Za-z_$][\w$]*)\s*=(?!=)')   # a later declarator: , name =
 SRC = re.compile(r'<script\s+src="([^"]+)"')
 INLINE = re.compile(r'<script>(.*?)</script>', re.S)
 BEAT = re.compile(r"\[\s*'(\w+)'\s*,\s*(['\"`])(?:\\.|(?!\2).)*\2\s*,\s*(?:\(\s*(?:m\b|\))|m\s*=>)")   # ['id', 'title', (m, D) =>
 MCALL = re.compile(r"(?<![\w$.])m\(\s*'(\w+)'\s*[,)]")
 MARK = re.compile(r'\[\[(\w+)\]\]')
+TAG = re.compile(r'(?<!\[)\[[^\[\]]+\](?!\])')   # an ElevenLabs v4 audio tag, [whispers]: performed, not in captions (eleven.py's)
 ENGINE_FILES = {'engine.js', 'math.js', 'volume.js', 'contents.js', 'units.js'}
 LOCAL = re.compile(r'[,(]\s*([A-Za-z_$][\w$]*)\s*=(?![=>])')   # a, name = … or (p, name = 1): declared in a list
 PARAMS = re.compile(r'function\s*[\w$]*\s*\(([^)]*)\)|\(([^()]*)\)\s*=>|([A-Za-z_$][\w$]*)\s*=>')   # parameters
@@ -93,10 +98,19 @@ def depth0(text):
 
 
 def decls(text):
-    """Top-level declarations of a script: name, kind and line."""
+    """Top-level declarations of a script: name, kind and line, every declarator of const a = 1, b = 2 included."""
     code, top = depth0(text)
-    return [(m.group(2), m.group(1), code.count('\n', 0, m.start()) + 1)
-            for m in DECL.finditer(code) if top[m.start()]]
+    out = [(m.group(2), m.group(1), m.start()) for m in DECL.finditer(code) if top[m.start()]]
+    for m in KW.finditer(code):
+        if not top[m.start()]:
+            continue
+        i, n = m.end(), len(code)   # to the statement's end: ';' at depth 0, or a line break not ending in ',' or an operator
+        while i < n and not (top[i] and (code[i] == ';' or code[i] == '\n' and not code[m.end():i].rstrip().endswith(
+                (',', '=', '?', ':', '(', '+', '-', '&&', '||')))):
+            i += 1
+        seg = ''.join(c if top[k] else ' ' for k, c in enumerate(code[m.end():i], m.end()))   # nested code blanked
+        out += [(d.group(1), m.group(1), m.end() + d.start(1)) for d in NEXT.finditer(seg)]
+    return [(name, kind, code.count('\n', 0, at) + 1) for name, kind, at in sorted(out, key=lambda d: d[2])]
 
 
 def timings(path):
@@ -110,7 +124,7 @@ def timings(path):
 
 
 def words(s):
-    return re.sub(r'[^\w]+', ' ', MARK.sub('', s)).lower().split()
+    return re.sub(r'[^\w]+', ' ', TAG.sub(' ', MARK.sub('', s))).lower().split()
 
 
 def lint_chapter(ch, content, out):
@@ -151,7 +165,7 @@ def lint_chapter(ch, content, out):
         if used:
             err('math', f"uses {', '.join(used)} from lib/math.js: load ../lib/math.js right after engine.js")
     # beats, audio, marks
-    lang = (re.search(r"language:\s*'(\w+)'", inline) or [None, 'en'])[1]
+    lang = (re.search(r"""language:\s*['"](\w+)['"]""", inline) or [None, 'en'])[1]
     tpath = ch / 'audio' / lang / 'timings.js'
     if not tpath.exists():
         return err('beat', f'no audio/{lang}/timings.js')
@@ -178,12 +192,13 @@ def lint_chapter(ch, content, out):
     if nar.exists():
         N = json.loads(nar.read_text(encoding='utf-8-sig')).get('beats', {})
         for b, text in N.items():
+            said = text['text'] if isinstance(text, dict) else text   # the marks are in what is said
             if isinstance(text, dict):   # a beat with a speaker; its caption is the subtitle when it has one
                 text = text.get('sub') or text['text']
             if b not in T:
                 err('stale', f'narration beat {b} has no timings')
                 continue
-            if set(MARK.findall(text)) != set(T[b].get('marks', {})):
+            if set(MARK.findall(said)) != set(T[b].get('marks', {})):
                 err('stale', f'beat {b}: narration marks differ from timings.js')
             cues = ' '.join(c[1] for c in T[b].get('cues', []))
             if cues and words(text) != words(cues):
@@ -213,7 +228,8 @@ def main():
     ap.add_argument('--brief', type=Path)
     a = ap.parse_args()
     root, slug = a.book.resolve().parent.parent, a.book.resolve().name
-    content = a.content or next((c for c in (root / 'content' / slug, root / 'content') if c.is_dir()), root / 'content' / slug)
+    legacy = not (root / 'content' / slug).is_dir() and any((root / 'content').glob('ch[0-9]*'))   # the first book's content/chNN
+    content = a.content or root / 'content' / ('' if legacy else slug)
     chs = [a.book / c for c in a.chapters] if a.chapters else sorted(a.book.glob('ch[0-9]*'))
     out = []
     for ch in chs:

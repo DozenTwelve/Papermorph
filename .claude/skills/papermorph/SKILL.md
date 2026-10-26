@@ -55,6 +55,8 @@ A picture book adds `books/<book>/story.md` (the user's telling, verbatim), `sto
 
 A documentary adds `books/<book>/storyboard.md`, `art/` (`found/` with the downloaded pictures, the `prep.py` list, generated clips, `costs.tsv`) and `music/`, where `commons.py` keeps a `SOURCES.tsv` beside its downloads; its `site/<book>/lib/` holds `film.js`, `fonts.css` and `fonts/` from `assets/templates/documentary/` (its `book.css` too, with the film's colours) and, when the film uses them, `lines.js` (`trace.py`); `img/` holds the treated pictures with `art.js` (`prep.py`) and clip sheets with `frames.js` (`frames.py`); `index.html` is the series page with the credits; each film `chNN/` has `audio/<lang>/` and `audio/bgm/`.
 
+A series of shorts adds `books/<book>/chNN-script.md` (the outline, the beats with what we see, the sources), `art/` (generated and found pictures, `costs.tsv`) and `music/`; its `site/<book>/lib/` holds `shorts.js`, `book.css` and `icons.js` from `assets/templates/shorts/` with the documentary kit's fonts, and a second file of the series' own pieces loaded after `shorts.js`; each episode `chNN/` has `audio/<lang>/`, `audio/sfx/` and `audio/bgm/`.
+
 `SKILL` means this skill's absolute folder; `<book>` is the book slug, `<lang>` its primary language code. Needs: `uv`, `ffmpeg`/`ffprobe`, Edge TTS network access (or Kokoro, local: `uv run --python 3.12 --with kokoro`), github.com for `engine.py` when the repository's `engine/` folder is not at hand, an OpenRouter key only for the paid steps the user chooses (`paint.py`, `eleven.py`, `video.py`; `paint_openai.py` takes an OpenAI key), and Playwright browsers (`uv run --with playwright playwright install chromium firefox`; where Playwright's Chromium does not run, set `CHROME` to an installed Chrome, Chromium, Brave or Edge). Preview: `python3 SKILL/scripts/serve.py 8765 site` (no browser caching).
 
 ## Lessons
@@ -86,11 +88,11 @@ Start with the story intake in [stories.md](references/stories.md#intake-for-a-s
 
 ## Documentaries
 
-Start with the intake in [documentary.md](references/documentary.md#intake) whenever `books/<book>/style.json` does not exist yet. Then follow [the order of work](references/documentary.md#the-order-of-work): research, the script and storyboard shown to the user, the folder from `assets/templates/documentary/` ([site.md](references/site.md#a-documentary)), pictures found and treated, voice, music, the beats, [review rounds](references/documentary.md#review-rounds) and the user's viewing. *Madness and Civilization* on the shelf is the approved reference.
+Start with the intake in [documentary.md](references/documentary.md#intake) whenever `books/<book>/style.json` does not exist yet. Then follow [the order of work](references/documentary.md#the-order-of-work): research, the script and storyboard shown to the user, the folder from `assets/templates/documentary/` ([site.md](references/site.md#a-documentary)), pictures found and treated, voice, music, the beats, [review rounds](references/documentary.md#review-rounds) and the user's viewing. *Madness and Civilization* on the shelf is the approved reference; *Shooting an Elephant* (`site/shooting-an-elephant/`) is the interactive one, where the reader fires the rifle ([interactive moments](references/documentary.md#interactive-moments)).
 
 ## Shorts
 
-Start with the questions in [shorts.md](references/shorts.md#questions-for-the-user) whenever `books/<book>/style.json` does not exist yet; the user's outline comes before any script. Then follow [the order of work](references/shorts.md#the-order-of-work): the script written beat by beat with the user, the cast, the folder from `assets/templates/shorts/` on the upright stage, voice and music levels, the beats, a director pass and the user's viewing, then `export.py` for a 1080 × 1920 video. *Madness and Civilization* episode 1, *The Ship* (`site/madness-shorts/`), is the worked example.
+Start with the questions in [shorts.md](references/shorts.md#questions-for-the-user) whenever `books/<book>/style.json` does not exist yet; the user's outline comes before any script (a long film being recut as shorts is the outline: [from a long film](references/shorts.md#from-a-long-film)). Then follow [the order of work](references/shorts.md#the-order-of-work): the script written beat by beat with the user, the storyboard and the pictures, the folder from `assets/templates/shorts/` on the upright stage, voice and music levels, the beats, a director pass and the user's viewing, then `export.py` for a 1080 × 1920 video. *Madness and Civilization* episode 1, *The Ship* (`site/madness-shorts/`), is the worked example.
 
 ## Scripts
 
@@ -98,9 +100,9 @@ All in `SKILL/scripts/`; each prints its usage with `--help` (run it with the `u
 
 | For | Scripts |
 |---|---|
-| Every book | `serve.py` preview without caching · `engine.py` sync the engine into books · `tts.py` narration and word times · `lint.py` static checks · `shot.py` beat screenshots · `strip.py` storyboard sheets and motion strips · `still.py` stretches where nothing moves · `perf.py` Firefox frame times · `export.py` MP4 and `.srt` |
+| Every book | `serve.py` preview without caching · `engine.py` sync the engine into books · `tts.py` narration and word times · `lint.py` static checks · `shot.py` beat screenshots · `strip.py` storyboard sheets and motion strips · `still.py` stretches where nothing moves · `perf.py` Firefox frame times · `export.py` MP4 and `.srt` · `level.py` even loudness |
 | Lessons | `outline.py` and `split_pages.py` page map and chapter text · `check_blank.py` empty openings · `overlap.py` arrows through text · `sprites.py` image processing steps |
-| Picture books | `mouths.py` mouth shapes · `level.py` even loudness · `join.py` one clip per scene · `sfx.py` synthesized effects · `playlog.py` sounds and captions against the picture · `bake_sets.py` set layers · `bake_puppets.py` puppet bitmaps · `paint.py` / `paint_openai.py` image-model pictures · `painted.py` place them in the book |
+| Picture books | `mouths.py` mouth shapes · `join.py` one clip per scene · `sfx.py` synthesized effects · `playlog.py` sounds and captions against the picture · `bake_sets.py` set layers · `bake_puppets.py` puppet bitmaps · `paint.py` / `paint_openai.py` image-model pictures · `painted.py` place them in the book |
 | Documentaries | `commons.py` public-domain pictures and recordings with their licences · `prep.py` print and line treatments · `trace.py` drawings that draw themselves on · `video.py` a clip from a still · `frames.py` a clip as treated frames · `eleven.py` ElevenLabs narration with word times |
 | Course options | `refs.py` verified citations · `items.py` question bank · `scorm.py` LMS package |
 

@@ -1216,6 +1216,7 @@ function bgmWire(m) {
 }
 // A browser starts sound only after a click or a key: the first one builds the graph (films only) and readies the music.
 function soundUnlock() {
+  if (typeof BEATS === 'undefined') return;   // the chapter's script has not run yet
   if (!SND.ctx && window.AudioContext && (!BEATS.some(b => b.ask) || CHAPTER.film)) {   // a film with a question (CHAPTER.film) keeps its sound
     if (navigator.audioSession) navigator.audioSession.type = 'playback';   // iOS: the silent switch must not mute the film
     SND.ctx = new AudioContext();
@@ -1232,6 +1233,9 @@ function soundUnlock() {
 }
 // a touch activates the page on touchend or click, not on pointerdown
 for (const type of ['pointerdown', 'touchend', 'click', 'keydown']) addEventListener(type, soundUnlock, true);
+// Safari (and every iOS browser) stops a media element for .3-.6 s at each playbackRate change, so easing the music
+// back would only push it further out: there it keeps the film's rate and seeks instead.
+const RATE_STALLS = /AppleWebKit/.test(navigator.userAgent) && !/Chrome\/|Android/.test(navigator.userAgent);
 function soundTick(dt) {
   const id = BEATS[P.i]?.id, pre = BEATS[P.i]?.pre || 0, on = P.started && P.playing && !P.waiting && !P.done, L = SND.last;
   // a film waiting for the reader (CHAPTER.film, a question beat after its narration): the music plays on, louder
@@ -1240,7 +1244,7 @@ function soundTick(dt) {
   if (ctx?.state === 'running' && held) ctx.suspend();
   else if (ctx && ctx.state !== 'running' && ctx.state !== 'closed' && !held) ctx.resume().catch(() => {});
   // the clock ran on (or stood still, paused) in the same beat; anything else is a seek, a replay or the next beat
-  const same = L.i === P.i && P.t >= L.t && P.t - Math.max(0, L.t) < .5;
+  const same = L.i === P.i && P.t >= L.t && P.t - Math.max(0, L.t) < Math.max(.5, dt * P.rate + .25);
   if (!same) { while (SND.on.length) SND.on.pop().stop(); SND.wait = []; }
   // a beat that has just begun fires its effects from 0 on; a seek fires nothing it skipped, but joins a bed
   const from = same ? L.t : P.t < .25 ? -1 : P.t, seeked = !same || L.pend;
@@ -1255,7 +1259,7 @@ function soundTick(dt) {
   SND.last = { i: P.i, t: on ? P.t : from, pend: !on && (!same || !!L.pend) };
   const vol = +($('volume')?.value ?? 1), up = window.MUSIC_UP_IN_PRE;
   if (SND.out) SND.out.gain.value = vol;
-  if (!SND.bgm.length) return;
+  if (!SND.bgm.length || BEATS.some(b => b.ask) && !CHAPTER.film) return;   // a lesson with questions plays no music
   // the film's clock moved this frame (a clip loading or buffering holds it), or jumped (a seek, a replay)
   const runs = on && same && P.t > L.t, jump = !same && !(L.i === P.i - 1 && P.t < .5);
   if (!held) SND.duck += Math.max(-dt, Math.min(dt, (wait || P.t < pre && (up === true || up?.includes?.(id)) ? .7 : .3) - SND.duck));
@@ -1277,12 +1281,19 @@ function soundTick(dt) {
       // from .25 s out until .05 s
       const ok = runs && !m.a.seeking;
       // (once more after a jump: the element plays on while it seeks)
-      if (m.a.paused || jump && Math.abs(d) > .05 || ok && Math.abs(d) > (m.settle ? .25 : 1)) {
-        m.a.currentTime = want; d = 0; m.settle = !ok;
+      // Where a rate change stalls, starting and seeking stall too: once a second the music's lag is learnt (m.lead),
+      // seeks aim that far ahead, and a quarter second out is then worth a seek.
+      let far = m.settle ? .25 : 1;
+      m.sought ??= clock;
+      if (RATE_STALLS && ok && clock - m.sought > 1) {
+        m.sought = clock; m.lead = Math.max(0, Math.min(.6, (m.lead || 0) - d)); far = .25;
+      }
+      if (m.a.paused || jump && Math.abs(d) > .05 || ok && Math.abs(d) > far) {
+        m.a.currentTime = (want + (RATE_STALLS && m.lead || 0)) % dur; d = 0; m.settle = !ok; m.sought = clock;
       } else if (ok) m.settle = false;
       if (Math.abs(d) > .25) m.fix = true; else if (Math.abs(d) < .05) m.fix = false;
       // a frame where the clock stood still keeps the rate it had
-      const rate = !m.fix ? P.rate : ok ? P.rate * (1 - Math.sign(d) * .05) : m.a.playbackRate;
+      const rate = !m.fix || RATE_STALLS ? P.rate : ok ? P.rate * (1 - Math.sign(d) * .05) : m.a.playbackRate;
       if (Math.abs(m.a.playbackRate - rate) > .001) m.a.playbackRate = rate;
       if (m.a.paused) m.a.play().catch(() => {});
     } else {
@@ -1362,6 +1373,8 @@ function seekInto(i, frac) {
 }
 function start(i, play) {
   stopAudio(); clearCards();
+  // P.gen counts starts: a done() kept from an earlier start of this same beat (a step replayed) no longer counts
+  const gen = P.gen = (P.gen || 0) + 1;
   Object.assign(P, { i, t: 0, waiting: false, done: false, afail: false, stall: 0, lost: 0 });
   P.end = runBeat(i);
   evalTo(0);
@@ -1378,7 +1391,7 @@ function start(i, play) {
   };
   const b = BEATS[i];
   if (b.ask) b.ask(() => {
-    if (P.i !== i || P.done) return;
+    if (P.gen !== gen || P.done) return;
     evalTo(Infinity);
     if (i + 1 < BEATS.length) start(i + 1, true);
     else { P.done = true; setPlaying(false); filmDone(); }
@@ -1438,7 +1451,7 @@ function filmDone() {
   if (!CHAPTER.next) return;
   const next = h('button', 'btn go', [translate('nextChapter'), kbd('Enter')]);
   next.onclick = go;
-  const c = card({ x: 0, y: 770, w: 0, cls: 'side' }, 'next');
+  const c = card({ x: 0, y: SH - 130, w: 0, cls: 'side' }, 'next');
   Object.assign(c.style, { left: 'auto', right: '40px', width: 'auto' });
   c.append(h('div', 'acts', [next]));
 }
@@ -1447,11 +1460,8 @@ function frame(now) {
   frameStep(now, .1);
   requestAnimationFrame(frame);
 }
-// A hidden tab gets no animation frames: a timer keeps the film going, so a beat that ends there still starts the next
-// one (a tab playing sound keeps its timers). Its ticks come late, so they may move the clock further at once.
-setInterval(() => { if (document.hidden) frameStep(performance.now(), 1.5); }, 250);
 function frameStep(now, most) {
-  const dt = Math.min(most, Math.max(0, now - last) / 1000);
+  const raw = Math.max(0, now - last) / 1000, dt = Math.min(most, raw);
   last = now;
   clock += dt;
   if (FX.length) { evalTo(clock, FX); FX = FX.filter(w => !w.done); }
@@ -1470,7 +1480,7 @@ function frameStep(now, most) {
     // P.lost: how long the clock stood still while the film played (a clip getting going, buffering). Music runs on
     // through it, so a beat under music gives that time back from its closing hold: each beat then lasts as long in
     // real time as on the music's timeline, and the music stays with the picture instead of drifting ahead beat by beat.
-    P.lost += dt * P.rate - (P.t - t0);
+    P.lost += raw * P.rate - (P.t - t0);   // real time: a long frame moves the music by all of it
     const back = SND.bgm.some(m => m.beats.includes(BEATS[P.i].id)) ? Math.max(0, Math.min(HOLD, P.lost)) : 0;
     if (P.t >= P.end - back) beatDone();
   }
@@ -1511,10 +1521,13 @@ function ui() {
   const asking = !!b.ask;
   if (P.started && !P.done && !(asking && (P.waiting || $('ui').querySelector('.card.screen')))) {
     // a cue is [start, line], [start, line, end] or [start, line, end, 1]: with an end, the caption clears once its
-    // words are over; a 1 marks a line in another language, whose subtitle shows even with captions off
-    for (const [t, line, end, forced] of TIMINGS[b.id].cues) {
+    // words are over; a 1 marks a line in another language, whose subtitle shows even with captions off (as does every
+    // cue of a beat whose timings say forced: true, from tts.py or eleven.py)
+    // the last line without an end clears a second after the narration, so it does not sit on a closing title
+    const cues = TIMINGS[b.id].cues;
+    for (const [k, [t, line, end = k === cues.length - 1 ? TIMINGS[b.id].dur + 1 : null, forced]] of cues.entries()) {
       if (t + (b.pre || 0) > P.t + .05) break;
-      text = (captions || forced) && !(end != null && P.t > end + (b.pre || 0)) ? line : '';
+      text = (captions || forced || TIMINGS[b.id].forced) && !(end != null && P.t > end + (b.pre || 0)) ? line : '';
     }
   }
   if (text !== capText) { capText = text; $('caption').textContent = text; $('caption').hidden = !text; }
@@ -1676,4 +1689,7 @@ function boot() {
     if (P.audio) P.audio.currentTime = Math.max(0, P.t - (BEATS[P.i].pre || 0));
   } else seek(0, false);
   requestAnimationFrame(frame);
+  // A hidden tab gets no animation frames: a timer keeps the film going, so a beat that ends there still starts the next
+  // one (a tab playing sound keeps its timers). Its ticks come late, so they may move the clock further at once.
+  setInterval(() => { if (document.hidden) frameStep(performance.now(), 1.5); }, 250);
 }

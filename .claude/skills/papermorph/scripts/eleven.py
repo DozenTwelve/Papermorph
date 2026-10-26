@@ -5,9 +5,10 @@
     ... [--model elevenlabs/eleven-v4] [--voice george] [--only beat,beat] [--dry] [--ledger books/<book>/art/costs.tsv]
 
 Same input and output as tts.py: the narration file's beats with [[mark]] tags in, <beat>.mp3 and timings.js
-({dur, marks, cues} per beat) out, so the page cannot tell the two apart. The voice and model come from the
-narration file ("voice", "model"), else from the flags (default george, eleven-v4); OpenRouter offers 21 preset
-voices. A beat may be {"speaker": name, "text": ...} with the speaker's "voice" under the file's "voices", as in tts.py,
+({dur, marks, cues} per beat) out, so the page cannot tell the two apart. The voice and model come from the flags,
+else from the narration file ("voice", "model"), else george and eleven-v4; OpenRouter offers 21 preset voices. A beat
+may be {"speaker": name, "text": ...} with the speaker's "voice" under the file's "voices", as in tts.py (no speaker:
+the file's voice),
 and a "sub": a line in another language, whose subtitle is its one caption cue, shown even with captions off (forced);
 Whisper detects that line's language.
 
@@ -18,16 +19,17 @@ sentence and per clause after a colon ("Mr." and "e.g." do not end one, as in tt
 
 v4 audio tags such as [cackles] or [whispers] act: they are performed, not read aloud, and left out of captions.
 Price: about $0.00008 per character (about $0.65 for a ten-minute film). Before paying, the run prints the characters
-it will synthesize and their estimated cost; --dry stops there. --ledger appends the run's estimate to the ledger
-paint.py writes (OpenRouter reports no cost for speech).
+it will synthesize and their estimated cost; --dry stops there. --ledger appends the characters the run synthesized
+(also when it stops partway) and their estimated cost to the ledger paint.py writes (OpenRouter reports no cost for
+speech).
 
 Each beat's clip is cached beside the narration as .eleven/<beat>.<hash>.mp3 (hash of model, voice and text), so
 moving marks or rerunning never pays twice. --only takes the listed beats again (a fresh, paid take, even with the
 text unchanged) and leaves the others' mp3 and timings as they are. A clip levelled in place (level.py) is kept by
-later runs until its take changes: .eleven/takes.json records which take each output clip was copied from.
+later runs until its take changes: .eleven/takes.json records which take each output clip (by its folder and name, en/open.mp3) was copied from.
 The key is read from ~/.config/openrouter/key or $OPENROUTER_API_KEY.
 """
-import argparse, datetime, hashlib, json, pathlib, re, subprocess, sys, urllib.error, urllib.request
+import argparse, atexit, datetime, hashlib, json, pathlib, re, subprocess, sys, urllib.error, urllib.request
 from paint import key
 from tts import ABBREV, split_marks, mark_times, duration, write_atomic
 
@@ -62,7 +64,7 @@ def speak(text, voice, dst):
         sys.exit(f"{e.code} {e.read().decode(errors='replace').replace(k, '***')[:500]}")
     if not data.startswith(b"ID3") and not (data[:1] == b"\xff" and len(data) > 1 and data[1] & 0xE0 == 0xE0):
         sys.exit(f"not audio: {data[:300]!r}")
-    dst.write_bytes(data)
+    tmp = dst.with_suffix(".part"); tmp.write_bytes(data); tmp.replace(dst)   # a half-written take is never a cached one
 
 
 norm = lambda w: re.sub(r"\W", "", w.lower())
@@ -72,10 +74,14 @@ old = {}
 if tf.exists():
     t = tf.read_text(encoding="utf-8"); old = json.loads(t[t.index("{"):t.rindex("}") + 1])
 tk = cache / "takes.json"   # output clip -> the cached take it was copied from
-takes = json.loads(tk.read_text()) if tk.exists() else {}
+clip_key = lambda f: "/".join(pathlib.Path(f).parts[-2:])   # en/open.mp3: the same in any clone (older runs: the full path)
+takes = {clip_key(k): v for k, v in json.loads(tk.read_text()).items()} if tk.exists() else {}
 beats = []
 for beat, raw in spec["beats"].items():
-    voice = spec["voices"][raw["speaker"]]["voice"] if isinstance(raw, dict) else a.voice or spec.get("voice", "george")
+    who = raw.get("speaker") if isinstance(raw, dict) else None
+    if who is not None and who not in spec.get("voices", {}):
+        sys.exit(f"{beat}: speaker {who!r} is not under the narration file's \"voices\"")
+    voice = spec["voices"][who]["voice"] if who is not None else a.voice or spec.get("voice", "george")
     sub = raw.get("sub") if isinstance(raw, dict) else None   # a foreign line's subtitle, its one cue
     raw = raw["text"] if isinstance(raw, dict) else raw
     clean, marks = split_marks(raw)   # clean keeps audio tags: they go to the voice
@@ -86,10 +92,17 @@ todo = sum(len(b[3]) for b in beats if b[6])
 print(f"{sum(b[6] for b in beats)} beats to synthesize, {todo} characters, about ${todo * PRICE:.2f}", flush=True)
 if a.dry:
     sys.exit()
-if a.ledger and todo:
-    led = pathlib.Path(a.ledger); led.parent.mkdir(parents=True, exist_ok=True)
-    with led.open("a", encoding="utf-8") as f: f.write(f"{datetime.date.today()}\t{a.out}\t{model}\ttts{todo}c\t{todo * PRICE:.4f}\n")
 timings, spent = {}, 0
+
+
+def charge():
+    """Log what was paid for, once the takes are made: a run stopped partway logs only its finished takes."""
+    if a.ledger and spent:
+        led = pathlib.Path(a.ledger); led.parent.mkdir(parents=True, exist_ok=True)
+        with led.open("a", encoding="utf-8") as f: f.write(f"{datetime.date.today()}\t{a.out}\t{model}\ttts{spent}c\t{spent * PRICE:.4f}\n")
+
+
+atexit.register(charge)   # at the end, or when a later step (a failed take, Whisper) stops the run
 for beat, voice, sub, clean, marks, cached, fresh in beats:
     if only and beat not in only and beat in old:
         timings[beat] = old[beat]; continue   # --only leaves the other beats alone
@@ -98,8 +111,8 @@ for beat, voice, sub, clean, marks, cached, fresh in beats:
     if fresh:
         speak(clean, voice, cached); spent += len(clean); print(beat, "synthesized")
     mp3 = out / f"{beat}.mp3"
-    if fresh or not mp3.exists() or takes.get(str(mp3.resolve())) != cached.name:   # else keep it: perhaps levelled since
-        mp3.write_bytes(cached.read_bytes()); takes[str(mp3.resolve())] = cached.name
+    if fresh or not mp3.exists() or takes.get(clip_key(mp3)) != cached.name:   # else keep it: perhaps levelled since
+        mp3.write_bytes(cached.read_bytes()); takes[clip_key(mp3)] = cached.name
     m = "base" if sub or lang != "en" else "base.en"
     if m not in asr:
         import numpy as np

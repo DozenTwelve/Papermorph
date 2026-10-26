@@ -21,6 +21,13 @@ const showAll = (els, t0, step = 0) => els.forEach((e, i) => show(e, t0 + i * st
 const row = (p, items, y = 230, size = 64, x = 800) => tokens(p, items, { x, y, size, anchor: 'middle', o: 0 });
 const caption = (p, str, t0, y = 150, fill = COL.dim, size = 30, x = 800) => show(T(p, str, { x, y, size, fill, weight: 600, anchor: 'middle', o: 0 }), t0);
 const line = (p, str, x, y, t0, fill = COL.chalk, size = 44, anchor = 'start') => { const e = M(p, [str], { x, y, size, fill, anchor, o: 0 }); show(e, t0); return e; };
+// A side card's grid keeps its labels in 170 px; '7 × (−2) × (−2)' needs about 210.
+const wideLabels = build => (body, api) => {
+  const q = build(body, api);
+  body.querySelectorAll('.grid .row').forEach(r => { r.style.gridTemplateColumns = '230px minmax(0, 1fr) 34px'; });
+  body.querySelectorAll('.grid .why').forEach(w => { w.style.paddingLeft = '246px'; });
+  return q;
+};
 // A big arrow that a negative sign flips around. Pointing right = positive, left = negative.
 function signArrow(p, x, y, len = 220) {
   const g = G(p, { x, y, o: 0 }), inner = G(g);
@@ -105,14 +112,14 @@ const BEATS = [
     const p = panel(0);
     S.qa = signArrow(p, 440, 420, 300);
     show(S.qa, .2);
-  }, { ask: done => quiz(TOPR, [{
+  }, { ask: done => quiz({ ...TOPR, x: 880, w: 704, maxH: 810 }, [{   // wide and tall: long products, four rows and their answers
     id: 'c-sign', prompt: ['Is each product positive or negative?'],
-    build: grid([
+    build: wideLabels(grid([
       { parts: ['(−4) × 6'], ans: ['n'], why: 'One negative sign: negative.', fx: () => fx(S.qa.inner, { r: 180 }, 0, .5, back) },
       { parts: ['(−3) × (−5)'], ans: ['p'], why: 'Two negative signs: positive.', fx: () => fx(S.qa.inner, { r: 360 }, 0, .5, back) },
       { parts: ['(−1)(−2)(−3)'], ans: ['n'], why: 'Three negative signs: negative.', fx: () => fx(S.qa.inner, { r: 540 }, 0, .5, back) },
       { parts: ['7 × (−2) × (−2)'], ans: ['p'], why: 'Two negative signs: positive.', fx: () => fx(S.qa.inner, { r: 720 }, 0, .5, back) },
-    ], [['p', 'Positive', POS], ['n', 'Negative', NEG]], { multi: false }),
+    ], [['p', 'Positive', POS], ['n', 'Negative', NEG]], { multi: false })),
   }], done) }],
   ['divide', 'Dividing', (m) => {
     const p = panel(0);

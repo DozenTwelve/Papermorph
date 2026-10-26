@@ -14,7 +14,7 @@ def print_total(path, note=""):
     by = {}
     for r in rs:
         by[r[2]] = by.get(r[2], 0) + float(r[4])
-    tail = f"  ({len(rs)} pictures{', ' + note if note else ''})"
+    tail = f"  ({len(rs)} rows{', ' + note if note else ''})"
     for m, c in sorted(by.items()):
         print(f"{m:40s} {c:8.4f} USD")
     print(f"{'total':40s} {sum(by.values()):8.4f} USD{tail}")

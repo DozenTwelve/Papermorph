@@ -22,12 +22,12 @@ if len(sys.argv) < 3 or sys.argv[1] in ('-h', '--help'):
     print(__doc__); sys.exit(0 if sys.argv[1:2] in (['-h'], ['--help']) else 2)
 GAP = .35
 LAG = .12   # Edge's word times run ~0.12–0.25 s ahead of the sound: captions (and mouths.py's cues) start this much later
-d = pathlib.Path(sys.argv[1]); T = json.loads((d / 'timings.js').read_text().split('=', 1)[1].rstrip().rstrip(';'))
+d = pathlib.Path(sys.argv[1]); T = json.loads((d / 'timings.js').read_text(encoding='utf-8').split('=', 1)[1].rstrip().rstrip(';'))
 from silence import speech_end, pauses   # a caption ends at the pause after its words
 args, words = sys.argv[2:], None
 if '--words' in args:
     k = args.index('--words'); words = pathlib.Path(args[k + 1]); del args[k:k + 2]
-WB = json.loads(words.with_suffix('.timings.json').read_text()) if words else {}   # per-beat word times, to place caption ends
+WB = json.loads(words.with_suffix('.timings.json').read_text(encoding='utf-8')) if words else {}   # per-beat word times, to place caption ends
 def silence(path, sec):
     subprocess.run(['ffmpeg', '-v', 'error', '-y', '-f', 'lavfi', '-i', 'anullsrc=r=24000:cl=mono', '-t', str(sec), '-b:a', '64k', str(path)], check=True)
 out, H = {}, {}   # H: every shot's holes, for the mouths
@@ -59,7 +59,7 @@ for arg in args:
         gap = pathlib.Path(tmp) / 'gap.mp3'; silence(gap, GAP)
         lst = pathlib.Path(tmp) / 'list.txt'
         q = lambda f: "file '" + str(f).replace("'", "'\\''") + "'\n"   # the concat list's quoting: ' becomes '\''
-        lst.write_text(''.join(''.join(q(f) for f in piece(b)) + (q(gap) if i < len(beats) - 1 else '') for i, b in enumerate(beats)))
+        lst.write_text(''.join(''.join(q(f) for f in piece(b)) + (q(gap) if i < len(beats) - 1 else '') for i, b in enumerate(beats)), encoding='utf-8')
         subprocess.run(['ffmpeg', '-v', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', str(lst), '-c:a', 'libmp3lame', '-b:a', '64k', str(d / f'{shot}.mp3')], check=True)
     parts, cues, marks, at = {}, [], {}, 0
     for b in beats:
@@ -84,18 +84,18 @@ for arg in args:
     H.update(holes)
     out[shot] = {'dur': round(dur, 3), 'marks': marks, 'cues': cues, 'parts': parts}
 # a clip with holes gets its mouth cues moved the same way (and shut at each hole), after mouths.js in the page
-mp = d / 'mouths.js'; M = json.loads(mp.read_text().split('=', 1)[1].rstrip().rstrip(';')) if mp.exists() else {}
+mp = d / 'mouths.js'; M = json.loads(mp.read_text(encoding='utf-8').split('=', 1)[1].rstrip().rstrip(';')) if mp.exists() else {}
 sh = lambda b, t: t + sum(sec for at, sec in H[b] if t >= at)
 moved = {b: sorted([[round(sh(b, t), 3), k] for t, k in M[b]] + [[round(sh(b, at - 1e-3), 3), 'X'] for at, _ in H[b]])
          for b in H if H[b] and b in M}
 (d / 'shots.js').write_text(''.join(f'TIMINGS.{k} = {json.dumps(v)};\n' for k, v in out.items()) + ''.join(f'MOUTHS.{b} = {json.dumps(v)};\n' for b, v in moved.items()))
 if words:   # every word where it is heard in its scene clip
-    W, lines = json.loads(words.with_suffix('.timings.json').read_text()), []
+    W, lines = json.loads(words.with_suffix('.timings.json').read_text(encoding='utf-8')), []
     for sc, v in out.items():
         lines.append(f"{sc} dur {v['dur']} (scene-clip times; the beat clock adds the scene's pre)")
         for b, p in v['parts'].items():
             hs = ' '.join(f'[hole {round(p + sh(b, at - 1e-6), 2)}…{round(p + sh(b, at - 1e-6) + sec, 2)}]' for at, sec in H.get(b, []))
             ws = W.get(b, {}).get('words', [])
             lines.append(f"   {b} @{p} {hs} | " + (' '.join(f'{w}@{round(p + sh(b, t) + LAG, 2)}' for t, w in ws) or '(silence)'))
-    words.with_suffix('.words.txt').write_text('\n'.join(lines) + '\n')
+    words.with_suffix('.words.txt').write_text('\n'.join(lines) + '\n', encoding='utf-8')
 print({k: (v['dur'], v['parts']) for k, v in out.items()})

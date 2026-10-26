@@ -573,10 +573,10 @@ const BEATS = [
   }],
   ['q3', 'Quick check', () => {}, { ask: done => quiz({ x: 940, y: 150, w: 620, cls: 'side' }, [{
     id: 'c-factors', prompt: ['Which two things decide an object\'s gravitational potential energy?'],
-    build: choice([['mass and height'], ['mass and velocity'], ['height and colour']], 0,
+    build: choice([['mass and velocity'], ['height and colour'], ['mass and height']], 2,
       'More mass or more height means more stored energy.',
-      [null, 'Mass and velocity decide kinetic energy, the energy of motion. Stored energy from gravity depends on height.',
-        'Colour makes no difference. Think of the two books: what was different about them?']),
+      ['Mass and velocity decide kinetic energy, the energy of motion. Stored energy from gravity depends on height.', 'Colour makes no difference. Think of the two books: what was different about them?',
+        null]),
   }], done) }],
   ['kinetic', 'Kinetic energies', (m, D) => {
     const p = panel(0);
@@ -685,7 +685,7 @@ const BEATS = [
       if (form === 'kinetic') speedLines(p, 320, y + 60, 3, 60);
       else hand(p, 'z z z', 470, y + 10, { size: 34, fill: COL.dim });
     }
-  }, { ask: done => quiz({ x: 650, y: 80, w: 900, cls: 'side', maxH: 760 }, [{
+  }, { ask: done => quiz({ x: 650, y: 40, w: 900, cls: 'side', maxH: 830 }, [{
     id: 'c-sort', prompt: ['Is each form moving energy (kinetic) or stored energy (potential)?'],
     build: grid([['Thermal energy', 'k', 'Thermal energy is molecules vibrating: motion.'], ['Elastic energy', 'p', 'Elastic energy is stored in a stretch or squeeze.'],
       ['Sound energy', 'k', 'Sound is molecules bumping into each other: motion.'], ['Chemical energy', 'p', 'Chemical energy is stored in the bonds of atoms.'],
@@ -722,32 +722,33 @@ const PRACTICE = [
       ['The energy of an object because of its motion', 'k', 'Kinetic energy is the energy of motion.']].map(([t, a, why]) => ({ parts: [t], ans: [a], why })),
     [['c', 'conservation'], ['p', 'potential'], ['k', 'kinetic']], { multi: false, text: true }) },
   { id: 'p-cow', prompt: ['A cow digests grass. The chemical energy stored in the grass becomes…'],
-    build: choice([['thermal and kinetic energy'], ['nuclear energy'], ['nothing: the energy is used up']], 0,
+    build: choice([['nuclear energy'], ['thermal and kinetic energy'], ['nothing: the energy is used up']], 1,
       'The cow\'s body releases the stored chemical energy as heat (thermal) and motion (kinetic).',
-      [null, 'Nuclear energy is stored in the nuclei of atoms; digestion rearranges chemical bonds.', 'Energy is never destroyed; it changes form.']) },
+      ['Nuclear energy is stored in the nuclei of atoms; digestion rearranges chemical bonds.', null, 'Energy is never destroyed; it changes form.']) },
   { id: 'p-chem', prompt: ['What is chemical energy?'],
-    build: choice([['energy stored in the bonds between atoms'], ['energy of flowing electrons'], ['energy stored in an object\'s height']], 0,
+    build: choice([['energy of flowing electrons'], ['energy stored in an object\'s height'], ['energy stored in the bonds between atoms']], 2,
       'Chemical energy is stored in chemical bonds, as in food and fuel.',
-      [null, 'That is electric energy.', 'That is gravitational potential energy.']) },
+      ['That is electric energy.', 'That is gravitational potential energy.', null]) },
   { id: 'p-shelf', prompt: ['Books on the same bookcase. Which has the most potential energy?'],
-    build: choice([['a 2 kg book on the top shelf'], ['a 1 kg book on the top shelf'], ['a 2 kg book on the bottom shelf']], 0,
+    build: choice([['a 1 kg book on the top shelf'], ['a 2 kg book on the top shelf'], ['a 2 kg book on the bottom shelf']], 1,
       'It has both more mass and more height.',
-      [null, 'Same height as the 2 kg book on the top shelf, but less mass.', 'Same mass as the 2 kg book on the top shelf, but much less height.']) },
+      ['Same height as the 2 kg book on the top shelf, but less mass.', null, 'Same mass as the 2 kg book on the top shelf, but much less height.']) },
   { id: 'p-ke', prompt: ['A tennis ball and a bowling ball roll at the same speed. Which has more kinetic energy?'],
     build: choice([['the bowling ball'], ['the tennis ball'], ['they have the same, because the speed is the same']], 0,
       'At the same speed, more mass means more kinetic energy.',
       [null, 'The tennis ball has less mass, so less kinetic energy at the same speed.', 'Speed is only half of it: kinetic energy also grows with mass.']) },
   { id: 'p-change', prompt: ['Energy is constantly ______ from one form to another.'],
-    build: choice([['changing'], ['being destroyed'], ['being created']], 0,
+    build: choice([['being destroyed'], ['being created'], ['changing']], 2,
       'Energy keeps changing form: light to chemical to motion, and on.',
-      [null, 'Energy is never destroyed.', 'Energy is never created.']) },
+      ['Energy is never destroyed.', 'Energy is never created.', null]) },
   { id: 'p-bump', prompt: ['Your bumper car hits your friend\'s car, and hers moves forward. What kind of energy did yours pass to hers?'],
     build: choice([['kinetic energy'], ['potential energy'], ['nuclear energy']], 0,
       'Energy of motion passed from one car to the other in the collision.',
       [null, 'Nothing was lifted or stretched; the energy passed on was motion.', 'Nuclear energy is stored inside atoms; a bump does not release it.']) },
 ];
 
-nbBoot();
+// This notebook chapter is a sample in the physics book: Home goes back to that book's contents (its card has no id to aim at).
+nbBoot().then(() => { $('bHome').href = '../../science/#contents'; });
 </script>
 </body>
 </html>
