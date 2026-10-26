@@ -1559,7 +1559,7 @@ function hideCover() {
   if (BEATS[P.i].ask) $('ui').querySelector('input.box:not(:disabled)')?.focus({ preventScroll: true });
 }
 function togglePlay() {
-  if (!P.started) { hideCover(); return setPlaying(true); }
+  if (!P.started) { turnPhone(); hideCover(); return setPlaying(true); }
   if (P.done) return restart();   // the end of a film (or of a chapter whose last step is a question): play again
   if (P.waiting) return;
   setPlaying(!P.playing);
@@ -1582,7 +1582,19 @@ $('bCC').onclick = () => setCaptions(!captions);
 $('bSpeed').onclick = () => setSpeed(SPEEDS[(SPEEDS.indexOf(P.rate) + 1) % SPEEDS.length]);
 try { const r = +localStorage.getItem('speed'); if (SPEEDS.includes(r)) setSpeed(r); } catch {}
 $('bFull').onclick = () => toggleFull();
-const toggleFull = () => document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.();
+// Full screen also turns the screen to the stage's orientation where the browser allows it (Android browsers lock
+// orientation only in full screen; iOS has no lock, so there the reader turns the phone). On a phone held across the
+// stage's orientation, starting the lesson goes full screen the same way, since the stage would otherwise be a strip.
+function goFull() {
+  return document.documentElement.requestFullscreen?.({ navigationUI: 'hide' })
+    .then(() => screen.orientation?.lock?.(PORTRAIT ? 'portrait' : 'landscape')).catch(() => {});
+}
+function turnPhone() {
+  const phone = matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) <= 600;
+  if (phone && !document.fullscreenElement && (innerHeight > innerWidth) !== PORTRAIT) goFull();
+}
+const toggleFull = () => document.fullscreenElement ? document.exitFullscreen() : goFull();
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) try { screen.orientation?.unlock?.(); } catch {} });
 let helpResume = false;
 function toggleHelp() {
   const open = $('help').hidden;
