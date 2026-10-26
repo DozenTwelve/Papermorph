@@ -69,7 +69,7 @@ function photo(g, name, t0, t1, { s0 = 1.02, s1 = 1.1, dx = 0, dy = 0, dim = 0, 
   if (ai) srcTag(g, 'AI illustration', 50, 150, t0);
   return im;
 }
-// a small grey label top left: a source or "AI illustration"; shown with ?tags (export.py --query tags), so a cut
+// a small grey label top left: a source or "AI illustration"; shown with ?tags (as export.py shows them), so a cut
 // being worked on stays clean while the calls stay in place
 const TAGS = new URLSearchParams(location.search).has('tags');
 function srcTag(g, str, x, y, t0) {
@@ -80,8 +80,10 @@ function srcTag(g, str, x, y, t0) {
   show(e, t0, .2, lin);
   return e;
 }
-// big condensed capitals popping in (a word or two); stroke: a dark edge to read over pictures
-function word(g, str, x, y, t0, { size = 120, fill = DARK, anchor = 'middle', stroke, dur = .22, from = .82 } = {}) {
+// big condensed capitals popping in (a word or two); stroke: a dark edge to read over pictures. A word wider than maxW
+// is set smaller to fit: 660 keeps a centred word and its stroke inside the safe box (x 50-810)
+function word(g, str, x, y, t0, { size = 120, fill = DARK, anchor = 'middle', stroke, dur = .22, from = .82, maxW = 660 } = {}) {
+  size = Math.min(size, size * maxW / inkW(str.toUpperCase(), size));
   const e = G(g, { x, y, s: from, o: 0 });
   const t = T(e, str.toUpperCase(), { x: 0, y: 0, size, fill, font: SANS, weight: 600, anchor });
   if (stroke) { t.setAttribute('stroke', stroke); t.setAttribute('stroke-width', size / 14); t.setAttribute('paint-order', 'stroke'); t.setAttribute('stroke-linejoin', 'round'); }
@@ -95,7 +97,7 @@ function label(g, str, x, y, t0, { size = 40, fill = DARK, colour = LIGHT, ancho
   const e = G(g, { x, y, s: .85, o: 0 });
   rect(e, x0, -size * .95, w, size * 1.3, { fill, rx: 4 });
   T(e, str.toUpperCase(), { x: x0 + pad, y: 0, size, fill: colour, font: SANS, weight: 600 });
-  tw(e, { s: 1, o: 1 }, t0, .18, out);
+  if (t0 <= .01) put(e, { s: 1, o: 1 }); else tw(e, { s: 1, o: 1 }, t0, .18, out);   // there on a beat's first frame
   return e;
 }
 // lines of a sentence as stacked chips, each popping in turn

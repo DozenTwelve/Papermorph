@@ -3,6 +3,7 @@
 
     uv run --with faster-whisper --with numpy python eleven.py content/<book>/ch01/narration.en.json site/<book>/ch01/audio/en
     ... [--model elevenlabs/eleven-v4] [--voice george] [--only beat,beat] [--dry] [--ledger books/<book>/art/costs.tsv]
+    ... [--lufs -14] [--peak -1.5] [--no-level] [--max-pause 0.3]
 
 Same input and output as tts.py: the narration file's beats with [[mark]] tags in, <beat>.mp3 and timings.js
 ({dur, marks, cues} per beat) out, so the page cannot tell the two apart. The voice and model come from the flags,
@@ -28,10 +29,20 @@ moving marks or rerunning never pays twice. --only takes the listed beats again 
 text unchanged) and leaves the others' mp3 and timings as they are. A clip levelled in place (level.py) is kept by
 later runs until its take changes: .eleven/takes.json records which take each output clip (by its folder and name, en/open.mp3) was copied from.
 The key is read from ~/.config/openrouter/key or $OPENROUTER_API_KEY.
+
+ElevenLabs delivers about -23 LUFS, which sinks under music, so every output clip is levelled to --lufs (default -14)
+with its true peak under --peak (default -1.5 dBTP) by level.py, and the run prints each clip's loudness before and
+after; a clip already level is left as it is, so a rerun changes nothing. --no-level leaves the clips as delivered
+(level them later with level.py --lufs). --max-pause S shortens every pause inside a clip (under -38 dB, not its
+leading or trailing silence) longer than S to S, keeping S/2 at each side: a short's length hides in the voice's own
+sentence pauses (0.4 to 1.0 s). It runs before the alignment, so the marks and cues come from the shortened clip; a
+shortened clip has no pause left to shorten, so a rerun keeps it. One cap for every pause of every beat; a pause that
+should stay long (a turn of the film) needs its beat run without it.
 """
 import argparse, atexit, datetime, hashlib, json, pathlib, re, subprocess, sys, urllib.error, urllib.request
 from paint import key
 from tts import ABBREV, split_marks, mark_times, duration, write_atomic
+import level as lv
 
 TAG = re.compile(r"(?<!\[)\[[^\[\]]+\](?!\])")   # a v4 audio tag, not a [[mark]]
 PRICE = 0.00008   # USD per character
@@ -42,6 +53,10 @@ ap.add_argument("--model"); ap.add_argument("--voice")
 ap.add_argument("--only", default="", help="comma-separated beats to take again")
 ap.add_argument("--dry", action="store_true", help="print what would be synthesized and its cost, then stop")
 ap.add_argument("--ledger", help="tab-separated cost log to append the estimate to, e.g. books/<book>/art/costs.tsv")
+ap.add_argument("--lufs", type=float, default=-14, help="level every clip to this integrated loudness (default -14)")
+ap.add_argument("--peak", type=float, default=-1.5, help="true-peak ceiling of the levelled clips in dBTP (default -1.5)")
+ap.add_argument("--no-level", action="store_true", help="leave the clips at the loudness the voice service delivered")
+ap.add_argument("--max-pause", type=float, metavar="S", help="shorten pauses inside a clip longer than S seconds to S")
 a = ap.parse_args()
 spec = json.loads(pathlib.Path(a.narration).read_text(encoding="utf-8-sig"))
 model = a.model or spec.get("model", "elevenlabs/eleven-v4")
@@ -51,6 +66,25 @@ cache = pathlib.Path(a.narration).parent / ".eleven"; cache.mkdir(exist_ok=True)
 only = set(filter(None, a.only.split(",")))
 if only - spec["beats"].keys():
     sys.exit(f"--only: no beat {', '.join(sorted(only - spec['beats'].keys()))}")
+
+
+def tighten(mp3, cap):
+    """Shorten the pauses inside mp3 longer than cap to cap, in place; returns the seconds cut."""
+    log = subprocess.run(["ffmpeg", "-hide_banner", "-i", str(mp3), "-af", "silencedetect=n=-38dB:d=0.3", "-f", "null", "-"],
+                         capture_output=True, text=True).stderr
+    dur, cuts = duration(mp3), []
+    for x, y in re.findall(r"silence_start: ([\d.]+).*?silence_end: ([\d.]+)", log, re.S):
+        x, y = float(x), float(y)
+        if x > .05 and y < dur - .05 and y - x > cap + .05:   # inside the clip; one already near the cap stays
+            cuts.append((x + cap / 2, y - cap / 2))
+    if not cuts: return 0.0
+    keep = list(zip([0.0] + [y for _, y in cuts], [x for x, _ in cuts] + [None]))
+    parts = "".join(f"[0]atrim={x:.3f}{'' if y is None else f':{y:.3f}'},asetpts=N/SR/TB[p{i}];" for i, (x, y) in enumerate(keep))
+    tmp = mp3.with_suffix(".part")
+    subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(mp3), "-filter_complex", parts + "".join(f"[p{i}]" for i in range(len(keep)))
+                    + f"concat=n={len(keep)}:v=0:a=1", "-b:a", "128k", "-f", "mp3", str(tmp)], check=True)
+    tmp.replace(mp3)
+    return sum(y - x for x, y in cuts)
 
 
 def speak(text, voice, dst):
@@ -113,6 +147,8 @@ for beat, voice, sub, clean, marks, cached, fresh in beats:
     mp3 = out / f"{beat}.mp3"
     if fresh or not mp3.exists() or takes.get(clip_key(mp3)) != cached.name:   # else keep it: perhaps levelled since
         mp3.write_bytes(cached.read_bytes()); takes[clip_key(mp3)] = cached.name
+    if a.max_pause and (cut := tighten(mp3, a.max_pause)): print(f"{beat}: pauses over {a.max_pause} s shortened, -{cut:.2f} s")
+    if not a.no_level: print(lv.one(mp3, mp3, argparse.Namespace(lufs=a.lufs, gain=None, peak=a.peak)), flush=True)
     m = "base" if sub or lang != "en" else "base.en"
     if m not in asr:
         import numpy as np

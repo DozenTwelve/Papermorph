@@ -30,7 +30,7 @@ import argparse, asyncio, io
 import sys
 from pathlib import Path
 from playwright.async_api import async_playwright
-from browsers import exe
+from browsers import answers, exe
 from PIL import Image, ImageDraw
 
 CLEAN = """#bar, #caption, #ui, #soundNote, #help, #cover, .paused-mark { display: none !important; }
@@ -39,6 +39,7 @@ CLEAN = """#bar, #caption, #ui, #soundNote, #help, #cover, .paused-mark { displa
 
 async def main(a):
     a.out.mkdir(parents=True, exist_ok=True)
+    answers(f"{a.url}{a.chapter}/index.html")
     async with async_playwright() as p:
         b = await p.chromium.launch(**exe())
         pg = await b.new_page(viewport={"width": 1600, "height": 960}, reduced_motion="reduce")
