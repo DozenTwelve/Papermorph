@@ -130,7 +130,7 @@ const BEATS = [
       rect(c, -110, -150, 220, 300, { fill: '#efe6d2', stroke: '#c9b994', 'stroke-width': 3 });
       [-90, -50, -10].forEach(dy => path(c, `M-80 ${dy}H80`, { stroke: '#b9a982', 'stroke-width': 4 }));
       const t = i * .17;
-      show(c, t, .05, lin); tw(c, { y: fy + 80, r: 0 }, t, .4, p => p * p);
+      show(c, t, .05, lin); tw(c, { y: fy + 50, r: 0 }, t, .4, p => p * p);
       if (i % 2 === 0) sfx('few', t + .35, 'page', .35);
     }
     // three that land beside it
