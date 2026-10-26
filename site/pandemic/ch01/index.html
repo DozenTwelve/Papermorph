@@ -65,11 +65,11 @@ const BEATS = [
     ground(p, NIGHT);
     const glob = G(p, { o: 0 }), gb = blurOn(glob, 'x');
     const lon0 = -30, spin = t => lon0 + t * 2.4, tA = m('one') - 1.9, tB = m('one') - .55;   // the whip turn to China on "go back"
-    globeShot(glob, D, t => {
+    globeShot(glob, D, (t, E) => {   // E: where the beat really ends, so the dive lands there
       const q = soft(span01(t, tA, tB)), lonA = spin(tA);
       const lon = t < tA ? spin(t) : lonA + (WUHAN_LL[0] - lonA) * q, lat = 12 + (WUHAN_LL[1] - 12) * q;
       const creep = 1.15 - .1 * span01(t, m('count') - 1, tA);
-      const dive = span01(t, m('one') - .4, D + HOLD), H = creep * (.33 / creep) ** (dive ** 1.6);
+      const dive = span01(t, m('one') - .4, E), H = creep * (.33 / creep) ** (dive ** 1.6);
       const gain = 1.6 - .5 * span01(t, m('real'), m('real') + .8) - .9 * span01(t, m('forget'), m('forget') + 1.6) + 1.4 * span01(t, tA, tB);
       return { lon, lat, H, gain };
     });
@@ -186,7 +186,7 @@ const BEATS = [
     // push through the first case into red
     cam.to({ x: CASES[0][0], y: CASES[0][1], z: 1600 }, D, HOLD, ease3);
     const red = mk('rect', { x: 0, y: 0, width: SW, height: SH, fill: RED, opacity: 0 }, p);
-    clockRun(t => red.setAttribute('opacity', span01(t, D + HOLD - .16, D + HOLD)), D, { tail: true });
+    clockRun((t, E) => red.setAttribute('opacity', span01(t, E - .16, E)), D, { tail: true });   // E: the beat's real end
   }],
 
   // 2. The doctor: his badge on the Wuhan map, his message and the letter as cards beside it, then eight badges
@@ -278,10 +278,11 @@ const BEATS = [
     const left = G(p, {});
     mk('rect', { x: 0, y: 0, width: SW, height: SH, fill: '#0b0d11', opacity: .55 }, left);
     const pin = G(left, {}), [bx, by] = cam.screen(0, 0, 0); put(pin, { x: bx, y: by });
-    put(liChip(pin, 0, 0, 110, -1), { s: .7 });
+    liChip(G(pin, { s: .7 }), 0, 0, 110, -1);   // scaled from outside: liChip's own pop-in tween sets its s to 1
     for (let i = 0; i < 7; i++) { const a = (-90 + i * (360 / 7)) * Math.PI / 180; liChip(pin, Math.cos(a) * 215, Math.sin(a) * 215, 50, -1, { img: `doctor-${i + 1}` }); }
-    T(left, '8 DOCTORS', { x: 1110, y: 430, size: 110, fill: CREAM, font: KEY, weight: 600, anchor: 'middle' });
-    T(left, 'the other seven: AI illustrations', { x: 1110, y: 525, size: 18, fill: SOFT, font: SER, anchor: 'middle' });
+    T(left, '8 DOCTORS', { x: 1110, y: 430, size: 110, fill: CREAM, font: KEY, weight: 600, anchor: 'middle' }).setAttribute('letter-spacing', '.02em');   // as key() drew it
+    for (const [str, y, size, fill] of [['punished for “spreading rumours”', 490, 32, CREAM], ['the other seven: AI illustrations', 525, 18, SOFT]])
+      T(left, str, { x: 1110, y, size, fill, font: SER, anchor: 'middle' }).setAttribute('font-style', 'italic');   // the last beat's tags, as tag() drew them
     tw(left, { o: 0 }, .05, .4, lin);
     cam.to({ x: 2, y: 0, z: 3 }, .2, D + .2, soft);
     // generations: a red stain whose area doubles at each one (the first cases' dots under it); every size it leaves

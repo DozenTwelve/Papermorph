@@ -102,10 +102,11 @@ function water(p, y0, D, { rows = 3, amp = 8, len = 1700, x0 = -50, gap = 26, o 
     let d = ''; for (let x = 0; x <= len; x += 20) d += `${x ? 'L' : 'M'}${x0 + x} ${(y0 + i * gap * (a / 8) ** .5 + a * Math.sin(x / 70 + t * 1.6 + i)).toFixed(1)}`;
     e.setAttribute('d', d);
   }); }, D, { tail: true });
+  prog(() => {}, 0, D);   // the beat lasts at least D (a tail's own D no longer lengthens it, engine v2.6)
   return g;
 }
 // something that bobs on the water (a boat); x may follow a function of t
-const bob = (g, D, a = 6, xf) => clockRun(t => put(g, { y: g._y + a * Math.sin(t * 1.6), r: 1.5 * Math.sin(t * 1.1), ...(xf ? { x: xf(t) } : {}) }), D, { tail: true });
+const bob = (g, D, a = 6, xf) => { clockRun(t => put(g, { y: g._y + a * Math.sin(t * 1.6), r: 1.5 * Math.sin(t * 1.1), ...(xf ? { x: xf(t) } : {}) }), D, { tail: true }); prog(() => {}, 0, D); };
 const span01 = (t, a, b) => Math.min(1, Math.max(0, (t - a) / (b - a)));
 const smooth01 = q => q * q * (3 - 2 * q);
 // a speech balloon, cream outline, its tail to (tx, ty)

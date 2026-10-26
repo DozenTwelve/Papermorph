@@ -49,15 +49,11 @@ function blurOn(el, axis = 'x') {
 const WHIP = .32;
 function whipOut(g, D, dir = 1, axis = 'x', dist = 1300) {
   const b = blurOn(g, axis);
-  // clockRun inline: a tail's dur is stretched to the beat's real end, which can pass D + HOLD (a clock run to D + HOLD
-  // adds another HOLD), so the throw lands on that end and the frame never freezes thrown
-  const w = { t0: 0, dur: D, ease: lin, tail: true };
-  w.pf = q => {
-    const t = q * w.dur, E = w.dur, k = ease3(span01(t, E - WHIP, E)), o = -dir * dist * k;
+  clockRun((t, E) => {   // E: the beat's real end, where the throw lands
+    const k = ease3(span01(t, E - WHIP, E)), o = -dir * dist * k;
     put(g, axis === 'x' ? { x: o } : { y: o });
     axis === 'x' ? b(k * 90, o) : b(k * 90, 0, o);
-  };
-  TW.push(w);
+  }, D, { tail: true });
 }
 function whipIn(g, dir = 1, axis = 'x', dist = 1300, dur = WHIP + .1) {
   const b = blurOn(g, axis);
@@ -254,7 +250,7 @@ function trackLabel(p, cam, str, [wx, wy], t0, D, { size = 30, fill = MAPINK, dy
 // mount the shared WebGL canvas in this panel and draw view(t) every frame
 function globeShot(p, D, view, dotsOn, arcsOn) {
   const g = Globe.mount(p);
-  clockRun(t => Globe.draw(view(t), dotsOn && (i => dotsOn(i, t)), arcsOn && (i => arcsOn(i, t))), D, { tail: true });
+  clockRun((t, E) => Globe.draw(view(t, E), dotsOn && (i => dotsOn(i, t)), arcsOn && (i => arcsOn(i, t))), D, { tail: true });   // E: the beat's real end
   return g;
 }
 const WUHAN_LL = [114.268, 30.582];

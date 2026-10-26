@@ -32,7 +32,7 @@ body:has(.cover:not([hidden])) .breath { animation: breath 4.2s ease-in-out infi
 <script>
 'use strict';
 // lead: false — every opening is timed by hand, so the engine never pulls a beat's first reveal earlier
-const CHAPTER = { number: 1, title: 'Shooting an Elephant', minutes: 9, language: 'en', lead: false, film: true };   // film: its shots are question beats
+const CHAPTER = { number: 1, title: 'Shooting an Elephant', minutes: 9, language: 'en', lead: false, film: true, questionKeys: false };   // film: its shots are question beats, fired with its own controls (no question keys in the help)
 
 const OPEN_PRE = 5.5;   // the shot, the trumpet and the title in the black, before Orwell's first sentence
 const SIGHT = { x: 800, y: 430, r: 330 };
