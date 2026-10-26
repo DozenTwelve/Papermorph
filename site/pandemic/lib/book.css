@@ -1,0 +1,14 @@
+/* The film's colours (here Madness and Civilization's burgundy and cream): --board is the ground, --chalk the ink on it,
+   --dim captions; --accent, and an old document's --paper, --paper-ink and --stamp, are read by film.js. Bake pictures
+   to match (prep.py and frames.py --ink is --chalk, prep.py --paper the paper). Imported by engine.css; engine.py never
+   overwrites it. */
+@import url("fonts.css");
+:root {
+  --page: #050608; --board: #0b0d11; --panel: #15171c; --edge: #2a2d33;
+  --chalk: #f3ede0; --dim: #d9b9b0; --faint: #9a5a58;
+  --task: #f0b45a; --quiz: #e8c8a0; --good: #c8e0b0; --bad: #ffb0a0;
+  --vignette: rgba(0, 0, 0, .35);
+  --rule: #2a2d33; --track: #2a2d33; --track-ask: #2a2d33;
+  --bar-edge: #2a2d33; --hover: #2f333a; --veil: #050608;
+  --accent: #e5402f; --paper: #f3ede0; --paper-ink: #3a2a24; --stamp: #7a1a20;
+}
