@@ -23,8 +23,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--task); outline-offset: 3px; }
 button[hidden] { display: none; }
 
-/* One fixed 1600×960 frame (900 stage + 60 controls), scaled to fit the window. */
-#frame { position: absolute; left: 50%; top: 50%; width: var(--sw, 1600px); height: calc(var(--sh, 900px) + 60px); transform: translate(-50%, -50%) scale(var(--k, .5));
+/* One fixed 1600×960 frame (900 stage + 60 controls), scaled to fit the window. Fixed, not absolute: a frame wider
+   than a phone would otherwise widen the phone's layout viewport, and fit() would scale to that wider width. */
+#frame { position: fixed; left: 50%; top: 50%; width: var(--sw, 1600px); height: calc(var(--sh, 900px) + 60px); transform: translate(-50%, -50%) scale(var(--k, .5));
   border-radius: 20px; overflow: hidden; background: var(--board); box-shadow: 0 0 0 1px var(--edge), 0 30px 80px rgba(0, 0, 0, .45); }
 #stage { position: absolute; left: 0; top: 0; width: var(--sw, 1600px); height: var(--sh, 900px); display: block;
   background: radial-gradient(75% 75% at 50% 45%, rgba(0,0,0,0) 60%, var(--vignette)), var(--grain, none), var(--board); }
@@ -194,6 +195,9 @@ svg.m { display: inline-block; overflow: visible; }
 .card.screen:not(.sort):not(.fin) > .body { flex: 0 1 auto; min-height: 0; overflow-y: auto; }
 .screen .acts { position: absolute; right: 70px; bottom: 48px; }
 .screen .grid .row { grid-template-columns: 200px minmax(0, 1fr) 40px; padding: 9px 0 9px 12px; }
+/* a long label (a system of equations) widens the label column for every row instead of running off the card's left */
+.screen .grid:not(.text) { display: grid; grid-template-columns: minmax(200px, max-content) minmax(0, 1fr) 40px; }
+.screen .grid:not(.text) > .row { grid-column: 1 / -1; grid-template-columns: subgrid; }
 .screen .grid.text .row { grid-template-columns: minmax(0, 1fr) auto 40px; }
 .screen .grid .opt { font-size: 22px; min-height: 50px; padding: 4px 20px; }
 .screen .grid .why { padding-left: 216px; font-size: 20px; }
@@ -260,4 +264,5 @@ a.btn { text-decoration: none; display: inline-block; }
 .fin .prompt { margin: 6px 0 14px; font: 500 56px/1.15 "Iowan Old Style", Palatino, Georgia, serif; }
 .icon.speed { width: auto; min-width: 44px; padding: 0 10px; border-radius: 22px; font-size: 16px; }
 /* An upright stage is seen at about half the scale of a wide one on the same screen: bigger caption text. */
+:root[data-stage="portrait"] .step { width: 120px; }   /* the 900-wide bar keeps room for the steps */
 :root[data-stage="portrait"] .caption { font-size: 38px; bottom: 60px; }
