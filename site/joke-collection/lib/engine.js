@@ -623,9 +623,10 @@ const soft = p => (1 - Math.cos(Math.PI * p)) / 2;   // gentle in-out, for camer
 // after its narration and last tween; with { tail: true } f keeps running through that hold (t up to the beat's end)
 // instead of freezing at D, for motion that never stops, as in a film. A camera runs through the hold too when anything
 // in its beat does (its tail is 'follow'), so a follow shot keeps up with a tailed subject. f also gets the run's end
-// (for a tail, the beat's real end), so a move can land on it, as a whip at the end of a beat does.
+// (for a tail, the beat's real end), so a move can land on it, as a whip at the end of a beat does. Under music that
+// end is where the beat really leaves, up to HOLD early (P.back, see frameStep), so the move is still seen landing.
 // A tail's own D does not lengthen the beat: it runs to the end whatever it is (so D + HOLD adds no second hold).
-const clockRun = (f, D, { tail = false } = {}) => { const w = { t0: 0, dur: D, ease: lin, tail }; f(0, D); w.pf = q => f(q * w.dur, w.dur); TW.push(w); };
+const clockRun = (f, D, { tail = false } = {}) => { const w = { t0: 0, dur: D, ease: lin, tail }; f(0, D); w.pf = q => f(q * w.dur, w.tail ? w.dur - P.back : w.dur); TW.push(w); };
 // A camera looks at a world group through the stage (or a box, for split screen and picture-in-picture).
 // The view {x, y, z, r} is the world point at the centre, the zoom (screen px per world px) and the roll in degrees.
 // Moves are keyed on the beat clock: to(view, t0, dur, ease) blends each given key from its value at t0; a key may be a
@@ -1313,7 +1314,7 @@ function soundTick(dt) {
 }
 
 /* ---------- player ---------- */
-const P = { i: 0, t: 0, end: 1, playing: false, waiting: false, done: false, started: false, audio: null, afail: false, stall: 0, cleanup: [], rate: 1, nextClip: null };
+const P = { i: 0, t: 0, end: 1, back: 0, playing: false, waiting: false, done: false, started: false, audio: null, afail: false, stall: 0, cleanup: [], rate: 1, nextClip: null };
 function runBeat(i) {
   TW = [];
   const b = BEATS[i], tm = TIMINGS[b.id], pre = b.pre || 0;   // pre: seconds of picture before the narration starts
@@ -1384,7 +1385,7 @@ function start(i, play) {
   stopAudio(); clearCards();
   // P.gen counts starts: a done() kept from an earlier start of this same beat (a step replayed) no longer counts
   const gen = P.gen = (P.gen || 0) + 1;
-  Object.assign(P, { i, t: 0, waiting: false, done: false, afail: false, stall: 0, lost: 0 });
+  Object.assign(P, { i, t: 0, waiting: false, done: false, afail: false, stall: 0, lost: 0, back: 0 });
   P.end = runBeat(i);
   evalTo(0);
   const a = P.audio = beatClip(i, true);
@@ -1487,12 +1488,12 @@ function frameStep(now, most) {
       if (a.currentTime > 0) { P.t = Math.max(P.t, pre + a.currentTime); P.stall = 0; }
       else if ((P.stall += dt) > (a.readyState < 2 ? 8 : 15)) soundFailed();   // nothing to play after 8 s, or stuck for 15
     } else P.t += dt * P.rate;
-    evalTo(P.t);
     // P.lost: how long the clock stood still while the film played (a clip getting going, buffering). Music runs on
     // through it, so a beat under music gives that time back from its closing hold: each beat then lasts as long in
     // real time as on the music's timeline, and the music stays with the picture instead of drifting ahead beat by beat.
     P.lost += raw * P.rate - (P.t - t0);   // real time: a long frame moves the music by all of it
-    const back = SND.bgm.some(m => m.beats.includes(BEATS[P.i].id)) ? Math.max(0, Math.min(HOLD, P.lost)) : 0;
+    const back = P.back = SND.bgm.some(m => m.beats.includes(BEATS[P.i].id)) ? Math.max(0, Math.min(HOLD, P.lost)) : 0;
+    evalTo(P.t);
     if (P.t >= P.end - back) beatDone();
   }
   soundTick(dt);

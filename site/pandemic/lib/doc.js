@@ -250,7 +250,7 @@ function trackLabel(p, cam, str, [wx, wy], t0, D, { size = 30, fill = MAPINK, dy
 // mount the shared WebGL canvas in this panel and draw view(t) every frame
 function globeShot(p, D, view, dotsOn, arcsOn) {
   const g = Globe.mount(p);
-  clockRun(t => Globe.draw(view(t), dotsOn && (i => dotsOn(i, t)), arcsOn && (i => arcsOn(i, t))), D, { tail: true });
+  clockRun((t, E) => Globe.draw(view(t, E), dotsOn && (i => dotsOn(i, t)), arcsOn && (i => arcsOn(i, t))), D, { tail: true });   // E: the beat's real end
   return g;
 }
 const WUHAN_LL = [114.268, 30.582];
