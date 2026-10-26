@@ -69,15 +69,18 @@ const BEATS = [
     winBars(s);   // seen from inside the asylum
     word(s, 'The asylum', CX, 260, 0, { size: 110, fill: '#fff', stroke: DARK });
     stamp(s, 'SILENCED', CX, 1150, sl + .2, { size: 150, colour: '#b3201a' });
-    // three men: their faces side by side, one after another; then what they did
+    // three men: their faces side by side, one after another; then what they did, pushing in through the pause
     s = shot(p, th, undefined, { bg: DARK, swipe: true });
+    const grp = G(s, { x: CX, y: 570 }), faces = G(grp, { x: -CX, y: -570 });
     [['e4-goya-arrieta', .72, .4, 'Goya'], ['e4-nietzsche-1882', .45, .3, 'Nietzsche'], ['e4-vangogh-self', .5, .4, 'Van Gogh']]
       .forEach(([n, fx, fy, who], i) => {
-        const t0 = th + i * .4, e = tile(s, n, 155 + i * 295, 570, 280, 820, fx, fy, t0, { s: 1.15 });
-        tw(e, { y: 545 }, t0, 3.5, lin);
-        label(s, who, 155 + i * 295, 1030, t0 + .15, { size: 46 });
+        const t0 = th + i * .4;
+        tile(faces, n, 130 + i * 275, 570, 260, 820, fx, fy, t0, { s: 1.15 });
+        hide(label(s, who, 130 + i * 275, 1030, t0 + .15, { size: 46 }), sp + .8, .2);
         sfx('hook', t0, 'thud', .7);
       });
+    tw(grp, { s: 1.06 }, th, sp + .8 - th, lin);
+    tw(grp, { s: 1.24, y: 540 }, sp + .8, D - sp + .8, lin);
     word(s, 'Spoke', CX, 1215, sp, { size: 170, fill: RED, stroke: DARK });
     label(s, 'One last time', CX, 1290 - 10, sp + .5, { size: 50 });
   }, { pre: OPEN_PRE }],
@@ -239,43 +242,59 @@ const BEATS = [
     prog(() => {}, D, .4, lin);
   }],
 
-  // 7. Foucault's claim: where madness wins, the work stops (the painting tears)
+  // 7. Foucault's claim, shown on the three lives: where madness wins, the work stops (the last book, the last
+  //    canvas, then dark); the quote large over the dark. Word times (faster-whisper on the clip) where no mark is.
   ['work', 'No madness', (m, D) => {
     const p = panel(0);
-    const wn = m('wins'), q = m('q');
-    const s = shot(p, 0, undefined, { bg: DARK });
-    const jag = [[450, -20], [420, 260], [480, 520], [425, 800], [490, 1060], [420, 1320], [470, 1620]];
-    const half = (pts, dx, r) => {
-      const g = G(s), id = 'tear' + (++fxN);
-      mk('polygon', { points: pts }, mk('clipPath', { id }, mk('defs', {}, g)));
-      const inner = G(g); inner.setAttribute('clip-path', `url(#${id})`);
-      wide(inner, 'e4-van-gogh-starry-night', [[0, .5, .45, 1.0], [wn, .5, .45, 1.08], [D + .6, .5, .45, 1.2]]);
-      tw(g, { x: dx, r }, wn - .1, .9, io);
-      tw(g, { x: dx * 1.6, r: r * 1.8 }, q - .2, D - q + .8, lin);
-      return g;
-    };
-    half('-20,-20 ' + jag.map(v => v.join(',')).join(' ') + ' -20,1620', -260, -4);
-    half('920,-20 ' + jag.map(v => v.join(',')).join(' ') + ' 920,1620', 260, 4);
-    sfx('work', wn - .1, 'page', 1);
-    const fc = now(label(s, "Foucault's claim", CX, 260, 0, { size: 70 }));
-    const mw = word(s, 'Madness wins', CX, 640, wn - .3, { size: 120, fill: RED, stroke: DARK });
-    const ws = word(s, 'The work stops', CX, 1180, wn + .7, { size: 120, fill: LIGHT, stroke: DARK });
-    const dim = G(s, { o: 0 }); rect(dim, 0, 0, W, H, { fill: DARK, opacity: .55 }); show(dim, q - .3, .3);
-    [fc, mw, ws].forEach(e => hide(e, q - .3, .2));
-    quote(s, ['“Where there is', 'a work of art,', 'there is', 'no madness.”'], 560, q, { size: 100 });
-    T(s, '— FOUCAULT', { x: CX, y: 1130, size: 56, fill: MUTED, font: SANS, weight: 500, anchor: 'middle', o: 0 });
-    show(s.lastChild, q + .8, .3);
+    const at = t => Math.max(0, t - LEAD), wh = at(2.32), q = m('q');
+    const row = (g, t0, from) => [['e4-goya-arrieta', .72, .4], ['e4-nietzsche-1882', .45, .3], ['e4-vangogh-self', .5, .4]]
+      .map(([n, fx, fy], i) => tile(g, n, 130 + i * 275, 760, 260, 760, fx, fy, from ? t0 + i * .12 : undefined, { s: 1.15 }));
+    let s = shot(p, 0, wh, { bg: DARK });
+    now(label(s, "Foucault's claim", CX, 260, 0, { size: 70 }));
+    const r0 = G(s, { x: CX, y: 760 }), r1 = G(r0, { x: -CX, y: -760 }); row(r1, 0, false); tw(r0, { s: 1.08 }, 0, 2.4, lin);
+    // where madness wins: Nietzsche's last book, then his madness; Van Gogh's last canvases, then dark
+    s = shot(p, wh, at(2.8));
+    wide(s, 'e4-ecce-homo', [[wh, .5, .4, 1.15], [at(2.8) + .3, .5, .38, 1.3]]);
+    srcTag(s, 'Nietzsche, Ecce Homo, manuscript, 1888', 50, 150, wh);
+    label(s, 'His last book, 1888', CX, 1200, wh + .05, { size: 70 });
+    s = shot(p, at(2.8), at(3.25), { bg: DARK });
+    const nt = note(s, CX, 760, at(2.8) - .1, 1.1); tw(nt, { s: 1.2 }, at(2.8), .6, lin);
+    word(s, 'Madness wins', CX, 1180, at(2.8), { size: 130, fill: RED });
+    s = shot(p, at(3.25), at(3.95), { bg: '#000' });
+    s = shot(p, at(3.35), at(3.95));
+    wide(s, 'e4-wheatfield-crows', [[at(3.35), .42, .45, 1.0], [at(3.95) + .3, .5, .42, 1.12]]);
+    srcTag(s, 'Van Gogh, Wheatfield with Crows, July 1890', 50, 150, at(3.35));
+    label(s, 'His last canvases, 1890', CX, 1200, at(3.35), { size: 64 });
+    // the work stops: the three go dark, one by one
+    s = shot(p, at(3.95), q, { bg: DARK });
+    row(s, at(3.95), false).forEach((e, i) => {
+      const d = G(e, { o: 0 }); rect(d, -138, -388, 276, 776, { fill: '#000', opacity: .88 });
+      show(d, at(4.08) + i * .22, .15, lin); sfx('work', at(4.08) + i * .22, 'thud', .8);
+    });
+    word(s, 'The work stops', CX, 1290 - 30, at(4.08), { size: 120, fill: LIGHT });
+    // Foucault's sentence, large, over the dark
+    s = shot(p, q, undefined, { bg: '#000' });
+    const qg = G(s, { x: CX, y: 760 }), qi = G(qg, { x: -CX, y: -760 });
+    tw(qg, { s: 1.08 }, q, D - q + 1, lin);
+    quote(qi, ['“Where there is', 'a work of art,', 'there is', 'no madness.”'], 520, q, { size: 116 });
+    T(qi, '— FOUCAULT', { x: CX, y: 1130, size: 56, fill: MUTED, font: SANS, weight: 500, anchor: 'middle', o: 0 });
+    show(qi.lastChild, q + .8, .3);
   }],
 
-  // 8. The works put reason on trial: the Fool on the bench, the man of reason in the dock
+  // 8. The works put reason on trial: three works, one per stressed word; the Fool on the bench, reason in the dock
   ['question', 'On trial', (m, D) => {
     const p = panel(0);
-    const C = TIMINGS.question.cues, wk = m('works'), tr = m('trial'), fw = Math.max(0, C[1][0] - LEAD), js = m('just');
+    const C = TIMINGS.question.cues, tr = m('trial'), fw = Math.max(0, C[1][0] - LEAD), js = m('just');
+    const at = t => Math.max(0, t - LEAD);
     let s = shot(p, 0, tr, { bg: DARK });
-    now(label(s, 'These works', CX, 200, 0, { size: 70 }));
-    [['e4-goya-saturn', .42, .28], ['e4-van-gogh-starry-night', .5, .4]].forEach(([n, fx, fy], i) =>
-      tw(tile(s, n, CX, 520 + i * 760, 900, 520, fx, fy, i ? .3 : undefined, { s: 1.1 }), { s: 1.06 }, .6, D, lin));
-    note(s, CX, 900, .15, .62);
+    now(label(s, 'These works', CX, 170, 0, { size: 64 }));
+    [['e4-goya-saturn', .42, .28, 'Goya · Saturn', at(.32)], ['e4-ecce-homo', .5, .3, 'Nietzsche · Ecce Homo', at(.52)],
+     ['e4-wheatfield-crows', .5, .45, 'Van Gogh · Wheatfield with Crows', at(1.28)]].forEach(([n, fx, fy, cap, t0], i) => {
+      const y = 430 + i * 380, e = tile(s, n, CX, y, 900, 360, fx, fy, t0, { s: 1.1 });
+      tw(e, { s: 1.05 }, t0 + .3, tr - t0, lin);
+      label(s, cap, 60, y + 150, t0 + .1, { size: 34, anchor: 'start' });
+      sfx('question', t0, 'thud', .6);
+    });
     // the trial: down on the man in the dock, then up to his judge
     s = shot(p, tr, undefined, { whip: true });
     wide(s, 'e4-trial', [[tr, .56, .66, 1.8], [tr + 1.2, .56, .64, 1.8], [tr + 2.2, .45, .35, 1.75], [D + .8, .45, .35, 1.85]]);
@@ -291,10 +310,11 @@ const BEATS = [
     show(s.lastChild, js + .6, .3);
   }],
 
-  // 9. The end: Pascal's line, the one Foucault's book opens with; then every era's Fool, outside reason's walls
+  // 9. The end, as the documentary ends: every era's Fool in turn; a wall rises between reason's title and them;
+  //    Pascal's line alone; the series card, all four lit. Word times from faster-whisper on the clip.
   ['pascal', 'Pascal', (m, D) => {
     const p = panel(0);
-    const C = TIMINGS.pascal.cues, ps = m('pascal'), q = m('q'), an = m('another'), so = Math.max(0, C[1][0] - LEAD);
+    const at = t => Math.max(0, t - LEAD), ps = m('pascal'), so = at(3.04), wl = at(5.6), ln = at(7.08), an = m('another'), end = at(10.6);
     let s = shot(p, 0, ps, { bg: BURG });
     now(label(s, "Foucault's book", CX, 300, 0, { size: 70 }));
     put(quote(s, ['Madness and', 'Civilization'], 560, 0, { size: 110 }), { o: 1, y: 0 });
@@ -303,33 +323,47 @@ const BEATS = [
     wide(s, 'e4-pascal-portrait', [[ps, .5, .35, 1.3], [so + .3, .5, .33, 1.5]]);
     srcTag(s, 'Blaise Pascal, 17th c., Versailles', 50, 150, ps);
     label(s, 'Blaise Pascal', CX, 1200, ps + .05, { size: 90 });
-    // the closing picture, as the documentary ends: every era's Fool in turn, then reason's walls go up round its
-    // title with the fools outside; Pascal's line under it, the last thing heard
-    s = shot(p, so, undefined, { bg: BURG, swipe: 'quiet' });
-    const all = G(s, { x: CX, y: 800 }), c = G(all, { x: -CX, y: -800 });
-    tw(all, { s: 1.06 }, so, D - so + 4, lin);
-    word(c, 'Madness &', CX, 235, so + .05, { size: 84, fill: LIGHT });
-    word(c, 'Civilization', CX, 330, so + .15, { size: 84, fill: LIGHT });
-    T(c, 'AFTER MICHEL FOUCAULT, 1961', { x: CX, y: 385, size: 34, fill: MUTED, font: SANS, weight: 500, anchor: 'middle', o: 0 });
-    show(c.lastChild, so + .25, .3);
+    // (a) the Fool through the centuries, full height, crossing one after another
+    s = shot(p, so, wl, { bg: BURG, swipe: 'quiet' });
     FOOLS.forEach(([n, y], i) => {
-      const x = 175 + (i % 3) * 275, yy = i < 3 ? 560 : 810, t0 = so + .3 + i * .3;
-      const [iw, ih] = ART[n];
-      plate(c, n, x, yy, { h: Math.min(190, 190 * ih / iw), t0, dy: 30 });
-      T(c, y, { x, y: yy + 125, size: 34, fill: MUTED, font: SANS, weight: 500, anchor: 'middle', o: 0 });
-      show(c.lastChild, t0 + .2, .2);
-      sfx('pascal', t0, 'tick', .5);
+      const t0 = so + i * .4, [iw, ih] = ART[n], h = 1150, w = iw * h / ih;
+      const e = plate(s, n, W + w / 2, 820, { h });
+      const last = i === FOOLS.length - 1, yl = label(s, y, CX, 200, t0 + .05, { size: 64 });
+      if (last) tw(e, { x: CX }, t0, .35, out);   // the last one stays
+      else { tw(e, { x: CX + 60 }, t0, .3, out); tw(e, { x: CX - 60 }, t0 + .3, .3, lin); tw(e, { x: -w / 2 - 40 }, t0 + .6, .3, p => p * p); hide(yl, t0 + .4, .01, lin); }
+      sfx('pascal', t0, 'whoosh', .3);
     });
-    const tw0 = so + .3 + 6 * .3 + .2;
-    ['M90 150H810', 'M810 150V420', 'M810 420H90', 'M90 420V150'].forEach((d, i) =>
-      draw(path(c, d, { stroke: LIGHT, 'stroke-width': 12, 'stroke-linecap': 'square' }, { d: 0 }), tw0 + i * .2, .25, out));
-    sfx('pascal', tw0 + .8, 'door', .7);
-    const L = [['“Men are so necessarily mad,', q], ['that not to be mad would', q + 1.7], ['amount to another form', an - .9], ['of madness.”', an + .4]];
-    L.forEach(([l, t], i) => { const e = T(c, l, { x: CX, y: 990 + i * 70, size: 64, fill: i >= 2 ? RED : LIGHT, font: SERIF, weight: 400, anchor: 'middle', o: 0 }); e.setAttribute('font-style', 'italic'); show(e, t, .3); });
-    const at = T(c, '— BLAISE PASCAL', { x: CX, y: 1268, size: 40, fill: MUTED, font: SANS, weight: 500, anchor: 'middle', o: 0 });
-    show(at, an + 1.0, .3); hide(at, D + .7, .2);
-    label(c, 'The end', CX, 1275, D + .9, { size: 56, fill: RED, colour: DARK });
-    prog(() => {}, D, 4.5, lin);   // hold the closing picture: the end of the series
+    // (b) reason's title above, the fools below, and a wall rising between them, course by course
+    s = shot(p, wl, ln, { bg: BURG });
+    word(s, 'Madness &', CX, 220, wl, { size: 84, fill: LIGHT });
+    word(s, 'Civilization', CX, 315, wl, { size: 84, fill: LIGHT });
+    T(s, 'AFTER MICHEL FOUCAULT, 1961', { x: CX, y: 370, size: 34, fill: MUTED, font: SANS, weight: 500, anchor: 'middle' });
+    FOOLS.forEach(([n], i) => plate(s, n, 95 + i * 142, 1100 + (i % 2) * 20, { h: 370 }));
+    const rows = 10, bh = 46, base = 905;
+    for (let r = 0; r < rows; r++) {
+      const c = G(s, { y: 40, o: 0 }), off = r % 2 ? -50 : 0;
+      for (let x = off - 20; x < W; x += 100) rect(c, x, base - (r + 1) * bh, 96, bh - 4, { fill: '#c9b994', stroke: '#8f7f5c', 'stroke-width': 2 });
+      const t0 = wl + .1 + r * .12; tw(c, { y: 0, o: 1 }, t0, .12, out);
+      if (r % 3 === 0) sfx('pascal', t0, 'thud', .6);
+    }
+    // (c) the line alone, big, as it is said; the accent on "another form of madness"
+    s = shot(p, ln, end, { bg: '#000' });
+    const lg = G(s, { x: CX, y: 720 }), li = G(lg, { x: -CX, y: -720 });
+    tw(lg, { s: 1.05 }, ln, end - ln + .3, lin);
+    [['“Men are so', ln], ['necessarily mad,', ln], ['that not to be mad', ln + .2], ['would amount to', at(8.56)], ['another form', an], ['of madness.”', an]]
+      .forEach(([l, t], i) => { const e = T(li, l, { x: CX, y: 400 + i * 104, size: 88, fill: i >= 4 ? RED : LIGHT, font: SERIF, weight: 400, anchor: 'middle', o: 0 }); e.setAttribute('font-style', 'italic'); show(e, t, .25); });
+    T(li, '— PASCAL, AS FOUCAULT QUOTES HIM', { x: CX, y: 1060, size: 40, fill: MUTED, font: SANS, weight: 500, anchor: 'middle', o: 0 });
+    show(li.lastChild, an + .4, .3);
+    // (d) the series card, all four lit: the end
+    s = shot(p, end, undefined, { bg: BURG, swipe: 'quiet' });
+    // part four lights as in every episode; then the other three light up with it: the series is complete
+    const tiles = seriesCard(s, end, 4, end + .6);
+    [[250, 640], [650, 640], [250, 1040]].forEach(([x, y], i) => {
+      tw(tiles[i], { o: 1 }, end + 1.0 + i * .1, .15, lin);
+      show(rect(s, x - 178, y - 178, 356, 356, { rx: 24, fill: 'none', stroke: RED, 'stroke-width': 10, opacity: 0 }), end + 1.0 + i * .1, .15, lin);
+    });
+    label(s, 'The end · 4 of 4', CX, 1285, end + 1.3, { size: 56, fill: RED, colour: DARK });
+    prog(() => {}, D, end + 2.3 - D, lin);   // the voice ends at 10.42 s: the card holds about 2.3 s after it
   }],
 ].map(shortsBeat);
 
