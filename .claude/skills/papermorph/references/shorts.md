@@ -43,8 +43,9 @@ When the user wants a film that already exists recut as shorts (*Madness and Civ
 `shorts.js` holds the grammar, every helper a pure function of the beat clock:
 
 - `shot()` a full-frame shot with a hard cut, `whip` (a sideways slide with motion blur) or `swipe` (the next clip rising as in a feed); `photo()` a full-bleed picture with a slow push, centred (a landscape picture whose subject is off-centre needs a camera that pans across it without showing an edge: the worked example's `wide()` in `site/madness-shorts/lib/madness.js`);
-- `word()` big condensed capitals, `label()` and `band()` caps on solid blocks, `marker()` a highlighter sweep, `vlog()` white outlined overlay text, `tag()` a source or "AI illustration";
+- `word()` big condensed capitals, `label()` and `band()` caps on solid blocks, `marker()` a highlighter sweep, `vlog()` white outlined overlay text, `srcTag()` a source or "AI illustration";
 - `meme()` a cut-out figure rising in, `swarm()` one crossing then a crowd of them, `stamp()` a rubber stamp slammed on, `counter()` a number counting up, `priceTag()`, `phoneCard()`, `ico()` and `icons()` (Phosphor, MIT), `bar()`, `clipImg()`;
+- its palette (`DARK`, `RED`, `LIGHT`, `MUTED`, …), fonts (`SANS`, `SERIF`) and small tools (`inkW()` text width, `ramp01()`, `seeded()`) are named apart from the documentary kit's `film.js`, so a short can load `film.js` too when it wants a documentary helper (`pic()`, `say()`, `traced()`): load it before `shorts.js`;
 - `shortsBeat` turns a beat tuple into the engine's beat with every cue `LEAD` (0.22 s) early: a cut that lands on the word itself reads as late.
 
 What made the first shorts work:

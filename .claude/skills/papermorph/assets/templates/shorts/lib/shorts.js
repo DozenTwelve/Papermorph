@@ -9,15 +9,15 @@
    Full bleed, one idea per shot, 1–3 s a shot.
    Platforms draw over the top 120 and the bottom 300 of the 900 x 1600 stage, and their buttons over the right 90
    between y 700 and 1300: words stay in x 50..810, y 130..1290. Pictures may run under all of it. */
-const KEY = '"Oswald", "Arial Narrow", sans-serif', SER = '"EB Garamond", Georgia, serif';
-const INK = '#1f1b16', RED = '#c8281e', TEAL = '#2f6f73', PAPER = '#ece4d3', SOFT = '#8a7d68', MARK = '#ffd23f', SEA = '#123c44';
+const SANS = '"Oswald", "Arial Narrow", sans-serif', SERIF = '"EB Garamond", Georgia, serif';
+const DARK = '#1f1b16', RED = '#c8281e', TEAL = '#2f6f73', LIGHT = '#ece4d3', MUTED = '#8a7d68', MARK = '#ffd23f', SEA = '#123c44';
 const CX = 450, W = 900, H = 1600;
-const CTX = document.createElement('canvas').getContext('2d');
-const wid = (str, size, font = KEY, weight = 600) => { CTX.font = `${weight} ${size}px ${font}`; return CTX.measureText(str).width; };
+const TEXT_CTX = document.createElement('canvas').getContext('2d');
+const inkW = (str, size, font = SANS, weight = 600) => { TEXT_CTX.font = `${weight} ${size}px ${font}`; return TEXT_CTX.measureText(str).width; };
 const rect = (p, x, y, w, h, attrs = {}) => mk('rect', { x, y, width: w, height: h, ...attrs }, p);
-const span01 = (t, a, b) => Math.min(1, Math.max(0, (t - a) / (b - a)));
+const ramp01 = (t, a, b) => Math.min(1, Math.max(0, (t - a) / (b - a)));
 const smooth = q => q * q * (3 - 2 * q);
-function rng(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
+function seeded(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
 // the cut-out figures' widths at 1000 tall, by file name: the book fills it, Object.assign(MEME, { 'meme-cook': 672 })
 const MEME = {};
 // one meme crossing the frame left to right, then a fast swarm of the same (smaller and higher is farther away):
@@ -26,7 +26,7 @@ function swarm(g, name, t0, { h = 560, y = 1500, cross = 1.6, n = 16, after = 1.
   const w = MEME[name] * h / 1000;
   const e = meme(g, name, -w / 2 - 40, y, h, t0, { rise: 0, dur: .01 });
   tw(e, { x: W + w / 2 + 40 }, t0, cross, lin); sfx(BEAT_ID, t0 + .1, 'whoosh', .6);
-  const R = rng(seed);
+  const R = seeded(seed);
   for (let i = 0; i < n; i++) {
     const t1 = t0 + after + i * .12 + R() * .08, far = R(), hh = hmin + (1 - far) * (h - hmin), ww = MEME[name] * hh / 1000;
     const f = meme(g, name, -ww / 2 - 20, ymin + (1 - far) * (y - ymin), hh, t1, { rise: 0, dur: .01 });
@@ -66,40 +66,40 @@ function photo(g, name, t0, t1, { s0 = 1.02, s1 = 1.1, dx = 0, dy = 0, dim = 0, 
   mk('image', { href: `../img/${name}.webp`, x: -W / 2, y: -H / 2, width: W, height: H, preserveAspectRatio: 'xMidYMid slice' }, im);
   tw(im, { s: s1, x: CX + dx, y: H / 2 + dy }, t0, t1 - t0, lin);
   if (dim) rect(g, 0, 0, W, H, { fill: '#000', opacity: dim });
-  if (ai) tag(g, 'AI illustration', 50, 150, t0);
+  if (ai) srcTag(g, 'AI illustration', 50, 150, t0);
   return im;
 }
 // a small grey label top left: a source or "AI illustration"; shown with ?tags (export.py --query tags), so a cut
 // being worked on stays clean while the calls stay in place
 const TAGS = new URLSearchParams(location.search).has('tags');
-function tag(g, str, x, y, t0) {
+function srcTag(g, str, x, y, t0) {
   if (!TAGS) return G(g, { o: 0 });
-  const e = G(g, { x, y, o: 0 }), w = wid(str.toUpperCase(), 20, KEY, 500) + 20;
+  const e = G(g, { x, y, o: 0 }), w = inkW(str.toUpperCase(), 20, SANS, 500) + 20;
   rect(e, 0, -22, w, 30, { fill: 'rgba(20,18,15,.55)', rx: 3 });
-  T(e, str.toUpperCase(), { x: 10, y: 0, size: 20, fill: '#f0ebe0', font: KEY, weight: 500 }).setAttribute('letter-spacing', '.06em');
+  T(e, str.toUpperCase(), { x: 10, y: 0, size: 20, fill: '#f0ebe0', font: SANS, weight: 500 }).setAttribute('letter-spacing', '.06em');
   show(e, t0, .2, lin);
   return e;
 }
 // big condensed capitals popping in (a word or two); stroke: a dark edge to read over pictures
-function word(g, str, x, y, t0, { size = 120, fill = INK, anchor = 'middle', stroke, dur = .22, from = .82 } = {}) {
+function word(g, str, x, y, t0, { size = 120, fill = DARK, anchor = 'middle', stroke, dur = .22, from = .82 } = {}) {
   const e = G(g, { x, y, s: from, o: 0 });
-  const t = T(e, str.toUpperCase(), { x: 0, y: 0, size, fill, font: KEY, weight: 600, anchor });
+  const t = T(e, str.toUpperCase(), { x: 0, y: 0, size, fill, font: SANS, weight: 600, anchor });
   if (stroke) { t.setAttribute('stroke', stroke); t.setAttribute('stroke-width', size / 14); t.setAttribute('paint-order', 'stroke'); t.setAttribute('stroke-linejoin', 'round'); }
   if (t0 <= .01) put(e, { s: 1, o: 1 }); else tw(e, { s: 1, o: 1 }, t0, dur, out);   // there on a beat's first frame
-  e._w = wid(str.toUpperCase(), size);
+  e._w = inkW(str.toUpperCase(), size);
   return e;
 }
 // a label: caps on a solid block (Vox's MARY / JESUS chips); not `chip`, which is the engine's own
-function label(g, str, x, y, t0, { size = 40, fill = INK, colour = PAPER, anchor = 'middle', pad = 18 } = {}) {
-  const w = wid(str.toUpperCase(), size, KEY, 600) + pad * 2, x0 = anchor === 'middle' ? -w / 2 : anchor === 'end' ? -w : 0;
+function label(g, str, x, y, t0, { size = 40, fill = DARK, colour = LIGHT, anchor = 'middle', pad = 18 } = {}) {
+  const w = inkW(str.toUpperCase(), size, SANS, 600) + pad * 2, x0 = anchor === 'middle' ? -w / 2 : anchor === 'end' ? -w : 0;
   const e = G(g, { x, y, s: .85, o: 0 });
   rect(e, x0, -size * .95, w, size * 1.3, { fill, rx: 4 });
-  T(e, str.toUpperCase(), { x: x0 + pad, y: 0, size, fill: colour, font: KEY, weight: 600 });
+  T(e, str.toUpperCase(), { x: x0 + pad, y: 0, size, fill: colour, font: SANS, weight: 600 });
   tw(e, { s: 1, o: 1 }, t0, .18, out);
   return e;
 }
 // lines of a sentence as stacked chips, each popping in turn
-function band(g, lines, y, t0, { size = 64, fill = INK, colour = PAPER, step = .25, lh = 1.3 } = {}) {
+function band(g, lines, y, t0, { size = 64, fill = DARK, colour = LIGHT, step = .25, lh = 1.3 } = {}) {
   lines.forEach((l, i) => label(g, l, CX, y + i * size * lh, t0 + i * step, { size, fill, colour }));
 }
 // a yellow marker swept behind [x, y, w, h]
@@ -127,16 +127,16 @@ function meme(g, name, x, y, h, t0, { flip = false, rise = 260, dur = .35 } = {}
 }
 // a rubber stamp slammed on
 function stamp(g, str, x, y, t0, { size = 110, colour = RED, r = -9 } = {}) {
-  const w = wid(str, size) + 60, e = G(g, { x, y, r, s: 1.7, o: 0 });
+  const w = inkW(str, size) + 60, e = G(g, { x, y, r, s: 1.7, o: 0 });
   rect(e, -w / 2, -size * .85, w, size * 1.2, { fill: 'none', stroke: colour, 'stroke-width': size / 11, rx: 10 });
-  T(e, str, { y: size * .3, size, fill: colour, font: KEY, weight: 600, anchor: 'middle' });
+  T(e, str, { y: size * .3, size, fill: colour, font: SANS, weight: 600, anchor: 'middle' });
   tw(e, { s: 1, o: 1 }, t0, .16, out);
   sfx(BEAT_ID, t0, 'bang', 1.4);
   return e;
 }
 // a number counting up to n over dur
-function counter(g, n, x, y, t0, { size = 90, fill = INK, anchor = 'middle', dur = 1.1, pre = '', ticks = true } = {}) {
-  const t = T(g, pre + '0', { x, y, size, fill, font: KEY, weight: 600, anchor, o: 0 });
+function counter(g, n, x, y, t0, { size = 90, fill = DARK, anchor = 'middle', dur = 1.1, pre = '', ticks = true } = {}) {
+  const t = T(g, pre + '0', { x, y, size, fill, font: SANS, weight: 600, anchor, o: 0 });
   show(t, t0, .1, lin);
   prog(q => { t.textContent = pre + Math.round(n * q).toLocaleString('en-US'); }, t0, dur, out);
   if (ticks) for (let k = 0; k < 6; k++) sfx(BEAT_ID, t0 + k * dur / 6, 'tick', .45);
@@ -145,7 +145,7 @@ function counter(g, n, x, y, t0, { size = 90, fill = INK, anchor = 'middle', dur
 // a phone-shaped card holding a picture (rounded, black rim)
 function phoneCard(g, x, y, w, h, img) {
   const e = G(g, { x, y }), id = 'pc' + (++fxN);
-  rect(e, -w / 2 - 10, -h / 2 - 10, w + 20, h + 20, { rx: 34, fill: INK });
+  rect(e, -w / 2 - 10, -h / 2 - 10, w + 20, h + 20, { rx: 34, fill: DARK });
   mk('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 26 }, mk('clipPath', { id }, mk('defs', {}, e)));
   const im = mk('image', { href: `../img/${img}.webp`, x: -w / 2, y: -h / 2, width: w, height: h, preserveAspectRatio: 'xMidYMid slice' }, e);
   im.setAttribute('clip-path', `url(#${id})`);
@@ -180,11 +180,11 @@ function clipImg(g, name, x, y, w, h, rx = 0) {
   mk('image', { href: `../img/${name}.webp`, x, y, width: w, height: h, preserveAspectRatio: 'xMidYMid slice' }, g).setAttribute('clip-path', `url(#${id})`);
 }
 /* an ink price tag */
-function priceTag(p, x, y, str, t0, colour = INK) {
-  const g = G(p, { x, y, o: 0, r: -4, s: 1.2 }), w = wid(str, 80, SER, 500) + 90;
+function priceTag(p, x, y, str, t0, colour = DARK) {
+  const g = G(p, { x, y, o: 0, r: -4, s: 1.2 }), w = inkW(str, 80, SERIF, 500) + 90;
   path(g, `M0 0L40 -56H${w}V56H40Z`, { fill: '#f6f1e6', stroke: colour, 'stroke-width': 5 });
   mk('circle', { cx: 36, cy: 0, r: 11, fill: 'none', stroke: colour, 'stroke-width': 5 }, g);
-  T(g, str, { x: 66, y: 26, size: 80, fill: colour, font: SER, weight: 500 });
+  T(g, str, { x: 66, y: 26, size: 80, fill: colour, font: SERIF, weight: 500 });
   tw(g, { o: 1, s: 1 }, t0, .2, out);
   return g;
 }
