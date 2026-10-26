@@ -622,8 +622,10 @@ const soft = p => (1 - Math.cos(Math.PI * p)) / 2;   // gentle in-out, for camer
 // Keep f a pure function of t, so pause, seek and ?beat=N&t=S show the same frame. A beat holds its picture for HOLD s
 // after its narration and last tween; with { tail: true } f keeps running through that hold (t up to the beat's end)
 // instead of freezing at D, for motion that never stops, as in a film. A camera runs through the hold too when anything
-// in its beat does (its tail is 'follow'), so a follow shot keeps up with a tailed subject.
-const clockRun = (f, D, { tail = false } = {}) => { f(0); const w = { t0: 0, dur: D, ease: lin, tail }; w.pf = q => f(q * w.dur); TW.push(w); };
+// in its beat does (its tail is 'follow'), so a follow shot keeps up with a tailed subject. f also gets the run's end
+// (for a tail, the beat's real end), so a move can land on it, as a whip at the end of a beat does.
+// A tail's own D does not lengthen the beat: it runs to the end whatever it is (so D + HOLD adds no second hold).
+const clockRun = (f, D, { tail = false } = {}) => { const w = { t0: 0, dur: D, ease: lin, tail }; f(0, D); w.pf = q => f(q * w.dur, w.dur); TW.push(w); };
 // A camera looks at a world group through the stage (or a box, for split screen and picture-in-picture).
 // The view {x, y, z, r} is the world point at the centre, the zoom (screen px per world px) and the roll in degrees.
 // Moves are keyed on the beat clock: to(view, t0, dur, ease) blends each given key from its value at t0; a key may be a
@@ -733,11 +735,12 @@ function panel(t0) {
 // wait for the new clip's audio to start (a few hundred ms in Firefox) with the old, frozen scene still showing.
 // While seeking, the pictures passed on the way were never seen: they go at once.
 let seeking = false;
+// It then leaves the page: a long film otherwise keeps every earlier beat's picture (a documentary's maps: megabytes).
 function retire(e) {
-  if (seeking) { e.style.display = 'none'; return; }
+  if (seeking) { e.remove(); return; }
   e.style.transition = 'opacity .15s linear';
   e.style.opacity = '0';
-  setTimeout(() => { e.style.display = 'none'; }, 160);
+  setTimeout(() => e.remove(), 160);
 }
 function header(p, str, t0, x = 1000, y = 170) {
   const h = T(p, str, { x, y, size: 30, fill: COL.dim, weight: 600, o: 0 });
@@ -1196,9 +1199,14 @@ Object.assign(window, { SFX: SND.sfx, SFX_BED: SND.bed, BGM: SND.bgm,
     if (SND.ctx) bgmWire(m);
   },
 });
+// An effect is fetched and decoded at once, before the first click builds the sound graph: decoding needs no running
+// context (an AudioBuffer plays in any), so an effect due in the first second after Play, or after an early seek, is
+// ready instead of dropped on a slow line.
+let DECODER = null;
 function sfxLoad(name) {
   const s = SND.buf[name] ??= { data: fetch(`audio/sfx/${name}.mp3`).then(r => r.ok ? r.arrayBuffer() : null).catch(() => null) };
-  if (SND.ctx && !s.decoded) s.decoded = s.data.then(d => d && SND.ctx.decodeAudioData(d)).then(b => { s.b = b; }, () => {});
+  const ctx = SND.ctx || (window.OfflineAudioContext && (DECODER ??= new OfflineAudioContext(2, 1, 44100)));
+  if (ctx && !s.decoded) s.decoded = s.data.then(d => d && ctx.decodeAudioData(d)).then(b => { s.b = b; }, () => {});
 }
 function sfxPlay(e, late) {
   const ctx = SND.ctx, src = ctx.createBufferSource(), g = ctx.createGain();
@@ -1317,7 +1325,8 @@ function runBeat(i) {
   b.run(m, pre + tm.dur);
   if (S.cleared && b.lead !== false && CHAPTER.lead !== false && !pre) leadIn();   // CHAPTER.lead false: no beat gets one (a film)
   TW.sort((a, c) => a.t0 - c.t0);
-  const end = Math.max(pre + tm.dur, ...TW.map(w => w.t0 + w.dur)) + HOLD;
+  // runs that last to the end anyway (tails, follow cameras) do not set it: only the narration and the other tweens do
+  const end = Math.max(pre + tm.dur, ...TW.filter(w => !w.tail).map(w => w.t0 + w.dur)) + HOLD;
   const tail = TW.some(w => w.tail === true);
   for (const w of TW) if (w.tail === true || tail && w.tail === 'follow') w.dur = end - w.t0;
   return SND.len[i] = end;   // the music places itself by how long each beat really runs
@@ -1434,7 +1443,9 @@ function setPlaying(v) {
   } else a.pause();
 }
 function beatDone() {
-  evalTo(Infinity);
+  // Steps finish; continuous motion (tails) stays where the clock is: a beat under music ends up to HOLD early, and
+  // jumping its tails to their end would move them a few px on the last frame
+  evalTo(Infinity, TW.filter(w => !w.tail));
   const b = BEATS[P.i];
   if (b.ask) P.waiting = true;
   else if (P.i < BEATS.length - 1) start(P.i + 1, true);
@@ -1686,8 +1697,8 @@ function boot() {
   progress(p => { p.last = CHAPTER.number; });
   document.getElementById('stage').setAttribute('aria-label', translate('stageLabelTitled', { title: CHAPTER.title }));
   const film = !!CHAPTER.film || !BEATS.some(b => b.ask);   // a picture book or a film: no "lesson" or "quick checks" on its cover
-  if (film) {   // the help lists no question keys and needs no column titles
-    $('coverGo').textContent = translate('startFilm');
+  if (film) $('coverGo').textContent = translate('startFilm');
+  if (film && (!BEATS.some(b => b.ask) || CHAPTER.questionKeys === false)) {   // nothing to answer with keys (or its own controls): the help lists no question keys and needs no column titles
     const shift = [...$('help').querySelectorAll('dt')].find(e => e.textContent.startsWith('Shift'));
     for (const e of [$('help').querySelector('.help-cols > :last-child'), $('help').querySelector('h3'), shift, shift.nextElementSibling]) e.hidden = true;
   }
