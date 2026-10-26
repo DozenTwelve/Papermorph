@@ -75,6 +75,8 @@ cp "$DK/narration.en.json" "content/$BOOK_ID/ch01/"
 echo 'window.ART = {};' > "$BOOK_SITE/img/art.js"
 ```
 
+`prep.py` fills `img/art.js` as pictures are treated. The kit's sample beat shows a picture named `first-picture` once there is one; until then it shows the title alone. Voice the sample with `uv run --with edge-tts python "$SKILL/scripts/tts.py" "content/$BOOK_ID/ch01/narration.en.json" "$BOOK_SITE/ch01/audio/en"` and open `ch01/` to check the folder works, then replace the narration with the film's script ([documentary.md](documentary.md#the-order-of-work)).
+
 ### A short
 
 Like a documentary: `engine.py` first, then the shorts kit's `lib/` over it, with the documentary kit's fonts. Each episode is a chapter; its sound effects come from `sfx.py`. The commands for an empty book (a series page and shelf registration come later, as for any book):
@@ -89,10 +91,12 @@ python3 "$SKILL/scripts/engine.py" "$BOOK_SITE"
 cp -R "$SK"/lib/. "$BOOK_SITE/lib/"
 cp -R "$DK/lib/fonts.css" "$DK/lib/fonts" "$BOOK_SITE/lib/"
 cp "$SK/chapter.html" "$BOOK_SITE/ch01/index.html"
+cp "$SK/narration.en.json" "content/$BOOK_ID/ch01/"
+uv run --with edge-tts python "$SKILL/scripts/tts.py" "content/$BOOK_ID/ch01/narration.en.json" "$BOOK_SITE/ch01/audio/en"
 uv run --with numpy python "$SKILL/scripts/sfx.py" "$BOOK_SITE/ch01/audio/sfx" whoosh bang tick thud
 ```
 
-The chapter loads `../img/art.js`, which `prep.py` fills as pictures are treated; until then the kit's sample beat needs one picture named `first-picture`. Voice the sample with `uv run --with edge-tts python "$SKILL/scripts/tts.py" "content/$BOOK_ID/ch01/narration.en.json" "$BOOK_SITE/ch01/audio/en"` to check the folder works, then replace the narration with the film's script ([documentary.md](documentary.md#the-order-of-work)).
+Open `ch01/` to check the folder works: the kit's sample beat plays its line over `img/hook-picture.webp`, so until that picture exists the browser draws a broken image behind its words and the console shows one 404 (and `shot.py`, which stops on any page error, takes no screenshots). The music line in `chapter.html` is commented out until the episode has its track (`audio/bgm/ep1.mp3`). Then the script replaces the sample narration ([shorts.md](shorts.md#the-order-of-work)). Until the series has a page, the player's home button leads nowhere; a series of shorts can also live on its long film's series page (*Madness and Civilization* lists its shorts at `/madness/#shorts`, and the host's `_redirects` sends `/madness-shorts/` there).
 
 ### Every book
 
@@ -110,7 +114,7 @@ A chapter returns to its book's index. Preserve cover → contents → chapter n
 
 ## Cover and contents (`index.html`)
 
-A textbook's cover and contents; a picture book or a documentary uses the series page instead ([stories.md](stories.md#delivering), [above](#a-documentary)).
+A textbook's cover and contents; a picture book, a documentary or a series of shorts uses the series page instead ([stories.md](stories.md#delivering), [above](#a-documentary)).
 
 One page: no hash or `#book` shows the cover, `#references` the reference list, `#contents` or `#chNN` the contents; a lesson's home button returns to `#chNN`, and the card grows into the lesson frame through a view transition.
 
@@ -149,4 +153,4 @@ Narration and on-screen text are written in one language first. A second languag
 
 ## Video export (optional)
 
-`uv run --with playwright --with numpy SKILL/scripts/export.py chNN --url http://localhost:8765/<book>/ --out OUT --link <lesson URL>` renders the beats to `OUT/chNN.mp4` (1080p, 30 fps) plus `OUT/chNN.srt` for upload with it. Frames come from seeking the beat clock and the sound is mixed by the page's own rules (each beat's `pre`, and in a picture book its effects and music), so the video matches the page; question beats are left out and a lesson's video ends on a card pointing to the interactive lesson (in a film with `CHAPTER.film`, they stay in: each holds its picture for `hold` s, then the next beat plays as if the reader had acted). It takes about 1.6× the video's length. Video files are large (an episode at 1080p is tens of megabytes, more than a static host such as Cloudflare Pages takes per file): upload them to the video site, not into `site/`.
+`uv run --with playwright --with numpy SKILL/scripts/export.py chNN --url http://localhost:8765/<book>/ --out OUT --link <lesson URL>` renders the beats to `OUT/chNN.mp4` (1080p, or 1080 × 1920 on the upright stage; 30 fps) plus `OUT/chNN.srt` for upload with it. Frames come from seeking the beat clock and the sound is mixed by the page's own rules (each beat's `pre`, and in a picture book its effects and music), so the video matches the page; question beats are left out and a lesson's video ends on a card pointing to the interactive lesson (in a film with `CHAPTER.film`, they stay in: each holds its picture for the beat's `hold` s, with the music up at 70 % as the page plays it while it waits, then the next beat plays as if the reader had acted; [documentary.md](documentary.md#interactive-moments)). A mix that would clip is turned down as a whole, and the run says by how much; odd sizes are cut to even ones (an upright `--height 720` gives 404 × 720). The video is written beside the old one and renamed when done, so a failed run leaves an earlier `chNN.mp4` alone. How long it takes depends on the frame size and the machine: a 98.5 s upright short at 1080 × 1920 took 11 min 42 s (about 7× its length); `--height 720 --fps 10` makes a quick check copy. Video files are large (an episode at 1080p is tens of megabytes, more than a static host such as Cloudflare Pages takes per file): upload them to the video site, not into `site/`.

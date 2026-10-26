@@ -61,6 +61,8 @@ async def main(a):
         pg = await b.new_page(viewport={"width": 1600, "height": 960}, reduced_motion="reduce")   # no wall-clock CSS motion
         errs = []; pg.on("pageerror", lambda e: errs.append(str(e)))
         await pg.goto(f"{a.url}{a.chapter}/?beat=0&t=0"); await pg.wait_for_timeout(800)
+        sw, sh = await pg.evaluate("[SW, SH]")   # the stage at scale 1, 1600 x 900 or 900 x 1600 upright
+        await pg.set_viewport_size({"width": sw + 40, "height": sh + 100})
         at = {"i": -1, "t": 0.0}
         cam = {"off": False}
         async def shot(t, scale):

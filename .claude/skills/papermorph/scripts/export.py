@@ -10,8 +10,12 @@ each beat's clip from its `pre` on, and in a film (a picture book or a documenta
 of their scene, as a scene change stops them) and the BGM tracks with their crossfades, ducking and MUSIC_OFF. Question beats (quick
 checks and practice) are left out, and then the video ends on a card saying they are in the interactive lesson
 (--link adds its address); in a film with interactive moments (CHAPTER.film, e.g. the reader fires a rifle) they stay in,
-each holding its last picture for its `hold` seconds (1.5 by default) before the next beat plays as if the reader had acted. Captions are not burned in: upload OUT/chNN.srt with the video. Needs ffmpeg; serve the
-site over HTTP first.
+each holding its last picture for its `hold` seconds (1.5 by default, the music up at 70 % as the page plays it while
+it waits) before the next beat plays as if the reader had acted. With --link and no question beats left out, the end
+card shows the title and the link only. A mix that would clip is turned down as a whole (the run prints by how much).
+Odd sizes (an upright --height 720 is 405 wide) are cut to even ones, as H.264 needs. The video is written to
+OUT/chNN.tmp.mp4 and renamed when done, so a failed run leaves an earlier OUT/chNN.mp4 alone. Captions are not burned
+in: upload OUT/chNN.srt with the video. Needs ffmpeg; serve the site over HTTP first.
 """
 import argparse, asyncio, functools, json, shutil, subprocess, sys, tempfile, wave
 import numpy as np
@@ -22,7 +26,7 @@ from browsers import exe
 END_SECONDS = 4
 FLAT = '#frame { border-radius: 0 !important; box-shadow: none !important; }'   # square corners in the video
 
-END_CARD = """(link) => {
+END_CARD = """([link, asks]) => {
   const d = document.createElement('div');
   d.id = 'exportEnd';
   d.style.cssText = 'position:absolute;left:0;top:0;width:'+SW+'px;height:'+SH+'px;display:flex;flex-direction:column;' +
@@ -30,7 +34,7 @@ END_CARD = """(link) => {
     'font-family:inherit;text-align:center;z-index:50';
   d.innerHTML = `<div style="font-size:30px;opacity:.65;letter-spacing:.08em;text-transform:uppercase">${translate('chapterNumber', { n: CHAPTER.label ?? CHAPTER.number })}</div>
     <div style="font-size:64px;font-weight:600;max-width:${SW - 300}px">${CHAPTER.title}</div>
-    <div style="font-size:34px;opacity:.85;margin-top:30px">${translate('checksInLesson')}</div>
+    ${asks ? `<div style="font-size:34px;opacity:.85;margin-top:30px">${translate('checksInLesson')}</div>` : ''}
     ${link ? `<div style="font-size:30px;opacity:.65">${link}</div>` : ''}`;
   document.getElementById('frame').append(d);
 }"""
@@ -100,14 +104,14 @@ async def main(a):
         box = await pg.locator('#stage').bounding_box()
         clip = {k: box[k] for k in ('x', 'y', 'width', 'height')}
         audio_dir = Path(tempfile.mkdtemp(prefix='export-'))
-        video = out / f'{a.chapter}.mp4'
+        video, part = out / f'{a.chapter}.mp4', out / f'{a.chapter}.tmp.mp4'   # renamed to video when the encoder is done
         # Pass 1: the sound track and the captions, beat by beat at the beat's length on screen.
         end_s = END_SECONDS if asks or a.link else 0   # a picture book ends on its own last scene
-        lengths, starts, counts, music_off, cues, offset = [], [], [], [], [], 0.0
+        lengths, starts, counts, music_off, cues, offset, waits = [], [], [], [], [], 0.0, {}
         for i, bid in beats:
             await open_beat(pg, base, i)
             end, T = await pg.evaluate('[P.end, TIMINGS[BEATS[P.i].id]]')
-            if info['beats'][i]['ask']: end += info['beats'][i]['hold']
+            if info['beats'][i]['ask']: waits[bid] = end; end += info['beats'][i]['hold']   # from P.end the page waits
             # a scene lists its sfx() when its beat is built, so they are collected beat by beat
             for e in await pg.evaluate(SFX_JS):
                 if e not in info['sfx']:
@@ -132,7 +136,7 @@ async def main(a):
                     put(track, o + e['at'], decode(e['src']), .5 * e['vol'], o + lengths[k])
         # music: the engine's music player (soundTick), frame by frame: crossfades of the track's `fade` (0.8 s by default), ducked to 30 % in a
         # scene with voices; with MUSIC_UP_IN_PRE (true, or a list of beat ids) the music comes up to 70 % while a beat's
-        # picture runs before its narration
+        # picture runs before its narration, and in a film while the page waits for the reader (the hold)
         fps, n = a.fps, sum(len(m) for m in music_off)
         frames_id = [bid for k, (_, bid) in enumerate(beats) for _ in music_off[k]]
         frames_t = [f / fps for m in music_off for f in range(len(m))]
@@ -147,7 +151,7 @@ async def main(a):
                 current = bid in m['beats'] and not frames_off[f]
                 v = max(0.0, min(1.0, v + (1 if current else -1) / fps / m['fade'])) if m['fade'] > 0 else float(current)   # 0: a cut
                 up = info['upInPre']
-                want = .7 if up and (up is True or bid in up) and t < beat_pre[bid] else .3
+                want = .7 if (up and (up is True or bid in up) and t < beat_pre[bid]) or t >= waits.get(bid, 1e9) else .3
                 duck += max(-1 / fps, min(1 / fps, want - duck))
                 if current: pos = sum(beat_len.get(b, 0) for b in m['beats'][:m['beats'].index(bid)]) + t
                 else: pos += 1 / fps
@@ -157,39 +161,47 @@ async def main(a):
                 i = round(f * step); seg = np.take(song, np.arange(at[f], at[f] + round(step)), axis=0, mode='wrap')
                 put(track, i / RATE, seg, gain[f])
         peak = float(np.abs(track).max())
+        if peak > 1: track *= .98 / peak   # a mix that would clip, turned down as a whole
         wav = audio_dir / 'track.wav'
         with wave.open(str(wav), 'wb') as w:
             w.setnchannels(2); w.setsampwidth(2); w.setframerate(RATE)
             w.writeframes((np.clip(track, -1, 1) * 32767).astype('<i2').tobytes())
         # Pass 2: frames, piped into the encoder with the audio track.
         enc = subprocess.Popen(['ffmpeg', '-v', 'error', '-y', '-f', 'image2pipe', '-framerate', str(a.fps), '-c:v', 'mjpeg',
-                                '-i', '-', '-i', str(wav), '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '20',
-                                '-preset', 'medium', '-c:a', 'aac', '-b:a', '160k', '-shortest', str(video)],
+                                '-i', '-', '-i', str(wav), '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2',   # H.264 wants even sizes
+                                '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '20',
+                                '-preset', 'medium', '-c:a', 'aac', '-b:a', '160k', '-shortest', str(part)],
                                stdin=subprocess.PIPE)
         frames = 0
-        for k, (i, bid) in enumerate(beats):
-            await open_beat(pg, base, i)
-            n = counts[k]
-            for f in range(n):
-                await pg.evaluate('t => { P.t = t; evalTo(t); }', f / a.fps)
-                enc.stdin.write(await pg.screenshot(clip=clip, type='jpeg', quality=92))
-                frames += 1
-            print(f'{bid}: {n} frames', flush=True)
-        if end_s:
-            await pg.evaluate(END_CARD, a.link or '')
-            end = await pg.screenshot(clip=clip, type='jpeg', quality=92)
-            for _ in range(end_s * a.fps):
-                enc.stdin.write(end)
-        enc.stdin.close(); enc.wait()
+        try:
+            for k, (i, bid) in enumerate(beats):
+                await open_beat(pg, base, i)
+                n = counts[k]
+                for f in range(n):
+                    await pg.evaluate('t => { P.t = t; evalTo(t); }', f / a.fps)
+                    enc.stdin.write(await pg.screenshot(clip=clip, type='jpeg', quality=92))
+                    frames += 1
+                print(f'{bid}: {n} frames', flush=True)
+            if end_s:
+                await pg.evaluate(END_CARD, [a.link or '', asks])
+                end = await pg.screenshot(clip=clip, type='jpeg', quality=92)
+                for _ in range(end_s * a.fps):
+                    enc.stdin.write(end)
+            enc.stdin.close()
+        except BrokenPipeError:   # the encoder stopped: its error is printed above
+            pass
+        enc.wait()
         shutil.rmtree(audio_dir, ignore_errors=True)
         await b.close()
     with open(out / f'{a.chapter}.srt', 'w', encoding='utf-8') as f:
         for k, (t0, t1, line) in enumerate(cues, 1):
             f.write(f'{k}\n{srt_time(t0)} --> {srt_time(t1)}\n{line}\n\n')
     if errs or enc.returncode:
+        part.unlink(missing_ok=True)
         sys.exit(f'failed: {errs[:3]} encoder {enc.returncode}')
+    part.replace(video)
     print(f'{video} ({total / 60:.1f} min, {frames} frames, {len(beats)} beats{"; question beats left out" if asks else ""}; '
-          f'sound peak {peak:.2f}{" (clipped)" if peak > 1 else ""}) and {a.chapter}.srt')
+          f'sound peak {peak:.2f}{f" turned down to 0.98 (x{.98 / peak:.2f}) so as not to clip" if peak > 1 else ""}) and {a.chapter}.srt')
 
 
 if __name__ == '__main__':
@@ -205,4 +217,5 @@ if __name__ == '__main__':
     ap.add_argument('--query', default='', help='extra page query, e.g. tags (the source and AI-illustration tags)')
     args = ap.parse_args()
     QUERY = args.query + '&' if args.query else ''
+    args.url = args.url.rstrip('/') + '/'
     asyncio.run(main(args))

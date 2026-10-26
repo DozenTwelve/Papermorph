@@ -9,6 +9,7 @@ refs.json is the book's source list, one entry per cited work (fields after "cit
 [{"key": "scheper-hughes-lock-1987", "cite": "Scheper-Hughes & Lock (1987)",
   "authors": ["Scheper-Hughes, Nancy", "Lock, Margaret M."], "year": 1987,
   "title": "The mindful body", "type": "article"}, ...]
+A group author is {"org": "World Health Organization"} in authors (a plain string is split into family and initials).
 "type" is article, book, chapter or web. Optional: container, volume, issue, pages, publisher,
 editors, edition ("4th ed."), doi, isbn, nolink (why no reliable record exists), url (a trusted academic page, used only when there is no DOI or ISBN), and
 match: other on-screen spellings of the citation (e.g. "Robert Crawford (1980)", "Cobb 1958"); the
@@ -78,7 +79,7 @@ def norm(s):
 def surname(a):
     """Family name of 'Family, Given' / 'Given Family' / Crossref author dict."""
     if isinstance(a, dict):
-        return a.get("family") or a.get("name") or ""
+        return a.get("family") or a.get("name") or a.get("org") or ""
     return a.split(",")[0] if "," in a else a.split()[-1]
 
 
@@ -274,7 +275,9 @@ SUFFIX = re.compile(r",?\s*\b(Jr|Sr|II|III|IV)\.?\s*$", re.I)
 
 
 def split_name(a):
-    """'Family, Given[, Jr.]' or 'Given Family' -> (family, initials, suffix)."""
+    """'Family, Given[, Jr.]', 'Given Family' or {"org": name} -> (family, initials, suffix)."""
+    if isinstance(a, dict):   # {"org": "World Health Organization"}: a group author, written as it is
+        return a.get("org", "").strip(), "", ""
     suf, a = "", a.strip()
     m = SUFFIX.search(a)
     if m:
@@ -313,6 +316,7 @@ def apa_authors(names):
 
 def apa(e):
     au = apa_authors(e.get("authors", []))
+    au = au and (au if au.endswith(".") else au + ".")   # a group author or a bare name ends with a full stop too
     yr = f"({e.get('year', 'n.d.')})."
     t = e.get("title", "").rstrip(".")
     end = lambda s: s if s.endswith((".", "?", "!")) else s + "."

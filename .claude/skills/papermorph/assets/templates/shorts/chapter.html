@@ -36,8 +36,9 @@ const BEATS = [
   }, { pre: OPEN_PRE }],
 ].map(shortsBeat);
 
-// One track for the whole film, cut to its timeline; ?bgm= sets its level by ear (gain under the ducking to 30 %)
-music('audio/bgm/ep1.mp3', undefined, +(new URLSearchParams(location.search).get('bgm') || .5), .05);
+// One track for the whole film, cut to its timeline; ?bgm= sets its level by ear (gain under the ducking to 30 %).
+// Uncomment once audio/bgm/ep1.mp3 is in place.
+// music('audio/bgm/ep1.mp3', undefined, +(new URLSearchParams(location.search).get('bgm') || .4), .05);
 startShorts();
 </script>
 </body>

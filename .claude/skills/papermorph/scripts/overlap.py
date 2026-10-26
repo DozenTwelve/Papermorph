@@ -51,7 +51,7 @@ MEASURE = r"""
       const m = inv.multiply(el.getScreenCTM()), sc = Math.hypot(m.a, m.b);
       const q = [[b.x + 1, top], [b.x + b.width - 1, top], [b.x + b.width - 1, bot], [b.x + 1, bot]].map(([x, y]) => f(x, y));
       const xs = q.map(p => p[0]), ys = q.map(p => p[1]);
-      if (Math.max(...xs) < 0 || Math.min(...xs) > 1600 || Math.max(...ys) < 0 || Math.min(...ys) > 900) continue;
+      if (Math.max(...xs) < 0 || Math.min(...xs) > SW || Math.max(...ys) < 0 || Math.min(...ys) > SH) continue;   // off the stage (upright too)
       // q: the ink box corners on stage (rotated text stays a rotated box); mi maps stage points back to text space
       texts.push({ s, q, mi: m.inverse(), x0: b.x + 1, x1: b.x + b.width - 1, top, bot, sc });
     }

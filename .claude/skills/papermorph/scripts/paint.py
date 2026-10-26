@@ -13,7 +13,8 @@ account balance is below $1.00, so top up before a batch.
 
 Each call prints the cost OpenRouter reports and appends one line to the ledger (date, file, model, quality, cost, tab
 separated; the ledger and its folder are created). Test the cheapest quality first and total the ledger before and
-after a batch, so the spend is known.
+after a batch, so the spend is known. An existing OUT is never replaced (it may be an approved, paid picture) unless
+--force is given.
 """
 import argparse, base64, datetime, json, mimetypes, os, pathlib, sys, urllib.request, urllib.error
 
@@ -38,9 +39,12 @@ def main():
     ap.add_argument("--bg", default="auto", choices=["auto", "transparent", "opaque"])
     ap.add_argument("--model", default="openai/gpt-image-2.5-flare")
     ap.add_argument("--ledger", required=True, help="tab-separated cost log, e.g. books/<book>/art/costs.tsv")
+    ap.add_argument("--force", action="store_true", help="replace an existing OUT")
     a = ap.parse_args()
     if a.q == "high":
         raise SystemExit("quality high is refused: use low or medium")
+    if pathlib.Path(a.out).exists() and not a.force:
+        raise SystemExit(f"{a.out} exists: give a new name, or --force to replace it")
     body = {"model": a.model, "prompt": a.prompt, "aspect_ratio": a.ar, "output_format": "png"}
     if a.model.startswith("openai/"):
         body.update(quality=a.q, background=a.bg)
@@ -56,14 +60,18 @@ def main():
     except urllib.error.HTTPError as e:
         err = e.read().decode(errors="replace").replace(k, "***")[:500]  # redact the whole body, then trim
         raise SystemExit(f"{e.code} {err}")
-    out = pathlib.Path(a.out); out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_bytes(base64.b64decode(r["data"][0]["b64_json"]))
     usage = r.get("usage") or {}
     cost = usage.get("cost", 0) or 0
     print(a.out, f"cost {cost} USD", json.dumps(usage))
     led = pathlib.Path(a.ledger); led.parent.mkdir(parents=True, exist_ok=True)
-    with led.open("a", encoding="utf-8") as f:
+    with led.open("a", encoding="utf-8") as f:   # logged first: the call is paid for even if no picture came back
         f.write(f"{datetime.date.today()}\t{a.out}\t{a.model}\t{a.q}\t{cost}\n")
+    try:
+        png = base64.b64decode(r["data"][0]["b64_json"])
+    except (KeyError, IndexError, TypeError):
+        raise SystemExit(f"no picture in the answer: {json.dumps(r).replace(k, '***')[:500]}")
+    out = pathlib.Path(a.out); out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_bytes(png)
 
 
 if __name__ == "__main__":

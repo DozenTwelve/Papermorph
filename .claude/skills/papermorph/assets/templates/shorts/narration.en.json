@@ -1,0 +1,8 @@
+{
+  "engine": "edge",
+  "voice": "en-US-AndrewNeural",
+  "rate": "+4%",
+  "beats": {
+    "hook": "The first line is the point itself, said over a picture that is [[big]]already moving."
+  }
+}

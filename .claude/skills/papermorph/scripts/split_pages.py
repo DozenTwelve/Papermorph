@@ -13,8 +13,8 @@ cheaper than an image). Scanned books have no text layer, so text.md comes out e
 
 Files are named page_NNNN.png by PDF page order (from 1), never by printed page numbers.
 The script refuses a map with gaps or overlaps, and refuses to overwrite existing images
-unless --overwrite is given. The pages are a private reference for the author; they are
-never published with the site.
+or text.md (which may hold hand-typed text) unless --overwrite is given. The pages are a
+private reference for the author; they are never published with the site.
 """
 import argparse
 import json
@@ -78,7 +78,9 @@ def main():
             d = a.out / s["folder"]
             d.mkdir(parents=True, exist_ok=True)
             text = [f"## page {p}\n\n{doc[p - 1].get_text().strip()}\n" for p in range(s["start"], s["end"] + 1)]
-            (d / "text.md").write_text(f"# {s['title']}\n\n" + "\n".join(text), encoding="utf-8")
+            md = d / "text.md"   # kept unless --overwrite: it may hold text typed in by hand (a scanned book)
+            if a.overwrite or not md.exists():
+                md.write_text(f"# {s['title']}\n\n" + "\n".join(text), encoding="utf-8")
             if a.text_only:
                 continue
             for p in range(s["start"], s["end"] + 1):

@@ -37,7 +37,8 @@ if not jid:
     img = f"data:{mimetypes.guess_type(a.frame)[0] or 'image/png'};base64," + base64.b64encode(pathlib.Path(a.frame).read_bytes()).decode()
     body = {"model": a.model, "prompt": a.prompt, "duration": a.duration, "resolution": a.resolution, "aspect_ratio": a.aspect,
             "generate_audio": False, "frame_images": [{"type": "image_url", "image_url": {"url": img}, "frame_type": "first_frame"}]}
-    jid = json.load(call("https://openrouter.ai/api/v1/videos", body))["id"]
+    r = json.load(call("https://openrouter.ai/api/v1/videos", body)); jid = r.get("id")
+    if not jid: raise SystemExit(f"no job id in the answer: {json.dumps(r).replace(k, '***')[:500]}")
 print(a.model, "job", jid, flush=True)
 t0, fails = time.time(), 0
 while True:

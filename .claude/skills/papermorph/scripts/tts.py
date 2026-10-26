@@ -10,7 +10,7 @@ voices start with the accent's letter (am_michael, af_heart: American; bm_george
 timings cover English. Both need ffmpeg/ffprobe.
 
 A book with several speakers lists them under "voices" ({name: {"voice", "rate", "pitch"}}) and writes a
-beat as {"speaker": name, "text": ...}; plain string beats use the file's own voice. Pitch is Edge only ("+20Hz").
+beat as {"speaker": name, "text": ...}; plain string beats (and beats without a speaker) use the file's own voice. Pitch is Edge only ("+20Hz").
 
 Narration text may contain [[mark]] tags placed before a word. The output
 timings.js records each clip's duration and the time (seconds) at which the
@@ -227,7 +227,10 @@ async def main(src, out_dir):
             if {"dur", "marks", "cues"} <= v.keys() and (out_dir / f"{b}.mp3").exists()}
     timings_path = out_dir / "timings.js"
     for beat, raw in spec["beats"].items():
-        who = voices[raw["speaker"]] if isinstance(raw, dict) else spec
+        name = raw.get("speaker") if isinstance(raw, dict) else None
+        if name is not None and name not in voices:
+            raise SystemExit(f"{beat}: speaker {name!r} is not under the narration file's \"voices\"")
+        who = voices[name] if name is not None else spec   # no speaker: the file's own voice
         sub = raw.get("sub") if isinstance(raw, dict) else None   # the line's subtitle, one cue for the whole clip
         raw = raw["text"] if isinstance(raw, dict) else raw
         voice, rate, pitch = who["voice"], who.get("rate", "+0%"), who.get("pitch", "+0Hz")

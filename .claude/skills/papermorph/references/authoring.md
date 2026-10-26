@@ -10,7 +10,7 @@ Chapters have run 5–18 minutes with 5–40 second beats; a long chapter can ho
 | lesson beats | One idea each, built up in the picture while the narration explains it. |
 | `q1`, `q2`, … | A check of already taught content, separated from the next check by a lesson beat. |
 | `wrap` | Three or four numbered takeaways. |
-| `final1` … | Full-screen practice covering the whole chapter. With several sets, label them like `'Chapter practice, set 1 of 2 · question'` (the engine appends "k of n"). |
+| `final1` … | Full-screen practice covering the whole chapter. With several sets, label them like `'Chapter practice · set 1 of 2'` (the engine appends "· question k of n"). |
 | `finish` | Score card (`finishCard`): first-try results for quick checks and practice. |
 
 Beat ids are shared by the page (`BEATS`) and the narration file; a beat with `ask` waits for the answers before moving on.
