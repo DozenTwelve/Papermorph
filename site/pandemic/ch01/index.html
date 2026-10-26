@@ -278,10 +278,11 @@ const BEATS = [
     const left = G(p, {});
     mk('rect', { x: 0, y: 0, width: SW, height: SH, fill: '#0b0d11', opacity: .55 }, left);
     const pin = G(left, {}), [bx, by] = cam.screen(0, 0, 0); put(pin, { x: bx, y: by });
-    put(liChip(pin, 0, 0, 110, -1), { s: .7 });
+    liChip(G(pin, { s: .7 }), 0, 0, 110, -1);   // scaled from outside: liChip's own pop-in tween sets its s to 1
     for (let i = 0; i < 7; i++) { const a = (-90 + i * (360 / 7)) * Math.PI / 180; liChip(pin, Math.cos(a) * 215, Math.sin(a) * 215, 50, -1, { img: `doctor-${i + 1}` }); }
-    T(left, '8 DOCTORS', { x: 1110, y: 430, size: 110, fill: CREAM, font: KEY, weight: 600, anchor: 'middle' });
-    T(left, 'the other seven: AI illustrations', { x: 1110, y: 525, size: 18, fill: SOFT, font: SER, anchor: 'middle' });
+    T(left, '8 DOCTORS', { x: 1110, y: 430, size: 110, fill: CREAM, font: KEY, weight: 600, anchor: 'middle' }).setAttribute('letter-spacing', '.02em');   // as key() drew it
+    for (const [str, y, size, fill] of [['punished for “spreading rumours”', 490, 32, CREAM], ['the other seven: AI illustrations', 525, 18, SOFT]])
+      T(left, str, { x: 1110, y, size, fill, font: SER, anchor: 'middle' }).setAttribute('font-style', 'italic');   // the last beat's tags, as tag() drew them
     tw(left, { o: 0 }, .05, .4, lin);
     cam.to({ x: 2, y: 0, z: 3 }, .2, D + .2, soft);
     // generations: a red stain whose area doubles at each one (the first cases' dots under it); every size it leaves
