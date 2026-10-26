@@ -7,7 +7,7 @@ python3 -m http.server sends no Cache-Control, has a backlog of 5 (it drops conn
 files at once) and ignores Range requests (Chrome then restarts audio from 0 on every seek, so a seek looks out of
 sync). This server sends no-store, queues up to 128, serves byte ranges, and listens on this computer only.
 """
-import functools, http.server, os, re, sys
+import errno, functools, http.server, os, re, subprocess, sys
 
 class NoStore(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
@@ -50,5 +50,15 @@ if __name__ == "__main__":
         print(__doc__)
         sys.exit(0 if sys.argv[1:] in (["-h"], ["--help"]) else 2)
     port, root = int(sys.argv[1]), sys.argv[2]
+    try:
+        server = Server(("127.0.0.1", port), functools.partial(NoStore, directory=root))
+    except OSError as e:
+        if e.errno != errno.EADDRINUSE: raise
+        try:   # who holds it, where lsof is at hand (macOS, most Linux)
+            who = subprocess.run(["lsof", "-nP", f"-iTCP:{port}", "-sTCP:LISTEN"], capture_output=True, text=True).stdout.strip()
+        except OSError:
+            who = ""
+        sys.exit(f"port {port} is already taken, so pages there come from another server (perhaps another tree's site/); "
+                 f"pick a free port or stop it.\n{who}")
     print(f"serving {root} at http://localhost:{port}/ (no-store, byte ranges)", flush=True)
-    Server(("127.0.0.1", port), functools.partial(NoStore, directory=root)).serve_forever()
+    server.serve_forever()

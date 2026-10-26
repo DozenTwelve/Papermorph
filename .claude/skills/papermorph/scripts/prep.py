@@ -1,20 +1,26 @@
 #!/usr/bin/env python3
-"""Found or generated pictures -> a documentary's two treatments, plus img/art.js (sizes for the page).
+"""Found or generated pictures -> a documentary's two treatments (or a short's full bleed), plus img/art.js (sizes for the page).
 
     uv run --with pillow --with numpy python prep.py books/<book>/art/prep.json --src books/<book>/art/found --out site/<book>/img
-    ... [--ink 243,237,224] [--paper 243,237,224]
+    ... [--ink 243,237,224] [--paper 243,237,224] [--art chNN-art.js]
 
 line:  dark lines on light paper -> ink-coloured lines on transparent (the paper drops out), cropped to the ink.
        The brightest channel decides, so coloured library stamps drop out with the paper and light plate marks and
        stains stay paper. An inset (0.09 = 9 % a side) shaves a printed plate mark off the edges of the ink box.
 print: any picture -> a paper-coloured border and a soft baked shadow, slightly larger than the picture; a near-black
        scanner mat at the edges is trimmed first (never more than 6 % a side).
+full:  the picture as it is, no border, at most its max side (an upright short's full-bleed pictures); a transparent
+       picture keeps its alpha.
 
 The list is JSON: [[name, file, mode, max side], ...], a line entry optionally followed by [inset, [r, g, b]] (its own
 ink colour, e.g. dark lines for a light map). Files are relative to --src (absolute paths pass through). Writes
 OUT/<name>.webp (quality 88) and updates OUT/art.js, window.ART = {name: [w, h]}; entries of other names are kept,
 so several lists (one per source folder) can write into one art.js. --ink and --paper default to the cream of the
 documentary kit's CREAM.
+
+--art names the sizes file in OUT (default art.js). Any other name is written as Object.assign(window.ART, ...), loaded
+by the episode's page after art.js: episodes of a series made at the same time each keep their own sizes file
+(--art ch03-art.js), so none of them rewrites the shared one.
 """
 import argparse, json, pathlib
 import numpy as np
@@ -77,10 +83,11 @@ def main():
     ap.add_argument("--out", required=True, help="the book's img folder, e.g. site/<book>/img")
     ap.add_argument("--ink", type=rgb, default=CREAM, help="line colour r,g,b")
     ap.add_argument("--paper", type=rgb, default=CREAM, help="print border colour r,g,b")
+    ap.add_argument("--art", default="art.js", help="sizes file in --out (default art.js); another name adds to window.ART")
     a = ap.parse_args()
     src, out = pathlib.Path(a.src), pathlib.Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
-    jf = out / "art.js"
+    jf = out / a.art
     t = jf.read_text() if jf.exists() else ""
     sizes = json.loads(t[t.index("{", t.index("window.ART")):t.rindex("}") + 1]) if t else {}
     for name, f, mode, side, *rest in json.loads(pathlib.Path(a.list).read_text()):
@@ -90,12 +97,17 @@ def main():
                 print(f"{name}: WARNING no lines in {f} (is it dark lines on light paper?), skipped"); continue
         elif mode == "print":
             im = print_(src / f, side, a.paper)
+        elif mode == "full":
+            im = Image.open(src / f)
+            im = im.convert("RGBA" if "A" in im.getbands() or "transparency" in im.info else "RGB")
+            im.thumbnail((side, side), Image.LANCZOS)
         else:
-            raise SystemExit(f"{name}: mode {mode!r} is not line or print")
+            raise SystemExit(f"{name}: mode {mode!r} is not line, print or full")
         im.save(out / f"{name}.webp", quality=88, method=5)
         sizes[name] = [im.width, im.height]
         print(name, mode, im.width, im.height)
-    jf.write_text("window.ART = " + json.dumps(sizes, separators=(",", ":")) + ";\n")
+    data = json.dumps(sizes, separators=(",", ":"))
+    jf.write_text(f"window.ART = {data};\n" if a.art == "art.js" else f"Object.assign(window.ART, {data});\n")
     print(len(sizes), "pictures in", jf)
 
 

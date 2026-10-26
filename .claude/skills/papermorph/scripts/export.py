@@ -16,6 +16,9 @@ card shows the title and the link only. A mix that would clip is turned down as 
 Odd sizes (an upright --height 720 is 405 wide) are cut to even ones, as H.264 needs. The video is written to
 OUT/chNN.tmp.mp4 and renamed when done, so a failed run leaves an earlier OUT/chNN.mp4 alone. Captions are not burned
 in: upload OUT/chNN.srt with the video. Needs ffmpeg; serve the site over HTTP first.
+
+An upright film (a short) goes out with its source and AI-illustration tags (the page's ?tags query), since a video
+leaves the page that credits them; --no-tags leaves them out. A landscape chapter shows them only with --query tags.
 """
 import argparse, asyncio, functools, json, shutil, subprocess, sys, tempfile, wave
 import numpy as np
@@ -75,6 +78,7 @@ async def open_beat(pg, base, i):
 
 
 async def main(a):
+    global QUERY
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
     async with async_playwright() as p:
         b = await p.chromium.launch(**exe())
@@ -84,6 +88,8 @@ async def main(a):
         await probe.goto(base + f'?{QUERY}beat=0&t=0')
         sw, sh = await probe.evaluate('[SW, SH]')
         await probe.close()
+        if sh > sw and not a.no_tags and 'tags' not in QUERY.split('&'):
+            QUERY = 'tags&' + QUERY; print('upright film: source and AI tags shown (--no-tags leaves them out)')
         scale = (a.height or 1080 * sh / min(sw, sh)) / sh
         # The page fits the stage plus its control strip at scale 1, rendered at the requested height.
         pg = await b.new_page(viewport={'width': sw + 40, 'height': sh + 100}, device_scale_factor=scale)
@@ -215,6 +221,7 @@ if __name__ == '__main__':
     ap.add_argument('--height', type=int, help='video height (default 1080 landscape, 1920 portrait)')
     ap.add_argument('--link', help='address of the interactive lesson, shown on the end card')
     ap.add_argument('--query', default='', help='extra page query, e.g. tags (the source and AI-illustration tags)')
+    ap.add_argument('--no-tags', action='store_true', help="an upright film without its source and AI tags (shown by default)")
     args = ap.parse_args()
     QUERY = args.query + '&' if args.query else ''
     args.url = args.url.rstrip('/') + '/'
