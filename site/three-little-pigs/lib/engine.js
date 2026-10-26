@@ -1511,6 +1511,7 @@ function ui() {
   segs.forEach((f, k) => setWidth(f, k < P.i || P.done ? 100 : k > P.i ? 0 : Math.min(100, P.t / P.end * 100)));
   const fr = $('frame');
   fr.classList.toggle('is-playing', P.playing && !P.done && !P.waiting);
+  fr.classList.toggle('held', P.started && (!P.playing || P.done));   // paused or ended: full screen keeps the controls
   fr.classList.toggle('paused', P.started && !P.playing && !P.waiting && !P.done && !BEATS[P.i].ask);
   const step = `${P.i + 1} / ${BEATS.length}   ${BEATS[P.i].title}`;
   if (step !== stepText) { stepText = step; $('stepName').textContent = step; }
@@ -1559,7 +1560,7 @@ function hideCover() {
   if (BEATS[P.i].ask) $('ui').querySelector('input.box:not(:disabled)')?.focus({ preventScroll: true });
 }
 function togglePlay() {
-  if (!P.started) { hideCover(); return setPlaying(true); }
+  if (!P.started) { turnPhone(); hideCover(); return setPlaying(true); }
   if (P.done) return restart();   // the end of a film (or of a chapter whose last step is a question): play again
   if (P.waiting) return;
   setPlaying(!P.playing);
@@ -1582,7 +1583,28 @@ $('bCC').onclick = () => setCaptions(!captions);
 $('bSpeed').onclick = () => setSpeed(SPEEDS[(SPEEDS.indexOf(P.rate) + 1) % SPEEDS.length]);
 try { const r = +localStorage.getItem('speed'); if (SPEEDS.includes(r)) setSpeed(r); } catch {}
 $('bFull').onclick = () => toggleFull();
-const toggleFull = () => document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.();
+// Full screen also turns the screen to the stage's orientation where the browser allows it (Android browsers lock
+// orientation only in full screen; iOS has no lock, so there the reader turns the phone). On a phone held across the
+// stage's orientation, starting the lesson goes full screen the same way, since the stage would otherwise be a strip.
+function goFull() {
+  return document.documentElement.requestFullscreen?.({ navigationUI: 'hide' })
+    .then(() => screen.orientation?.lock?.(PORTRAIT ? 'portrait' : 'landscape')).catch(() => {});
+}
+function turnPhone() {
+  const phone = matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) <= 600;
+  if (phone && !document.fullscreenElement && (innerHeight > innerWidth) !== PORTRAIT) goFull();
+}
+const toggleFull = () => document.fullscreenElement ? document.exitFullscreen() : goFull();
+// In full screen the stage fills the screen and the controls lie over its foot: they show while the pointer moves (a
+// tap on a phone) or a key is pressed, for 2.5 s after, while paused and while the pointer is on them.
+document.addEventListener('fullscreenchange', () => {
+  document.documentElement.classList.toggle('full', !!document.fullscreenElement);
+  fit(); wake();
+  if (!document.fullscreenElement) try { screen.orientation?.unlock?.(); } catch {}
+});
+let wakeT = 0;
+function wake() { $('frame').classList.add('awake'); clearTimeout(wakeT); wakeT = setTimeout(() => $('frame').classList.remove('awake'), 2500); }
+for (const type of ['pointermove', 'pointerdown', 'keydown']) addEventListener(type, wake, true);
 let helpResume = false;
 function toggleHelp() {
   const open = $('help').hidden;
@@ -1638,7 +1660,10 @@ document.addEventListener('keydown', e => {
 // Mouse clicks should not leave focus on a control, so Enter and Space keep meaning "check" and "play".
 $('frame').addEventListener('mousedown', e => { if (e.target.closest('button, [tabindex]')) e.preventDefault(); });
 $('bHelp').onclick = toggleHelp;
-const fit = () => document.documentElement.style.setProperty('--k', Math.min(innerWidth / (SW + 40), (innerHeight - (innerWidth <= 700 ? 120 : 0)) / (SH + 100)));
+// full screen: the stage alone, except that a touch screen keeps the controls under it (engine.css)
+const fit = () => document.documentElement.style.setProperty('--k', document.fullscreenElement
+  ? Math.min(innerWidth / SW, (innerHeight - (matchMedia('(pointer: coarse)').matches ? innerWidth <= 700 ? 110 : 60 : 0)) / SH)
+  : Math.min(innerWidth / (SW + 40), (innerHeight - (innerWidth <= 700 ? 120 : 0)) / (SH + 100)));
 addEventListener('resize', fit);
 fit();
 

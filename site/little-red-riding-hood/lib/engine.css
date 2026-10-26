@@ -130,7 +130,27 @@ button[hidden] { display: none; }
   #bar .icon.speed { width: 36px; min-width: 0; padding: 0; font-size: 12px; letter-spacing: -.3px; }
   .segs { order: 1; }
   .segs { min-width: 80px; margin: 0; }
+  :root.full #bar { transform-origin: left bottom; border-radius: 0; }
 }
+/* Full screen: the stage fills the screen and the controls lie over its foot, out of sight until the pointer moves
+   (engine.js wake(): .awake), while paused or ended (.held) and while the pointer is on them. */
+:root.full #frame { top: 50%; height: var(--sh, 900px); border-radius: 0; box-shadow: none; }
+:root.full #bar { top: auto; bottom: 0; transition: opacity .3s; border-top: 0;
+  background: linear-gradient(transparent, color-mix(in srgb, var(--page) 85%, transparent)); }
+:root.full #frame:not(.awake):not(.held) #bar:not(:hover):not(:focus-within) { opacity: 0; pointer-events: none; }
+:root.full #frame:not(.awake):not(.held):not(:has(#bar:hover)) { cursor: none; }
+/* A touch screen has no hover to bring the controls back, and a tap that answers a question would cover the card with
+   them: there full screen keeps them, full size, under the stage (fit() leaves them room). */
+@media (pointer: coarse) {
+  :root.full #frame { top: calc(50% - 30px); overflow: visible; }
+  :root.full #frame #bar { top: var(--sh, 900px); bottom: auto; width: calc(var(--sw, 1600px) * var(--k)); height: auto; flex-wrap: wrap;
+    gap: 6px; padding: 8px; transform: scale(calc(1 / var(--k))); transform-origin: left top; background: none; opacity: 1 !important; pointer-events: auto !important; }
+  :root.full #bar .icon { width: 40px; height: 40px; }
+  :root.full .step, :root.full #bHelp { display: none; }
+  :root.full .segs { order: 1; min-width: 80px; margin: 0; }
+}
+@media (pointer: coarse) and (max-width: 700px) { :root.full #frame { top: calc(50% - 55px); } }
+
 .sound-note { position: absolute; left: 24px; top: 20px; margin: 0; padding: 8px 18px; border-radius: 12px; background: color-mix(in srgb, var(--page) 85%, transparent); color: var(--dim); font-size: 19px; }
 .sound-note[hidden] { display: none; }
 .blanks .brow { padding: 8px 0; border-bottom: 1px solid var(--rule); }

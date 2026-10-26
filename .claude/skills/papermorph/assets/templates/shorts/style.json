@@ -23,7 +23,7 @@
   "voice": { "engine": "edge", "voice": "en-US-AndrewNeural", "rate": "+4%", "level": "-14 LUFS, peak -1.5" },
   "music": { "ch01": "one track under the whole episode, and where it came from" },
   "sources": "which numbers and quotes need a source on screen, and how strict to be about anonymous reports",
-  "engine": { "source": "DozenTwelve/Papermorph", "ref": "engine-v2.4.2" },
+  "engine": { "source": "DozenTwelve/Papermorph", "ref": "engine-v2.5" },
   "models": { "script": "claude-opus-5-5", "pictures": "claude-sonnet-5-5", "beats": "claude-sonnet-5-5", "checks": "claude-haiku-5-5", "director": "claude-opus-5-5" },
   "approved": [{ "chapter": "ch01", "why": "what the user liked: the hook's first frame, the pace, the ending" }]
 }
