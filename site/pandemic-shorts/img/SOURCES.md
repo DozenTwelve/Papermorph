@@ -39,3 +39,13 @@ The code in this repository is MIT. The pictures and data here keep their own li
 | File | Source | Author | Licence |
 |---|---|---|---|
 | `geo-lite.js` | [Natural Earth](https://www.naturalearthdata.com/) 110m and 50m countries, 10m provinces and populated places, simplified (books/pandemic-shorts/geo-lite.py) | Natural Earth | Public domain |
+
+## ch01 · The Warning
+
+| File | Source | Author | Licence |
+|---|---|---|---|
+| `ep1-ward.webp`, `ep1-desk.webp`, `ep1-station.webp`, `ep1-train.webp` | Generated with an image model (openai/gpt-image-2.5-flare via OpenRouter, low quality), no faces | AI illustration | Tagged "AI illustration" on screen |
+| `ep1-li-blur.webp` | `li-wenliang.webp`, blurred (background of the hook) | Li Wenliang | Fair use, as `li-wenliang.webp` |
+| letter of admonition (drawn in `ch01/index.html`) | Drawn; only the quoted phrase "publishing untrue statements" is from the record ([Wikipedia, Li Wenliang](https://en.wikipedia.org/wiki/Li_Wenliang)) | Papermorph | MIT, like the code |
+| first case per continent (in `ch01/index.html`) | [Wikipedia, COVID-19 pandemic](https://en.wikipedia.org/wiki/COVID-19_pandemic), continent sections | Wikipedia | CC BY-SA 4.0 |
+| music `ch01/audio/bgm/ep1.mp3` | the film's theme (Lyria, books/pandemic/music/theme.mp3), cut and evened | Google Lyria via OpenRouter | as the film |
