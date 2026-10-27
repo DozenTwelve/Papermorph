@@ -74,3 +74,10 @@ The code in this repository is MIT. The pictures and data here keep their own li
 | numbers in ch05 | 7,115,706 confirmed deaths (as of 18 Sep 2026); 18.5–35.2 million estimated deaths (The Economist, excess deaths to 25 Jan 2024); infection fatality ratio 0.002 % at 10, 15 % at 85; 14.4–19.8 million deaths prevented, 8 Dec 2020 – 8 Dec 2021 (June 2022 study) | Wikipedia, "COVID-19 pandemic" | CC BY-SA 4.0 (facts) |
 | WHO quote in ch05 | [Director-General's opening remarks, 5 May 2023](https://www.who.int/news-room/speeches/item/who-director-general-s-opening-remarks-at-the-media-briefing---5-may-2023) | WHO | Quoted |
 | `quiet.js` in ch05 | countries reporting new cases in the four weeks before each point, April–September 2023 | Our World in Data | CC BY 4.0 |
+
+## Episode 6 · The Origin (ch06)
+
+| File | Source | Author | Licence |
+|---|---|---|---|
+| `ch06-bat.webp`, `ch06-raccoon.webp`, `ch06-crowd.webp`, `ch06-sample.webp`, `ch06-market.webp`, `ch06-stall.webp`, `ch06-corridor.webp`, `ch06-boxes.webp` | AI illustrations (openai/gpt-image-2.5-flare via OpenRouter, low quality, 2026-10-27; prompts in books/pandemic-shorts/art/ch06/), tagged "AI illustration" on screen; no real people or places | generated | made for this film |
+| `ch06/wuhan.js` | [Natural Earth](https://www.naturalearthdata.com/) 10m rivers, lakes and urban areas within ~4° of Wuhan, cut from the film's `geo.js` | Natural Earth | Public domain |
