@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BOOK TITLE</title>
+<meta name="description" content="ONE SENTENCE ABOUT THE BOOK.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231d2b27'/%3E%3Ctext x='32' y='45' text-anchor='middle' font-size='48' fill='%23f0b45a'%3E∞%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="lib/units.css">
+<link rel="stylesheet" href="lib/contents.css">
+<script src="lib/units.js"></script>
+<script src="lib/contents.js"></script>
+<script src="unit-art.js"></script>
+<!-- <script src="refs.js"></script>  a book that cites works: its reference list, built by the skill's scripts/refs.py -->
+<link rel="expect" href="#ch01" blocking="render">
+<!-- The book's own look, if it differs from the chalkboard: override the tokens of lib/contents.css here, e.g.
+<style>
+:root { --board: #fcfaf3; --chalk: #26241f; --top-bg: rgba(252, 250, 243, .9); --top-line: #ddd5c3; color-scheme: light; }
+</style> -->
+</head>
+<body>
+<section id="cover">
+  <div class="chalk" aria-hidden="true"><!-- a few faint formulas or phrases from the book, drawn in chalk -->
+    <span style="left:7%;top:13%;--d:1.6">PHRASE ONE</span>
+    <span style="right:8%;top:17%;--d:1.9">PHRASE TWO</span>
+    <span style="left:5%;bottom:20%;--d:2.2">PHRASE THREE</span>
+    <span style="right:6%;bottom:15%;--d:2.5">PHRASE FOUR</span>
+  </div>
+  <svg class="mascot draw" id="guide" width="210" height="147"></svg>
+  <p class="kicker">An animated book</p>
+  <h1>BOOK <i>&amp;</i> TITLE</h1>
+  <p class="lede">ONE OR TWO SENTENCES ABOUT WHAT THE READER WILL SEE AND DO.</p>
+  <div class="acts">
+    <a class="btn go" href="#contents" data-t="open">Open the book<svg viewBox="0 0 16 16"><path d="M6 2.5 11.5 8 6 13.5 4.6 12.1 8.7 8 4.6 3.9z"/></svg></a>
+    <a class="btn quiet" id="resume" hidden></a>
+  </div>
+  <p class="meta" id="meta"></p>
+</section>
+
+<main id="contents">
+  <header class="top">
+    <a class="home" href="#book" aria-label="Back to the cover" data-t-label="toCover"><svg class="mascot" id="guideSmall" width="52" height="36"></svg><strong>BOOK <i>&amp;</i> TITLE</strong></a>
+    <span class="prog" id="prog"></span>
+  </header>
+  <div id="units"></div>
+  <p class="refs-more" id="refsMore" hidden><a href="#references"><b data-t="references">References</b><span id="refsCount"></span><i data-t="viewAll">View all →</i></a></p>
+</main>
+
+<main id="refpage" aria-labelledby="refsTitle">
+  <header class="top">
+    <a class="back" href="#contents" data-t="backToContents">← Contents</a>
+    <span class="rp-book" id="rpBook"></span>
+  </header>
+  <section class="refs" id="references">
+    <h1 id="refsTitle" tabindex="-1" data-t="references">References</h1>
+    <p class="lead" data-t="refsLead">Every work cited in the lessons.</p>
+    <ol id="refList"></ol>
+  </section>
+</main>
+
+<script>
+// Units and chapters are numbered in order from start (a book whose scope starts mid-way, e.g. at unit 3, chapter 9,
+// keeps the original numbers). Add a chapter here when its lesson is ready.
+Contents.book({
+  start: { unit: 1, chapter: 1 },
+  units: [   // [unit title, [[chapter title, minutes], ...]]
+    ['First unit', [['First chapter', 8]]],
+  ],
+  hues: ['#f4a48c', '#86c9e8', '#f3c95c', '#e8a0c8', '#8fd6b0', '#bba8ee', '#f0b45a'],   // one colour per unit, cycling
+});
+</script>
+</body>
+</html>
