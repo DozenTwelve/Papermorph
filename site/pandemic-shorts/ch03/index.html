@@ -54,7 +54,9 @@ const BEATS = [
   ['card', 'The series', (m, D) => {
     const p = panel(0);
     const s = shot(p, 0, undefined, { bg: DARK, swipe: 'quiet' });
-    seriesCard(s, 0, 3, m('three'));
+    const cw = G(s, { x: 430, y: 840 }), cg = G(cw, { x: -430, y: -840 });   // a slow push towards tile 3
+    seriesCard(cg, 0, 3, m('three'));
+    tw(cw, { s: 1.05 }, m('three'), D - m('three'), lin);
   }],
 
   // 2. How fast: the map hatches country by country, the count runs with the date
@@ -62,8 +64,8 @@ const BEATS = [
     const p = panel(0);
     const e8 = m('eighty'), k12 = m('k120');
     const s = shot(p, 0, undefined, { bg: DARK, whip: true });
-    const view = () => ({ lon: 46, lat: 27, H: .66 });   // still: the canvases redraw only when they must; the push is the wrapper's
-    const mw = G(s, { x: CX, y: H / 2 }), mg = G(mw, { x: -CX, y: -H / 2 });
+    const view = t => { const q = ramp01(t, 0, D + .8); return { lon: 40 + 14 * q, lat: 29 - 4 * q, H: .72 - .14 * q }; };   // a slow drift east and push in
+    const mg = G(s, {});
     const day = t => t < m('april') ? dayAt('2020-03-18', '2020-03-26', ramp01(t, .1, e8)) : dayAt('2020-03-26', '2020-04-07', ramp01(t, m('april'), k12));
     paperMap(mg, D, view);
     hatchMap(mg, D, view, (c, t) => stayOn(c, day(t)) ? 1 : 0);
@@ -97,7 +99,8 @@ const BEATS = [
     label(s, 'By September 2020', CX - 20, 1150, sp + .05, { size: 64, fill: DARK, colour: LIGHT });
     s = shot(p, bn, undefined);
     photo(s, 'ep3-remote-kid', bn, D + .8, { s0: 1.0, s1: 1.12, dy: -30 });
-    shade(s, 960, 1300, bn - .05);
+    shade(s, 940, 1300, bn - .05);
+    word(s, 'More than', CX - 20, 1010, bn, { size: 56, fill: MUTED });
     counter(s, 1e9, CX - 20, 1120, bn, { size: 118, fill: LIGHT, dur: .9 });
     word(s, 'Students out of class', CX - 20, 1210, bn + .5, { size: 60, fill: LIGHT });
     srcTag(s, 'UNESCO, via Wikipedia', 50, 1272, bn + .5);
@@ -133,6 +136,7 @@ const BEATS = [
     const p = panel(0);
     const f4 = m('forty');
     let s = shot(p, 0, f4, { bg: DARK, whip: true });
+    backdrop(s, 'closed-sign-temporary');
     const pl = plate(s, 'closed-sign-temporary', CX - 20, 680, { w: 800, r: -2 });
     tw(pl, { s: 1.12 }, 0, f4 + .3, lin);
     srcTag(s, 'Alabama Extension, CC0', 50, 150, 0);
@@ -151,7 +155,7 @@ const BEATS = [
     const p = panel(0);
     const tr = m('trillion'), ws = m('worst'), dp = m('depression');
     let s = shot(p, 0, ws, { bg: NIGHT, whip: true });
-    const view = t => ({ lon: 10 + 9 * t, lat: 18, H: 1.3, dy: -240 });
+    const view = t => { const q = smooth(ramp01(t, 0, ws + .4)); return { lon: 110 - 200 * q, lat: 20, H: 1.3 - .18 * q, dy: -250, gain: 1.6 - .7 * ramp01(t, tr, tr + 2.5) }; };   // Asia, Europe and Africa, the Americas; the lights dim as the sum climbs
     globeShot(s, D, view, null, null, { on: [0, ws + .4] });
     word(s, 'Worldwide', CX - 20, 1000, .05, { size: 80, fill: MUTED });
     const v = T(s, '', { x: CX - 20, y: 1130, size: 130, fill: LIGHT, font: SANS, weight: 600, anchor: 'middle', o: 0 });
@@ -165,6 +169,7 @@ const BEATS = [
     wide(s, 'ep3-breadline', [[ws, .5, .62, 1.0], [D + .8, .55, .5, 1.18]]);
     rect(s, 0, 0, W, H, { fill: '#000', opacity: .2 });
     srcTag(s, 'Breadline, New York, 1932 · U.S. National Archives, public domain', 50, 150, ws);
+    shade(s, 960, 1240, ws);
     word(s, 'The worst recession since', CX - 20, 1040, ws + .05, { size: 72, fill: LIGHT, stroke: DARK });
     word(s, 'The Great Depression', CX - 20, 1170, dp, { size: 110, fill: MARK, stroke: DARK });
     sfx('money', dp, 'thud', 1);
@@ -179,8 +184,8 @@ const BEATS = [
     srcTag(s, 'Highway 407, Ontario · Raysonho, CC0', 50, 150, 0);
     word(s, 'The sky changed', CX - 20, 1150, m('sky'), { size: 110, fill: LIGHT, stroke: DARK });
     s = shot(p, ch, undefined, { bg: '#f4f6f8' });
-    const cam = G(s, { x: CX, y: 760, s: 1 });
-    tw(cam, { s: 1.08 }, ch, D + .8 - ch, lin);
+    const cam = G(s, { x: CX, y: 860, s: 1.15 });
+    tw(cam, { s: 1.24 }, ch, D + .8 - ch, lin);
     const jan = G(cam, {}), feb = G(cam, { o: 0 });
     crop(jan, 'no2-china', [0, 0, 358, 470], -420, -560, 840, 1103);
     crop(feb, 'no2-china', [362, 0, 358, 470], -420, -560, 840, 1103);
@@ -198,36 +203,40 @@ const BEATS = [
   ['end', 'Only a pause', (m, D) => {
     const p = panel(0);
     const pa = m('pause'), bk = m('back'), cg = m('changing'), nx = m('next');
-    let s = shot(p, 0, pa, { whip: true });
-    wide(s, 'street-glenview-24', [[0, .55, .6, 1.0], [pa + .3, .66, .6, 1.15]]);
-    srcTag(s, 'Glenview, Illinois · C. E. Miller, public domain', 50, 150, 0);
+    // waiting: a shop's sign, closed only until it passes (the hook's pictures are not reused)
+    let s = shot(p, 0, pa, { bg: DARK, whip: true });
+    backdrop(s, 'closed-sign-handwritten');
+    const pl = plate(s, 'closed-sign-handwritten', CX - 20, 700, { w: 820, r: 2 });
+    tw(pl, { s: 1.12 }, 0, pa + .3, lin);
+    srcTag(s, 'Alabama Extension, CC0', 50, 150, 0);
     word(s, 'Waiting', CX - 20, 1150, .1, { size: 140, fill: LIGHT, stroke: DARK });
-    s = shot(p, pa, cg, { bg: DARK, swipe: 'quiet' });
-    const view = () => ({ lon: 30, lat: 22, H: .82 });
-    const mw = G(s, { x: CX, y: H / 2 }), mg = G(mw, { x: -CX, y: -H / 2 });
-    prog(q => put(mg, { x: -CX + 8 * Math.sin(q * 30) * (1 - q) }), bk, .5, lin);   // a jolt as it comes back
-    const wk = t => Math.round(t < bk ? 6 + 25 * ramp01(t, pa + .2, bk - .1) : 31 + 16 * ramp01(t, bk, cg - .15));
-    paperMap(mg, D, view, { on: [pa - .1, cg + .4] });
-    hatchMap(mg, D, view, (c, t) => stayWeek(c, wk(t)) ? 1 : 0, { on: [pa - .1, cg + .4] });
+    // only a pause: the orders lift over the summer
+    s = shot(p, pa, bk, { bg: DARK, swipe: 'quiet' });
+    const view = t => ({ lon: 30, lat: 22, H: .86 - .1 * ramp01(t, pa, bk + .3) });
+    const wk = t => Math.round(6 + 25 * ramp01(t, pa + .1, bk - .15));
+    paperMap(s, D, view, { on: [pa - .1, bk + .4] });
+    hatchMap(s, D, view, (c, t) => stayWeek(c, wk(t)) ? 1 : 0, { on: [pa - .1, bk + .4] });
     srcTag(s, STAY_TAG, 50, 150, pa);
     const dc = G(s, { x: CX - 20, y: 270 });
     rect(dc, -230, -52, 460, 72, { fill: DARK, rx: 6 });
     const dt = T(dc, '', { y: 0, size: 46, fill: LIGHT, font: SANS, weight: 600, anchor: 'middle' });
     clockRun(t => { dt.textContent = dayFmt(new Date(Date.parse(WEEK0) + wk(t) * 7 * 864e5).toISOString().slice(0, 10)); }, D, { tail: true });
-    const op = word(s, 'Only a pause', CX - 20, 1170, pa + .05, { size: 130, fill: LIGHT, stroke: DARK });
-    hide(op, bk - .05, .05, lin);
-    word(s, 'It comes back', CX - 20, 1170, bk, { size: 130, fill: MARK, stroke: DARK });
+    word(s, 'Only a pause', CX - 20, 1170, pa + .05, { size: 130, fill: LIGHT, stroke: DARK });
+    // the virus comes back, and changes
+    s = shot(p, bk, nx, { whip: true });
+    found(s, 'virus-sem-red', 'SARS-CoV-2 · NIAID, public domain', bk, nx + .3, { s0: 1.05, s1: 1.4 });
+    shade(s, 1040, 1280, bk);
+    const cb = word(s, 'It comes back', CX - 20, 1190, bk + .05, { size: 130, fill: RED, stroke: DARK });
     sfx('end', bk, 'thud', 1.1);
-    s = shot(p, cg, nx, { whip: true });
-    found(s, 'virus-sem-red', 'SARS-CoV-2 · NIAID, public domain', cg, nx + .3, { s0: 1.05, s1: 1.3 });
-    word(s, 'Changing', CX - 20, 1150, cg + .05, { size: 150, fill: RED, stroke: DARK });
+    hide(cb, cg - .05, .05, lin);
+    word(s, 'And changing', CX - 20, 1190, cg, { size: 130, fill: RED, stroke: DARK });
     s = shot(p, nx, undefined, { bg: DARK, swipe: true });
     endCard(s, nx, 3);
   }],
 ].map(shortsBeat);
 
 // One track for the whole film; ?bgm= sets its level by ear (gain under the ducking to 30 %)
-music('audio/bgm/ep3.mp3', undefined, +(new URLSearchParams(location.search).get('bgm') || .4), .05);
+music('audio/bgm/ep3.mp3', undefined, +(new URLSearchParams(location.search).get('bgm') || .62), .05);
 startPandemic();
 </script>
 </body>

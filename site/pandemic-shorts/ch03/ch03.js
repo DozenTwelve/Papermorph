@@ -3,7 +3,8 @@
                                          with a stay-at-home order (red is the virus, so orders are ink, as in the film);
                                          redrawn only when the view or the set changes: keep view(t) still, move a wrapper
    stayOn(iso, day) · stayWeek(iso, i)   the orders from stay.js: in force by day 'YYYY-MM-DD' / in week i from WEEK0
-   crop(g, name, [sx, sy, sw, sh], x, y, w, h)   part of a picture (source px) drawn into the box x, y, w, h */
+   crop(g, name, [sx, sy, sw, sh], x, y, w, h)   part of a picture (source px) drawn into the box x, y, w, h
+   backdrop(g, name)                     a blurred, darkened full-frame copy behind a landscape picture shown whole */
 'use strict';
 const stayOn = (iso, day) => !!STAY[iso] && STAY[iso][0] <= day;
 const stayWeek = (iso, i) => !!STAY[iso] && STAY[iso][1][i] === '1';
@@ -57,4 +58,14 @@ function crop(g, name, [sx, sy, sw, sh], x, y, w, h) {
   const [iw, ih] = ART[name], sv = mk('svg', { x, y, width: w, height: h, viewBox: `${sx} ${sy} ${sw} ${sh}`, preserveAspectRatio: 'xMidYMid slice' }, g);
   mk('image', { href: `../img/${name}.webp`, x: 0, y: 0, width: iw, height: ih }, sv);
   return sv;
+}
+
+// the upright treatment for a landscape picture shown whole: a blurred, darkened, enlarged copy fills the frame behind it
+let bdN = 0;
+function backdrop(g, name, { blur = 28, dim = .55 } = {}) {
+  const id = 'ep3bd' + (++bdN), f = mk('filter', { id, x: '-10%', y: '-10%', width: '120%', height: '120%' }, mk('defs', {}, g));
+  mk('feGaussianBlur', { stdDeviation: blur }, f);
+  const im = mk('image', { href: `../img/${name}.webp`, x: -60, y: -60, width: W + 120, height: H + 120, preserveAspectRatio: 'xMidYMid slice' }, g);
+  im.setAttribute('filter', `url(#${id})`);
+  rect(g, 0, 0, W, H, { fill: '#000', opacity: dim });
 }
