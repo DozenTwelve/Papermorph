@@ -5,7 +5,7 @@
 
 The bank is the source of truth for the chapter's choice questions: write and lint it with the
 mcq-item-writer skill, then build. The page loads items.js after engine.js and asks with
-mcq('ID') (engine.md, Questions). Lint first; this script only refuses what the engine can't show:
+mcq('ID') (references/lessons/questions.md). Lint first; this script only refuses what the engine can't show:
 
   - multiple-response items, data tables and media (draw data in the picture and ask about it);
   - an item without exactly one correct option.
