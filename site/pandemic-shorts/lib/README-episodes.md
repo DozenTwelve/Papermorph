@@ -39,6 +39,7 @@ Call `startPandemic()` instead of `startShorts()`: it also loads the globe and t
 ## Look
 
 - Ground `DARK` #0b0d11 night, ink `LIGHT` #f3ede0 cream, `RED` #e5402f for the virus only (cases, spread, deaths), `MARK` #f4c430 yellow, `MUTED` grey. Map: `MAPLAND` paper, `MAPSEA`, `MAPINK`, `MAPLINE`.
+- Lit without the virus: the series card rim, the end card's 'Next' and `liChip`'s ring (`ring` option) are `MARK`; light a country for something else (a stay-home order, a vaccine) with `paperMap(…, { litFill: MARK })`.
 - Key words Oswald 600 (`word()`, `SANS`), quotes EB Garamond italic (`SERIF`).
 - Words inside x 50–810, y 130–1290. `safe.py chNN --query tags` checks it; `paperMap` keeps its city labels inside.
 - `photo()` tags a picture "AI illustration"; a found photograph goes through `found(g, name, source, t0, t1)`.
