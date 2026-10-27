@@ -24,6 +24,18 @@ const XC = CX - 20;   // the centre of the safe area (x 50-810)
 const CN = ['Beijing', 'Shanghai', 'Guangzhou', 'Chongqing', 'Chengdu', 'Xian', 'Zhengzhou', 'Changsha', 'Nanjing', 'Hangzhou', 'Shenzhen', 'Harbin', 'Kunming'];
 const SELFIE = 'Li Wenliang’s own selfie, Weibo (fair use)';
 
+// Li's own selfie in a ring: cream, since red is the virus; the end beat turns it red when he catches it
+function liFace(p, x, y, r, t0, { ring = LIGHT } = {}) {
+  const g = G(p, { x, y, s: 0, o: 0 }), k = r * .9;
+  const c = mk('circle', { r, fill: ring }, g);
+  mk('image', { href: '../img/li-wenliang.webp', x: -k, y: -k, width: 2 * k, height: 2 * k, 'clip-path': 'url(#liclip)' }, g);
+  tw(g, { s: 1, o: 1 }, t0, .5, back);
+  g._ring = c;
+  return g;
+}
+// a place name on a dark chip, as the series' other labels
+const place = (g, str, x, y, t0, size = 40) => label(g, str, x, y, t0, { size, fill: DARK, colour: LIGHT });
+
 // a doctor not identified here: a plain silhouette in a grey ring, never a face (user 10-27: no AI faces beside Li's photo)
 function ghost(p, x, y, r, t0) {
   const g = G(p, { x, y, s: 0, o: 0 });
@@ -113,7 +125,8 @@ function flatWorld(g) {
 // frame; the camera is the group's own scale (zoomAbout). xy(ll) is fixed screen px; draw marks into g to move with it
 function stillMap(p, view, opts) {
   const g = G(p, {}), M = paperMap(g, 0, () => view, { ...opts, on: [0, 0] });
-  return { g, xy: ll => M.xy(ll, 0) };
+  const under = mk('g', {}); M.g.insertBefore(under, M.g.lastChild);   // above the paper, under paperMap's labels
+  return { g, under, xy: ll => M.xy(ll, 0) };
 }
 // scale g from s0 to s1 about the screen point (fx, fy)
 function zoomAbout(g, fx, fy, s0, s1, t0, dur, ease = lin) {
@@ -133,13 +146,13 @@ const BEATS = [
     const bg = G(s, { x: CX, y: H / 2, s: 1.15 });
     mk('image', { href: '../img/ep1-li-blur.webp', x: -H / 2, y: -H / 2, width: H, height: H, opacity: .55 }, bg);
     tw(bg, { s: 1.3 }, 0, pl + .3, lin);
-    const face = G(s, { x: CX, y: 680, s: .92 });
-    liChip(face, 0, 0, 300, -1);
-    tw(face, { s: 1.12, y: 660 }, 0, pl + .3, lin);
+    const face = G(s, { x: CX, y: 720, s: .94 });
+    liFace(face, 0, 0, 380, -1);
+    tw(face, { s: 1.06 }, 0, pl + .3, lin);
     srcTag(s, SELFIE, 50, 150, 0);
-    word(s, 'This doctor', XC, 260, 0, { size: 96, fill: LIGHT, stroke: DARK });
-    word(s, 'Warned', XC, 1130, m('warned'), { size: 170, fill: LIGHT, stroke: DARK });
-    word(s, 'a new virus', XC, 1250, m('virus'), { size: 90, fill: RED, stroke: DARK });
+    label(s, 'This doctor', XC, 240, 0, { size: 76, fill: DARK, colour: LIGHT });
+    label(s, 'Warned', XC, 1175, m('warned'), { size: 104, fill: DARK, colour: LIGHT });
+    label(s, 'a new virus', XC, 1265, m('virus'), { size: 58, fill: DARK, colour: RED });
     sfx('hook', m('warned'), 'whoosh', .3);
     // the police; the letter slides up and he signs
     s = shot(p, pl, undefined, { whip: true });
@@ -180,7 +193,7 @@ const BEATS = [
     word(s, 'Pneumonia', XC, 1180, m('pneu'), { size: 150, fill: LIGHT, stroke: DARK });
     // the scan: a pneumonia nobody can name
     s = shot(p, ex, undefined, { bg: DARK, swipe: true });
-    wide(s, 'ct-pneumonia', [[ex, .35, .5, 1.0], [D + 1, .6, .5, 1.15]]);
+    wide(s, 'ct-pneumonia', [[ex, .4, .5, 1.0], [D + 1, .55, .5, 1.3]]);
     srcTag(s, 'CT scan: Hellerhoff, CC BY-SA 3.0', 50, 150, ex);
     word(s, 'Cause unknown', XC, 1200, ex + .1, { size: 130, fill: LIGHT, stroke: DARK });
   }],
@@ -191,7 +204,7 @@ const BEATS = [
     const cl = m('classmates'), sv = m('seven');
     let s = shot(p, 0, cl, { bg: DARK, whip: true });
     const face = G(s, { x: XC, y: 660, s: .95 });
-    liChip(face, 0, 0, 270, .05);
+    liFace(face, 0, 0, 270, .05);
     tw(face, { s: 1.06 }, .05, cl + .3, lin);
     srcTag(s, SELFIE, 50, 150, 0);
     label(s, '30 December 2019', XC, 250, .1, { size: 56, fill: LIGHT, colour: DARK });
@@ -199,35 +212,26 @@ const BEATS = [
     label(s, 'Eye doctor · Wuhan', XC, 1200, m('li') + .35, { size: 52, fill: LIGHT, colour: DARK });
     // the chat: a phone pushing in while the message types
     s = shot(p, cl, undefined, { bg: DARK, swipe: true });
-    const ph = G(s, { x: XC - 55, y: 1000, s: 1.25 });
-    tw(ph, { s: 1.4, y: 1050 }, cl, D + .8 - cl, lin);   // the bubble (y -330) stays near y 590 as the phone grows
+    const ph = G(s, { x: XC, y: 880, s: 1.04 });
+    tw(ph, { s: 1.14, y: 910 }, cl, D + .8 - cl, lin);   // the phone stays inside the safe area as it grows
     rect(ph, -330, -560, 660, 1120, { rx: 54, fill: '#000' });
     rect(ph, -310, -540, 620, 1080, { rx: 40, fill: '#e9e5dc' });
     rect(ph, -310, -540, 620, 130, { rx: 40, fill: '#d8d2c4' });
     rect(ph, -310, -450, 620, 40, { fill: '#d8d2c4' });
-    ico(ph, 'users', -240, -470, 56, MAPINK);
+    ico(ph, 'users-three', -240, -470, 56, MAPINK);
     T(ph, 'MEDICAL SCHOOL CLASSMATES', { x: -195, y: -458, size: 30, fill: MAPINK, font: SANS, weight: 600 }).setAttribute('letter-spacing', '.06em');
-    const av = G(ph, { x: -250, y: -250 }); liChip(av, 0, 0, 44, -1);
-    const bub = G(ph, { x: -190, y: -330, o: 0 });
-    rect(bub, 0, 0, 480, 250, { rx: 22, fill: '#fff' });
+    const av = G(ph, { x: -262, y: -250 }); liFace(av, 0, 0, 40, -1);
+    const bub = G(ph, { x: -210, y: -330, o: 0 });
+    rect(bub, 0, 0, 505, 250, { rx: 22, fill: '#fff' });
     const lines = ['7 confirmed cases of SARS', 'were reported from Huanan', 'Seafood Market.'];
     const sars = rect(bub, 26 + inkW('7 confirmed cases of ', 36, UI, 500), 30, 0, 46, { fill: MARK });
     lines.forEach((l, i) => stream(T(bub, '', { x: 26, y: 66 + i * 54, size: 36, fill: '#16181c', font: UI, weight: 500 }), l, sv - .1 + i * .55, .6));
-    T(bub, '17:43', { x: 460, y: 232, size: 22, fill: '#7a7f88', font: UI, anchor: 'end' });
+    T(bub, '17:43', { x: 481, y: 232, size: 22, fill: '#7a7f88', font: UI, anchor: 'end' });
     show(bub, cl + .4, .2, lin);
     sfx('message', cl + .4, 'beep', .25);
     prog(q => sars.setAttribute('width', inkW('SARS', 36, UI, 500) * q), m('sars'), .3, out);
     srcTag(s, 'His message, translated · Wikipedia, Li Wenliang', 50, 150, cl);
-    // "warn your families": copies leave the group, one after another
     const wn = m('warn');
-    for (let i = 0; i < 6; i++) {
-      const c = G(ph, { x: -190, y: -330, o: 0 });
-      rect(c, 0, 0, 480, 250, { rx: 22, fill: '#fff', opacity: .92 });
-      T(c, '↪ Forwarded', { x: 26, y: 50, size: 28, fill: '#7a7f88', font: UI, weight: 600 });
-      const t0 = wn + .1 + i * .2;
-      tw(c, { o: 1 }, t0, .05, lin); tw(c, { x: 700, y: -330 + (i - 2.5) * 140, o: 0 }, t0 + .05, .8, q => q * q);
-      if (i % 2 === 0) sfx('message', t0, 'whoosh', .2);
-    }
     band(s, ['Warn your', 'families'], 1130, wn, { size: 70, fill: DARK, colour: LIGHT, step: .2 });
   }],
 
@@ -243,32 +247,31 @@ const BEATS = [
     s = shot(p, pl, ei, { bg: DARK });
     const cam = G(s, { x: 0, y: 0, s: 1 });
     const L = letter(cam, XC, 820, { s: 1.15, r: -2 });
-    tw(cam, { s: 1.25, x: -110, y: -170 }, pl, ei - pl + .3, lin);
-    label(s, 'Wuhan police', XC, 230, pl + .05, { size: 60, fill: LIGHT, colour: DARK });
+    put(L.sig, { d: 1 }); L.hl.setAttribute('width', 524);   // signed already: the hook showed the signing
+    zoomAbout(cam, 560, 1160, 1.3, 1.4, pl, m('untrue') - pl - .3);   // on his signature
+    tw(cam, { s: 1.3, x: 430 * -.3, y: 790 * -.3 }, m('untrue') - .3, .5, io);   // then up to the quoted words
+    label(s, 'Wuhan police', XC, 1262, pl + .05, { size: 56, fill: LIGHT, colour: DARK });
     srcTag(s, 'Drawn after the letter of admonition', 50, 150, pl);
-    draw(L.sig, m('sign') - .1, .8, lin);
-    sfx('letter', m('police'), 'thud', .8);
-    highlight(L, m('untrue') - .15);
+    stamp(cam, '3 JAN 2020', 420, 1080, m('sign'), { size: 70, colour: MARK, r: -10 });
     // eight doctors: Li, and seven who are not identified here
     s = shot(p, ei, undefined, { bg: DARK, swipe: true });
     const pos = [...Array(8)].map((_, i) => [140 + (i % 4) * 193, 590 + Math.floor(i / 4) * 210]);
-    const chips = pos.map(([x, y], i) => i ? ghost(s, x, y, 90, ei + .1 + i * .06) : liChip(s, x, y, 90, ei + .1));
+    const chips = pos.map(([x, y], i) => i ? ghost(s, x, y, 90, ei + .1 + i * .06) : liFace(s, x, y, 90, ei + .1));
     word(s, '8 doctors', XC, 330, ei, { size: 150, fill: LIGHT });
     const pu = m('punished');
     chips.forEach((c, i) => tw(c, { o: .45 }, pu + i * .05, .25));
     stamp(s, 'PUNISHED', XC, 1000, pu + .1, { size: 120, colour: MARK, r: -8 });
     word(s, '“spreading rumours”', XC, 1160, m('rumours'), { size: 90, fill: LIGHT });
-    T(s, 'THE OTHER SEVEN ARE NOT IDENTIFIED HERE', { x: XC, y: 1230, size: 26, fill: MUTED, font: SANS, weight: 500, anchor: 'middle', o: 0 });
-    show(s.lastChild, m('rumours') + .3, .3);
   }],
 
   // 5. Meanwhile, on the city: the cases double, and double again
   ['double', 'Doubling', (m, D) => {
     const p = panel(0);
     const s = shot(p, 0, undefined, { bg: NIGHT, whip: true });
-    const M = stillMap(s, { lon: WUHAN[0], lat: WUHAN[1], H: .06 }, { provinces: true, prov: n => n === 'Hubei' ? .25 : 0, cities: [['Wuhan', -1, 'l']] });
+    const M = stillMap(s, { lon: WUHAN[0], lat: WUHAN[1], H: .06 }, { provinces: true });
     const [wx, wy] = M.xy(WUHAN);
-    zoomAbout(M.g, wx, wy, 1, 1.2, 0, D + 1);
+    place(M.g, 'Wuhan', wx, wy - 175, -1, 46);
+    zoomAbout(M.g, wx, wy, 1, 1.2, 0, D);
     // generations: dot i appears in generation floor(log2 i); each generation doubles the dots on the city
     const times = [m('d1'), m('d2'), m('d2') + .5, m('every') - .3, m('every') + .3, m('every') + .9, D - .2];
     const R = seeded(5);
@@ -278,12 +281,12 @@ const BEATS = [
       tw(put(mk('circle', { cx: x.toFixed(1), cy: y.toFixed(1), r: 0, fill: RED, opacity: .9 }, M.g), { a_r: 0 }), { a_r: 11 }, t, .25, back);
     }
     times.forEach(t => sfx('double', t, 'tick', .5));
-    word(s, 'Meanwhile', XC, 260, .05, { size: 110, fill: LIGHT, stroke: DARK });
-    const x2 = word(s, 'Cases ×2', XC, 1150, m('d1'), { size: 140, fill: LIGHT, stroke: DARK });
+    label(s, 'Meanwhile', XC, 260, .05, { size: 80, fill: DARK, colour: LIGHT });
+    const x2 = label(s, 'Cases ×2', XC, 1150, m('d1'), { size: 100, fill: DARK, colour: LIGHT });
     hide(x2, m('d2') - .05, .05, lin);
-    const x4 = word(s, '×2 again', XC, 1150, m('d2'), { size: 140, fill: LIGHT, stroke: DARK });
+    const x4 = label(s, '×2 again', XC, 1150, m('d2'), { size: 100, fill: DARK, colour: LIGHT });
     hide(x4, m('every') - .1, .05, lin);
-    word(s, 'Every 7½ days', XC, 1150, m('every'), { size: 130, fill: LIGHT, stroke: DARK });
+    label(s, 'Every 7½ days', XC, 1150, m('every'), { size: 100, fill: DARK, colour: LIGHT });
     srcTag(s, 'Wikipedia, COVID-19 pandemic', 50, 150, m('every'));
   }],
 
@@ -292,14 +295,13 @@ const BEATS = [
     const p = panel(0);
     const mg = m('migr'), md = m('middle'), rl = m('rails');
     let s = shot(p, 0, mg, { swipe: true });
-    photo(s, 'ep1-station', 0, mg + .3, { s0: 1.04, s1: 1.14, dy: 30 });
+    photo(s, 'ep1-station', 0, mg + .3, { s0: 1.0, s1: 1.2, dy: 70 });
     word(s, 'Chinese New Year', XC, 280, .1, { size: 120, fill: LIGHT, stroke: DARK });
     s = shot(p, mg, undefined, { bg: NIGHT, whip: true });
-    const M = stillMap(s, { lon: 112.5, lat: 31, H: .27 }, { cities: [['Wuhan', -1], ['Beijing', -1], ['Shanghai', -1], ['Guangzhou', -1, 'l']] });
+    const M = stillMap(s, { lon: 112.5, lat: 31, H: .27 }, { cities: [['Beijing', -1], ['Guangzhou', -1, 'l']] });
     const [wx, wy] = M.xy(WUHAN);
     zoomAbout(M.g, wx, wy, 1, 1.05, mg, md - mg);
     tw(M.g, { s: 1.35, x: wx * -.35, y: wy * -.35 }, md - .2, rl + .8 - md, io);   // in to Wuhan on "middle"
-    mk('circle', { cx: wx, cy: wy, r: 10, fill: RED }, M.g);
     const cities = ['Wuhan', ...CN].map(n => M.xy(CITIES[n]));
     const R = seeded(21), trips = [...Array(170)].map(() => [cities[Math.floor(R() * cities.length)], cities[Math.floor(R() * cities.length)], R(), .25 + R() * .3]).filter(([a, b]) => a !== b);
     const mv = G(M.g, { o: 0 }), dash = trips.map(() => mk('path', { d: '', stroke: MAPINK, 'stroke-width': 3, 'stroke-linecap': 'round' }, mv));
@@ -315,58 +317,69 @@ const BEATS = [
     }, D, { tail: true });
     hide(mv, md + .8, .3);
     // the railways out of Wuhan, in ink
-    cities.slice(1).forEach(([x, y], i) => draw(path(M.g, `M${wx} ${wy}L${x} ${y}`, { stroke: MAPINK, 'stroke-width': 5 }, { d: 0 }), rl - .2 + i * .04, .5, out));
+    cities.slice(1).forEach(([x, y], i) => draw(path(M.under, `M${wx} ${wy}L${x} ${y}`, { stroke: MAPINK, 'stroke-width': 5 }, { d: 0 }), rl - .2 + i * .04, .5, out));
+    mk('circle', { cx: wx, cy: wy, r: 10, fill: RED }, M.g);
+    place(M.g, 'Wuhan', wx - 20, wy - 34, m('wuhan') - .1, 34);
     label(s, 'The biggest migration on Earth', XC, 240, mg + .05, { size: 54, fill: DARK, colour: LIGHT });
     srcTag(s, 'Wikipedia, Chunyun', 50, 150, mg);
-    word(s, 'Wuhan: the middle', XC, 1200, md, { size: 110, fill: LIGHT, stroke: DARK });
+    label(s, 'Wuhan: the middle', XC, 1200, md, { size: 84, fill: DARK, colour: LIGHT });
   }],
 
-  // 7. 2 a.m.: at ten, everything stops. The clock runs to ten, and before it gets there 300,000 leave by train
+  // 7. 2 a.m.: the notice; at ten, everything stops (a target); before ten the clock runs once, 02:00 to 10:00, while the
+  // trains leave and the count climbs on the same map; the ring closes as ten comes
   ['order', 'The order', (m, D) => {
     const p = panel(0);
-    const tn = m('ten'), bf = m('before'), k3 = m('k300'), lv = m('leave'), end = D - .1;
+    const tn = m('ten'), bf = m('before'), k3 = m('k300'), tr = m('train'), told = tn - 1.3;
+    const close = Math.min(D - .5, k3 + 1.6), run0 = bf + .1;
     let s = shot(p, 0, undefined, { bg: NIGHT });
-    const M = stillMap(s, { lon: WUHAN[0] + .5, lat: WUHAN[1] + 1.2, H: .14 }, { cities: [['Wuhan', -1, 'l']] });
+    const M = stillMap(s, { lon: WUHAN[0] + .5, lat: WUHAN[1] + 1.2, H: .14 }, {});
     const [wx, wy] = M.xy(WUHAN);
-    zoomAbout(M.g, wx, wy, 1, 1.12, 0, bf);
-    tw(M.g, { s: 1, x: 0, y: 0 }, bf, end - bf, soft);
+    zoomAbout(M.g, wx, wy, 1, 1.12, 0, told + .4);   // a push on Wuhan from the first frame, then slower
+    tw(M.g, { s: 1.2, x: wx * -.2, y: wy * -.2 }, told + .4, D - told - .4, lin);
+    CN.forEach(n => { const [x, y] = M.xy(CITIES[n]); path(M.under, `M${wx} ${wy}L${x} ${y}`, { stroke: MAPINK, 'stroke-width': 5 }); });
     const top = G(M.g, {});
-    CN.forEach(n => { const [x, y] = M.xy(CITIES[n]); path(top, `M${wx} ${wy}L${x} ${y}`, { stroke: MAPINK, 'stroke-width': 5 }); });
+    // 10:00 as a target: a dashed ring; the solid ring closes with the clock
+    const goal = mk('circle', { cx: wx, cy: wy, r: 90, fill: 'none', stroke: MARK, 'stroke-width': 4, 'stroke-dasharray': '10 9', opacity: 0 }, top);
+    show(goal, tn, .3);
+    const ring = mk('circle', { cx: wx, cy: wy, r: 90, fill: 'none', stroke: MARK, 'stroke-width': 8, pathLength: 1, 'stroke-dasharray': '1 1', 'stroke-dashoffset': 1, transform: `rotate(-90 ${wx} ${wy})` }, top);
     mk('circle', { cx: wx, cy: wy, r: 10, fill: RED }, top);
-    const ring = mk('circle', { cx: wx, cy: wy, r: 90, fill: 'none', stroke: MARK, 'stroke-width': 7, pathLength: 1, 'stroke-dasharray': '1 1', 'stroke-dashoffset': 1, transform: `rotate(-90 ${wx} ${wy})` }, top);
-    // 30 trains of about 10,000 people each, leaving on the second run of the clock
-    const R = seeded(8), EXO = [...Array(30)].map((_, i) => [M.xy(CITIES[CN[i % CN.length]]), bf + .2 + (i / 30) * (end - bf - .8) + R() * .1, .35 + R() * .25]);
+    place(M.g, 'Wuhan', wx - 20, wy - 112, -1, 34);
+    // 30 trains of about 10,000 people each, all out before the ring closes
+    const Rn = seeded(8), EXO = [...Array(30)].map((_, i) => [M.xy(CITIES[CN[i % CN.length]]), run0 + .1 + (i / 30) * (close - run0 - .5) + Rn() * .1, .35 + Rn() * .25]);
     const trains = EXO.map(() => { const g = G(top, { o: 0 }); for (let k = 0; k < 3; k++) rect(g, -48 + k * 17, -6, 15, 12, { rx: k === 2 ? 4 : 1, fill: MAPINK, stroke: '#f6f1e4', 'stroke-width': 1.2 }); return g; });
     clockRun(t => EXO.forEach(([[x, y], t0, v], i) => {
-      const q = Math.min(1, Math.max(0, (Math.min(t, end) - t0) * v));
+      const q = Math.min(1, Math.max(0, (t - t0) * v));
       if (t < t0 || q >= 1) return put(trains[i], { o: 0 });
       put(trains[i], { x: wx + (x - wx) * q, y: wy + (y - wy) * q, r: Math.atan2(y - wy, x - wx) / DEG, o: 1 });
     }), D, { tail: true });
-    const hClk = h => ring.setAttribute('stroke-dashoffset', 1 - (h - 2) / 8);
     const C = clockFace(s, 640, 330, 110);
     put(C.c, { o: 0 }); show(C.c, m('two') - .1, .25);
     label(s, '23 January 2020', 260, 250, m('jan23'), { size: 50, fill: LIGHT, colour: DARK });
-    // the first run: what the order says (2 to 10, the sector); then back to 2 and the real night
-    prog(q => { C.set(2 + 8 * q); hClk(2 + 8 * q); }, tn - .3, .6, io);
-    const ev = label(s, 'At 10:00, everything stops', XC, 1200, tn, { size: 56, fill: MARK, colour: DARK });
+    // "the city is told": the notice
+    const nt = G(s, { x: XC, y: 1400, o: 0 });
+    rect(nt, -330, -70, 660, 140, { rx: 22, fill: '#f6f1e4', stroke: MAPINK, 'stroke-width': 3 });
+    ico(nt, 'scroll', -270, 0, 64, MAPINK);
+    T(nt, 'NOTICE · 02:00', { x: -220, y: -14, size: 30, fill: '#6a6258', font: SANS, weight: 500 }).setAttribute('letter-spacing', '.08em');
+    T(nt, 'All transport stops at 10:00', { x: -220, y: 34, size: 40, fill: MAPINK, font: SANS, weight: 600 });
+    tw(nt, { y: 1060, o: 1 }, told, .35, out);
+    sfx('order', told, 'beep', .4);
+    hide(nt, bf - .2, .2);
+    const ev = label(s, 'At 10:00, everything stops', XC, 1210, tn, { size: 56, fill: MARK, colour: DARK });
     sfx('order', m('stops'), 'thud', 1);
     hide(ev, bf - .2, .15, lin);
-    prog(q => { C.set(10 - 8 * q); hClk(10 - 8 * q); }, bf - .25, .3, io);
-    const bt = label(s, 'Before 10:00', XC, 1200, bf, { size: 60, fill: LIGHT, colour: DARK });
-    prog(q => { C.set(2 + 8 * q); hClk(2 + 8 * q); }, bf + .1, end - bf - .1, lin);
-    hide(bt, k3 - .05, .05, lin);
-    // the photo: a train pulls out, the count
-    const ps = shot(p, k3, lv, { swipe: true });
-    photo(ps, 'ep1-train', k3, lv + .3, { s0: 1.0, s1: 1.08, dx: -30 });
-    rect(ps, 0, 1000, W, 270, { fill: DARK, opacity: .7 });
-    counter(ps, 300000, XC, 1170, k3 + .05, { size: 150, fill: LIGHT, dur: 1.0 });
-    srcTag(ps, 'Wikipedia, COVID-19 lockdown in Hubei', 50, 190, k3);
-    // back on the map: the count stays, the ring closes at ten
-    const tag = G(s, { o: 0 }); rect(tag, 60, 1110, 740, 170, { fill: DARK, opacity: .85, rx: 6 });
-    T(tag, '300,000', { x: XC, y: 1200, size: 90, fill: LIGHT, font: SANS, weight: 600, anchor: 'middle' });
-    T(tag, 'LEFT BY TRAIN BEFORE 10:00', { x: XC, y: 1255, size: 36, fill: MUTED, font: SANS, weight: 500, anchor: 'middle' });
-    show(tag, lv, .01, lin);
-    sfx('order', end, 'bang', .9);
+    // before ten: one run of the clock, the count on the same map, landing on the word
+    prog(q => { C.set(2 + 8 * q); ring.setAttribute('stroke-dashoffset', 1 - q); }, run0, close - run0, lin);
+    hide(goal, close, .2);
+    label(s, 'Before 10:00', XC, 1040, bf, { size: 54, fill: LIGHT, colour: DARK });
+    rect(s, 60, 1095, 740, 190, { fill: DARK, opacity: 0, rx: 6 }); show(s.lastChild, bf + .1, .2);
+    const n = counter(s, 300000, XC, 1205, run0 + .2, { size: 110, fill: LIGHT, dur: k3 + .7 - run0 - .2 });
+    const lt = T(s, 'LEFT BY TRAIN BEFORE 10:00', { x: XC, y: 1262, size: 36, fill: MUTED, font: SANS, weight: 500, anchor: 'middle', o: 0 });
+    show(lt, k3 + .7, .3);
+    srcTag(s, 'Wikipedia, COVID-19 lockdown in Hubei', 50, 150, bf);
+    sfx('order', close, 'bang', .9);
+    // "by train alone": the train, a one-second insert, no count on it
+    const ps = shot(p, tr - .1, tr + .9, { swipe: true });
+    photo(ps, 'ep1-train', tr - .1, tr + 1.2, { s0: 1.0, s1: 1.08, dx: -30 });
   }],
 
   // 8. Locked; but the virus has left; every continent but one
@@ -381,7 +394,7 @@ const BEATS = [
     const view = t => ({ lon: WUHAN[0] - 2, lat: WUHAN[1] + 2, H: .3 * (.75 / .3) ** smooth(ramp01(t, bt, fb + .3)) });
     const dests = ['Beijing', 'Shanghai', 'Guangzhou', 'Chongqing', 'Chengdu', 'Harbin', 'Kunming', 'Xian', 'Hangzhou', 'Shenzhen'];
     paperMap(s, D, view, { dots: [[...WUHAN, -1, 9]], routes: dests.map((n, i) => [WUHAN, CITIES[n], bt + .25 + i * .1, .5]), cities: [['Wuhan', -1, 'l']], on: [bt - .1, fb + .4] });
-    word(s, 'Already left', XC, 260, m('left'), { size: 150, fill: LIGHT, stroke: DARK });
+    label(s, 'Already left', XC, 260, m('left'), { size: 100, fill: DARK, colour: LIGHT });
     // the whole world: the first case on each continent, in order (Wikipedia, COVID-19 pandemic)
     s = shot(p, fb, undefined, { bg: NIGHT, swipe: true });
     const ant = flatWorld(s);
@@ -416,11 +429,13 @@ const BEATS = [
     const di = m('died'), mr = m('march'), nx = m('next');
     let s = shot(p, 0, di, { whip: true });
     photo(s, 'ep1-ward', 0, di + .3, { s0: 1.1, s1: 1.18, dy: 20, dim: .3 });
+    const fa = liFace(s, XC, 560, 220, .05);
+    tw(fa._ring, { c_fill: RED }, m('patient') - .1, .35, lin);
     band(s, ['He caught it', 'from a patient'], 1080, m('patient') - .2, { size: 72, fill: DARK, colour: LIGHT, step: .2 });
     // over black: his face, his dates
     s = shot(p, di, mr, { bg: '#000' });
     const face = G(s, { x: XC, y: 640, s: 1 });
-    liChip(face, 0, 0, 260, di + .05);
+    liFace(face, 0, 0, 260, di + .05, { ring: RED });   // the virus colour: he caught it from a patient
     tw(face, { s: 1.08 }, di, mr - di + .3, lin);
     srcTag(s, SELFIE, 50, 150, di);
     label(s, '7 February 2020', XC, 250, m('feb7'), { size: 56, fill: LIGHT, colour: DARK });
