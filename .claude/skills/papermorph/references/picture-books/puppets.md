@@ -1,12 +1,20 @@
 # Paper puppets and the stop-motion look
 
-The actors of a picture book are paper puppets drawn in code: pieces of coloured paper pinned at the joints, moved a little each frame, like a cut-out film shot by hand. Because a pose is only a set of numbers, any action the story needs (ducking, swinging an axe, diving through a window, shoving a thought bubble) costs a few lines, never a new drawing, and a puppet looks the same in every shot. The kit is in `assets/templates/picture-book/` (`paper.js`, `cast.js`, `shared.js`, `chapter.html`); copy it into `site/<book>/lib/` and the episode folder.
+The actors of a picture book are paper puppets drawn in code: pieces of coloured paper pinned at the joints, moved a little each frame, like a cut-out film shot by hand. Because a pose is only a set of numbers, any action the story needs (ducking, swinging an axe, diving through a window, shoving a thought bubble) costs a few lines, never a new drawing, and a puppet looks the same in every shot. The kit is in `assets/templates/picture-book/` (`paper.js`, `cast.js`, `shared.js`, `chapter.html`); `new_book.py picture` copies it into `site/<book>/lib/` and the first episode folder.
 
 Two cast styles are on the shelf, both on the same `paper.js`: round-headed figures that face us, in the spirit of South Park (*Joke Collection*), which the kit's `cast.js` builds (add a character by copying an entry of its `SHAPES`), and jointed storybook figures seen mostly in profile (*Little Red Riding Hood*: the wolf, Grandma, the woodcutter), which a book draws itself, a side set and a front set per figure (start from that book's `lib/paper.js` and `lib/cast.js`, under `site/little-red-riding-hood/` in the Papermorph repository). Pick with the user; the first is quicker to build and to act with.
 
+## Contents
+
+- What makes it read as stop motion
+- Acting
+- Cameras
+- Performance
+- Seeing your own work
+
 ## What makes it read as stop motion
 
-- **Twelve frames a second, on twos.** `stopClock` samples every movement into steps; the slight jerk is the style, not a defect. Big moves still ease in and out across those steps. It draws through the beat's 0.6 s hold after the clip too (`clockRun`'s tail, engine-v2.1 on: [engine.md](engine.md#world-clock-and-camera)), so a scene's pose functions run to about `D + 0.6` and the frame the next scene cuts from is still alive.
+- **Twelve frames a second, on twos.** `stopClock` samples every movement into steps; the slight jerk is the style, not a defect. Big moves still ease in and out across those steps. It draws through the beat's 0.6 s hold after the clip too (`clockRun`'s tail: [core/engine.md](../core/engine.md#world-clock-and-camera)), so a scene's pose functions run to about `D + 0.6` and the frame the next scene cuts from is still alive.
 - **The animator's hand.** Each frame nudges every puppet by a tiny random amount (`jit(frame, k)`, the same nudge for the same frame, so pause, seek and `?beat=N&t=S` show exactly what playback shows), and the picture flickers faintly. Keep it small: at full strength it reads as shaking; a third of a pixel-ish wobble, held for two frames, felt hand-made.
 - **Paper you can feel.** Grain, torn edges and a soft drop shadow on every piece (the `#paper` filter), brass pins at the joints, and a soft contact shadow under the feet so a puppet stands on the ground, leaning the way the set's light falls.
 - **Replacement, not morphing.** Mouths are swapped shapes timed to the words; a blink is two closed frames; a door opens through a few boards of different widths; a bun bitten is a different picture.
@@ -37,4 +45,4 @@ Paper filters are expensive live, so every finished piece is baked to a bitmap; 
 
 ## Seeing your own work
 
-The preview server must not cache (`serve.py`). Look at contact sheets that advance the clock the way playback does (`strip.py chNN OUT scene1/0.5 --url http://localhost:8765/<book>/`; times are on the beat clock, so a scene's speech starts at its `pre`, and marks of a joined scene are named `clip.mark`; `scene1:2..5/0.1@o@c` is an onion skin of one shot with the camera held still, for feet and hands), at full-size frames at the key moments (`shot.py`, beats counted from 0 or named), at the last frame of each scene beside the first of the next (`shot.py --cuts`), at the sounds against the picture (`playlog.py`), and play the whole episode through once at speed ([review.md](review.md) has the commands). Some faults appear only in continuous playback (a camera layer shown once and never hidden again), so don't rely on jumps with `?t=` alone.
+The preview server must not cache (`serve.py`). Look at contact sheets that advance the clock the way playback does (`strip.py chNN OUT scene1/0.5 --url http://localhost:8765/<book>/`; times are on the beat clock, so a scene's speech starts at its `pre`, and marks of a joined scene are named `clip.mark`; `scene1:2..5/0.1@o@c` is an onion skin of one shot with the camera held still, for feet and hands), at full-size frames at the key moments (`shot.py`, beats counted from 0 or named), at the last frame of each scene beside the first of the next (`shot.py --cuts`), at the sounds against the picture (`playlog.py`), and play the whole episode through once at speed ([core/review.md](../core/review.md#watch-it-in-motion) has the commands). Some faults appear only in continuous playback (a camera layer shown once and never hidden again), so don't rely on jumps with `?t=` alone.

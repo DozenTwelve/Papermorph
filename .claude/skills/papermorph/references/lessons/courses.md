@@ -31,7 +31,7 @@ Build the page's copy after every bank change, and never edit `items.js` by hand
 python3 SKILL/scripts/items.py books/<book>/items/chNN.items.json site/<book>/chNN/items.js
 ```
 
-The chapter loads `<script src="items.js"></script>` right after `engine.js` and asks with `quiz(TOPR, [mcq('c-attrib')], done)` (engine.md). `items.py` refuses what a card cannot show (multiple-response items, tables, media, no single key) and warns about items not yet marked `approved`.
+The chapter loads `<script src="items.js"></script>` right after `engine.js` and asks with `quiz(TOPR, [mcq('c-attrib')], done)` ([questions.md](questions.md)). `items.py` refuses what a card cannot show (multiple-response items, tables, media, no single key) and warns about items not yet marked `approved`.
 
 ## SCORM package
 

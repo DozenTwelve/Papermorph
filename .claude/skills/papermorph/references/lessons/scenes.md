@@ -29,10 +29,10 @@ When the narration says someone pushes, throws or jumps, they perform it with we
 
 ## The camera tells the story
 
-Establish the scene, push in at the moment of contact, pull back for the result, follow a moving subject, switch views (side to top, split screen) to reveal structure. One purposeful move per beat is usually enough. Labels that must stay readable live in screen space and track their object (`cam.track`). See [engine.md](engine.md#world-clock-and-camera).
+Establish the scene, push in at the moment of contact, pull back for the result, follow a moving subject, switch views (side to top, split screen) to reveal structure. One purposeful move per beat is usually enough. Labels that must stay readable live in screen space and track their object (`cam.track`). See [engine.md](../core/engine.md#world-clock-and-camera).
 
 ## True at every moment
 
 Motion, arrows, labels and numbers state the same thing at the same moment. A force is drawn while it acts and disappears when contact ends; an accelerating object keeps accelerating while its label says so, so size the demonstration to the narration rather than clamping it at the frame edge; readouts come from the same function of time as the motion. Check worked numbers as the subject, not just as arithmetic. Scale realism is not needed; clarity for the reader is.
 
-Still frames hide frozen actors and drifting timing; watch each action in motion before calling it done ([review.md](review.md#watch-it-in-motion)).
+Still frames hide frozen actors and drifting timing; watch each action in motion before calling it done ([review.md](../core/review.md#watch-it-in-motion)).

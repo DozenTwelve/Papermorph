@@ -64,7 +64,7 @@ You need [uv](https://docs.astral.sh/uv/), ffmpeg, and Playwright's browsers (`u
 
 **Documentaries:** the source becomes an argument, a script and a storyboard → public-domain pictures are found, their licences recorded, and treated to one look → the narration is voiced and music laid under it → the beats are built in step with the words → a director pass checks every beat against the narration.
 
-Large chapters can be made by a team of subagents, each step on the model that suits it ([team.md](.claude/skills/papermorph/references/team.md)).
+Large chapters can be made by a team of subagents, each step on the model that suits it ([core/team.md](.claude/skills/papermorph/references/core/team.md)).
 
 ## The player
 
@@ -90,7 +90,7 @@ uv run --with playwright --with numpy .claude/skills/papermorph/scripts/export.p
 
 Frames are rendered from the lesson clock, so the video matches the page exactly; quizzes stay in the interactive version, and the video ends by pointing there.
 
-For courses, a book can also be packaged for an LMS as SCORM 1.2 or 2004 (`scripts/scorm.py`), and a book can opt in to verified citation links and reviewed question banks ([authoring.md](.claude/skills/papermorph/references/authoring.md)). None of this is on by default.
+For courses, a book can also be packaged for an LMS as SCORM 1.2 or 2004 (`scripts/scorm.py`), and a book can opt in to verified citation links and reviewed question banks ([courses.md](.claude/skills/papermorph/references/lessons/courses.md)). None of this is on by default.
 
 ## Models and cost
 
