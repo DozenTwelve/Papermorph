@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en" data-stage="portrait">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Pandemic · 4 · The Race</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="audio/en/timings.js"></script>
+<script src="../img/art.js"></script>
+<script src="../img/ch04-art.js"></script>
+<script src="../img/geo-lite.js"></script>
+<script src="../img/waves.js"></script>
+<script src="../lib/icons.js"></script>
+<script src="../lib/shorts.js"></script>
+<script src="../lib/pandemic.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 4, title: 'The Race', minutes: 2, language: 'en', next: '../ch05/' };
+
+/* ---------- this episode's pieces ---------- */
+// yellow is the needle (the vaccinated), red the virus
+const VAX = MARK, KENT = [0.9, 51.2], SA = CITIES.Johannesburg, INDIA = [78, 22];
+const WHO_TAG = 'WHO, 9 April 2021 · high- vs low-income countries', OWID_TAG = 'Our World in Data · 7-day average';
+// India's new cases a day, weekly (Our World in Data, 7-day average)
+const INDIA_CASES = [['2021-01-04', 18943], ['2021-01-11', 18018], ['2021-01-18', 15025], ['2021-01-25', 13709], ['2021-02-01', 12839], ['2021-02-08', 11512], ['2021-02-15', 11199], ['2021-02-22', 12752], ['2021-03-01', 15199], ['2021-03-08', 16737], ['2021-03-15', 22277], ['2021-03-22', 37249], ['2021-03-29', 56223], ['2021-04-05', 78489], ['2021-04-12', 134093], ['2021-04-19', 219172], ['2021-04-26', 321606], ['2021-05-03', 373206], ['2021-05-10', 390996], ['2021-05-17', 328984], ['2021-05-24', 255283], ['2021-05-31', 185012], ['2021-06-07', 123206], ['2021-06-14', 85776], ['2021-06-21', 60687], ['2021-06-28', 49159]];
+
+// a row of people (Phosphor person), k of n lit yellow at tLit; centred on (x, y), cell c
+function people(g, n, k, x, y, c, t0, tLit) {
+  const x0 = x - n * c / 2;
+  for (let i = 0; i < n; i++) {
+    ico(g, 'person', x0 + (i + .5) * c, y, c * .95, '#5d564b', t0 + i * .06, { from: .4, dur: .2 });
+    if (i < k) { const e = ico(g, 'person', x0 + (i + .5) * c, y, c * .95, VAX, tLit + i * .15, { from: 1.3, dur: .2 }); sfx(BEAT_ID, tLit + i * .15, 'tick', .9); }
+  }
+}
+// the virus and the needle as runners
+function virusGlyph(g, x, y, r = 30) {
+  const e = G(g, { x, y });
+  for (let i = 0; i < 10; i++) {
+    const a = i / 10 * 2 * Math.PI, c = Math.cos(a), s = Math.sin(a);
+    path(e, `M${c * r * .8} ${s * r * .8}L${c * r * 1.35} ${s * r * 1.35}`, { stroke: RED, 'stroke-width': 6, 'stroke-linecap': 'round' });
+    mk('circle', { cx: c * r * 1.4, cy: s * r * 1.4, r: 7, fill: RED }, e);
+  }
+  mk('circle', { r, fill: RED }, e);
+  return e;
+}
+function needleGlyph(g, x, y) {
+  const e = G(g, { x, y });
+  rect(e, -70, -6, 22, 12, { fill: LIGHT });                                   // plunger
+  rect(e, -50, -18, 90, 36, { fill: LIGHT, rx: 5 });                           // barrel
+  rect(e, -10, -12, 46, 24, { fill: VAX });                                    // the dose
+  path(e, 'M40 0H96', { stroke: LIGHT, 'stroke-width': 5, 'stroke-linecap': 'round' });
+  return e;
+}
+// race lanes: rows of [label, 'virus' | 'needle', pos(t) 0..1, t0]; the track from x 110 to 790, lanes 230 apart from y
+function lanes(g, rows, y, t0) {
+  const L = G(g, { o: 0 });
+  show(L, t0, .2, lin);
+  rows.forEach(([lab, who, pos, ta = t0], i) => {
+    const ly = y + i * 300, ln = G(L, { o: ta > t0 ? 0 : 1 });
+    if (ta > t0) show(ln, ta, .2, lin);
+    path(ln, `M60 ${ly + 90}H840`, { stroke: '#4a453d', 'stroke-width': 4, 'stroke-dasharray': '18 14' });
+    T(ln, lab.toUpperCase(), { x: 60, y: ly - 100, size: 54, fill: who === 'virus' ? RED : VAX, font: SANS, weight: 600 }).setAttribute('letter-spacing', '.06em');
+    const r = who === 'virus' ? virusGlyph(ln, 0, ly, 44) : needleGlyph(ln, 0, ly);
+    clockRun(t => put(r, { x: 150 + 560 * pos(t), y: ly + (who === 'virus' ? Math.sin(t * 9) * 6 : 0), s: who === 'virus' ? 1 : 1.6 }), 0, { tail: true });
+  });
+  path(L, `M800 ${y - 150}V${y + rows.length * 300 - 150}`, { stroke: LIGHT, 'stroke-width': 6, 'stroke-dasharray': '12 12' });   // the finish
+  return L;
+}
+// a chart of a weekly series, drawn up to its playhead: rows [[date, v]], box x 80..820 and base y 1120, h 680 tall;
+// cursor(t) -> rows drawn (a fractional index), ymax(t) -> the top of the scale. Returns the point of row i at t.
+function curve(g, rows, cursor, ymax, { colour = RED, x0 = 80, x1 = 820, base = 1120, h = 680, years = true } = {}) {
+  const c = G(g, {}), n = rows.length, X = i => x0 + (x1 - x0) * i / (n - 1);
+  path(c, `M${x0} ${base}H${x1}`, { stroke: '#6a6258', 'stroke-width': 3 });
+  if (years) rows.forEach(([d], i) => { if (d.slice(5, 7) === '01' && +d.slice(8) <= 7) T(c, d.slice(0, 4), { x: X(i), y: base + 46, size: 30, fill: MUTED, font: SANS, weight: 500, anchor: 'middle' }); });
+  const area = path(c, '', { fill: colour, opacity: .28 }), line = path(c, '', { fill: 'none', stroke: colour, 'stroke-width': 6, 'stroke-linejoin': 'round' });
+  const Y = (v, t) => base - h * v / ymax(t);
+  clockRun(t => {
+    const k = Math.min(n - 1, cursor(t)), pts = [];
+    for (let i = 0; i <= k; i++) pts.push([X(i), Y(rows[i][1], t)]);
+    const f = k - Math.floor(k), j = Math.floor(k);
+    if (f && j + 1 < n) pts.push([X(j) + (X(j + 1) - X(j)) * f, Y(rows[j][1] + (rows[j + 1][1] - rows[j][1]) * f, t)]);
+    const d = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('');
+    line.setAttribute('d', d);
+    area.setAttribute('d', pts.length ? `${d}L${pts[pts.length - 1][0]} ${base}L${x0} ${base}Z` : '');
+  }, 0, { tail: true });
+  return (i, t) => [X(i), Y(rows[i][1], t)];
+}
+const wv = (col, a, b) => WAVES.filter(r => r[0] >= a && r[0] <= b).map(r => [r[0], r[col]]);
+const idx = (rows, d) => rows.findIndex(r => r[0] >= d);
+// a pin over the paper map: a ring and a dot at lon/lat, following the map's view
+function pin(g, M, ll, t0, colour = RED) {
+  const e = G(g, { o: 0 });
+  mk('circle', { r: 30, fill: 'none', stroke: colour, 'stroke-width': 6 }, e);
+  mk('circle', { r: 12, fill: colour }, e);
+  tw(e, { o: 1 }, t0, .2, lin);
+  sfx(BEAT_ID, t0, 'thud', .9);
+  clockRun(t => { const P = M.xy(ll, t); if (P) put(e, { x: P[0], y: P[1], s: 1 + .25 * Math.max(0, Math.sin((t - t0) * 5)) * (t > t0) }); }, 0, { tail: true });
+  return e;
+}
+// red rings rippling out of a point on the map from t0
+function ripples(g, M, ll, t0, n = 6) {
+  for (let i = 0; i < n; i++) {
+    const c = mk('circle', { r: 0, fill: 'none', stroke: RED, 'stroke-width': 5, opacity: 0 }, g), a = t0 + i * .45;
+    clockRun(t => {
+      const q = ramp01(t, a, a + 1.8), P = M.xy(ll, t);
+      if (!P || !q || q >= 1) return c.setAttribute('opacity', 0);
+      c.setAttribute('cx', P[0]); c.setAttribute('cy', P[1]); c.setAttribute('r', 20 + q * 520); c.setAttribute('opacity', (1 - q) * .9);
+    }, 0, { tail: true });
+  }
+}
+const ease = (a, b, t0, t1) => t => a + (b - a) * smooth(ramp01(t, t0, t1));
+const lerpView = (v0, v1, t0, t1) => t => { const q = smooth(ramp01(t, t0, t1)); return { lon: v0.lon + (v1.lon - v0.lon) * q, lat: v0.lat + (v1.lat - v0.lat) * q, H: v0.H * (v1.H / v0.H) ** q }; };
+
+/* ---------- beats ---------- */
+const OPEN_PRE = .3;
+const BEATS = [
+  // 0. The hook: the needle already in the arm; then the two crowds, one in four lit, one in five hundred lit
+  ['hook', 'One in four, one in five hundred', (m, D) => {
+    const p = panel(0);
+    const o4 = m('one4'), po = m('poor'), o5 = m('one500');
+    let s = shot(p, 0, o4);
+    photo(s, 'ch04-vax-arm', 0, o4 + .3, { s0: 1.08, s1: 1.3, dx: -30, dy: 40 });
+    word(s, 'April 2021', CX - 20, 270, 0, { size: 120, fill: LIGHT, stroke: DARK });
+    word(s, 'A vaccine dose', CX - 20, 1180, .9, { size: 96, fill: VAX, stroke: DARK });
+    // four people, one lit
+    s = shot(p, o4, po, { bg: DARK, swipe: true });
+    const g4 = G(s, { x: CX - 20, y: 700 }), in4 = G(g4, { x: -(CX - 20), y: -700 });
+    people(in4, 4, 1, CX - 20, 640, 180, o4, o4 + .25);
+    tw(g4, { s: 1.12 }, o4, po - o4 + .3, lin);
+    word(s, '1 in 4', CX - 20, 980, o4 + .25, { size: 220, fill: VAX });
+    label(s, 'Rich countries', CX - 20, 1170, m('rich'), { size: 60, fill: LIGHT, colour: DARK });
+    srcTag(s, WHO_TAG, 50, 150, o4);
+    // five hundred dots, one lit
+    s = shot(p, po, undefined, { bg: DARK, swipe: true });
+    const g5 = G(s, { x: CX - 20, y: 560 }), in5 = G(g5, { x: -(CX - 20), y: -560 });
+    for (let i = 0; i < 500; i++) {
+      const d = mk('circle', { cx: 146 + (i % 20) * 30, cy: 170 + Math.floor(i / 20) * 28, r: 10, fill: '#5d564b', opacity: 0 }, in5);
+      show(d, po + .02 + (i % 20) * .012 + Math.floor(i / 20) * .02, .12, lin);
+    }
+    const lit = G(in5, { x: 146 + 13 * 30, y: 170 + 17 * 28, o: 0, s: 3 });
+    mk('circle', { r: 12, fill: VAX }, lit); mk('circle', { r: 24, fill: 'none', stroke: VAX, 'stroke-width': 4 }, lit);
+    tw(lit, { o: 1, s: 1 }, o5, .25, out);
+    sfx('hook', o5, 'tick', 1.2);
+    tw(g5, { s: 1.1 }, po, D - po, lin);
+    word(s, '1 in 500', CX - 20, 1120, o5 + .1, { size: 200, fill: VAX, stroke: DARK });
+    label(s, 'Poor countries', CX - 20, 1240, po + .1, { size: 60, fill: LIGHT, colour: DARK });
+    srcTag(s, WHO_TAG, 50, 150, po);
+  }, { pre: OPEN_PRE }],
+
+  // 1. Which series, which episode
+  ['card', 'The series', (m, D) => {
+    const p = panel(0);
+    const s = shot(p, 0, undefined, { bg: DARK, swipe: 'quiet' });
+    seriesCard(s, 0, 4, m('four'));
+  }],
+
+  // 2. The needle starts: vials on the line; Britain, the first rich country to approve one
+  ['vaccine', 'The vaccines', (m, D) => {
+    const p = panel(0);
+    const br = m('britain');
+    let s = shot(p, 0, br, { whip: true });
+    photo(s, 'ch04-vax-vials', 0, br + .3, { s0: 1.05, s1: 1.25, dx: 60 });
+    label(s, '2 December 2020', CX - 20, 270, .1, { size: 70 });
+    word(s, 'Vaccines', CX - 20, 1150, m('vax'), { size: 190, fill: VAX, stroke: DARK });
+    // the map of Europe closing on Britain; the approval stamped on it
+    s = shot(p, br, undefined, { bg: NIGHT, swipe: true });
+    const view = lerpView({ lon: 5, lat: 50, H: .45 }, { lon: -2.5, lat: 53.5, H: .24 }, br - .2, D);
+    const M = paperMap(s, D, view, { on: [br - .1, D + 1], cities: [['London', br + .4]] });
+    const top = G(s, {});
+    pin(top, M, CITIES.London, br + .2, VAX);
+    word(s, 'Britain', CX - 20, 280, br + .1, { size: 130, fill: MAPINK, stroke: MAPLAND });
+    label(s, 'First rich country', CX - 20, 1050, br + .9, { size: 56 });
+    stamp(s, 'APPROVED', CX - 20, 1200, m('approve'), { size: 110, colour: '#2f6f73', r: -7 });
+    srcTag(s, 'UK government, 2 December 2020', 50, 150, br);
+  }],
+
+  // 3. The virus answers: a lab in England, Kent, Alpha; thirty-three countries in three weeks
+  ['alpha', 'Alpha', (m, D) => {
+    const p = panel(0);
+    const va = m('variant'), fa = m('faster'), th = m('three');
+    let s = shot(p, 0, va, { whip: true });
+    photo(s, 'ch04-lab', 0, va + .3, { s0: 1.05, s1: 1.22, dy: -40 });
+    word(s, '12 days later', CX - 20, 270, .05, { size: 120, fill: LIGHT, stroke: DARK });
+    label(s, '14 December 2020', CX - 20, 1180, .5, { size: 60 });
+    // England, Kent
+    s = shot(p, va, fa, { bg: NIGHT, swipe: true });
+    const v1 = lerpView({ lon: -1.5, lat: 53, H: .13 }, { lon: 0.4, lat: 51.6, H: .07 }, va, fa + .3);
+    const M1 = paperMap(s, D, v1, { cities: [['London', va + .2, 'l']], on: [va - .1, fa + .4] });
+    word(s, 'New variant', CX - 20, 270, va + .05, { size: 120, fill: MAPINK, stroke: MAPLAND });
+    const pk = G(s, {});
+    pin(pk, M1, KENT, m('kent'));
+    label(s, 'Kent', CX - 20, 1030, m('kent') + .1, { size: 60, fill: MAPINK, colour: MAPLAND });
+    word(s, 'Alpha', CX - 20, 1200, m('alpha'), { size: 200, fill: RED, stroke: MAPLAND });
+    srcTag(s, 'Public Health England, via Wikipedia', 50, 150, va);
+    // the virus itself, pushing in
+    s = shot(p, fa, th, { whip: true });
+    found(s, 'virus-sem-red', 'NIAID, public domain', fa, th + .3, { s0: 1.1, s1: 1.45 });
+    word(s, 'Spreads faster', CX - 20, 1180, fa + .05, { size: 130, fill: LIGHT, stroke: DARK });
+    // pull out to the world: rings out of Britain, the count of countries (no countries lit: we have no list)
+    s = shot(p, th, undefined, { bg: NIGHT, swipe: true });
+    const v2 = lerpView({ lon: 2, lat: 49, H: .5 }, { lon: 10, lat: 35, H: 1.0 }, th, th + 1.6);
+    const M2 = paperMap(s, D, v2, { on: [th - .1, D + 1] });
+    ripples(G(s, {}), M2, KENT, th + .3, 5);
+    const box = G(s, {});
+    rect(box, 170, 1000, 520, 280, { fill: DARK, opacity: .9, rx: 10 });
+    label(s, 'Within 3 weeks', CX - 20, 260, th + .1, { size: 70 });
+    counter(box, 33, CX - 20, 1170, m('thirtythree'), { size: 170, fill: RED, dur: .7 });
+    T(box, 'COUNTRIES', { x: CX - 20, y: 1240, size: 46, fill: LIGHT, font: SANS, weight: 600, anchor: 'middle' }).setAttribute('letter-spacing', '.1em');
+    srcTag(s, 'Wikipedia, COVID-19 pandemic: 2 January 2021', 50, 150, th);
+  }],
+
+  // 4. The race drawn as a race; the virus ahead, and the deadliest wave
+  ['race', 'The race', (m, D) => {
+    const p = panel(0);
+    const vi = m('virus'), ne = m('needle'), wi = m('winter');
+    let s = shot(p, 0, wi, { bg: DARK, whip: true });
+    word(s, 'The race', CX - 20, 270, 0, { size: 150, fill: LIGHT });
+    lanes(s, [['Virus', 'virus', ease(0, .62, vi, wi + .3), vi], ['Needle', 'needle', ease(0, .3, ne, wi + .3), ne]], 560, vi);
+    sfx('race', vi, 'whoosh', .6); sfx('race', ne, 'whoosh', .5);
+    // the winter wave: deaths a day, to the January 2021 peak
+    s = shot(p, wi, undefined, { bg: DARK, swipe: true });
+    const rows = wv(2, '2020-03-02', '2021-03-29'), pk = idx(rows, '2021-01-25');
+    const at = curve(s, rows, ease(idx(rows, '2020-10-05'), pk, wi, m('deadliest') + .2), () => 16000);
+    word(s, 'Winter 2020–21', CX - 20, 270, wi + .05, { size: 110, fill: LIGHT });
+    label(s, 'Reported deaths a day', CX - 20, 380, wi + .3, { size: 44, fill: '#2a2620', colour: MUTED });
+    const [px, py] = at(pk, 0);
+    const pkl = G(s, { o: 0 });
+    mk('circle', { cx: px, cy: py, r: 12, fill: RED }, pkl);
+    T(pkl, '14,800', { x: px - 30, y: py - 30, size: 76, fill: LIGHT, font: SANS, weight: 600, anchor: 'end' });
+    show(pkl, m('deadliest') + .2, .2, lin);
+    word(s, 'Deadliest wave yet', CX - 20, 1260, m('deadliest'), { size: 96, fill: RED });
+    srcTag(s, OWID_TAG, 50, 150, wi);
+  }],
+
+  // 5. Not a fair race: the needle's lane splits; rich countries bought up the vaccines first
+  ['unfair', 'Not fair', (m, D) => {
+    const p = panel(0);
+    const ri = m('rich');
+    let s = shot(p, 0, ri, { bg: DARK, whip: true });
+    word(s, 'Not everywhere', CX - 20, 270, m('everywhere'), { size: 120, fill: LIGHT });
+    lanes(s, [['Needle · rich', 'needle', ease(.3, .75, 0, ri + .4)], ['Needle · poor', 'needle', ease(.3, .32, 0, ri + .4)]], 560, 0);
+    s = shot(p, ri, undefined, { whip: true });
+    photo(s, 'ch04-cargo', ri, D, { s0: 1.05, s1: 1.25, dy: 30 });
+    word(s, 'Rich countries', CX - 20, 270, ri, { size: 120, fill: LIGHT, stroke: DARK });
+    stamp(s, 'BOUGHT UP', CX - 20, 1050, m('bought'), { size: 120, colour: VAX, r: -6 });
+    word(s, 'First', CX - 20, 1240, m('first'), { size: 130, fill: VAX, stroke: DARK });
+    srcTag(s, 'Wikipedia, COVID-19 pandemic', 50, 150, ri + .1);
+  }],
+
+  // 6. Delta: India's second wave, the variant first identified there; it reaches the vaccinated too
+  ['delta', 'Delta', (m, D) => {
+    const p = panel(0);
+    const wa = m('wave'), nw = m('new'), dl = m('delta'), vc = m('vaccinated');
+    let s = shot(p, 0, nw, { whip: true });
+    photo(s, 'ch04-india', 0, nw + .3, { s0: 1.06, s1: 1.3, dy: -60 });
+    label(s, 'April 2021', CX - 20, 270, .05, { size: 70 });
+    word(s, 'Second wave', CX - 20, 1100, wa, { size: 140, fill: LIGHT, stroke: DARK });
+    word(s, 'India', CX - 20, 1240, m('india'), { size: 110, fill: RED, stroke: DARK });
+    // the variant on the map
+    s = shot(p, nw, vc, { bg: NIGHT, swipe: true });
+    const v = lerpView({ lon: 80, lat: 18, H: .5 }, { lon: 77.5, lat: 23, H: .36 }, nw, vc + .3);
+    paperMap(s, D, v, { on: [nw - .1, vc + .4], lit: (c, t) => c === 'IND' ? .55 * ramp01(t, dl, dl + .3) : 0, cities: [['Delhi', nw + .3], ['Mumbai', nw + .5, 'l']] });
+    label(s, 'New variant', CX - 20, 270, nw + .05, { size: 70, fill: MAPINK, colour: MAPLAND });
+    word(s, 'Delta', CX - 20, 1200, dl, { size: 220, fill: RED, stroke: MAPLAND });
+    sfx('delta', dl, 'bang', .8);
+    srcTag(s, 'First identified in India · Wikipedia', 50, 150, nw);
+    // the vaccinated: lit people, and red particles slipping through them
+    s = shot(p, vc, undefined, { bg: DARK, whip: true });
+    const grp = G(s, { x: CX - 20, y: 700 }), in_ = G(grp, { x: -(CX - 20), y: -700 });
+    for (let r = 0; r < 3; r++) people(in_, 5, 5, CX - 20, 480 + r * 220, 150, vc, vc + .1 + r * .1);
+    const R = seeded(11);
+    for (let i = 0; i < 7; i++) {
+      const vg = virusGlyph(in_, -60, 0, 24), y0 = 380 + R() * 650, t0 = vc + .2 + i * .12;
+      put(vg, { x: -60, y: y0, o: 0 });
+      tw(vg, { x: 960, y: y0 + (R() - .5) * 200, o: 1 }, t0, .9, lin);
+    }
+    tw(grp, { s: 1.15 }, vc, D - vc, lin);
+    word(s, 'Even the vaccinated', CX - 20, 1200, vc, { size: 100, fill: LIGHT });
+    srcTag(s, 'Wikipedia, COVID-19 pandemic', 50, 150, vc);
+  }],
+
+  // 7. Omicron: South Africa; then the cases go off the old scale, a reported record
+  ['omicron', 'Omicron', (m, D) => {
+    const p = panel(0);
+    const om = m('omicron'), ja = m('jan'), m35 = m('m35');
+    let s = shot(p, 0, ja, { bg: NIGHT, whip: true });
+    const v = lerpView({ lon: 22, lat: -10, H: .6 }, { lon: 27, lat: -27, H: .36 }, 0, ja + .3);
+    const M = paperMap(s, D, v, { on: [0, ja + .4], cities: [['Johannesburg', .6, 'l']] });
+    label(s, '24 November 2021', CX - 20, 270, .05, { size: 70, fill: MAPINK, colour: MAPLAND });
+    const top = G(s, {});
+    pin(top, M, SA, m('sa'));
+    ripples(top, M, SA, om, 4);
+    word(s, 'Omicron', CX - 20, 1100, om, { size: 200, fill: RED, stroke: MAPLAND });
+    label(s, 'More infectious still', CX - 20, 1240, m('infectious'), { size: 56, fill: MAPINK, colour: MAPLAND });
+    srcTag(s, 'Detected in South Africa · Wikipedia', 50, 150, 0);
+    // the world's reported cases: the old scale, then off it
+    s = shot(p, ja, undefined, { bg: DARK, swipe: true });
+    const rows = wv(1, '2020-03-02', '2022-02-28'), pk = idx(rows, '2022-01-24');
+    const top0 = 900000, top1 = 3700000;
+    curve(s, rows, ease(idx(rows, '2021-11-22'), pk, ja + .1, m35 + .1), ease(top0, top1, m('reports') + .2, m35 + .4));
+    word(s, 'World', CX - 20, 270, ja + .05, { size: 120, fill: LIGHT });
+    label(s, 'Reported cases a day', CX - 20, 380, ja + .2, { size: 44, fill: '#2a2620', colour: MUTED });
+    const box = G(s, {});
+    rect(box, 120, 1170, 620, 140, { fill: DARK, opacity: .92, rx: 10 });
+    counter(box, 3386359, CX - 20, 1270, m35 - .3, { size: 110, fill: RED, dur: 1.1 });
+    srcTag(s, OWID_TAG, 50, 150, ja);
+  }],
+
+  // 8. The answer to the hook: mid-2022, three in four against one in six; the race lanes once more
+  ['gap', 'Still not fair', (m, D) => {
+    const p = panel(0);
+    const t4 = m('three4'), pr = m('poorest'), o6 = m('one6'), tl = o6 + 1.1;
+    let s = shot(p, 0, pr, { bg: DARK, whip: true });
+    label(s, 'Mid-2022', CX - 20, 270, 0, { size: 80 });
+    const g4 = G(s, { x: CX - 20, y: 640 }), in4 = G(g4, { x: -(CX - 20), y: -640 });
+    people(in4, 4, 3, CX - 20, 640, 180, 0, t4 + .1);
+    tw(g4, { s: 1.12 }, 0, pr + .3, lin);
+    word(s, '3 in 4', CX - 20, 980, t4 + .1, { size: 220, fill: VAX });
+    label(s, 'Rich countries', CX - 20, 1170, m('rich'), { size: 60, fill: LIGHT, colour: DARK });
+    srcTag(s, 'Our World in Data, June 2022 · high- vs low-income', 50, 150, 0);
+    s = shot(p, pr, tl, { bg: DARK, swipe: true });
+    const g6 = G(s, { x: CX - 20, y: 640 }), in6 = G(g6, { x: -(CX - 20), y: -640 });
+    people(in6, 6, 1, CX - 20, 640, 125, pr, o6 + .1);
+    tw(g6, { s: 1.12 }, pr, tl - pr + .3, lin);
+    word(s, '1 in 6', CX - 20, 980, o6 + .1, { size: 220, fill: VAX });
+    label(s, 'The poorest countries', CX - 20, 1170, pr + .1, { size: 60, fill: LIGHT, colour: DARK });
+    srcTag(s, 'Our World in Data, June 2022 · high- vs low-income', 50, 150, pr);
+    s = shot(p, tl, undefined, { bg: DARK, whip: true });
+    lanes(s, [['Rich', 'needle', ease(.55, .85, tl, D)], ['Poorest', 'needle', ease(.08, .16, tl, D)]], 560, tl);
+    word(s, 'Still not fair', CX - 20, 270, tl + .1, { size: 130, fill: LIGHT });
+  }],
+
+  // 9. Wave after wave, the count of the dead climbs; how many? next: the count
+  ['end', 'The count climbs', (m, D) => {
+    const p = panel(0);
+    const ho = m('how'), pa = m('part');
+    let s = shot(p, 0, pa, { bg: DARK, whip: true });
+    const rows = wv(2, '2020-03-02', '2022-06-27');
+    curve(s, rows, ease(0, rows.length - 1, 0, ho), () => 16000);
+    word(s, 'Wave after wave', CX - 20, 270, 0, { size: 120, fill: LIGHT });
+    const box = G(s, {});
+    rect(box, 120, 330, 620, 200, { fill: '#15171c', opacity: .95, rx: 10 });
+    const n = T(box, '', { x: CX - 20, y: 450, size: 100, fill: RED, font: SANS, weight: 600, anchor: 'middle' });
+    T(box, 'REPORTED DEATHS', { x: CX - 20, y: 505, size: 36, fill: LIGHT, font: SANS, weight: 500, anchor: 'middle' }).setAttribute('letter-spacing', '.1em');
+    const tot = WAVES.filter(r => r[0] <= '2022-06-27');
+    clockRun(t => { const k = Math.min(tot.length - 1, Math.round(ease(0, tot.length - 1, 0, ho)(t))); n.textContent = tot[k][4].toLocaleString('en-US'); }, 0, { tail: true });
+    for (let k = 0; k < 8; k++) sfx('end', .3 + k * (ho - .3) / 8, 'tick', .4);
+    srcTag(s, 'Our World in Data · by June 2022', 50, 150, 0);
+    const dim = rect(s, 0, 0, W, H, { fill: DARK, opacity: 0 });
+    tw(dim, { opacity: .7 }, ho - .1, .3, lin);
+    word(s, 'How many?', CX - 20, 1000, ho, { size: 170, fill: LIGHT });
+    s = shot(p, pa, undefined, { bg: DARK, swipe: true });
+    endCard(s, pa, 4);
+  }],
+].map(shortsBeat);
+
+music('audio/bgm/ep4.mp3', undefined, +(new URLSearchParams(location.search).get('bgm') || .4), .05);
+startPandemic();
+</script>
+</body>
+</html>

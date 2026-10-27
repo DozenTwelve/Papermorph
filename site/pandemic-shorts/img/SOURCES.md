@@ -39,3 +39,10 @@ The code in this repository is MIT. The pictures and data here keep their own li
 | File | Source | Author | Licence |
 |---|---|---|---|
 | `geo-lite.js` | [Natural Earth](https://www.naturalearthdata.com/) 110m and 50m countries, 10m provinces and populated places, simplified (books/pandemic-shorts/geo-lite.py) | Natural Earth | Public domain |
+
+## ch04 · The Race
+
+| File | Source | Author | Licence |
+|---|---|---|---|
+| `ch04-vax-arm.webp`, `ch04-vax-vials.webp`, `ch04-lab.webp`, `ch04-cargo.webp`, `ch04-india.webp` | Generated with an image model (gpt-image via OpenRouter, low quality); no real people, no faces | AI illustration | Tagged on screen |
+| India's weekly cases (in `ch04/index.html`) | New cases a day, 7-day average, [Our World in Data](https://ourworldindata.org/coronavirus) | Our World in Data | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
