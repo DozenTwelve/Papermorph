@@ -19,8 +19,13 @@ in: upload OUT/chNN.srt with the video. Needs ffmpeg; serve the site over HTTP f
 
 An upright film (a short) goes out with its source and AI-illustration tags (the page's ?tags query), since a video
 leaves the page that credits them; --no-tags leaves them out. A landscape chapter shows them only with --query tags.
+
+Speed: frames are shot by --jobs browsers at once (default: half the CPU threads, at most 8), frame f by browser
+f % jobs, and written in order. The browsers ask for the GPU (Chromium falls back to software where there is none),
+and the video goes to the first hardware H.264 encoder that works on this machine (NVENC, Quick Sync, AMF,
+VideoToolbox), else libx264; the run prints which.
 """
-import argparse, asyncio, functools, json, shutil, subprocess, sys, tempfile, wave
+import argparse, asyncio, functools, json, os, shutil, subprocess, sys, tempfile, wave
 import numpy as np
 from pathlib import Path
 from playwright.async_api import async_playwright
@@ -44,6 +49,21 @@ END_CARD = """([link, asks]) => {
 
 
 RATE = 44100
+
+# H.264 encoders, first that works wins; a listed hardware encoder can still fail (no such GPU), so each is tried
+ENCODERS = [('h264_nvenc', ['-preset', 'p5', '-rc', 'vbr', '-cq', '20', '-b:v', '0']),
+            ('h264_qsv', ['-global_quality', '20']),
+            ('h264_amf', ['-rc', 'cqp', '-qp_i', '20', '-qp_p', '20']),
+            ('h264_videotoolbox', ['-q:v', '65']),
+            ('libx264', ['-crf', '20', '-preset', 'medium'])]
+
+
+def encoder():
+    for name, opts in ENCODERS:
+        if subprocess.run(['ffmpeg', '-v', 'error', '-f', 'lavfi', '-i', 'color=s=256x256:d=0.1', '-pix_fmt', 'yuv420p',
+                           '-c:v', name] + opts + ['-f', 'null', '-'], capture_output=True).returncode == 0:
+            return name, opts
+    sys.exit('ffmpeg has no working H.264 encoder')
 
 
 @functools.lru_cache(maxsize=None)
@@ -81,7 +101,8 @@ async def main(a):
     global QUERY
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
     async with async_playwright() as p:
-        b = await p.chromium.launch(**exe())
+        kw = exe(); kw['args'] = kw.get('args', []) + ['--enable-gpu']   # headless Chromium draws in software unless asked
+        b = await p.chromium.launch(**kw)
         base = f'{a.url}{a.chapter}/index.html'
         # The stage is 1600 x 900, or 900 x 1600 for a book with <html data-stage="portrait">.
         probe = await b.new_page()
@@ -173,22 +194,42 @@ async def main(a):
         with wave.open(str(wav), 'wb') as w:
             w.setnchannels(2); w.setsampwidth(2); w.setframerate(RATE)
             w.writeframes((np.clip(track, -1, 1) * 32767).astype('<i2').tobytes())
-        # Pass 2: frames, piped into the encoder with the audio track.
+        # Pass 2: frames, shot by --jobs browsers at once and piped in order into the encoder with the audio track.
+        codec, opts = encoder()
+        print(f'encoder {codec}, {a.jobs} browsers', flush=True)
         enc = subprocess.Popen(['ffmpeg', '-v', 'error', '-y', '-f', 'image2pipe', '-framerate', str(a.fps), '-c:v', 'mjpeg',
                                 '-i', '-', '-i', str(wav), '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2',   # H.264 wants even sizes
-                                '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '20',
-                                '-preset', 'medium', '-c:a', 'aac', '-b:a', '160k', '-shortest', str(part)],
+                                '-c:v', codec, '-pix_fmt', 'yuv420p'] + opts +
+                               ['-c:a', 'aac', '-b:a', '160k', '-shortest', str(part)],
                                stdin=subprocess.PIPE)
-        frames = 0
+        pages, more = [pg], []
+        for _ in range(a.jobs - 1):
+            more.append(await p.chromium.launch(**kw))
+            w = await more[-1].new_page(viewport={'width': sw + 40, 'height': sh + 100}, device_scale_factor=scale)
+            w.on('pageerror', lambda e: errs.append(str(e)))
+            pages.append(w)
+        opened, last = {}, {}
+
+        async def shoot(w, i, f):
+            if opened.get(w) != i:
+                await open_beat(w, base, i); opened[w], last[w] = i, -1
+            # evalTo only runs forward and a tween takes its start value when first reached, so overlapping tweens
+            # depend on the frames before: each browser steps every frame since its last shot, as one browser would
+            await w.evaluate('ts => { for (const t of ts) { P.t = t; evalTo(t); } }',
+                             [g / a.fps for g in range(last[w] + 1, f + 1)])
+            last[w] = f
+            return await w.screenshot(clip=clip, type='jpeg', quality=92)
+
+        jobs = [(k, i, f) for k, (i, _) in enumerate(beats) for f in range(counts[k])]
+        frames, done = 0, 0
         try:
-            for k, (i, bid) in enumerate(beats):
-                await open_beat(pg, base, i)
-                n = counts[k]
-                for f in range(n):
-                    await pg.evaluate('t => { P.t = t; evalTo(t); }', f / a.fps)
-                    enc.stdin.write(await pg.screenshot(clip=clip, type='jpeg', quality=92))
-                    frames += 1
-                print(f'{bid}: {n} frames', flush=True)
+            for s in range(0, len(jobs), a.jobs):
+                batch = jobs[s:s + a.jobs]
+                for img in await asyncio.gather(*(shoot(pages[j], i, f) for j, (_, i, f) in enumerate(batch))):
+                    enc.stdin.write(img)
+                frames += len(batch)
+                while done < len(beats) and frames >= sum(counts[:done + 1]):
+                    print(f'{beats[done][1]}: {counts[done]} frames', flush=True); done += 1
             if end_s:
                 await pg.evaluate(END_CARD, [a.link or '', asks])
                 end = await pg.screenshot(clip=clip, type='jpeg', quality=92)
@@ -199,7 +240,8 @@ async def main(a):
             pass
         enc.wait()
         shutil.rmtree(audio_dir, ignore_errors=True)
-        await b.close()
+        for x in [b] + more:
+            await x.close()
     with open(out / f'{a.chapter}.srt', 'w', encoding='utf-8') as f:
         for k, (t0, t1, line) in enumerate(cues, 1):
             f.write(f'{k}\n{srt_time(t0)} --> {srt_time(t1)}\n{line}\n\n')
@@ -219,6 +261,8 @@ if __name__ == '__main__':
     ap.add_argument('--url', default='http://localhost:8765/', help='the book served over HTTP, ending in /')
     ap.add_argument('--out', default='export', help='output folder')
     ap.add_argument('--fps', type=int, default=30)
+    ap.add_argument('--jobs', type=int, default=max(1, min(8, (os.cpu_count() or 2) // 2)),
+                    help='browsers shooting frames at once (default: half the CPU threads, at most 8)')
     ap.add_argument('--height', type=int, help='video height (default 1080 landscape, 1920 portrait)')
     ap.add_argument('--link', help='address of the interactive lesson, shown on the end card')
     ap.add_argument('--query', default='', help='extra page query, e.g. tags (the source and AI-illustration tags)')
