@@ -1,5 +1,6 @@
 /* shorts.js: the shorts kit, for an upright film (<html data-stage="portrait">, 900 x 1600) on a phone feed.
-   This is the book's own copy: set its look here (colours below, fonts in lib/fonts.css) and add the film's own pieces
+   This is the book's own copy: its colours come from lib/book.css (--dark, --light, --red, … below), fonts from
+   lib/fonts.css; add the film's own pieces
    (its cast's sizes, its recurring cards, a map) in a second file of the book, loaded after this one.
    Loaded after engine.js, timings.js and icons.js; a chapter defines CHAPTER and BEATS (plain tuples mapped with
    shortsBeat), calls the engine's music() and then startShorts(). Every helper is a pure function of the beat clock, so
@@ -10,9 +11,13 @@
    Platforms draw over the top 120 and the bottom 300 of the 900 x 1600 stage, and their buttons over the right 90
    between y 700 and 1300: words stay in x 50..810, y 130..1290. Pictures may run under all of it. */
 const SANS = '"Oswald", "Arial Narrow", sans-serif', SERIF = '"EB Garamond", Georgia, serif';
-const DARK = '#1f1b16', RED = '#c8281e', TEAL = '#2f6f73', LIGHT = '#ece4d3', MUTED = '#8a7d68', MARK = '#ffd23f', SEA = '#123c44';
-const CX = 450, W = 900, H = 1600;
 const TEXT_CTX = document.createElement('canvas').getContext('2d');
+// the palette: lib/book.css may set each as a custom property (--dark: #0b0d11), read as #rrggbb; else these defaults
+const shortsColour = (name, d) => { TEXT_CTX.fillStyle = d; TEXT_CTX.fillStyle = bookSetting('--' + name) || d; return TEXT_CTX.fillStyle; };
+const DARK = shortsColour('dark', '#1f1b16'), RED = shortsColour('red', '#c8281e'), TEAL = shortsColour('teal', '#2f6f73'),
+  LIGHT = shortsColour('light', '#ece4d3'), MUTED = shortsColour('muted', '#8a7d68'), MARK = shortsColour('mark', '#ffd23f'),
+  SEA = shortsColour('sea', '#123c44');
+const CX = 450, W = 900, H = 1600;
 const inkW = (str, size, font = SANS, weight = 600) => { TEXT_CTX.font = `${weight} ${size}px ${font}`; return TEXT_CTX.measureText(str).width; };
 const rect = (p, x, y, w, h, attrs = {}) => mk('rect', { x, y, width: w, height: h, ...attrs }, p);
 const ramp01 = (t, a, b) => Math.min(1, Math.max(0, (t - a) / (b - a)));
@@ -39,6 +44,9 @@ function swarm(g, name, t0, { h = 560, y = 1500, cross = 1.6, n = 16, after = 1.
 let fxN = 0;
 function shot(p, t0, t1, { bg, whip = false, swipe = false } = {}) {
   const g = G(p, { o: 0 });
+  // the blur is on only while the shot slides in: a filter left on costs every frame after (most in Firefox)
+  const blur = (q, b, sd) => { b.setAttribute('stdDeviation', sd); if (q < 1) g.setAttribute('filter', `url(#${b.parentNode.id})`); else g.removeAttribute('filter'); };
+  g._on = [t0, t1 === undefined ? Infinity : t1 + .29];   // the shot's window, which paperMap() draws in by default
   if (bg) rect(g, -20, -20, W + 40, H + 40, { fill: bg });
   if (t0 <= .01) put(g, { o: 1 }); else show(g, t0, .01, lin);   // a beat's first shot is there on its first frame
   // the old shot stays until the next one has finished sliding in (whip, swipe), so nothing shows through behind it
@@ -46,15 +54,13 @@ function shot(p, t0, t1, { bg, whip = false, swipe = false } = {}) {
   if (whip) {
     const id = 'whip' + (++fxN), f = mk('filter', { id, x: '-30%', y: 0, width: '160%', height: '100%' }, mk('defs', {}, g));
     const b = mk('feGaussianBlur', { stdDeviation: '0 0' }, f);
-    g.setAttribute('filter', `url(#${id})`);
-    prog(q => { put(g, { x: W * .6 * (1 - q) }); b.setAttribute('stdDeviation', `${(1 - q) * 60} 0`); }, t0, .26, out);
+    prog(q => { put(g, { x: W * .6 * (1 - q) }); blur(q, b, `${(1 - q) * 60} 0`); }, t0, .26, out);
     sfx(BEAT_ID, t0, 'whoosh', .5);
   }
   if (swipe) {   // a feed scrolled up: the next clip rises from the bottom, blurred along its motion
     const id = 'swp' + (++fxN), f = mk('filter', { id, x: 0, y: '-30%', width: '100%', height: '160%' }, mk('defs', {}, g));
     const b = mk('feGaussianBlur', { stdDeviation: '0 0' }, f);
-    g.setAttribute('filter', `url(#${id})`);
-    prog(q => { put(g, { y: H * (1 - q) }); b.setAttribute('stdDeviation', `0 ${(1 - q) * 50}`); }, t0, .2, out);
+    prog(q => { put(g, { y: H * (1 - q) }); blur(q, b, `0 ${(1 - q) * 50}`); }, t0, .2, out);
     sfx(BEAT_ID, t0, 'whoosh', swipe === 'quiet' ? .18 : .4);
   }
   return g;
@@ -70,13 +76,19 @@ function photo(g, name, t0, t1, { s0 = 1.02, s1 = 1.1, dx = 0, dy = 0, dim = 0, 
   return im;
 }
 // a small grey label top left: a source or "AI illustration"; shown with ?tags (as export.py shows them), so a cut
-// being worked on stays clean while the calls stay in place
+// being worked on stays clean while the calls stay in place. A long tag is set smaller to end inside x 810; a second
+// tag at the same spot of the same shot (an AI picture and a number's source) stacks below the first
 const TAGS = new URLSearchParams(location.search).has('tags');
 function srcTag(g, str, x, y, t0) {
   if (!TAGS) return G(g, { o: 0 });
-  const e = G(g, { x, y, o: 0 }), w = inkW(str.toUpperCase(), 20, SANS, 500) + 20;
+  str = str.toUpperCase();
+  const at = g._tags || (g._tags = {}), n = at[x + ',' + y] = (at[x + ',' + y] || 0) + 1;
+  // the box fits the drawn text: letter-spacing (.06em) adds that much after every character
+  const textW = size => inkW(str, size, SANS, 500) + str.length * size * .06;
+  const size = Math.min(20, 20 * (810 - x - 20) / textW(20)), w = textW(size) + 20;
+  const e = G(g, { x, y: y + (n - 1) * 38, o: 0 });
   rect(e, 0, -22, w, 30, { fill: 'rgba(20,18,15,.55)', rx: 3 });
-  T(e, str.toUpperCase(), { x: 10, y: 0, size: 20, fill: '#f0ebe0', font: SANS, weight: 500 }).setAttribute('letter-spacing', '.06em');
+  T(e, str, { x: 10, y: 0, size, fill: '#f0ebe0', font: SANS, weight: 500 }).setAttribute('letter-spacing', '.06em');
   show(e, t0, .2, lin);
   return e;
 }
@@ -136,8 +148,9 @@ function stamp(g, str, x, y, t0, { size = 110, colour = RED, r = -9 } = {}) {
   sfx(BEAT_ID, t0, 'bang', 1.4);
   return e;
 }
-// a number counting up to n over dur
-function counter(g, n, x, y, t0, { size = 90, fill = DARK, anchor = 'middle', dur = 1.1, pre = '', ticks = true } = {}) {
+// a number counting up to n over dur; set smaller when its last value is wider than maxW, as word()
+function counter(g, n, x, y, t0, { size = 90, fill = DARK, anchor = 'middle', dur = 1.1, pre = '', ticks = true, maxW = 660 } = {}) {
+  size = Math.min(size, size * maxW / inkW(pre + Math.round(n).toLocaleString('en-US'), size));
   const t = T(g, pre + '0', { x, y, size, fill, font: SANS, weight: 600, anchor, o: 0 });
   show(t, t0, .1, lin);
   prog(q => { t.textContent = pre + Math.round(n * q).toLocaleString('en-US'); }, t0, dur, out);
