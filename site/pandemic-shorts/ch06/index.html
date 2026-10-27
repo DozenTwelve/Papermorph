@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en" data-stage="portrait">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Pandemic · 6 · The Origin</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="audio/en/timings.js"></script>
+<script src="../img/art.js"></script>
+<script src="../img/ch06-art.js"></script>
+<script src="../img/geo-lite.js"></script>
+<script src="wuhan.js"></script>
+<script src="../lib/icons.js"></script>
+<script src="../lib/shorts.js"></script>
+<script src="../lib/pandemic.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 6, title: 'The Origin', minutes: 1.5, language: 'en' };   // the last episode: no next
+
+/* ---------- the two places, drawn alike (user 10-27: "don't favour zoonosis, treat them fairly") ----------
+   The Huanan market and the Wuhan Institute of Virology, at the film's coordinates (site/pandemic/ch01, originStage).
+   Every piece below takes a side index and draws both sides the same way: same pin, same card, same seconds. */
+const MKT = [114.2576, 30.6196], WIV = [114.2625, 30.3764], MID = [114.2600, 30.4980];
+const SIDES = [
+  { n: 1, title: 'Nature', place: 'Huanan Seafood Market', ll: MKT, chain: ['ch06-bat', 'ch06-raccoon', 'ch06-crowd'], steps: ['A bat virus', 'another animal', 'people'],
+    who: ['Many scientists', 'A WHO-convened study, 2021'], pic: 'ch06-raccoon' },
+  { n: 2, title: 'A lab accident', place: 'Wuhan Institute of Virology', ll: WIV, chain: ['ch06-bat', 'ch06-sample', 'ch06-crowd'], steps: ['A bat virus under study', 'a worker', 'people'],
+    who: ['The FBI, 2023', 'The US Department of Energy, 2023'], pic: 'ch06-sample' },
+];
+const CARD = '#f6f1e4', CARD_INK = MAPINK, CARD_SOFT = '#6a6258';
+// a view of Wuhan: centre ll, H (radius 450 / H px)
+const at = (ll, Hh, dy = 0) => ({ lon: ll[0], lat: ll[1], H: Hh, dy });
+const mixV = (a, b, q) => ({ lon: a.lon + (b.lon - a.lon) * q, lat: a.lat + (b.lat - a.lat) * q, H: a.H * (b.H / a.H) ** q, dy: (a.dy || 0) + ((b.dy || 0) - (a.dy || 0)) * q });
+
+// the series paper map with Wuhan's rivers, lakes and built-up areas on top (wuhan.js, cut from the film's geo.js),
+// drawn on a canvas: the same paths as scaled SVG cost Firefox ~90 ms a frame
+let WUHAN_PATHS;
+function wuhanMap(s, D, view, opts = {}) {
+  const M = paperMap(s, D, view, opts), fo = mk('foreignObject', { x: 0, y: 0, width: W, height: H }, s);
+  const cv = document.createElement('canvas'), PX = 1.2; cv.width = W * PX; cv.height = H * PX;
+  cv.style.cssText = `width:${W}px;height:${H}px;display:block`; fo.appendChild(cv);
+  const x = cv.getContext('2d'), P = WUHAN_PATHS || (WUHAN_PATHS = ['urban', 'lakes', 'rivers10'].map(k => new Path2D(WUHAN_MAP[k])));
+  clockRun(t => {
+    if (opts.on && (t < opts.on[0] || t > opts.on[1])) return;
+    const v = M.view(t), c = mapXY(WUHAN_MAP.center, v), k = 450 / v.H / WUHAN_MAP.R, a = ramp01(k, 1, 4);
+    x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, cv.width, cv.height);
+    if (!a) return;
+    x.setTransform(PX * k, 0, 0, PX * k, PX * c[0], PX * c[1]);
+    x.globalAlpha = .8 * a; x.fillStyle = '#cdb995'; x.fill(P[0]);
+    x.globalAlpha = a; x.fillStyle = MAPSEA; x.fill(P[1]);
+    x.strokeStyle = '#8fa9ad'; x.lineJoin = 'round'; x.lineWidth = 1 / k; x.stroke(P[1]);
+    x.lineWidth = 5 / k; x.stroke(P[2]);
+  }, D, { tail: true });
+  return M;
+}
+// a place's pin: an ink dot in a ring, its name on an ink chip above (side 0) or below (side 1); the same for both
+function pin(s, M, k, t0, D, { label = true } = {}) {
+  const S = SIDES[k], g = G(s, { o: 0 });
+  mk('circle', { r: 30, fill: 'none', stroke: MAPINK, 'stroke-width': 6 }, g);
+  mk('circle', { r: 12, fill: MAPINK }, g);
+  let chip;
+  if (label) {
+    const str = S.place.toUpperCase(), w = inkW(str, 44, SANS, 600) + 36;
+    chip = G(g, { y: k ? 96 : -62 });
+    rect(chip, -w / 2, -50, w, 68, { fill: MAPINK, rx: 4 });
+    T(chip, str, { x: 0, y: 0, size: 44, fill: LIGHT, font: SANS, weight: 600, anchor: 'middle' });
+  }
+  clockRun(t => { const P = M.xy(S.ll, t); if (P) put(g, { x: P[0], y: P[1] }); }, D, { tail: true });
+  tw(g, { o: 1 }, t0, .25, out);
+  sfx(BEAT_ID, t0, 'tick', 1);
+  return g;
+}
+// a side's mechanism, said literally: three pictures in a column, each link as the voice names it, arrows between
+function chain(s, k, m, D) {
+  const S = SIDES[k], keys = ['bat', k ? 'worker' : 'animal', 'people'], y0 = [330, 650, 970];
+  photo(s, S.pic, 0, D + .6, { s0: 1.15, s1: 1.25, dim: .78, ai: false });
+  label(s, `Answer ${S.n}`, CX, 175, 0, { size: 40, fill: LIGHT, colour: DARK });
+  word(s, S.title, CX, 285, m(k ? 'lab' : 'nature'), { size: 110, fill: LIGHT, stroke: DARK });
+  const st = G(s, { x: CX, y: 650 }), sti = G(st, { x: -CX, y: -650 });
+  tw(st, { s: 1.05 }, m('people') + .3, D + .3 - m('people'), lin);
+  keys.forEach((key, i) => {
+    const t0 = m(key), c = G(sti, { y: 60, o: 0 }), cx = CX, cy = y0[i] + 140;
+    const im = G(c, { x: cx, y: cy });
+    const inner = G(im, { x: -cx, y: -cy });
+    clipImg(inner, S.chain[i], 90, y0[i], 720, 270, 14);
+    tw(im, { s: 1.06 }, t0, D - t0 + .6, lin);
+    const tag = label(c, S.steps[i], CX, y0[i] + 250, t0, { size: 40, fill: DARK, colour: LIGHT });
+    tw(c, { y: 0, o: 1 }, t0, .3, out);
+    sfx(BEAT_ID, t0, 'whoosh', .35);
+    if (i) { const a = G(sti, { x: CX, y: y0[i] - 30, o: 0 }); path(a, 'M-14 -26H14V0H32L0 30L-32 0H-14Z', { fill: LIGHT }); tw(a, { o: 1 }, t0 - .1, .2, out); }
+  });
+  srcTag(s, 'AI illustration', 50, 150, m('bat'));
+}
+// who leans which way: one card, the same for both sides; only who leans, as the voice names them (the sources stay in
+// the script and the tag); the card pushes slowly the whole beat, so its hold is never a still frame
+function whoCard(s, k, m, D, keys) {
+  const S = SIDES[k];
+  photo(s, S.pic, 0, D + .6, { s0: 1.12, s1: 1.22, dim: .62 });
+  const wr = G(s, { x: CX, y: 590 }), c = G(G(wr, { x: -CX, y: -590 }), { y: 30, o: 0 }), x0 = 90, y0 = 330, w = 720, h = 520;
+  tw(wr, { s: 1.05 }, 0, D + .6, lin);
+  rect(c, x0, y0, w, h, { fill: CARD, rx: 10 });
+  T(c, S.title.toUpperCase(), { x: x0 + 44, y: y0 + 96, size: 76, fill: CARD_INK, font: SANS, weight: 600 });
+  const pl = T(c, 'perhaps at the ' + S.place, { x: x0 + 44, y: y0 + 150, size: 34, fill: CARD_SOFT, font: SERIF }); pl.setAttribute('font-style', 'italic');
+  rect(c, x0 + 44, y0 + 190, w - 88, 3, { fill: CARD_SOFT });
+  T(c, 'WHO LEANS THIS WAY', { x: x0 + 44, y: y0 + 250, size: 30, fill: CARD_SOFT, font: SANS, weight: 500 }).setAttribute('letter-spacing', '.12em');
+  tw(c, { y: 0, o: 1 }, 0, .3, out);
+  S.who.forEach((name, i) => {
+    const e = G(c, { o: 0, x: 30 });
+    T(e, name, { x: x0 + 44, y: y0 + 340 + i * 110, size: 42, fill: CARD_INK, font: SANS, weight: 600 });
+    tw(e, { o: 1, x: 0 }, keys[i], .3, out);
+    sfx(BEAT_ID, keys[i], 'tick', .9);
+  });
+  label(s, 'Lean this way', CX, 990, keys[2] + LEAD, { size: 56, fill: LIGHT, colour: DARK });   // on the word itself
+  srcTag(s, 'Wikipedia · Origin of SARS-CoV-2', 50, 1270, keys[0]);
+}
+// the two answers as small cards side by side (the same size), for the beats that weigh them together
+function bothCards(s, t0) {
+  return SIDES.map((S, k) => {
+    const x = k ? 470 : 70, c = G(s, { o: 0 });
+    rect(c, x, 230, 360, 470, { fill: CARD, rx: 10 });
+    clipImg(c, S.pic, x + 20, 250, 320, 300, 6);
+    const lines = k ? ['A LAB', 'ACCIDENT'] : ['NATURE', ''];
+    lines.forEach((l, i) => T(c, l, { x: x + 180, y: 610 + i * 54, size: 50, fill: CARD_INK, font: SANS, weight: 600, anchor: 'middle' }));
+    if (t0 <= .01) put(c, { o: 1 }); else tw(c, { o: 1 }, t0, .3, out);
+    return c;
+  });
+}
+// the beat lasts at least L s (so the two sides get the same seconds whatever the voice did)
+const atLeast = (D, L) => { if (L > D) prog(() => {}, D, L - D, lin); };
+const LEN = k => Math.max(TIMINGS[k[0]].dur, TIMINGS[k[1]].dur) + .6;   // + the pushes' .6 past the voice
+
+/* ---------- beats ---------- */
+const BEATS = [
+  // 0. Hook: the night globe already turning; the official count; then it dives onto Wuhan, and the question
+  ['hook', 'Where it started', (m, D) => {
+    const p = panel(0);
+    const s = shot(p, 0, undefined, { bg: NIGHT });
+    const tDive = m('still') - .2, tHand = tDive + .9, tLand = m('where') + .35;
+    const A = at(WUHAN, .3), B = at(MID, .0028);
+    // one view for the globe and the map: turning from the first frame, diving onto Wuhan, then down to its two places
+    const view = t => {
+      if (t >= tHand) return mixV(A, B, smooth(ramp01(t, tHand, tLand)));
+      const q = smooth(ramp01(t, tDive, tHand)), lon0 = 40 + Math.min(t, tDive) * 6;
+      return { lon: lon0 + (WUHAN[0] - lon0) * q, lat: 14 + (WUHAN[1] - 14) * q, H: 1.12 * (.3 / 1.12) ** q };
+    };
+    Globe.clearMarks(); Globe.dot(...WUHAN);
+    globeShot(s, D + .6, view, t => ramp01(t, tDive, tDive + .4), null, { on: [0, tHand + .5] });
+    const mp = G(s, { o: 0 });
+    show(mp, tHand, .45, lin);
+    const M = wuhanMap(mp, D + .6, view, { on: [tHand - .05, D + 1] });
+    SIDES.forEach((S, k) => pin(mp, M, k, tLand - .1, D + .6, { label: false }));
+    const qm = T(mp, '?', { x: CX, y: 880, size: 220, fill: MARK, font: SANS, weight: 600, anchor: 'middle', o: 0 });
+    qm.setAttribute('stroke', DARK); qm.setAttribute('stroke-width', 10); qm.setAttribute('paint-order', 'stroke');
+    tw(qm, { o: 1 }, tLand, .25, out);
+    const n = counter(s, 7115706, CX, 330, m('seven'), { size: 130, fill: RED, dur: 1.2 });
+    const l1 = word(s, 'deaths · official count', CX, 410, m('seven') + .3, { size: 46, fill: LIGHT });
+    const tg = srcTag(s, 'WHO, via Our World in Data', 50, 150, m('seven'));
+    [n, l1, tg].forEach(e => hide(e, tDive, .25));
+    word(s, 'We still don’t know', CX, 250, m('still'), { size: 84, fill: LIGHT, stroke: DARK });
+    word(s, 'where it started', CX, 360, m('where'), { size: 100, fill: LIGHT, stroke: DARK });
+  }, { pre: .3 }],
+
+  // 1. Which series, which episode: the last of six
+  ['card', 'The series', (m, D) => {
+    const p = panel(0);
+    const s = shot(p, 0, undefined, { bg: DARK, swipe: 'quiet' });
+    seriesCard(s, 0, 6, m('six'));
+  }],
+
+  // 2. Two answers, one city: the paper map of Wuhan, both places lit at the same moment, the same size
+  ['two', 'Two answers', (m, D) => {
+    const p = panel(0);
+    const s = shot(p, 0, undefined, { bg: NIGHT, swipe: 'quiet' });
+    const A = at(MID, .0034), B = at(MID, .0026);
+    const M = wuhanMap(s, D + .6, t => mixV(A, B, ramp01(t, 0, D + .6)), {});
+    SIDES.forEach((S, k) => { pin(s, M, k, 0, D + .6, { label: false }); pin(s, M, k, m('both'), D + .6); });
+    word(s, 'Two main answers', CX, 250, .15, { size: 100, fill: MAPINK, stroke: MAPLAND });
+    word(s, 'One city', CX, 830, m('city'), { size: 120, fill: MAPINK, stroke: MAPLAND });
+  }],
+
+  // 3. Answer one, said literally: bat → another animal → people
+  ['nature', 'Nature', (m, D) => {
+    const p = panel(0);
+    const s = shot(p, 0, undefined, { bg: DARK, swipe: true });
+    chain(s, 0, m, D);
+    atLeast(D, LEN(['nature', 'lab']));
+  }],
+
+  // 4. Its place: the market, the early cases around it, the raccoon dogs on sale
+  ['market', 'The market', (m, D) => {
+    const p = panel(0);
+    const tPic = m('raccoon');
+    let s = shot(p, 0, tPic, { bg: NIGHT, whip: true });
+    const A = at(MID, .0028), B = at(MKT, .0011);
+    const M = wuhanMap(s, tPic + .4, t => mixV(A, B, smooth(ramp01(t, 0, 1.4))), {
+      on: [0, tPic + .4],
+      dots: Array.from({ length: 14 }, (_, i, R = seeded(31 + 7 * i)) => { R(); R(); return [MKT[0] + (R() - .5) * .03, MKT[1] + (R() - .5) * .024, m("cluster") + i * .06, 18]; }),
+    });
+    pin(s, M, 0, m('market'), tPic + .4);
+    word(s, 'Early cases', CX, 1180, m('cluster'), { size: 96, fill: RED, stroke: MAPLAND });
+    s = shot(p, tPic, undefined, { whip: true });
+    photo(s, 'ch06-stall', tPic, D + .6, { s0: 1.04, s1: 1.16, dim: .15 });
+    word(s, 'Raccoon dogs', CX, 300, tPic + .1, { size: 120, fill: LIGHT, stroke: DARK });
+    word(s, 'on sale', CX, 420, tPic + .35, { size: 80, fill: LIGHT, stroke: DARK });
+    atLeast(D, LEN(['market', 'wiv']));
+  }],
+
+  // 5. Who leans to nature, in their own words
+  ['naturewho', 'Who leans to nature', (m, D) => {
+    const p = panel(0);
+    const s = shot(p, 0, undefined, { bg: DARK, swipe: true });
+    whoCard(s, 0, m, D, [m('many'), m('who'), m('lean')]);
+    atLeast(D, LEN(['naturewho', 'labwho']));
+  }],
+
+  // 6. Answer two, the same layout: bat → a worker → people
+  ['lab', 'A lab accident', (m, D) => {
+    const p = panel(0);
+    const s = shot(p, 0, undefined, { bg: DARK, swipe: true });
+    chain(s, 1, m, D);
+    atLeast(D, LEN(['nature', 'lab']));
+  }],
+
+  // 7. Its place: the institute, its bat coronavirus research, and the same city as the market
+  ['wiv', 'The institute', (m, D) => {
+    const p = panel(0);
+    const tPic = m('bats'), tBack = m('same');
+    let s = shot(p, 0, tPic, { bg: NIGHT, whip: true });
+    const A = at(MID, .0028), B = at(WIV, .0011);
+    const M = wuhanMap(s, tPic + .4, t => mixV(A, B, smooth(ramp01(t, 0, 1.4))), { on: [0, tPic + .4] });
+    pin(s, M, 1, m('wiv'), tPic + .4);
+    s = shot(p, tPic, tBack, { whip: true });
+    photo(s, 'ch06-corridor', tPic, tBack + .4, { s0: 1.04, s1: 1.14, dim: .2 });
+    word(s, 'Bat coronaviruses', CX, 1060, tPic + .1, { size: 100, fill: LIGHT, stroke: DARK });
+    word(s, 'studied here', CX, 1180, tPic + .35, { size: 80, fill: LIGHT, stroke: DARK });
+    s = shot(p, tBack, undefined, { bg: NIGHT, whip: true });
+    const M2 = wuhanMap(s, D + .6, t => mixV(at(WIV, .0018), at(MID, .0028), smooth(ramp01(t, tBack, tBack + .9))), { on: [tBack - .05, D + 1] });
+    SIDES.forEach((S, k) => pin(s, M2, k, tBack + .01, D + .6));
+    word(s, 'Same city', CX, 830, tBack + .2, { size: 120, fill: MAPINK, stroke: MAPLAND });
+    atLeast(D, LEN(['market', 'wiv']));
+  }],
+
+  // 8. Who leans to a lab accident, in their own words: the same card
+  ['labwho', 'Who leans to a lab', (m, D) => {
+    const p = panel(0);
+    const s = shot(p, 0, undefined, { bg: DARK, swipe: true });
+    whoCard(s, 1, m, D, [m('fbi'), m('doe'), m('lean')]);
+    atLeast(D, LEN(['naturewho', 'labwho']));
+  }],
+
+  // 9. The minor ideas, dismissed in one line as the film does
+  ['other', 'Other ideas', (m, D) => {
+    const p = panel(0);
+    const s = shot(p, 0, undefined, { bg: DARK, swipe: true });
+    bothCards(s, 0);
+    const chips = [['Frozen food', m('frozen'), 900], ['An American lab', m('us'), 1010]].map(([str, t0, y]) => {
+      const e = label(s, str, CX, y, t0, { size: 58, fill: '#3a3d44', colour: LIGHT });
+      sfx('other', t0, 'tick', .8);
+      return e;
+    });
+    word(s, 'Little evidence', CX, 1190, m('little'), { size: 96, fill: MARK, stroke: DARK });
+    chips.forEach(e => tw(e, { o: .35 }, m('little'), .3));
+    word(s, 'Other ideas', CX, 800, 0, { size: 64, fill: MUTED });
+  }],
+
+  // 10. For the two main answers: no proof either way; both cards dim alike
+  ['proof', 'No proof', (m, D) => {
+    const p = panel(0);
+    const s = shot(p, 0, undefined, { bg: DARK });
+    const cards = bothCards(s, 0);
+    cards.forEach(c => tw(c, { o: .35 }, .1, .4));   // on "for the two main answers"
+    const q = T(s, '?', { x: CX, y: 960, size: 260, fill: MARK, font: SANS, weight: 600, anchor: 'middle', o: 0 });
+    tw(q, { o: 1 }, .35, .25, out); sfx('proof', .35, 'thud', 1);
+    word(s, 'No proof', CX, 1110, m('proof'), { size: 150, fill: LIGHT, stroke: DARK });
+    word(s, 'either way', CX, 1230, m('proof') + .35, { size: 84, fill: LIGHT, stroke: DARK });
+  }],
+
+  // 11. Why: what was never shared, three empty slots filling as they are named
+  ['data', 'Never shared', (m, D) => {
+    const p = panel(0);
+    const s = shot(p, 0, undefined, { bg: DARK, swipe: true });
+    photo(s, 'ch06-boxes', 0, D + .6, { s0: 1.04, s1: 1.18, dim: .5 });
+    [['Early patient lists', m('lists')], ['Swabs', m('swabs')], ['Blood samples', m('blood')]].forEach(([str, t0], i) => {
+      const y = 360 + i * 190, e = G(s, { o: 0, s: .9, x: CX, y: y + 65 }), inner = G(e, { x: -CX, y: -y - 65 });
+      rect(inner, 110, y, 680, 130, { fill: 'rgba(246,241,228,.12)', stroke: LIGHT, 'stroke-width': 4, 'stroke-dasharray': '16 12', rx: 8 });
+      T(inner, str.toUpperCase(), { x: CX, y: y + 86, size: 58, fill: LIGHT, font: SANS, weight: 600, anchor: 'middle' });
+      tw(e, { o: 1, s: 1 }, t0, .25, out); sfx('data', t0, 'tick', .9);
+    });
+    stamp(s, 'NEVER FULLY SHARED', CX, 1130, m('never'), { size: 76, colour: MARK, r: -6 });
+    srcTag(s, 'Wikipedia · Origin of SARS-CoV-2', 50, 1270, m('lists'));
+  }],
+
+  // 12. And the inquiry's second phase, declined in 2021
+  ['refused', 'Declined', (m, D) => {
+    const p = panel(0);
+    const s = shot(p, 0, undefined, { bg: DARK, swipe: true });
+    const M = wuhanMap(s, D + .6, t => mixV(at(MID, .02), at(WUHAN, .3), smooth(ramp01(t, 0, D))), {});
+    rect(s, 0, 0, W, H, { fill: '#000', opacity: .45 });
+    word(s, '2021', CX, 330, m('y2021'), { size: 200, fill: LIGHT, stroke: DARK });
+    const c = G(s, { o: 0, y: 40 }), x0 = 90, y0 = 470;
+    rect(c, x0, y0, 720, 520, { fill: CARD, rx: 10 });
+    T(c, 'WHO-CONVENED STUDY', { x: CX, y: y0 + 90, size: 54, fill: CARD_INK, font: SANS, weight: 600, anchor: 'middle' });
+    T(c, 'OF THE ORIGIN', { x: CX, y: y0 + 150, size: 40, fill: CARD_SOFT, font: SANS, weight: 500, anchor: 'middle' });
+    rect(c, x0 + 44, y0 + 190, 632, 3, { fill: CARD_SOFT });
+    T(c, 'Phase one: Wuhan, early 2021', { x: x0 + 44, y: y0 + 270, size: 42, fill: CARD_INK, font: SERIF });
+    T(c, 'Phase two', { x: x0 + 44, y: y0 + 380, size: 62, fill: CARD_INK, font: SANS, weight: 600 });
+    tw(c, { o: 1, y: 0 }, m('y2021') + .2, .3, out);
+    stamp(s, 'DECLINED BY CHINA', CX + 60, y0 + 470, m('refused'), { size: 64, colour: MARK, r: -7 });
+    word(s, 'the WHO’s inquiry', CX, 1200, m('who'), { size: 80, fill: LIGHT, stroke: DARK });
+    srcTag(s, 'Wikipedia · Origin of SARS-CoV-2', 50, 150, m('y2021'));
+  }],
+
+  // 13. The end answers the hook: the night globe again, the question left on Wuhan; then all six parts, the end
+  ['end', 'The end', (m, D) => {
+    const p = panel(0);
+    const end = D, hold = 3.4;
+    let s = shot(p, 0, end, { bg: NIGHT, swipe: 'quiet' });
+    Globe.clearMarks(); Globe.dot(...WUHAN);
+    globeShot(s, end + .6, t => { const q = smooth(ramp01(t, 0, end)); return { lon: WUHAN[0] - 40 * q, lat: WUHAN[1] - 14 * q, H: .3 * (1.12 / .3) ** q }; }, () => 1, null, { on: [0, end + .35] });
+    word(s, 'The biggest crisis', CX, 300, .1, { size: 104, fill: LIGHT, stroke: DARK });
+    word(s, 'of our generation', CX, 410, .45, { size: 76, fill: LIGHT, stroke: DARK });
+    word(s, 'We still don’t know', CX, 1080, m('still'), { size: 84, fill: LIGHT, stroke: DARK });
+    word(s, 'where it began', CX, 1200, m('began'), { size: 100, fill: RED, stroke: DARK });
+    // the series card, all six lit: the series is complete
+    s = shot(p, end, undefined, { bg: DARK, swipe: 'quiet' });
+    const tiles = seriesCard(s, end, 6, end + .5);
+    EP_POS.slice(0, 5).forEach(([x, y], i) => {
+      const t0 = end + .9 + i * .1;
+      tw(tiles[i], { o: 1 }, t0, .15, lin);
+      show(rect(s, x - EP_W / 2 - 10, y - EP_H / 2 - 10, EP_W + 20, EP_H + 20, { rx: 22, fill: 'none', stroke: MARK, 'stroke-width': 10, opacity: 0 }), t0, .15, lin);
+    });
+    show(rect(s, 0, 318, W, 60, { fill: DARK, opacity: 0 }), end + 1.4, .2, lin);   // over the subtitle
+    label(s, 'The end · 6 of 6', CX - 20, 368, end + 1.4, { size: 44, fill: MARK, colour: DARK });
+    prog(() => {}, D, hold, lin);   // the card holds after the voice
+  }],
+].map(shortsBeat);
+
+// One track for the whole episode (the film's last part, Lyria); ?bgm= sets its level by ear
+music('audio/bgm/ep6.mp3', undefined, +(new URLSearchParams(location.search).get('bgm') || .4), .05);
+startPandemic();
+</script>
+</body>
+</html>

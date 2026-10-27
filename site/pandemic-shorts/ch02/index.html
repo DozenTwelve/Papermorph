@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en" data-stage="portrait">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Pandemic · 2 · Too Late</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="audio/en/timings.js"></script>
+<script src="../img/art.js"></script>
+<script src="../img/ch02-art.js"></script>
+<script src="../img/geo-lite.js"></script>
+<script src="../img/spread.js"></script>
+<script src="../lib/icons.js"></script>
+<script src="../lib/shorts.js"></script>
+<script src="../lib/pandemic.js"></script>
+<script src="lombardy.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 2, title: 'Too Late', minutes: 1.5, language: 'en', next: '../ch03/' };
+
+/* ---------- this episode's pieces ---------- */
+const ROME = CITIES.Rome, BEIJING = CITIES.Beijing, CODOGNO = CITIES.Codogno, NYC = CITIES['New York'];
+const ITALY_V = { lon: 12.4, lat: 42.2, H: .105 };   // the whole of Italy in the upright frame
+const lerpV = (a, b, q) => ({ lon: a.lon + (b.lon - a.lon) * q, lat: a.lat + (b.lat - a.lat) * q, H: a.H * (b.H / a.H) ** q });
+// Italy's rings (GEO_LITE 50m, delta hundredths of a degree) in lon/lat
+const ITALY = GEO_LITE.lod[1].ITA.map(r => { const o = []; let x = 0, y = 0; for (let i = 0; i < r.length; i += 2) { x += r[i]; y += r[i + 1]; o.push([x / 100, y / 100]); } return o; })
+  .filter(r => r.length > 30);
+// ink hatching for a lockdown (red is the virus only); on the stage's defs, which survive a seek
+if (!document.getElementById('ep2hatch')) {
+  const pt = mk('pattern', { id: 'ep2hatch', width: 14, height: 14, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, PDEFS);
+  mk('rect', { width: 4, height: 14, fill: MAPINK, opacity: .55 }, pt);
+}
+// an area on the map, re-projected each frame from M's view: ink hatching and an ink border, shown at t0
+function zone(g, M, rings, D, t0, { fill = 'url(#ep2hatch)', stroke = MAPINK, sw = 3 } = {}) {
+  const e = mk('path', { fill, stroke, 'stroke-width': sw, 'stroke-linejoin': 'round', opacity: 0 }, g);
+  clockRun(t => e.setAttribute('d', rings.map(r => 'M' + r.map(ll => M.xy(ll, t)).filter(Boolean).map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('L') + 'Z').join('')), D, { tail: true });
+  show(e, t0, .35, lin);
+  return e;
+}
+// a circle of km radius around a point, as a ring of lon/lat
+const circle = ([lon, lat], km) => [...Array(40)].map((_, i) => { const a = i / 40 * 2 * Math.PI; return [lon + km / 111 / Math.cos(lat * DEG) * Math.cos(a), lat + km / 111 * Math.sin(a)]; });
+// a flight from a to b on the map: a dashed ink arc drawn from t0 over dur with a plane at its head; at tCut the line
+// stops where the plane is, the plane goes and an ink cross marks the cut
+const PLANE = 'M0 -5L22 -5L34 -18L40 -18L32 -5L44 -5L50 -12L54 -12L50 0L54 12L50 12L44 5L32 5L40 18L34 18L22 5L0 5Z';
+function flight(g, M, a, b, t0, dur, D, tCut) {
+  const e = G(g, {}), line = mk('path', { fill: 'none', stroke: MAPINK, 'stroke-width': 4, 'stroke-dasharray': '12 9', 'stroke-linecap': 'round' }, e);
+  const pl = G(e, {}); mk('path', { d: PLANE, fill: MAPINK, transform: 'translate(-27 0)' }, pl);
+  const X = G(e, { o: 0 }); mk('path', { d: 'M-22 -22L22 22M22 -22L-22 22', stroke: MAPINK, 'stroke-width': 9, 'stroke-linecap': 'round' }, X);
+  clockRun(t => {
+    const A = M.xy(a, t), B = M.xy(b, t), q = smooth(ramp01(Math.min(t, tCut), t0, t0 + dur));
+    if (!A || !B) return;
+    const lift = Math.hypot(B[0] - A[0], B[1] - A[1]) * .3, mx = (A[0] + B[0]) / 2, my = (A[1] + B[1]) / 2 - lift;
+    const at = u => [(1 - u) ** 2 * A[0] + 2 * u * (1 - u) * mx + u * u * B[0], (1 - u) ** 2 * A[1] + 2 * u * (1 - u) * my + u * u * B[1]];
+    let d = `M${A[0].toFixed(1)} ${A[1].toFixed(1)}`;
+    for (let i = 1; i <= 40 * q; i++) { const p = at(i / 40); d += `L${p[0].toFixed(1)} ${p[1].toFixed(1)}`; }
+    line.setAttribute('d', d);
+    const h = at(q), h2 = at(Math.min(1, q + .01));
+    put(pl, { x: h[0], y: h[1], r: Math.atan2(h2[1] - h[1], h2[0] - h[0]) * 180 / Math.PI, o: 1 - ramp01(t, tCut, tCut + .25) });
+    put(X, { x: h[0], y: h[1], o: ramp01(t, tCut, tCut + .1), s: 1.6 - .6 * ramp01(t, tCut, tCut + .15) });
+    line.setAttribute('opacity', 1 - .6 * ramp01(t, tCut + .6, tCut + 1));
+  }, D, { tail: true });
+  return e;
+}
+// case dots scattered around a point: n of them, popping in from t0 over dur
+const cluster = ([lon, lat], km, n, t0, dur, seed, r = 6) => { const R = seeded(seed); return [...Array(n)].map((_, i) => { const a = R() * 2 * Math.PI, d = km * Math.sqrt(R()) / 111; return [lon + d * Math.cos(a) / Math.cos(lat * DEG), lat + d * Math.sin(a), t0 + dur * i / n, r]; }); };
+// a city on the map, set larger than paperMap's labels (a phone reads them), with a paper halo; dy moves the name off
+// a cluster of dots
+function place(g, M, name, t0, D, { side = 'r', dy = 0, size = 42 } = {}) {
+  const ll = CITIES[name], e = G(g, { o: 0 }), str = name.toUpperCase(), w = inkW(str, size);
+  const dot = mk('circle', { r: 7, fill: MAPINK }, e);
+  const tx = T(e, str, { size, fill: MAPINK, font: SANS, weight: 600 });
+  tx.setAttribute('stroke', MAPLAND); tx.setAttribute('stroke-width', 9); tx.setAttribute('paint-order', 'stroke'); tx.setAttribute('stroke-linejoin', 'round');
+  clockRun(t => {
+    const P = M.xy(ll, t);
+    if (!P || P[0] < 0 || P[0] > W || P[1] < 140 || P[1] > 1290) return put(e, { o: 0 });
+    dot.setAttribute('cx', P[0]); dot.setAttribute('cy', P[1]);
+    const x = Math.max(50, Math.min(810 - w, side === 'l' ? P[0] - 16 - w : P[0] + 16));
+    tx.setAttribute('x', x); tx.setAttribute('y', Math.max(130 + size, Math.min(1290, P[1] + size * .35 + dy)));
+    put(e, { o: ramp01(t, t0, t0 + .3) });
+  }, D, { tail: true });
+  return e;
+}
+// a date in the corner of a map shot
+const dateChip = (s, str, t0) => label(s, str, CX - 20, 250, t0, { size: 46, fill: MAPINK, colour: MAPLAND });
+
+// shot() leaves its whip/swipe blur filter on the group after the slide, and Firefox then filters every frame of a
+// map under it: take the filter off once the slide is done
+function cut(p, t0, t1, o = {}) {
+  const g = shot(p, t0, t1, o), f = g.getAttribute('filter');
+  if (f) prog(q => q >= 1 ? g.removeAttribute('filter') : g.setAttribute('filter', f), t0, .3, lin);
+  return g;
+}
+
+/* ---------- beats ---------- */
+const OPEN_PRE = .3;
+const BEATS = [
+  // 0. The hook, the point: a flight from China already crossing the paper map; cut; Italy lights up anyway
+  ['hook', 'The hook', (m, D) => {
+    const p = panel(0);
+    const s = cut(p, 0, undefined, { bg: NIGHT });
+    const cn = m('china'), still = m('still'), V0 = { lon: 58, lat: 40, H: .85 }, V1 = { lon: 11.6, lat: 43.4, H: .12 };
+    const view = t => lerpV(V0, V1, soft(ramp01(t, cn + .5, still + 1.2)) * .97 + .03 * ramp01(t, 0, cn + .5));
+    const M = paperMap(s, D, view, {
+      lit: (c, t) => c === 'ITA' ? .5 * ramp01(t, still, still + .4) : 0,
+      dots: [...cluster(CODOGNO, 90, 18, still + .1, .9, 3, 7), ...cluster([12.3, 45.4], 60, 6, still + .4, .6, 5, 6)],
+    });
+    place(s, M, 'Beijing', 0, D, { side: 'l' }); place(s, M, 'Rome', 0, D);
+    flight(s, M, BEIJING, ROME, -.6, 3.6, D, cn);   // cut on "China", half-way: it never lands
+    hide(label(s, 'Flights from China', CX - 20, 250, 0, { size: 60, fill: MAPINK, colour: MAPLAND }), still - .1, .2);
+    const st = stamp(s, 'FLIGHTS STOPPED', CX - 20, 920, cn, { size: 84, colour: MAPINK, r: -7 });
+    hide(st, still - .1, .2);
+    sfx('hook', still, 'whoosh', .5);
+    word(s, "Europe's first", CX - 20, 1120, m('first'), { size: 120, fill: LIGHT, stroke: DARK });
+    word(s, 'big outbreak', CX - 20, 1250, m('first') + .3, { size: 110, fill: RED, stroke: DARK });
+    sfx('hook', m('first') + .3, 'thud', 1.2);
+  }, { pre: OPEN_PRE }],
+
+  // 1. Which series, which episode
+  ['card', 'The series', (m, D) => {
+    const p = panel(0);
+    const s = cut(p, 0, undefined, { bg: DARK, swipe: true });
+    seriesCard(s, 0, 2, m('two') + .2);
+  }],
+
+  // 2. The date: the first two cases in Rome, and the flights stop the same day
+  ['rome', 'Rome', (m, D) => {
+    const p = panel(0);
+    const sm = m('same'), cs = m('cases');
+    let s = cut(p, 0, sm, { bg: NIGHT, whip: true });
+    const view = t => lerpV(lerpV({ lon: 12.4, lat: 42.6, H: .1 }, { lon: 12.5, lat: 42.0, H: .07 }, soft(ramp01(t, 0, sm + .3))),
+      { lon: ROME[0], lat: ROME[1], H: .052 }, soft(ramp01(t, m('rome') - .3, sm + .3)));   // into the two dots on "Rome"
+    const M = paperMap(s, sm + .3, view, { dots: [[ROME[0] + .35, ROME[1] + .2, cs + .1, 8], [ROME[0] - .3, ROME[1] - .25, cs + .35, 8]], on: [0, sm + .3] });
+    place(s, M, 'Rome', m('rome'), sm + .3, { side: 'l' });
+    dateChip(s, '31 January 2020', 0);
+    sfx('rome', cs + .1, 'tick', 1); sfx('rome', cs + .35, 'tick', 1);
+    word(s, 'First two cases', CX - 20, 1120, cs, { size: 110, fill: LIGHT, stroke: DARK });
+    label(s, 'Chinese tourists in Rome', CX - 20, 1245, m('rome'), { size: 52, fill: DARK, colour: LIGHT });
+    srcTag(s, 'Wikipedia, COVID-19 pandemic in Italy', 50, 150, 0);
+    s = cut(p, sm, undefined, { whip: true });
+    photo(s, 'ep2-departures', sm, D + .6, { s0: 1.04, s1: 1.16, dy: 40, dim: .15 });
+    label(s, 'The same day', CX - 20, 250, sm + .05, { size: 56 });
+    word(s, 'Every flight from China', CX - 20, 1090, sm + .2, { size: 92, fill: LIGHT, stroke: DARK });
+    stamp(s, 'STOPPED', CX - 20, 1240, m('flights'), { size: 110, colour: MARK, r: -6 });
+  }],
+
+  // 3. It wasn't enough: three weeks on, a cluster in a small town in Lombardy
+  ['codogno', 'Codogno', (m, D) => {
+    const p = panel(0);
+    const f21 = m('feb21'), tn = m('town');
+    let s = cut(p, 0, tn, { bg: NIGHT });
+    const LV = { lon: 9.75, lat: 45.25, H: .028 };
+    const view = t => lerpV({ lon: 12.4, lat: 42.4, H: .095 }, LV, .12 * ramp01(t, 0, f21 - .1) + .88 * soft(ramp01(t, f21 - .1, f21 + 1.4)));
+    const M = paperMap(s, tn + .3, view, { dots: cluster(CODOGNO, 14, 16, m('cluster'), 1.3, 9, 6), on: [0, tn + .3] });
+    place(s, M, 'Codogno', m('codogno') - .1, tn + .3, { dy: -70 }); place(s, M, 'Milan', f21 + 1.2, tn + .3, { side: 'l' });
+    hide(word(s, "It wasn't enough", CX - 20, 250, 0, { size: 100, fill: LIGHT, stroke: DARK }), f21 - .1, .15);
+    dateChip(s, '21 February 2020', f21);
+    word(s, 'A cluster', CX - 20, 1200, m('cluster'), { size: 120, fill: RED, stroke: DARK });
+    for (let k = 0; k < 4; k++) sfx('codogno', m('cluster') + k * .3, 'tick', .6);
+    s = cut(p, tn, undefined, { whip: true });
+    photo(s, 'ep2-codogno', tn, D + .6, { s0: 1.05, s1: 1.14, dy: -30, dim: .1 });
+    word(s, 'Codogno', CX - 20, 260, tn + .05, { size: 130, fill: LIGHT, stroke: DARK });
+    label(s, 'A small town in Lombardy', CX - 20, 1220, tn + .2, { size: 54 });
+  }],
+
+  // 4. The red zone grows: eleven towns, Lombardy, all of Italy; sixty million, the first nation to lock down
+  ['lock', 'Lockdown', (m, D) => {
+    const p = panel(0);
+    const tm = 1.55, lb = m('lomb'), it = m('italy'), sx = m('sixty'), fr = m('first');
+    let s = cut(p, 0, tm);
+    photo(s, 'ep2-checkpoint', 0, tm + .3, { s0: 1.08, s1: 1.18, dim: .1 });
+    counter(s, 11, CX - 20, 1100, 0, { size: 240, fill: LIGHT, dur: .7 });
+    word(s, 'towns sealed', CX - 20, 1230, .15, { size: 100, fill: LIGHT, stroke: DARK });
+    label(s, '22 February 2020', CX - 20, 250, .1, { size: 46 });
+    s = cut(p, tm, undefined, { bg: NIGHT, whip: true });
+    const Z = { lon: 9.75, lat: 45.2, H: .03 }, L = { lon: 9.85, lat: 45.55, H: .052 };
+    const view = t => {
+      const a = soft(ramp01(t, lb - .25, lb + .9)), b = soft(ramp01(t, it - .3, it + 1.1));
+      const v = b ? lerpV(L, { ...ITALY_V, H: .1 }, b) : lerpV(Z, L, a);
+      return { ...v, H: v.H * .82 ** ramp01(t, it + 1.1, D + .6) };   // still pushing while the numbers land
+    };
+    const M = paperMap(s, D, view, { dots: cluster(CODOGNO, 14, 16, -1, .1, 9, 6), on: [tm - .05, D + 1] });
+    place(s, M, 'Codogno', tm, D, { dy: -50, size: 36 }); place(s, M, 'Milan', lb + .5, D, { side: 'l', size: 36 });
+    const zg = G(s, {});
+    hide(zone(zg, M, [circle([9.7, 45.18], 11)], D, tm + .1, { sw: 5 }), it, .4);
+    hide(zone(zg, M, [LOMBARDY], D, lb), it + .5, .4);
+    zone(zg, M, ITALY, D, it);
+    sfx('lock', lb, 'thud', .8); sfx('lock', it, 'thud', 1.2);
+    hide(label(s, 'Lombardy', CX - 20, 250, lb + .1, { size: 56, fill: MAPINK, colour: MAPLAND }), m('mar9') - .1, .15);
+    dateChip(s, '9 March 2020', m('mar9'));
+    const box = G(s, { o: 0 });
+    rect(box, 60, 940, 740, 340, { fill: DARK, opacity: .88, rx: 8 });
+    show(box, sx - .15, .2);
+    counter(box, 60, CX - 20, 1070, sx, { size: 130, fill: LIGHT, dur: 1.1 });   // "approximately 60 million"
+    T(box, 'MILLION PEOPLE', { x: CX - 20, y: 1135, size: 44, fill: MUTED, font: SANS, weight: 500, anchor: 'middle' }).setAttribute('letter-spacing', '.14em');
+    word(box, 'First nation to lock down', CX - 20, 1235, fr, { size: 70, fill: MARK });
+    srcTag(s, 'Wikipedia, COVID-19 pandemic in Italy', 50, 150, tm);
+  }],
+
+  // 5. Two days later the WHO says the word, as the map pulls out to a world of red dots
+  ['pandemic', 'Pandemic', (m, D) => {
+    const p = panel(0);
+    const s = cut(p, 0, undefined, { bg: NIGHT, whip: true });
+    const view = t => ({ ...lerpV({ ...ITALY_V, H: .1 }, { lon: 40, lat: 28, H: 1.08 }, soft(ramp01(t, 0, 1.5))), dy: -300 * soft(ramp01(t, .4, 1.5)) });
+    const list = SPREAD.filter(r => r[3] <= '2020-03-11');
+    paperMap(s, D, view, { lit: c => c === 'ITA' ? .5 : 0, dots: list.map((r, i) => [r[1], r[2], .3 + 2 * i / list.length, 6]) });
+    const zi = G(s, {}), Mi = { xy: (ll, t) => mapXY(ll, view(t)) };
+    hide(zone(zi, Mi, ITALY, D, -1), .6, .4);
+    dateChip(s, '11 March 2020', 0);
+    const card = G(s, { x: 0, y: 420, o: 0 });
+    rect(card, 70, 840, 720, 420, { fill: '#efe9da', rx: 6 });
+    T(card, 'WORLD HEALTH ORGANIZATION', { x: 110, y: 905, size: 28, fill: '#6a6258', font: SANS, weight: 500 }).setAttribute('letter-spacing', '.16em');
+    ['“COVID-19 can be', 'characterized as a'].forEach((l, i) => T(card, l, { x: 110, y: 995 + i * 70, size: 58, fill: '#2a2521', font: SERIF, weight: 500 }));
+    const hl = rect(card, 102, 1092, 0, 76, { fill: MARK, opacity: .85 });
+    const pw = T(card, 'pandemic.”', { x: 110, y: 1150, size: 70, fill: '#2a2521', font: SERIF, weight: 600 });
+    prog(q => hl.setAttribute('width', q * (pw.getComputedTextLength() + 16)), m('pandemic') - .05, .45, out);
+    T(card, 'Opening remarks, 11 March 2020 · who.int', { x: 110, y: 1225, size: 24, fill: '#6a6258', font: SERIF }).setAttribute('font-style', 'italic');
+    tw(card, { y: 0, o: 1 }, m('who') - .2, .45, out);
+    sfx('pandemic', m('who') - .2, 'whoosh', .4);
+  }],
+
+  // 6. Bergamo: army trucks with the coffins; then the country that shut out China passes China
+  ['bergamo', 'Bergamo', (m, D) => {
+    const p = panel(0);
+    const cf = m('coffins'), sn = m('soon'), mo = m('more');
+    let s = cut(p, 0, cf, { whip: true });
+    photo(s, 'ep2-convoy', 0, cf + .3, { s0: 1.0, s1: 1.14, dy: -40, dim: .1 });
+    label(s, 'Bergamo · March 2020', CX - 20, 250, 0, { size: 52 });
+    word(s, 'Army trucks', CX - 20, 1180, m('army'), { size: 140, fill: LIGHT, stroke: DARK });
+    sfx('bergamo', m('army'), 'thud', .7);
+    s = cut(p, cf, sn);
+    photo(s, 'ep2-coffins', cf, sn + .3, { s0: 1.12, s1: 1.0, dim: .1 });
+    word(s, 'Too many to bury', CX - 20, 1180, cf + .1, { size: 110, fill: LIGHT, stroke: DARK });
+    s = cut(p, sn, undefined, { bg: DARK, swipe: true });
+    label(s, 'Reported deaths', CX - 20, 260, sn + .05, { size: 56, fill: LIGHT, colour: DARK });
+    const base = 1060, hC = 560;
+    rect(s, 110, base, 640, 4, { fill: MUTED });
+    bar(s, 170, base, 220, hC, 1, '#8e2a20', sn + .15, .5);   // China's deaths, a darker red
+    const it = rect(s, 470, base, 220, 0, { fill: RED });
+    prog(q => { const h = hC * (.82 * q + .2 * smooth(ramp01(q, .7, 1))); it.setAttribute('y', base - h); it.setAttribute('height', h); }, sn + .4, mo + .4 - sn, lin);
+    const dash = mk('path', { d: `M130 ${base - hC}H730`, stroke: LIGHT, 'stroke-width': 3, 'stroke-dasharray': '10 8', opacity: 0 }, s);
+    show(dash, mo - .2, .2);
+    T(s, 'CHINA', { x: 280, y: base + 70, size: 54, fill: MUTED, font: SANS, weight: 600, anchor: 'middle' });
+    T(s, 'ITALY', { x: 580, y: base + 70, size: 54, fill: LIGHT, font: SANS, weight: 600, anchor: 'middle' });
+    label(s, 'Shut out China', 580, 400, m('shut'), { size: 44, fill: MARK, colour: DARK });
+    word(s, 'More than China', CX - 20, 1250, m('china'), { size: 100, fill: RED });
+    sfx('bergamo', mo, 'thud', 1.1);
+    srcTag(s, 'Wikipedia, COVID-19 pandemic', 50, 150, sn);
+  }],
+
+  // 7. Across the Atlantic: New York's first case, and the virus there for weeks before it
+  ['newyork', 'New York', (m, D) => {
+    const p = panel(0);
+    const s = cut(p, 0, undefined, { bg: NIGHT });
+    const ny = m('ny'), tH = ny + .1, bn = m('been');
+    const view = t => {
+      const a = soft(ramp01(t, 0, ny + .3));
+      return { lon: 12 + (NYC[0] + 1 - 12) * a, lat: 43 + (NYC[1] - 43) * a + 8 * Math.sin(Math.PI * a), H: .12 * (.05 / .12) ** a * 12 ** Math.sin(Math.PI * a), gain: 1.15, dotScale: .05 };
+    };
+    Globe.clearMarks(); Globe.dot(...NYC);
+    globeShot(s, D, view, (i, t) => ramp01(t, ny - .2, ny), null, { on: [0, tH + .5] });
+    sfx('newyork', .1, 'whoosh', .7);
+    hide(srcTag(s, 'Night lights: NASA Black Marble', 50, 150, 0), tH, .2);
+    const mp = G(s, { o: 0 }); show(mp, tH, .4, lin);
+    // already there, on land: the Bronx, Queens, Brooklyn, Westchester, New Rochelle, Yonkers, Nassau, New Jersey
+    const LAND = [[-73.87, 40.85], [-73.8, 40.73], [-73.94, 40.66], [-73.77, 41.03], [-73.79, 40.92], [-73.89, 40.94], [-73.62, 40.74],
+      [-74.17, 40.74], [-74.07, 40.73], [-73.52, 40.79], [-74.03, 40.9], [-73.72, 41.12], [-73.85, 41.2], [-74.25, 40.85]];
+    const early = LAND.map(([lon, lat], i) => [lon, lat, bn + .1 + i * .07, 5]);
+    const M = paperMap(mp, D, t => ({ ...view(t), lon: view(t).lon + .3 * ramp01(t, tH, D), H: view(t).H * .7 ** ramp01(t, tH, D) }), { dots: [[...NYC, m('mar1'), 9], ...early], on: [tH - .05, D + 1] });
+    place(mp, M, 'New York', ny + .3, D, { side: 'l', dy: 40 });
+    hide(label(s, 'Across the Atlantic', CX - 20, 250, m('atl'), { size: 52 }), m('mar1') - .1, .1);
+    const d1 = dateChip(s, '1 March 2020', m('mar1'));
+    const fc = word(s, 'First case', CX - 20, 1150, m('mar1') + .1, { size: 130, fill: LIGHT, stroke: DARK });
+    // the date runs back past it: the first case was not the first; struck as the chip leaves 1 March
+    const st = rect(s, CX - 20 - fc._w / 2 - 14, 1100, 0, 14, { fill: DARK, rx: 4 });
+    prog(q => st.setAttribute('width', (fc._w + 28) * q), bn, .25, out);
+    tw(fc, { o: .45 }, bn, .25);
+    hide(d1, bn, .05, lin);
+    const d2 = dateChip(s, 'February', bn); hide(d2, bn + .45, .05, lin);
+    dateChip(s, 'January', bn + .45);
+    word(s, 'There for weeks', CX - 20, 1270, m('weeks'), { size: 90, fill: RED, stroke: DARK });
+    srcTag(s, 'Wikipedia, COVID-19 pandemic in New York City', 50, 150, m('mar1'));
+  }],
+
+  // 8. The genes: a strip of the genome; the arcs into New York, Asia's struck, Europe's red
+  ['genes', 'The genes', (m, D) => {
+    const p = panel(0);
+    const as = m('asia'), eu = m('europe'), tm = as - .3;
+    let s = cut(p, 0, tm, { bg: DARK, whip: true });
+    // SARS-CoV-2 reference sequence NC_045512.2 (NCBI), bases 1-600, running past
+    const SEQ = 'ATTAAAGGTTTATACCTTCCCAGGTAACAAACCAACCAACTTTCGATCTCTTGTAGATCTGTTCTCTAAACGAACTTTAAAATCTGTGTGGCTGTCACTCGGCTGCATGCTTAGTGCACTCACGCAGTATAATTAATAACTAATTACTGTCGTTGACAGGACACGAGTAACTCGTCTATCTTCTGCAGGCTGCTTACGGTTTCGTCCGTGTTGCAGCCGATCATCAGCACATCTAGGTTTCGTCCGGGTGTGACCGAAAGGTAAGATGGAGAGCCTTGTCCCTGGTTTCAACGAGAAAACACACGTCCAACTCAGTTTGCCTGTTTTACAGGTTCGCGACGTGCTCGTACGTGGCTTTGGAGACTCCGTGGAGGAGGTCTTATCAGAGGCACGTCAACATCTTAAAGATGGCACTTGTGGCTTAGTAGAAGTTGAAAAAGGCGTTTTGCCTCAACTTGAACAGCCCTATGTGTTCATCAAACGTTCGGATGCTCGAACTGCACCTCATGGTCATGTTATGGTTGAGCTGGTAGCAGAACTCGAAGGCATTCAGTACGGTCGTAGTGGTGAGACACTTGGTGTCCTTGTCCCTCATGTGGG';
+    const rows = G(s, {}), PER = 22;
+    for (let r = 0; r < 26; r++) {   // one text a row (a text a letter is 570 nodes, too many for Firefox)
+      const t = T(rows, SEQ.substr(r * PER, PER), { x: 70, y: 340 + r * 52, size: 40, fill: [LIGHT, MUTED, MARK, '#7fb0b3'][r % 4], font: 'ui-monospace, Menlo, monospace', weight: 600 });
+      t.setAttribute('letter-spacing', '.3em');
+    }
+    tw(rows, { y: -340 }, 0, tm + .3, lin);
+    rect(s, 0, 0, W, 330, { fill: DARK }); rect(s, 0, 1300, W, 300, { fill: DARK, opacity: .85 });
+    word(s, 'Read its genes', CX - 20, 250, m('genes'), { size: 120, fill: LIGHT });
+    srcTag(s, 'SARS-CoV-2 reference genome NC_045512.2 · NCBI', 50, 150, 0);
+    s = cut(p, tm, undefined, { bg: NIGHT, whip: true });
+    const view = () => ({ lon: 21, lat: 51, H: 1.08 });
+    const EU = ['London', 'Paris', 'Milan', 'Madrid', 'Berlin'].map(n => CITIES[n]);
+    const M = paperMap(s, D, view, { dots: [[...NYC, -1, 8]], routes: EU.map((ll, i) => [ll, NYC, eu - .1 + i * .1, .7]), on: [tm - .05, D + 1] });
+    place(s, M, 'New York', -1, D, { dy: -40 });
+    // Asia's arc, grey, crossed out
+    const A = M.xy(CITIES.Wuhan, 0), B = M.xy(NYC, 0), mx = (A[0] + B[0]) / 2, my = Math.min(A[1], B[1]) - 330;
+    const arc = mk('path', { d: `M${A[0]} ${A[1]}Q${mx} ${my} ${B[0]} ${B[1]}`, fill: 'none', stroke: '#8a919c', 'stroke-width': 5, 'stroke-dasharray': '1400', 'stroke-dashoffset': 1400 }, s);
+    prog(q => arc.setAttribute('stroke-dashoffset', 1400 * (1 - q)), tm + .1, .7, out);
+    tw(arc, { o: .45 }, eu, .3);
+    const X = G(s, { x: mx, y: (my + Math.min(A[1], B[1])) / 2 + 10, o: 0, s: 1.6 });
+    mk('path', { d: 'M-34 -34L34 34M34 -34L-34 34', stroke: MAPINK, 'stroke-width': 12, 'stroke-linecap': 'round' }, X);
+    tw(X, { o: 1, s: 1 }, as + .45, .15, out); sfx('genes', as + .45, 'bang', .8);
+    label(s, 'Not Asia', 640, A[1] + 90, as, { size: 48, fill: '#8a919c', colour: DARK });
+    word(s, 'Traced back to', CX - 20, 270, tm + .1, { size: 110, fill: LIGHT });
+    word(s, 'From Europe', CX - 20, 1230, eu, { size: 140, fill: RED, stroke: DARK });
+    sfx('genes', eu, 'whoosh', .6);
+    srcTag(s, 'Wikipedia, COVID-19 pandemic in New York City', 50, 150, tm);
+  }],
+
+  // 9. End of March: America first in confirmed cases; refrigerated trucks for the bodies
+  ['america', 'America', (m, D) => {
+    const p = panel(0);
+    const tr = m('trucks'), us = m('us');
+    let s = cut(p, 0, tr, { bg: NIGHT, whip: true });
+    const view = t => lerpV({ lon: -60, lat: 45, H: .5 }, { lon: -96, lat: 40, H: .27 }, soft(ramp01(t, 0, 1.4)));
+    paperMap(s, tr + .3, view, { lit: (c, t) => c === 'USA' ? .6 * ramp01(t, us, us + .4) : c === 'ITA' ? .5 : 0, dots: [[...NYC, -1, 9]], on: [0, tr + .3] });
+    dateChip(s, 'End of March 2020', 0);
+    word(s, 'Most confirmed cases', CX - 20, 1150, m('any') - .3, { size: 96, fill: LIGHT, stroke: DARK });
+    label(s, 'of any country', CX - 20, 1250, m('any'), { size: 52, fill: MARK, colour: DARK });
+    sfx('america', us, 'thud', 1);
+    srcTag(s, 'Wikipedia, COVID-19 pandemic', 50, 150, 0);
+    s = cut(p, tr, undefined, { whip: true });
+    found(s, 'morgue-trucks-nyc', 'Mortuary trucks, New York, 21 April 2020 · Archer West, CC BY 4.0', tr, D + .6, { s0: 1.05, s1: 1.2, dx: -30, dim: .12 });
+    word(s, 'Refrigerated trucks', CX - 20, 260, tr + .1, { size: 100, fill: LIGHT, stroke: DARK });
+    word(s, 'For the bodies', CX - 20, 1200, m('bodies'), { size: 120, fill: LIGHT, stroke: DARK });
+  }],
+
+  // 10. The end answers the hook: too late; the door is still shutting on a room already red; next, the world stops
+  ['end', 'Too late', (m, D) => {
+    const p = panel(0);
+    const ins = m('inside'), nx = m('next');
+    let s = cut(p, 0, nx, { bg: DARK, swipe: true });
+    // a doorway onto the paper map of the world outside; the door swings shut on it
+    const dx = 230, dy = 380, dw = 400, dh = 700;
+    const clip = 'ep2door';
+    mk('rect', { x: dx, y: dy, width: dw, height: dh }, mk('clipPath', { id: clip }, mk('defs', {}, s)));
+    const out_ = G(s, {}); out_.setAttribute('clip-path', `url(#${clip})`);
+    paperMap(out_, D, t => ({ lon: 60 - 6 * t, lat: 35, H: .8 }), { lit: c => c === 'CHN' ? .5 : 0, on: [0, 1.5] });
+    rect(s, dx - 22, dy - 22, dw + 44, dh + 22, { fill: 'none', stroke: '#5a4636', 'stroke-width': 22 });
+    const door = rect(s, dx, dy, 0, dh, { fill: '#3a2c22', stroke: '#241a13', 'stroke-width': 4 });
+    const knob = mk('circle', { cx: dx + dw - 40, cy: dy + dh / 2, r: 12, fill: MARK, opacity: 0 }, s);
+    prog(q => door.setAttribute('width', dw * q), .3, 1.9, io);   // slow: still shutting while the red spreads
+    show(knob, 2.2, .1, lin);
+    sfx('end', 2.15, 'door', 1.2);
+    rect(s, 0, dy + dh, W, H - dy - dh, { fill: '#14161b' });   // the floor of the room we are in: Italy, faint, in paper
+    const fv = { lon: 12.5, lat: 42, H: .22, dy: 520 };
+    mk('path', { d: ITALY.map(r => 'M' + r.map(ll => mapXY(ll, fv).map(v => v.toFixed(1)).join(' ')).join('L') + 'Z').join(''), fill: MAPLAND, opacity: .16, stroke: MAPLAND, 'stroke-opacity': .35, 'stroke-width': 2 }, s);
+    // the red already in the room: much of it there from the first frame, more spreading while the door shuts
+    const R = seeded(17);
+    for (let i = 0; i < 80; i++) {
+      const x = 70 + R() * 720, y = 170 + R() * 1100, t0 = i < 36 ? .5 * i / 36 : .6 + (ins + .8 - .6) * Math.sqrt((i - 36) / 44);
+      if (x > dx - 30 && x < dx + dw + 30 && y > dy - 30 && y < dy + dh) continue;
+      const d = mk('circle', { cx: x, cy: y, r: 0, fill: RED }, s), h = mk('circle', { cx: x, cy: y, r: 0, fill: RED, opacity: .25 }, s);
+      prog(q => { d.setAttribute('r', Math.max(0, 9 * back(q))); h.setAttribute('r', 20 * q); }, t0, .25, lin);
+    }
+    word(s, 'Too late', CX - 20, 260, 0, { size: 140, fill: LIGHT, stroke: DARK });
+    word(s, 'Already inside', CX - 20, 1250, ins, { size: 130, fill: RED, stroke: DARK });
+    sfx('end', ins, 'thud', 1.2);
+    s = cut(p, nx, undefined, { bg: DARK, swipe: true });
+    const tile = endCard(s, nx, 2);
+    tw(tile, { s: 2.1 }, nx + .5, D + 1.6 - nx - .5, lin);   // keeps moving while it holds
+    prog(() => {}, D, 1.6, lin);   // the next episode's card holds after the voice
+  }],
+].map(shortsBeat);
+
+// One track for the whole episode; ?bgm= sets its level by ear (gain under the ducking to 30 %)
+music('audio/bgm/ep2.mp3', undefined, +(new URLSearchParams(location.search).get('bgm') || .35), .05);
+startPandemic();
+</script>
+</body>
+</html>

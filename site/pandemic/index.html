@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The Pandemic</title>
-<meta name="description" content="A seven-minute documentary on COVID-19, from Wuhan to the unanswered question of where it came from, and how it was made with the Papermorph Skill.">
+<meta name="description" content="A seven-minute documentary on COVID-19, from Wuhan to the unanswered question of where it came from, and the same story as six upright shorts, and how it was made with the Papermorph Skill.">
 <link rel="stylesheet" href="lib/fonts.css">
 <link rel="stylesheet" href="lib/book.css"><!-- only for --progress-key, if the book sets one -->
 <style>
@@ -46,8 +46,20 @@
   .credits h2 { font: 600 20px/1.3 var(--key); letter-spacing: .06em; text-transform: uppercase; color: var(--ink); }
   .credits h3 { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; margin: 18px 0 6px; color: var(--ink); }
   .credits ul { margin: 0; padding-left: 18px; columns: 2 340px; }
+  .shorts { max-width: 1180px; margin: 0 auto; padding: 36px 24px 8px; }
+  .shorts h2 { margin: 0; font: 600 26px/1.2 var(--key); letter-spacing: .06em; text-transform: uppercase; }
+  .shorts > p { margin: 4px 0 0; color: var(--soft); font: 16px/1.5 var(--ui); }
+  .shorts ul { list-style: none; padding: 0; margin: 18px 0 0; display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+  .shorts a { display: flex; flex-direction: column; height: 100%; background: var(--card); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; text-decoration: none; transition: border-color .15s, transform .15s; }
+  .shorts a:hover, .shorts a:focus-visible { border-color: var(--accent); transform: translateY(-2px); }
+  .shorts img { display: block; width: 100%; height: auto; aspect-ratio: 9 / 16; object-fit: cover; }
+  .shorts small { margin: 10px 12px 0; color: var(--soft); font: 600 12px/1.3 var(--ui); letter-spacing: .04em; text-transform: uppercase; }
+  .shorts b { margin: 2px 12px 4px; font: 600 19px/1.2 var(--key); letter-spacing: .03em; text-transform: uppercase; }
+  .shorts span { margin: 0 12px 12px; color: var(--soft); font: 14px/1.45 var(--ui); }
+  .shorts .watched small::after { content: " · ✓ watched"; color: var(--accent); }
+  @media (max-width: 1000px) { .shorts ul { grid-template-columns: repeat(3, 1fr); } }
   @media (max-width: 860px) { figure { margin: 22px 0; } figcaption { margin: 8px 0 0; } }
-  @media (max-width: 760px) { header { grid-template-columns: 1fr; gap: 24px; } header .film span { left: 10px; bottom: 10px; padding: 7px 11px; font-size: 13px; } .pair, .numbers { grid-template-columns: 1fr; } }
+  @media (max-width: 760px) { header { grid-template-columns: 1fr; gap: 24px; } header .film span { left: 10px; bottom: 10px; padding: 7px 11px; font-size: 13px; } .pair, .numbers { grid-template-columns: 1fr; } .shorts ul { grid-template-columns: 1fr 1fr; } }
 </style>
 </head>
 <body>
@@ -63,6 +75,12 @@
     </div>
   </header>
 </div>
+
+<section class="shorts">
+  <h2 id="shorts">As shorts</h2>
+  <p>The same film told upright for a phone, in six episodes of about a minute and a quarter.</p>
+  <ul id="shortList"></ul>
+</section>
 
 <main>
   <h2>What we set out to do</h2>
@@ -135,6 +153,7 @@
 <section class="credits">
   <h2>Sources and credits</h2>
   <p>Narration written from Wikipedia (“COVID-19 pandemic”, “COVID-19 pandemic in Italy”, “COVID-19 pandemic in New York City”, “Origin of SARS-CoV-2”) and Our World in Data (CC BY 4.0); the WHO quotations are from the Director-General's remarks of 11 March 2020 and the statement of 5 May 2023. Voice: ElevenLabs v4. Music: Google Lyria 3, made for this film. Type: Oswald and EB Garamond (SIL Open Font License, <code>lib/fonts/</code>). The seven doctors besides Li Wenliang, who are not identified, are stand-ins made with an image model and tagged as such on screen.</p>
+  <p>The shorts reuse the film’s pictures, maps and music, with a new script and voice for each episode. Pictures marked “AI illustration” on screen were made with an image model (gpt-image via OpenRouter); the breadline photograph is from the U.S. National Archives (public domain); the estimate of 27 million deaths is The Economist’s excess-death model. Every file of the shorts is listed with its source in <a href="../pandemic-shorts/img/SOURCES.md">SOURCES.md</a>.</p>
   <h3>Pictures</h3>
   <ul>
     <li><a href="https://commons.wikimedia.org/wiki/File:Novel_Coronavirus_SARS-CoV-2_(49597020718).jpg">Novel Coronavirus SARS-CoV-2</a>, NIAID · Public domain</li>
@@ -171,6 +190,21 @@
 const key = getComputedStyle(document.documentElement).getPropertyValue('--progress-key').trim().replace(/^["']|["']$/g, '')
   || 'animebook:progress:' + new URL('.', location.href).pathname;
 try { if ((JSON.parse(localStorage.getItem(key) || '{}').done || []).includes(1)) document.getElementById('film').classList.add('watched'); } catch {}
+// Shorts live in their own folder (../pandemic-shorts/), so their progress is kept under that folder's key.
+const SHORTS = [
+  { title: 'The Warning', still: 'img/still-shorts-ch01.webp', alt: 'Li Wenliang in a mask inside a white ring, under the words This doctor warned a new virus.', line: 'A doctor warned his friends about a new virus. The police made him sign that it was untrue.' },
+  { title: 'Too Late', still: 'img/still-shorts-ch02.webp', alt: 'A paper globe with a dashed flight line from Beijing to Rome crossed out, stamped Flights stopped.', line: 'Italy stopped every flight from China. It still became Europe’s first big outbreak.' },
+  { title: 'The World Stops', still: 'img/still-shorts-ch03.webp', alt: 'An empty street of shops, under the words More than half of humanity.', line: 'In April 2020, more than half of humanity was told the same thing: stay home.' },
+  { title: 'The Race', still: 'img/still-shorts-ch04.webp', alt: 'A gloved hand giving a vaccine injection in an arm, under the words April 2021, a vaccine dose.', line: 'By April 2021, one in four people in rich countries had a vaccine dose. In poor countries: one in five hundred.' },
+  { title: 'The Count', still: 'img/still-shorts-ch05.webp', alt: 'Rows of graves seen from above, under the word Officially and the number 7,115,706.', line: 'Officially, COVID killed 7.1 million people. The best estimate is closer to 27 million.' },
+  { title: 'The Origin', still: 'img/still-shorts-ch06.webp', alt: 'East Asia at night from space, under the words We still don’t know.', line: 'Over seven million deaths. And we still don’t know where it started.' },
+];
+let seen = [];
+try { seen = JSON.parse(localStorage.getItem('animebook:progress:' + new URL('../pandemic-shorts/', location.href).pathname) || '{}').done || []; } catch {}
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+document.getElementById('shortList').innerHTML = SHORTS.map((e, i) => `<li${seen.includes(i + 1) ? ' class="watched"' : ''}>
+  <a href="../pandemic-shorts/ch0${i + 1}/"><img src="${esc(e.still)}" width="600" height="1067" alt="${esc(e.alt)}" loading="lazy">
+  <small>Episode ${i + 1}</small><b>${esc(e.title)}</b><span>${esc(e.line)}</span></a></li>`).join('');
 </script>
 </body>
 </html>
