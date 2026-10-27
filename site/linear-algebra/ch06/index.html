@@ -26,9 +26,34 @@ const text = (p, str, x, y, t0, { size = 30, fill = COL.chalk, anchor = 'start',
 const showRow = (r, t0, from = 0, to = r.parts.length, dur = .5) => r.parts.slice(from, to).forEach(e => show(e, t0, dur));
 const thick = (vs, id, t0, w = 5) => { tw(vs.A[id].path, { 'a_stroke-width': w + 4 }, t0, .3); tw(vs.A[id].path, { 'a_stroke-width': w }, t0 + .7, .4); };
 const pairStr = (x, y) => `(${num(x)}, ${num(y)})`;
+// A curved arrow from one number to another, arched over (up) or under the row: "this one goes there".
+const centre = e => { const b = e.getBBox(); return [b.x + b.width / 2, b.y + b.height / 2, b.height]; };
+const curve = (p, a, b, t0, { color = COL.task, up = true, dur = .7 } = {}) => {
+  const [ax, ay, ah] = centre(a), [bx, by, bh] = centre(b), sy = up ? -1 : 1;
+  const y0 = ay + sy * ah * .6, y1 = by + sy * bh * .6, top = (up ? Math.min(y0, y1) : Math.max(y0, y1)) + sy * 36;
+  const e = path(p, `M${ax} ${y0}C${ax} ${top} ${bx} ${top} ${bx} ${y1}`, { stroke: color, 'stroke-width': 3, fill: 'none', 'stroke-linecap': 'round' }, { d: 0 });
+  draw(e, t0, dur);
+  return e;
+};
+const boxAround = (p, els, t0, color = COL.task) => {
+  const bs = els.map(e => e.getBBox()), x = Math.min(...bs.map(b => b.x)) - 10, y = Math.min(...bs.map(b => b.y)) - 6;
+  const w = Math.max(...bs.map(b => b.x + b.width)) + 10 - x, hh = Math.max(...bs.map(b => b.y + b.height)) + 6 - y;
+  const r = path(p, `M${x + 10} ${y}H${x + w - 10}Q${x + w} ${y} ${x + w} ${y + 10}V${y + hh - 10}Q${x + w} ${y + hh} ${x + w - 10} ${y + hh}H${x + 10}Q${x} ${y + hh} ${x} ${y + hh - 10}V${y + 10}Q${x} ${y} ${x + 10} ${y}Z`, { stroke: color, 'stroke-width': 3, fill: 'none' }, { d: 0 });
+  draw(r, t0, .8);
+  return r;
+};
+// The two top numbers flow into the top of the sum, the two bottom numbers into its bottom.
+const sumLinks = (p, vs, tTop, tBot, tBox) => {
+  const g = G(p, {}), n = k => vs.num(k)[0];
+  curve(g, n('cv0'), n('sum0'), tTop, { color: GREEN }); curve(g, n('dw0'), n('sum0'), tTop + .8, { color: VIOLET });
+  curve(g, n('cv1'), n('sum1'), tBot, { color: GREEN, up: false }); curve(g, n('dw1'), n('sum1'), tBot + .8, { color: VIOLET, up: false });
+  if (tBox !== undefined) boxAround(g, [n('sum0'), n('sum1')], tBox);
+  return g;
+};
 // "2v − w", "v + w", "0": the combination's name from c and d.
 const comboLabel = vs => v => {
   const term = (k, n) => k === 1 ? n : k === -1 ? '−' + n : vs.fmt(k) + n;
+  if (!vs.nice(v.c) || !vs.nice(v.d)) return [];
   if (!v.c && !v.d) return ['0'];
   if (!v.d) return [term(v.c, 'v')];
   if (!v.c) return [term(v.d, 'w')];
@@ -127,7 +152,8 @@ const BEATS = [
     vs.flash('cv0', m('add') + .6); vs.flash('dw0', m('add') + 1.4); vs.flash('sum0', m('add') + 2.4);
     vs.flash('cv1', m('addb') + .4); vs.flash('dw1', m('addb') + 1); vs.flash('sum1', m('addb') + 1.8);
     vs.flash('sum0', m('res') + .4); vs.flash('sum1', m('res') + .4);
-    vs.dim(['v', 'w'], m('pic'), .25);
+    const lk = sumLinks(p, vs, m('add') + .5, m('addb') + .3, m('res') + .2); hide(lk, m('name') - .3, .4);
+    vs.dim(['v', 'w'], m('pic'), .25); hide(vs.A.v.lab, m('pic'), .3); hide(vs.A.w.lab, m('pic'), .3);
     vs.show('cv', m('pic') + .2, .6);
     slideIn(vs, 'dw', LV, m('pic2') + .1, 1.6);
     vs.show('sum', m('end'), .6);
@@ -150,6 +176,9 @@ const BEATS = [
     const [f0, f1] = vs.num('fn');
     lightUp(f0, m('t') + .2); vs.flash('sum0', m('t') + 4.2);
     lightUp(f1, m('b') + .2); vs.flash('sum1', m('b') + 4.4);
+    const lk = G(p, {});
+    curve(lk, f0, vs.num('sum0')[0], m('t') + 3.8); curve(lk, f1, vs.num('sum1')[0], m('b') + 4, { up: false });
+    boxAround(lk, [vs.num('sum0')[0], vs.num('sum1')[0]], m('r') + .1); hide(lk, m('c3') - .2, .4);
     vs.P.dot(3, 0, COL.task, m('r'), { r: 8, into: dots });
     vs.to({ c: -1, d: 1 }, m('c3'), 1.4); vs.flash('c', m('c3')); vs.flash('d', m('c3') + .6);
     lightUp(f0, m('t3')); vs.flash('sum0', m('t3') + 1.6);
@@ -213,12 +242,19 @@ const BEATS = [
     vs.label('sum', v => whole(v) ? lab(v) : []);
     line1(vs, 240, 1); line2(vs, 420, 1);
     const ring = ringAt(vs.P, 0, 3, m('target'), p);
-    vs.P.dot(0, 0, COL.task, m('start'), { r: 8 });
+    pulse(ring, m('ask') + .3, 1.6); pulse(ring, m('ask') + 1.4, 1.6);
+    ['c', 'd'].forEach(k => vs.flash(k, m('ask') + .8));
+    const o = vs.P.dot(0, 0, COL.task, m('start'), { r: 8 }); pulse(o, m('start') + .6, 1.8);
+    vs.to({ c: .5 }, m('start') + 1.6, .8); vs.to({ c: 0 }, m('start') + 2.6, .8);   // a first nudge: c moves the tip along v
     vs.to({ c: 1 }, m('up'), 1.2); vs.flash('c', m('up'));
     vs.to({ d: 1 }, m('d1'), 1); vs.flash('d', m('d1'));
     vs.to({ d: 2 }, m('d2'), 1); vs.flash('d', m('d2'));
     pulse(ring, m('hit') + .2, 1.5); vs.flash('c', m('hit') + .6); vs.flash('d', m('hit') + .6);
     hide(ring, m('drag'), .4);
+    thick(vs, 'sum', m('hit') + 1.6, 6); thick(vs, 'cv', m('hit') + 2.6); thick(vs, 'dw', m('hit') + 3.4);
+    const grab = G(p, { x: vs.P.PX(0), y: vs.P.PY(3), o: 0 });
+    mk('circle', { r: 16, fill: 'none', stroke: COL.task, 'stroke-width': 3, 'stroke-dasharray': '4 4' }, grab);
+    show(grab, m('turn') + .4, .3); pulse(grab, m('turn') + 1, 1.6); pulse(grab, m('turn') + 2.2, 1.6); hide(grab, m('drag'), .2);
     vs.solve(true);
     handPath(p, vs, [[0, 3], [3, 0]], m('drag'), 2.2);
     vs.flash('c', m('p30') + .2); vs.flash('d', m('p30') + .2);
@@ -264,7 +300,7 @@ const BEATS = [
     vs.show(['cv', 'dw', 'sum'], m('roam') - .3, .4);
     vs.solve(true);
     vs.to({ c: 1, d: 1 }, .1, .01);
-    handPath(p, vs, [[1, 1], [3, 3], [-4, 1], [2, -5], [5, 2]], m('roam') + .2, 1.6);
+    handPath(p, vs, [[1, 1], [3, 3], [-4, 1], [2, -5], [5, 2], [-2, 5], [-5, -4], [0, 0]], m('roam') + .2, 1.7);
     const all = path(p, `M${vs.P.PX(-6)} ${vs.P.PY(6)}H${vs.P.PX(6)}V${vs.P.PY(-6)}H${vs.P.PX(-6)}Z`, { fill: COL.task, stroke: 'none' }, { o: 0 });
     vs.P.g.insertBefore(all, vs.P.g.lastChild);
     tw(all, { o: .12 }, m('plane'), 1);
@@ -276,6 +312,7 @@ const BEATS = [
     text(p, 'Count the steps: along v, then along w', 60, 110, .2, { size: 40, weight: 600 });
     const vs = lecture(p, { c: 0, d: 0, show: ['cv', 'dw', 'sum'] });
     vs.lattice(.3, true, .6);
+    vs.label('sum', []);   // the ring names the target
     line1(vs, 240, 1); line2(vs, 420, 1);
     const go = (x, y, c, d, t0, tc, td, marks) => {
       const ring = ringAt(vs.P, x, y, t0, marks);
@@ -287,8 +324,10 @@ const BEATS = [
     const r1 = go(1, 4, 2, 3, m('t'), m('sv') + .9, m('sw') + .9, m1);
     pulse(r1, m('there') + .2, 1.5);
     vs.flash('c', m('read') + .6); vs.flash('d', m('read') + 2.2);
+    thick(vs, 'cv', m('read') + .6); thick(vs, 'dw', m('read') + 2.2);
     vs.flash('sum0', m('check') + .4); vs.flash('sum1', m('check') + 3.4);
-    hide(m1, m('t2') - .2, .4);
+    const lk = sumLinks(p, vs, m('check') + 1, m('check') + 4, m('check') + 6.5);
+    hide(m1, m('t2') - .2, .4); hide(lk, m('t2') - .2, .4);
     vs.to({ c: 0, d: 0 }, m('t2') - .2, .6);
     const m2 = G(p, {});
     go(-1, 5, 1, 3, m('t2'), m('s2') + .2, m('s3') + .4, m2);
@@ -302,7 +341,8 @@ const BEATS = [
     vs.row([{ t: 'v', fill: GREEN }, '=', { col: 'v', fixed: true }, '     ', { t: 'w', fill: VIOLET }, '=', { col: 'w', fixed: true }], { x: 70, y: 240, size: 42 });
     vs.lattice(.3, true, .6);
     vs.to({ w0: 4, w1: -2 }, m('turn') + .3, m('par') - m('turn') - .3, lin);
-    say(p, ['w = 2v'], 70, 420, m('par'), { size: 44, fill: VIOLET });
+    const w2 = say(p, ['w = 2v'], 70, 420, m('par'), { size: 44, fill: VIOLET }); hide(w2, m('rule'), .3);
+    vs.to({ w0: -1, w1: 2 }, m('rule') + .3, 1.6); vs.to({ w0: 4, w1: -2 }, m('rule') + 4, 1.8);
     text(p, 'the grid squashes flat', 70, 480, m('squash'), { size: 28, fill: COL.dim });
     text(p, 'every combination: on one line', 70, 530, m('line'), { size: 30, fill: COL.task, weight: 600 });
     const miss = ringAt(vs.P, 0, 3, m('miss'), p, COL.bad);
@@ -353,13 +393,20 @@ const BEATS = [
   }, { ask: done => quiz(CARD, STEER.map(([x, y], i) => ({
     id: `p-steer${i + 1}`, prompt: ['Change ', $m('c'), ' and ', $m('d'), ' until ', $m('c v + d w'), ' lands on ', $m(pairStr(x, y)), '.'],
     build: (body, api) => {
-      S.vs.set({ c: 1, d: 1 }); S.q6?.remove(); S.q6 = ringAt(S.vs.P, x, y, 0, S.vs.stage); fx(S.q6, { o: 1 }, 0, .3);
+      S.vs.solve(false); S.vs.set({ c: 1, d: 1 }); S.q6?.remove(); S.q6 = ringAt(S.vs.P, x, y, 0, S.vs.stage); fx(S.q6, { o: 1 }, 0, .3);
       const s = S.vs.solveFor(x, y);
       return vsTask(S.vs, (v, k) => k.sum[0] === x && k.sum[1] === y, `c = ${num(s.c)}, d = ${num(s.d)}.`,
         (v, k) => `You are at ${pairStr(k.sum[0], k.sum[1])}. c moves the tip along v (2 right, 1 down), d along w (1 left, 2 up).`,
         () => S.vs.set(s), { drag: ['cv', 'dw'] })(body, api);
     },
-  })), done, 'Chapter practice · set 4 of 4') }],
+  })).concat([[-2, 4, 'c = 0, d = 2: the target is just 2w.'], [0, 1, 'c = 1/3, d = 2/3: fractions, and that is fine.']].map(([x, y, why], i) => ({
+    id: `p-solve${i + 1}`, prompt: ['Now drag the tip of the combination itself to ', $m(pairStr(x, y)), ', and watch ', $m('c'), ' and ', $m('d'), ' follow.'],
+    build: (body, api) => {
+      S.vs.solve(true); S.vs.set({ c: 1, d: 1 }); S.q6?.remove(); S.q6 = ringAt(S.vs.P, x, y, 0, S.vs.stage); fx(S.q6, { o: 1 }, 0, .3);
+      return vsTask(S.vs, (v, k) => Math.abs(k.sum[0] - x) < 1e-9 && Math.abs(k.sum[1] - y) < 1e-9, why,
+        (v, k) => `The tip is at ${pairStr(k.sum[0], k.sum[1])}. Drag the amber tip onto the ring.`, () => S.vs.set(S.vs.solveFor(x, y)), { drag: ['sum'] })(body, api);
+    },
+  }))), done, 'Chapter practice · set 4 of 4') }],
   ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
 

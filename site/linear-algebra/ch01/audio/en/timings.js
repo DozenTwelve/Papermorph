@@ -713,6 +713,30 @@ window.TIMINGS = {
    ]
   ]
  },
+ "play": {
+  "dur": 11.424,
+  "marks": {
+   "go": 3.958
+  },
+  "cues": [
+   [
+    0.104,
+    "Playground."
+   ],
+   [
+    1.094,
+    "Nothing here is marked right or wrong."
+   ],
+   [
+    3.958,
+    "Change the numbers, drag the line, draw on the board if you like, and see what moves."
+   ],
+   [
+    9.688,
+    "Press continue when you're done."
+   ]
+  ]
+ },
  "finish": {
   "dur": 8.424,
   "marks": {},

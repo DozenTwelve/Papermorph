@@ -279,11 +279,12 @@ function linsys(p, { A = [[2, -1], [-1, 2]], b = [0, 3], eq = [90, 250], mat = [
       return tr;
     },
     // Bring row i (0 or 1) forward: its equation and its line; the other row dims. focus(null, at) shows both again.
-    focus(i, at, dur = .5) {
+    // { lines: false } leaves the lines as they are (a beat that keeps them hidden until later).
+    focus(i, at, dur = .5, { lines: withLines = true } = {}) {
       RI.forEach(j => {
         const on = i === null || i === j;
         tw(eqRows[j].g, { o: on ? 1 : .28 }, at, dur);
-        tw(lines[j].g, { o: on ? 1 : .28 }, at, dur);
+        if (withLines) tw(lines[j].g, { o: on ? 1 : .28 }, at, dur);
         tw(lines[j].l, { 'a_stroke-width': i === j ? 8 : 5 }, at, dur);
       });
     },
@@ -324,7 +325,7 @@ const lsTask = (sys, test, why, hint, reveal, { only, trail = false } = {}) => (
   sys.live(true, { only });
   if (trail) sys.trail?.(true);
   return {
-    check: () => { const ok = test(sys.v, sys.solve()); api.grade(ok, ok ? why : hint); },
+    check: () => { const v = sys.v, s = sys.solve(), ok = test(v, s); api.grade(ok, ok ? why : typeof hint === 'function' ? hint(v, s) : hint); },   // a hint may say where the reader is now
     reveal: () => { reveal?.(); return why; },
     lock: () => sys.live(false),
     hint: [kbd('Tab'), ' pick a number ', kbd('↑'), kbd('↓'), ' change it, or drag in the picture'],

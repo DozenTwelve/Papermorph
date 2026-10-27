@@ -11,6 +11,7 @@
 <script src="../lib/engine.js"></script>
 <script src="../lib/math.js"></script>
 <script src="../lib/linsys.js"></script>
+<script src="../lib/play.js"></script>
 <script src="audio/en/timings.js"></script>
 <script>
 'use strict';
@@ -431,6 +432,13 @@ const BEATS = [
     build: (body, api) => { targets([[3, 0, 14, 56], [0, -1, 16, 34]]); return lsTask(S.sys, v => v.b0 !== 0 && 3 * v.a00 === v.b0 && -v.a01 === v.b0, 'x − 3y = 3: (3, 0) gives 3, and (0, −1) gives 3.',
       'Both points must give the same right side. (3, 0) gives 3 times the x number; (0, −1) gives minus the y number.', () => S.sys.set({ a00: 1, a01: -3, b0: 3 }))(body, api); },
   }], done, 'Chapter practice · set 4 of 4') }],
+  ['play', 'Playground', (m) => {
+    const p = panel(0);
+    text(p, 'Playground', 60, 110, .2, { size: 40, weight: 600 });
+    S.sys = oneLine(p, 2, -1, 0);
+    const hint = text(p, 'try: make it flat, make it pass through (0, 0), make it steep', 90, 330, m('go'), { size: 28, fill: COL.dim });
+    hide(hint, m('go') + 6, .6);
+  }, { ask: playAsk(() => S.sys, { tip: 'Your line. Change any number, drag the line, or draw on the board. Nothing is marked.' }) }],
   ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
 

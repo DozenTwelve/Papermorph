@@ -5,9 +5,17 @@
 // dragging the tip of 'sum' (or scrubbing its numbers) finds c and d.
 // The beat moves it with vs.to(); a question turns the reader's hands on with vs.live(true).
 // Loads after engine.js and math.js (it uses plane() and mathW()); linsys.js is not needed.
+//
+//   const vs = vecs(p, { vecs: { v: [2, −1], w: [−1, 2] }, c: 1, d: 2, show: ['cv', 'dw', 'sum'], plane: { cx, cy, u, step },
+//                        snap: 1 | .5, steps: { c: .5 }, range: { c: [−5, 5] }, labelSize, hidePlane })
+//   state vs.v = { v0, v1, w0, w1, c, d };  arrows vs.A[id] (id: each name, 'cv', 'dw', 'dw0', 'cv1', 'sum') with .g .path .lab
+//   vs.row(items, { x, y, size, o })   the algebra, live (see row below);  vs.to(next, t0, dur);  vs.set(next);  vs.onChange(f)
+//   vs.show / hide / dim(ids, t0);  vs.legs(ids, t0, on);  vs.label(id, parts | v => parts, 'tip' | 'mid', [dx, dy]);  vs.lattice(t0)
+//   vs.solve(on);  vs.solveFor(x, y) → { c, d };  vs.flash(key, t0);  vs.num(key);  vs.fmt(n), vs.parts(n), vs.paren(n), vs.nice(n)
+//   vs.live(on, { drag: ids, move });  questions: vsTask(vs, test, why, hint, reveal, opts), vcolBlanks(rows, { cols }), hcol(top, bottom, colour)
 const VS_COL = [COL.irr, COL.real, COL.rat];   // first, second, third vector: green, violet, pink (the columns of A later)
 
-function vecs(p, { vecs: list = { v: [3, 2] }, c = 1, d = 1, plane: po = {}, snap = 1, steps = {}, range = {}, show: shown, size = 46, t0 = .1, hidePlane = false } = {}) {
+function vecs(p, { vecs: list = { v: [3, 2] }, c = 1, d = 1, plane: po = {}, snap = 1, steps = {}, range = {}, show: shown, size = 46, labelSize = 32, t0 = .1, hidePlane = false } = {}) {
   const names = Object.keys(list), [n1, n2 = n1] = names;
   const v = { c, d };
   names.forEach(n => { v[n + '0'] = list[n][0]; v[n + '1'] = list[n][1]; });
@@ -169,9 +177,11 @@ function vecs(p, { vecs: list = { v: [3, 2] }, c = 1, d = 1, plane: po = {}, sna
     if (id in colorOf && names.includes(id)) return [[0, 0], vec(id)];
     return { cv: [[0, 0], k.cv], dw: [k.cv, k.sum], dw0: [[0, 0], k.dw], cv1: [k.dw, k.sum], sum: [[0, 0], k.sum] }[id];
   };
+  // A value passing between whole numbers (a decimal) gets no label: "1.3v" flickering by is noise.
+  const nice = n => !fmt(n).includes(DECIMAL_SIGN);
   const defaultLabel = {
-    cv: () => v.c === 1 ? [n1] : v.c === -1 ? ['−' + n1] : [...parts(v.c), n1],
-    dw: () => v.d === 1 ? [n2] : v.d === -1 ? ['−' + n2] : [...parts(v.d), n2],
+    cv: () => !nice(v.c) ? [] : v.c === 1 ? [n1] : v.c === -1 ? ['−' + n1] : [...parts(v.c), n1],
+    dw: () => !nice(v.d) ? [] : v.d === 1 ? [n2] : v.d === -1 ? ['−' + n2] : [...parts(v.d), n2],
     sum: () => [],
   };
   defaultLabel.cv1 = defaultLabel.cv; defaultLabel.dw0 = defaultLabel.dw;
@@ -248,8 +258,8 @@ function vecs(p, { vecs: list = { v: [3, 2] }, c = 1, d = 1, plane: po = {}, sna
       put(a.zero, { x: PX(xa) - PX(0), y: PY(ya) - PY(0) });
       put(a.h, { x: PX(xb), y: PY(yb) });
       // label: beside the tip (pushed out along the arrow) or beside the middle (on the side away from the origin)
-      const pp = a.label(v), key = JSON.stringify(pp);
-      if (key !== a.labKey) { a.labKey = key; a.labInk.replaceChildren(); if (pp.length) M(a.labInk, pp, { size: 32, fill: colorOf[id], anchor: 'middle' }); }
+      const pp = L < .3 && id !== 'sum' ? [] : a.label(v), key = JSON.stringify(pp);   // no label on an arrow too short to see
+      if (key !== a.labKey) { a.labKey = key; a.labInk.replaceChildren(); if (pp.length) M(a.labInk, pp, { size: labelSize, fill: colorOf[id], anchor: 'middle' }); }
       const ux = L > 1e-9 ? (xb - xa) / L : .7, uy = L > 1e-9 ? (yb - ya) / L : .7;
       let lx, ly;
       if (a.at === 'tip') {
@@ -320,6 +330,7 @@ function vecs(p, { vecs: list = { v: [3, 2] }, c = 1, d = 1, plane: po = {}, sna
   const vs = {
     v, P: P2, stage: holder, A, names, calc, solveFor, parts, fmt, row, lattice: latG,
     paren: n => n < 0 ? `(${fmt(n)})` : fmt(n),   // a number inside a sum: 1 + (−4)
+    nice: n => !fmt(n).includes(DECIMAL_SIGN),   // whole, or a simple fraction (not a value in passing)
     // Move the numbers to new values over dur seconds, on the beat clock (deterministic, so seeking replays it).
     to(next, at, dur = 1.2, ease = io) {
       const from = { ...plan };
@@ -330,7 +341,7 @@ function vecs(p, { vecs: list = { v: [3, 2] }, c = 1, d = 1, plane: po = {}, sna
     // Show or hide arrows (with their labels) on the beat clock: vs.show(['cv', 'dw'], t0).
     show(list, at, dur = .5) { [].concat(list).forEach(id => { show(A[id].g, at, dur); show(A[id].lab, at, dur); }); },
     hide(list, at, dur = .5) { [].concat(list).forEach(id => { hide(A[id].g, at, dur); hide(A[id].lab, at, dur); }); },
-    dim(list, at, o = .3, dur = .5) { [].concat(list).forEach(id => { tw(A[id].g, { o }, at, dur); tw(A[id].lab, { o }, at, dur); }); },
+    dim(list, at, o = .3, dur = .5) { [].concat(list).forEach(id => { tw(A[id].g, { o }, at, dur); tw(A[id].lab, { o: 0 }, at, dur); }); },   // a ghost keeps no label
     // The dashed walk across then up, with its numbers.
     legs(list, at, on = true, dur = .5) { [].concat(list).forEach(id => tw(A[id].leg, { o: on ? 1 : 0 }, at, dur)); },
     // A label is a function of the state returning math parts; where = 'tip' or 'mid'; nudge = [dx, dy] in stage px.
@@ -391,13 +402,15 @@ document.head.append(Object.assign(document.createElement('style'), { textConten
 
 // Questions whose answer is a column: each row shows q (rich text, columns by hcol) = [box over box].
 // rows: { q, ans: [top, bottom], why, hint, fx }. Graded by blanks (any equal value, fractions too).
-const vcolBlanks = rowsIn => (body, api) => {
+// { cols: n } lays the rows out n to a line (one system's three columns side by side).
+const vcolBlanks = (rowsIn, { cols } = {}) => (body, api) => {
   const ctl = blanks(rowsIn.map(r => ({ ...r, parts: [{ box: String(r.ans[0]) }, { box: String(r.ans[1]) }] })))(body, api);
   body.querySelectorAll('.bline').forEach((line, i) => {
     const bs = line.querySelectorAll('input.box');
     line.prepend(...(rowsIn[i].q ? [rich(rowsIn[i].q, 30), h('span', 'veq', ' = ')] : []), h('span', 'vcol vin', [bs[0], bs[1]]));
   });
-  if (rowsIn.length > 3) body.classList.add('vgrid');   // many rows: two columns, so a full-screen set fits
+  if (cols) { body.classList.add('vgrid'); body.style.gridTemplateColumns = `repeat(${cols}, auto)`; }
+  else if (rowsIn.length > 3) body.classList.add('vgrid');   // many rows: two columns, so a full-screen set fits
   return ctl;
 };
 document.head.append(Object.assign(document.createElement('style'), { textContent:
