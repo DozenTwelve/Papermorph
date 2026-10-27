@@ -12,9 +12,14 @@ Left to guess what the user wants, an agent's guesses diverge from run to run. S
 
 ## Models
 
-Which model does which step is the user's choice, among the models the host running the Skill can start; a user who wants another provider's models makes the book in that provider's host. Show the tier's defaults as one table, one row per step of its team ([core/team.md](team.md)), and ask: keep it (recommended), or change some rows.
+Which model does which step is the user's choice, among the models the host running the Skill can start; a user who wants another provider's models makes the book in that provider's host. The models come after the tier the user chose at intake, as one question the user answers with a click:
 
-The defaults are the splits that made approved books; a cheaper split is the user's to try.
+- **Recommended**: the tier's column of the table below, the splits that made approved books.
+- **Strongest everywhere**: every step on the strong model.
+- **Cheaper**: for a lesson, the picture step on the middle model and the rest as recommended; on tier 1 this made two maths chapters that were acceptable but monotonous, and tier 2's picture step wants a strong model ([lessons/intake.md](../lessons/intake.md#3-tier)), so offer it there with that warning. For a picture book, the script on strong, sound on small and every other role on middle. For a film, the builder (a documentary's one agent, a short's worker per episode) on middle, and the fresh director still strong. The tier-2, picture-book and film splits have not been tried yet; say so in the option.
+- **Custom**: only then ask one question per `models` key of the tier's template (seven for a lesson, six for a picture book, five for a film; the steps of its team, [core/team.md](team.md)), each offering the host's models, in rounds as [Asking](#asking) allows.
+
+A film's recommended split is already strongest everywhere, so a film offers three options: strongest everywhere (recommended), cheaper and custom. Lessons and picture books offer all four, recommended first and labelled so.
 
 | Step | Lesson (tier 1 and 2) | Picture book | Documentary | Short |
 |---|---|---|---|---|
@@ -27,9 +32,13 @@ The defaults are the splits that made approved books; a cheaper split is the use
 | Register | small | small | strong (the coordinator) | strong (the coordinator) |
 | Made this way | physics ch14, at about half the cost of one strong agent | *Joke Collection* episodes 5–6 | *Madness and Civilization*, *The Pandemic* | *Madness and Civilization* shorts 2–4, *The Pandemic* shorts 1–6 |
 
-A middle model on a lesson's picture step made two maths chapters that were acceptable but monotonous: a cheaper choice for tier 1 when the user wants it. No cheaper split of a film has been tried.
+**small**, **middle** and **strong** stand for the user's current fast, balanced and most capable models. Each option names the actual models, not only their strength: Claude Code starts a subagent on `opus`, `sonnet`, `haiku` or `fable`, so a lesson's recommended option reads "opus for the picture and rework, sonnet for narration and review, haiku for the rest". Where you cannot tell which models the host can start, ask the user once which is their strong, middle and small model. A model the host cannot start is named to the user, not swapped for another.
 
-**small**, **middle** and **strong** stand for the user's current fast, balanced and most capable models; write the actual names into `models`, keyed by step as in the [lesson](../../assets/templates/style.json) or [picture-book](../../assets/templates/picture-book/style.json) template (a picture book's keys name its roles: `script`, `kit`, `scenes`, `sound`, `director`, `reviewers`; a [documentary](../../assets/templates/documentary/style.json)'s and a [short](../../assets/templates/shorts/style.json)'s: `script`, `pictures`, `beats`, `checks`, `director`). Claude Code starts a subagent on `opus`, `sonnet`, `haiku` or `fable`; a host that cannot choose a subagent's model, or has no subagents, runs every step on the conversation's model, so say that to the user and let the table record it. A model the host cannot start is named to the user, not swapped for another. The user can change a row at any time; later chapters follow the table as it stands.
+Every step runs at high reasoning effort unless the user asks for another; effort is not one of the questions.
+
+A host that cannot choose a subagent's model, or has no subagents, runs every step on the conversation's model; one that cannot set a subagent's effort runs it at the host's default. Say so to the user, let `models` record the model that runs, and report what ran at delivery ([core/team.md](team.md#before-delivering)): the conversation's model, and "host default" rather than "high" for effort.
+
+Write into `models` the name the host's launcher takes (in Claude Code, the names above), keyed by step as in the [lesson](../../assets/templates/style.json) or [picture-book](../../assets/templates/picture-book/style.json) template (a picture book's keys name its roles: `script`, `kit`, `scenes`, `sound`, `director`, `reviewers`; a [documentary](../../assets/templates/documentary/style.json)'s and a [short](../../assets/templates/shorts/style.json)'s: `script`, `pictures`, `beats`, `checks`, `director`). The user can change a model at any time; later chapters follow `models` as it stands.
 
 ## style.json
 
