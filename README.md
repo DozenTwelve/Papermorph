@@ -105,7 +105,7 @@ Ticked items are in the Skill today. The Skill currently goes as far as document
 - [x] **Maths books:** formulas and diagrams that change step by step, with quizzes.
 - [x] **Science books:** illustrated scenes, acting characters, camera work.
 - [x] **Picture books:** paper-puppet films from a story, a joke or a fairy tale.
-- [ ] **Choosing the model for every step**, with defaults that depend on how much animation a book needs.
+- [x] **Choosing the model for every step**, with defaults that depend on how much animation a book needs.
 - [x] **Documentaries:** narrated films of public-domain pictures about a book or an idea. *Madness and Civilization* on the shelf is the reference film.
 - [x] **Vertical shorts** of documentaries: one point in under three minutes for a phone feed.
 

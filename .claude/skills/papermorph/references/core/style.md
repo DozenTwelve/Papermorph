@@ -12,7 +12,7 @@ Left to guess what the user wants, an agent's guesses diverge from run to run. S
 
 ## Models
 
-Which model does which step is the user's choice; users run the Skill with different models and providers, and a book can mix them. Show the tier's defaults as one table, one row per step of its team ([core/team.md](team.md)), and ask: keep it (recommended), or change some rows. Any model the user names is fine.
+Which model does which step is the user's choice, among the models the host running the Skill can start; a user who wants another provider's models makes the book in that provider's host. Show the tier's defaults as one table, one row per step of its team ([core/team.md](team.md)), and ask: keep it (recommended), or change some rows.
 
 The defaults are the splits that made approved books; a cheaper split is the user's to try.
 
@@ -29,7 +29,7 @@ The defaults are the splits that made approved books; a cheaper split is the use
 
 A middle model on a lesson's picture step made two maths chapters that were acceptable but monotonous: a cheaper choice for tier 1 when the user wants it. No cheaper split of a film has been tried.
 
-**small**, **middle** and **strong** stand for the user's current fast, balanced and most capable models; write the actual names into `models`, keyed by step as in the [lesson](../../assets/templates/style.json) or [picture-book](../../assets/templates/picture-book/style.json) template (a picture book's keys name its roles: `script`, `kit`, `scenes`, `sound`, `director`, `reviewers`; a [documentary](../../assets/templates/documentary/style.json)'s and a [short](../../assets/templates/shorts/style.json)'s: `script`, `pictures`, `beats`, `checks`, `director`). Without subagents one agent does every step on its own model, and the table only records that. The user can change a row at any time; later chapters follow the table as it stands.
+**small**, **middle** and **strong** stand for the user's current fast, balanced and most capable models; write the actual names into `models`, keyed by step as in the [lesson](../../assets/templates/style.json) or [picture-book](../../assets/templates/picture-book/style.json) template (a picture book's keys name its roles: `script`, `kit`, `scenes`, `sound`, `director`, `reviewers`; a [documentary](../../assets/templates/documentary/style.json)'s and a [short](../../assets/templates/shorts/style.json)'s: `script`, `pictures`, `beats`, `checks`, `director`). Claude Code starts a subagent on `opus`, `sonnet`, `haiku` or `fable`; a host that cannot choose a subagent's model, or has no subagents, runs every step on the conversation's model, so say that to the user and let the table record it. A model the host cannot start is named to the user, not swapped for another. The user can change a row at any time; later chapters follow the table as it stands.
 
 ## style.json
 

@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Skill docs agree with its files
         run: python3 .github/scripts/check_skill.py
       - name: Python scripts (pyflakes errors, no unused-import noise)
@@ -23,6 +23,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Engine copies, lint, script syntax
         run: python3 .github/scripts/check_site.py
