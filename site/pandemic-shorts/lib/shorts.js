@@ -75,9 +75,14 @@ function photo(g, name, t0, t1, { s0 = 1.02, s1 = 1.1, dx = 0, dy = 0, dim = 0, 
 const TAGS = new URLSearchParams(location.search).has('tags');
 function srcTag(g, str, x, y, t0) {
   if (!TAGS) return G(g, { o: 0 });
-  const e = G(g, { x, y, o: 0 }), w = inkW(str.toUpperCase(), 20, SANS, 500) + 20;
+  str = str.toUpperCase();
+  // the box fits the drawn text: its letter-spacing (.06em) adds that much after every character; a tag that would run
+  // past the safe box's right edge (x 810) is set smaller
+  const textW = size => inkW(str, size, SANS, 500) + str.length * size * .06;
+  const size = Math.min(20, 20 * (806 - x - 20) / textW(20)), w = textW(size) + 20;
+  const e = G(g, { x, y, o: 0 });
   rect(e, 0, -22, w, 30, { fill: 'rgba(20,18,15,.55)', rx: 3 });
-  T(e, str.toUpperCase(), { x: 10, y: 0, size: 20, fill: '#f0ebe0', font: SANS, weight: 500 }).setAttribute('letter-spacing', '.06em');
+  T(e, str, { x: 10, y: 0, size, fill: '#f0ebe0', font: SANS, weight: 500 }).setAttribute('letter-spacing', '.06em');
   show(e, t0, .2, lin);
   return e;
 }
