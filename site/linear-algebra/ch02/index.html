@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Two Equations, One Point</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render"><!-- hold the first frame until the player exists, so the page transition can run -->
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/math.js"></script>
+<script src="../lib/linsys.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 2, title: 'Two Equations, One Point', minutes: 11, language: 'en' };
+
+/* ---------- chapter drawing helpers (the same as chapter 1's) ---------- */
+const BLUE = LS_ROW[0], CORAL = LS_ROW[1];                    // first equation and its line, second equation and its line
+const CARD = { x: 40, y: 345, w: 720, cls: 'side' };           // question card under the two equations, beside the plane
+const RCARD = { x: 790, y: 150, w: 770, cls: 'side' };         // question card on the right when the plane is not needed
+const say = (p, parts, x, y, t0, { size = 40, fill = COL.chalk, anchor = 'start' } = {}) => { const e = M(p, [].concat(parts), { x, y, size, fill, anchor, o: 0 }); show(e, t0); return e; };
+const text = (p, str, x, y, t0, { size = 30, fill = COL.chalk, anchor = 'start', weight = 500 } = {}) => { const e = T(p, str, { x, y, size, fill, anchor, weight, o: 0 }); show(e, t0); return e; };
+const flash = (sys, key, t0) => sys.num(key).forEach(e => { tw(e, { c_fill: COL.task }, t0, .25); tw(e, { c_fill: COL.chalk }, t0 + 1.2, .6); });
+const pairStr = (x, y) => `(${num(x)}, ${num(y)})`;
+const drop = (sys, x, y, t0, color = COL.chalk, label = pairStr(x, y), dx = 16, dy = -16, into) => sys.P.dot(x, y, color, t0, { label, dx, dy, into });
+const okMark = (p, ok, x, y, t0, size = 34) => text(p, ok ? '✓' : '✗', x, y, t0, { size, fill: ok ? COL.good : COL.bad, weight: 700, anchor: 'middle' });
+// Two equations a·x + b·y = c in the top left, the plane on the right. Options hide the lines, the meeting point
+// and the x = …, y = … readout until a beat shows them.
+const twoLines = (p, A, b, { t0 = .1, lines = true, meet = true, readout = true, hidePlane = false } = {}) => {
+  const sys = linsys(p, { A, b, eq: [90, 200], mat: null, t0, hidePlane });
+  if (!lines) sys.lines.forEach(({ l }) => put(l, { o: 0 }));
+  if (!meet) put(sys.meetBox, { o: 0 });
+  if (!readout) put(sys.readout, { o: 0 });
+  return sys;
+};
+// A dashed guide from a point straight down (or across) to an axis.
+const guide = (sys, x, y, toAxis, t0, into) => {
+  const { PX, PY } = sys.P, d = toAxis === 'x' ? `M${PX(x)} ${PY(y)}V${PY(0)}` : `M${PX(x)} ${PY(y)}H${PX(0)}`;
+  const g = path(into, d, { stroke: COL.task, 'stroke-width': 2.5, 'stroke-dasharray': '6 7', fill: 'none' }, { o: 0 });
+  show(g, t0, .4);
+  return g;
+};
+// A dashed amber ring: the target a hands-on question asks for.
+const ring = (sys, x, y, into, label = pairStr(x, y)) => {
+  const g = G(into, { x: sys.P.PX(x), y: sys.P.PY(y) });
+  mk('circle', { r: 17, fill: 'none', stroke: COL.task, 'stroke-width': 3.5, 'stroke-dasharray': '5 5' }, g);
+  M(g, [label], { x: 22, y: 30, size: 26, fill: COL.task });
+  return g;
+};
+// Which equations of a 2 × 2 system does (x, y) pass? [first, second]
+const near = (s, x, y) => s.x !== undefined && Math.abs(s.x - x) < 1e-9 && Math.abs(s.y - y) < 1e-9;
+const passes = (A, b, x, y) => [0, 1].map(i => A[i][0] * x + A[i][1] * y === b[i]);
+const eqStr = (a, bb, c) => {
+  const t = (k, s) => (k === 1 ? '' : k === -1 ? '−' : num(k)) + s;
+  const L = a === 0 ? t(bb, 'y') : bb === 0 ? t(a, 'x') : `${t(a, 'x')} ${bb < 0 ? '−' : '+'} ${t(Math.abs(bb), 'y')}`;
+  return `${L} = ${num(c)}`;
+};
+
+/* ---------- practice data ---------- */
+const BOTHQ = [
+  { pair: [4, 2], ans: ['b'], why: '4 + 2 = 6 ✓ and 4 − 2 = 2 ✓: it passes both, so it is the solution.' },
+  { pair: [1, 5], ans: ['o'], why: '1 + 5 = 6 ✓, but 1 − 5 = −4, not 2 ✗. Only the first.' },
+  { pair: [3, 1], ans: ['o'], why: '3 + 1 = 4, not 6 ✗; 3 − 1 = 2 ✓. Only the second.' },
+  { pair: [0, 0], ans: ['n'], why: '0 + 0 = 0, not 6, and 0 − 0 = 0, not 2: neither.' },
+];
+const SOLQ = [
+  { pair: [2, 1], sys: [[1, 1, 3], [1, -1, 1]], ans: ['y'], why: '2 + 1 = 3 ✓ and 2 − 1 = 1 ✓. Yes.' },
+  { pair: [1, 2], sys: [[1, 1, 3], [1, -1, 1]], ans: ['n'], why: '1 + 2 = 3 ✓, but 1 − 2 = −1, not 1 ✗. One failure is enough: no.' },
+  { pair: [3, -1], sys: [[2, 1, 5], [1, 3, 0]], ans: ['y'], why: '6 − 1 = 5 ✓ and 3 − 3 = 0 ✓. Yes.' },
+  { pair: [0, 4], sys: [[1, 1, 4], [3, -1, 4]], ans: ['n'], why: '0 + 4 = 4 ✓, but 0 − 4 = −4, not 4 ✗. No.' },
+  { pair: [-2, 3], sys: [[1, 1, 1], [2, 1, -1]], ans: ['y'], why: '−2 + 3 = 1 ✓ and −4 + 3 = −1 ✓. Yes.' },
+  { pair: [4, 4], sys: [[1, -1, 0], [1, 1, 6]], ans: ['n'], why: '4 − 4 = 0 ✓, but 4 + 4 = 8, not 6 ✗. No.' },
+].map(q => ({ ...q, parts: ['Is ', $m(pairStr(...q.pair)), ' a solution of ', $m(eqStr(...q.sys[0])), ' and ', $m(eqStr(...q.sys[1])), '?'] }));
+const CROSSQ = [
+  { A: [[1, 1], [1, -1]], b: [4, 2], at: [3, 1] },
+  { A: [[2, 1], [1, -1]], b: [1, 5], at: [2, -3] },
+  { A: [[1, 2], [-1, 1]], b: [2, 4], at: [-2, 2] },
+  { A: [[0, 1], [1, 1]], b: [3, -1], at: [-4, 3] },
+];
+const RIGHTQ = [
+  { parts: [pairStr(3, -2), ':      2x + y = ', { box: '4' }, ',      x − 3y = ', { box: '9' }], why: '2·3 + (−2) = 4 and 3 − 3·(−2) = 3 + 6 = 9.', hint: 'Put x = 3 and y = −2 into each left side. The number you get is the right side.' },
+  { parts: [pairStr(-1, 4), ':      x + y = ', { box: '3' }, ',      3x + y = ', { box: '1' }], why: '−1 + 4 = 3 and −3 + 4 = 1.', hint: 'Put x = −1 and y = 4 into each left side. 3 times −1 is −3.' },
+  { parts: [pairStr(0, 5), ':      4x − y = ', { box: '-5' }, ',      x + 2y = ', { box: '10' }], why: '0 − 5 = −5 and 0 + 10 = 10.', hint: 'With x = 0 the x parts are 0. Then −y is −5, and 2y is 10.' },
+];
+const MISSQ = [
+  { parts: ['x + y = 7,      x − y = 1:          (4, ', { box: '3' }, ')'], why: '4 + 3 = 7 and 4 − 3 = 1: y = 3 passes both.', hint: 'The first equation says 4 + y = 7. Then check your y in the second.' },
+  { parts: ['x + y = 3,      2x + y = 8:          (', { box: '5' }, ', −2)'], why: '5 − 2 = 3 and 10 − 2 = 8: x = 5 passes both.', hint: 'The first equation says x − 2 = 3. Then check your x in the second.' },
+];
+const MAKEQ = [
+  { start: { a00: 1, a01: 1, b0: 1, a10: 2, a11: -1, b1: 2 }, at: [-1, 3], only: ['b0', 'b1'],
+    prompt: ['Change only the right sides so the lines meet at ', $m('(−1, 3)'), '.'],
+    why: 'x + y = 2 and 2x − y = −5: −1 + 3 = 2, and −2 − 3 = −5.', hint: 'Put x = −1, y = 3 into each left side: that number must be the right side. Or drag each line through the ring.',
+    answer: { b0: 2, b1: -5 } },
+  { start: { a00: 1, a01: 1, b0: 6, a10: 1, a11: -1, b1: 1 }, at: [3, 2], only: ['a00', 'a01'],
+    prompt: ['Change only the numbers in front of ', $m('x'), ' and ', $m('y'), ' in the first equation, so the lines meet at ', $m('(3, 2)'), '.'],
+    why: 'Any first equation with 3·(x number) + 2·(y number) = 6 works: 2x = 6, or 3y = 6, or 4x − 3y = 6. The blue line turns until it passes through (3, 2).',
+    hint: '(3, 2) is already on the coral line. Turn the blue line so it passes through (3, 2) too: 3 times the x number plus 2 times the y number must make 6.',
+    answer: { a00: 2, a01: 0 } },
+  { start: { a00: 1, a01: 1, b0: 0, a10: 1, a11: -1, b1: 4 }, at: [1, 1], only: null,
+    prompt: ['Make any system whose lines cross at ', $m('(1, 1)'), '. Change whatever you like.'],
+    why: 'For example x + y = 2 and x − y = 0. Any two different lines through (1, 1) will do.',
+    hint: 'Put x = 1, y = 1 into each left side and use that as the right side. The two lines must not be the same line.',
+    answer: { b0: 2, b1: 0 } },
+];
+
+/* ---------- beats: [id, title, run(m, D), { ask }?] ---------- */
+const BEATS = [
+  ['intro', 'Two equations, one point', (m, D) => {
+    const g = G(scene, { o: 0, y: 24 });
+    T(g, 'Unit 1, Chapter 2', { x: 800, y: 320, size: 28, fill: COL.dim, anchor: 'middle' });
+    T(g, 'Two Equations, One Point', { x: 800, y: 430, size: 88, weight: 600, anchor: 'middle' });
+    tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+    const r = text(scene, 'two lines, and the one point they share', 800, 560, m('sub'), { size: 36, fill: COL.dim, anchor: 'middle' });
+    const lg = G(scene, { x: 800, y: 700 });
+    const l1 = path(lg, 'M-170 50L170 -50', { stroke: BLUE, 'stroke-width': 6, 'stroke-linecap': 'round' }, { d: 0 });
+    const l2 = path(lg, 'M-170 -50L170 50', { stroke: CORAL, 'stroke-width': 6, 'stroke-linecap': 'round' }, { d: 0 });
+    draw(l1, m('sub') + 1.5, .8); draw(l2, m('sub') + 2.4, .8);
+    const d = G(lg, { s: 0, o: 0 }); mk('circle', { r: 12, fill: COL.chalk, stroke: COL.board, 'stroke-width': 3 }, d);
+    tw(d, { s: 1, o: 1 }, m('cross') + .8, .5, back); pulse(d, m('cross') + 1.6);
+    tw(g, { o: 0, y: -24 }, D - .9, .8); hide(r, D - .9, .8); hide(lg, D - .9, .8);
+  }],
+
+  ['riddle', 'Both at once', (m) => {
+    const p = panel(0);
+    text(p, 'Two conditions at the same time', 60, 110, .2, { size: 40, weight: 600 });
+    const r1 = text(p, 'two numbers that add up to 5', 90, 470, m('add'), { size: 32, fill: BLUE, weight: 600 });
+    const r2 = text(p, 'the first minus the second is 1', 90, 530, m('sub'), { size: 32, fill: CORAL, weight: 600 });
+    const sys = twoLines(p, [[1, 1], [1, -1]], [5, 1], { t0: m('name') - .3, readout: false, hidePlane: true });
+    put(sys.eqRows[1].g, { o: 0 }); show(sys.eqRows[1].g, m('and'));
+    // the brace: one system, both rows
+    const br = path(p, 'M48 140Q30 140 30 160V205Q30 222 16 222Q30 222 30 239V284Q30 304 48 304', { stroke: COL.task, 'stroke-width': 3.5, fill: 'none' }, { d: 0 });
+    draw(br, m('both'), .6);
+    hide(r1, m('both'), .4); hide(r2, m('both'), .4);
+    text(p, 'a system of equations:', 90, 470, m('both') + .5, { size: 32, fill: COL.task, weight: 600 });
+    text(p, 'both must be true at once', 90, 520, m('both') + .9, { size: 32, fill: COL.task, weight: 600 });
+    // the hunt: pairs that add to 5, each tested in the second equation
+    const cx = [890, 1110, 1390], hy = 220, rh = 82;
+    const head = G(p, { o: 0 });
+    T(head, 'pair', { x: cx[0], y: hy, size: 28, fill: COL.dim, anchor: 'middle' });
+    M(head, ['x + y = 5'], { x: cx[1], y: hy, size: 32, fill: BLUE, anchor: 'middle' });
+    M(head, ['x − y = 1'], { x: cx[2], y: hy, size: 32, fill: CORAL, anchor: 'middle' });
+    path(head, `M800 ${hy + 22}H1540`, { stroke: COL.faint, 'stroke-width': 2 });
+    show(head, m('try'));
+    const pairs = [[1, 4], [2, 3], [3, 2], [4, 1]], rowsG = [];
+    pairs.forEach(([x, y], i) => {
+      const yy = hy + 80 + i * rh, g = G(p, {});
+      rowsG.push(g);
+      say(g, [pairStr(x, y)], cx[0], yy, m('p' + (i + 1)), { size: 36, anchor: 'middle' });
+      say(g, [`${x} + ${y} = 5`], cx[1] - 20, yy, m('p' + (i + 1)) + .4, { size: 32, anchor: 'middle' });
+      okMark(g, true, cx[1] + 95, yy, m('p' + (i + 1)) + .7);
+      const ok = x - y === 1;
+      say(g, [`${x} − ${y} = ${num(x - y)}`], cx[2] - 20, yy, m('t' + (i + 1)), { size: 32, anchor: 'middle', fill: ok ? COL.chalk : COL.dim });
+      okMark(g, ok, cx[2] + 110, yy, m('t' + (i + 1)) + .5);
+    });
+    // "every one of them passes the first equation": the blue column lights up, then the coral one is tested
+    const colHi = mk('rect', { x: cx[1] - 120, y: hy - 34, width: 240, height: 4 * rh + 60, rx: 14, fill: BLUE }, p);
+    p.insertBefore(colHi, p.firstChild);
+    put(colHi, { x: 0, o: 0 });
+    tw(colHi, { o: .1 }, m('p4') + 1.6, .5); tw(colHi, { x: cx[2] - cx[1], c_fill: CORAL }, m('test'), .7); tw(colHi, { o: 0 }, m('win'), .5);
+    [0, 1, 3].forEach(i => tw(rowsG[i], { o: .3 }, m('win'), .5));
+    const box = mk('rect', { x: 805, y: hy + 80 + 2 * rh - 46, width: 740, height: 66, rx: 14, fill: 'none', stroke: COL.task, 'stroke-width': 3 }, p);
+    put(box, { o: 0 }); show(box, m('win'), .4);
+    const sol = G(p, { o: 0 });
+    T(sol, 'the solution of the system:', { x: 90, y: 620, size: 32, fill: COL.dim });
+    M(sol, ['x = 3,   y = 2'], { x: 90, y: 690, size: 48, fill: COL.task, anchor: 'start' });
+    show(sol, m('win') + 1.5);
+    say(p, ['3 + 2 = 5'], 90, 760, m('win') + 4.5, { size: 34, fill: BLUE }); okMark(p, true, 270, 760, m('win') + 5.3);
+    say(p, ['3 − 2 = 1'], 330, 760, m('win') + 6.5, { size: 34, fill: CORAL }); okMark(p, true, 510, 760, m('win') + 7.3);
+  }],
+
+  ['check', 'Check a pair in both', (m) => {
+    const p = panel(0);
+    text(p, 'Checking a pair: put it into both equations', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = twoLines(p, [[2, -1], [-1, 2]], [0, 3], { t0: m('eq') - .3, readout: false, hidePlane: true });
+    put(sys.eqRows[1].g, { o: 0 }); show(sys.eqRows[1].g, m('eq') + 2.4);
+    const cx = [170, 520, 960, 1360], hy = 395, rh = 96;
+    const head = G(p, { o: 0 });
+    T(head, 'pair', { x: cx[0], y: hy, size: 28, fill: COL.dim, anchor: 'middle' });
+    M(head, ['2x − y = 0'], { x: cx[1], y: hy, size: 32, fill: BLUE, anchor: 'middle' });
+    M(head, ['−x + 2y = 3'], { x: cx[2], y: hy, size: 32, fill: CORAL, anchor: 'middle' });
+    T(head, 'the system?', { x: cx[3], y: hy, size: 28, fill: COL.dim, anchor: 'middle' });
+    path(head, `M70 ${hy + 22}H1540`, { stroke: COL.faint, 'stroke-width': 2 });
+    [...head.children].forEach((e, i) => { put(e, { o: 0 }); show(e, m('into') + [0, .7, 1.3, 2, 0][i], .4); });
+    put(head, { o: 1 });
+    hide(say(p, ['(x, y)'], cx[0], hy + 80, m('into') + .3, { size: 34, anchor: 'middle', fill: COL.dim }), m('a') - .3, .3);
+    const row = (i, pair, c1, c2, ok1, ok2, t, verdict) => {
+      const yy = hy + 80 + i * rh;
+      say(p, [pair], cx[0], yy, t[0], { size: 38, anchor: 'middle' });
+      say(p, [c1], cx[1] - 20, yy, t[1], { size: 32, anchor: 'middle', fill: ok1 ? COL.chalk : COL.bad });
+      okMark(p, ok1, cx[1] + 165, yy, t[1] + .8);
+      if (c2) { say(p, [c2], cx[2] - 20, yy, t[2], { size: 32, anchor: 'middle', fill: ok2 ? COL.chalk : COL.bad }); okMark(p, ok2, cx[2] + 175, yy, t[2] + .8); }
+      text(p, verdict[0], cx[3], yy, t[3], { size: 32, fill: verdict[1], weight: 700, anchor: 'middle' });
+    };
+    row(0, '(2, 4)', '2·2 − 4 = 0', '−2 + 2·4 = 6', true, false, [m('a'), m('a1'), m('a2'), m('ano')], ['no', COL.bad]);
+    row(1, '(−1, 1)', '2·(−1) − 1 = −3', '1 + 2·1 = 3', false, true, [m('b'), m('b1'), m('b2'), m('bno')], ['no', COL.bad]);
+    row(2, '(1, 2)', '2·1 − 2 = 0', '−1 + 2·2 = 3', true, true, [m('c'), m('c1'), m('c2'), m('cok')], ['yes: the solution', COL.good]);
+    const n1 = text(p, 'not 3', cx[2] + 175, hy + 80 + 40, m('a2') + 1.2, { size: 22, fill: COL.bad, anchor: 'middle' });
+    const n2 = text(p, 'not 0', cx[1] + 165, hy + 80 + rh + 40, m('b1') + 1.6, { size: 22, fill: COL.bad, anchor: 'middle' });
+    S.chk = [n1, n2];
+    const rule = G(p, { o: 0 });
+    T(rule, 'a solution of the system passes every equation', { x: 90, y: 790, size: 32, weight: 600, fill: COL.task });
+    show(rule, m('cok') + 1.4);
+  }],
+
+  ['q1', 'Quick check', () => {
+    const p = panel(0);
+    text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
+    twoLines(p, [[1, 1], [1, -1]], [6, 2], { readout: false, hidePlane: true });
+  }, { ask: done => quiz(RCARD, [{
+    id: 'c-both', prompt: ['Which equations does each pair pass: ', $m('x + y = 6'), ' and ', $m('x − y = 2'), '?'],
+    build: grid(BOTHQ.map(q => ({ parts: [$m(pairStr(...q.pair))], ans: q.ans, why: q.why })),
+      [['b', 'Both', COL.good, 'B'], ['o', 'Only one', COL.task, 'O'], ['n', 'Neither', COL.bad, 'N']], { multi: false, text: true }),
+  }], done) }],
+
+  ['rowpic', 'The row picture', (m) => {
+    const p = panel(0);
+    text(p, 'The row picture: one line for each equation', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = twoLines(p, [[2, -1], [-1, 2]], [0, 3], { lines: false, meet: false, readout: false });
+    const [l1, l2] = sys.lines.map(L => L.l);
+    sys.focus(0, m('blue'));
+    const recall = text(p, 'chapter 1: an equation in x and y is a line', 90, 470, m('blue') + .6, { size: 30, fill: COL.dim });
+    ['a00', 'a01', 'b0'].forEach((k, i) => flash(sys, k, m('blue') + 5 + i * .3));
+    hide(recall, m('o') - .3, .3);
+    const pre = sys.P.line(-3, -6, 3, 6, BLUE, m('blue') + 5.5, { dash: '10 10', w: 3 }); hide(pre, m('o') - .3, .4);
+    say(p, ['right side 0:   through (0, 0)'], 90, 470, m('o'), { size: 32, fill: BLUE });
+    drop(sys, 0, 0, m('o') + .6, BLUE, '');
+    say(p, ['(0, 0)'], sys.P.PX(0) - 16, sys.P.PY(0) - 14, m('o') + .8, { size: 26, fill: BLUE, anchor: 'end' });
+    say(p, ['x = 1:   2 − y = 0,   y = 2'], 90, 525, m('p'), { size: 32, fill: BLUE });
+    drop(sys, 1, 2, m('p') + 2.5, BLUE, '');
+    const l12 = say(p, ['(1, 2)'], sys.P.PX(1) - 18, sys.P.PY(2) - 8, m('p') + 2.7, { size: 26, fill: BLUE, anchor: 'end' });
+    hide(l12, m('meet'), .3);
+    show(l1, m('l1'), .9);
+    sys.focus(1, m('coral'));
+    say(p, ['y = 0:   −x = 3,   x = −3'], 90, 605, m('q1'), { size: 32, fill: CORAL });
+    drop(sys, -3, 0, m('q1') + 2.5, CORAL, '(−3, 0)', -50, -18);
+    const fr = say(p, ['x = 0 would give  2y = 3:  a fraction'], 90, 660, m('frac'), { size: 28, fill: COL.dim });
+    hide(fr, m('q2') - .2, .3);
+    say(p, ['x = 3:   −3 + 2y = 3,   y = 3'], 90, 660, m('q2'), { size: 32, fill: CORAL });
+    drop(sys, 3, 3, m('q2') + 3.5, CORAL, '(3, 3)', 16, -14);
+    show(l2, m('l2'), .9);
+    // a probe walks the coral line: −x + 2y stays 3 all the way
+    const { PX, PY } = sys.P, pr = G(p, { o: 0 });
+    mk('circle', { r: 11, fill: CORAL, stroke: COL.board, 'stroke-width': 3 }, pr);
+    const prT = T(pr, '', { x: -18, y: -16, size: 24, fill: CORAL, font: MATH, weight: 600, anchor: 'end' });
+    show(pr, m('l2') + 2, .3);
+    prog(q => {
+      const x = -5 + q * 9, y = (3 + x) / 2, f = n => { const r = Math.round(n * 10) / 10; return r < 0 ? `(${num(r)})` : num(r); };
+      put(pr, { x: PX(x), y: PY(y) });
+      const str = `−${f(x)} + 2·${f(y)} = 3`;
+      if (prT.textContent !== str) prT.textContent = str;
+    }, m('l2') + 2, m('meet') - m('l2') - 2.4, io);
+    hide(pr, m('meet') - .3, .3);
+    sys.focus(null, m('meet'));
+    show(sys.meetBox, m('meet') + .4, .4); pulse(sys.meet, m('on')); pulse(sys.meet, m('on') + 1);
+    show(sys.readout, m('read'));
+    text(p, 'the same pair as in the table', 330, 396, m('same') + .2, { size: 26, fill: COL.dim });
+    sys.focus(0, m('name') + 2.5); sys.focus(1, m('name') + 4.5); sys.focus(null, m('name') + 6.5);
+    const n = G(p, { o: 0 });
+    T(n, 'the crossing is on both lines: it solves both equations', { x: 90, y: 760, size: 30, weight: 600, fill: COL.task });
+    show(n, m('on') + .3);
+  }],
+
+  ['riddle2', 'The riddle, drawn', (m) => {
+    const p = panel(0);
+    text(p, 'The riddle as a picture', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = twoLines(p, [[1, 1], [1, -1]], [5, 1], { lines: false, meet: false, readout: false });
+    sys.focus(0, m('eq'));
+    say(p, ['y = 0:  x = 5;      x = 0:  y = 5'], 90, 470, m('a'), { size: 32, fill: BLUE });
+    drop(sys, 5, 0, m('a') + .3, BLUE, '', 0, 0); drop(sys, 0, 5, m('a') + 1.2, BLUE, '', 0, 0);
+    show(sys.lines[0].l, m('l1'), .9);
+    sys.focus(1, m('eq2'));
+    say(p, ['y = 0:  x = 1'], 90, 545, m('b'), { size: 32, fill: CORAL });
+    say(p, ['x = 0:  −y = 1,   y = −1'], 90, 600, m('b2'), { size: 32, fill: CORAL });
+    drop(sys, 1, 0, m('b') + .8, CORAL, '', 0, 0); drop(sys, 0, -1, m('b2') + 2, CORAL, '', 0, 0);
+    show(sys.lines[1].l, m('l2'), .9);
+    sys.focus(null, m('meet'));
+    show(sys.meetBox, m('meet'), .4); pulse(sys.meet, m('meet') + .5);
+    show(sys.readout, m('meet') + 1);
+    const fails = G(p, {});
+    [[1, 4], [2, 3], [4, 1]].forEach(([x, y], i) => drop(sys, x, y, m('miss') + .6 + i * 1.1, COL.dim, pairStr(x, y), 16, -12, fails));
+    tw(sys.lines[0].l, { 'a_stroke-width': 9 }, m('blue'), .3); tw(sys.lines[0].l, { 'a_stroke-width': 5 }, m('blue') + 1, .5);
+    tw(sys.lines[1].l, { 'a_stroke-width': 9 }, m('off'), .3); tw(sys.lines[1].l, { 'a_stroke-width': 5 }, m('off') + 1, .5);
+    say(p, ['(1, 4):  1 − 4 = −3,   (2, 3):  −1,   (4, 1):  3'], 90, 680, m('off') + .3, { size: 28, fill: COL.dim });
+    text(p, 'none of them is 1: off the coral line', 90, 725, m('off') + 1.4, { size: 28, fill: CORAL, weight: 600 });
+    text(p, 'only the crossing (3, 2) is on both', 90, 790, m('sum'), { size: 32, fill: COL.task, weight: 600 });
+  }],
+
+  ['q2', 'Quick check', () => {
+    const p = panel(0);
+    text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
+    S.sys = twoLines(p, [[1, 2], [1, -1]], [4, 1], { meet: false, readout: false });
+  }, { ask: done => quiz(CARD, [{
+    id: 'c-cross', prompt: ['Click the point that solves both ', $m('x + 2y = 4'), ' and ', $m('x − y = 1'), '.'],
+    build: pickPoint(S.sys.P, [2, 1], '(2, 1): 2 + 2·1 = 4 and 2 − 1 = 1. It is where the lines cross.', (x, y) => {
+      const [a, b] = passes([[1, 2], [1, -1]], [4, 1], x, y);
+      return a ? `${pairStr(x, y)} is on the blue line only: it passes x + 2y = 4, but x − y = ${num(x - y)}, not 1. Look for where the lines cross.`
+        : b ? `${pairStr(x, y)} is on the coral line only: x − y = 1 works, but x + 2y = ${num(x + 2 * y)}, not 4. Look for where the lines cross.`
+        : `${pairStr(x, y)} is on neither line. The solution is on both: where the blue and the coral line cross.`;
+    }, () => fx(S.sys.meetBox, { o: 1 }, 0, .4)),
+  }], done) }],
+
+  ['between', 'Between the grid lines', (m) => {
+    const p = panel(0);
+    text(p, 'A crossing between the grid lines', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = twoLines(p, [[1, 1], [1, -1]], [2, 1], { t0: m('eq') - .3, lines: false, meet: false, readout: false });
+    sys.lines.forEach(({ l }, i) => show(l, m('draw') + i * .6, .8));
+    const { PX, PY } = sys.P;
+    const pt = drop(sys, 1.5, .5, m('meet'), COL.chalk, '');
+    pulse(pt, m('meet') + .6);
+    guide(sys, 1.5, .5, 'x', m('x'), p);
+    say(p, ['x ≈ 1.5'], PX(1.5), PY(-1.7), m('x') + .5, { size: 30, fill: COL.task, anchor: 'middle' });
+    guide(sys, 1.5, .5, 'y', m('y'), p);
+    say(p, ['y ≈ 0.5'], PX(0) - 70, PY(.5) - 18, m('y') + .5, { size: 30, fill: COL.task, anchor: 'end' });
+    text(p, 'guess:', 90, 470, m('guess'), { size: 30, fill: COL.dim });
+    say(p, ['x = ', F(3, 2), ',   y = ', F(1, 2)], 200, 470, m('guess') + .3, { size: 38 });
+    say(p, [F(3, 2), ' + ', F(1, 2), ' = ', F(4, 2), ' = 2'], 90, 570, m('c1'), { size: 38, fill: BLUE });
+    okMark(p, true, 470, 570, m('c1') + 3);
+    say(p, [F(3, 2), ' − ', F(1, 2), ' = ', F(2, 2), ' = 1'], 90, 670, m('c2'), { size: 38, fill: CORAL });
+    okMark(p, true, 470, 670, m('c2') + 3);
+    show(sys.readout, m('ok'));
+    const n = G(p, { o: 0 });
+    T(n, 'the picture says where to look;', { x: 90, y: 760, size: 30, weight: 600, fill: COL.task });
+    T(n, 'putting the numbers back in proves it', { x: 90, y: 802, size: 30, weight: 600, fill: COL.task });
+    show(n, m('lesson'));
+  }],
+
+  ['between2', 'Close is not exact', (m) => {
+    const p = panel(0);
+    text(p, 'Close is not the same as exact', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = twoLines(p, [[2, 1], [1, -1]], [3, 1], { t0: m('eq') - .3, lines: false, meet: false, readout: false });
+    sys.lines.forEach(({ l }, i) => show(l, m('eq') + .8 + i * .6, .8));
+    const g = drop(sys, 1.3, .3, m('guess'), COL.task, '');
+    const gx = guide(sys, 1.3, .3, 'x', m('c1') + 1, p), gy = guide(sys, 1.3, .3, 'y', m('c1') + 2.5, p);
+    hide(gx, m('read'), .4); hide(gy, m('read'), .4);
+    hide(say(p, ['guess:   x = 1.3,   y = 0.3'], 90, 396, m('guess') + .3, { size: 36, fill: COL.task }), m('read') - .3, .3);
+    tw(sys.lines[0].l, { 'a_stroke-width': 9 }, m('meet'), .3); tw(sys.lines[0].l, { 'a_stroke-width': 5 }, m('meet') + 1, .5);
+    say(p, ['2·1.3'], 90, 470, m('c1') + 1.5, { size: 36, fill: BLUE });
+    say(p, ['= 2.6'], 185, 470, m('c1') + 3.4, { size: 36, fill: BLUE });
+    say(p, ['+ 0.3'], 290, 470, m('c1') + 5, { size: 36, fill: BLUE });
+    say(p, ['= 2.9'], 395, 470, m('c1') + 6.8, { size: 36, fill: BLUE });
+    text(p, 'not 3: close, but not on the line', 90, 520, m('no'), { size: 30, fill: COL.bad, weight: 600 });
+    tw(g, { o: .45 }, m('read'), .4);
+    show(sys.readout, m('read'));
+    show(sys.meetBox, m('read') + .3);
+    say(p, ['2·', F(4, 3), ' + ', F(1, 3), ' = ', F(8, 3), ' + ', F(1, 3), ' = ', F(9, 3), ' = 3'], 90, 620, m('c2'), { size: 36, fill: BLUE });
+    okMark(p, true, 640, 620, m('c2') + 5);
+    say(p, [F(4, 3), ' − ', F(1, 3), ' = ', F(3, 3), ' = 1'], 90, 720, m('c3'), { size: 36, fill: CORAL });
+    okMark(p, true, 640, 720, m('c3') + 3);
+    text(p, 'exact', 90, 800, m('ok'), { size: 34, fill: COL.good, weight: 700 });
+  }, { lead: false }],
+
+  ['slide', 'Move a right side', (m) => {
+    const p = panel(0);
+    text(p, 'Change a right side', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = twoLines(p, [[2, -1], [-1, 2]], [0, 3], { t0: m('sys') - .3 });
+    const ghost = (a, b, c, color, t) => {   // the old place of a line, dashed
+      const ps = [-6, 6].map(x => b ? [x, (c - a * x) / b] : [c / a, x]);
+      const l = sys.P.line(...ps[0], ...ps[1], color, t, { dash: '10 10', w: 3 }); tw(l, { o: .35 }, t + .6, .4);
+      return l;
+    };
+    pulse(sys.meet, m('sys') + 4); pulse(sys.meet, m('sys') + 5.2);
+    const g1 = ghost(-1, 2, 3, CORAL, m('b1'));
+    tw(sys.lines[1].l, { 'a_stroke-width': 9 }, m('slides') + .8, .3); tw(sys.lines[1].l, { 'a_stroke-width': 8 }, m('slides') + 2.5, .5);
+    sys.focus(1, m('b1'));
+    const t1 = sys.to({ b1: 6 }, m('b1') + .3, 2.2, io, { trail: true }); flash(sys, 'b1', m('b1') + .3);
+    tw(sys.lines[0].l, { 'a_stroke-width': 9 }, m('along'), .3); tw(sys.lines[0].l, { 'a_stroke-width': 5 }, m('along') + 1.2, .5);
+    pulse(sys.meet, m('new'));
+    const w0 = say(p, ['before:   −2 + 2·4 = 6,  not 3'], 90, 470, m('rem') + 1.5, { size: 32, fill: COL.bad });
+    const w = say(p, ['now:   −2 + 2·4 = 6  ✓'], 90, 525, m('rem') + 5.5, { size: 32, fill: COL.good });
+    flash(sys, 'b1', m('rem') + 7);
+    [g1, t1, w, w0].forEach(e => hide(e, m('back'), .4));
+    sys.to({ b1: 3 }, m('back'), 1.2); flash(sys, 'b1', m('back'));
+    sys.focus(null, m('back'));
+    const g2 = ghost(2, -1, 0, BLUE, m('b0'));
+    sys.focus(0, m('b0'));
+    sys.to({ b0: 3 }, m('b0') + .5, 2.2, io, { trail: true }); flash(sys, 'b0', m('b0') + .5);
+    tw(sys.lines[1].l, { 'a_stroke-width': 9 }, m('slides2') + 1.5, .3); tw(sys.lines[1].l, { 'a_stroke-width': 5 }, m('slides2') + 2.7, .5);
+    pulse(sys.meet, m('new2'));
+    say(p, ['2·3 − 3 = 3  ✓'], 90, 470, m('chk'), { size: 34, fill: BLUE });
+    say(p, ['−3 + 2·3 = 3  ✓'], 90, 525, m('chk') + 2, { size: 34, fill: CORAL });
+    sys.focus(null, m('rule'));
+    const n = G(p, { o: 0 });
+    T(n, 'one right side changes: that line slides,', { x: 90, y: 720, size: 30, weight: 600, fill: COL.task });
+    T(n, 'and the meeting point slides along the other line', { x: 90, y: 762, size: 30, weight: 600, fill: COL.task });
+    show(n, m('rule'));
+    S.g2 = g2;
+  }],
+
+  ['turn', 'Turn a line', (m) => {
+    const p = panel(0);
+    text(p, 'Change a number in front of x or y', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = twoLines(p, [[2, -1], [-1, 2]], [0, 3]);
+    const { PX, PY } = sys.P;
+    const pivot = (x, y, t, color) => { const d = G(p, { x: PX(x), y: PY(y), o: 0 }); mk('circle', { r: 16, fill: 'none', stroke: color, 'stroke-width': 3.5 }, d); show(d, t, .3); pulse(d, t + .4); return d; };
+    sys.focus(0, m('a'));
+    const t1 = sys.to({ a00: 1 }, m('a') + .3, 2.4, io, { trail: true }); flash(sys, 'a00', m('a') + .3);
+    const pv = pivot(0, 0, m('turns') + 1.5, BLUE);
+    tw(sys.lines[1].l, { 'a_stroke-width': 9 }, m('along'), .3); tw(sys.lines[1].l, { 'a_stroke-width': 5 }, m('along') + 1.2, .5);
+    pulse(sys.meet, m('new'));
+    const c0 = say(p, ['(0, 0):    2·0 − 0 = 0,    1·0 − 0 = 0'], 90, 470, m('turns') + 3.5, { size: 30, fill: BLUE });
+    flash(sys, 'b0', m('turns') + 5);
+    const c1 = say(p, ['3 − 3 = 0  ✓,      −3 + 2·3 = 3  ✓'], 90, 535, m('chk'), { size: 32 });
+    [t1, pv, c1, c0].forEach(e => hide(e, m('ex2') - .2, .4));
+    sys.focus(null, m('ex2'));
+    sys.to({ a00: 1, a01: 1, b0: 5, a10: 1, a11: -1, b1: 1 }, m('ex2') + .3, 1.6);
+    sys.focus(1, m('c'));
+    const t2 = sys.to({ a10: 2 }, m('c') + .4, 2.4, io, { trail: true }); flash(sys, 'a10', m('c') + .4);
+    pivot(0, -1, m('turns2') + 1.2, CORAL);
+    tw(sys.lines[0].l, { 'a_stroke-width': 9 }, m('along2'), .3); tw(sys.lines[0].l, { 'a_stroke-width': 5 }, m('along2') + 1.2, .5);
+    pulse(sys.meet, m('new2') + 1);
+    say(p, ['2 + 3 = 5  ✓,      2·2 − 3 = 1  ✓'], 90, 470, m('chk2'), { size: 32 });
+    sys.focus(null, m('rule'));
+    const n = G(p, { o: 0 });
+    T(n, 'a line moves: the meeting point', { x: 90, y: 720, size: 30, weight: 600, fill: COL.task });
+    T(n, 'stays on the line that does not', { x: 90, y: 762, size: 30, weight: 600, fill: COL.task });
+    show(n, m('rule'));
+    S.t2 = t2;
+  }],
+
+  ['q3', 'Your turn', () => {
+    const p = panel(0);
+    text(p, 'Your turn', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = twoLines(p, [[2, -1], [-1, 2]], [0, 3], { readout: false });
+    const r = ring(sys, 2, -1, p); put(r, { o: 0 }); show(r, .5);
+  }, { ask: done => quiz(CARD, [{
+    id: 'c-meet', prompt: ['Make the lines meet at ', $m('(2, −1)'), '. Change only the right sides: drag them sideways, or drag a line.'],
+    build: lsTask(S.sys, (v, s) => near(s, 2, -1),
+      'Right: 2x − y = 5 and −x + 2y = −4. Each right side is what its left side gives at (2, −1): 4 + 1 = 5 and −2 − 2 = −4.',
+      'Put x = 2 and y = −1 into each left side: that number must be the right side. Or slide each line until it passes through the ring.',
+      () => S.sys.set({ b0: 5, b1: -4 }), { only: ['b0', 'b1'], trail: true }),
+  }], done) }],
+
+  ['wrap', 'Summary', (m) => {
+    const p = panel(0);
+    [['A system: equations that must all be true at once.', 'w1'], ['A pair solves the system only if it passes every equation.', 'w2'],
+     ['Row picture: each equation is a line; the solution is where they cross.', 'w3'], ['The picture shows where to look; putting the numbers back in proves it.', 'w4']].forEach(([str, mark], i) => {
+      const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
+      mk('circle', { cx: 150, cy: -12, r: 26, fill: COL.task }, g);
+      T(g, String(i + 1), { x: 150, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+      T(g, str, { x: 210, size: 36, weight: 600 });
+      tw(g, { o: 1, x: 0 }, m(mark), .6);
+    });
+  }],
+  ['final1', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-sol', prompt: ['Does the pair solve the whole system? Check it in both equations.'],
+    build: grid(SOLQ, [['y', 'Yes', null, 'Y'], ['n', 'No', null, 'N']], { multi: false, text: true }),
+  }], done, 'Chapter practice · set 1 of 4') }],
+  ['final2', 'Chapter practice', () => {
+    const p = panel(0);
+    text(p, 'Find the crossing', 60, 110, .2, { size: 40, weight: 600 });
+    const q = CROSSQ[0];
+    S.sys = twoLines(p, q.A, q.b, { meet: false, readout: false });
+  }, { ask: done => quiz(CARD, CROSSQ.map((q, k) => ({
+    id: 'p-cross' + (k + 1), prompt: ['Click the point that solves both ', $m(eqStr(...q.A[0], q.b[0])), ' and ', $m(eqStr(...q.A[1], q.b[1])), '.'],
+    build: (body, api) => {
+      const sys = S.sys;
+      sys.set({ a00: q.A[0][0], a01: q.A[0][1], a10: q.A[1][0], a11: q.A[1][1], b0: q.b[0], b1: q.b[1] });
+      put(sys.meetBox, { o: 0 });
+      const [x0, y0] = q.at;
+      return pickPoint(sys.P, q.at, `${pairStr(x0, y0)} is on both lines: check it in both equations.`, (x, y) => {
+        const [a, b] = passes(q.A, q.b, x, y);
+        return a ? `${pairStr(x, y)} is on the blue line only. The solution must be on the coral line too.`
+          : b ? `${pairStr(x, y)} is on the coral line only. The solution must be on the blue line too.`
+          : `${pairStr(x, y)} is on neither line. Find where the two lines cross.`;
+      }, () => fx(sys.meetBox, { o: 1 }, 0, .4))(body, api);
+    },
+  })), done, 'Chapter practice · set 2 of 4') }],
+  ['final3', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-right', prompt: ['Fill in the right sides so that the pair solves both equations.'],
+    build: blanks(RIGHTQ),
+  }, {
+    id: 'p-miss', prompt: ['Find the missing number so that the pair solves both equations.'],
+    build: blanks(MISSQ),
+  }], done, 'Chapter practice · set 3 of 4') }],
+  ['final4', 'Chapter practice', () => {
+    const p = panel(0);
+    text(p, 'Make the lines meet', 60, 110, .2, { size: 40, weight: 600 });
+    S.sys = twoLines(p, [[1, 1], [2, -1]], [1, 2], { readout: false });
+  }, { ask: done => quiz(CARD, MAKEQ.map((q, k) => ({
+    id: 'p-make' + (k + 1), prompt: q.prompt,
+    build: (body, api) => {
+      const sys = S.sys;
+      sys.set(q.start);
+      ring(sys, ...q.at, qlayer());
+      return lsTask(sys, (v, s) => near(s, ...q.at), q.why, q.hint, () => sys.set(q.answer), { only: q.only, trail: true })(body, api);
+    },
+  })), done, 'Chapter practice · set 4 of 4') }],
+  ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+boot();
+</script>
+</body>
+</html>

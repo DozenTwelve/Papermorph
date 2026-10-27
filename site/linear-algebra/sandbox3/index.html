@@ -17,9 +17,9 @@
 'use strict';
 // SANDBOX: silent beats to try space3.js and lin3 (the 3 × 3 system) before a chapter uses them.
 const CHAPTER = { number: 99, title: 'Sandbox: Space in 3D', minutes: 2, language: 'en' };
-const CARD = { x: 40, y: 668, w: 720, cls: 'side' };
+const CARD = { x: 40, y: 430, w: 720, cls: 'side' };   // under the equations and their readout; the try beats drop the matrix
 const title = (p, str, t0) => { const e = T(p, str, { x: 60, y: 110, size: 40, weight: 600, o: 0 }); show(e, t0); return e; };
-const sys3 = (p, view) => lin3(p, { view });
+const sys3 = (p, view, mat) => lin3(p, { view, ...(mat === false ? { mat: null } : {}) });
 const TARGET = (v, s) => s.x === 1 && s.y === 1 && s.z === 1;
 
 const BEATS = [
@@ -60,7 +60,7 @@ const BEATS = [
   ['try1', 'Your turn: planes', () => {
     const p = panel(0);
     title(p, 'Your turn', .1);
-    S.sys = sys3(p, 'row');
+    S.sys = sys3(p, 'row', false);
   }, { dur: 1.5, ask: done => quiz(CARD, [{
     id: 'p-meet', prompt: ['Make the three planes meet at ', $m('(1, 1, 1)'), ': drag a plane by its edge, or scrub a number.'],
     build: lsTask(S.sys, TARGET, 'All three planes pass through (1, 1, 1): the right sides are 1, 0 and 1.',
@@ -69,7 +69,7 @@ const BEATS = [
   ['try2', 'Your turn: columns', () => {
     const p = panel(0);
     title(p, 'Your turn', .1);
-    S.sys = sys3(p, 'col');
+    S.sys = sys3(p, 'col', false);
     S.sys.labels(['col 1', 'col 2', 'col 3', 'b']);
   }, { dur: 1.5, ask: done => quiz(CARD, [{
     id: 'c-mix', prompt: ['Drag the tip of ', $m('b'), ' until the mix is ', $m('1·col 1 + 1·col 2 + 1·col 3'), '.'],

@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Linear Combinations</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render"><!-- hold the first frame until the player exists, so the page transition can run -->
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/math.js"></script>
+<script src="../lib/linsys.js"></script>
+<script src="../lib/vecs.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 6, title: 'Linear Combinations', minutes: 10, language: 'en' };
+
+/* ---------- chapter drawing helpers ---------- */
+const [GREEN, VIOLET] = VS_COL;                                // v green, w violet; the combination amber (it will be b)
+const LV = [2, -1], LW = [-1, 2];                               // the lecture's two columns, not named columns yet
+const CARD = { x: 40, y: 320, w: 720, cls: 'side' };
+const say = (p, parts, x, y, t0, { size = 40, fill = COL.chalk, anchor = 'start' } = {}) => { const e = M(p, [].concat(parts), { x, y, size, fill, anchor, o: 0 }); show(e, t0); return e; };
+const text = (p, str, x, y, t0, { size = 30, fill = COL.chalk, anchor = 'start', weight = 500 } = {}) => { const e = T(p, str, { x, y, size, fill, anchor, weight, o: 0 }); show(e, t0); return e; };
+const showRow = (r, t0, from = 0, to = r.parts.length, dur = .5) => r.parts.slice(from, to).forEach(e => show(e, t0, dur));
+const thick = (vs, id, t0, w = 5) => { tw(vs.A[id].path, { 'a_stroke-width': w + 4 }, t0, .3); tw(vs.A[id].path, { 'a_stroke-width': w }, t0 + .7, .4); };
+const pairStr = (x, y) => `(${num(x)}, ${num(y)})`;
+// "2v − w", "v + w", "0": the combination's name from c and d.
+const comboLabel = vs => v => {
+  const term = (k, n) => k === 1 ? n : k === -1 ? '−' + n : vs.fmt(k) + n;
+  if (!v.c && !v.d) return ['0'];
+  if (!v.d) return [term(v.c, 'v')];
+  if (!v.c) return [term(v.d, 'w')];
+  return [`${term(v.c, 'v')} ${v.d < 0 ? '−' : '+'} ${term(Math.abs(v.d), 'w')}`];
+};
+// c v + d w = c [v] + d [w]  (first line), and  = [c v] + [d w] = [sum]  or  = [c·v0 + d·w0, …] = [sum]  (second line).
+const line1 = (vs, y, o = 0, size = 42) => vs.row([{ key: 'c' }, { t: 'v', fill: GREEN }, { key: 'd', signed: true }, { t: 'w', fill: VIOLET }, '=', { key: 'c' }, { col: 'v', fixed: true }, { key: 'd', signed: true }, { col: 'w', fixed: true }], { x: 70, y, size, o });
+const line2 = (vs, y, o = 0, size = 42) => vs.row(['=', { col: 'cv', fixed: true }, '+', { col: 'dw', fixed: true }, '=', { col: 'sum', fixed: true }], { x: 160, y, size, o });
+const line2x = (vs, y, o = 0, size = 42) => vs.row(['=', { fn: v => [`${vs.fmt(v.c)}·${vs.paren(v.v0)} + ${vs.fmt(v.d)}·${vs.paren(v.w0)}`, `${vs.fmt(v.c)}·${vs.paren(v.v1)} + ${vs.fmt(v.d)}·${vs.paren(v.w1)}`], w: 360 }, '=', { col: 'sum', fixed: true }], { x: 160, y, size, o });
+const lecture = (p, o = {}) => { const vs = vecs(p, { vecs: { v: LV, w: LW }, ...o }); vs.label('sum', comboLabel(vs)); return vs; };
+const slideIn = (vs, id, tail, t0, dur = 1.6) => {
+  const a = vs.A[id], u = vs.P.u;
+  put(a.g, { x: -tail[0] * u, y: tail[1] * u, o: 0 });
+  tw(a.g, { o: 1 }, t0, .3); tw(a.g, { x: 0, y: 0 }, t0 + .4, dur);
+  show(a.lab, t0 + .4 + dur, .4);
+};
+const ringAt = (P, x, y, t0, into, color = COL.task) => {
+  const g = G(into, { x: P.PX(x), y: P.PY(y), o: 0 });
+  mk('circle', { r: 16, fill: 'none', stroke: color, 'stroke-width': 4 }, g);
+  mk('circle', { r: 4, fill: color }, g);
+  M(g, [pairStr(x, y)], { x: 22, y: -16, size: 26, fill: color, anchor: 'start' });
+  show(g, t0, .4);
+  return g;
+};
+// A hand that drags the combination's tip through plane points (solve mode): the tip snaps to grid points,
+// c and d are found at each one, as they are for the reader.
+const handPath = (p, vs, pts, t0, leg = 1.6) => {
+  const { PX, PY } = vs.P, hand = G(p, { o: 0 });
+  mk('circle', { r: 20, fill: COL.task, 'fill-opacity': .25, stroke: COL.task, 'stroke-width': 3 }, hand);
+  put(hand, { x: PX(pts[0][0]), y: PY(pts[0][1]) });
+  show(hand, t0 - .4, .3);
+  pts.slice(1).forEach((b, i) => {
+    const a = pts[i];
+    prog(q => {
+      const x = a[0] + (b[0] - a[0]) * q, y = a[1] + (b[1] - a[1]) * q;
+      put(hand, { x: PX(x), y: PY(y) });
+      vs.set(vs.solveFor(Math.round(x), Math.round(y)));
+    }, t0 + i * leg, leg * .85, io);
+  });
+  hide(hand, t0 + (pts.length - 1) * leg + .2, .3);
+  return hand;
+};
+
+/* ---------- practice data ---------- */
+const COMBQ = [
+  [2, [1, 3], 1, [2, -1]], [3, [1, 0], 2, [0, 1]], [1, [4, 1], -2, [1, 1]], [-1, [2, 5], 3, [1, 2]], [2, [3, -1], 2, [-3, 1]], [.5, [4, 2], 3, [0, 1]],
+].map(([c, a, d, b]) => {
+  const cs = c === .5 ? $m('', F(1, 2)) : c === 1 ? '' : c === -1 ? '−' : $m(num(c));
+  const ds = d === 1 ? ' + ' : d === -1 ? ' − ' : d < 0 ? [' − ', $m(num(-d))] : [' + ', $m(num(d))];
+  const ans = [c * a[0] + d * b[0], c * a[1] + d * b[1]];
+  return { q: [cs, hcol(...a, GREEN), ...[].concat(ds), hcol(...b, VIOLET)], ans,
+    why: `Stretch first: [${num(c * a[0])}, ${num(c * a[1])}] and [${num(d * b[0])}, ${num(d * b[1])}]. Then add: ${num(ans[0])} and ${num(ans[1])}.`,
+    hint: 'Multiply each column by its number first, then add tops and add bottoms.' };
+});
+// c and d for targets, with v = [2, −1], w = [−1, 2]: 2c − d = x, −c + 2d = y.
+const FINDQ = [[3, 0, 2, 1], [-3, 3, -1, 1], [0, 3, 1, 2], [4, 1, 3, 2], [1, -2, 0, -1], [1, 0, F(2, 3), F(1, 3)]].map(([x, y, c, d]) => {
+  const cv = typeof c === 'number' ? c : 2 / 3, dv = typeof d === 'number' ? d : 1 / 3;
+  console.assert(Math.abs(2 * cv - dv - x) < 1e-9 && Math.abs(-cv + 2 * dv - y) < 1e-9, 'FINDQ', x, y);
+  const s = n => typeof n === 'number' ? String(n) : n.f.join('/');
+  return { parts: [`target ${pairStr(x, y)}:     c = `, { box: s(c) }, '     d = ', { box: s(d) }],
+    why: `${s(c)}·[2, −1] + ${s(d)}·[−1, 2] = [${num(x)}, ${num(y)}].`, hint: 'Top: 2c − d must be the first number. Bottom: −c + 2d must be the second. Try small whole numbers first.' };
+});
+const SPANQ = [[[1, 2], [2, 4], 'n', 'The second is 2 times the first: both lie on one line.'], [[1, 0], [1, 1], 'y', 'They point different ways: they fill the plane.'],
+  [[3, -1], [-6, 2], 'n', 'The second is −2 times the first: one line.'], [[1, 1], [1, -1], 'y', 'Different directions: the whole plane.'],
+  [[2, 3], [0, 0], 'n', 'The zero vector adds nothing: only the multiples of the first, one line.']].map(([a, b, ans, why]) => ({ parts: [hcol(...a, GREEN), ' and ', hcol(...b, VIOLET)], ans: [ans], why }));
+const STEER = [[3, 0], [-3, 3], [5, -1], [0, -3], [-1, 5]];
+
+/* ---------- beats: [id, title, run(m, D), { ask }?] ---------- */
+const BEATS = [
+  ['intro', 'Linear combinations', (m, D) => {
+    const g = G(scene, { o: 0, y: 24 });
+    T(g, 'Unit 1, Chapter 6', { x: 800, y: 300, size: 28, fill: COL.dim, anchor: 'middle' });
+    T(g, 'Linear Combinations', { x: 800, y: 410, size: 88, weight: 600, anchor: 'middle' });
+    tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+    const r = text(scene, 'c v + d w: stretch two vectors, then add', 800, 510, m('sub'), { size: 36, fill: COL.dim, anchor: 'middle' });
+    const pic = G(scene, { o: 0 }), o = [740, 790];
+    const ar = (d, c, t0) => draw(path(pic, d, { stroke: c, 'stroke-width': 6, 'stroke-linecap': 'round', fill: 'none' }, { d: 0 }), t0, .7);
+    ar(`M${o[0]} ${o[1]}l80 40`, GREEN, m('sub') + 1.2); ar(`M${o[0] + 80} ${o[1] + 40}l-80 -160`, VIOLET, m('sub') + 1.9); ar(`M${o[0]} ${o[1]}l0 -120`, COL.task, m('sub') + 2.6);
+    show(pic, m('sub') + 1, .3);
+    tw(g, { o: 0, y: -24 }, D - .9, .8); hide(r, D - .9, .8); hide(pic, D - .9, .8);
+  }],
+
+  ['name', 'Stretch, then add', (m) => {
+    const p = panel(0);
+    text(p, 'Stretch each vector, then add', 60, 110, .2, { size: 40, weight: 600 });
+    const vs = lecture(p, { c: 1, d: 2, show: [] });
+    vs.show(['v', 'w'], m('vw'), .6);
+    const r1 = line1(vs, 240), r2 = line2(vs, 420);
+    showRow(r1, m('cd'), 0, 4); showRow(r1, m('ex') - .2, 4, 9);
+    vs.flash('c', m('ex') + .6); vs.flash('d', m('ex') + 1.6);
+    showRow(r2, m('cv'), 0, 2); vs.flash('cv0', m('cv') + .4); vs.flash('cv1', m('cv') + .4);
+    showRow(r2, m('dw'), 2, 4); vs.flash('dw0', m('dw') + .4); vs.flash('dw1', m('dw') + .4);
+    showRow(r2, m('add'), 4, 6);
+    const [s0] = vs.num('sum0'), [s1] = vs.num('sum1');
+    put(s1, { o: 0 }); show(s1, m('addb') + 1.4);
+    vs.flash('cv0', m('add') + .6); vs.flash('dw0', m('add') + 1.4); vs.flash('sum0', m('add') + 2.4);
+    vs.flash('cv1', m('addb') + .4); vs.flash('dw1', m('addb') + 1); vs.flash('sum1', m('addb') + 1.8);
+    vs.flash('sum0', m('res') + .4); vs.flash('sum1', m('res') + .4);
+    vs.dim(['v', 'w'], m('pic'), .25);
+    vs.show('cv', m('pic') + .2, .6);
+    slideIn(vs, 'dw', LV, m('pic2') + .1, 1.6);
+    vs.show('sum', m('end'), .6);
+    vs.P.dot(0, 3, COL.task, m('end') + .3, { r: 9, label: '(0, 3)', dx: -80, dy: 8 });
+    const nm = G(p, { o: 0 });
+    T(nm, 'c v + d w:  a linear combination of v and w', { x: 70, y: 600, size: 32, weight: 600, fill: COL.task });
+    show(nm, m('name'));
+    text(p, 'keep in mind:  v = [2, −1],  w = [−1, 2],  1v + 2w = [0, 3]', 70, 660, m('keep'), { size: 26, fill: COL.dim });
+    void s0;
+  }],
+
+  ['ex2', 'More choices', (m) => {
+    const p = panel(0);
+    text(p, 'Each choice of c and d: one point', 60, 110, .2, { size: 40, weight: 600 });
+    const vs = lecture(p, { c: 1, d: 2, show: ['cv', 'dw', 'sum'] });
+    line1(vs, 240, 1); line2x(vs, 420, 1);
+    const dots = G(p, {});
+    vs.P.dot(0, 3, COL.task, .4, { r: 8, into: dots });
+    vs.to({ c: 2, d: 1 }, m('c2'), 1.4); vs.flash('c', m('c2')); vs.flash('d', m('c2') + .6);
+    const [f0, f1] = vs.num('fn');
+    lightUp(f0, m('t') + .2); vs.flash('sum0', m('t') + 4.2);
+    lightUp(f1, m('b') + .2); vs.flash('sum1', m('b') + 4.4);
+    vs.P.dot(3, 0, COL.task, m('r'), { r: 8, into: dots });
+    vs.to({ c: -1, d: 1 }, m('c3'), 1.4); vs.flash('c', m('c3')); vs.flash('d', m('c3') + .6);
+    lightUp(f0, m('t3')); vs.flash('sum0', m('t3') + 1.6);
+    lightUp(f1, m('b3')); vs.flash('sum1', m('b3') + 1.4);
+    vs.P.dot(-3, 3, COL.task, m('r3'), { r: 8, into: dots });
+    [...dots.children].forEach((d, i) => { if (d.tagName === 'g' && d.querySelector('circle')) pulse(d, m('same') + .3 + i * .2); });
+  }],
+
+  ['special', 'Combinations you know', (m) => {
+    const p = panel(0);
+    text(p, 'Old friends are combinations too', 60, 110, .2, { size: 40, weight: 600 });
+    const vs = lecture(p, { c: -1, d: 1, show: ['cv', 'dw', 'sum'] });
+    line1(vs, 240, 1);
+    const note = (str, y, t0) => text(p, str, 70, y, t0, { size: 32, fill: COL.task, weight: 600 });
+    vs.to({ c: 1, d: 1 }, m('sum'), 1.2); note('c = 1, d = 1:   v + w', 400, m('sum') + .6);
+    vs.to({ c: 1, d: -1 }, m('diff'), 1.2); note('c = 1, d = −1:   v − w', 460, m('diff') + .6);
+    vs.to({ c: 2, d: 0 }, m('onlyv'), 1.2); note('d = 0:   just c v', 520, m('onlyv') + .6);
+    vs.to({ c: 0, d: 0 }, m('zero'), 1.2); note('c = d = 0:   the zero vector', 580, m('zero') + .6);
+    vs.to({ c: 1, d: 2 }, m('all') + .4, 1.6);
+    text(p, 'sums, differences, multiples: all linear combinations', 70, 660, m('all'), { size: 28, fill: COL.chalk, weight: 600 });
+  }],
+
+  ['q1', 'Quick check', () => {
+    const p = panel(0);
+    text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
+    S.vs = vecs(p, { vecs: { v: [1, 2], w: [2, -1] }, c: 2, d: -1, show: ['v', 'w'] });
+    S.vs.label('sum', comboLabel(S.vs));
+  }, { ask: done => quiz(CARD, [{
+    id: 'c-comb', prompt: ['Work out the combination: stretch each vector, then add.'],
+    build: vcolBlanks([{ q: [$m('2'), hcol(1, 2, GREEN), ' − ', hcol(2, -1, VIOLET)], ans: [0, 5], why: '2·[1, 2] = [2, 4]; then [2, 4] − [2, −1] = [0, 5].',
+      hint: 'Stretch first: 2 times [1, 2] is [2, 4]. Then take away [2, −1]: top minus top, bottom minus bottom.',
+      fx: () => ['cv', 'dw', 'sum'].forEach((id, i) => { fx(S.vs.A[id].g, { o: 1 }, i * .5, .5); fx(S.vs.A[id].lab, { o: 1 }, i * .5, .5); }) }]),
+  }], done) }],
+
+  ['scrub', 'Steering with c and d', (m) => {
+    const p = panel(0);
+    text(p, 'c moves the tip along v, d along w', 60, 110, .2, { size: 40, weight: 600 });
+    const vs = lecture(p, { c: 1, d: 1, show: ['v', 'w', 'cv', 'dw', 'sum'] });
+    vs.dim(['v', 'w'], .3, .25);
+    line1(vs, 240, 1);
+    const tr = G(p, {});
+    vs.to({ c: 3 }, m('c') + .3, 1.2); vs.to({ c: -1 }, m('c') + 1.7, 1.8); vs.to({ c: 1 }, m('cpath') + 1.8, 1.2);
+    vs.flash('c', m('c') + .3);
+    vs.P.line(-1, 2, 1, 1, GREEN, m('cpath') - .2, { dash: '8 9', w: 3, into: tr });
+    text(p, 'c changes:  the tip slides along v', 70, 420, m('cpath'), { size: 30, fill: GREEN, weight: 600 });
+    vs.to({ d: 3 }, m('d') + .3, 1.2); vs.to({ d: -1 }, m('d') + 1.7, 1.8); vs.to({ d: 1 }, m('dpath') + 1.8, 1.2);
+    vs.flash('d', m('d') + .3);
+    vs.P.line(2, -1, 1, 1, VIOLET, m('dpath') - .2, { dash: '8 9', w: 3, into: tr });
+    text(p, 'd changes:  the tip slides along w', 70, 475, m('dpath'), { size: 30, fill: VIOLET, weight: 600 });
+    hide(tr, m('both') + .2, .4);
+    vs.to({ c: 2, d: 3 }, m('both') + .4, 1.4); vs.to({ c: -1, d: -2 }, m('both') + 2, 1.6); vs.to({ c: 0, d: 2 }, m('both') + 3.8, 1.2);
+    text(p, 'both:  anywhere you steer', 70, 530, m('both') + .3, { size: 30, fill: COL.task, weight: 600 });
+  }],
+
+  ['reach', 'Reaching a target', (m) => {
+    const p = panel(0);
+    text(p, 'Which c and d reach the target?', 60, 110, .2, { size: 40, weight: 600 });
+    const vs = lecture(p, { c: 0, d: 0, show: ['cv', 'dw', 'sum'] });
+    const whole = v => Number.isInteger(v.c) && Number.isInteger(v.d), lab = comboLabel(vs);
+    vs.label('cv', v => whole(v) ? (v.c === 1 ? ['v'] : [vs.fmt(v.c) + 'v']) : []); vs.label('dw', v => whole(v) ? (v.d === 1 ? ['w'] : [vs.fmt(v.d) + 'w']) : []);
+    vs.label('sum', v => whole(v) ? lab(v) : []);
+    line1(vs, 240, 1); line2(vs, 420, 1);
+    const ring = ringAt(vs.P, 0, 3, m('target'), p);
+    vs.P.dot(0, 0, COL.task, m('start'), { r: 8 });
+    vs.to({ c: 1 }, m('up'), 1.2); vs.flash('c', m('up'));
+    vs.to({ d: 1 }, m('d1'), 1); vs.flash('d', m('d1'));
+    vs.to({ d: 2 }, m('d2'), 1); vs.flash('d', m('d2'));
+    pulse(ring, m('hit') + .2, 1.5); vs.flash('c', m('hit') + .6); vs.flash('d', m('hit') + .6);
+    hide(ring, m('drag'), .4);
+    vs.solve(true);
+    handPath(p, vs, [[0, 3], [3, 0]], m('drag'), 2.2);
+    vs.flash('c', m('p30') + .2); vs.flash('d', m('p30') + .2);
+    handPath(p, vs, [[3, 0], [1, 1]], m('p11') - 1.2, 1.4);
+    vs.flash('c', m('p11') + .6); vs.flash('d', m('p11') + .6);
+    handPath(p, vs, [[1, 1], [1, 0]], m('p10') - .4, 1.2);
+    vs.flash('c', m('p10') + 2); vs.flash('d', m('p10') + 3.6);
+    text(p, 'c and d can be fractions', 70, 600, m('frac'), { size: 30, fill: COL.task, weight: 600 });
+  }],
+
+  ['q2', 'Your turn', () => {
+    const p = panel(0);
+    text(p, 'Your turn', 60, 110, .2, { size: 40, weight: 600 });
+    S.vs = lecture(p, { c: 1, d: 1, show: ['cv', 'dw', 'sum'] });
+    line1(S.vs, 230, 1);
+    ringAt(S.vs.P, 4, 1, .5, p);
+  }, { ask: done => quiz(CARD, [{
+    id: 'c-reach', prompt: ['Change ', $m('c'), ' and ', $m('d'), ' (or drag the tips of the two stretched arrows) until the combination lands on ', $m('(4, 1)'), '.'],
+    build: vsTask(S.vs, (v, k) => k.sum[0] === 4 && k.sum[1] === 1, 'c = 3, d = 2: 3·[2, −1] + 2·[−1, 2] = [6 − 2, −3 + 4] = [4, 1].',
+      (v, k) => `You are at ${pairStr(k.sum[0], k.sum[1])}. Raising c moves the tip 2 right and 1 down; raising d moves it 1 left and 2 up.`,
+      () => S.vs.set({ c: 3, d: 2 }), { drag: ['cv', 'dw'] }),
+  }], done) }],
+
+  ['lattice', 'They fill the plane', (m) => {
+    const p = panel(0);
+    text(p, 'All the combinations', 60, 110, .2, { size: 40, weight: 600 });
+    const vs = lecture(p, { c: 1, d: 1, show: ['v', 'w'] });
+    line1(vs, 240, 1);
+    vs.lattice(m('dots'), true, 1.2);
+    const ax = G(p, {});
+    vs.P.line(0, 0, 2, -1, GREEN, m('grid') + .3, { w: 4, into: ax });
+    vs.P.line(0, 0, -1, 2, VIOLET, m('grid') + 1.3, { w: 4, into: ax });
+    hide(ax, m('gaps'), .5);
+    // fractions: the half-way points appear between the lines
+    const half = G(p, { o: 0 }); let d = '';
+    for (let c = -8; c <= 8; c += .5) for (let dd = -8; dd <= 8; dd += .5) {
+      if (Number.isInteger(c) && Number.isInteger(dd)) continue;
+      const x = 2 * c - dd, y = -c + 2 * dd;
+      if (Math.abs(x) <= 6 && Math.abs(y) <= 6) d += `M${vs.P.PX(x)} ${vs.P.PY(y)}h0`;
+    }
+    path(half, d, { stroke: COL.task, 'stroke-width': 5, 'stroke-linecap': 'round', 'stroke-opacity': .55, fill: 'none' });
+    show(half, m('gaps') + .3, 1.2);
+    vs.show(['cv', 'dw', 'sum'], m('roam') - .3, .4);
+    vs.solve(true);
+    vs.to({ c: 1, d: 1 }, .1, .01);
+    handPath(p, vs, [[1, 1], [3, 3], [-4, 1], [2, -5], [5, 2]], m('roam') + .2, 1.6);
+    const all = path(p, `M${vs.P.PX(-6)} ${vs.P.PY(6)}H${vs.P.PX(6)}V${vs.P.PY(-6)}H${vs.P.PX(-6)}Z`, { fill: COL.task, stroke: 'none' }, { o: 0 });
+    vs.P.g.insertBefore(all, vs.P.g.lastChild);
+    tw(all, { o: .12 }, m('plane'), 1);
+    text(p, 'c v + d w reaches every point of the plane', 70, 420, m('plane'), { size: 30, fill: COL.task, weight: 600 });
+  }],
+
+  ['count', 'Reading c and d off the grid', (m) => {
+    const p = panel(0);
+    text(p, 'Count the steps: along v, then along w', 60, 110, .2, { size: 40, weight: 600 });
+    const vs = lecture(p, { c: 0, d: 0, show: ['cv', 'dw', 'sum'] });
+    vs.lattice(.3, true, .6);
+    line1(vs, 240, 1); line2(vs, 420, 1);
+    const go = (x, y, c, d, t0, tc, td, marks) => {
+      const ring = ringAt(vs.P, x, y, t0, marks);
+      for (let k = 1; k <= c; k++) { vs.to({ c: k }, tc + (k - 1) * .75, .5); vs.P.dot(2 * k, -k, GREEN, tc + (k - 1) * .75 + .4, { r: 6, label: String(k), dx: 4, dy: 30, into: marks }); }
+      for (let k = 1; k <= d; k++) { vs.to({ d: k }, td + (k - 1) * .75, .5); vs.P.dot(2 * c - k, -c + 2 * k, VIOLET, td + (k - 1) * .75 + .4, { r: 6, label: String(k), dx: 10, dy: -8, into: marks }); }
+      return ring;
+    };
+    const m1 = G(p, {});
+    const r1 = go(1, 4, 2, 3, m('t'), m('sv') + .9, m('sw') + .9, m1);
+    pulse(r1, m('there') + .2, 1.5);
+    vs.flash('c', m('read') + .6); vs.flash('d', m('read') + 2.2);
+    vs.flash('sum0', m('check') + .4); vs.flash('sum1', m('check') + 3.4);
+    hide(m1, m('t2') - .2, .4);
+    vs.to({ c: 0, d: 0 }, m('t2') - .2, .6);
+    const m2 = G(p, {});
+    go(-1, 5, 1, 3, m('t2'), m('s2') + .2, m('s3') + .4, m2);
+    vs.flash('c', m('r2') + .2); vs.flash('d', m('r2') + 1.4);
+  }],
+
+  ['parallel', 'Unless they line up', (m) => {
+    const p = panel(0);
+    text(p, 'When the two vectors line up', 60, 110, .2, { size: 40, weight: 600 });
+    const vs = lecture(p, { c: 1, d: 1, show: ['v', 'w'] });
+    vs.row([{ t: 'v', fill: GREEN }, '=', { col: 'v', fixed: true }, '     ', { t: 'w', fill: VIOLET }, '=', { col: 'w', fixed: true }], { x: 70, y: 240, size: 42 });
+    vs.lattice(.3, true, .6);
+    vs.to({ w0: 4, w1: -2 }, m('turn') + .3, m('par') - m('turn') - .3, lin);
+    say(p, ['w = 2v'], 70, 420, m('par'), { size: 44, fill: VIOLET });
+    text(p, 'the grid squashes flat', 70, 480, m('squash'), { size: 28, fill: COL.dim });
+    text(p, 'every combination: on one line', 70, 530, m('line'), { size: 30, fill: COL.task, weight: 600 });
+    const miss = ringAt(vs.P, 0, 3, m('miss'), p, COL.bad);
+    say(miss, ['✗'], -9, 10, m('miss') + .5, { size: 26, fill: COL.bad });
+    text(p, '(0, 3) is off the line: no c and d reach it', 70, 590, m('miss') + .8, { size: 28, fill: COL.bad, weight: 600 });
+    const r = G(p, { o: 0 });
+    T(r, 'different directions  →  the whole plane', { x: 70, y: 680, size: 30, weight: 600 });
+    T(r, 'the same line  →  only that line', { x: 70, y: 730, size: 30, weight: 600 });
+    show(r, m('rule'));
+  }],
+
+  ['q3', 'Quick check', () => { panel(0); }, { ask: done => quiz({ x: 300, y: 200, w: 1000, cls: 'side' }, [{
+    id: 'c-span', prompt: ['Do the combinations ', $m('c v + d w'), ' reach every point of the plane?'],
+    build: grid([SPANQ[0], SPANQ[1]], [['y', 'Every point', null, 'Y'], ['n', 'Only a line', null, 'N']], { multi: false, text: true }),
+  }], done) }],
+
+  ['wrap', 'Summary', (m) => {
+    const p = panel(0);
+    [['c v + d w: stretch each vector, then add.', 'w1'], ['Each c, d gives one point; from a point we can find c and d.', 'w2'],
+     ['Two vectors in different directions reach every point.', 'w3'], ['Two vectors on one line reach only that line.', 'w4']].forEach(([str, mark], i) => {
+      const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
+      const dg = G(g, { x: 150, y: -12 });
+      mk('circle', { r: 26, fill: COL.task }, dg);
+      T(dg, String(i + 1), { x: 0, y: 11, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+      const tl = T(g, str, { x: 210, size: 36, weight: 600 });
+      tw(g, { o: 1, x: 0 }, m(mark), .6);
+      pulse(dg, m('end') + i * .3, 1.25);
+      const next = ['w2', 'w3', 'w4', 'end'][i], ul = path(g, `M210 16H${210 + tl.getComputedTextLength()}`, { stroke: COL.task, 'stroke-width': 3, 'stroke-opacity': .6 }, { d: 0 });
+      draw(ul, m(mark) + .5, Math.max(1, m(next) - m(mark) - 1), lin);
+    });
+  }],
+  ['final1', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-comb', prompt: ['Work out each combination: stretch, then add.'], build: vcolBlanks(COMBQ),
+  }], done, 'Chapter practice · set 1 of 4') }],
+  ['final2', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-find', prompt: ['With ', $m('v'), ' = ', hcol(2, -1, GREEN), ' and ', $m('w'), ' = ', hcol(-1, 2, VIOLET), ', find ', $m('c'), ' and ', $m('d'), ' so that ', $m('c v + d w'), ' is the target.'],
+    build: blanks(FINDQ),
+  }], done, 'Chapter practice · set 2 of 4') }],
+  ['final3', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-span', prompt: ['Do the combinations of the two vectors reach every point of the plane?'],
+    build: grid(SPANQ, [['y', 'Every point', null, 'Y'], ['n', 'Only a line', null, 'N']], { multi: false, text: true }),
+  }], done, 'Chapter practice · set 3 of 4') }],
+  ['final4', 'Chapter practice', () => {
+    const p = panel(0);
+    text(p, 'Steer the combination', 60, 110, .2, { size: 40, weight: 600 });
+    S.vs = lecture(p, { c: 1, d: 1, show: ['cv', 'dw', 'sum'] });
+    line1(S.vs, 230, 1);
+  }, { ask: done => quiz(CARD, STEER.map(([x, y], i) => ({
+    id: `p-steer${i + 1}`, prompt: ['Change ', $m('c'), ' and ', $m('d'), ' until ', $m('c v + d w'), ' lands on ', $m(pairStr(x, y)), '.'],
+    build: (body, api) => {
+      S.vs.set({ c: 1, d: 1 }); S.q6?.remove(); S.q6 = ringAt(S.vs.P, x, y, 0, S.vs.stage); fx(S.q6, { o: 1 }, 0, .3);
+      const s = S.vs.solveFor(x, y);
+      return vsTask(S.vs, (v, k) => k.sum[0] === x && k.sum[1] === y, `c = ${num(s.c)}, d = ${num(s.d)}.`,
+        (v, k) => `You are at ${pairStr(k.sum[0], k.sum[1])}. c moves the tip along v (2 right, 1 down), d along w (1 left, 2 up).`,
+        () => S.vs.set(s), { drag: ['cv', 'dw'] })(body, api);
+    },
+  })), done, 'Chapter practice · set 4 of 4') }],
+  ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+const lightUp = (e, t0, base = COL.chalk) => { tw(e, { c_color: COL.task }, t0, .25); tw(e, { c_color: base }, t0 + 1.2, .6); };
+
+boot();
+</script>
+</body>
+</html>

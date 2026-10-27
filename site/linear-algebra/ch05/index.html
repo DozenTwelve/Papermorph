@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adding and Stretching Vectors</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render"><!-- hold the first frame until the player exists, so the page transition can run -->
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/math.js"></script>
+<script src="../lib/linsys.js"></script>
+<script src="../lib/vecs.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 5, title: 'Adding and Stretching Vectors', minutes: 10, language: 'en' };
+
+/* ---------- chapter drawing helpers ---------- */
+const [GREEN, VIOLET] = VS_COL;                                // v green, w violet (chapter 4); sums amber
+const CARD = { x: 40, y: 320, w: 720, cls: 'side' };           // question card under one row of algebra, beside the plane
+const say = (p, parts, x, y, t0, { size = 40, fill = COL.chalk, anchor = 'start' } = {}) => { const e = M(p, [].concat(parts), { x, y, size, fill, anchor, o: 0 }); show(e, t0); return e; };
+const text = (p, str, x, y, t0, { size = 30, fill = COL.chalk, anchor = 'start', weight = 500 } = {}) => { const e = T(p, str, { x, y, size, fill, anchor, weight, o: 0 }); show(e, t0); return e; };
+const showRow = (r, t0, from = 0, to = r.parts.length, dur = .5) => r.parts.slice(from, to).forEach(e => show(e, t0, dur));
+const thick = (vs, id, t0, w = 5) => { tw(vs.A[id].path, { 'a_stroke-width': w + 4 }, t0, .3); tw(vs.A[id].path, { 'a_stroke-width': w }, t0 + .7, .4); };
+// A placed arrow ('dw', 'cv1') drawn first at the origin, then slid without turning until its tail sits on `tail`.
+const slideIn = (vs, id, tail, t0, dur = 1.6) => {
+  const a = vs.A[id], u = vs.P.u;
+  put(a.g, { x: -tail[0] * u, y: tail[1] * u, o: 0 });
+  tw(a.g, { o: 1 }, t0, .3); tw(a.g, { x: 0, y: 0 }, t0 + .4, dur);
+  show(a.lab, t0 + .4 + dur, .4);
+};
+// A dot that makes a trip along a list of plane points, one leg after another.
+const travel = (p, P, pts, t0, leg = 1.4, color = COL.task) => {
+  const d = G(p, { o: 0 });
+  mk('circle', { r: 10, fill: color, stroke: COL.board, 'stroke-width': 2 }, d);
+  put(d, { x: P.PX(pts[0][0]), y: P.PY(pts[0][1]) });
+  show(d, t0 - .3, .3);
+  for (let i = 1; i < pts.length; i++) {
+    const [a, b] = [pts[i - 1], pts[i]];
+    prog(q => put(d, { x: P.PX(a[0] + (b[0] - a[0]) * q), y: P.PY(a[1] + (b[1] - a[1]) * q) }), t0 + (i - 1) * leg, leg * .9, io);
+  }
+  return d;
+};
+// v + w written out: v + w = [v] + [w] = [v0 + w0, v1 + w1] = [sum]; sign − for a difference.
+const sumRow = (vs, x, y, { sign = '+', size = 46, fixed = false, o = 0 } = {}) => vs.row(
+  [{ t: 'v', fill: GREEN }, sign, { t: 'w', fill: VIOLET }, '=', { col: 'v', fixed }, sign, { col: 'w', fixed }, '=',
+    { fn: v => sign === '+' ? [`${vs.fmt(v.v0)} + ${vs.paren(v.w0)}`, `${vs.fmt(v.v1)} + ${vs.paren(v.w1)}`] : [`${vs.fmt(v.v0)} − ${vs.paren(v.w0)}`, `${vs.fmt(v.v1)} − ${vs.paren(v.w1)}`], w: size * 4.2 },
+    '=', { col: 'sum', fixed: true }], { x, y, size, o });
+const vRow = (vs, n, fill, y, o = 0) => vs.row([{ t: n, fill }, '=', { col: n }], { x: 90, y, o });
+const ringAt = (P, x, y, t0, into) => {   // the amber target of a task
+  const g = G(into, { x: P.PX(x), y: P.PY(y), o: 0 });
+  mk('circle', { r: 16, fill: 'none', stroke: COL.task, 'stroke-width': 4 }, g);
+  mk('circle', { r: 4, fill: COL.task }, g);
+  M(g, [`(${num(x)}, ${num(y)})`], { x: 22, y: -16, size: 26, fill: COL.task, anchor: 'start' });
+  show(g, t0, .4);
+  return g;
+};
+const lightUp = (e, t0, base = COL.chalk) => { tw(e, { c_color: COL.task }, t0, .25); tw(e, { c_color: base }, t0 + 1.2, .6); };
+// A curved arrow from one number to another, arched over (up) or under the row: "this one goes there".
+const centre = e => { const b = e.getBBox(); return [b.x + b.width / 2, b.y + b.height / 2, b.height]; };
+const curve = (p, a, b, t0, { color = COL.task, up = true, dur = .7 } = {}) => {
+  const [ax, ay, ah] = centre(a), [bx, by, bh] = centre(b), sy = up ? -1 : 1;
+  const y0 = ay + sy * ah * .6, y1 = by + sy * bh * .6, top = (up ? Math.min(y0, y1) : Math.max(y0, y1)) + sy * 36;
+  const e = path(p, `M${ax} ${y0}C${ax} ${top} ${bx} ${top} ${bx} ${y1}`, { stroke: color, 'stroke-width': 3, fill: 'none', 'stroke-linecap': 'round', 'stroke-dasharray': '2 0' }, { d: 0 });
+  draw(e, t0, dur);
+  return e;
+};
+const boxAround = (p, els, t0, color = COL.task) => {
+  const bs = els.map(e => e.getBBox()), x = Math.min(...bs.map(b => b.x)) - 10, y = Math.min(...bs.map(b => b.y)) - 6;
+  const w = Math.max(...bs.map(b => b.x + b.width)) + 10 - x, hh = Math.max(...bs.map(b => b.y + b.height)) + 6 - y;
+  const r = path(p, `M${x + 10} ${y}H${x + w - 10}Q${x + w} ${y} ${x + w} ${y + 10}V${y + hh - 10}Q${x + w} ${y + hh} ${x + w - 10} ${y + hh}H${x + 10}Q${x} ${y + hh} ${x} ${y + hh - 10}V${y + 10}Q${x} ${y} ${x + 10} ${y}Z`, { stroke: color, 'stroke-width': 3, fill: 'none' }, { d: 0 });
+  draw(r, t0, .8);
+  return r;
+};
+const pairStr = (x, y) => `(${num(x)}, ${num(y)})`;
+
+/* ---------- practice data (every answer computed here, and checked by hand in chapters/ch05.md) ---------- */
+const ADDQ = [[[2, 3], [4, 1]], [[5, -2], [-1, 6]], [[-3, -4], [-2, 7]], [[0, 5], [6, -5]], [[-7, 2], [7, 2]], [[1, -1], [-1, 1]]].map(([a, b]) => ({
+  q: [hcol(...a, GREEN), ' + ', hcol(...b, VIOLET)], ans: [a[0] + b[0], a[1] + b[1]],
+  why: `Top: ${num(a[0])} + ${b[0] < 0 ? `(${num(b[0])})` : b[0]} = ${num(a[0] + b[0])}.  Bottom: ${num(a[1])} + ${b[1] < 0 ? `(${num(b[1])})` : b[1]} = ${num(a[1] + b[1])}.`,
+  hint: 'Add the two top numbers for the top, and the two bottom numbers for the bottom. A negative number added means going back.',
+}));
+const MULQ = [
+  { c: 3, a: [2, -1] }, { c: -2, a: [4, 3] }, { c: F(1, 2), cn: .5, a: [6, -8] }, { c: 0, a: [5, 9] }, { c: -1, a: [-3, 7] },
+].map(({ c, cn = c, a }) => ({
+  q: [$m(...(typeof c === 'number' ? [num(c)] : ['', c])), ' · ', hcol(...a, GREEN)], ans: [cn * a[0] || 0, cn * a[1] || 0],
+  why: `Multiply both numbers by ${typeof c === 'number' ? num(c) : '1/2'}: ${num(cn * a[0] || 0)} and ${num(cn * a[1] || 0)}.`,
+  hint: 'Multiply the top number by c, and the bottom number by c too. Minus times minus is plus.',
+}));
+const SUBQ = [[[6, 4], [2, 1]], [[3, -2], [5, 1]], [[-1, 0], [-4, -3]]].map(([a, b]) => ({
+  q: [hcol(...a, GREEN), ' − ', hcol(...b, VIOLET)], ans: [a[0] - b[0], a[1] - b[1]],
+  why: `Top: ${num(a[0])} − ${b[0] < 0 ? `(${num(b[0])})` : b[0]} = ${num(a[0] - b[0])}.  Bottom: ${num(a[1])} − ${b[1] < 0 ? `(${num(b[1])})` : b[1]} = ${num(a[1] - b[1])}.`,
+  hint: 'Subtract top from top and bottom from bottom. Taking away a negative number adds.',
+}));
+const CQ = [
+  { c: '3', ans: ['long'], why: '3 is bigger than 1: three times as long, same way.' },
+  { c: '1/3', ans: ['short'], why: 'One third of the length, same way.' },
+  { c: '−1', ans: ['flip'], why: 'Same length, the opposite way.' },
+  { c: '0', ans: ['zero'], why: 'Every number becomes 0: the zero vector.' },
+  { c: '−2', ans: ['long', 'flip'], why: 'Twice as long, and the opposite way.' },
+  { c: '−1/2', ans: ['short', 'flip'], why: 'Half as long, and the opposite way.' },
+].map(r => ({ parts: [$m(`c = ${r.c}`)], ans: r.ans, why: r.why }));
+const CCOLS = [['long', 'longer', null, '1'], ['short', 'shorter', null, '2'], ['flip', 'flipped', null, '3'], ['zero', 'the zero vector', null, '4']];
+
+/* ---------- beats: [id, title, run(m, D), { ask }?] ---------- */
+const BEATS = [
+  ['intro', 'Adding and stretching', (m, D) => {
+    const g = G(scene, { o: 0, y: 24 });
+    T(g, 'Unit 1, Chapter 5', { x: 800, y: 300, size: 28, fill: COL.dim, anchor: 'middle' });
+    T(g, 'Adding and Stretching Vectors', { x: 800, y: 410, size: 76, weight: 600, anchor: 'middle' });
+    tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+    const r = text(scene, 'v + w, and c times v: with the numbers and with the arrows', 800, 510, m('sub'), { size: 34, fill: COL.dim, anchor: 'middle' });
+    // a small tip-to-tail sum, drawn as the narration says "picture"
+    const pic = G(scene, { o: 0 }), o = [690, 780];
+    const ar = (d, c, t0) => draw(path(pic, d, { stroke: c, 'stroke-width': 6, 'stroke-linecap': 'round', fill: 'none' }, { d: 0 }), t0, .7);
+    ar(`M${o[0]} ${o[1]}l120 -30`, GREEN, m('both') + .2);
+    ar(`M${o[0] + 120} ${o[1] - 30}l40 -80`, VIOLET, m('both') + .9);
+    ar(`M${o[0]} ${o[1]}l160 -110`, COL.task, m('both') + 1.6);
+    ar(`M${o[0] + 260} ${o[1]}l90 -45`, GREEN, m('both') + 2.2);
+    ar(`M${o[0] + 260} ${o[1]}l180 -90`, GREEN, m('both') + 2.8);
+    show(pic, m('both'), .3);
+    tw(g, { o: 0, y: -24 }, D - .9, .8); hide(r, D - .9, .8); hide(pic, D - .9, .8);
+  }],
+
+  ['add', 'Adding with numbers', (m) => {
+    const p = panel(0);
+    text(p, 'Adding two vectors: top plus top, bottom plus bottom', 60, 110, .2, { size: 40, weight: 600 });
+    const A = vecs(p, { vecs: { v: [3, 1], w: [1, 2] }, hidePlane: true }), B = vecs(p, { vecs: { v: [2, -1], w: [-4, 3] }, hidePlane: true });
+    const ra = sumRow(A, 90, 330, { size: 50 }), rb = sumRow(B, 90, 650, { size: 50 });
+    showRow(ra, m('v') - .2, 0, 1); showRow(ra, m('v'), 4, 5); showRow(ra, m('w') - .2, 1, 4); showRow(ra, m('w'), 5, 7);
+    showRow(ra, m('tops'), 7, 9); const [ft, fb] = A.num('fn'); put(fb, { o: 0 });
+    A.flash('v0', m('tops') + .3); A.flash('w0', m('tops') + 1.3);
+    showRow(ra, m('tops') + 2.6, 9, 11); const [st0] = A.num('sum0'), [st1] = A.num('sum1'); put(st1, { o: 0 });
+    show(fb, m('bots')); A.flash('v1', m('bots') + .3); A.flash('w1', m('bots') + 1.3); show(st1, m('bots') + 2.6);
+    A.flash('sum0', m('res') + .3); A.flash('sum1', m('res') + .3);
+    const lk = G(p, {});
+    curve(lk, A.num('v0')[0], ft, m('tops') + .3, { color: GREEN }); curve(lk, A.num('w0')[0], ft, m('tops') + 1.3, { color: VIOLET });
+    curve(lk, A.num('v1')[0], fb, m('bots') + .3, { color: GREEN, up: false }); curve(lk, A.num('w1')[0], fb, m('bots') + 1.3, { color: VIOLET, up: false });
+    boxAround(lk, [st0, st1], m('res') + .2);
+    hide(lk, m('ex2') - .3, .4);
+    const n = G(p, { o: 0 });
+    T(n, 'tops add to tops, bottoms add to bottoms: they never mix', { x: 90, y: 480, size: 30, weight: 600, fill: COL.task });
+    show(n, m('never'));
+    lightUp(ft, m('never') + 2.4); lightUp(st0, m('never') + 2.4, COL.task); lightUp(fb, m('never') + 4.6); lightUp(st1, m('never') + 4.6, COL.task);
+    showRow(rb, m('ex2'), 0, 7);
+    showRow(rb, m('t2'), 7, 9); const [, fb2] = B.num('fn'); put(fb2, { o: 0 });
+    B.flash('v0', m('t2') + .2); B.flash('w0', m('t2') + 1);
+    showRow(rb, m('t2') + 2.4, 9, 11); const [, s21] = [B.num('sum0')[0], B.num('sum1')[0]]; put(s21, { o: 0 });
+    show(fb2, m('b2')); B.flash('v1', m('b2') + .2); B.flash('w1', m('b2') + 1); show(s21, m('b2') + 2.4);
+    B.flash('sum0', m('r2') + .4); B.flash('sum1', m('r2') + .4);
+  }],
+
+  ['tiptail', 'Adding with arrows', (m) => {
+    const p = panel(0);
+    text(p, 'Adding with arrows: tip to tail', 60, 110, .2, { size: 40, weight: 600 });
+    const vs = S.vs = vecs(p, { vecs: { v: [3, 1], w: [1, 2] }, show: [] });
+    vs.label('sum', ['v + w']); vs.label('v', ['v'], 'tip', [-24, 34]);
+    S.r1 = vs.row([{ t: 'v', fill: GREEN }, '+', { t: 'w', fill: VIOLET }, '=', { fn: v => [`${vs.fmt(v.v0)} + ${vs.paren(v.w0)}`, `${vs.fmt(v.v1)} + ${vs.paren(v.w1)}`], w: 46 * 4.2 }, '=', { col: 'sum' }], { x: 90, y: 610, o: 0 });
+    vs.row([{ t: 'v', fill: GREEN }, '=', { col: 'v' }], { x: 90, y: 250 }); vs.row([{ t: 'w', fill: VIOLET }, '=', { col: 'w' }], { x: 90, y: 430 });
+    vs.show(['v', 'w'], m('arrows'), .6);
+    vs.dim('w', m('slide') + .2, .25); hide(vs.A.w.lab, m('slide') + .2, .3);
+    slideIn(vs, 'dw', [3, 1], m('slide') + .2, 2);
+    vs.legs('dw', m('same') + .2); vs.legs('dw', m('trip') - .2, false);
+    const tr = travel(p, vs.P, [[0, 0], [3, 1]], m('trip') + .3, 1.6);
+    prog(q => put(tr, { x: vs.P.PX(3 + q), y: vs.P.PY(1 + 2 * q) }), m('then') + .3, 1.4, io);
+    hide(tr, m('sum') + .4, .3);
+    const end = G(p, {});
+    vs.P.dot(4, 3, COL.task, m('end') + .2, { r: 9, label: '(4, 3)', dx: 18, dy: 38, into: end });
+    vs.show('sum', m('sum'), .6);
+    showRow(S.r1, m('sum') + .4);
+    vs.legs('v', m('count') + .3); vs.legs('dw', m('count') + 2); vs.flash('sum0', m('count') + 1.5); vs.flash('sum1', m('count') + 4);
+    vs.legs(['v', 'dw'], m('match') - .2, false); vs.legs('sum', m('match'));
+    vs.legs('sum', m('ex2') - .3, false); hide(end, m('ex2') - .3, .3);
+    vs.flash('sum0', m('match')); vs.flash('sum1', m('match'));
+    vs.to({ v0: 2, v1: -1, w0: -4, w1: 3 }, m('ex2') + .9, 2.4);
+    thick(vs, 'dw', m('follow') + .3); thick(vs, 'sum', m('follow') + 1.3, 6);
+    vs.flash('sum0', m('read') + .4); vs.flash('sum1', m('read') + .4);
+  }],
+
+  ['order', 'The order does not matter', (m) => {
+    const p = panel(0);
+    text(p, 'v + w = w + v', 60, 110, .2, { size: 40, weight: 600 });
+    const vs = vecs(p, { vecs: { v: [3, 1], w: [1, 2] }, show: ['v', 'dw', 'sum'] });
+    vs.label('sum', ['v + w']);
+    const { PX, PY } = vs.P;
+    const par = path(p, `M${PX(0)} ${PY(0)}L${PX(3)} ${PY(1)}L${PX(4)} ${PY(3)}L${PX(1)} ${PY(2)}Z`, { fill: COL.task, stroke: 'none' }, { o: 0 });
+    vs.P.g.insertBefore(par, vs.P.g.lastChild);
+    tw(par, { o: .14 }, m('para'), .8);
+    vs.show('dw0', m('wv'), .6);
+    vs.show('cv1', m('route') + 1.6, .6);
+    const tr = travel(p, vs.P, [[0, 0], [1, 2], [4, 3]], m('route') + .2, 1.5);
+    hide(tr, m('para'), .3);
+    const end = vs.P.dot(4, 3, COL.task, m('land'), { r: 10, label: '(4, 3)', dx: 18, dy: 38 }); pulse(end, m('land') + .5);
+    const vw = vs.row([{ t: 'v', fill: GREEN }, '+', { t: 'w', fill: VIOLET }, '=', { fn: () => ['3 + 1', '1 + 2'], w: 160 }, '=', { col: 'sum', fixed: true }], { x: 90, y: 300, o: 0 });
+    const wv = vs.row([{ t: 'w', fill: VIOLET }, '+', { t: 'v', fill: GREEN }, '=', { fn: () => ['1 + 3', '2 + 1'], w: 160 }, '=', { col: 'sum', fixed: true }], { x: 90, y: 520, o: 0 });
+    showRow(vw, .4); showRow(wv, m('nums'));
+    vs.flash('sum0', m('nums') + 1); vs.flash('sum1', m('nums') + 4.4);
+    const [a0, a1] = vw.parts[4].querySelectorAll('g[color]'), [b0, b1] = wv.parts[4].querySelectorAll('g[color]');
+    const bx = G(p, {});
+    boxAround(bx, [a0], m('nums') + .6); boxAround(bx, [b0], m('nums') + 1.4);
+    boxAround(bx, [a1], m('nums') + 4.2, VIOLET); boxAround(bx, [b1], m('nums') + 5, VIOLET);
+    say(p, ['v + w = w + v'], 90, 730, m('rule'), { size: 54, fill: COL.task });
+  }],
+
+  ['q1', 'Quick check', () => {
+    const p = panel(0);
+    text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
+    S.vs = vecs(p, { vecs: { v: [4, -1], w: [-1, 3] } });
+    S.vs.label('sum', ['v + w']);
+  }, { ask: done => quiz(CARD, [{
+    id: 'c-add', prompt: ['Add the two vectors: top plus top, bottom plus bottom.'],
+    build: vcolBlanks([{ q: [hcol(4, -1, GREEN), ' + ', hcol(-1, 3, VIOLET)], ans: [3, 2], why: 'Top: 4 + (−1) = 3. Bottom: −1 + 3 = 2.', hint: 'Add the tops: 4 + (−1). Then add the bottoms: −1 + 3.',
+      fx: () => { fx(S.vs.A.dw.g, { o: 1 }, 0, .5); fx(S.vs.A.dw.lab, { o: 1 }, 0, .5); fx(S.vs.A.sum.g, { o: 1 }, .6, .5); fx(S.vs.A.sum.lab, { o: 1 }, .6, .5); } }]),
+  }], done) }],
+
+  ['live', 'Still linked', (m) => {
+    const p = panel(0);
+    text(p, 'The sum follows', 60, 110, .2, { size: 40, weight: 600 });
+    const vs = vecs(p, { vecs: { v: [3, 1], w: [1, 2] }, show: ['v', 'dw', 'sum'] });
+    vs.label('sum', ['v + w']);
+    vRow(vs, 'v', GREEN, 250, 1); vRow(vs, 'w', VIOLET, 430, 1);
+    vs.row([{ t: 'v', fill: GREEN }, '+', { t: 'w', fill: VIOLET }, '=', { fn: v => [`${vs.fmt(v.v0)} + ${vs.paren(v.w0)}`, `${vs.fmt(v.v1)} + ${vs.paren(v.w1)}`], w: 46 * 4.2 }, '=', { col: 'sum' }], { x: 90, y: 610 });
+    const { PX, PY } = vs.P, hand = G(p, { o: 0 });
+    mk('circle', { r: 20, fill: COL.task, 'fill-opacity': .25, stroke: COL.task, 'stroke-width': 3 }, hand);
+    put(hand, { x: PX(4), y: PY(3) });
+    show(hand, m('grab') + .6, .4);
+    prog(q => {   // the tip of w snaps from grid point to grid point, as it does for the reader
+      const x = 4 + (5 - 4) * q, y = 3 + (-1 - 3) * q;
+      put(hand, { x: PX(x), y: PY(y) });
+      vs.set({ w0: Math.round(x) - 3, w1: Math.round(y) - 1 });
+    }, m('pull'), 2.6, io);
+    hide(hand, m('rule'), .4);
+    vs.flash('w0', m('pull') + .5); vs.flash('w1', m('pull') + .5); vs.flash('sum0', m('sum')); vs.flash('sum1', m('sum'));
+    const ce = G(p, { x: PX(5), y: PY(-1), o: 0 });
+    mk('circle', { r: 18, fill: 'none', stroke: COL.task, 'stroke-width': 4 }, ce);
+    show(ce, m('rule'), .3); pulse(ce, m('rule') + .6, 1.4); pulse(ce, m('rule') + 2, 1.4); hide(ce, m('scrub'), .3);
+    text(p, 'v + w ends where w ends', 90, 770, m('rule'), { size: 28, fill: COL.task, weight: 600 });
+    vs.to({ v0: 3, v1: 1, w0: 2, w1: -2 }, m('rule') - .1, .01);   // the plan catches up with the hand
+    vs.to({ v0: 1 }, m('move'), 1.6); vs.flash('v0', m('scrub') + 1.6);
+    vs.flash('sum0', m('sum2') + .3);
+  }],
+
+  ['q2', 'Your turn', () => {
+    const p = panel(0);
+    text(p, 'Your turn', 60, 110, .2, { size: 40, weight: 600 });
+    S.vs = vecs(p, { vecs: { v: [2, 1], w: [1, 1] }, show: ['v', 'dw', 'sum'] });
+    S.vs.label('sum', ['v + w']);
+    S.vs.row([{ t: 'v', fill: GREEN }, '+', { t: 'w', fill: VIOLET }, '=', { col: 'v', fixed: true }, '+', { col: 'w' }, '=', { col: 'sum', fixed: true }], { x: 90, y: 230 });
+    ringAt(S.vs.P, -1, 4, .5, p);
+  }, { ask: done => quiz(CARD, [{
+    id: 'c-target', prompt: ['Move ', $m('w'), ' (drag its tip, or change its numbers) so that ', $m('v + w'), ' lands on ', $m('(−1, 4)'), '.'],
+    build: vsTask(S.vs, v => v.w0 === -3 && v.w1 === 3, ['w = ', hcol(-3, 3, VIOLET), ': 2 + (−3) = −1 and 1 + 3 = 4.'],
+      (v, k) => `v + w is at ${pairStr(k.sum[0], k.sum[1])}. From there, the target is ${num(-1 - k.sum[0])} across and ${num(4 - k.sum[1])} up: change w by that much.`,
+      () => S.vs.set({ w0: -3, w1: 3 }), { drag: ['dw'], move: true }),
+  }], done) }],
+
+  ['scale', 'Multiplying by a number', (m) => {
+    const p = panel(0);
+    text(p, 'Multiplying a vector by a number', 60, 110, .2, { size: 40, weight: 600 });
+    const vs = vecs(p, { vecs: { v: [2, 1] }, c: 2, show: [] });
+    vs.label('v', ['v'], 'tip', [-34, 30]);
+    vRow(vs, 'v', GREEN, 250).parts.forEach(e => show(e, m('v')));
+    vs.show('v', m('v') + .3, .6);
+    const vv = vs.row([{ t: 'v + v', fill: GREEN }, '=', { fn: () => ['2 + 2', '1 + 1'], w: 160 }, '=', { col: 'cv', fixed: true }], { x: 90, y: 430, o: 0 });
+    showRow(vv, m('vv'), 0, 2); showRow(vv, m('tt'), 2, 5);
+    const copy = G(p, {});
+    vs.P.arrow(2, 1, 4, 2, GREEN, m('pic') + .8, { into: copy });
+    travel(p, vs.P, [[0, 0], [2, 1], [4, 2]], m('pic') + .4, 1.2, GREEN);
+    hide(copy, m('two') + .4, .4);
+    vs.show('cv', m('two'), .6); thick(vs, 'cv', m('two') + .6);
+    const cr = vs.row([{ key: 'c' }, { t: 'v', fill: GREEN }, '=', { key: 'c' }, { col: 'v', fixed: true }, '=', { fn: v => [`${vs.fmt(v.c)}·${vs.paren(v.v0)}`, `${vs.fmt(v.c)}·${vs.paren(v.v1)}`], w: 150 }, '=', { col: 'cv' }], { x: 90, y: 430, o: 0 });
+    hide(vv.g, m('rule') - .4, .4);
+    showRow(cr, m('rule'));
+    vs.flash('c', m('name') + .2); vs.flash('c', m('name') + 3.5);
+    const cin = G(p, {}), cInk = vs.num('c')[1];
+    curve(cin, cInk, vs.num('v0')[1], m('rule') + 2, { color: COL.task }); curve(cin, cInk, vs.num('v1')[1], m('rule') + 3.8, { color: COL.task, up: false });
+    vs.legs('cv', m('t3') + .4); vs.legs('cv', m('long3') + 2, false);
+    text(p, 'c: a scalar (it scales v)', 90, 570, m('name') + .4, { size: 30, fill: COL.task, weight: 600 });
+    vs.to({ c: 3 }, m('three') + .2, 1.4); vs.flash('c', m('three') + .2);
+    vs.flash('cv0', m('t3') + .2); vs.flash('cv1', m('t3') + 1.8);
+    thick(vs, 'cv', m('long3'));
+  }],
+
+  ['shrink', 'Shrink, flip, vanish', (m) => {
+    const p = panel(0);
+    text(p, 'Shrink, flip, vanish', 60, 110, .2, { size: 40, weight: 600 });
+    const vs = vecs(p, { vecs: { v: [2, 1] }, c: 3, show: ['v', 'cv'] });
+    vs.dim('v', .3, .35);
+    vs.row([{ key: 'c' }, { t: 'v', fill: GREEN }, '=', { key: 'c' }, { col: 'v', fixed: true }, '=', { fn: v => [`${vs.fmt(v.c)}·${vs.paren(v.v0)}`, `${vs.fmt(v.c)}·${vs.paren(v.v1)}`], w: 150 }, '=', { col: 'cv' }], { x: 90, y: 250 });
+    const note = (str, y, t0, fill = COL.task) => text(p, str, 90, y, t0, { size: 30, fill, weight: 600 });
+    vs.to({ c: .5 }, m('half') + .2, 1.4); vs.flash('c', m('half') + .2);
+    vs.flash('cv0', m('th') + .2); vs.flash('cv1', m('th') + 1.5);
+    note('c = ½:  half as long', 420, m('short'));
+    vs.to({ c: -1 }, m('neg') + .2, 1.6); vs.flash('c', m('neg') + .2);
+    vs.flash('cv0', m('tn') + 1); vs.flash('cv1', m('tn') + 3);
+    note('c = −1:  flipped, the same length (−v)', 475, m('flip'));
+    vs.to({ c: -2 }, m('neg2'), 1.2);
+    note('c = −2:  flipped and twice as long', 530, m('neg2') + .4);
+    vs.to({ c: 0 }, m('zero') + .4, 1.4);
+    note('c = 0:  the zero vector', 585, m('dot'));
+    // sweep c from −3 to 3: the tip runs along one line; every whole c leaves a dot
+    const trail = G(p, {});
+    [-3, -2, -1, 0, 1, 2, 3].forEach(k => {
+      const t = m('line') + .6 + (k + 3) / 6 * 4;
+      vs.P.dot(2 * k, k, COL.task, t, { r: 6, into: trail, label: k >= -1 && k !== 2 && k !== -1 ? undefined : k === -1 ? "−v" : `${num(k)}v`, dx: 12, dy: 26 });
+    });
+    vs.to({ c: -3 }, m('line'), .6);
+    vs.to({ c: 3 }, m('line') + .6, 4, lin);
+    vs.P.line(-6, -3, 6, 3, COL.task, m('all'), { dash: '10 10', w: 3, into: trail });
+    note('every multiple of v: on the line through v', 670, m('all') + .4, COL.chalk);
+  }],
+
+  ['more', 'Two more examples', (m) => {
+    const p = panel(0);
+    text(p, 'Two more: multiply both numbers by c', 60, 110, .2, { size: 40, weight: 600 });
+    const vs = vecs(p, { vecs: { v: [-1, 2] }, c: 3, show: [] });
+    vs.label('cv', v => [...vs.parts(v.c), 'v'], 'tip', [36, -10]);
+    const r = vs.row([{ key: 'c' }, { t: 'v', fill: GREEN }, '=', { key: 'c' }, { col: 'v', fixed: true }, '=', { fn: v => [`${vs.fmt(v.c)}·${vs.paren(v.v0)}`, `${vs.fmt(v.c)}·${vs.paren(v.v1)}`], w: 170 }, '=', { col: 'cv' }], { x: 90, y: 300, o: 0 });
+    showRow(r, m('a'), 0, 5); vs.show('v', m('a') + .3, .5); vs.dim('v', m('at'), .4);
+    showRow(r, m('at'), 5, 9); vs.flash('cv0', m('at') + .4); vs.flash('cv1', m('at') + 2.6);
+    vs.show('cv', m('ar') - .4, .6); thick(vs, 'cv', m('ar') + 1.2);
+    vs.to({ v0: 3, v1: -1, c: -2 }, m('b') + .2, 1.6); vs.flash('c', m('b') + .2); vs.flash('v0', m('b') + 1); vs.flash('v1', m('b') + 1);
+    vs.flash('cv0', m('bt') + .6); vs.flash('cv1', m('bt') + 2.8);
+    vs.legs('cv', m('bt') + .4); vs.legs('cv', m('br') + 3, false);
+    text(p, '(−) × (−) = (+)', 90, 520, m('sign'), { size: 34, fill: COL.task, weight: 600 });
+    thick(vs, 'cv', m('br') + .6); thick(vs, 'v', m('br') + 2.4);
+    text(p, 'twice as long, the opposite way', 90, 580, m('br') + 1, { size: 30, fill: COL.dim });
+  }],
+
+  ['q3', 'Your turn', () => {
+    const p = panel(0);
+    text(p, 'Your turn', 60, 110, .2, { size: 40, weight: 600 });
+    S.vs = vecs(p, { vecs: { v: [2, 1] }, show: ['v', 'cv'] });
+    S.vs.dim('v', 0, .35);
+    S.vs.row([{ key: 'c' }, { t: 'v', fill: GREEN }, '=', { key: 'c' }, { col: 'v', fixed: true }, '=', { col: 'cv', fixed: true }], { x: 90, y: 230 });
+  }, { ask: done => quiz(CARD, [{
+    id: 'c-scale', prompt: ['Change ', $m('c'), ' (or drag the tip of ', $m('cv'), ') until ', $m('cv'), ' = ', hcol(-4, -2, GREEN), '.'],
+    build: vsTask(S.vs, v => v.c === -2, 'c = −2: −2·2 = −4 and −2·1 = −2. Flipped and twice as long.',
+      v => v.c === 2 ? 'Right length, wrong way: the numbers must turn negative. Try a negative c.' : `c = ${num(v.c)} gives ${num(2 * v.c)} on top. Which c turns 2 into −4?`,
+      () => S.vs.set({ c: -2 }), { drag: ['cv'] }),
+  }], done) }],
+
+  ['minus', 'Subtracting', (m) => {
+    const p = panel(0);
+    text(p, 'Subtracting: v − w = v + (−w)', 60, 110, .2, { size: 40, weight: 600 });
+    const vs = vecs(p, { vecs: { v: [3, 1], w: [1, 2] }, d: 1, show: [] });
+    vs.label('sum', ['v − w']); vs.label('dw', v => [v.d === 1 ? 'w' : '−w'], 'mid', [-60, -36]);
+    const r = vs.row([{ t: 'v', fill: GREEN }, '−', { t: 'w', fill: VIOLET }, '=', { col: 'v', fixed: true }, '−', { col: 'w', fixed: true }, '=', { fn: () => ['3 − 1', '1 − 2'], w: 150 }, '=', { fn: () => ['2', '−1'], w: 40 * 1.9, fill: COL.task }], { x: 90, y: 250, size: 40, o: 0 });
+    showRow(r, m('ex'), 0, 7);
+    const [ft, fb] = r.parts[8].querySelectorAll('g[color]'), [rt, rb] = r.parts[10].querySelectorAll('g[color]');
+    put(fb, { o: 0 }); put(rb, { o: 0 });
+    showRow(r, m('tops'), 7, 11); show(fb, m('bots')); show(rb, m('bots') + 2.2);
+    lightUp(rt, m('res') + .3); lightUp(rb, m('res') + .3);
+    const lk = G(p, {});
+    curve(lk, vs.num('v0')[0], ft, m('tops') + .3, { color: GREEN }); curve(lk, vs.num('w0')[0], ft, m('tops') + 1.2, { color: VIOLET });
+    curve(lk, vs.num('v1')[0], fb, m('bots') + .3, { color: GREEN, up: false }); curve(lk, vs.num('w1')[0], fb, m('bots') + 1.2, { color: VIOLET, up: false });
+    boxAround(lk, [rt, rb], m('res') + .2);
+    hide(lk, m('how') + .5, .4);
+    vs.show(['v', 'w'], m('how'), .6);
+    say(p, ['v − w = v + (−w)'], 90, 440, m('same'), { size: 44 });
+    vs.show('dw0', m('flip') - .2, .3);
+    vs.to({ d: -1 }, m('flip') + .2, 1.6);
+    text(p, 'flip w:  −w', 90, 500, m('flip') + .8, { size: 30, fill: VIOLET, weight: 600 });
+    vs.hide('dw0', m('ride') + .2, .4);
+    slideIn(vs, 'dw', [3, 1], m('ride') + .1, 1.4);
+    vs.show('sum', m('end'), .6);
+    const gap = G(p, {});
+    vs.P.arrow(1, 2, 3, 1, COL.task, m('gap') + .6, { into: gap });
+    text(p, 'from the tip of w to the tip of v', 90, 600, m('gap') + .6, { size: 28, fill: COL.task, weight: 600 });
+    travel(p, vs.P, [[0, 0], [1, 2], [3, 1]], m('why') + .4, 1.3);
+    say(p, ['w + (v − w) = v'], 90, 680, m('why') + 1, { size: 40 });
+  }],
+
+  ['q4', 'Quick check', () => {
+    const p = panel(0);
+    text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
+    S.vs = vecs(p, { vecs: { v: [5, 2], w: [1, 4] }, d: -1 });
+    S.vs.label('sum', ['v − w']);
+  }, { ask: done => quiz(CARD, [{
+    id: 'c-sub', prompt: ['Subtract: top minus top, bottom minus bottom.'],
+    build: vcolBlanks([{ q: [hcol(5, 2, GREEN), ' − ', hcol(1, 4, VIOLET)], ans: [4, -2], why: 'Top: 5 − 1 = 4. Bottom: 2 − 4 = −2.', hint: 'Top minus top: 5 − 1. Bottom minus bottom: 2 − 4 (that one is negative).',
+      fx: () => { fx(S.vs.A.dw.g, { o: 1 }, 0, .5); fx(S.vs.A.dw.lab, { o: 1 }, 0, .5); fx(S.vs.A.sum.g, { o: 1 }, .6, .5); fx(S.vs.A.sum.lab, { o: 1 }, .6, .5); } }]),
+  }], done) }],
+
+  ['wrap', 'Summary', (m) => {
+    const p = panel(0);
+    [['To add, add the tops and add the bottoms.', 'w1'], ['Arrows: tail of w on the tip of v; v + w = w + v.', 'w2'],
+     ['c·v: multiply both numbers by c (stretch, shrink, flip, vanish).', 'w3'], ['v − w = v + (−1)·w.', 'w4']].forEach(([str, mark], i) => {
+      const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
+      const dg = G(g, { x: 150, y: -12 });
+      mk('circle', { r: 26, fill: COL.task }, dg);
+      T(dg, String(i + 1), { x: 0, y: 11, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+      const tl = T(g, str, { x: 210, size: 36, weight: 600 });
+      tw(g, { o: 1, x: 0 }, m(mark), .6);
+      pulse(dg, m('end') + i * .3, 1.25);
+      const next = ['w2', 'w3', 'w4', 'end'][i], ul = path(g, `M210 16H${210 + tl.getComputedTextLength()}`, { stroke: COL.task, 'stroke-width': 3, 'stroke-opacity': .6 }, { d: 0 });
+      draw(ul, m(mark) + .5, Math.max(1, m(next) - m(mark) - 1), lin);
+    });
+  }],
+  ['final1', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-add', prompt: ['Add. Top plus top, bottom plus bottom.'], build: vcolBlanks(ADDQ),
+  }], done, 'Chapter practice · set 1 of 4') }],
+  ['final2', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-mul', prompt: ['Multiply each number by c.'], build: vcolBlanks(MULQ),
+  }, {
+    id: 'p-sub', prompt: ['Subtract. Top minus top, bottom minus bottom.'], build: vcolBlanks(SUBQ),
+  }], done, 'Chapter practice · set 2 of 4') }],
+  ['final3', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-c', prompt: ['What does multiplying by c do to an arrow? Pick every word that fits.'],
+    build: grid(CQ, CCOLS, { multi: true, text: true }),
+  }], done, 'Chapter practice · set 3 of 4') }],
+  ['final4', 'Chapter practice', () => {
+    const p = panel(0);
+    text(p, 'Make it happen', 60, 110, .2, { size: 40, weight: 600 });
+    S.vs = vecs(p, { vecs: { v: [1, 2], w: [1, 1] }, show: ['v', 'dw', 'sum'] });
+    S.vs.label('sum', ['v + w']);
+    S.row = S.vs.row([{ t: 'v', fill: GREEN }, '+', { t: 'w', fill: VIOLET }, '=', { col: 'v', fixed: true }, '+', { col: 'w' }, '=', { col: 'sum', fixed: true }], { x: 90, y: 230 });
+  }, { ask: done => quiz(CARD, MAKE5.map(q => ({ id: q.id, prompt: q.prompt, build: (body, api) => { q.setup(); return vsTask(S.vs, q.test, q.why, q.hint, q.show, q.opts)(body, api); } })), done, 'Chapter practice · set 4 of 4') }],
+  ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+// Hands-on practice: targets for v + w (w moves), then for c·v (c moves).
+const MAKE5 = [
+  ...[[4, 0], [-3, 5], [1, -4], [0, 0], [6, 6]].map(([x, y], i) => ({
+    id: `p-sum${i + 1}`, prompt: ['Move ', $m('w'), ' so that ', $m('v + w'), ' lands on ', $m(pairStr(x, y)), '.'],
+    setup: () => { S.vs.set({ v0: 1, v1: 2, w0: 1, w1: 1, c: 1, d: 1 }); S.q5?.remove(); S.q5 = ringAt(S.vs.P, x, y, 0, S.vs.stage); fx(S.q5, { o: 1 }, 0, .3); },
+    test: v => v.w0 === x - 1 && v.w1 === y - 2, why: ['w = ', hcol(x - 1, y - 2, VIOLET), `: 1 + ${(x - 1) < 0 ? `(${num(x - 1)})` : x - 1} = ${num(x)} and 2 + ${(y - 2) < 0 ? `(${num(y - 2)})` : y - 2} = ${num(y)}.`],
+    hint: (v, k) => `v + w is at ${pairStr(k.sum[0], k.sum[1])}; the target is ${num(x - k.sum[0])} across and ${num(y - k.sum[1])} up from there.`,
+    show: () => S.vs.set({ w0: x - 1, w1: y - 2 }), opts: { drag: ['dw'], move: true },
+  })),
+];
+
+boot();
+</script>
+</body>
+</html>
