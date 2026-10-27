@@ -75,7 +75,7 @@ The code in this repository is MIT. The pictures and data here keep their own li
 | WHO quote in ch05 | [Director-General's opening remarks, 5 May 2023](https://www.who.int/news-room/speeches/item/who-director-general-s-opening-remarks-at-the-media-briefing---5-may-2023) | WHO | Quoted |
 | `quiet.js` in ch05 | countries reporting new cases in the four weeks before each point, April–September 2023 | Our World in Data | CC BY 4.0 |
 
-## Episode 6 · The Origin (ch06)
+### ch06 · The Origin
 
 | File | Source | Author | Licence |
 |---|---|---|---|
