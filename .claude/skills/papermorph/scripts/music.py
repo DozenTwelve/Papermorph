@@ -51,7 +51,7 @@ def chapter_url(url, ch):
 
 
 async def timeline(url):
-    """[(beat id, P.end, pre)] for every beat, the chapter's language and its first music() file, gain and beat count."""
+    """[(beat id, P.end, pre, silent)] for every beat (silent: { dur }, no clip), the chapter's language and its first music() file, gain and beat count."""
     from playwright.async_api import async_playwright
     answers(url)
     async with async_playwright() as p:
@@ -65,7 +65,7 @@ async def timeline(url):
         beats = []
         for i in range(n):
             await pg.goto(f"{url}?beat={i}&t=0"); await pg.wait_for_timeout(300)
-            beats.append(tuple(await ask("[BEATS[P.i].id, P.end, BEATS[P.i].pre || 0]")))
+            beats.append(tuple(await ask("[BEATS[P.i].id, P.end, BEATS[P.i].pre || 0, !!TIMINGS[BEATS[P.i].id].silent]")))
         await b.close()
     if errs: print(f"page errors: {'; '.join(sorted(set(errs))[:3])}", file=sys.stderr)
     return beats, lang, bgm
@@ -112,7 +112,7 @@ def spans(end, at, rests):
 def cut(a):
     if a.length is None:
         beats, _, _ = asyncio.run(timeline(a.url))
-        a.length = sum(e for _, e, _ in beats)
+        a.length = sum(b[1] for b in beats)
     end, ends = (a.end, None) if a.end is not None else (last_note(a.src), sound_end(a.src))
     at = a.length - a.shift   # where the last note falls in the cut
     found = silences(a.src, a.rests, .25, max(0, end - at - 120), at + 120) if a.rests is not None else []   # ponytail: rests up to 2 min before the in-point, enough for a few short ones
@@ -155,9 +155,10 @@ def momentary(src, gain=1.0):
 def gaps(a):
     import numpy as np
     beats, lang, bgm = asyncio.run(timeline(a.url))
-    L, SR, hop, w = sum(e for _, e, _ in beats), 16000, 800, 6400   # 400 ms windows every 50 ms
+    L, SR, hop, w = sum(b[1] for b in beats), 16000, 800, 6400   # 400 ms windows every 50 ms
     voice, t0 = np.zeros(int((L + 1) * SR), np.float32), 0.0
-    for bid, end, pre in beats:
+    for bid, end, pre, silent in beats:
+        if silent: t0 += end; continue   # no clip: all of it is a gap
         x = np.frombuffer(subprocess.run(["ffmpeg", "-v", "error", "-i", f"{a.url}audio/{lang}/{bid}.mp3", "-ac", "1", "-ar", str(SR),
                                           "-f", "f32le", "-"], capture_output=True, check=True).stdout, np.float32)
         i = int((t0 + pre) * SR); x = x[:max(0, min(len(x), int((t0 + end) * SR) - i))]; voice[i:i + len(x)] += x; t0 += end

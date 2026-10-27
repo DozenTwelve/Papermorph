@@ -10,7 +10,8 @@ Errors (exit status 1):
             declared by the engine or another of its scripts; a second const/let/class stops the page script, a
             second function silently replaces one
   math      the chapter uses a maths helper from lib/math.js but does not load it after engine.js
-  beat      a beat id has no entry in audio/<lang>/timings.js or no MP3
+  beat      a beat id has no entry in audio/<lang>/timings.js or no MP3 (a silent beat, { dur: s } in its fourth slot,
+            needs neither)
   mark      m('name') is not a mark of any beat
   stale     the narration's text differs from timings.js, or a narration [[mark]] is missing there: run tts.py again
   style     style.json is not valid JSON or lacks schema, tier, book, words, look or voice
@@ -115,6 +116,22 @@ def decls(text):
     return [(name, kind, code.count('\n', 0, at) + 1) for name, kind, at in sorted(out, key=lambda d: d[2])]
 
 
+def slots(code, start):
+    """The top-level slots of the array literal opening at code[start] ('['), in code with strings and comments blanked."""
+    depth, out, last = 0, [], start + 1
+    for k in range(start, len(code)):
+        c = code[k]
+        if c in '([{':
+            depth += 1
+        elif c in ')]}':
+            depth -= 1
+            if depth == 0:
+                return out + [code[last:k]]
+        elif c == ',' and depth == 1:
+            out.append(code[last:k]); last = k + 1
+    return out
+
+
 def timings(path):
     t = path.read_text(encoding='utf-8')
     T = json.loads(t[t.index('{'):t.rindex('}') + 1])
@@ -169,14 +186,18 @@ def lint_chapter(ch, content, out):
     # beats, audio, marks
     lang = (re.search(r"""language:\s*['"](\w+)['"]""", inline) or [None, 'en'])[1]
     tpath = ch / 'audio' / lang / 'timings.js'
-    if not tpath.exists():
-        return err('beat', f'no audio/{lang}/timings.js')
-    T = timings(tpath)
     starts = [(m.start(), m.group(1)) for m in BEAT.finditer(inline)]
     ids = [b for _, b in starts]
+    code = depth0(inline)[0]
+    silent = {b for pos, b in starts if len(s := slots(code, pos)) > 3 and re.search(r'\bdur\s*:', s[3])}   # { dur: s }: no clip
+    if not tpath.exists() and not (ids and set(ids) <= silent):
+        return err('beat', f'no audio/{lang}/timings.js')
+    T = timings(tpath) if tpath.exists() else {}
     if not ids:
         warn('beat', "no beats recognised (expected ['id', 'title', (m, D) => …]); marks were not checked")
     for b in ids:
+        if b in silent and b not in T:
+            continue
         if b not in T:
             err('beat', f'beat {b} has no timings')
         elif not (ch / 'audio' / lang / f'{b}.mp3').exists():
