@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en" data-stage="portrait">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Map kit · sample</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<!-- The map kit's sample, upright; ?wide plays it on the landscape stage. Four beats prove the pieces: the globe handing
+     over to the paper map, a lit country, a region, routes and labels; hatching and an area; a city's detail; a map that
+     holds still. Not a chapter: it has no narration, so its beats are given lengths below and their clips are silence.
+     To play it, in site/<book>/ after engine.py (and the shorts or documentary kit's lib/, for book.css and the fonts):
+       cp assets/templates/maps/lib/* site/<book>/lib/ && mkdir -p site/<book>/maps && cp assets/templates/maps/sample.html site/<book>/maps/index.html
+       uv run --with pillow --with shapely python3 scripts/geo.py site/<book>/img --regions CHN,ITA:region \
+         --detail Wuhan=114.27,30.58,1.2 --cities Codogno=9.705,45.16,Bergamo,Milan,Wuhan --globe site/<book>/lib
+       mkdir -p site/<book>/maps/audio/en && for b in globe orders wuhan still; do
+         ffmpeg -v error -f lavfi -i anullsrc=r=44100:cl=mono -t 7 -q:a 9 site/<book>/maps/audio/en/$b.mp3; done -->
+<script>if (new URLSearchParams(location.search).has('wide')) document.documentElement.dataset.stage = 'landscape';</script>
+<script src="../lib/engine.js"></script>
+<script>window.TIMINGS = Object.fromEntries(['globe', 'orders', 'wuhan', 'still'].map(id => [id, { dur: 6.4, marks: {}, cues: [] }]));</script>
+<script src="../img/geo-lite.js"></script>
+<script src="../lib/map.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 0, title: 'Map kit', minutes: 1, language: 'en', lead: false };
+function say(p, str, t0, y = SH > SW ? 250 : 110) {
+  const e = T(p, str.toUpperCase(), { x: SW / 2, y, size: SH > SW ? 80 : 64, fill: MAP_COL.land, font: '"Oswald", sans-serif', weight: 600, anchor: 'middle', o: 0 });
+  e.setAttribute('stroke', MAP_COL.ink); e.setAttribute('stroke-width', 8); e.setAttribute('paint-order', 'stroke'); e.setAttribute('stroke-linejoin', 'round');
+  show(e, t0, .3);
+}
+const ramp01 = (t, a, b) => Math.min(1, Math.max(0, (t - a) / (b - a)));
+const MILAN = CITIES.Milan, WUHAN = CITIES.Wuhan;
+
+const BEATS = [
+  // the globe turns to Italy and hands over to the paper map at 1.8 s: the same view, so nothing jumps; Lombardy lit,
+  // routes out of Milan, labels
+  ['globe', 'Globe to map', (m, D) => {
+    const p = panel(0), tH = 1.8;
+    mk('rect', { x: 0, y: 0, width: SW, height: SH, fill: MAP_COL.night }, p);
+    const view = mapKeys([[0, 60, 20, 1.1], [tH + .2, 10, 44, .16], [D, 4, 42, .3]]);
+    Globe.clearMarks(); Globe.dot(...MILAN);
+    globeShot(p, D, view, () => 1, null, { on: [0, tH + .4] });
+    const mp = G(p, { o: 0 });
+    show(mp, tH, .4, lin);
+    paperMap(mp, D, view, {
+      lit: (c, t) => c === 'ITA' ? .35 * ramp01(t, tH + .3, tH + .6) : 0,
+      region: (n, t) => n === 'Lombardia' ? ramp01(t, tH + .5, tH + .8) : 0,
+      routes: ['Paris', 'London', 'Madrid', 'Berlin'].map((n, i) => [MILAN, CITIES[n], tH + 1.4 + i * .3, .7]),
+      cities: [['Milan', tH + .6, 'l'], ['Paris', tH + 2.1], ['London', tH + 2.4]],
+      on: [tH - .05, D + 1],
+    });
+    say(p, 'Globe to paper', .2);
+  }],
+  // the paper map alone: countries hatched one by one (an order), an area of 15 km hatched and outlined, a lit country
+  ['orders', 'Hatching and an area', (m, D) => {
+    const p = panel(0);
+    const order = ['ITA', 'ESP', 'FRA', 'DEU', 'GBR', 'AUT', 'CHE', 'BEL', 'NLD', 'PRT'];
+    const view = mapKeys([[0, 8, 47, .2], [3, 8, 47, .2], [4.6, 9.7, 45.2, .012]]);
+    paperMap(p, D, view, {
+      hatch: (c, t) => ramp01(t, .3 + order.indexOf(c) * .2, .5 + order.indexOf(c) * .2) * (order.includes(c) ? 1 : 0),
+      lit: (c, t) => c === 'SWE' ? .5 * ramp01(t, 2.6, 2.9) : 0, litFill: MAP_COL.mark,
+      areas: [[[mapCircle(CITIES.Codogno, 15)], 4.4, { fill: MAP_COL.hot, line: MAP_COL.ink }], ['ITA/Lombardia', 3.4, { fill: null, width: 4 }]],
+      cities: [['Codogno', 4.6], ['Bergamo', 4.8]],
+    });
+    say(p, 'Orders, an area', .2);
+  }],
+  // closing in on one city: rivers, lakes and the built-up area fade in as the view closes (geo.py --detail)
+  ['wuhan', 'A city up close', (m, D) => {
+    const p = panel(0);
+    const view = mapKeys([[0, 112, 31, .42], [D - .6, ...WUHAN, .006]]);
+    paperMap(p, D, view, { regions: ['CHN'], region: (n, t) => n === 'Hubei' ? .3 * ramp01(t, .5, 1) * (1 - ramp01(t, 2.5, 3.5)) : 0, detail: 'Wuhan',
+      dots: [[...WUHAN, 4.5, 10]], cities: [['Wuhan', 1]] });
+    say(p, 'A city up close', .2);
+  }],
+  // a view that holds still: drawn while its marks pop, then never again (perf: ~0 ms a frame after 3 s)
+  ['still', 'A still map', (m, D) => {
+    const p = panel(0);
+    paperMap(p, D, () => ({ lon: 15, lat: 30, H: 1.15 }), {
+      dots: Object.keys(CITIES).slice(0, 40).map((n, i) => [...CITIES[n], .3 + i * .06, 5]),
+      cities: [['Tokyo', 1.5], ['Lagos', 1.7], ['London', 1.9, 'l']],
+    });
+    say(p, 'A still map', .2);
+  }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+loadGlobe().then(() => document.fonts.load('600 40px Oswald')).then(boot);
+</script>
+</body>
+</html>
