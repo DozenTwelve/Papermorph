@@ -7,7 +7,7 @@
     uv run --with playwright --with pillow shot.py ch01 --out OUT --cuts               # cut sheet of a picture book
     uv run --with playwright --with pillow shot.py ch01 --out OUT --cuts scene3        # only the cuts into and out of scene3
     uv run --with playwright --with pillow shot.py ch01 --out books/<book>/review/stills 2:9 --webp 1400 --name still-ch01   # copy the .webp to site/<book>/img/
-    ... --url http://localhost:8765/<book>/
+    ... --url http://localhost:8765/<book>/ [--query tags]
 
 A moment is BEAT:TIME. BEAT is the beat's index in BEATS counted from 0 (the player shows BEAT+1) or its id;
 TIME is seconds on the beat clock, open (1.2 s), mid (half the beat) or end (the beat's last frame, P.end - 0.05:
@@ -22,7 +22,8 @@ the sheets first). --out is required: give each review its own folder (books/<bo
   --webp W    also write each shot as a W-wide WebP of the stage's shape (implies --clean): a series-page still or a cover
               (stories.md: 1400 wide); --name NAME names it OUT/NAME.webp (one moment only)
 
-Uses ?beat=N&t=0, then sets the beat clock to the moment, as playback would reach it. The page runs with reduced
+--query adds to the page's query (tags: the source and AI tags an upright film's export shows). Uses ?beat=N&t=0,
+then sets the beat clock to the moment, as playback would reach it. The page runs with reduced
 motion, which stops the CSS-only motion that runs on the wall clock (page cross-fades, cards sliding in, the mascot):
 a shot is the same picture however busy the machine is, so several runs at once (parallel scene workers) are safe.
 """
@@ -47,8 +48,8 @@ async def main(a):
         pg.on("pageerror", lambda e: errs.append(str(e)))
         # a desktop browser ($CHROME) also asks the server for /favicon.ico, which is not the book's
         pg.on("console", lambda m: m.type == "error" and not m.location.get("url", "").endswith("/favicon.ico") and errs.append(m.text))
-        base = f"{a.url}{a.chapter}/index.html"
-        await pg.goto(base + "?beat=0&t=0"); await pg.wait_for_timeout(500)
+        base = f"{a.url}{a.chapter}/index.html?{a.query + '&' if a.query else ''}"
+        await pg.goto(base + "beat=0&t=0"); await pg.wait_for_timeout(500)
         if errs:
             print("page errors:", errs); await b.close(); return 1
         ids = await pg.evaluate("BEATS.map(b => b.id)")
@@ -57,7 +58,7 @@ async def main(a):
 
         async def grab(i, t, clean):
             """The picture of beat i at t (seconds, open, mid, end) as an RGB image, and the time used."""
-            await pg.goto(f"{base}?beat={i}&t=0"); await pg.wait_for_timeout(300)
+            await pg.goto(f"{base}beat={i}&t=0"); await pg.wait_for_timeout(300)
             end = await pg.evaluate("P.end")
             sec = {"open": 1.2, "end": end - .05, "mid": end / 2}.get(t)
             sec = float(t) if sec is None else sec
@@ -137,6 +138,7 @@ if __name__ == "__main__":
                     "with beats, only the cuts into and out of them")
     ap.add_argument("--webp", type=int, metavar="W", help="also save each shot as a W-wide WebP of the stage's shape (clean)")
     ap.add_argument("--name", help="file name (without .webp) for the one --webp still")
+    ap.add_argument("--query", default="", help="extra page query, e.g. tags")
     a = ap.parse_args()
     a.url = a.url if a.url.endswith("/") else a.url + "/"
     sys.exit(asyncio.run(main(a)))
