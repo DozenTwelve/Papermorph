@@ -189,7 +189,7 @@ function originStage(p, D, tQ, tIn) {
     cam, M, cards, labels, mid,
     // one answer: its card on the beat of its name, its place lit, a detail, then who leans to it (-1: shown at once)
     side(k, tName, tPlace, tDetail, tWho) {
-      const S = SIDES[k], y0 = k ? 470 : 150, on = t => t < 0 ? 0 : t;
+      const S = SIDES[k], y0 = 310, on = t => t < 0 ? 0 : t;
       const pin = mk('circle', { cx: S.at[0], cy: S.at[1], r: .4, fill: MAPINK, opacity: 0 }, M.marks);
       const ring = mk('circle', { cx: S.at[0], cy: S.at[1], r: 1.2, fill: 'none', stroke: MAPINK, 'data-sw': 3, opacity: 0 }, M.marks);
       [pin, ring].forEach(e => tw(e, { o: 1 }, on(tPlace), tPlace < 0 ? .01 : .3));
@@ -951,7 +951,7 @@ const BEATS = [
     paperTop(p, .4);
     cam.to({ z: .54 }, 0, D, lin);
     // the date runs from where the last beat stopped (18 March) and reaches each count's day as it is said
-    const DAY = 864e5, d0 = Date.parse('2020-03-18'), dA = Date.parse('2020-03-26'), d1 = Date.parse('2020-04-07');
+    const DAY = 864e5, d0 = Date.parse('2020-03-18'), dA = Date.parse('2020-03-26'), d1 = Date.parse('2020-04-04');   // 121 countries, the first day over 120
     const day = t => t < m('b17') ? d0 + Math.round((dA - d0) / DAY * span01(t, .2, m('b17'))) * DAY : dA + Math.round((d1 - dA) / DAY * span01(t, m('week'), m('b39'))) * DAY;
     const hs = worldHatch(M), dt = dateTag(p, '18 March 2020', 0, { fill: MAPINK }), fmt = dateFmt();
     const box = G(p, { o: 0 });
@@ -977,7 +977,7 @@ const BEATS = [
     ground(p, NIGHT);
     const a = still(p, 'school-empty-classroom', 0, m('shelves'), { o: .55 });
     const k = G(p, { o: 0 });
-    counter(k, 800, 470, 0, 1e9, m('billion') - .2, 1, { size: 120, fill: CREAM, font: KEY, weight: 600 });
+    counter(k, 800, 470, 0, 1.077e9, m('billion') - .2, 1, { size: 120, fill: CREAM, font: KEY, weight: 600 });
     T(k, 'STUDENTS KEPT OUT OF CLASS, BY SEPTEMBER 2020', { x: 800, y: 540, size: 28, fill: CREAM, font: KEY, weight: 500, anchor: 'middle' }).setAttribute('letter-spacing', '.12em');
     tw(k, { o: 1 }, m('billion') - .3, .3);
     tag(p, 'Wikipedia, from UNESCO', 800, 580, m('billion'), { anchor: 'middle', size: 18, fill: CREAM });
@@ -1042,14 +1042,15 @@ const BEATS = [
   // 17. The sky over China clears: NASA's two pictures, January and February
   ['quiet', 'Clear skies', (m, D) => {
     const p = panel(0);
-    ground(p, '#f4f6f8');
+    ground(p, MAPLAND); paperTop(p, .4);   // the paper of the beats around it; NASA's picture mounted on it like a print
     const cam = camera(p, D + HOLD, { x: 800, y: 450, z: 1 }), w = cam.world;
-    const k = 1.55, W = 720 * k, H = 545 * k;
+    const k = 1.45, W = 720 * k, H = 545 * k;
+    mk('rect', { x: 800 - W / 2 - 18, y: 450 - H / 2 - 8, width: W + 36, height: H + 36, fill: '#f6f1e4' }, w);
     mk('image', { href: '../img/no2-china.webp', x: 800 - W / 2, y: 450 - H / 2 + 10, width: W, height: H }, w);
     cam.to({ z: 1.04 }, 0, m('china'), lin);
     cam.to({ x: 800 - W / 4, y: 400, z: 1.55 }, m('china') - .3, .9, soft);
     cam.to({ x: 800 + W / 4, y: 400, z: 1.55 }, m('fall') - .4, .9, soft);
-    tag(p, 'Nitrogen dioxide over China · NASA Earth Observatory, ESA Sentinel-5P data, public domain', 800, 880, .4, { anchor: 'middle', size: 17, fill: '#4a5560' });
+    tag(p, 'Nitrogen dioxide over China · NASA Earth Observatory, ESA Sentinel-5P data, public domain', 800, 880, .4, { anchor: 'middle', size: 17, fill: MAPINK });
     const f = G(p, { o: 0 });
     mk('rect', { x: 1150, y: 680, width: 380, height: 120, fill: CHAR }, f);
     T(f, '−50%', { x: 1340, y: 752, size: 64, fill: CREAM, font: KEY, weight: 600, anchor: 'middle' });
@@ -1063,7 +1064,7 @@ const BEATS = [
     ground(p, MAPSEA);
     const M = paperMap(p, D + HOLD, { x: 0, y: -40, z: .54 }, { geo: GEO_W }), cam = M.cam;
     paperTop(p, .4);
-    const W5 = 5, W24 = 24, W47 = GEO_W.weeks.length - 1;
+    const W5 = 5, W24 = 24, W47 = GEO_W.weeks.indexOf('2020-11-02');   // stops where §5 starts
     const wk = t => Math.round(t < m('back') ? W5 + (W24 - W5) * span01(t, .3, m('pause')) : W24 + (W47 - W24) * span01(t, m('back'), D));
     const hs = worldHatch(M), dt = dateTag(p, '6 April 2020', .1, { fill: MAPINK }), fmt = dateFmt();
     let last = -1;
@@ -1146,7 +1147,7 @@ const BEATS = [
     const p = panel(0);
     ground(p, CHAR);
     const dots = dotGrid(p, 352, 330);
-    const n0 = T(p, '', { x: 800, y: 200, size: 110, fill: RED, font: KEY, weight: 600, anchor: 'middle' });
+    const n0 = T(p, WAVES[WAVES.length - 1][4].toLocaleString('en-US'), { x: 800, y: 200, size: 110, fill: RED, font: KEY, weight: 600, anchor: 'middle' });
     const l0 = T(p, 'REPORTED DEATHS', { x: 800, y: 254, size: 28, fill: CREAM, font: KEY, weight: 500, anchor: 'middle' });
     l0.setAttribute('letter-spacing', '.16em');
     const v0 = WAVES[WAVES.length - 1][4];
@@ -1207,13 +1208,12 @@ const BEATS = [
     ground(p, MAPSEA);
     const M = paperMap(p, D + HOLD, { x: 0, y: -40, z: .5 }, { geo: GEO_W });
     paperTop(p, .4);
-    // one light per country still reporting cases (four-week windows), out for good after its last report
-    const lastOn = b => b.lastIndexOf('1');
+    // one light per country that reported cases in that four-week window
     const L = Object.entries(QUIET.bits).filter(([c]) => GEO_W.countries[c]).map(([c, b]) => {
       const [x, y] = GEO_W.countries[c][4], e = mk('circle', { cx: x, cy: y, r: 9, fill: RED, opacity: 0 }, M.marks);
-      return [e, lastOn(b)];
+      return [e, b];
     });
-    const i0 = QUIET.points.findIndex(d => d >= '2023-01-01'), i1 = QUIET.points.findIndex(d => d >= '2023-08-14');
+    const i0 = QUIET.points.findIndex(d => d >= '2023-01-01'), i1 = QUIET.points.findIndex(d => d >= '2023-09-11');   // the fewest: 111
     const ix = t => Math.round(i0 + (i1 - i0) * span01(t, m('stopped') - .2, m('quiet')));
     const dt = dateTag(p, '5 May 2023', m('may5'), { fill: MAPINK }), fmt = dateFmt();
     const cnt = T(p, '', { x: 1530, y: 98, size: 64, fill: MAPINK, font: KEY, weight: 600, anchor: 'end', o: 0 });
@@ -1222,7 +1222,7 @@ const BEATS = [
     let last = -1;
     clockRun(t => {
       const i = ix(t), on = t > m('stopped') - .4; if (i === last && on) return; last = i;
-      let n = 0; L.forEach(([e, k]) => { const lit = k >= i; n += lit; e.setAttribute('opacity', on ? (lit ? .9 : 0) : 0); });
+      let n = 0; L.forEach(([e, b]) => { const lit = b[i] === '1'; n += lit; e.setAttribute('opacity', on ? (lit ? .9 : 0) : 0); });
       cnt.textContent = String(n); if (t > m('stopped') - .2) dt.lastChild.textContent = fmt(Date.parse(QUIET.points[i]));
     }, D, { tail: true });
     tw(cnt, { o: 1 }, m('stopped'), .3);
