@@ -11,7 +11,8 @@ stall due to ReadPixels" (preserveDrawingBuffer, which the export needs) and thr
 Then, from the first browser, each beat's voice length (pre + its clip) against its real length (P.end). A beat runs to
 its last tween plus HOLD (0.6 s), so a tween or a clockRun past D lengthens it silently: the overrun past voice + HOLD
 is printed, and marked when over 1 s (a helper without the beat's D: clockRun(f, 0, { tail: true }) runs to the end
-and never lengthens it). Mirrored beats meant to run alike show here too.
+and never lengthens it). Mirrored beats meant to run alike show here too. A silent beat ({ dur: s }, no clip) counts
+its dur as its voice and is labelled so.
 """
 import argparse, asyncio, re, sys
 from playwright.async_api import async_playwright
@@ -34,7 +35,7 @@ async def chapter(pg, cur, url):
         cur["beat"] = bid
         await pg.goto(f"{url}?beat={i}&t=0"); await pg.wait_for_timeout(300)
         try:
-            end, pre, dur = await pg.evaluate("[P.end, BEATS[P.i].pre || 0, TIMINGS[BEATS[P.i].id].dur]")
+            end, pre, dur, quiet = await pg.evaluate("[P.end, BEATS[P.i].pre || 0, TIMINGS[BEATS[P.i].id].dur, !!TIMINGS[BEATS[P.i].id].silent]")
         except Exception as e:
             cur["errs"].append((bid, str(e).splitlines()[0])); continue
         for t in (end / 2, end - .05):
@@ -42,7 +43,7 @@ async def chapter(pg, cur, url):
                 await pg.evaluate(f"P.t = {t}; evalTo({t})")
             except Exception as e:
                 cur["errs"].append((f"{bid} t={t:.2f}", str(e).splitlines()[0]))
-        rows.append((bid, pre + dur, end))
+        rows.append((bid + (" (silent)" if quiet else ""), pre + dur, end))
     return rows
 
 
