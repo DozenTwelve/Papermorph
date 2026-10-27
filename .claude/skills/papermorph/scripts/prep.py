@@ -18,11 +18,12 @@ OUT/<name>.webp (quality 88) and updates OUT/art.js, window.ART = {name: [w, h]}
 so several lists (one per source folder) can write into one art.js. --ink and --paper default to the cream of the
 documentary kit's CREAM.
 
---art names the sizes file in OUT (default art.js). Any other name is written as Object.assign(window.ART, ...), loaded
-by the episode's page after art.js: episodes of a series made at the same time each keep their own sizes file
-(--art ch03-art.js), so none of them rewrites the shared one.
+--art names the sizes file in OUT (default art.js). Any other name adds to ART, loaded by the episode's page after
+art.js: episodes of a series made at the same time each keep their own sizes file (--art ch03-art.js), so none of them
+rewrites the shared one. An older art.js written as `const ART = {...}` (a film's own) is read too, and rewritten as
+window.ART; an episode's file adds to either kind.
 """
-import argparse, json, pathlib
+import argparse, json, pathlib, re
 import numpy as np
 from PIL import Image, ImageFilter
 
@@ -89,7 +90,7 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     jf = out / a.art
     t = jf.read_text() if jf.exists() else ""
-    sizes = json.loads(t[t.index("{", t.index("window.ART")):t.rindex("}") + 1]) if t else {}
+    sizes = json.loads(re.findall(r"\{[^{}]*\}", t)[-1]) if t else {}   # the flat sizes object of any of the formats
     for name, f, mode, side, *rest in json.loads(pathlib.Path(a.list).read_text()):
         if mode == "line":
             im = line(src / f, side, rest[0] if rest else 0, rest[1] if len(rest) > 1 else a.ink)
@@ -107,7 +108,8 @@ def main():
         sizes[name] = [im.width, im.height]
         print(name, mode, im.width, im.height)
     data = json.dumps(sizes, separators=(",", ":"))
-    jf.write_text(f"window.ART = {data};\n" if a.art == "art.js" else f"Object.assign(window.ART, {data});\n")
+    # an episode's file also works after an old `const ART` art.js, which window.ART does not see
+    jf.write_text(f"window.ART = {data};\n" if a.art == "art.js" else f"window.ART = Object.assign(typeof ART === 'object' ? ART : {{}}, {data});\n")
     print(len(sizes), "pictures in", jf)
 
 
