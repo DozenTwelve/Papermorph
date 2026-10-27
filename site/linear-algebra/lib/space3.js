@@ -375,8 +375,9 @@ function space3(p, { cx = 1150, cy = 450, size = 640, range: R = 4, yaw = -30, p
 // along y.
 // rows: 1 shows only the first equation and its plane. mix: [x, y] adds the column form
 // x·[col 1] + y·[col 2] + z·[col 3] = [b] there, with x, y, z (keys x0, x1, x2) scrubbable: changing them (or A) moves
-// b to A times the mix; changing b solves for the mix again.
-function lin3(p, { A = [[2, -1, 0], [-1, 2, -1], [0, -3, 4]], b = [0, -1, 4], eq = [90, 180], mat = [100, 490], size = 46, space: so = {}, view = 'row', sol: readout = true, rows = 3, mix = null, t0 = .1 } = {}) {
+// b to A times the mix; changing b solves for the mix again. mixAt: when the column form fades in (false: never by
+// itself).
+function lin3(p, { A = [[2, -1, 0], [-1, 2, -1], [0, -3, 4]], b = [0, -1, 4], eq = [90, 180], mat = [100, 490], size = 46, space: so = {}, view = 'row', sol: readout = true, rows = 3, mix = null, mixAt, t0 = .1 } = {}) {
   const I = [0, 1, 2], RI = I.slice(0, rows), v = {}, RANGE = {};
   I.forEach(i => { I.forEach(j => { v[`a${i}${j}`] = A[i][j]; RANGE[`a${i}${j}`] = 9; }); v[`b${i}`] = b[i]; RANGE[`b${i}`] = 30; });
   if (rows < 3) { mat = null; readout = false; }
@@ -489,7 +490,7 @@ function lin3(p, { A = [[2, -1, 0], [-1, 2, -1], [0, -3, 4]], b = [0, -1, 4], eq
   }
 
   /* ---------- the column form: x·[col 1] + y·[col 2] + z·[col 3] = [b] ---------- */
-  const CF = G(p, { o: 0 }), mixG = [], colG = [];
+  const CF = G(p, { o: 0 }), mixG = [], colG = [], cfB = G(CF, {});
   if (mix) {
     const [fx_, fy] = mix, ms = Math.round(size * .85), rh = 50, top = fy - ms * .95, bot = fy + 2 * rh + ms * .35, cw = 66;
     const bracket = (g, x, w) => path(g, `M${x + 12} ${top}H${x}V${bot}H${x + 12}M${x + w - 12} ${top}H${x + w}V${bot}H${x + w - 12}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' });
@@ -504,8 +505,8 @@ function lin3(p, { A = [[2, -1, 0], [-1, 2, -1], [0, -3, 4]], b = [0, -1, 4], eq
       x += 64 + cw + 6;
     });
     T(CF, '=', { x: x + 18, y: fy + rh + 12, size: ms, fill: COL.chalk, font: MATH, anchor: 'middle' });
-    bracket(CF, x + 42, 84);
-    I.forEach(i => slot(CF, `b${i}`, x + 84, fy + rh * i, { anchor: 'middle', fill: S3_B, w: 72, fs: ms }));
+    bracket(cfB, x + 42, 84);
+    I.forEach(i => slot(cfB, `b${i}`, x + 84, fy + rh * i, { anchor: 'middle', fill: S3_B, w: 72, fs: ms }));
   }
 
   /* ---------- the space: rows as planes, columns as arrows ---------- */
@@ -663,10 +664,11 @@ function lin3(p, { A = [[2, -1, 0], [-1, 2, -1], [0, -3, 4]], b = [0, -1, 4], eq
     draw();
   }
   draw();
-  show(E, t0 + .2); show(Mx, t0 + .4); show(CF, t0 + .4);
+  show(E, t0 + .2); show(Mx, t0 + .4);
+  if (mixAt !== false) show(CF, mixAt ?? t0 + .4);   // mixAt: when the column form appears (false: the beat shows it)
 
   return {
-    v, space: V, E, M: Mx, CF, rows: rowG, mixG, colG, sol, planes, hits, tips, lines, meet, cols, bArrow, combo, ROWV, COLV, solve,
+    v, space: V, E, M: Mx, CF, rows: rowG, mixG, colG, mixB: cfB, sol, planes, hits, tips, tipLabels, lines, meet, cols, bArrow, combo, ROWV, COLV, solve,
     // Move the numbers to new values over dur seconds, on the beat clock (deterministic, so seeking replays it).
     to(next, at, dur = 1.2, ease = io) {
       const from = { ...plan };
