@@ -75,6 +75,34 @@ function photo(g, name, t0, t1, { s0 = 1.02, s1 = 1.1, dx = 0, dy = 0, dim = 0, 
   if (ai) srcTag(g, 'AI illustration', 50, 150, t0);
   return im;
 }
+// a found photograph, full bleed with a slow push (opts as photo()), tagged with its source instead of 'AI illustration'
+function found(g, name, source, t0, t1, opts = {}) {
+  const im = photo(g, name, t0, t1, { ...opts, ai: false });
+  srcTag(g, source, 50, 150, t0);
+  return im;
+}
+// a picture sized by ART (img/art.js): centred on (x, y), h (or w) px; enters at t0 rising from dy, or is there when
+// t0 is undefined. A picture whose point is its text (a sign, a headline) goes in whole like this, not full bleed
+function plate(g, name, x, y, { h, w, t0, dy = 60, r = 0 } = {}) {
+  const [iw, ih] = ART[name], k = w ? w / iw : h / ih, e = G(g, { x, y: t0 === undefined ? y : y + dy, r, o: t0 === undefined ? 1 : 0 });
+  mk('image', { href: `../img/${name}.webp`, x: -iw * k / 2, y: -ih * k / 2, width: iw * k, height: ih * k }, e);
+  if (t0 !== undefined) tw(e, { y, o: 1 }, t0, .35, out);
+  e._x = x; e._y = y;
+  return e;
+}
+// a landscape picture larger than the frame, moved by a camera: keys [t, fx, fy, s], the point (fx, fy) of the picture
+// (fractions of its width and height) at the frame's centre at scale s; eased between keys, the first held from 0.
+// No edge ever shows (ART gives its size)
+function wide(g, name, keys) {
+  const [iw, ih] = ART[name], k = Math.max(H / ih, W / iw), Ws = iw * k, Hs = ih * k;
+  const im = G(g, {});
+  mk('image', { href: `../img/${name}.webp`, x: -Ws / 2, y: -Hs / 2, width: Ws, height: Hs }, im);
+  const clamp = (v, size, frame) => size < frame ? frame / 2 : Math.min(size / 2, Math.max(frame - size / 2, v));
+  const at = ([, fx, fy, s]) => ({ x: clamp(CX - s * (fx - .5) * Ws, Ws * s, W), y: clamp(H / 2 - s * (fy - .5) * Hs, Hs * s, H), s });
+  put(im, at(keys[0]));
+  keys.slice(1).forEach((key, i) => { const t = keys[i][0]; tw(im, at(key), t, key[0] - t, io); });
+  return im;
+}
 // a small grey label top left: a source or "AI illustration"; shown with ?tags (as export.py shows them), so a cut
 // being worked on stays clean while the calls stay in place. A long tag is set smaller to end inside x 810; a second
 // tag at the same spot of the same shot (an AI picture and a number's source) stacks below the first
@@ -83,9 +111,9 @@ function srcTag(g, str, x, y, t0) {
   if (!TAGS) return G(g, { o: 0 });
   str = str.toUpperCase();
   const at = g._tags || (g._tags = {}), n = at[x + ',' + y] = (at[x + ',' + y] || 0) + 1;
-  // the box fits the drawn text: letter-spacing (.06em) adds that much after every character
+  // the box fits the drawn text: letter-spacing (.06em) adds that much after every character; 4 px spare for Gecko
   const textW = size => inkW(str, size, SANS, 500) + str.length * size * .06;
-  const size = Math.min(20, 20 * (810 - x - 20) / textW(20)), w = textW(size) + 20;
+  const size = Math.min(20, 20 * (806 - x - 20) / textW(20)), w = textW(size) + 20;
   const e = G(g, { x, y: y + (n - 1) * 38, o: 0 });
   rect(e, 0, -22, w, 30, { fill: 'rgba(20,18,15,.55)', rx: 3 });
   T(e, str, { x: 10, y: 0, size, fill: '#f0ebe0', font: SANS, weight: 500 }).setAttribute('letter-spacing', '.06em');
