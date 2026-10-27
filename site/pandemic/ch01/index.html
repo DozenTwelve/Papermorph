@@ -13,11 +13,15 @@
 <script src="audio/en/timings.js"></script>
 <script src="../img/art.js"></script>
 <script src="../img/geo.js"></script>
+<script src="../img/geo-eu.js"></script>
+<script src="../img/geo-world.js"></script>
+<script src="../img/waves.js"></script>
+<script src="../img/quiet.js"></script>
 <script src="../img/spread.js"></script>
 <script src="../lib/doc.js"></script>
 <script>
 'use strict';
-const CHAPTER = { number: 1, title: 'The Forgotten Crisis', minutes: 2, language: 'en', lead: false };
+const CHAPTER = { number: 1, title: 'The Forgotten Crisis', minutes: 8, language: 'en', lead: false };
 
 const CN = ['Beijing', 'Shanghai', 'Guangzhou', 'Chongqing', 'Chengdu', 'Xian', 'Zhengzhou', 'Changsha', 'Nanjing', 'Hangzhou', 'Shenzhen', 'Harbin', 'Kunming'];
 const C = n => GEO.cities[n];
@@ -57,6 +61,155 @@ function trainAt({ tr, car }, x, y, z, car_, wake) {
   tr.setAttribute('d', `M0 0L${x.toFixed(1)} ${y.toFixed(1)}`); tr.setAttribute('opacity', wake ? .35 : 0);
 }
 
+// §3: Italy and New York; a lon/lat on the globe to screen px for view v (orthographic, as globe.js draws it)
+const ROME_LL = [12.4964, 41.9028], CODOGNO = [9.7046, 45.16], NYC_LL = [-74.006, 40.713];
+function globeXY([lon, lat], v) {
+  const r = Math.PI / 180, k = 450 / v.H, dl = (lon - v.lon) * r, f = lat * r, f0 = v.lat * r;
+  return [800 + (v.dx || 0) + k * Math.cos(f) * Math.sin(dl), 450 + (v.dy || 0) - k * (Math.cos(f0) * Math.sin(f) - Math.sin(f0) * Math.cos(f) * Math.cos(dl))];
+}
+
+// a lon/lat to world px on a paper map made from geo (orthographic about geo.center, as geo.mjs projects it)
+function mapXY(geo, [lon, lat]) {
+  const r = Math.PI / 180, dl = (lon - geo.center[0]) * r, f = lat * r, f0 = geo.center[1] * r;
+  return [geo.R * Math.cos(f) * Math.sin(dl), -geo.R * (Math.cos(f0) * Math.sin(f) - Math.sin(f0) * Math.cos(f) * Math.cos(dl))];
+}
+// Wuhan's hatching at the zoom each shot looks at it from (pattern units are world px): S a town, M a region, L a country
+[['hatchS', .18], ['hatchM', .9], ['hatchL', 3.4], ['hatchE', 5], ['hatchW', 11]].forEach(([id, w]) => {
+  const pt = mk('pattern', { id, width: w, height: w, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, DEFS);
+  mk('rect', { width: w, height: w, fill: RED, opacity: .18 }, pt);
+  mk('path', { d: `M0 0V${w}`, stroke: RED, 'stroke-width': w * .4 }, pt);
+});
+
+// §4: every country of the world map as a hatched shape, hidden ([element, [d, first strict day, weekly bits]])
+function worldHatch(M, pat = 'hatchW') {
+  return Object.entries(GEO_W.countries).filter(([, c]) => c[2]).map(([, c]) => [mk('path', { d: c[0], fill: `url(#${pat})`, stroke: RED, 'data-sw': 1, opacity: 0 }, M.marks), c]);
+}
+const dateFmt = () => d => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).toUpperCase();
+
+// §5: the master picture of the waves, rebuilt in each beat: above, the world map, each country red by its deaths per
+// million that week, with the variants' pins; below, the world's cases and deaths a day (OWID, weekly). The playhead
+// follows keys [[t, date], ...] (piecewise, so each date lands on the word that names it; a key earlier than the one
+// before rewinds).
+function wavesStage(p, D, keys) {
+  const g = G(p, {});
+  ground(g, MAPLAND); paperTop(g, .4);
+  const M = paperMap(g, D + HOLD, { box: [400, 20, 960, 480], x: 0, y: 0, z: .3, bg: MAPSEA }, { geo: GEO_W }), cam = M.cam;
+  const iOf = d => WAVES.findIndex(w => w[0] >= d), K = keys.map(([t, d]) => [t, iOf(d)]);
+  // each country's deaths that week, over the map (no data: no colour)
+  const ch = Object.values(GEO_W.countries).filter(c => c[3]).map(c => [mk('path', { d: c[0], fill: RED, opacity: 0 }, M.marks), c[3]]);
+  const X0 = 150, X1 = 1470, X = i => X0 + (X1 - X0) * i / (WAVES.length - 1);
+  const strips = [['CASES A DAY', 1, 3.5e6, 680, MAPINK], ['DEATHS A DAY', 2, 15000, 860, RED]].map(([name, col, max, base, fill]) => {
+    const sg = G(g, {});
+    mk('path', { d: `M${X0} ${base}H${X1}`, stroke: '#b9ad94', 'stroke-width': 1.5 }, sg);
+    T(sg, name, { x: X0, y: base - 108, size: 20, fill, font: KEY, weight: 500 }).setAttribute('letter-spacing', '.12em');
+    const area = mk('path', { d: '', fill, opacity: .85 }, sg);
+    return { sg, col, max, base, fill, area, Y: v => base - 110 * Math.min(1.08, v / max) };
+  });
+  ['2021-01-04', '2022-01-03'].forEach(d => {
+    const x = X(iOf(d));
+    mk('path', { d: `M${x} 560V860`, stroke: '#b9ad94', 'stroke-width': 1, 'stroke-dasharray': '4 4' }, g);
+    T(g, d.slice(0, 4), { x: x + 8, y: 882, size: 20, fill: '#6a6258', font: SER });
+  });
+  T(g, 'Our World in Data · 7-day averages', { x: X1, y: 556, size: 16, fill: '#6a6258', font: SER, anchor: 'end' });
+  const dt = dateTag(g, '', 0, { fill: MAPINK }), fmt = d => new Date(Date.parse(d)).toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' }).toUpperCase();
+  const kOf = t => {
+    if (t <= K[0][0]) return K[0][1];
+    for (let j = 1; j < K.length; j++) if (t <= K[j][0]) return K[j - 1][1] + (K[j][1] - K[j - 1][1]) * soft(span01(t, K[j - 1][0], K[j][0]));
+    return K[K.length - 1][1];
+  };
+  let lastW = -1;
+  clockRun(t => {
+    const k = kOf(t), n = Math.floor(k), f = k - n;
+    strips.forEach(S => {
+      const pts = [];
+      for (let i = 0; i <= n; i++) pts.push([X(i), S.Y(WAVES[i][S.col])]);
+      if (f > 0 && n + 1 < WAVES.length) pts.push([X(n + f), S.Y(WAVES[n][S.col] + (WAVES[n + 1][S.col] - WAVES[n][S.col]) * f)]);
+      S.area.setAttribute('d', `M${X0} ${S.base}` + pts.map(([x, y]) => `L${x.toFixed(1)} ${y.toFixed(1)}`).join('') + `L${pts[pts.length - 1][0].toFixed(1)} ${S.base}Z`);
+    });
+    const w = Math.round(k);
+    dt.lastChild.textContent = fmt(WAVES[w][0]);
+    if (w !== lastW) { lastW = w; ch.forEach(([e, q]) => e.setAttribute('opacity', +q[w] * .09)); }
+  }, D, { tail: true });
+  mk('rect', { x: 1150, y: 448, width: 200, height: 14, fill: 'url(#dpmRamp)' }, g);
+  T(g, 'deaths per million a day: low → high', { x: 1350, y: 482, size: 15, fill: '#6a6258', font: SER, anchor: 'end' });
+  return {
+    g, M,
+    pin(name, label, ta, tb) {
+      const [x, y] = GEO_W.pins[name];
+      const d = mk('circle', { cx: x, cy: y, r: 0, fill: RED }, M.marks), r = mk('circle', { cx: x, cy: y, r: 0, fill: 'none', stroke: RED, 'stroke-width': 6, opacity: 0 }, M.marks);
+      prog(q => d.setAttribute('r', 18 * q), ta, .25, back);
+      for (let j = 0; j < 3; j++) {   // rings ripple out from where the variant was found
+        const rj = j ? mk('circle', { cx: x, cy: y, r: 0, fill: 'none', stroke: RED, 'stroke-width': 6, opacity: 0 }, M.marks) : r;
+        prog(q => { rj.setAttribute('r', 18 + 420 * q); rj.setAttribute('opacity', .9 * (1 - q)); }, ta + j * .6, 2.2, out);
+      }
+      const [sx, sy] = cam.screen(x, y, ta);
+      key(g, label.toUpperCase(), sx, sy - 30, tb, { size: 46, fill: RED });
+    },
+    peak(date, which, text, ta) {
+      const S = strips[which === 'c' ? 0 : 1], i = iOf(date), x = X(i), y = S.Y(WAVES[i][S.col]);
+      mk('circle', { cx: x, cy: y, r: 7, fill: S.fill, opacity: 0 }, g); tw(g.lastChild, { o: 1 }, ta, .2);
+      const r = x > 1000;   // near the right edge the label reads leftwards
+      chipLabel(g, text, x + (r ? -40 : 40), y - 30, ta, { tx: x + (r ? -5 : 5), ty: y - 5, fill: S.fill, size: 22, anchor: r ? 'end' : 'start' });
+    },
+    mark(date, text, ta) {
+      const x = X(iOf(date)), l = path(g, `M${x} 860V560`, { stroke: '#2f6f9f', 'stroke-width': 3 }, { d: 0 });
+      draw(l, ta, .5);
+      T(g, text.toUpperCase(), { x: x + 10, y: 590, size: 22, fill: '#2f6f9f', font: KEY, weight: 500, o: 0 }).setAttribute('letter-spacing', '.1em');
+      tw(g.lastChild, { o: 1 }, ta + .2, .3);
+    },
+    dim(ta) { tw(strips[0].sg, { o: .3 }, ta, .4); },
+  };
+}
+
+// §6: n dots for 100,000 people each, 32 to a row from y0, hidden
+function dotGrid(p, n, y0) {
+  return [...Array(n)].map((_, i) => mk('circle', { cx: 335 + (i % 32) * 30, cy: y0 + Math.floor(i / 32) * 30, r: 10, fill: 'none', stroke: SOFT, 'stroke-width': 2, opacity: 0 }, p));
+}
+
+// the origin: the paper map close over Wuhan, the Huanan market (north) and the Wuhan Institute of Virology (south),
+// each with a card that names an answer, what it rests on and who leans to it. Both sides are drawn alike on purpose.
+function originStage(p, D, tQ, tIn) {
+  ground(p, NIGHT);
+  const MK = mapXY(GEO, [114.2576, 30.6196]), WV = mapXY(GEO, [114.2625, 30.3764]), mid = [(MK[0] + WV[0]) / 2, (MK[1] + WV[1]) / 2];
+  const M = paperMap(p, D + HOLD, tIn < 0 ? { x: mid[0], y: mid[1], z: 36 } : { x: 0, y: 0, z: 3 }, {}), cam = M.cam;
+  paperTop(p, .4);
+  if (tIn >= 0) {
+    const q = chipLabel(p, 'Where did it come from?', 800, 160, tQ, { anchor: 'middle', size: 34, fill: MAPINK });
+    hide(q, tIn + 1.2, .3);
+    cam.to({ x: mid[0], y: mid[1], z: 36 }, tIn, 1.6, soft);
+  }
+  const SIDES = [
+    { at: MK, x: 60, title: 'NATURE', lines: ['a bat virus → another animal', '→ people, perhaps at the market', 'where early cases clustered', ''],
+      place: 'Huanan Seafood Market', who: 'Many scientists; the WHO-convened study, 2021' },
+    { at: WV, x: 1080, title: 'A LABORATORY ACCIDENT', lines: ['at the Wuhan Institute of', 'Virology, which studied bat', 'coronaviruses in the same city', ''],
+      place: 'Wuhan Institute of Virology', who: 'The FBI; the US Department of Energy' },
+  ];
+  const cards = [], labels = [];
+  return {
+    cam, M, cards, labels, mid,
+    // one answer: its card on the beat of its name, its place lit, a detail, then who leans to it (-1: shown at once)
+    side(k, tName, tPlace, tDetail, tWho) {
+      const S = SIDES[k], y0 = k ? 470 : 150, on = t => t < 0 ? 0 : t;
+      const pin = mk('circle', { cx: S.at[0], cy: S.at[1], r: .4, fill: MAPINK, opacity: 0 }, M.marks);
+      const ring = mk('circle', { cx: S.at[0], cy: S.at[1], r: 1.2, fill: 'none', stroke: MAPINK, 'data-sw': 3, opacity: 0 }, M.marks);
+      [pin, ring].forEach(e => tw(e, { o: 1 }, on(tPlace), tPlace < 0 ? .01 : .3));
+      labels.push(trackLabel(p, cam, S.place, S.at, on(tPlace), D, { size: 22, dy: 44, spacing: '.12em' }));
+      const c = G(p, { o: 0 }); cards.push(c);
+      mk('rect', { x: S.x, y: y0, width: 460, height: 280, fill: '#f6f1e4', opacity: .96 }, c);
+      T(c, S.title, { x: S.x + 30, y: y0 + 52, size: 34, fill: MAPINK, font: KEY, weight: 600 }).setAttribute('letter-spacing', '.1em');
+      S.lines.forEach((l, i) => T(c, l, { x: S.x + 30, y: y0 + 100 + i * 32, size: 24, fill: MAPINK, font: SER }));
+      const who = T(c, S.who, { x: S.x + 30, y: y0 + 252, size: 21, fill: '#6a6258', font: SER, o: tWho < 0 ? 1 : 0 });
+      who.setAttribute('font-style', 'italic');
+      if (tWho >= 0) tw(who, { o: 1 }, tWho, .3);
+      const lx = k ? S.x : S.x + 460, ly = y0 + 140;
+      const ld = mk('path', { d: '', stroke: MAPINK, 'stroke-width': 2, 'stroke-dasharray': '6 5', fill: 'none' }, c);
+      clockRun(t => { const [sx, sy] = cam.screen(S.at[0], S.at[1], t); ld.setAttribute('d', `M${lx} ${ly}L${sx} ${sy}`); }, D, { tail: true });
+      tw(c, { o: 1 }, on(tName), tName < 0 ? .01 : .35);
+      return c;
+    },
+  };
+}
+
 /* ---------- beats ---------- */
 const BEATS = [
   // 0. Cold open: the flicker, the list, the wall going dark, the two numbers, the words that crumble, a breath, the globe dives
@@ -70,7 +223,7 @@ const BEATS = [
       const lon = t < tA ? spin(t) : lonA + (WUHAN_LL[0] - lonA) * q, lat = 12 + (WUHAN_LL[1] - 12) * q;
       const creep = 1.15 - .1 * span01(t, m('count') - 1, tA);
       const dive = span01(t, m('one') - .4, E), H = creep * (.33 / creep) ** (dive ** 1.6);
-      const gain = 1.6 - .5 * span01(t, m('real'), m('real') + .8) - .9 * span01(t, m('forget'), m('forget') + 1.6) + 1.4 * span01(t, tA, tB);
+      const gain = 1.6 - .5 * span01(t, m('real'), m('real') + .8) - .9 * span01(t, m('biggest') + 1, m('biggest') + 2.6) + 1.4 * span01(t, tA, tB);
       return { lon, lat, H, gain };
     });
     clockRun(t => gb(Math.sin(Math.PI * span01(t, tA, tB)) ** 3 * 46), D, { tail: true });
@@ -128,11 +281,14 @@ const BEATS = [
     st(conf).c_fill = CREAM; tw(conf, { c_fill: RED }, m('twentyseven') + 1.05, .3);   // one red length
     tag(bars, 'nearly 4×', bx + U * K, 790, m('twentyseven') + .6, { anchor: 'end', size: 30, fill: RED });
     [n1, t1, n2, t2].forEach(e => hide(e, m('biggest') - .2, .25));
-    hide(bars, m('forget'), 1);   // the bars stay under the words, so "nearly 4×" can be read
+    const tGo = m('one') - 2.2;   // "So let's go back"
+    hide(bars, tGo - .4, .6);   // the bars stay under the words, so "nearly 4×" can be read
 
-    // the words that crumble, and the lights going out with them; then nothing is said for two seconds
-    crumble(p, 'THE BIGGEST CRISIS', 800, 400, m('forget') + .1, 1.7, { size: 120, appear: m('biggest') - .1 });
-    crumble(p, 'OF OUR GENERATION', 800, 540, m('forget') + .3, 1.6, { size: 120, appear: m('biggest') + .7, seed: 9 });
+    // the thesis in two lines, the lights dimming under it; a breath, then they go as the globe turns
+    [['THE BIGGEST CRISIS', 400, m('biggest') - .1], ['OF OUR GENERATION', 540, m('biggest') + .7]].forEach(([str, y, t0]) => {
+      const e = T(p, str, { x: 800, y, size: 120, fill: CREAM, font: KEY, weight: 600, anchor: 'middle', o: 0 });
+      tw(e, { o: 1 }, t0, .4); hide(e, tGo - .2, .45);
+    });
   }, { pre: .8 }],
 
   // 1. Wuhan: the globe dives, hands over to the paper map at full speed, the first cases
@@ -468,12 +624,692 @@ const BEATS = [
     ground(L, '#000');
     tw(L, { o: 1 }, m('lw') - .2, .01, lin);
     const chip = liChip(L, 800, 380, 150, m('died') - .5);
-    tw(chip, { s: 1.06 }, m('died'), D - m('died') + 1.5, lin);
+    tw(chip, { s: 1.06 }, m('died'), D - m('died') + .6, lin);
     key(L, 'Li Wenliang', 800, 640, m('died') - .2, { size: 72 });
     tag(L, '1985 – 2020', 800, 690, m('feb7') + .2, { anchor: 'middle', size: 32, fill: CREAM });
     dateTag(L, '7 February 2020', m('feb7') - .2);
-    hide(L, D + 1.4, 1.6, lin);
+    hide(L, D + .1, .6, lin);   // out soon after "thirty-four": the film goes on (user 10-27)
   }, { pre: 1.6 }],
+
+  /* ---------- §3 Out of China ---------- */
+  // 7. The TV comes back on; Italy shuts its flights from China the day its first cases are found; it is not enough
+  ['far', 'Out of China', (m, D) => {
+    const p = panel(0);
+    ground(p, NIGHT);
+    const tv = G(p, {}), glob = G(tv, {});
+    // China alone; both ends of the flights in one frame on "Italy"; Italy on "two"; then a push towards Lombardy
+    const tT = m('italy') - .5, tT1 = m('italy') + 1.1, tI = m('two') - .5, tI1 = m('two') + .9, tP = m('enough') + .4;
+    const view = t => {
+      const a = soft(span01(t, tT, tT1)), b = soft(span01(t, tI, tI1)), z = soft(span01(t, tP, D + HOLD));
+      const lon = 104 - 4 * Math.min(t, tT) / tT, L1 = 62, L2 = CODOGNO[0] + 2.5;
+      return { lon: lon + (L1 - lon) * a + (L2 - L1) * b - 2.5 * z, lat: 24 + 14 * a + (CODOGNO[1] - 3 - 38) * b + 3 * z,
+        H: 1.15 * (.62 / 1.15) ** a * (.45 / .62) ** b * (.33 / .45) ** z, gain: 1.15, dotScale: .05 };
+    };
+    // China's cases, then the two in Rome; at the end the one that was already there
+    Globe.clearMarks();
+    [WUHAN_LL, [116.4, 39.9], [121.47, 31.23], [113.26, 23.13], [104.07, 30.67]].forEach(ll => Globe.dot(...ll));
+    Globe.dot(...ROME_LL); Globe.dot(...CODOGNO);
+    const FROM = [WUHAN_LL, [116.4, 39.9], [121.47, 31.23]], TO = [ROME_LL, [9.19, 45.46]];
+    FROM.forEach(a => TO.forEach(b => Globe.arc(a, b, .22)));
+    const tArc = i => m('italy') + .5 + i * .14, tCut = i => m('flights') + .25 + i * .1;
+    globeShot(glob, D, view,
+      (i, t) => i < 5 ? 1 : i === 5 ? span01(t, m('two') - .1, m('two') + .3) : span01(t, m('enough') + .35, m('enough') + 1.1) * (.75 + .25 * Math.sin(5 * t)),
+      (i, t) => soft(span01(t, tArc(i), tArc(i) + 1.3)) * (1 - soft(span01(t, tCut(i), tCut(i) + .55))));
+    // the old TV switches back on: a point, a line, the picture
+    // from the first frame: a point, a line, the picture (no frame of the whole globe before it)
+    prog(q => {
+      const a = span01(q, 0, .4), b = span01(q, .4, 1);
+      tv.setAttribute('transform', `translate(800 450) scale(${.001 + .02 * a + .979 * b * (2 - b)},${.004 + .996 * b * b}) translate(-800 -450)`);
+    }, 0, .3, lin);
+    const flash = mk('rect', { x: 0, y: 447, width: SW, height: 6, fill: '#fff', opacity: 0 }, p);
+    prog(q => flash.setAttribute('opacity', Math.sin(Math.PI * q)), 0, .25, lin);
+    // "someone else's story": China far off, under its own label
+    const far = chipLabel(p, 'Wuhan', 1080, 250, m('watch') + .3, { tx: 905, ty: 420 });
+    hide(far, tT - .2, .3);
+    dateTag(p, '31 January 2020', m('italy') + .9);
+    const sx = (ll, t) => globeXY(ll, view(t));
+    const [rx, ry] = sx(ROME_LL, tI1);   // where the camera settles
+    const rome = chipLabel(p, 'Rome: two tourists from China', rx + 110, ry + 46, tI1 - .1, { tx: rx + 4, ty: ry + 4 });
+    const cut = chipLabel(p, 'Italy suspends all flights to and from China', 800, 830, m('flights') - .1, { anchor: 'middle', size: 30 });
+    [rome, cut].forEach(e => hide(e, m('enough') - .1, .35));
+  }, { pre: .5 }],
+
+  // 8. Codogno, the eleven towns, Lombardy, all of Italy: Wuhan's hatching spreads over a European country
+  ['lombardy', 'Lombardy', (m, D) => {
+    const p = panel(0);
+    ground(p, NIGHT);
+    const H0 = .33, H1 = .06, tH = 1.1, z1 = zOfH(H1);
+    const glob = G(p, {});
+    globeShot(glob, D, t => ({ lon: CODOGNO[0], lat: CODOGNO[1], H: H0 * (H1 / H0) ** (span01(t, 0, tH) ** .8), gain: 1.15 }));
+    const mp = G(p, { o: 0 }), M = paperMap(mp, D + HOLD, { x: 0, y: 0, z: z1 }, { geo: GEO_IT }), cam = M.cam;
+    paperTop(mp, .4);
+    tw(mp, { o: 1 }, tH - .12, .14, lin); hide(glob, tH + .05, .01);
+    const ita = M.countries.ITA; st(ita)['a_stroke-opacity'] = 0;
+    tw(ita, { 'a_stroke-opacity': 1 }, tH, .4);
+    const LOMB = Object.keys(GEO_IT.provinces).filter(n => GEO_IT.provinces[n][0] === 'Lombardia');
+    const lc = mapXY(GEO_IT, [9.75, 45.62]), ic = mapXY(GEO_IT, [12.6, 42.3]);
+    // the camera: northern Italy, Lombardy, the town, Lombardy again, the whole country
+    cam.to({ z: z1 * 1.25 }, tH, 1.3, out);
+    cam.to({ x: lc[0], y: lc[1], z: 6.5 }, m('lomb') - .4, 1.3, soft);
+    cam.to({ x: 0, y: 0, z: 42 }, m('codogno') - .5, 1.1, soft);
+    cam.to({ z: 30 }, m('eleven') + .5, m('region') - m('eleven') - 1, lin);
+    cam.to({ x: lc[0], y: lc[1], z: 6.5 }, m('region') - .5, 1.1, soft);
+    cam.to({ x: ic[0], y: ic[1], z: 1.75 }, m('country') - .6, 1.3, soft);
+    cam.to({ z: 1.62 }, m('country') + .7, D - m('country'), lin);
+    // Lombardy's provinces, shaded on "Lombardy", hatched on "all of Lombardy"
+    const lomb = G(M.marks, { o: 0 }), lombH = G(M.marks, { o: 0 });
+    LOMB.forEach(n => { mk('path', { d: GEO_IT.provinces[n][1], fill: MAPCN, stroke: 'none' }, lomb); mk('path', { d: GEO_IT.provinces[n][1], fill: 'url(#hatchM)', stroke: 'none' }, lombH); });
+    M.marks.insertBefore(lomb, M.marks.firstChild);
+    tw(lomb, { o: 1 }, m('lomb'), .4);
+    const lab = trackLabel(p, cam, 'Lombardy', [lc[0], lc[1] - 14], m('lomb') + .2, D, { size: 40, font: KEY, spacing: '.3em' });
+    hide(lab, m('codogno') - .5, .3);
+    // Codogno: a pin, then its cases
+    const pin = mk('circle', { r: 1, fill: 'none', stroke: MAPINK, 'data-sw': 3 }, M.marks);
+    clockRun(t => pin.setAttribute('r', 9 / cam.at(t).z), D, { tail: true });
+    const cl = trackLabel(p, cam, 'Codogno', [0, 0], m('codogno') - .1, D, { size: 34, font: KEY, dy: -150, spacing: '.3em' });
+    hide(cl, m('region') - .4, .3);
+    const R = rng(21);
+    for (let i = 0; i < 14; i++) {
+      const d = mk('circle', { cx: (R() - .45) * 2.6, cy: (R() - .5) * 2, r: .1, fill: RED, opacity: 0 }, M.marks), t0 = m('codogno') + .35 + i * .06;
+      tw(d, { o: 1 }, t0, .1, lin);
+    }
+    // the red zone: ten towns around Codogno and Vo' in Veneto
+    const vo = mapXY(GEO_IT, [11.6406, 45.3281]);
+    const zone = [[.3, .1, 3.2], [vo[0], vo[1], 1]].map(([x, y, r]) => mk('circle', { cx: x, cy: y, r, fill: 'url(#hatchS)', stroke: RED, 'data-sw': 3, opacity: 0 }, M.marks));
+    zone.forEach((z, i) => tw(z, { o: 1 }, m('eleven') + i * .3, .3));
+    const zc = chipLabel(p, 'Eleven towns sealed off: 50,000 people', 800, 830, m('eleven') + .2, { anchor: 'middle', size: 30, fill: MAPINK, line: RED });
+    hide(zc, m('region') - .4, .3);
+    const vl = trackLabel(p, cam, "Vo'", [vo[0], vo[1]], m('region') + .3, D, { size: 22, dy: -14 });
+    hide(vl, m('country') - .5, .3);
+    tw(lombH, { o: 1 }, m('region') + .1, .4);
+    // the whole country, on "the whole country"
+    const itH = mk('path', { d: GEO_IT.countries.ITA ? GEO_IT.countries.ITA : '', fill: 'url(#hatchL)', stroke: 'none', opacity: 0 }, M.marks);
+    tw(itH, { o: 1 }, m('country'), .35);
+    tw(lombH, { o: 0 }, m('country') + .2, .3);
+    cam.shake(5, m('country'), .4);
+    // the date steps on with the story
+    const dt = dateTag(p, '21 February 2020', tH, { fill: MAPINK }), dtx = dt.lastChild;
+    [['22 February 2020', m('eleven')], ['8 March 2020', m('region')], ['9 March 2020', m('mar9')]].forEach(([s, t]) => prog(() => { dtx.textContent = s.toUpperCase(); }, t, 0, lin));
+    // sixty million, the first country
+    const box = G(p, { o: 0 });
+    mk('rect', { x: 950, y: 300, width: 540, height: 330, fill: '#f6f1e4', opacity: .92 }, box);
+    counter(box, 1220, 420, 0, 60e6, m('sixty'), 1.1, { size: 84, fill: MAPINK, font: KEY, weight: 600 });
+    T(box, 'PEOPLE IN LOCKDOWN', { x: 1220, y: 480, size: 26, fill: MAPINK, font: KEY, weight: 500, anchor: 'middle' }).setAttribute('letter-spacing', '.14em');
+    tw(box, { o: 1 }, m('sixty') - .15, .25);
+    const fl = T(box, 'The first country in the world', { x: 1220, y: 560, size: 30, fill: RED, font: SER, anchor: 'middle', o: 0 }), fl2 = T(box, 'to lock itself down', { x: 1220, y: 598, size: 30, fill: RED, font: SER, anchor: 'middle', o: 0 });
+    [fl, fl2].forEach(e => { e.setAttribute('font-style', 'italic'); tw(e, { o: 1 }, m('first'), .3); });
+  }],
+
+  // 9. Two days later: the map pulls out into the night globe, the countries light, and the WHO's own words
+  ['pandemic', 'Pandemic', (m, D) => {
+    const p = panel(0);
+    ground(p, NIGHT);
+    const ic = mapXY(GEO_IT, [12.6, 42.3]), z0 = 1.62, tS = .32, zS = z0 * .55;
+    const glob = G(p, { o: 0 });
+    const list = SPREAD.filter(s => s[3] <= '2020-03-11');
+    Globe.clearMarks(); list.forEach(s => Globe.dot(s[1], s[2]));
+    const tOn = i => .5 + (m('hundred') - .5) * i / list.length;   // in the order they reported their first case
+    const H0 = HofZ(zS), H1 = .98;
+    globeShot(glob, D, t => {
+      const q = unease3(span01(t, tS, tS + 1.4));
+      return { lon: 12.6 + 18 * q + 1.2 * t, lat: 42.3 - 16 * q, H: H0 * (H1 / H0) ** q, dx: -330 * soft(q), gain: 1.2, dotScale: .04 };
+    }, (i, t) => span01(t, tOn(i), tOn(i) + .25));
+    // the paper map, as the last beat left it, pulls out and gives way to the globe in its fastest moment
+    const mp = G(p, {}), M = paperMap(mp, D + HOLD, { x: ic[0], y: ic[1], z: z0 }, { geo: GEO_IT }), cam = M.cam;
+    paperTop(mp, .4);
+    M.countries.ITA.setAttribute('stroke-opacity', 1);
+    mk('path', { d: GEO_IT.countries.ITA, fill: 'url(#hatchL)', stroke: 'none' }, M.marks);
+    cam.to({ z: zS }, 0, tS, ease3);
+    tw(glob, { o: 1 }, tS - .02, .01); hide(mp, tS, .12, lin);
+    dateTag(p, '11 March 2020', tS + .3);
+    // the WHO's words, on a transcript card; the highlighter crosses "pandemic" as it is said
+    const card = G(p, { x: 1600, y: 140, r: 1.5 });
+    mk('rect', { x: 0, y: 0, width: 660, height: 560, fill: '#efe9da' }, card);
+    T(card, 'WORLD HEALTH ORGANIZATION', { x: 44, y: 62, size: 22, fill: '#6a6258', font: KEY, weight: 500 }).setAttribute('letter-spacing', '.18em');
+    T(card, "Director-General's opening remarks, 11 March 2020", { x: 44, y: 96, size: 22, fill: '#6a6258', font: SER }).setAttribute('font-style', 'italic');
+    mk('path', { d: 'M44 118H616', stroke: '#c9c1b0', 'stroke-width': 2 }, card);
+    const hl = mk('rect', { x: 38, y: 292, width: 0, height: 46, fill: YEL, opacity: .85 }, card);
+    ['“We have therefore made the', 'assessment that COVID-19 can be', 'characterized as a'].forEach((l, i) => T(card, l, { x: 44, y: 176 + i * 50, size: 36, fill: '#2a2521', font: SER, weight: 500 }));
+    const pw = T(card, 'pandemic.”', { x: 44, y: 326, size: 40, fill: '#2a2521', font: SER, weight: 600 });
+    prog(q => hl.setAttribute('width', q * (pw.getComputedTextLength() - 2)), m('pandemic') - .05, .45, out);   // measured each frame: right once the font is in
+    const hl2 = mk('rect', { x: 38, y: 432, width: 0, height: 38, fill: YEL, opacity: .85 }, card);
+    const q2 = ['“There are now more than 118,000', 'cases in 114 countries …”'].map((l, i) => T(card, l, { x: 44, y: 414 + i * 46, size: 30, fill: '#2a2521', font: SER }));
+    prog(q => hl2.setAttribute('width', q * (q2[1].getComputedTextLength() + 12)), m('hundred') - .05, .4, out);
+    T(card, 'who.int', { x: 616, y: 530, size: 18, fill: '#6a6258', font: SER, anchor: 'end' });
+    tw(card, { x: 880 }, m('who') - .35, .55, out);
+  }],
+
+  // 10. Bergamo: the dead in ink, the army's trucks leaving with them, then Italy's deaths pass China's
+  ['bergamo', 'Bergamo', (m, D) => {
+    const p = panel(0);
+    ground(p, NIGHT);
+    const bg = mapXY(GEO_IT, [9.67, 45.698]), DEST = ['Bologna', 'Modena', 'Ferrara', 'Parma'].map(n => GEO_IT.cities[n]);
+    const mid = [(bg[0] + DEST[0][0]) / 2, (bg[1] + DEST[0][1]) / 2];
+    const M = paperMap(p, D + HOLD, { x: bg[0], y: bg[1], z: 16 }, { geo: GEO_IT }), cam = M.cam;
+    paperTop(p, .4);
+    M.countries.ITA.setAttribute('stroke-opacity', 1);
+    mk('path', { d: GEO_IT.countries.ITA, fill: 'url(#hatchM)', stroke: 'none', opacity: .2 }, M.marks);
+    cam.to({ z: 19 }, 0, m('army') - .3, lin);
+    cam.to({ x: mid[0], y: mid[1] - 6, z: 7.2 }, m('army') - .3, 1.4, soft);
+    cam.to({ z: 6.6 }, m('army') + 1.1, D - m('army'), lin);
+    const pin = mk('circle', { cx: bg[0], cy: bg[1], r: 1, fill: 'none', stroke: MAPINK, 'data-sw': 3 }, M.marks);
+    clockRun(t => pin.setAttribute('r', 9 / cam.at(t).z), D, { tail: true });
+    const bl = trackLabel(p, cam, 'Bergamo', bg, .2, D, { size: 40, font: KEY, dy: -46, spacing: '.3em' });
+    hide(bl, m('mar19') - .4, .3);
+    // the dead: ink points gathering faster and faster around the city
+    const R = rng(31), N = 120;
+    for (let i = 0; i < N; i++) {
+      const a = R() * 2 * Math.PI, r = 4.2 * Math.sqrt(R());
+      const d = mk('circle', { cx: bg[0] + r * Math.cos(a), cy: bg[1] + r * Math.sin(a) * .8, r: .16, fill: MAPINK, opacity: 0 }, M.marks);
+      tw(d, { o: .85 }, .5 + 3.3 * Math.sqrt(i / N), .08, lin);
+    }
+    // "the army comes": trucks leave in a column, one road to each city
+    const tr = DEST.map(([x, y], k) => {
+      const road = mk('path', { d: `M${bg[0]} ${bg[1]}L${x} ${y}`, fill: 'none', stroke: MAPINK, 'data-sw': 1.6, 'data-dash': '6 5', opacity: 0 }, M.marks);
+      tw(road, { o: .55 }, m('army') + .2 + k * .2, .4);
+      mk('circle', { cx: x, cy: y, r: .6, fill: MAPINK }, M.marks);
+      return [...Array(4)].map(() => {
+        const g = G(M.marks, { o: 0 });
+        mk('rect', { x: -14, y: -5, width: 19, height: 10, rx: 1.5, fill: '#4a4a32' }, g);   // army green, in paper
+        mk('rect', { x: 6, y: -4, width: 8, height: 8, rx: 2, fill: '#3a3a26' }, g);
+        return g;
+      });
+    });
+    clockRun(t => {
+      const z = cam.at(t).z;
+      DEST.forEach(([x, y], k) => tr[k].forEach((g, j) => {
+        const t0 = m('army') + .5 + k * .25 + j * .45, q = Math.min(1, Math.max(0, (t - t0) / 3.2)), on = t > t0 && q < 1;
+        put(g, { x: bg[0] + (x - bg[0]) * soft(q), y: bg[1] + (y - bg[1]) * soft(q), r: Math.atan2(y - bg[1], x - bg[0]) * 180 / Math.PI, s: 1.7 / z, o: on ? 1 : 0 });
+      }));
+    }, D, { tail: true });
+    const ac = chipLabel(p, 'Army trucks take the dead to other cities', 800, 830, m('army') + .4, { anchor: 'middle', size: 30, fill: MAPINK });
+    hide(ac, m('mar19') - .3, .3);
+    DEST.forEach((c, k) => { const l = trackLabel(p, cam, ['Bologna', 'Modena', 'Ferrara', 'Parma'][k], c, m('army') + 1 + k * .2, D, { size: 20, dy: 26 }); hide(l, m('mar19') - .3, .3); });
+    const dt = dateTag(p, 'March 2020', .3, { fill: MAPINK }), dtx = dt.lastChild;
+    prog(() => { dtx.textContent = '19 MARCH 2020'; }, m('mar19'), 0, lin);
+    // reported deaths: two bars, China's still, Italy's rising past it on "passes"
+    const box = G(p, { x: 0, y: 30, o: 0 });
+    mk('rect', { x: 960, y: 180, width: 540, height: 500, fill: '#f6f1e4', opacity: .95 }, box);
+    T(box, 'REPORTED DEATHS', { x: 1230, y: 240, size: 28, fill: MAPINK, font: KEY, weight: 500, anchor: 'middle' }).setAttribute('letter-spacing', '.16em');
+    const base = 620, HMAX = 300, hCN = HMAX * .95;
+    mk('path', { d: `M1020 ${base}H1440`, stroke: MAPINK, 'stroke-width': 2 }, box);
+    const cn = mk('rect', { x: 1060, y: base - hCN, width: 120, height: hCN, fill: '#8a7d68' }, box);
+    const it = mk('rect', { x: 1280, y: base, width: 120, height: 0, fill: MAPINK }, box);
+    T(box, 'China', { x: 1120, y: base + 40, size: 30, fill: MAPINK, font: SER, anchor: 'middle' });
+    T(box, 'Italy', { x: 1340, y: base + 40, size: 30, fill: MAPINK, font: SER, anchor: 'middle' });
+    mk('path', { d: `M1040 ${base - hCN}H1420`, stroke: '#8a7d68', 'stroke-width': 2, 'stroke-dasharray': '6 5' }, box);
+    prog(q => { const h = HMAX * (.78 * q + .27 * soft(span01(q, .75, 1))); it.setAttribute('y', base - h); it.setAttribute('height', h); }, m('mar19') + .2, m('passes') + .5 - m('mar19'), lin);
+    st(it).c_fill = MAPINK; tw(it, { c_fill: RED }, m('most') - .1, .3);
+    tw(box, { o: 1, y: 0 }, m('mar19') - .3, .4, out);
+    tag(box, 'as each country reported them · Wikipedia', 1230, 664 + 26, m('mar19') + .4, { anchor: 'middle', size: 16, fill: '#6a6258' });
+  }],
+
+  // 11. New York: the first case, already weeks late; the genes say Europe, not Asia
+  ['newyork', 'New York', (m, D) => {
+    const p = panel(0);
+    ground(p, NIGHT);
+    const glob = G(p, {});
+    const EU = [[-0.13, 51.51], [2.35, 48.86], [12.5, 41.9], [9.19, 45.46], [-3.7, 40.42], [13.4, 52.52], [4.9, 52.37], [-6.26, 53.35]];
+    Globe.clearMarks();
+    Globe.dot(...NYC_LL);
+    const R = rng(12), near = [...Array(7)].map(() => [NYC_LL[0] + (R() - .5) * 2.4, NYC_LL[1] + (R() - .5) * 1.6]);
+    near.forEach(ll => Globe.dot(...ll));
+    EU.forEach(ll => Globe.dot(...ll));
+    const AS = [WUHAN_LL, [116.4, 39.9], [121.47, 31.23]];
+    AS.forEach(ll => Globe.dot(...ll));
+    AS.forEach(ll => Globe.arc(ll, NYC_LL, .12, 0x9aa3b0));   // arcs 0-2: Asia, grey, over the pole
+    EU.forEach(ll => Globe.arc(ll, NYC_LL, .18));
+    const tW = .15, tW1 = 1.05, tO = m('genes') + .3, tO1 = m('asia') - .15, tE = m('europe') - .3, tE1 = m('europe') + .9;
+    const view = t => {   // the whip west; New York; up over Scandinavia, where New York, Europe and China are all in sight
+      const a = soft(span01(t, tW, tW1)), o = soft(span01(t, tO, tO1)), e = soft(span01(t, tE, tE1));
+      return { lon: 10 + (NYC_LL[0] - 10) * a + (18 - NYC_LL[0]) * o - 8 * e, lat: 45 + (NYC_LL[1] - 45) * a + (60 - NYC_LL[1]) * o - 4 * e,
+        H: .45 * (.4 / .45) ** span01(t, tW1, tO) * (1.08 / .4) ** o, gain: 1.2, dotScale: .05 };
+    };
+    globeShot(glob, D, view,
+      (i, t) => i === 0 ? span01(t, m('ny') - .1, m('ny') + .3) : i <= 7 ? .7 * span01(t, m('weeks') + .3 + i * .12, m('weeks') + .6 + i * .12)
+        : i < 16 ? span01(t, m('europe') - .4, m('europe')) : span01(t, m('asia') - .3, m('asia')) * (1 - .6 * span01(t, m('europe') + .2, m('europe') + .8)),
+      (i, t) => i < 3 ? soft(span01(t, m('asia') - .1 + i * .1, m('asia') + .6 + i * .1)) * (1 - .85 * soft(span01(t, m('europe') + .2, m('europe') + .8)))
+        : soft(span01(t, m('europe') - .05 + (i - 3) * .08, m('europe') + .9 + (i - 3) * .08)));
+    const [nx, ny] = globeXY(NYC_LL, view(m('ny')));
+    const nl = chipLabel(p, 'New York: first confirmed case', nx + 120, ny - 120, m('ny'), { tx: nx + 4, ty: ny - 4 });
+    hide(nl, tO - .2, .3);
+    // the date runs back: the virus was there before anyone knew
+    const dt = dateTag(p, '1 March 2020', m('ny') + .1), dtx = dt.lastChild;
+    ['22 FEBRUARY 2020', '15 FEBRUARY 2020', '8 FEBRUARY 2020', '1 FEBRUARY 2020', 'JANUARY 2020'].forEach((s, i) => prog(() => { dtx.textContent = s; }, m('weeks') + .1 + i * .16, 0, lin));
+    prog(() => { dtx.textContent = 'MARCH 2020'; }, m('asia') - .3, 0, lin);
+    const al = chipLabel(p, 'Already spreading, unseen', nx + 120, ny + 150, m('weeks') + .9, { tx: nx + 6, ty: ny + 10 });
+    hide(al, m('genes') - .2, .3);
+    // "read its genes": a strip of the genome running past (SARS-CoV-2 reference sequence NC_045512.2, bases 1–600, NCBI)
+    const SEQ = 'ATTAAAGGTTTATACCTTCCCAGGTAACAAACCAACCAACTTTCGATCTCTTGTAGATCTGTTCTCTAAACGAACTTTAAAATCTGTGTGGCTGTCACTCGGCTGCATGCTTAGTGCACTCACGCAGTATAATTAATAACTAATTACTGTCGTTGACAGGACACGAGTAACTCGTCTATCTTCTGCAGGCTGCTTACGGTTTCGTCCGTGTTGCAGCCGATCATCAGCACATCTAGGTTTCGTCCGGGTGTGACCGAAAGGTAAGATGGAGAGCCTTGTCCCTGGTTTCAACGAGAAAACACACGTCCAACTCAGTTTGCCTGTTTTACAGGTTCGCGACGTGCTCGTACGTGGCTTTGGAGACTCCGTGGAGGAGGTCTTATCAGAGGCACGTCAACATCTTAAAGATGGCACTTGTGGCTTAGTAGAAGTTGAAAAAGGCGTTTTGCCTCAACTTGAACAGCCCTATGTGTTCATCAAACGTTCGGATGCTCGAACTGCACCTCATGGTCATGTTATGGTTGAGCTGGTAGCAGAACTCGAAGGCATTCAGTACGGTCGTAGTGGTGAGACACTTGGTGTCCTTGTCCCTCATGTGGG';
+    const gs = G(p, { o: 0 });
+    mk('rect', { x: 0, y: 760, width: SW, height: 64, fill: '#efe9da', opacity: .92 }, gs);
+    const gt = T(gs, SEQ.slice(0, 140), { x: 20, y: 803, size: 26, fill: '#2a2521', font: 'ui-monospace, Menlo, monospace' });
+    gt.setAttribute('letter-spacing', '.1em');
+    clockRun(t => { const k = Math.max(0, Math.floor((t - m('genes')) * 14)); gt.textContent = SEQ.slice(k, k + 140); }, D, { tail: true });
+    tag(gs, 'SARS-CoV-2 genome, reference sequence', 20, 750, m('genes') + .2, { size: 18, fill: CREAM });
+    tw(gs, { o: 1 }, m('genes') - .2, .3);
+    hide(gs, m('europe') + 1.2, .4);
+    // the two ends named where they lie, in the wide view
+    const vw = view(tO1 + .5), [cx, cy] = globeXY([114, 34], vw), [ex, ey] = globeXY([8, 49], vw);
+    const asl = chipLabel(p, 'Asia', cx + 70, cy - 60, m('asia') - .1, { tx: cx + 6, ty: cy - 6, fill: '#c3cad4', line: '#9aa3b0' });
+    tw(asl, { o: .45 }, m('europe') + .2, .4);
+    chipLabel(p, 'Europe', ex - 40, ey - 120, m('europe') - .1, { tx: ex, ty: ey - 8 });
+    chipLabel(p, 'Most of New York’s early cases came from Europe', 800, 690, m('europe') + .2, { anchor: 'middle', size: 30 });
+  }],
+
+  // 12. On the flat house map: the US leads the world in cases; the ship, the trucks; Europe hatched country by country;
+  // on "the world stops" the camera pulls out to the whole world, where §4 picks it up
+  ['america', 'America', (m, D) => {
+    const p = panel(0);
+    ground(p, MAPSEA);
+    const P = GEO_W.pins, tS = .3, WORLD = { x: 0, y: -40, z: .5 };
+    const M = paperMap(p, D + HOLD, { x: P.nyc[0] + 120, y: P.nyc[1], z: 4 }, { geo: GEO_W }), cam = M.cam;
+    paperTop(p, .4);
+    const wh = G(p, { o: 1 }); ground(wh, NIGHT); hide(wh, 0, tS, lin);   // out of the night globe
+    cam.to({ x: P.us[0] + 120, y: P.us[1] + 20, z: 2.3 }, 0, 1.4, soft);
+    cam.to({ x: P.nyc[0] + 60, y: P.nyc[1] + 10, z: 3 }, m('ship') - .5, m('eu') - m('ship'), lin);
+    cam.to({ x: P.europe[0], y: P.europe[1] + 20, z: 2.6 }, m('eu') - .3, 1.4, soft);
+    cam.to({ z: 2.75 }, m('eu') + 1.1, m('stops') - m('eu') - 1.4, lin);
+    cam.to(WORLD, m('stops') - .1, 1.1, ease3);   // "the world stops": out to the whole world
+    const usa = M.countries.USA;
+    usa.setAttribute('fill', RED); st(usa)['a_fill-opacity'] = 0; st(usa)['a_stroke-opacity'] = 0;
+    tw(usa, { 'a_fill-opacity': .45, 'a_stroke-opacity': 1 }, m('us') - .1, .5);
+    tw(usa, { 'a_fill-opacity': .12 }, m('eu') - .3, .6);
+    // the count, one source (Our World in Data)
+    const box = G(p, { o: 0 });
+    mk('rect', { x: 1000, y: 560, width: 520, height: 210, fill: '#f6f1e4', opacity: .94 }, box);
+    counter(box, 1260, 668, 0, 173143, m('us') + .2, 1.2, { size: 76, fill: RED, font: KEY, weight: 600 });
+    T(box, 'CONFIRMED CASES, THE MOST OF ANY COUNTRY', { x: 1260, y: 718, size: 22, fill: MAPINK, font: KEY, weight: 500, anchor: 'middle' }).setAttribute('letter-spacing', '.1em');
+    T(box, 'United States, 31 March 2020 · Our World in Data', { x: 1260, y: 750, size: 18, fill: '#6a6258', font: SER, anchor: 'middle' }).setAttribute('font-style', 'italic');
+    tw(box, { o: 1 }, m('us') + .05, .3);
+    hide(box, m('ship') - .3, .3);
+    // two prints laid on the map, each with its own place and date
+    const print = (name, w, h, x, y, r, cap, t0) => {
+      const g = G(p, { x, y: y + 40, r, s: 1.05, o: 0 });
+      mk('rect', { x: -w / 2 - 16, y: -h / 2 - 16, width: w + 32, height: h + 62, fill: '#f6f1e4' }, g);
+      mk('image', { href: `../img/${name}.webp`, x: -w / 2, y: -h / 2, width: w, height: h }, g);
+      T(g, cap, { x: -w / 2, y: h / 2 + 30, size: 17, fill: MAPINK, font: SER });
+      tw(g, { s: 1, o: 1, y }, t0, .35, out);
+      return g;
+    };
+    const sh = print('comfort-nyc', 620, 440, 1080, 380, -2.5, 'USNS Comfort, New York, 30 March 2020 · U.S. Navy, public domain', m('ship') - .15);
+    const fr = print('morgue-trucks-nyc', 480, 480, 1130, 420, 2, 'Refrigerated trailers at a New York hospital, 21 April 2020 · Archer West, CC BY 4.0', m('fridge') - .15);
+    [sh, fr].forEach(g => hide(g, m('eu') - .4, .35));
+    // Europe: stay-at-home orders hatch over the map in the order they came, up to 18 March; the rest of the world as it stood
+    const hs = worldHatch(M, 'hatchE'), d18 = '2020-03-18';   // finer: this hatching is seen close up
+    const eu = hs.filter(([, c]) => c[1] && c[1] <= d18).sort((x, y) => x[1][1] < y[1][1] ? -1 : 1);
+    eu.forEach(([e], i) => tw(e, { o: 1 }, m('eu') + .3 + (m('stay') - m('eu')) * i / eu.length, .3));
+    tag(p, 'Hatched: stay-at-home orders · Our World in Data', 1530, 860, m('eu') + .4, { anchor: 'end', size: 17, fill: MAPINK });
+  }],
+
+  /* ---------- §4 The world stops ---------- */
+  // 13. The whole world on one paper map; country after country hatched as its measures turn strict
+  ['half', 'The world stops', (m, D) => {
+    const p = panel(0);
+    ground(p, MAPSEA);
+    const M = paperMap(p, D + HOLD, { x: 0, y: -40, z: .5 }, { geo: GEO_W }), cam = M.cam;
+    paperTop(p, .4);
+    cam.to({ z: .54 }, 0, D, lin);
+    // the date runs from where the last beat stopped (18 March) and reaches each count's day as it is said
+    const DAY = 864e5, d0 = Date.parse('2020-03-18'), dA = Date.parse('2020-03-26'), d1 = Date.parse('2020-04-07');
+    const day = t => t < m('b17') ? d0 + Math.round((dA - d0) / DAY * span01(t, .2, m('b17'))) * DAY : dA + Math.round((d1 - dA) / DAY * span01(t, m('week'), m('b39'))) * DAY;
+    const hs = worldHatch(M), dt = dateTag(p, '18 March 2020', 0, { fill: MAPINK }), fmt = dateFmt();
+    const box = G(p, { o: 0 });
+    mk('rect', { x: 90, y: 560, width: 520, height: 230, fill: '#f6f1e4', opacity: .94 }, box);
+    const n = T(box, '', { x: 350, y: 660, size: 80, fill: RED, font: KEY, weight: 600, anchor: 'middle' });
+    T(box, 'countries ordering people to stay home', { x: 350, y: 706, size: 26, fill: MAPINK, font: SER, anchor: 'middle' }).setAttribute('font-style', 'italic');
+    const hf = T(box, 'MORE THAN HALF OF HUMANITY', { x: 350, y: 758, size: 26, fill: MAPINK, font: KEY, weight: 500, anchor: 'middle', o: 0 });
+    hf.setAttribute('letter-spacing', '.12em');
+    clockRun(t => {
+      const s = new Date(day(t)).toISOString().slice(0, 10); let k = 0;
+      hs.forEach(([e, c]) => { const on = c[1] && c[1] <= s; k += !!on; e.setAttribute('opacity', on ? 1 : 0); });
+      dt.lastChild.textContent = fmt(day(t)); n.textContent = String(k);
+    }, D, { tail: true });
+    tw(box, { o: 1 }, m('b17') - .1, .3);
+    prog(q => put(n, { s: 1 + .12 * Math.sin(Math.PI * q) }), m('b39'), .3, lin);
+    tw(hf, { o: 1 }, m('half'), .3);
+    tag(p, 'Hatched: stay-at-home orders · Our World in Data', 1530, 860, 0, { anchor: 'end', size: 17, fill: MAPINK });
+  }, { pre: 2 }],   // a breath after "the world stops": the map fills in silence
+
+  // 14. Schools, shelves, streets: three cuts
+  ['empty', 'Empty', (m, D) => {
+    const p = panel(0);
+    ground(p, NIGHT);
+    const a = still(p, 'school-empty-classroom', 0, m('shelves'), { o: .55 });
+    const k = G(p, { o: 0 });
+    counter(k, 800, 470, 0, 1e9, m('billion') - .2, 1, { size: 120, fill: CREAM, font: KEY, weight: 600 });
+    T(k, 'STUDENTS KEPT OUT OF CLASS, BY SEPTEMBER 2020', { x: 800, y: 540, size: 28, fill: CREAM, font: KEY, weight: 500, anchor: 'middle' }).setAttribute('letter-spacing', '.12em');
+    tw(k, { o: 1 }, m('billion') - .3, .3);
+    tag(p, 'Wikipedia, from UNESCO', 800, 580, m('billion'), { anchor: 'middle', size: 18, fill: CREAM });
+    [a, k].forEach(e => hide(e, m('shelves'), .01, lin));
+    still(p, 'shelves-empty', m('shelves'), m('streets'));
+    still(p, 'street-glenview-05', m('streets'), D + HOLD);
+    dateTag(p, 'Spring 2020', .2);
+  }],
+
+  // 15. Shop visitors fall; forty million US jobs
+  ['shops', 'Shops', (m, D) => {
+    const p = panel(0);
+    ground(p, MAPLAND);
+    paperTop(p, .4);
+    const ch = G(p, {});
+    T(ch, 'SHOP VISITORS, SPRING 2020', { x: 800, y: 140, size: 34, fill: MAPINK, font: KEY, weight: 500, anchor: 'middle' }).setAttribute('letter-spacing', '.16em');
+    const rows = [['Europe', 40, 40], ['Latin America', 40, 40], ['North America', 50, 60], ['Middle East', 50, 60]], X0 = 560, BW = 760;
+    rows.forEach(([name, lo, hi], i) => {
+      const y = 230 + i * 120;
+      T(ch, name, { x: X0 - 30, y: y + 44, size: 32, fill: MAPINK, font: SER, anchor: 'end' });
+      mk('rect', { x: X0, y: y + 10, width: BW, height: 50, fill: '#d8ccb2' }, ch);   // before: 100 %
+      const b = mk('rect', { x: X0, y: y + 10, width: BW, height: 50, fill: MAPINK }, ch), b2 = mk('rect', { x: X0, y: y + 10, width: BW, height: 50, fill: MAPINK, opacity: .45 }, ch);
+      const lab = T(ch, lo === hi ? `−${lo}%` : `−${lo} to ${hi}%`, { x: X0 + BW - 16, y: y + 46, size: 30, fill: RED, font: KEY, weight: 600, anchor: 'end', o: 0 });
+      prog(q => { b.setAttribute('width', BW * (1 - hi / 100 * q)); b2.setAttribute('width', BW * (1 - lo / 100 * q)); }, m('forty') + i * .12, .8, out);
+      tw(lab, { o: 1 }, m('forty') + .6 + i * .12, .2);
+    });
+    tag(ch, 'compared with before · Wikipedia', X0 + BW, 720, m('forty') + 1, { anchor: 'end', size: 18, fill: '#6a6258' });
+    hide(ch, m('us') - .2, .3);
+    const ph = G(p, { x: 520, y: 470, r: -3, s: 1.05, o: 0 });
+    mk('rect', { x: -330, y: -215, width: 660, height: 460, fill: '#f6f1e4' }, ph);
+    mk('image', { href: '../img/closed-sign-handwritten.webp', x: -310, y: -195, width: 620, height: 370 }, ph);
+    T(ph, 'Alabama, March 2020 · Alabama Extension, CC0', { x: -310, y: 215, size: 17, fill: MAPINK, font: SER });
+    tw(ph, { s: 1, o: 1 }, m('us') - .1, .3, out);
+    const jb = G(p, { o: 0 });
+    counter(jb, 1170, 470, 0, 40e6, m('jobs'), 1.1, { size: 110, fill: RED, font: KEY, weight: 600 });
+    T(jb, 'US JOBS GONE', { x: 1170, y: 540, size: 34, fill: MAPINK, font: KEY, weight: 500, anchor: 'middle' }).setAttribute('letter-spacing', '.14em');
+    tw(jb, { o: 1 }, m('jobs') - .1, .2);
+  }],
+
+  // 16. Three and a half trillion dollars; the worst since the Great Depression
+  ['money', 'Recession', (m, D) => {
+    const p = panel(0);
+    ground(p, MAPLAND); paperTop(p, .4);
+    counter(p, 800, 380, 0, 3.5, m('world') + .1, m('trillion') + .9 - m('world'), { size: 150, fill: MAPINK, font: KEY, weight: 600, fmt: v => '$' + v.toFixed(1) + ' TRILLION' });
+    const s1 = T(p, 'less earned from work worldwide, January to September 2020', { x: 800, y: 450, size: 30, fill: MAPINK, font: SER, anchor: 'middle', o: 0 });
+    s1.setAttribute('font-style', 'italic'); tw(s1, { o: 1 }, m('trillion') + .2, .3);
+    tag(p, 'International Labour Organization, via Wikipedia', 800, 490, m('trillion') + .4, { anchor: 'middle', size: 18, fill: '#6a6258' });
+    // the worst since 1929: a line of years with the two marks, the arc jumping back over them
+    const tl = G(p, { o: 0 }), X = y => 200 + (y - 1925) / 100 * 1200;
+    mk('path', { d: `M${X(1925)} 760H${X(2025)}`, stroke: '#9a8a70', 'stroke-width': 2 }, tl);
+    [[1929, '1929 · THE GREAT DEPRESSION'], [2020, '2020']].forEach(([y, s], i) => {
+      mk('circle', { cx: X(y), cy: 760, r: 10, fill: i ? RED : MAPINK }, tl);
+      T(tl, s, { x: X(y), y: 812, size: 26, fill: i ? RED : MAPINK, font: KEY, weight: 500, anchor: i ? 'end' : 'start' }).setAttribute('letter-spacing', '.12em');
+    });
+    const arc = path(tl, `M${X(2020)} 748Q${(X(1929) + X(2020)) / 2} 630 ${X(1929)} 748`, { stroke: RED, 'stroke-width': 3 }, { d: 0 });
+    draw(arc, m('depression') - .2, .8);
+    T(p, 'THE WORST RECESSION SINCE', { x: 800, y: 630, size: 34, fill: MAPINK, font: KEY, weight: 500, anchor: 'middle', o: 0 });
+    tw(p.lastChild, { o: 1 }, m('worst') - .1, .3);
+    tw(tl, { o: 1 }, m('worst') + .2, .4);
+  }],
+
+  // 17. The sky over China clears: NASA's two pictures, January and February
+  ['quiet', 'Clear skies', (m, D) => {
+    const p = panel(0);
+    ground(p, '#f4f6f8');
+    const cam = camera(p, D + HOLD, { x: 800, y: 450, z: 1 }), w = cam.world;
+    const k = 1.55, W = 720 * k, H = 545 * k;
+    mk('image', { href: '../img/no2-china.webp', x: 800 - W / 2, y: 450 - H / 2 + 10, width: W, height: H }, w);
+    cam.to({ z: 1.04 }, 0, m('china'), lin);
+    cam.to({ x: 800 - W / 4, y: 400, z: 1.55 }, m('china') - .3, .9, soft);
+    cam.to({ x: 800 + W / 4, y: 400, z: 1.55 }, m('fall') - .4, .9, soft);
+    tag(p, 'Nitrogen dioxide over China · NASA Earth Observatory, ESA Sentinel-5P data, public domain', 800, 880, .4, { anchor: 'middle', size: 17, fill: '#4a5560' });
+    const f = G(p, { o: 0 });
+    mk('rect', { x: 1150, y: 680, width: 380, height: 120, fill: CHAR }, f);
+    T(f, '−50%', { x: 1340, y: 752, size: 64, fill: CREAM, font: KEY, weight: 600, anchor: 'middle' });
+    T(f, 'NITROGEN OXIDES, CHINA · WIKIPEDIA', { x: 1340, y: 786, size: 16, fill: SOFT, font: KEY, weight: 500, anchor: 'middle' }).setAttribute('letter-spacing', '.1em');
+    tw(f, { o: 1 }, m('fall') + .1, .3);
+  }],
+
+  // 18. The pause: the hatching lifts over the summer, and comes back in the autumn
+  ['wait', 'Only a pause', (m, D) => {
+    const p = panel(0);
+    ground(p, MAPSEA);
+    const M = paperMap(p, D + HOLD, { x: 0, y: -40, z: .54 }, { geo: GEO_W }), cam = M.cam;
+    paperTop(p, .4);
+    const W5 = 5, W24 = 24, W47 = GEO_W.weeks.length - 1;
+    const wk = t => Math.round(t < m('back') ? W5 + (W24 - W5) * span01(t, .3, m('pause')) : W24 + (W47 - W24) * span01(t, m('back'), D));
+    const hs = worldHatch(M), dt = dateTag(p, '6 April 2020', .1, { fill: MAPINK }), fmt = dateFmt();
+    let last = -1;
+    clockRun(t => {
+      const i = wk(t); if (i === last) return; last = i;
+      hs.forEach(([e, c]) => e.setAttribute('opacity', c[2] && c[2][i] === '1' ? 1 : 0)); dt.lastChild.textContent = fmt(Date.parse(GEO_W.weeks[i]));
+    }, D, { tail: true });
+    cam.shake(4, m('back'), .35); cam.shake(5, m('again'), .35);
+    tag(p, 'Hatched: stay-at-home orders · Our World in Data', 1530, 860, .2, { anchor: 'end', size: 17, fill: MAPINK });
+  }, { pre: 1.2 }],
+
+  /* ---------- §5 Waves ---------- */
+  // 19. Alpha: a pin in Kent; the curves run from the first spring to the deadliest winter
+  ['alpha', 'Waves', (m, D) => {
+    const p = panel(0);
+    const W = wavesStage(p, D, [[0, '2020-11-02'], [m('dec'), '2020-12-07'], [m('thirtythree'), '2021-01-04'], [m('winter') + .8, '2021-01-25'], [D, '2021-02-01']]);
+    W.pin('kent', 'Alpha', m('kent'), m('alpha'));
+    const c = chipLabel(p, 'Found in 33 countries within three weeks', 800, 538, m('thirtythree'), { fill: MAPINK, size: 24, anchor: 'middle' });
+    hide(c, m('winter') - .2, .3);
+    W.peak('2021-01-25', 'd', 'about 14,800 deaths a day', m('winter') + .3);
+  }],
+
+  // 20. The vaccines, and the race that is not fair: one in four against one in five hundred
+  ['vaccine', 'Vaccines', (m, D) => {
+    const p = panel(0);
+    const W = wavesStage(p, D, [[0, '2021-02-01'], [m('vax') - .9, '2021-02-01'], [m('vax') + .1, '2020-12-07'], [m('dec2'), '2020-12-07']]);   // back to December
+    W.mark('2020-12-07', 'First vaccines', m('vax'));
+    const c = chipLabel(p, 'The UK approves the Pfizer vaccine, 2 December 2020', 800, 538, m('dec2'), { fill: MAPINK, size: 24, anchor: 'middle' });
+    hide(W.g, m('fair') - .35, .3); hide(c, m('fair') - .35, .3);
+    // two grids of 500 people, lit as each share is said
+    const G2 = G(p, { o: 0 });
+    ground(G2, MAPLAND); paperTop(G2, .4);
+    [['HIGH-INCOME COUNTRIES', 170, 125, m('rich')], ['LOW- AND MIDDLE-INCOME COUNTRIES', 880, 1, m('one500')]].forEach(([title, x0, n, t0]) => {
+      T(G2, title, { x: x0 + 270, y: 200, size: 28, fill: MAPINK, font: KEY, weight: 500, anchor: 'middle' }).setAttribute('letter-spacing', '.12em');
+      for (let i = 0; i < 500; i++) {
+        const d = mk('circle', { cx: x0 + 11 + (i % 25) * 22, cy: 250 + Math.floor(i / 25) * 22, r: 7, fill: '#cfc3a8' }, G2);
+        if (i < n) { st(d).c_fill = '#cfc3a8'; tw(d, { c_fill: RED }, t0 + i * .006, .15, lin); }
+      }
+      const lab = T(G2, n === 1 ? '1 in 500' : '1 in 4', { x: x0 + 270, y: 730, size: 64, fill: RED, font: KEY, weight: 600, anchor: 'middle', o: 0 });
+      tw(lab, { o: 1 }, t0 + .2, .3);
+    });
+    tag(G2, 'had received a vaccine dose by April 2021 · Wikipedia', 800, 800, m('rich'), { anchor: 'middle', size: 22, fill: MAPINK });
+    tw(G2, { o: 1 }, m('fair') - .3, .3);
+  }],
+
+  // 21. Delta: a pin in India; spring 2021
+  ['delta', 'Delta', (m, D) => {
+    const p = panel(0);
+    const W = wavesStage(p, D, [[0, '2020-12-07'], [m('india'), '2021-03-01'], [m('april'), '2021-04-19'], [m('strain'), '2021-05-10'], [D, '2021-08-30']]);
+    W.pin('india', 'Delta', m('india'), m('delta'));
+    W.peak('2021-05-03', 'c', 'India’s second wave', m('april') + .4);
+    chipLabel(p, 'Spreads among the vaccinated too', 800, 538, m('vaccinated'), { fill: MAPINK, size: 24, anchor: 'middle' });
+  }],
+
+  // 22. Omicron: a pin in South Africa; the cases go off the old scale
+  ['omicron', 'Omicron', (m, D) => {
+    const p = panel(0);
+    const W = wavesStage(p, D, [[0, '2021-08-30'], [m('nov24'), '2021-11-22'], [m('omicron') + .8, '2021-11-29'], [m('record'), '2022-01-24'], [D, '2022-02-07']]);
+    W.pin('southAfrica', 'Omicron', m('sa'), m('omicron'));
+    W.peak('2022-01-24', 'c', 'nearly 3.5 million cases a day', m('m34'));
+  }],
+
+  // 23. Wave after wave; the count of the dead climbs
+  ['waves', 'The count climbs', (m, D) => {
+    const p = panel(0);
+    const W = wavesStage(p, D, [[0, '2022-02-07'], [m('count'), '2022-06-27']]);
+    W.dim(m('count'));
+    const box = G(p, { o: 0 });
+    mk('rect', { x: 1060, y: 90, width: 440, height: 170, fill: CHAR, opacity: .94 }, box);
+    const k = WAVES.findIndex(w => w[0] === '2020-03-02');
+    counter(box, 1280, 185, WAVES[k][4], WAVES[WAVES.length - 1][4], m('count'), D - m('count') + .5, { size: 64, fill: CREAM, font: KEY, weight: 600, ease: lin });
+    T(box, 'REPORTED DEATHS, BY JUNE 2022', { x: 1280, y: 230, size: 20, fill: SOFT, font: KEY, weight: 500, anchor: 'middle' }).setAttribute('letter-spacing', '.12em');
+    tw(box, { o: 1 }, m('count') - .2, .3);
+  }],
+
+  /* ---------- §6 The count ---------- */
+  // 24. The counter carries on from §5 (6.4 million by June 2022) to today's 7.1 million, in its breath; then one dot for
+  // 100,000 people: the counted dead, then the ghosts of the uncounted
+  ['count', 'The count', (m, D) => {
+    const p = panel(0);
+    ground(p, CHAR);
+    const dots = dotGrid(p, 352, 330);
+    const n0 = T(p, '', { x: 800, y: 200, size: 110, fill: RED, font: KEY, weight: 600, anchor: 'middle' });
+    const l0 = T(p, 'REPORTED DEATHS', { x: 800, y: 254, size: 28, fill: CREAM, font: KEY, weight: 500, anchor: 'middle' });
+    l0.setAttribute('letter-spacing', '.16em');
+    const v0 = WAVES[WAVES.length - 1][4];
+    prog(q => { n0.textContent = Math.round(v0 + (7115706 - v0) * q).toLocaleString('en-US'); }, .2, m('seven') - .2, out);
+    prog(() => { l0.textContent = 'CONFIRMED DEATHS, TO 2026'; }, m('seven') - .2, 0, lin);
+    // the counted: 71 dots, filled one after another
+    dots.slice(0, 71).forEach((d, i) => { d.setAttribute('fill', RED); d.setAttribute('stroke', 'none'); tw(d, { o: 1 }, m('seven') + .2 + i * .02, .1, lin); });
+    tag(p, 'one dot: 100,000 people', 320, 860, m('seven') + 1.2, { size: 20 });
+    // the estimate, 18.5 to 35.2 million: ghosts out to 352, the likeliest 274 more solid
+    dots.slice(71).forEach((d, i) => tw(d, { o: i + 71 < 185 ? .8 : .4 }, m('estimate') + i * .006, .15, lin));
+    prog(() => { n0.textContent = '18.5 – 35.2 MILLION'; l0.textContent = 'ESTIMATED DEATHS'; }, m('estimate'), 0, lin);
+    dots.slice(71, 274).forEach((d, i) => { st(d).c_fill = CHAR; d.setAttribute('fill', CHAR); tw(d, { c_fill: '#7a2a22', o: 1 }, m('likely') + i * .004, .2, lin); });
+    prog(() => { n0.textContent = '≈ 27 MILLION'; l0.textContent = 'THE LIKELIEST ESTIMATE'; }, m('likely'), 0, lin);
+    tag(p, 'confirmed: as of 2026 · estimate: excess deaths, The Economist, to January 2024 · via Wikipedia', 1280, 860, m('estimate') + .4, { anchor: 'end', size: 18 });
+  }, { pre: 2 }],
+
+  // 25. The risk by age, on one honest scale: 0.002 % is a line too thin to see, 15 % runs off the top
+  ['age', 'By age', (m, D) => {
+    const p = panel(0);
+    ground(p, MAPLAND); paperTop(p, .4);
+    T(p, 'RISK OF DYING ONCE INFECTED, BY AGE', { x: 800, y: 110, size: 30, fill: MAPINK, font: KEY, weight: 500, anchor: 'middle' }).setAttribute('letter-spacing', '.14em');
+    const A = [[10, .002, '2 in 100,000'], [25, .01, ''], [55, .4, ''], [65, 1.4, ''], [75, 4.6, ''], [85, 15, '15 in 100']], B = 800, HM = 600;
+    const tOf = i => i === 0 ? m('ten') : i === 5 ? m('eightyfive') : m('ten') + 1.5 + (i - 1) * .8;
+    A.forEach(([age, v, say], i) => {
+      const x = 340 + i * 190, h = HM * v / 15, t0 = tOf(i);
+      T(p, String(age), { x, y: B + 46, size: 34, fill: MAPINK, font: KEY, weight: 500, anchor: 'middle' });
+      const b = mk('rect', { x: x - 50, y: B, width: 100, height: 0, fill: i === 5 ? RED : MAPINK }, p);
+      prog(q => { b.setAttribute('y', B - h * q); b.setAttribute('height', h * q); }, t0, i === 5 ? 1 : .5, out);
+      const lab = T(p, `${v}%`, { x, y: B - Math.max(h, 0) - 16, size: 26, fill: i === 5 ? RED : MAPINK, font: KEY, weight: 500, anchor: 'middle', o: 0 });
+      tw(lab, { o: 1 }, t0 + (i === 5 ? .9 : .4), .2);
+      if (say) { const s2 = T(p, say, { x, y: B - h - 52, size: 28, fill: i === 5 ? RED : MAPINK, font: SER, anchor: 'middle', o: 0 }); s2.setAttribute('font-style', 'italic'); tw(s2, { o: 1 }, t0 + .3, .3); }
+    });
+    mk('path', { d: `M220 ${B}H1380`, stroke: MAPINK, 'stroke-width': 2 }, p);
+    T(p, 'age', { x: 220, y: B + 46, size: 24, fill: '#6a6258', font: SER });
+    const x7 = T(p, '× 7,500', { x: 820, y: 330, size: 96, fill: RED, font: KEY, weight: 600, anchor: 'middle', o: 0 });
+    tw(x7, { o: 1 }, m('times') - .1, .3);
+    tag(p, 'infection fatality ratio · Wikipedia', 1380, 890, .5, { anchor: 'end', size: 18, fill: '#6a6258' });
+  }],
+
+  // 26. The lives the vaccines saved: blue dots below the same grid, the dead above it dimmed
+  ['saved', 'Saved', (m, D) => {
+    const p = panel(0);
+    ground(p, CHAR);
+    const dots = dotGrid(p, 352, 330);
+    dots.forEach((d, i) => { put(d, { o: .35 }); if (i < 274) { d.setAttribute('fill', i < 71 ? RED : '#7a2a22'); d.setAttribute('stroke', 'none'); } });
+    const BL = '#5b9bd5', more = dotGrid(p, 198, 330 + 11 * 30 + 24);
+    more.forEach((d, i) => { d.setAttribute('stroke', BL); if (i < 144) { d.setAttribute('fill', BL); d.setAttribute('stroke', 'none'); } tw(d, { o: i < 144 ? 1 : .55 }, m('fourteen') - .3 + i * .008, .12, lin); });
+    const n = T(p, '14.4 – 19.8 MILLION', { x: 800, y: 200, size: 100, fill: BL, font: KEY, weight: 600, anchor: 'middle', o: 0 });
+    const l = T(p, 'MORE DEATHS, WITHOUT VACCINES: DECEMBER 2020 TO DECEMBER 2021', { x: 800, y: 254, size: 24, fill: CREAM, font: KEY, weight: 500, anchor: 'middle', o: 0 });
+    l.setAttribute('letter-spacing', '.12em');
+    [n, l].forEach(e => tw(e, { o: 1 }, m('vax') + .3, .3));
+    tag(p, 'one dot: 100,000 people · June 2022 study, via Wikipedia', 320, 885, m('fourteen') + .4, { size: 20 });
+  }],
+
+  // 27. The emergency ends; what many heard; the correction; then the countries go dark one by one
+  ['over', 'Over?', (m, D) => {
+    const p = panel(0);
+    ground(p, MAPSEA);
+    const M = paperMap(p, D + HOLD, { x: 0, y: -40, z: .5 }, { geo: GEO_W });
+    paperTop(p, .4);
+    // one light per country still reporting cases (four-week windows), out for good after its last report
+    const lastOn = b => b.lastIndexOf('1');
+    const L = Object.entries(QUIET.bits).filter(([c]) => GEO_W.countries[c]).map(([c, b]) => {
+      const [x, y] = GEO_W.countries[c][4], e = mk('circle', { cx: x, cy: y, r: 9, fill: RED, opacity: 0 }, M.marks);
+      return [e, lastOn(b)];
+    });
+    const i0 = QUIET.points.findIndex(d => d >= '2023-01-01'), i1 = QUIET.points.findIndex(d => d >= '2023-08-14');
+    const ix = t => Math.round(i0 + (i1 - i0) * span01(t, m('stopped') - .2, m('quiet')));
+    const dt = dateTag(p, '5 May 2023', m('may5'), { fill: MAPINK }), fmt = dateFmt();
+    const cnt = T(p, '', { x: 1530, y: 98, size: 64, fill: MAPINK, font: KEY, weight: 600, anchor: 'end', o: 0 });
+    tag(p, 'countries reporting cases in the last four weeks', 1530, 136, m('stopped'), { anchor: 'end', size: 22, fill: MAPINK });
+    tag(p, 'Our World in Data', 1530, 160, m('stopped'), { anchor: 'end', size: 16, fill: MAPINK });
+    let last = -1;
+    clockRun(t => {
+      const i = ix(t), on = t > m('stopped') - .4; if (i === last && on) return; last = i;
+      let n = 0; L.forEach(([e, k]) => { const lit = k >= i; n += lit; e.setAttribute('opacity', on ? (lit ? .9 : 0) : 0); });
+      cnt.textContent = String(n); if (t > m('stopped') - .2) dt.lastChild.textContent = fmt(Date.parse(QUIET.points[i]));
+    }, D, { tail: true });
+    tw(cnt, { o: 1 }, m('stopped'), .3);
+    // the WHO's words on a card; what many heard written over them; the correction
+    const top = G(p, {});
+    const card = G(top, { x: 800, y: 420, o: 0 });
+    mk('rect', { x: -440, y: -150, width: 880, height: 300, fill: '#efe9da' }, card);
+    T(card, 'WORLD HEALTH ORGANIZATION · 5 MAY 2023', { x: 0, y: -86, size: 24, fill: '#6a6258', font: KEY, weight: 500, anchor: 'middle' }).setAttribute('letter-spacing', '.14em');
+    T(card, 'COVID-19: no longer a public health', { x: 0, y: -10, size: 44, fill: '#2a2521', font: SER, anchor: 'middle' });
+    T(card, 'emergency of international concern', { x: 0, y: 48, size: 44, fill: '#2a2521', font: SER, anchor: 'middle' });
+    tw(card, { o: 1 }, m('may5') + .3, .4);
+    const sk = path(card, 'M-340 30L340 22', { stroke: RED, 'stroke-width': 6 }, { d: 0 }); draw(sk, m('pover') - .1, .35);
+    const heard = T(card, 'the pandemic is over', { x: 0, y: 118, size: 46, fill: RED, font: SER, anchor: 'middle', o: 0 });
+    heard.setAttribute('font-style', 'italic'); tw(heard, { o: 1 }, m('pover') + .1, .3);
+    tag(card, 'what many heard', 330, 140, m('pover') + .6, { anchor: 'end', size: 18, fill: '#6a6258' });
+    const sk2 = path(card, 'M-200 106L200 100', { stroke: '#2a2521', 'stroke-width': 5 }, { d: 0 }); draw(sk2, m('never') + .05, .3);
+    const q = G(top, { x: 800, y: 700, o: 0 });
+    mk('rect', { x: -560, y: -84, width: 1120, height: 168, fill: CHAR }, q);
+    ['“While the international public health emergency may have', 'ended, the pandemic certainly has not”'].forEach((l, i) =>
+      T(q, l, { x: 0, y: -26 + i * 42, size: 32, fill: CREAM, font: SER, anchor: 'middle' }).setAttribute('font-style', 'italic'));
+    T(q, 'Hans Kluge, director of WHO Europe, June 2023', { x: 0, y: 62, size: 18, fill: SOFT, font: SER, anchor: 'middle' });
+    tw(q, { o: 1 }, m('never') + .4, .3);
+    hide(top, m('stopped') - .4, .4);
+  }],
+
+  /* ---------- the origin, still open (user 10-27: the main answers side by side, neither favoured) ---------- */
+  // 28. Wuhan close up: the market to the north, the institute to the south; one card for each answer, drawn the same
+  ['origin', 'Where from?', (m, D) => {
+    const p = panel(0);
+    const O = originStage(p, D, m('q') + .2, m('two') - .3);
+    O.side(0, m('nature'), m('market'), null, m('many'));
+    O.side(1, m('lab'), m('wiv'), null, m('fbi'));
+  }, { pre: 1.5 }],
+
+  // 29. What the evidence cannot settle: the other ideas, no proof either way, the samples never shared
+  ['unknown', 'Still open', (m, D) => {
+    const p = panel(0);
+    const O = originStage(p, D, -1, -1);
+    O.side(0, -1, -1, -1, -1); O.side(1, -1, -1, null, -1);
+    const oth = G(p, { o: 0 });
+    [['frozen food', 560], ['an American lab', 1040]].forEach(([s2, x]) => {
+      mk('rect', { x: x - 150, y: 784, width: 300, height: 52, rx: 26, fill: '#d8ccb2' }, oth);
+      T(oth, s2.toUpperCase(), { x, y: 818, size: 22, fill: '#6a6258', font: KEY, weight: 500, anchor: 'middle' }).setAttribute('letter-spacing', '.1em');
+    });
+    T(oth, 'other ideas: little evidence behind them', { x: 800, y: 870, size: 20, fill: '#6a6258', font: SER, anchor: 'middle' }).setAttribute('font-style', 'italic');
+    tw(oth, { o: 1 }, m('other') + .2, .3); hide(oth, m('proof') - .3, .3);
+    // no proof either way: both cards dim alike, a question mark between them
+    O.cards.forEach(c => { tw(c, { o: .45 }, m('proof') - .1, .4); hide(c, m('data') - .1, .4); });
+    // the question mark on the line between the two places, the same distance from each (clear of both labels)
+    const [mx, my] = O.cam.screen(...O.mid, m('proof'));
+    const qm = T(p, '?', { x: mx, y: my + 62, size: 170, fill: RED, font: KEY, weight: 600, anchor: 'middle', o: 0 });
+    tw(qm, { o: 1 }, m('proof'), .3);
+    // the evidence never shared: three empty slots
+    const ds = G(p, { o: 0 });
+    ['EARLY PATIENT LISTS', 'SWABS', 'BLOOD SAMPLES'].forEach((s2, i) => {
+      const x = 330 + i * 470;
+      mk('rect', { x: x - 200, y: 660, width: 400, height: 90, fill: '#f6f1e4', opacity: .85, stroke: '#6a6258', 'stroke-width': 3, 'stroke-dasharray': '10 8' }, ds);
+      T(ds, s2, { x, y: 715, size: 26, fill: '#6a6258', font: KEY, weight: 500, anchor: 'middle' }).setAttribute('letter-spacing', '.12em');
+    });
+    T(ds, 'never fully shared · Wikipedia', { x: 800, y: 790, size: 20, fill: '#6a6258', font: SER, anchor: 'middle' }).setAttribute('font-style', 'italic');
+    tw(ds, { o: 1 }, m('data') + .1, .4);
+    const rf = chipLabel(p, '2021: China declines the WHO inquiry’s second phase', 800, 860, m('refused'), { anchor: 'middle', size: 24, fill: MAPINK });
+    [ds, rf].forEach(e => hide(e, m('open') - .2, .4));
+    O.labels.forEach(l => hide(l, m('open'), .5));
+    O.cam.to({ z: 3 }, m('open'), D - m('open') + HOLD, soft);   // back out over the city, the question left on it
+  }],
+
+  // 28. The night globe of the opening and its words, gathered; then everything fades
+  ['end', 'The biggest crisis', (m, D) => {
+    const p = panel(0);
+    ground(p, NIGHT);
+    const glob = G(p, { o: 0 });
+    Globe.clearMarks();
+    globeShot(glob, D, t => ({ lon: -30 + t * 2.4, lat: 12, H: 1.15, gain: 1.6 }));
+    tw(glob, { o: .45 }, 0, 1.2, lin);
+    const words = G(p, {});
+    [['THE BIGGEST CRISIS', 400, m('biggest') - .1], ['OF OUR GENERATION', 540, m('biggest') + .7]].forEach(([str, y, t0]) => {
+      const e = T(words, str, { x: 800, y, size: 120, fill: CREAM, font: KEY, weight: 600, anchor: 'middle', o: 0 });
+      tw(e, { o: 1 }, t0, .4);
+    });
+    const k = T(words, '≈ 27,000,000 LIVES', { x: 800, y: 680, size: 44, fill: RED, font: KEY, weight: 600, anchor: 'middle', o: 0 });
+    k.setAttribute('letter-spacing', '.12em');
+    tw(k, { o: 1 }, m('millions'), .4);
+    hide(words, D + .8, 1.6, lin);
+    hide(glob, D + .4, 2, lin);
+    tw(G(p, {}), { o: 1 }, D + 2.4, 3.2, lin);   // then black, held while the music ends
+  }, { pre: 2.5 }],
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
 
 // the lockdown hatching (world px) and an arrowhead
@@ -483,11 +1319,21 @@ const BEATS = [
   mk('path', { d: 'M0 0V6', stroke: RED, 'stroke-width': 2.4 }, pt);
   const mkr = mk('marker', { id: 'arrowR', viewBox: '0 0 10 10', refX: 6, refY: 5, markerWidth: 5, markerHeight: 5, orient: 'auto-start-reverse' }, DEFS);
   mk('path', { d: 'M0 0L10 5L0 10Z', fill: RED }, mkr);
+  const rg = mk('linearGradient', { id: 'dpmRamp' }, DEFS);
+  [[0, .05], [1, .81]].forEach(([o, a]) => mk('stop', { offset: o, 'stop-color': RED, 'stop-opacity': a }, rg));
+  const mg = mk('marker', { id: 'arrowG', viewBox: '0 0 10 10', refX: 6, refY: 5, markerWidth: 5, markerHeight: 5, orient: 'auto-start-reverse' }, DEFS);
+  mk('path', { d: 'M0 0L10 5L0 10Z', fill: '#aeb4bd' }, mg);
 })();
 
-window.MUSIC_UP_IN_PRE = ['open'];
-// One track for the whole film, never stopped; ?bgm= sets its level by ear (gain under the ducking to 30 %)
-music('audio/bgm/theme.mp3', BEATS.map(b => b.id), +(new URLSearchParams(location.search).get('bgm') || .6), 0);
+window.MUSIC_UP_IN_PRE = ['open', 'far', 'half', 'count', 'origin', 'end'];
+// One track per part, never stopped, crossfading at the turn; ?bgm= sets their level by ear (gain under the ducking to 30 %)
+const BGM_GAIN = +(new URLSearchParams(location.search).get('bgm') || .6), PART = id => BEATS.findIndex(b => b.id === id);
+music('audio/bgm/theme.mp3', BEATS.slice(0, PART('far')).map(b => b.id), BGM_GAIN, 0);
+music('audio/bgm/s3-spread.mp3', BEATS.slice(PART('far'), PART('half')).map(b => b.id), BGM_GAIN, 2);   // §3 Out of China (Lyria)
+music('audio/bgm/s4-still.mp3', BEATS.slice(PART('half'), PART('alpha')).map(b => b.id), BGM_GAIN, 2);   // §4 The world stops (Lyria)
+music('audio/bgm/s5-waves.mp3', BEATS.slice(PART('alpha'), PART('count')).map(b => b.id), BGM_GAIN, 2);   // §5 Waves (Lyria)
+music('audio/bgm/s6-count.mp3', BEATS.slice(PART('count'), PART('origin')).map(b => b.id), BGM_GAIN, 2);   // §6 The count (Lyria)
+music('audio/bgm/s7-open.mp3', BEATS.slice(PART('origin')).map(b => b.id), BGM_GAIN, 2);   // the origin, and the end (Lyria)
 
 Promise.all([...['600 40px Oswald', '500 40px Oswald', '700 40px Oswald', 'italic 400 40px "EB Garamond"', '400 40px "EB Garamond"', '500 40px "EB Garamond"']
   .map(f => document.fonts.load(f)), import('../lib/globe.js'), new Promise(r => { (function w() { window.GLOBE_READY ? r() : setTimeout(w, 30); })(); })])
