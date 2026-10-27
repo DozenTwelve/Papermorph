@@ -1,0 +1,1 @@
+Object.assign(window.ART, {"ch06-bat":[864,1536],"ch06-raccoon":[864,1536],"ch06-crowd":[864,1536],"ch06-sample":[864,1536],"ch06-market":[864,1536],"ch06-corridor":[864,1536],"ch06-boxes":[864,1536]});
