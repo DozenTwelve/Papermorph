@@ -27,9 +27,10 @@ The code in this repository is MIT. The pictures and data here keep their own li
 | `shelves-empty.webp` | [Empty toilet paper shelves](https://commons.wikimedia.org/wiki/File:Empty_toilet_paper_shelves_(49665873706).jpg) | Dan Keck | CC0 |
 | `street-glenview-05.webp` | Glenview March 2020 05, Wikimedia Commons | C. E. Miller | Public domain |
 | `closed-sign-handwritten.webp` | Alabama Extension, Flickr | Alabama Extension | CC0 |
-| `geo-world.js` | [Natural Earth](https://www.naturalearthdata.com/) 110m, projected; stringency index from [Our World in Data](https://ourworldindata.org/covid-stringency-index) | Natural Earth; OWID | Public domain; CC BY 4.0 |
+| `geo-world.js` | [Natural Earth](https://www.naturalearthdata.com/) 50m, projected; stay-at-home requirements and deaths per million from [Our World in Data](https://ourworldindata.org/covid-stay-home-covid) | Natural Earth; OWID | Public domain; CC BY 4.0 |
 | `waves.js` | World cases, deaths and vaccinations, weekly, [Our World in Data](https://ourworldindata.org/coronavirus) | Our World in Data | CC BY 4.0 |
 | `quiet.js` | Which countries reported new cases each week, 2022–2024, [Our World in Data](https://ourworldindata.org/coronavirus) | Our World in Data | CC BY 4.0 |
 | `geo-eu.js` | [Natural Earth](https://www.naturalearthdata.com/), projected (Italy and the North Atlantic) | Natural Earth | Public domain |
 | genome strip (in `ch01/index.html`) | SARS-CoV-2 reference sequence [NC_045512.2](https://www.ncbi.nlm.nih.gov/nuccore/NC_045512.2), bases 1–600 | NCBI | Public domain (US government database) |
 | `spread.js` | First case per country, [Our World in Data](https://ourworldindata.org/coronavirus) | Our World in Data | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
+| `cover.webp`, `making/*.webp` | Stills of this film, for the series page | Papermorph | MIT, like the code (the pictures in them keep their own licences) |

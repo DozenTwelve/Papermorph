@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Pandemic</title>
+<meta name="description" content="A seven-minute documentary on COVID-19, from Wuhan to the unanswered question of where it came from, and how it was made with the Papermorph Skill.">
+<link rel="stylesheet" href="lib/fonts.css">
+<link rel="stylesheet" href="lib/book.css"><!-- only for --progress-key, if the book sets one -->
+<style>
+  :root { --ink: #2b2520; --soft: #6a6258; --paper: #ece3cd; --card: #f6f1e4; --line: #d8ccb2; --accent: #e5402f; --night: #15171c;
+    --ui: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif; --serif: "EB Garamond", "Iowan Old Style", Palatino, Georgia, serif;
+    --key: "Oswald", "Avenir Next Condensed", "Arial Narrow", sans-serif; color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 19px/1.62 var(--serif); }
+  a { color: inherit; }
+  .top { background: var(--night); color: #f3ede0; }
+  .top nav { max-width: 1180px; margin: 0 auto; padding: 18px 24px 0; font: 500 14px/1 var(--key); letter-spacing: .14em; text-transform: uppercase; }
+  .top nav a { color: #d9b9b0; text-decoration: none; }
+  header { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 40px; align-items: center; max-width: 1180px; margin: 0 auto; padding: 28px 24px 52px; }
+  header .film { position: relative; display: block; border-radius: 6px; overflow: hidden; box-shadow: 0 18px 50px #0008; }
+  header .film img { display: block; width: 100%; height: auto; }
+  header .film span { position: absolute; left: 18px; bottom: 16px; padding: 10px 18px; background: var(--accent); color: #fff; font: 600 16px/1 var(--key); letter-spacing: .12em; text-transform: uppercase; }
+  header .film:hover span, header .film:focus-visible span { background: #c8301f; }
+  .kicker { margin: 0 0 6px; color: var(--accent); font: 500 14px/1.2 var(--key); letter-spacing: .16em; text-transform: uppercase; }
+  h1 { margin: 0 0 10px; font: 600 clamp(40px, 5.4vw, 66px)/1 var(--key); letter-spacing: .02em; text-transform: uppercase; }
+  .lede { margin: 0 0 14px; font-size: 21px; color: #e6dccb; }
+  .meta { margin: 0; color: #b3a99a; font: 15px/1.5 var(--ui); }
+  .watched .meta::after { content: " · ✓ watched"; color: var(--accent); }
+  main { max-width: 760px; margin: 0 auto; padding: 24px 24px 40px; }
+  main h2 { margin: 56px 0 8px; font: 600 26px/1.2 var(--key); letter-spacing: .06em; text-transform: uppercase; }
+  main h2:first-child { margin-top: 32px; }
+  main p { margin: 0 0 16px; }
+  figure { margin: 26px -60px; }
+  figure img { display: block; width: 100%; height: auto; border-radius: 4px; box-shadow: 0 8px 26px #4a33182e; }
+  figcaption { margin: 8px 60px 0; color: var(--soft); font: 15px/1.5 var(--ui); }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; } .pair figcaption { grid-column: 1 / -1; margin-top: -6px; }
+  ol.steps { padding-left: 22px; } ol.steps li { margin-bottom: 8px; }
+  blockquote { margin: 18px 0; padding: 4px 0 4px 18px; border-left: 4px solid var(--accent); font-style: italic; }
+  .numbers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 18px 0; }
+  .numbers div { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; }
+  .numbers b { display: block; font: 600 30px/1.1 var(--key); color: var(--accent); }
+  .numbers span { font: 14px/1.4 var(--ui); color: var(--soft); }
+  code { font-size: .86em; background: #e2d7bd; padding: 1px 5px; border-radius: 3px; }
+  .credits { max-width: 1000px; margin: 20px auto 70px; padding: 0 24px; color: var(--soft); font: 14px/1.6 var(--ui); }
+  .credits h2 { font: 600 20px/1.3 var(--key); letter-spacing: .06em; text-transform: uppercase; color: var(--ink); }
+  .credits h3 { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; margin: 18px 0 6px; color: var(--ink); }
+  .credits ul { margin: 0; padding-left: 18px; columns: 2 340px; }
+  @media (max-width: 860px) { figure { margin: 22px 0; } figcaption { margin: 8px 0 0; } }
+  @media (max-width: 760px) { header { grid-template-columns: 1fr; gap: 24px; } header .film span { left: 10px; bottom: 10px; padding: 7px 11px; font-size: 13px; } .pair, .numbers { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="top">
+  <nav><a href="../">← Bookshelf</a></nav>
+  <header id="film">
+    <a class="film" href="ch01/"><img src="img/cover.webp" width="1400" height="788" alt="The night globe behind two numbers: 7,115,706 confirmed COVID-19 deaths, and 27,000,000 estimated from excess deaths."><span>▶ Watch the film</span></a>
+    <div>
+      <p class="kicker">A documentary · COVID-19</p>
+      <h1>The Pandemic</h1>
+      <p class="lede">From a market in Wuhan to a world that stopped, the waves, the count of the dead, and the question nobody has answered: where it came from.</p>
+      <p class="meta">7 minutes · English with subtitles · made with the Papermorph Skill</p>
+    </div>
+  </header>
+</div>
+
+<main>
+  <h2>What we set out to do</h2>
+  <p>Our earlier documentary, <a href="../madness/"><i>Madness and Civilization</i></a>, is pictures and words. This one tries the other kind of explainer, the kind Vox and Johnny Harris make: maps that move, numbers that land on the word that says them, documents pulled into frame and marked up. The subject was chosen for that: the pandemic happened on a map, day by day, and almost everything about it was counted.</p>
+  <p>Before any frame was made, Claude studied three of those videos cut by cut and wrote down how each transition works: what carries the eye from one picture to the next, where the camera goes, how long a number stays on screen. Those notes, not a style sheet, were the brief.</p>
+
+  <h2>One map, all the way through</h2>
+  <p>The film has one spine: a warm paper map of the world with a date chip in the corner. It comes back in every part with something new on it: one dot in Wuhan, then the train lines out of the city before the New Year, then the countries telling people to stay home, then the deaths per million, wave after wave.</p>
+  <figure class="pair">
+    <img src="img/making/paper.webp" width="1200" height="675" alt="The paper map zoomed in on Wuhan, with the chip December 2019." loading="lazy">
+    <img src="img/making/migration.webp" width="1200" height="675" alt="Railway lines leaving Wuhan on the paper map, with a clock at 2:38 a.m. on 23 January 2020." loading="lazy">
+    <figcaption>The paper map in December 2019, then the night before Wuhan closed: trains still leaving at 2:38 a.m.</figcaption>
+  </figure>
+  <p>When the story leaves one place for the whole world, the map becomes a night globe (three.js, NASA's Black Marble city lights). Both are drawn in the same orthographic projection, so the globe can turn, push in, and become the paper map without a cut. The countries are Natural Earth outlines, projected once with d3-geo into small script files, so the finished page needs no server and no map service.</p>
+  <figure>
+    <img src="img/making/genes.webp" width="1200" height="675" alt="The night globe seen from above the North Pole, red arcs from Europe to New York and a grey one from Asia, under the line Most of New York's early cases came from Europe." loading="lazy">
+    <figcaption>The globe turned over the pole, so Asia and Europe can both reach New York in one picture.</figcaption>
+  </figure>
+
+  <h2>One source for every number</h2>
+  <p>Every number on screen comes from one named source, written in small type under it: Our World in Data for cases, deaths, vaccines and stay-at-home orders; Wikipedia for events and dates; the WHO's own transcript for its words. The two do not always agree. Our World in Data counts by the day a death was reported, so it lags behind the news: by its count Italy passed China a few days after Wikipedia says it did. Where they disagree, the narration was written around the date rather than mixing the two.</p>
+  <p>Counters roll up as the voice says the number and stop exactly on it. The stay-at-home map counts the countries as the date runs, so when the narration says “more than a hundred and twenty”, the counter reads 121 and the date chip shows the first day that was true.</p>
+  <figure>
+    <img src="img/making/who.webp" width="1200" height="675" alt="The WHO Director-General's remarks of 11 March 2020 on a paper card, with the word pandemic and the phrase cases in 114 countries highlighted." loading="lazy">
+    <figcaption>The WHO's words of 11 March 2020, highlighted as they are spoken. A first version stamped PANDEMIC across the screen; the user turned it down, and the transcript replaced it.</figcaption>
+  </figure>
+
+  <h2>A part at a time</h2>
+  <p>It began as a 107-second sample: the cold open, Wuhan, the doctors who were silenced, and the trains. The user watched it, liked it, and asked for the rest of the same film, one part at a time, under ten minutes. Every part went through the same steps:</p>
+  <ol class="steps">
+    <li><b>Research.</b> The Wikipedia articles and the Our World in Data tables, saved locally with their revision numbers.</li>
+    <li><b>Narration</b>, written in our own words, with a mark on every word that triggers something on screen.</li>
+    <li><b>Voice.</b> ElevenLabs v4, the voice “Roger”, sped up 1.1 times. The word times it returns place every mark.</li>
+    <li><b>Beats</b>, built in code and checked on contact sheets of stills before anything moved.</li>
+    <li><b>Music.</b> One track per part from Google's Lyria 3, levelled to the others, crossfading over two seconds so the music never stops.</li>
+    <li><b>Review.</b> The part exported as a video, and a fresh Claude, with no memory of making it, watching the frames as a director.</li>
+  </ol>
+  <figure>
+    <img src="img/making/waves.webp" width="1200" height="675" alt="The world map shaded by deaths per million in April 2021, with a Delta pin on India, above two curves of cases and deaths a day." loading="lazy">
+    <figcaption>The waves: one map and two curves that keep running, with a pin for each variant where it was first found.</figcaption>
+  </figure>
+
+  <h2>What the reviews caught</h2>
+  <p>Three director reviews watched the film from frames alone and checked every claim against the saved sources. They found things a maker misses: two different dates on screen at once; a vaccine rewind that stopped in November while the label said 2 December; three seconds of empty paper under a sentence about money; a question mark that sat on the market's label, so it read as “the market?” instead of “which one?”. Each finding came with a time, a reason and a fix, and the next round checked the fixes.</p>
+  <p>The user's own notes changed the film more. The opening first said the pandemic was “the biggest crisis of our generation, and we are already forgetting it”; the user kept only the first half, and the line was cut from the recording rather than voiced again. The join between the approved sample and the new parts looked like two films, so the sample's last picture now fades faster. A world map that stayed white while the death toll climbed beneath it got its own colour, deaths per million.</p>
+  <figure>
+    <img src="img/making/count.webp" width="1200" height="675" alt="A grid of dots on black: the counted dead in solid red, the uncounted in faint outlines, under the words about 27 million, the likeliest estimate." loading="lazy">
+    <figcaption>The count: one dot for 100,000 people. Seven million were counted; the likeliest estimate is closer to twenty-seven.</figcaption>
+  </figure>
+
+  <h2>The question left open</h2>
+  <p>The first outline left out where the virus came from. Near the end the user asked for it, with one rule: “don't favour zoonosis; treat them fairly.” The two answers get the same card, the same size and colour, one fact each and about the same time. The film says who leans which way: many scientists and the WHO-convened study towards a natural spillover, the FBI and the US Department of Energy towards a laboratory accident. It ends on what is known for certain: the early patient lists, swabs and blood samples were never fully shared.</p>
+  <figure>
+    <img src="img/making/origin.webp" width="1200" height="675" alt="The paper map of Wuhan with the Huanan Seafood Market and the Wuhan Institute of Virology pinned, and two identical cards: Nature, and A laboratory accident." loading="lazy">
+    <figcaption>Two answers, drawn alike.</figcaption>
+  </figure>
+
+  <h2>The numbers</h2>
+  <div class="numbers">
+    <div><b>7.4 min</b><span>30 beats, 1,052 words of narration</span></div>
+    <div><b>$0.59</b><span>voice, every take included (ElevenLabs v4 via OpenRouter)</span></div>
+    <div><b>$0.48</b><span>music, six tracks of Lyria 3 at $0.08</span></div>
+    <div><b>29</b><span>pictures and data files, each listed with its source and licence</span></div>
+    <div><b>3</b><span>director reviews, besides one for each new part</span></div>
+    <div><b>0</b><span>servers: the film is one static page</span></div>
+  </div>
+  <p>Everything else, the research, the script, the code for every beat and the reviews, was done by Claude (Opus) with the <a href="https://github.com/DozenTwelve/Papermorph" target="_blank" rel="noopener noreferrer">Papermorph Skill</a>, with the user watching each cut and giving notes.</p>
+</main>
+
+<section class="credits">
+  <h2>Sources and credits</h2>
+  <p>Narration written from Wikipedia (“COVID-19 pandemic”, “COVID-19 pandemic in Italy”, “COVID-19 pandemic in New York City”, “Origin of SARS-CoV-2”) and Our World in Data (CC BY 4.0); the WHO quotations are from the Director-General's remarks of 11 March 2020 and the statement of 5 May 2023. Voice: ElevenLabs v4. Music: Google Lyria 3, made for this film. Type: Oswald and EB Garamond (SIL Open Font License, <code>lib/fonts/</code>). The seven doctors besides Li Wenliang, who are not identified, are stand-ins made with an image model and tagged as such on screen.</p>
+  <h3>Pictures</h3>
+  <ul>
+    <li><a href="https://commons.wikimedia.org/wiki/File:Novel_Coronavirus_SARS-CoV-2_(49597020718).jpg">Novel Coronavirus SARS-CoV-2</a>, NIAID · Public domain</li>
+    <li>Empty Beijing airport, Mx. Granger · CC0</li>
+    <li><a href="https://commons.wikimedia.org/wiki/File:Glenview_March_2020_24.jpg">Glenview March 2020</a> 05 and 24, C. E. Miller · Public domain</li>
+    <li><a href="https://commons.wikimedia.org/wiki/File:EmptyHwy407.jpg">Empty Highway 407</a>, Raysonho · CC0</li>
+    <li>School closed banner, Cyan&amp;Orange · CC0</li>
+    <li>Empty classroom, U.S. Army, Pfc. Kaden Pitt · Public domain</li>
+    <li>Masked officer, U.S. Customs and Border Protection · Public domain</li>
+    <li><a href="https://www.dvidshub.net/image/6178786/">Hawaii National Guard</a>, Sgt. John Schoebel · Public domain</li>
+    <li>Nurses in face shields, U.S. Navy, PO3 Jacob L. Greenberg · Public domain</li>
+    <li><a href="https://www.flickr.com/photos/184594136@N08/49703752138/">Closed signs</a>, Alabama Extension · CC0</li>
+    <li><a href="https://earthobservatory.nasa.gov/features/NightLights/page3.php">Black Marble 2016</a>, NASA Earth Observatory · Public domain</li>
+    <li><a href="https://commons.wikimedia.org/wiki/File:COVID-19_Pneumonie_-_74m_CTax_-_002.jpg">COVID-19 pneumonia CT</a>, Hellerhoff · <a href="https://creativecommons.org/licenses/by-sa/3.0/">CC BY-SA 3.0</a>, toned</li>
+    <li><a href="https://commons.wikimedia.org/wiki/File:Roadblock_in_Wuhan_on_January_29th,_2020_-_2.jpg">Roadblock in Wuhan, 29 January 2020</a>, 汮汐 · <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>, toned</li>
+    <li>Li Wenliang's own selfie, posted on Weibo · fair use, for commentary</li>
+    <li><a href="https://commons.wikimedia.org/wiki/File:USNS_Comfort_New_York_City_2020.jpg">USNS Comfort in New York</a>, U.S. Navy · Public domain</li>
+    <li><a href="https://commons.wikimedia.org/wiki/File:Mortuary_Trucks_in_New_York_City_by_Archer_West.jpg">Mortuary trucks in New York City</a>, Archer West · <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></li>
+    <li><a href="https://commons.wikimedia.org/wiki/File:Nitrogen_dioxide_Density_Change_In_China_Due_To_Coronavirus.png">Nitrogen dioxide over China</a>, NASA Earth Observatory, ESA Sentinel-5P data · Public domain</li>
+    <li><a href="https://commons.wikimedia.org/wiki/File:Empty_toilet_paper_shelves_(49665873706).jpg">Empty shelves</a>, Dan Keck · CC0</li>
+  </ul>
+  <h3>Maps and data</h3>
+  <ul>
+    <li><a href="https://www.naturalearthdata.com/">Natural Earth</a> countries, provinces and places · Public domain</li>
+    <li><a href="https://ourworldindata.org/coronavirus">Our World in Data</a>: cases, deaths, vaccinations, first cases, reporting · CC BY 4.0</li>
+    <li><a href="https://ourworldindata.org/covid-stay-home-covid">Our World in Data</a>: stay-at-home requirements (Oxford COVID-19 Government Response Tracker) · CC BY 4.0</li>
+    <li>SARS-CoV-2 reference sequence <a href="https://www.ncbi.nlm.nih.gov/nuccore/NC_045512.2">NC_045512.2</a>, NCBI · Public domain</li>
+  </ul>
+</section>
+
+<script>
+'use strict';
+// The player records finished films under the same key as here (engine progress(): lib/book.css --progress-key, else this folder's path).
+const key = getComputedStyle(document.documentElement).getPropertyValue('--progress-key').trim().replace(/^["']|["']$/g, '')
+  || 'animebook:progress:' + new URL('.', location.href).pathname;
+try { if ((JSON.parse(localStorage.getItem(key) || '{}').done || []).includes(1)) document.getElementById('film').classList.add('watched'); } catch {}
+</script>
+</body>
+</html>

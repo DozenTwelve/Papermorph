@@ -35,6 +35,8 @@ a { color: inherit; }
 .foucault-book .book-caption { background: linear-gradient(110deg, #6a1420f5, #3e0a12f2); }
 .elephant-book { left: 37.1%; width: 25.6%; top: 58.4%; height: 19.9%; }
 .elephant-book .book-caption { background: linear-gradient(110deg, #1d3527f5, #0e1d14f2); }
+.pandemic-book { left: 65.5%; width: 25.9%; top: 58.3%; height: 20.3%; }
+.pandemic-book .book-caption { background: linear-gradient(110deg, #8a2a1ef5, #2a1410f2); }
 .book-hotspot:hover { box-shadow: 0 0 0 2px #f7d998b3, 0 0 28px #edc97833; }
 #shelf a:focus-visible { outline: 3px solid #f4d786; outline-offset: 5px; }
 .book-caption { position: absolute; bottom: 0; left: 0; right: 0; display: flex; flex-direction: column; justify-content: center; gap: .35cqw; min-height: 6.45cqw; padding: 1.1cqw 1.2cqw .9cqw; color: #faf7e9; background: linear-gradient(110deg, #263d32f5, #182a23f0); box-shadow: 0 -2px 8px #0003; font: 1.4cqw/1.25 var(--ui); transition: background .2s; }
