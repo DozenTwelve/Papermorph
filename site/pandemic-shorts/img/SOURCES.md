@@ -44,5 +44,5 @@ The code in this repository is MIT. The pictures and data here keep their own li
 
 | File | Source | Author | Licence |
 |---|---|---|---|
-| `ch06-bat.webp`, `ch06-raccoon.webp`, `ch06-crowd.webp`, `ch06-sample.webp`, `ch06-market.webp`, `ch06-corridor.webp`, `ch06-boxes.webp` | AI illustrations (openai/gpt-image-2.5-flare via OpenRouter, low quality, 2026-10-27; prompts in books/pandemic-shorts/art/ch06/), tagged "AI illustration" on screen; no real people or places | generated | made for this film |
+| `ch06-bat.webp`, `ch06-raccoon.webp`, `ch06-crowd.webp`, `ch06-sample.webp`, `ch06-market.webp`, `ch06-stall.webp`, `ch06-corridor.webp`, `ch06-boxes.webp` | AI illustrations (openai/gpt-image-2.5-flare via OpenRouter, low quality, 2026-10-27; prompts in books/pandemic-shorts/art/ch06/), tagged "AI illustration" on screen; no real people or places | generated | made for this film |
 | `ch06/wuhan.js` | [Natural Earth](https://www.naturalearthdata.com/) 10m rivers, lakes and urban areas within ~4° of Wuhan, cut from the film's `geo.js` | Natural Earth | Public domain |

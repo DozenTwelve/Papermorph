@@ -27,9 +27,9 @@ const CHAPTER = { number: 6, title: 'The Origin', minutes: 1.5, language: 'en' }
 const MKT = [114.2576, 30.6196], WIV = [114.2625, 30.3764], MID = [114.2600, 30.4980];
 const SIDES = [
   { n: 1, title: 'Nature', place: 'Huanan Seafood Market', ll: MKT, chain: ['ch06-bat', 'ch06-raccoon', 'ch06-crowd'], steps: ['A bat virus', 'another animal', 'people'],
-    who: [['Many scientists', ''], ['WHO-convened study, 2021', '“likely to very likely”']], pic: 'ch06-raccoon' },
+    who: ['Many scientists', 'A WHO-convened study, 2021'], pic: 'ch06-raccoon' },
   { n: 2, title: 'A lab accident', place: 'Wuhan Institute of Virology', ll: WIV, chain: ['ch06-bat', 'ch06-sample', 'ch06-crowd'], steps: ['A bat virus under study', 'a worker', 'people'],
-    who: [['FBI, 2023', '“moderate confidence”'], ['US Department of Energy, 2023', '“low confidence”']], pic: 'ch06-sample' },
+    who: ['The FBI, 2023', 'The US Department of Energy, 2023'], pic: 'ch06-sample' },
 ];
 const CARD = '#f6f1e4', CARD_INK = MAPINK, CARD_SOFT = '#6a6258';
 // a view of Wuhan: centre ll, H (radius 450 / H px)
@@ -64,10 +64,10 @@ function pin(s, M, k, t0, D, { label = true } = {}) {
   mk('circle', { r: 12, fill: MAPINK }, g);
   let chip;
   if (label) {
-    const str = S.place.toUpperCase(), w = inkW(str, 34, SANS, 600) + 36;
-    chip = G(g, { y: k ? 82 : -58 });
-    rect(chip, -w / 2, -40, w, 54, { fill: MAPINK, rx: 4 });
-    T(chip, str, { x: 0, y: 0, size: 34, fill: LIGHT, font: SANS, weight: 600, anchor: 'middle' });
+    const str = S.place.toUpperCase(), w = inkW(str, 44, SANS, 600) + 36;
+    chip = G(g, { y: k ? 96 : -62 });
+    rect(chip, -w / 2, -50, w, 68, { fill: MAPINK, rx: 4 });
+    T(chip, str, { x: 0, y: 0, size: 44, fill: LIGHT, font: SANS, weight: 600, anchor: 'middle' });
   }
   clockRun(t => { const P = M.xy(S.ll, t); if (P) put(g, { x: P[0], y: P[1] }); }, D, { tail: true });
   tw(g, { o: 1 }, t0, .25, out);
@@ -80,8 +80,10 @@ function chain(s, k, m, D) {
   photo(s, S.pic, 0, D + .6, { s0: 1.15, s1: 1.25, dim: .78, ai: false });
   label(s, `Answer ${S.n}`, CX, 175, 0, { size: 40, fill: LIGHT, colour: DARK });
   word(s, S.title, CX, 285, m(k ? 'lab' : 'nature'), { size: 110, fill: LIGHT, stroke: DARK });
+  const st = G(s, { x: CX, y: 650 }), sti = G(st, { x: -CX, y: -650 });
+  tw(st, { s: 1.05 }, m('people') + .3, D + .3 - m('people'), lin);
   keys.forEach((key, i) => {
-    const t0 = m(key), c = G(s, { y: 60, o: 0 }), cx = CX, cy = y0[i] + 140;
+    const t0 = m(key), c = G(sti, { y: 60, o: 0 }), cx = CX, cy = y0[i] + 140;
     const im = G(c, { x: cx, y: cy });
     const inner = G(im, { x: -cx, y: -cy });
     clipImg(inner, S.chain[i], 90, y0[i], 720, 270, 14);
@@ -89,29 +91,30 @@ function chain(s, k, m, D) {
     const tag = label(c, S.steps[i], CX, y0[i] + 250, t0, { size: 40, fill: DARK, colour: LIGHT });
     tw(c, { y: 0, o: 1 }, t0, .3, out);
     sfx(BEAT_ID, t0, 'whoosh', .35);
-    if (i) { const a = G(s, { x: CX, y: y0[i] - 30, o: 0 }); path(a, 'M-14 -26H14V0H32L0 30L-32 0H-14Z', { fill: LIGHT }); tw(a, { o: 1 }, t0 - .1, .2, out); }
+    if (i) { const a = G(sti, { x: CX, y: y0[i] - 30, o: 0 }); path(a, 'M-14 -26H14V0H32L0 30L-32 0H-14Z', { fill: LIGHT }); tw(a, { o: 1 }, t0 - .1, .2, out); }
   });
   srcTag(s, 'AI illustration', 50, 150, m('bat'));
 }
-// who leans which way: one card, the same for both sides; only the side's own backers and their own words
+// who leans which way: one card, the same for both sides; only who leans, as the voice names them (the sources stay in
+// the script and the tag); the card pushes slowly the whole beat, so its hold is never a still frame
 function whoCard(s, k, m, D, keys) {
   const S = SIDES[k];
   photo(s, S.pic, 0, D + .6, { s0: 1.12, s1: 1.22, dim: .62 });
-  const c = G(s, { y: 30, o: 0 }), x0 = 90, y0 = 330, w = 720, h = 760;
+  const wr = G(s, { x: CX, y: 590 }), c = G(G(wr, { x: -CX, y: -590 }), { y: 30, o: 0 }), x0 = 90, y0 = 330, w = 720, h = 520;
+  tw(wr, { s: 1.05 }, 0, D + .6, lin);
   rect(c, x0, y0, w, h, { fill: CARD, rx: 10 });
   T(c, S.title.toUpperCase(), { x: x0 + 44, y: y0 + 96, size: 76, fill: CARD_INK, font: SANS, weight: 600 });
-  const pl = T(c, 'at the ' + S.place, { x: x0 + 44, y: y0 + 152, size: 38, fill: CARD_SOFT, font: SERIF }); pl.setAttribute('font-style', 'italic');
+  const pl = T(c, 'perhaps at the ' + S.place, { x: x0 + 44, y: y0 + 150, size: 34, fill: CARD_SOFT, font: SERIF }); pl.setAttribute('font-style', 'italic');
   rect(c, x0 + 44, y0 + 190, w - 88, 3, { fill: CARD_SOFT });
   T(c, 'WHO LEANS THIS WAY', { x: x0 + 44, y: y0 + 250, size: 30, fill: CARD_SOFT, font: SANS, weight: 500 }).setAttribute('letter-spacing', '.12em');
   tw(c, { y: 0, o: 1 }, 0, .3, out);
-  S.who.forEach(([name, quote], i) => {
-    const e = G(c, { o: 0, x: 30 }), y = y0 + 340 + i * 170;
-    T(e, name, { x: x0 + 44, y, size: 46, fill: CARD_INK, font: SANS, weight: 600 });
-    if (quote) { const q = T(e, quote, { x: x0 + 44, y: y + 58, size: 42, fill: CARD_INK, font: SERIF }); q.setAttribute('font-style', 'italic'); }
+  S.who.forEach((name, i) => {
+    const e = G(c, { o: 0, x: 30 });
+    T(e, name, { x: x0 + 44, y: y0 + 340 + i * 110, size: 42, fill: CARD_INK, font: SANS, weight: 600 });
     tw(e, { o: 1, x: 0 }, keys[i], .3, out);
     sfx(BEAT_ID, keys[i], 'tick', .9);
   });
-  label(s, 'Lean this way', CX, 1235, keys[2], { size: 56, fill: LIGHT, colour: DARK });
+  label(s, 'Lean this way', CX, 990, keys[2] + LEAD, { size: 56, fill: LIGHT, colour: DARK });   // on the word itself
   srcTag(s, 'Wikipedia · Origin of SARS-CoV-2', 50, 1270, keys[0]);
 }
 // the two answers as small cards side by side (the same size), for the beats that weigh them together
@@ -136,19 +139,29 @@ const BEATS = [
   ['hook', 'Where it started', (m, D) => {
     const p = panel(0);
     const s = shot(p, 0, undefined, { bg: NIGHT });
-    const tDive = m('still') - .2;
+    const tDive = m('still') - .2, tHand = tDive + .9, tLand = m('where') + .35;
+    const A = at(WUHAN, .3), B = at(MID, .0028);
+    // one view for the globe and the map: turning from the first frame, diving onto Wuhan, then down to its two places
     const view = t => {
-      const q = smooth(ramp01(t, tDive, D + .4));
-      return { lon: 40 + t * 3 + (WUHAN[0] - 40 - tDive * 3) * q, lat: 14 + (WUHAN[1] - 14) * q, H: 1.12 * (.3 / 1.12) ** q };
+      if (t >= tHand) return mixV(A, B, smooth(ramp01(t, tHand, tLand)));
+      const q = smooth(ramp01(t, tDive, tHand)), lon0 = 40 + Math.min(t, tDive) * 6;
+      return { lon: lon0 + (WUHAN[0] - lon0) * q, lat: 14 + (WUHAN[1] - 14) * q, H: 1.12 * (.3 / 1.12) ** q };
     };
     Globe.clearMarks(); Globe.dot(...WUHAN);
-    globeShot(s, D + .6, view, t => ramp01(t, tDive, tDive + .4));
+    globeShot(s, D + .6, view, t => ramp01(t, tDive, tDive + .4), null, { on: [0, tHand + .5] });
+    const mp = G(s, { o: 0 });
+    show(mp, tHand, .45, lin);
+    const M = wuhanMap(mp, D + .6, view, { on: [tHand - .05, D + 1] });
+    SIDES.forEach((S, k) => pin(mp, M, k, tLand - .1, D + .6, { label: false }));
+    const qm = T(mp, '?', { x: CX, y: 880, size: 220, fill: MARK, font: SANS, weight: 600, anchor: 'middle', o: 0 });
+    qm.setAttribute('stroke', DARK); qm.setAttribute('stroke-width', 10); qm.setAttribute('paint-order', 'stroke');
+    tw(qm, { o: 1 }, tLand, .25, out);
     const n = counter(s, 7115706, CX, 330, m('seven'), { size: 130, fill: RED, dur: 1.2 });
     const l1 = word(s, 'deaths · official count', CX, 410, m('seven') + .3, { size: 46, fill: LIGHT });
-    srcTag(s, 'WHO, via Our World in Data', 50, 150, m('seven'));
-    [n, l1].forEach(e => hide(e, tDive, .25));
-    word(s, 'We still don’t know', CX, 1080, m('still'), { size: 84, fill: LIGHT, stroke: DARK });
-    word(s, 'where it started', CX, 1200, m('where'), { size: 100, fill: LIGHT, stroke: DARK });
+    const tg = srcTag(s, 'WHO, via Our World in Data', 50, 150, m('seven'));
+    [n, l1, tg].forEach(e => hide(e, tDive, .25));
+    word(s, 'We still don’t know', CX, 250, m('still'), { size: 84, fill: LIGHT, stroke: DARK });
+    word(s, 'where it started', CX, 360, m('where'), { size: 100, fill: LIGHT, stroke: DARK });
   }, { pre: .3 }],
 
   // 1. Which series, which episode: the last of six
@@ -162,9 +175,9 @@ const BEATS = [
   ['two', 'Two answers', (m, D) => {
     const p = panel(0);
     const s = shot(p, 0, undefined, { bg: NIGHT, swipe: 'quiet' });
-    const A = at(WUHAN, .3), B = at(MID, .0028);
-    const M = wuhanMap(s, D + .6, t => mixV(A, B, smooth(ramp01(t, 0, m('both') - .1))), {});
-    SIDES.forEach((S, k) => pin(s, M, k, m('both'), D + .6));
+    const A = at(MID, .0034), B = at(MID, .0026);
+    const M = wuhanMap(s, D + .6, t => mixV(A, B, ramp01(t, 0, D + .6)), {});
+    SIDES.forEach((S, k) => { pin(s, M, k, 0, D + .6, { label: false }); pin(s, M, k, m('both'), D + .6); });
     word(s, 'Two main answers', CX, 250, .15, { size: 100, fill: MAPINK, stroke: MAPLAND });
     word(s, 'One city', CX, 830, m('city'), { size: 120, fill: MAPINK, stroke: MAPLAND });
   }],
@@ -185,14 +198,14 @@ const BEATS = [
     const A = at(MID, .0028), B = at(MKT, .0011);
     const M = wuhanMap(s, tPic + .4, t => mixV(A, B, smooth(ramp01(t, 0, 1.4))), {
       on: [0, tPic + .4],
-      dots: Array.from({ length: 14 }, (_, i, R = seeded(31 + 7 * i)) => { R(); R(); return [MKT[0] + (R() - .5) * .03, MKT[1] + (R() - .5) * .024, m("cluster") + i * .06, 12]; }),
+      dots: Array.from({ length: 14 }, (_, i, R = seeded(31 + 7 * i)) => { R(); R(); return [MKT[0] + (R() - .5) * .03, MKT[1] + (R() - .5) * .024, m("cluster") + i * .06, 18]; }),
     });
     pin(s, M, 0, m('market'), tPic + .4);
     word(s, 'Early cases', CX, 1180, m('cluster'), { size: 96, fill: RED, stroke: MAPLAND });
     s = shot(p, tPic, undefined, { whip: true });
-    photo(s, 'ch06-market', tPic, D + .6, { s0: 1.04, s1: 1.16, dim: .2 });
-    word(s, 'Raccoon dogs', CX, 1060, tPic + .1, { size: 120, fill: LIGHT, stroke: DARK });
-    word(s, 'on sale', CX, 1180, tPic + .35, { size: 80, fill: LIGHT, stroke: DARK });
+    photo(s, 'ch06-stall', tPic, D + .6, { s0: 1.04, s1: 1.16, dim: .15 });
+    word(s, 'Raccoon dogs', CX, 300, tPic + .1, { size: 120, fill: LIGHT, stroke: DARK });
+    word(s, 'on sale', CX, 420, tPic + .35, { size: 80, fill: LIGHT, stroke: DARK });
     atLeast(D, LEN(['market', 'wiv']));
   }],
 
@@ -259,9 +272,9 @@ const BEATS = [
     const p = panel(0);
     const s = shot(p, 0, undefined, { bg: DARK });
     const cards = bothCards(s, 0);
-    cards.forEach(c => tw(c, { o: .35 }, m('proof') - .1, .4));
-    const q = T(s, '?', { x: CX, y: 960, size: 260, fill: RED, font: SANS, weight: 600, anchor: 'middle', o: 0 });
-    tw(q, { o: 1 }, m('proof'), .25, out); sfx('proof', m('proof'), 'thud', 1);
+    cards.forEach(c => tw(c, { o: .35 }, .1, .4));   // on "for the two main answers"
+    const q = T(s, '?', { x: CX, y: 960, size: 260, fill: MARK, font: SANS, weight: 600, anchor: 'middle', o: 0 });
+    tw(q, { o: 1 }, .35, .25, out); sfx('proof', .35, 'thud', 1);
     word(s, 'No proof', CX, 1110, m('proof'), { size: 150, fill: LIGHT, stroke: DARK });
     word(s, 'either way', CX, 1230, m('proof') + .35, { size: 84, fill: LIGHT, stroke: DARK });
   }],
@@ -296,7 +309,7 @@ const BEATS = [
     T(c, 'Phase one: Wuhan, early 2021', { x: x0 + 44, y: y0 + 270, size: 42, fill: CARD_INK, font: SERIF });
     T(c, 'Phase two', { x: x0 + 44, y: y0 + 380, size: 62, fill: CARD_INK, font: SANS, weight: 600 });
     tw(c, { o: 1, y: 0 }, m('y2021') + .2, .3, out);
-    stamp(s, 'DECLINED BY CHINA', CX + 60, y0 + 470, m('refused'), { size: 64, colour: RED, r: -7 });
+    stamp(s, 'DECLINED BY CHINA', CX + 60, y0 + 470, m('refused'), { size: 64, colour: MARK, r: -7 });
     word(s, 'the WHO’s inquiry', CX, 1200, m('who'), { size: 80, fill: LIGHT, stroke: DARK });
     srcTag(s, 'Wikipedia · Origin of SARS-CoV-2', 50, 150, m('y2021'));
   }],
@@ -318,10 +331,10 @@ const BEATS = [
     EP_POS.slice(0, 5).forEach(([x, y], i) => {
       const t0 = end + .9 + i * .1;
       tw(tiles[i], { o: 1 }, t0, .15, lin);
-      show(rect(s, x - EP_W / 2 - 10, y - EP_H / 2 - 10, EP_W + 20, EP_H + 20, { rx: 22, fill: 'none', stroke: RED, 'stroke-width': 10, opacity: 0 }), t0, .15, lin);
+      show(rect(s, x - EP_W / 2 - 10, y - EP_H / 2 - 10, EP_W + 20, EP_H + 20, { rx: 22, fill: 'none', stroke: MARK, 'stroke-width': 10, opacity: 0 }), t0, .15, lin);
     });
     show(rect(s, 0, 318, W, 60, { fill: DARK, opacity: 0 }), end + 1.4, .2, lin);   // over the subtitle
-    label(s, 'The end · 6 of 6', CX - 20, 368, end + 1.4, { size: 44, fill: RED, colour: DARK });
+    label(s, 'The end · 6 of 6', CX - 20, 368, end + 1.4, { size: 44, fill: MARK, colour: DARK });
     prog(() => {}, D, hold, lin);   // the card holds after the voice
   }],
 ].map(shortsBeat);
