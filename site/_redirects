@@ -141,6 +141,3 @@
 
 # Madness shorts have no page of their own; their home button lands on the series page.
 /madness-shorts/ /madness/#shorts 302
-
-# The pandemic sample has no page of its own and is not on the shelf yet; its home button lands on the shelf.
-/pandemic/ / 302

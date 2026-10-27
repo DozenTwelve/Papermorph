@@ -206,20 +206,29 @@ function lodKey(s) {
 }
 
 /* ---------- the paper map of China on a camera ---------- */
-function paperMap(p, D, view, { rails = false } = {}) {
+// geo: GEO (China, centred on Wuhan) or a view of geo-eu.js (GEO_IT, GEO_ATL): land, countries by ISO code (hidden
+// fills a beat shows as it needs) and, for Italy, its provinces as [region, d]
+function paperMap(p, D, view, { rails = false, geo = GEO } = {}) {
   const cam = camera(p, D, view);
   const w = cam.world, nz = sw => ({ 'stroke-width': sw, 'data-sw': sw }), lods = [];
   const lp = (d, attrs, g = w) => { const e = mk('path', { ...attrs, d: '' }, g); e._lod = lodSource(d); lods.push(e); return e; };
   mk('rect', { x: -6000, y: -6000, width: 12000, height: 12000, fill: MAPSEA }, w);
-  lp(GEO.land, { fill: MAPLAND, stroke: MAPLINE, ...nz(1.1) });
-  lp(GEO.china, { fill: MAPCN, stroke: MAPINK, ...nz(1.6) });
-  const provs = G(w, {});
-  for (const n in GEO.provinces) lp(GEO.provinces[n], { fill: 'none', stroke: MAPLINE, 'data-dash': '4 3', ...nz(.9) }, provs);
-  const hubei = lp(GEO.provinces.Hubei, { fill: RED, 'fill-opacity': 0, stroke: 'none' });
-  lp(GEO.urban, { fill: '#cdb995', stroke: 'none' });
-  lp(GEO.lakes, { fill: MAPSEA, stroke: '#8fa9ad', ...nz(.8) });
-  lp(GEO.rivers10, { fill: 'none', stroke: '#8fa9ad', ...nz(1.6) });
-  const rail = rails ? GEO.rails.map(d => lp(d, { fill: 'none', stroke: MAPINK, opacity: 0, ...nz(1.3) })) : [];
+  lp(geo.land, { fill: MAPLAND, stroke: MAPLINE, ...nz(1.1) });
+  let hubei, rail = [], countries = {}, provinces = {};
+  if (geo === GEO) {
+    lp(GEO.china, { fill: MAPCN, stroke: MAPINK, ...nz(1.6) });
+    const provs = G(w, {});
+    for (const n in GEO.provinces) lp(GEO.provinces[n], { fill: 'none', stroke: MAPLINE, 'data-dash': '4 3', ...nz(.9) }, provs);
+    hubei = lp(GEO.provinces.Hubei, { fill: RED, 'fill-opacity': 0, stroke: 'none' });
+    lp(GEO.urban, { fill: '#cdb995', stroke: 'none' });
+    lp(GEO.lakes, { fill: MAPSEA, stroke: '#8fa9ad', ...nz(.8) });
+    lp(GEO.rivers10, { fill: 'none', stroke: '#8fa9ad', ...nz(1.6) });
+    rail = rails ? GEO.rails.map(d => lp(d, { fill: 'none', stroke: MAPINK, opacity: 0, ...nz(1.3) })) : [];
+  } else {
+    for (const c in geo.countries) countries[c] = lp([].concat(geo.countries[c])[0], { fill: MAPCN, 'fill-opacity': 0, stroke: MAPINK, 'stroke-opacity': 0, ...nz(1.6) });
+    const pg = G(w, {});
+    for (const n in geo.provinces || {}) provinces[n] = lp(geo.provinces[n][1], { fill: 'none', stroke: MAPLINE, 'data-dash': '4 3', ...nz(.9) }, pg);
+  }
   const marks = G(w, {});   // dots, rings, routes: drawn by the beat
   // strokes keep their screen width: data-sw px at any zoom (vector-effect: non-scaling-stroke drops WebKit to ~12 fps);
   // the paths take the detail the view needs
@@ -233,7 +242,7 @@ function paperMap(p, D, view, { rails = false } = {}) {
     w.querySelectorAll('[data-sw]').forEach(e => e.setAttribute('stroke-width', e.dataset.sw / z));
     w.querySelectorAll('[data-dash]').forEach(e => e.setAttribute('stroke-dasharray', e.dataset.dash.split(' ').map(v => v / z).join(' ')));
   }, D, { tail: true });
-  return { cam, w, hubei, rail, marks };
+  return { cam, w, hubei, rail, marks, countries, provinces };
 }
 // a city dot that keeps its screen size whatever the zoom: r px at zoom z
 function cityDot(g, [x, y], r, z, fill = MAPINK) { return mk('circle', { cx: x, cy: y, r: r / z, fill }, g); }

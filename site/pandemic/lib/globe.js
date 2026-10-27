@@ -72,14 +72,14 @@ function dot(lon, lat) {
   s.position.copy(vec(lon, lat, 1.002)); s.visible = false; dots.add(s); return s;
 }
 const arcs = new THREE.Group(); scene.add(arcs);
-function arc(a, b, lift = .25) {
+function arc(a, b, lift = .25, color = 0xff6a50) {
   const A = vec(...a), B = vec(...b), n = 96, pts = [];
   for (let i = 0; i <= n; i++) {
     const q = i / n, p = A.clone().lerp(B, q).normalize(), ang = A.angleTo(B);
     pts.push(p.multiplyScalar(1 + lift * ang / Math.PI * 2 * Math.sin(Math.PI * q) + .003));
   }
   const g = new THREE.BufferGeometry().setFromPoints(pts);
-  const l = new THREE.Line(g, new THREE.LineBasicMaterial({ color: 0xff6a50, transparent: true, opacity: .95, blending: THREE.AdditiveBlending }));
+  const l = new THREE.Line(g, new THREE.LineBasicMaterial({ color, transparent: true, opacity: .95, blending: THREE.AdditiveBlending }));
   l.geometry.setDrawRange(0, 0); l._n = n + 1; arcs.add(l); return l;
 }
 

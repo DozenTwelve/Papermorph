@@ -21,4 +21,16 @@ The code in this repository is MIT. The pictures and data here keep their own li
 | `doctor-1.webp` … `doctor-7.webp` | Generated with an image model (gpt-image via OpenRouter), toned | AI illustration | Stand-ins for the seven other doctors, who are not identified; tagged on screen |
 | `paper.webp` | Paper grain made for this film | Papermorph | MIT, like the code |
 | `geo.js` | [Natural Earth](https://www.naturalearthdata.com/), projected | Natural Earth | Public domain |
+| `comfort-nyc.webp` | [USNS Comfort New York City 2020](https://commons.wikimedia.org/wiki/File:USNS_Comfort_New_York_City_2020.jpg), U.S. Navy 200330-G-GM914-409 | Navy Medicine | Public domain |
+| `morgue-trucks-nyc.webp` | [Mortuary Trucks in New York City](https://commons.wikimedia.org/wiki/File:Mortuary_Trucks_in_New_York_City_by_Archer_West.jpg), 21 April 2020 | Archer West | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
+| `no2-china.webp` | [Nitrogen dioxide Density Change In China Due To Coronavirus](https://commons.wikimedia.org/wiki/File:Nitrogen_dioxide_Density_Change_In_China_Due_To_Coronavirus.png) | NASA Earth Observatory (ESA Sentinel-5P data) | Public domain |
+| `shelves-empty.webp` | [Empty toilet paper shelves](https://commons.wikimedia.org/wiki/File:Empty_toilet_paper_shelves_(49665873706).jpg) | Dan Keck | CC0 |
+| `street-glenview-05.webp` | Glenview March 2020 05, Wikimedia Commons | C. E. Miller | Public domain |
+| `closed-sign-handwritten.webp` | Alabama Extension, Flickr | Alabama Extension | CC0 |
+| `geo-world.js` | [Natural Earth](https://www.naturalearthdata.com/) 50m, projected; stay-at-home requirements and deaths per million from [Our World in Data](https://ourworldindata.org/covid-stay-home-covid) | Natural Earth; OWID | Public domain; CC BY 4.0 |
+| `waves.js` | World cases, deaths and vaccinations, weekly, [Our World in Data](https://ourworldindata.org/coronavirus) | Our World in Data | CC BY 4.0 |
+| `quiet.js` | Which countries reported new cases each week, 2022–2024, [Our World in Data](https://ourworldindata.org/coronavirus) | Our World in Data | CC BY 4.0 |
+| `geo-eu.js` | [Natural Earth](https://www.naturalearthdata.com/), projected (Italy and the North Atlantic) | Natural Earth | Public domain |
+| genome strip (in `ch01/index.html`) | SARS-CoV-2 reference sequence [NC_045512.2](https://www.ncbi.nlm.nih.gov/nuccore/NC_045512.2), bases 1–600 | NCBI | Public domain (US government database) |
 | `spread.js` | First case per country, [Our World in Data](https://ourworldindata.org/coronavirus) | Our World in Data | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
+| `cover.webp`, `making/*.webp` | Stills of this film, for the series page | Papermorph | MIT, like the code (the pictures in them keep their own licences) |
