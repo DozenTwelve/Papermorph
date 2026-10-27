@@ -39,3 +39,12 @@ The code in this repository is MIT. The pictures and data here keep their own li
 | File | Source | Author | Licence |
 |---|---|---|---|
 | `geo-lite.js` | [Natural Earth](https://www.naturalearthdata.com/) 110m and 50m countries, 10m provinces and populated places, simplified (books/pandemic-shorts/geo-lite.py) | Natural Earth | Public domain |
+
+## ch02 · Too Late
+
+| File | Source | Author | Licence |
+|---|---|---|---|
+| `ep2-departures.webp`, `ep2-codogno.webp`, `ep2-checkpoint.webp`, `ep2-convoy.webp`, `ep2-coffins.webp` | AI illustration (openai/gpt-image-2.5-flare, low), prompts in books/pandemic-shorts/art/ch02/, costs in art/costs.tsv | generated | tagged "AI illustration" on screen |
+| `ch02/lombardy.js` | Lombardy's outline dissolved from [Natural Earth](https://www.naturalearthdata.com/) 10m admin-1 provinces, simplified to 0.01° | Natural Earth | Public domain |
+| genome strip (in `ch02/index.html`) | SARS-CoV-2 reference sequence [NC_045512.2](https://www.ncbi.nlm.nih.gov/nuccore/NC_045512.2), bases 1–572 | NCBI | Public domain (US government database) |
+| WHO quote | [Director-General's opening remarks, 11 March 2020](https://www.who.int/news-room/speeches/item/who-director-general-s-opening-remarks-at-the-media-briefing-on-covid-19---11-march-2020) | WHO | quoted |
