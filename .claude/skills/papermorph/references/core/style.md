@@ -14,15 +14,20 @@ Left to guess what the user wants, an agent's guesses diverge from run to run. S
 
 Which model does which step is the user's choice; users run the Skill with different models and providers, and a book can mix them. Show the tier's defaults as one table, one row per step of its team ([core/team.md](team.md)), and ask: keep it (recommended), or change some rows. Any model the user names is fine.
 
-| Step | Lesson, tier 1 | Lesson, tier 2 | Picture book | Documentary | Short |
-|---|---|---|---|---|---|
-| Extract the chapter (or the story) | small | small | strong (script and storyboard with the user) | strong (research, script and storyboard with the user; then voice and music) | strong (script and storyboard with the user; then voice and music) |
-| Narration and beats | middle | middle | strong (voices, the episode kit) | middle (pictures found and treated) | middle (pictures generated or found) |
-| Picture: storyboard, motion, questions | middle | strong | middle, one worker per scene | middle, one worker per part of the film | middle (the beats) |
-| Checks | small | small | small (sound effects too) | small | small |
-| Review | middle | middle | strong director, middle picture and sound reviewers | strong director | strong director |
-| Rework | strong | strong | middle, per scene | middle, per part | middle |
-| Register | small | small | small | small | small |
+The defaults are the splits that made approved books; a cheaper split is the user's to try.
+
+| Step | Lesson (tier 1 and 2) | Picture book | Documentary | Short |
+|---|---|---|---|---|
+| Extract the chapter (or the story) | small | strong (script and storyboard with the user) | strong: one agent researches, writes the script and storyboard with the user, voices, finds the music and pictures | strong: one worker per episode writes the script with the user (or the coordinator), voices, makes or finds the pictures |
+| Narration and beats | middle | strong (voices, the episode kit) | strong (the same agent) | strong (the same worker) |
+| Picture: storyboard, motion, questions | strong | middle, one worker per scene | strong (the same agent) | strong (the same worker) |
+| Checks | small | small (sound effects too) | strong (the builder runs its own) | strong (the worker runs its own) |
+| Review | middle | strong director, middle picture and sound reviewers | strong director, fresh: contact sheets, then the exported MP4 | strong director per episode, fresh, on the exported MP4 |
+| Rework | strong | middle, per scene | strong (the builder) | strong (the episode's worker) |
+| Register | small | small | strong (the coordinator) | strong (the coordinator) |
+| Made this way | physics ch14, at about half the cost of one strong agent | *Joke Collection* episodes 5–6 | *Madness and Civilization*, *The Pandemic* | *Madness and Civilization* shorts 2–4, *The Pandemic* shorts 1–6 |
+
+A middle model on a lesson's picture step made two maths chapters that were acceptable but monotonous: a cheaper choice for tier 1 when the user wants it. No cheaper split of a film has been tried.
 
 **small**, **middle** and **strong** stand for the user's current fast, balanced and most capable models; write the actual names into `models`, keyed by step as in the [lesson](../../assets/templates/style.json) or [picture-book](../../assets/templates/picture-book/style.json) template (a picture book's keys name its roles: `script`, `kit`, `scenes`, `sound`, `director`, `reviewers`; a [documentary](../../assets/templates/documentary/style.json)'s and a [short](../../assets/templates/shorts/style.json)'s: `script`, `pictures`, `beats`, `checks`, `director`). Without subagents one agent does every step on its own model, and the table only records that. The user can change a row at any time; later chapters follow the table as it stands.
 
