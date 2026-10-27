@@ -12,16 +12,16 @@ The key is read from $OPENAI_API_KEY, else from --env FILE, else ~/.config/paper
 
 OpenAI's response reports usage tokens but not a USD cost, so the ledger records an estimate
 (about 0.02 USD per low picture, 0.05 per medium at 1536x1024) — check the invoice for exact numbers.
-Each call prints the usage and appends one line to the ledger (date, file, model, quality, cost).
+Each call prints the usage and appends one line to the ledger (date, chapter, file, model, quality, cost; see ledger.py).
 """
-import argparse, base64, datetime, json, os, pathlib, sys, urllib.request, urllib.error
+import argparse, base64, json, os, pathlib, sys, urllib.request, urllib.error
 
 API = "https://api.openai.com/v1"
 SIZES = {"16:9": "1536x1024", "9:16": "1024x1536", "1:1": "1024x1024"}
 EST = {"low": 0.02, "medium": 0.05, "high": 0.20}
 
 
-from ledger import print_total
+from ledger import append, print_total
 
 def total(path):
     print_total(path, 'estimated')
@@ -99,9 +99,7 @@ def main():
     usage = r.get("usage") or {}
     cost = (usage.get("cost") if isinstance(usage, dict) else None) or EST[a.q]
     print(a.out, f"cost {cost} USD (est)", json.dumps(usage))
-    led = pathlib.Path(a.ledger); led.parent.mkdir(parents=True, exist_ok=True)
-    with led.open("a", encoding="utf-8") as f:
-        f.write(f"{datetime.date.today()}\t{a.out}\t{a.model}\t{a.q}\t{cost:.4f}\n")
+    append(a.ledger, a.out, a.model, a.q, f"{cost:.4f}")
 
 
 if __name__ == "__main__":

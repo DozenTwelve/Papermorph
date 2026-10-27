@@ -1,5 +1,6 @@
 /* The film's look (here warm paper, ink, one red). Imported by engine.css; engine.py never overwrites it.
-   Keep shorts.js's colours in step. Fonts: lib/fonts.css and lib/fonts/ from the documentary kit. */
+   The first block is the player's palette, the second the film's own (shorts.js reads it: DARK, LIGHT, RED, …); keep
+   the two in step. Fonts: lib/fonts.css and lib/fonts/ from the documentary kit. */
 @import url("fonts.css");
 :root {
   --page: #1b1916; --board: #ece4d3; --panel: #e2d8c4; --edge: #1b1916;   /* --edge: the frame outline; the page colour, since every shot is full bleed */
@@ -8,6 +9,9 @@
   --vignette: rgba(90, 70, 40, .22);
   --rule: #c9bca2; --track: #d6cbb4; --track-ask: #d6cbb4;
   --bar-edge: #c9bca2; --hover: #ddd2bc; --veil: #ece4d3;
+}
+:root {
+  --dark: #1f1b16; --light: #ece4d3; --red: #c8281e; --teal: #2f6f73; --muted: #8a7d68; --mark: #ffd23f; --sea: #123c44;
 }
 /* Every shot is full bleed: square corners like a phone video, and nothing light behind the stage's edge. */
 #frame { border-radius: 0; background: var(--page); }

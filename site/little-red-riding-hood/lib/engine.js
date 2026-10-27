@@ -4,6 +4,13 @@
 // A fast follow-up navigation can abort the incoming page transition.
 addEventListener('pagereveal', e => e.viewTransition?.ready.catch(() => {}));
 
+// The engine's state and helpers live in one closure. Only the names declared at the end of this file are global (the
+// API that chapters, math.js, book libraries and the scripts use), so a chapter may name its own helpers anything else
+// (clock, fit, frame, last, ui, …).
+let seeking = false;   // true while seek() replays the beats before its target
+let captions = false;   // the reader's captions setting (C)
+const ENGINE = (() => {
+
 /* ---------- interface language ---------- */
 // The page's <html lang> picks the interface text; CHAPTER.language picks the audio folder. Set both alike.
 // A value is a string or plural forms { one, few, many, other } chosen by vars.n. Missing keys fall back to English.
@@ -735,7 +742,6 @@ function panel(t0) {
 // Take a beat's old picture away on wall time: a 150 ms fade, then out of rendering. On the beat clock the fade would
 // wait for the new clip's audio to start (a few hundred ms in Firefox) with the old, frozen scene still showing.
 // While seeking, the pictures passed on the way were never seen: they go at once.
-let seeking = false;
 // It then leaves the page: a long film otherwise keeps every earlier beat's picture (a documentary's maps: megabytes).
 function retire(e) {
   if (seeking) { e.remove(); return; }
@@ -1187,6 +1193,7 @@ const blanks = rowsIn => (body, api) => {
    When a clip loading or buffering holds the film's clock, the music runs on and then eases back (5 % slower or faster),
    or jumps back once if it is more than a second out. */
 const SND = { sfx: [], bed: {}, bgm: [], len: [], on: [], wait: [], buf: {}, ctx: null, out: null, last: { i: -1, t: 0 }, duck: .3 };
+const everyBeat = () => { try { return BEATS.map(b => b.id); } catch { return undefined; } };   // undefined until BEATS is defined
 // window properties, not declarations: a book with its own older sfx() or BGM declares them over these
 Object.assign(window, { SFX: SND.sfx, SFX_BED: SND.bed, BGM: SND.bgm,
   sfx(beat, at, name, vol = 1, bed = SND.bed[name] || 0) {
@@ -1194,7 +1201,8 @@ Object.assign(window, { SFX: SND.sfx, SFX_BED: SND.bed, BGM: SND.bgm,
     if (e) Object.assign(e, { vol, bed }); else SND.sfx.push({ beat, at, name, vol, bed });
     sfxLoad(name);
   },
-  music(file, beats = BEATS.map(b => b.id), gain = 1, fade = .8) {
+  // without beats, every beat: boot() fills them in when music() comes before BEATS
+  music(file, beats = everyBeat(), gain = 1, fade = .8) {
     const m = { n: file, beats, gain, fade, v: 0, a: Object.assign(new Audio(file), { preload: 'auto', loop: true, volume: 0 }) };
     SND.bgm.push(m);
     if (SND.ctx) bgmWire(m);
@@ -1326,8 +1334,9 @@ function runBeat(i) {
   b.run(m, pre + tm.dur);
   if (S.cleared && b.lead !== false && CHAPTER.lead !== false && !pre) leadIn();   // CHAPTER.lead false: no beat gets one (a film)
   TW.sort((a, c) => a.t0 - c.t0);
-  // runs that last to the end anyway (tails, follow cameras) do not set it: only the narration and the other tweens do
-  const end = Math.max(pre + tm.dur, ...TW.filter(w => !w.tail).map(w => w.t0 + w.dur)) + HOLD;
+  // runs that last to the end anyway (tails, follow cameras) do not set it: only the narration and the other tweens do,
+  // and minDur, the least the whole beat lasts (two mirrored beats run the same seconds)
+  const end = Math.max(Math.max(pre + tm.dur, ...TW.filter(w => !w.tail).map(w => w.t0 + w.dur)) + HOLD, b.minDur || 0);
   const tail = TW.some(w => w.tail === true);
   for (const w of TW) if (w.tail === true || tail && w.tail === 'follow') w.dur = end - w.t0;
   return SND.len[i] = end;   // the music places itself by how long each beat really runs
@@ -1389,16 +1398,18 @@ function start(i, play) {
   P.end = runBeat(i);
   evalTo(0);
   const a = P.audio = beatClip(i, true);
-  a.volume = +($('volume')?.value ?? 1);
-  a.playbackRate = P.rate;
-  // An aborted or superseded load (fast stepping, a reload) is not a failure: only a real error for the current clip
-  // shows the note, and the note goes away as soon as a clip plays.
-  a.onerror = () => { if (P.audio === a && a.error && a.error.code !== MediaError.MEDIA_ERR_ABORTED) soundFailed(); };
-  a.onplaying = () => {
-    if (P.audio !== a) return;
-    $('soundNote').hidden = true;
-    if (P.afail) { P.afail = false; a.currentTime = Math.max(0, P.t - (BEATS[P.i].pre || 0)); }   // sound came back late: rejoin the picture where it is
-  };
+  if (a) {   // a beat with no narration ({ dur }) has no clip: wall time drives its clock
+    a.volume = +($('volume')?.value ?? 1);
+    a.playbackRate = P.rate;
+    // An aborted or superseded load (fast stepping, a reload) is not a failure: only a real error for the current clip
+    // shows the note, and the note goes away as soon as a clip plays.
+    a.onerror = () => { if (P.audio === a && a.error && a.error.code !== MediaError.MEDIA_ERR_ABORTED) soundFailed(); };
+    a.onplaying = () => {
+      if (P.audio !== a) return;
+      $('soundNote').hidden = true;
+      if (P.afail) { P.afail = false; a.currentTime = Math.max(0, P.t - (BEATS[P.i].pre || 0)); }   // sound came back late: rejoin the picture where it is
+    };
+  }
   const b = BEATS[i];
   if (b.ask) b.ask(() => {
     if (P.gen !== gen || P.done) return;
@@ -1411,6 +1422,7 @@ function start(i, play) {
 }
 // The next beat's clip starts loading while this one plays, so a slow connection does not stall between beats.
 function beatClip(i, take) {
+  if (TIMINGS[BEATS[i].id]?.silent) return null;
   // the clip's length rides on the URL: regenerated narration gets a new address, so a browser cache cannot pair new
   // timings with an old clip
   const src = `audio/${CHAPTER.language || 'en'}/${BEATS[i].id}.mp3?v=${TIMINGS[BEATS[i].id]?.dur ?? ''}`;
@@ -1558,7 +1570,7 @@ function placeCaption(asking) {
   const [bottom, left, width] = at.split('|'), s = $('caption').style;
   Object.assign(s, { bottom: bottom && bottom + 'px', left: left && left + 'px', maxWidth: width && width + 'px' });
 }
-let captions = false, capText = '';
+let capText = '';
 try { captions = localStorage.getItem('captions') === '1'; } catch {}
 function setCaptions(on, save = true) {
   captions = on;
@@ -1681,17 +1693,15 @@ fit();
 
 // Start the lesson once the chapter page has defined CHAPTER and BEATS.
 // ?beat=N&t=S opens a paused frame, for reviewing a single moment.
-// Per-book progress shared with the cover/contents at the parent URL folder.
-const BOOK_PROGRESS_KEY = bookSetting('--progress-key') || 'animebook:progress:' + new URL('../', location.href).pathname;
-function progress(f) {
-  try {
-    const saved = JSON.parse(localStorage.getItem(BOOK_PROGRESS_KEY) || '{}');
-    const p = saved && typeof saved === 'object' && !Array.isArray(saved) ? saved : {};
-    p.done = Array.isArray(p.done) ? p.done.filter(n => Number.isInteger(n) && n > 0) : [];
-    f(p); localStorage.setItem(BOOK_PROGRESS_KEY, JSON.stringify(p));
-  } catch {}
-}
 function boot() {
+  // a beat with no narration: { dur } in its fourth slot stands in for its clip and its TIMINGS entry
+  window.TIMINGS ??= {};
+  for (const b of BEATS) if (!TIMINGS[b.id] && b.dur != null) TIMINGS[b.id] = { dur: b.dur, marks: {}, cues: [], silent: true };
+  for (const m of SND.bgm) {   // music() above BEATS plays under every beat
+    m.beats ??= BEATS.map(b => b.id);
+    const lost = m.beats.filter(id => !BEATS.some(b => b.id === id));
+    if (lost.length) console.warn(`music('${m.n}'): no beat ${lost.join(', ')} in BEATS`);
+  }
   $('coverK').textContent = translate('chapterNumber', { n: CHAPTER.label ?? CHAPTER.number });
   $('coverT').textContent = CHAPTER.title;
   $('bHome').href = `../#ch${String(CHAPTER.number).padStart(2, '0')}`;
@@ -1706,6 +1716,14 @@ function boot() {
   $('coverMeta').textContent = translate(film ? 'aboutMinutesFilm' : 'aboutMinutes', { n: num(CHAPTER.minutes) });
   buildSegs();
   const qs = new URLSearchParams(location.search);
+  if (qs.has('lengths')) {   // each beat's voice against its length on screen: a tween or a run past the voice lengthens it
+    reset(); seeking = true;
+    try { for (let k = 0; k < BEATS.length; k++) { runBeat(k); evalTo(Infinity); } } finally { seeking = false; }
+    console.log(`?lengths: beat, voice (pre + clip), on screen (hold included), and the time past voice + ${HOLD} s hold\n` + BEATS.map((b, i) => {
+      const v = (b.pre || 0) + TIMINGS[b.id].dur, over = SND.len[i] - HOLD - v;
+      return `${b.id.padEnd(16)} ${v.toFixed(2).padStart(6)} ${SND.len[i].toFixed(2).padStart(6)}${over > .005 ? `  +${over.toFixed(2)}` : ''}`;
+    }).join('\n'));
+  }
   if (qs.has('beat')) {
     $('cover').hidden = true;
     seek(Math.max(0, Math.min(BEATS.length - 1, qs.get('beat') | 0)), false);
@@ -1717,4 +1735,52 @@ function boot() {
   // A hidden tab gets no animation frames: a timer keeps the film going, so a beat that ends there still starts the next
   // one (a tab playing sound keeps its timers). Its ticks come late, so they may move the clock further at once.
   setInterval(() => { if (document.hidden) frameStep(performance.now(), 1.5); }, 250);
+}
+return { TRANSLATIONS, PORTRAIT, SW, SH, LANGUAGE, translate, DECIMAL_SIGN, isShortcut, NS, UI, BOOK, bookSetting,
+  COL, MATH, NAME, BAND, RIGHT, TOPR, SCREEN, SORT_SCREEN, $m, mk, st, put, render, G, path, T, cite, ctx2d, textW, F,
+  R, E, TX, $tex, texGraphic, texPart, OV, M, chip, tokens, layRow, collapse, mathEl, io, out, back, lin, tw, prog,
+  show, hide, draw, pop, pulse, stream, mix, evalTo, soft, clockRun, camera, scene, S, AXIS, X, Y0, num, reset, tick,
+  dot, arrow, panel, retire, header, fx, fxp, finishFx, pulseFx, shakeFx, floatText, TF, $, kbd, sources, uiW, SCORE,
+  h, rich, card, mascotEl, quiz, qlayer, keyAct, choice, mcq, tap, tapEls, pickEls, grid, rat, gcd, lowest, blanks,
+  SND, P, HOLD, clearCards, seek, seekInto, start, setSpeed, setPlaying, setCaptions, hideCover, restart, boot,
+  finishCard };
+})();
+
+// The API, one global each: lint.py reads these declarations, and a chapter that declares one of them again stops
+// with an error, as before.
+const TRANSLATIONS = ENGINE.TRANSLATIONS, PORTRAIT = ENGINE.PORTRAIT, SW = ENGINE.SW, SH = ENGINE.SH,
+  LANGUAGE = ENGINE.LANGUAGE, translate = ENGINE.translate, DECIMAL_SIGN = ENGINE.DECIMAL_SIGN,
+  isShortcut = ENGINE.isShortcut, NS = ENGINE.NS, UI = ENGINE.UI, BOOK = ENGINE.BOOK,
+  bookSetting = ENGINE.bookSetting, COL = ENGINE.COL, MATH = ENGINE.MATH, NAME = ENGINE.NAME, BAND = ENGINE.BAND,
+  RIGHT = ENGINE.RIGHT, TOPR = ENGINE.TOPR, SCREEN = ENGINE.SCREEN, SORT_SCREEN = ENGINE.SORT_SCREEN, $m = ENGINE.$m,
+  mk = ENGINE.mk, st = ENGINE.st, put = ENGINE.put, render = ENGINE.render, G = ENGINE.G, path = ENGINE.path,
+  T = ENGINE.T, cite = ENGINE.cite, ctx2d = ENGINE.ctx2d, textW = ENGINE.textW, F = ENGINE.F, R = ENGINE.R,
+  E = ENGINE.E, TX = ENGINE.TX, $tex = ENGINE.$tex, texGraphic = ENGINE.texGraphic, texPart = ENGINE.texPart,
+  OV = ENGINE.OV, M = ENGINE.M, chip = ENGINE.chip, tokens = ENGINE.tokens, layRow = ENGINE.layRow,
+  collapse = ENGINE.collapse, mathEl = ENGINE.mathEl, io = ENGINE.io, out = ENGINE.out, back = ENGINE.back,
+  lin = ENGINE.lin, tw = ENGINE.tw, prog = ENGINE.prog, show = ENGINE.show, hide = ENGINE.hide, draw = ENGINE.draw,
+  pop = ENGINE.pop, pulse = ENGINE.pulse, stream = ENGINE.stream, mix = ENGINE.mix, evalTo = ENGINE.evalTo,
+  soft = ENGINE.soft, clockRun = ENGINE.clockRun, camera = ENGINE.camera, scene = ENGINE.scene, S = ENGINE.S,
+  AXIS = ENGINE.AXIS, X = ENGINE.X, Y0 = ENGINE.Y0, num = ENGINE.num, reset = ENGINE.reset, tick = ENGINE.tick,
+  dot = ENGINE.dot, arrow = ENGINE.arrow, panel = ENGINE.panel, retire = ENGINE.retire, header = ENGINE.header,
+  fx = ENGINE.fx, fxp = ENGINE.fxp, finishFx = ENGINE.finishFx, pulseFx = ENGINE.pulseFx, shakeFx = ENGINE.shakeFx,
+  floatText = ENGINE.floatText, TF = ENGINE.TF, $ = ENGINE.$, kbd = ENGINE.kbd, sources = ENGINE.sources,
+  uiW = ENGINE.uiW, SCORE = ENGINE.SCORE, h = ENGINE.h, rich = ENGINE.rich, card = ENGINE.card,
+  mascotEl = ENGINE.mascotEl, quiz = ENGINE.quiz, qlayer = ENGINE.qlayer, keyAct = ENGINE.keyAct,
+  choice = ENGINE.choice, mcq = ENGINE.mcq, tap = ENGINE.tap, tapEls = ENGINE.tapEls, pickEls = ENGINE.pickEls,
+  grid = ENGINE.grid, rat = ENGINE.rat, gcd = ENGINE.gcd, lowest = ENGINE.lowest, blanks = ENGINE.blanks,
+  SND = ENGINE.SND, P = ENGINE.P, HOLD = ENGINE.HOLD, clearCards = ENGINE.clearCards, seek = ENGINE.seek,
+  seekInto = ENGINE.seekInto, start = ENGINE.start, setSpeed = ENGINE.setSpeed, setPlaying = ENGINE.setPlaying,
+  setCaptions = ENGINE.setCaptions, hideCover = ENGINE.hideCover, restart = ENGINE.restart, boot = ENGINE.boot;
+// Hooks: scorm-bridge.js wraps these two, and the engine calls progress() through this global.
+let finishCard = ENGINE.finishCard;
+// Per-book progress shared with the cover/contents at the parent URL folder.
+const BOOK_PROGRESS_KEY = bookSetting('--progress-key') || 'animebook:progress:' + new URL('../', location.href).pathname;
+function progress(f) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(BOOK_PROGRESS_KEY) || '{}');
+    const p = saved && typeof saved === 'object' && !Array.isArray(saved) ? saved : {};
+    p.done = Array.isArray(p.done) ? p.done.filter(n => Number.isInteger(n) && n > 0) : [];
+    f(p); localStorage.setItem(BOOK_PROGRESS_KEY, JSON.stringify(p));
+  } catch {}
 }
