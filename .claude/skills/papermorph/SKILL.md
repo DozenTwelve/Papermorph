@@ -96,17 +96,17 @@ Start with the questions in [shorts.md](references/shorts.md#questions-for-the-u
 
 ## Scripts
 
-All in `SKILL/scripts/`; each prints its usage with `--help` (run it with the `uv run --with …` its docstring names).
+All in `SKILL/scripts/`; each prints its usage with `--help`, run with the `uv run --with …` its docstring names (its first lines; without its packages even `--help` stops on the import). Packages: playwright for every script that opens a page (shot, strip, still, check, perf, safe, export, music, playlog, overlap, check_blank, bake_sets, bake_puppets), pillow for the ones that write pictures (shot, strip, still, playlog, bake_*, prep, frames, painted, sprites, trace), numpy for strip, export, `music.py gaps`, prep, frames, sfx and eleven, faster-whisper for eleven, pymupdf for outline and split_pages, scikit-image for trace, edge-tts or kokoro for tts; the rest need only Python and ffmpeg.
 
 | For | Scripts |
 |---|---|
-| Every book | `serve.py` preview without caching · `engine.py` sync the engine into books · `tts.py` narration and word times · `lint.py` static checks · `shot.py` beat screenshots · `strip.py` storyboard sheets and motion strips · `still.py` stretches where nothing moves · `perf.py` Firefox frame times · `export.py` MP4 and `.srt` · `level.py` even loudness |
+| Every book | `serve.py` preview without caching · `engine.py` sync the engine into books · `tts.py` narration and word times · `lint.py` static checks · `check.py` page errors, console warnings and beat lengths in Chromium and Firefox · `shot.py` beat screenshots · `strip.py` storyboard sheets and motion strips · `still.py` stretches where nothing moves · `perf.py` Firefox frame times, with the machine's load and a reference moment · `export.py` MP4 and `.srt` · `level.py` even loudness |
 | Lessons | `outline.py` and `split_pages.py` page map and chapter text · `check_blank.py` empty openings · `overlap.py` arrows through text · `sprites.py` image processing steps |
 | Picture books | `mouths.py` mouth shapes · `join.py` one clip per scene · `sfx.py` synthesized effects · `playlog.py` sounds and captions against the picture · `bake_sets.py` set layers · `bake_puppets.py` puppet bitmaps · `paint.py` / `paint_openai.py` image-model pictures · `painted.py` place them in the book |
-| Documentaries | `commons.py` public-domain pictures and recordings with their licences · `prep.py` print and line treatments · `trace.py` drawings that draw themselves on · `video.py` a clip from a still · `frames.py` a clip as treated frames · `eleven.py` ElevenLabs narration with word times · `music.py` a music track cut to the film, and the bed in the voice's gaps · `safe.py` words outside an upright film's safe area |
+| Documentaries | `commons.py` public-domain pictures and recordings with their licences · `prep.py` print and line treatments · `trace.py` drawings that draw themselves on · `video.py` a clip from a still · `frames.py` a clip as treated frames · `eleven.py` ElevenLabs narration with word times and `--tempo` · `music.py` a music track cut to the film, and the bed in the voice's gaps and at the end · `safe.py` words outside an upright film's safe area |
 | Course options | `refs.py` verified citations · `items.py` question bank · `scorm.py` LMS package |
 
-`silence.py`, `ledger.py` and `browsers.py` are helpers the others import.
+`silence.py`, `ledger.py` (the one cost ledger: date, chapter, file, model, what, cost) and `browsers.py` are helpers the others import.
 
 ## Context
 
