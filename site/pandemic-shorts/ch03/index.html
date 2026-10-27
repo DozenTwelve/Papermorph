@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en" data-stage="portrait">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Pandemic · 3 · The World Stops</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="audio/en/timings.js"></script>
+<script src="../img/art.js"></script>
+<script src="../img/ch03-art.js"></script>
+<script src="../img/geo-lite.js"></script>
+<script src="../lib/icons.js"></script>
+<script src="../lib/shorts.js"></script>
+<script src="../lib/pandemic.js"></script>
+<script src="stay.js"></script>
+<script src="ch03.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 3, title: 'The World Stops', minutes: 1, language: 'en', next: '../ch04/' };
+
+// a dark band behind words over a photograph, y0..y1
+const shade = (s, y0, y1, t0) => { const g = G(s, { o: 0 }); rect(g, 0, y0, W, y1 - y0, { fill: DARK, opacity: .62 }); show(g, t0, .2, lin); return g; };
+const STAY_TAG = 'Stay-at-home orders · Our World in Data';
+
+/* ---------- beats ---------- */
+const OPEN_PRE = .3;
+const BEATS = [
+  // 0. The hook over empty roads already moving: half of humanity, told to stay home
+  ['hook', 'Stay home', (m, D) => {
+    const p = panel(0);
+    const hf = m('half'), sm = m('same'), st = m('stay');
+    let s = shot(p, 0, hf);
+    wide(s, 'street-hwy407', [[0, .47, .45, 1.3], [hf + .3, .47, .41, 1.75]]);
+    srcTag(s, 'Highway 407, Ontario · Raysonho, CC0', 50, 150, 0);
+    word(s, 'April 2020', CX - 20, 290, 0, { size: 110, fill: LIGHT, stroke: DARK });
+    s = shot(p, hf, sm);
+    wide(s, 'street-glenview-24', [[hf, .62, .6, 1.05], [sm + .3, .74, .6, 1.2]]);
+    srcTag(s, 'Glenview, Illinois · C. E. Miller, public domain', 50, 150, hf);
+    word(s, 'More than half', CX - 20, 1040, hf, { size: 110, fill: LIGHT, stroke: DARK });
+    word(s, 'of humanity', CX - 20, 1170, hf + .3, { size: 110, fill: LIGHT, stroke: DARK });
+    sfx('hook', hf, 'whoosh', .35);
+    s = shot(p, sm, undefined);
+    wide(s, 'airport-pek-empty', [[sm, .7, .6, 1.0], [D + .8, .8, .62, 1.22]]);
+    srcTag(s, 'Beijing Capital Airport · Mx. Granger, CC0', 50, 150, sm);
+    word(s, 'Stay home', CX - 20, 860, st, { size: 210, fill: LIGHT, stroke: DARK, from: 1.3, dur: .16 });
+    sfx('hook', st, 'thud', 1.3);
+  }, { pre: OPEN_PRE }],
+
+  // 1. Which series, which episode
+  ['card', 'The series', (m, D) => {
+    const p = panel(0);
+    const s = shot(p, 0, undefined, { bg: DARK, swipe: 'quiet' });
+    seriesCard(s, 0, 3, m('three'));
+  }],
+
+  // 2. How fast: the map hatches country by country, the count runs with the date
+  ['orders', 'Eighty, then 120', (m, D) => {
+    const p = panel(0);
+    const e8 = m('eighty'), k12 = m('k120');
+    const s = shot(p, 0, undefined, { bg: DARK, whip: true });
+    const view = () => ({ lon: 46, lat: 27, H: .66 });   // still: the canvases redraw only when they must; the push is the wrapper's
+    const mw = G(s, { x: CX, y: H / 2 }), mg = G(mw, { x: -CX, y: -H / 2 });
+    const day = t => t < m('april') ? dayAt('2020-03-18', '2020-03-26', ramp01(t, .1, e8)) : dayAt('2020-03-26', '2020-04-07', ramp01(t, m('april'), k12));
+    paperMap(mg, D, view);
+    hatchMap(mg, D, view, (c, t) => stayOn(c, day(t)) ? 1 : 0);
+    srcTag(s, STAY_TAG, 50, 150, 0);
+    const dc = G(s, { x: CX - 20, y: 270 });
+    rect(dc, -230, -52, 460, 72, { fill: DARK, rx: 6 });
+    const dt = T(dc, '', { y: 0, size: 46, fill: LIGHT, font: SANS, weight: 600, anchor: 'middle' });
+    const box = G(s, { x: CX - 20, y: 1120, o: 0 });
+    rect(box, -300, -150, 600, 270, { fill: DARK, rx: 10, opacity: .9 });
+    const n = T(box, '0', { y: 10, size: 170, fill: LIGHT, font: SANS, weight: 600, anchor: 'middle' });
+    T(box, 'COUNTRIES: STAY HOME', { y: 85, size: 44, fill: MUTED, font: SANS, weight: 500, anchor: 'middle' }).setAttribute('letter-spacing', '.08em');
+    const keys = Object.keys(STAY);
+    clockRun(t => { const d = day(t); dt.textContent = dayFmt(d); n.textContent = keys.filter(c => stayOn(c, d)).length; }, D, { tail: true });
+    tw(box, { o: 1 }, .3, .25);
+    tw(n, { s: 1.15 }, e8, .15, out); tw(n, { s: 1 }, e8 + .15, .2);
+    tw(n, { s: 1.15 }, k12, .15, out); tw(n, { s: 1 }, k12 + .15, .2);
+    sfx('orders', e8, 'tick', 1); sfx('orders', k12, 'tick', 1.2);
+  }],
+
+  // 3. Schools: the gate, the empty room, a billion students at home
+  ['schools', 'A billion students', (m, D) => {
+    const p = panel(0);
+    const sp = m('sept'), bn = m('billion');
+    let s = shot(p, 0, sp, { whip: true });
+    wide(s, 'school-closed-banner', [[0, .22, .5, 1.45], [sp + .3, .2, .48, 1.7]]);
+    srcTag(s, 'Rialto, California · Cyan&Orange, CC0', 50, 150, 0);
+    word(s, 'Schools closed', CX - 20, 1150, .1, { size: 120, fill: LIGHT, stroke: DARK });
+    s = shot(p, sp, bn);
+    wide(s, 'school-empty-classroom', [[sp, .42, .6, 1.0], [bn + .3, .55, .6, 1.15]]);
+    srcTag(s, 'U.S. Army photo, Pfc. Kaden Pitt', 50, 150, sp);
+    label(s, 'By September 2020', CX - 20, 1150, sp + .05, { size: 64, fill: DARK, colour: LIGHT });
+    s = shot(p, bn, undefined);
+    photo(s, 'ep3-remote-kid', bn, D + .8, { s0: 1.0, s1: 1.12, dy: -30 });
+    shade(s, 960, 1300, bn - .05);
+    counter(s, 1e9, CX - 20, 1120, bn, { size: 118, fill: LIGHT, dur: .9 });
+    word(s, 'Students out of class', CX - 20, 1210, bn + .5, { size: 60, fill: LIGHT });
+    srcTag(s, 'UNESCO, via Wikipedia', 50, 1272, bn + .5);
+  }],
+
+  // 4. Shelves, streets, shops: of every ten shoppers, four to six stay away
+  ['shops', 'Shops', (m, D) => {
+    const p = panel(0);
+    const st = m('streets'), sh = m('shops'), f4 = m('forty'), s6 = m('sixty');
+    let s = shot(p, 0, st, { whip: true });
+    wide(s, 'shelves-empty', [[0, .45, .5, 1.0], [st + .3, .55, .5, 1.12]]);
+    srcTag(s, 'Dan Keck, CC0', 50, 150, 0);
+    word(s, 'Shelves empty', CX - 20, 1150, .1, { size: 120, fill: LIGHT, stroke: DARK });
+    s = shot(p, st, sh);
+    wide(s, 'street-glenview-05', [[st, .3, .6, 1.0], [sh + .3, .42, .6, 1.12]]);
+    srcTag(s, 'Glenview, Illinois · C. E. Miller, public domain', 50, 150, st);
+    word(s, 'Streets quiet', CX - 20, 1150, st + .05, { size: 120, fill: LIGHT, stroke: DARK });
+    s = shot(p, sh, undefined);
+    photo(s, 'ep3-mall-empty', sh, D + .8, { s0: 1.0, s1: 1.1, dim: .35 });
+    label(s, 'Shop visitors', CX - 20, 300, sh + .05, { size: 60, fill: LIGHT, colour: DARK });
+    const ppl = icons(s, 'person', 10, 5, CX - 20 - 300, 470, 120, LIGHT, sh + .1, .5);
+    ppl.forEach((e, i) => { if (i >= 6) tw(e, { o: .18 }, f4, .25); else if (i >= 4) tw(e, { o: .18 }, s6, .25); });
+    shade(s, 1000, 1300, f4 - .05);
+    const a = word(s, '−40%', CX - 20, 1200, f4, { size: 200, fill: MARK });
+    hide(a, s6, .05, lin);
+    word(s, '−60%', CX - 20, 1200, s6, { size: 200, fill: MARK });
+    sfx('shops', f4, 'tick', .9); sfx('shops', s6, 'tick', 1.1);
+    srcTag(s, 'Retail foot traffic, spring 2020 · Wikipedia', 50, 1272, f4 + .3);
+  }],
+
+  // 5. Forty million US jobs
+  ['jobs', 'Forty million jobs', (m, D) => {
+    const p = panel(0);
+    const f4 = m('forty');
+    let s = shot(p, 0, f4, { bg: DARK, whip: true });
+    const pl = plate(s, 'closed-sign-temporary', CX - 20, 680, { w: 800, r: -2 });
+    tw(pl, { s: 1.12 }, 0, f4 + .3, lin);
+    srcTag(s, 'Alabama Extension, CC0', 50, 150, 0);
+    label(s, 'United States', CX - 20, 1150, m('us'), { size: 76, fill: DARK, colour: LIGHT });
+    s = shot(p, f4, undefined);
+    photo(s, 'ep3-jobs-queue', f4, D + .8, { s0: 1.0, s1: 1.12, dx: 20 });
+    shade(s, 930, 1300, f4 - .05);
+    word(s, 'More than', CX - 20, 1000, f4, { size: 56, fill: MUTED });
+    counter(s, 40e6, CX - 20, 1130, f4, { size: 140, fill: LIGHT, dur: .8 });
+    word(s, 'US jobs gone', CX - 20, 1225, m('jobs'), { size: 70, fill: LIGHT });
+    srcTag(s, 'Wikipedia', 50, 1272, f4 + .3);
+  }],
+
+  // 6. The world's pay: $3.5 trillion less in nine months; the worst since the breadlines of the 1930s
+  ['money', 'Three and a half trillion', (m, D) => {
+    const p = panel(0);
+    const tr = m('trillion'), ws = m('worst'), dp = m('depression');
+    let s = shot(p, 0, ws, { bg: NIGHT, whip: true });
+    const view = t => ({ lon: 10 + 9 * t, lat: 18, H: 1.3, dy: -240 });
+    globeShot(s, D, view, null, null, { on: [0, ws + .4] });
+    word(s, 'Worldwide', CX - 20, 1000, .05, { size: 80, fill: MUTED });
+    const v = T(s, '', { x: CX - 20, y: 1130, size: 130, fill: LIGHT, font: SANS, weight: 600, anchor: 'middle', o: 0 });
+    show(v, tr - .1, .1, lin);
+    prog(q => { v.textContent = '$' + (3.5 * q).toFixed(1) + ' trillion'.toUpperCase(); }, tr, 1.0, out);
+    for (let k = 0; k < 6; k++) sfx('money', tr + k / 6, 'tick', .45);
+    word(s, 'Less pay from work', CX - 20, 1230, m('less'), { size: 66, fill: LIGHT });
+    label(s, 'Jan–Sep 2020', CX - 20, 300, m('nine'), { size: 60, fill: LIGHT, colour: DARK });
+    srcTag(s, 'International Labour Organization, via Wikipedia', 50, 150, tr + .3);
+    s = shot(p, ws, undefined);
+    wide(s, 'ep3-breadline', [[ws, .5, .62, 1.0], [D + .8, .55, .5, 1.18]]);
+    rect(s, 0, 0, W, H, { fill: '#000', opacity: .2 });
+    srcTag(s, 'Breadline, New York, 1932 · U.S. National Archives, public domain', 50, 150, ws);
+    word(s, 'The worst recession since', CX - 20, 1040, ws + .05, { size: 72, fill: LIGHT, stroke: DARK });
+    word(s, 'The Great Depression', CX - 20, 1170, dp, { size: 110, fill: MARK, stroke: DARK });
+    sfx('money', dp, 'thud', 1);
+  }],
+
+  // 7. The sky: up from the empty road, then NASA's January and February over China
+  ['sky', 'Clear skies', (m, D) => {
+    const p = panel(0);
+    const ch = m('china'), fl = m('fall');
+    let s = shot(p, 0, ch, { whip: true });
+    wide(s, 'street-hwy407', [[0, .5, .72, 1.6], [ch + .3, .5, .2, 1.6]]);
+    srcTag(s, 'Highway 407, Ontario · Raysonho, CC0', 50, 150, 0);
+    word(s, 'The sky changed', CX - 20, 1150, m('sky'), { size: 110, fill: LIGHT, stroke: DARK });
+    s = shot(p, ch, undefined, { bg: '#f4f6f8' });
+    const cam = G(s, { x: CX, y: 760, s: 1 });
+    tw(cam, { s: 1.08 }, ch, D + .8 - ch, lin);
+    const jan = G(cam, {}), feb = G(cam, { o: 0 });
+    crop(jan, 'no2-china', [0, 0, 358, 470], -420, -560, 840, 1103);
+    crop(feb, 'no2-china', [362, 0, 358, 470], -420, -560, 840, 1103);
+    // February wipes down over January as the emissions fall
+    const id = 'ep3wipe', cr = mk('rect', { x: -430, y: -570, width: 860, height: 0 }, mk('clipPath', { id }, mk('defs', {}, s)));
+    feb.setAttribute('clip-path', `url(#${id})`); show(feb, fl - .3, .01, lin);
+    prog(q => cr.setAttribute('height', 1130 * q), fl - .3, .7, io);
+    sfx('sky', fl - .3, 'whoosh', .4);
+    srcTag(s, 'Nitrogen dioxide · NASA Earth Observatory, public domain', 50, 150, ch);
+    label(s, 'Nitrogen oxides −50%', CX - 20, 1190, m('half') - .05, { size: 64, fill: DARK, colour: LIGHT });
+    srcTag(s, 'Emissions in China · Wikipedia', 50, 1272, m('half') + .2);
+  }],
+
+  // 8. The end: waiting; the orders lift over the summer and come back; the virus changes; next, the race
+  ['end', 'Only a pause', (m, D) => {
+    const p = panel(0);
+    const pa = m('pause'), bk = m('back'), cg = m('changing'), nx = m('next');
+    let s = shot(p, 0, pa, { whip: true });
+    wide(s, 'street-glenview-24', [[0, .55, .6, 1.0], [pa + .3, .66, .6, 1.15]]);
+    srcTag(s, 'Glenview, Illinois · C. E. Miller, public domain', 50, 150, 0);
+    word(s, 'Waiting', CX - 20, 1150, .1, { size: 140, fill: LIGHT, stroke: DARK });
+    s = shot(p, pa, cg, { bg: DARK, swipe: 'quiet' });
+    const view = () => ({ lon: 30, lat: 22, H: .82 });
+    const mw = G(s, { x: CX, y: H / 2 }), mg = G(mw, { x: -CX, y: -H / 2 });
+    prog(q => put(mg, { x: -CX + 8 * Math.sin(q * 30) * (1 - q) }), bk, .5, lin);   // a jolt as it comes back
+    const wk = t => Math.round(t < bk ? 6 + 25 * ramp01(t, pa + .2, bk - .1) : 31 + 16 * ramp01(t, bk, cg - .15));
+    paperMap(mg, D, view, { on: [pa - .1, cg + .4] });
+    hatchMap(mg, D, view, (c, t) => stayWeek(c, wk(t)) ? 1 : 0, { on: [pa - .1, cg + .4] });
+    srcTag(s, STAY_TAG, 50, 150, pa);
+    const dc = G(s, { x: CX - 20, y: 270 });
+    rect(dc, -230, -52, 460, 72, { fill: DARK, rx: 6 });
+    const dt = T(dc, '', { y: 0, size: 46, fill: LIGHT, font: SANS, weight: 600, anchor: 'middle' });
+    clockRun(t => { dt.textContent = dayFmt(new Date(Date.parse(WEEK0) + wk(t) * 7 * 864e5).toISOString().slice(0, 10)); }, D, { tail: true });
+    const op = word(s, 'Only a pause', CX - 20, 1170, pa + .05, { size: 130, fill: LIGHT, stroke: DARK });
+    hide(op, bk - .05, .05, lin);
+    word(s, 'It comes back', CX - 20, 1170, bk, { size: 130, fill: MARK, stroke: DARK });
+    sfx('end', bk, 'thud', 1.1);
+    s = shot(p, cg, nx, { whip: true });
+    found(s, 'virus-sem-red', 'SARS-CoV-2 · NIAID, public domain', cg, nx + .3, { s0: 1.05, s1: 1.3 });
+    word(s, 'Changing', CX - 20, 1150, cg + .05, { size: 150, fill: RED, stroke: DARK });
+    s = shot(p, nx, undefined, { bg: DARK, swipe: true });
+    endCard(s, nx, 3);
+  }],
+].map(shortsBeat);
+
+// One track for the whole film; ?bgm= sets its level by ear (gain under the ducking to 30 %)
+music('audio/bgm/ep3.mp3', undefined, +(new URLSearchParams(location.search).get('bgm') || .4), .05);
+startPandemic();
+</script>
+</body>
+</html>

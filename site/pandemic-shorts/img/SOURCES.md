@@ -39,3 +39,11 @@ The code in this repository is MIT. The pictures and data here keep their own li
 | File | Source | Author | Licence |
 |---|---|---|---|
 | `geo-lite.js` | [Natural Earth](https://www.naturalearthdata.com/) 110m and 50m countries, 10m provinces and populated places, simplified (books/pandemic-shorts/geo-lite.py) | Natural Earth | Public domain |
+
+### ch03 · The World Stops
+
+| File | Source | Author | Licence |
+|---|---|---|---|
+| `ep3-remote-kid.webp`, `ep3-mall-empty.webp`, `ep3-jobs-queue.webp` | Generated with an image model (gpt-image-2.5-flare via OpenRouter, low quality) | AI illustration | Unnamed stand-ins, no faces; tagged on screen |
+| `ep3-breadline.webp` | [Depression, Breadlines-long line of people waiting to be fed, New York City](https://commons.wikimedia.org/wiki/File:Depression,_Breadlines-long_line_of_people_waiting_to_be_fed,_New_York_City_-_NARA_-_196499.tif), NARA 196499, c. February 1932 | U.S. National Archives and Records Administration | Public domain |
+| `../ch03/stay.js` | Stay-at-home requirements (OxCGRT c6m, level 2 or more), [Our World in Data](https://ourworldindata.org/covid-stay-home-restrictions) | Our World in Data | CC BY 4.0 |
