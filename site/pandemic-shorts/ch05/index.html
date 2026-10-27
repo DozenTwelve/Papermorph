@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en" data-stage="portrait">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Pandemic · 5 · The Count</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="audio/en/timings.js"></script>
+<script src="../img/art.js"></script>
+<script src="../img/ch05-art.js"></script>
+<script src="../img/geo-lite.js"></script>
+<script src="../img/quiet.js"></script>
+<script src="../lib/icons.js"></script>
+<script src="../lib/shorts.js"></script>
+<script src="../lib/pandemic.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 5, title: 'The Count', minutes: 2, language: 'en', next: '../ch06/' };
+
+/* ---------- this episode's pieces ---------- */
+const DIM_RED = '#7a2a22', BLUE = '#5b9bd5';
+const fmt = n => Math.round(n).toLocaleString('en-US');
+// a number rolling from v0 to v1 over t0..t0+dur, ticking as it goes
+function roll(t, v0, v1, t0, dur, pre = '') {
+  const size = +t.getAttribute('font-size');
+  prog(q => fitNum(t, pre + fmt(v0 + (v1 - v0) * q), size), t0, dur, out);
+  for (let k = 0; k < 6; k++) sfx(BEAT_ID, t0 + k * dur / 6, 'tick', .4);
+}
+// the film's dots: one dot for 100,000 people, cols across from (x, y), cell c; returns the circles, empty and hidden
+function dotGrid(g, n, cols, x, y, c, r = c * .36) {
+  return Array.from({ length: n }, (_, i) => mk('circle', { cx: x + (i % cols + .5) * c, cy: y + (Math.floor(i / cols) + .5) * c, r,
+    fill: 'none', stroke: LIGHT, 'stroke-width': 1.6, opacity: 0 }, g));
+}
+// set a big number's text, narrowed to maxW so it stays inside the safe area
+function fitNum(t, str, size, maxW = 720) { t.textContent = str; t.setAttribute('font-size', Math.min(size, size * maxW / inkW(str, size))); }
+const fillDot = (d, colour) => { d.setAttribute('fill', colour); d.setAttribute('stroke', 'none'); };
+// a small caption line in caps, always shown (srcTag is for sources and shows only with ?tags)
+function caps(g, str, y, t0, { size = 30, fill = MUTED, x = CX - 20, anchor = 'middle' } = {}) {
+  const e = T(g, str.toUpperCase(), { x, y, size, fill, font: SANS, weight: 500, anchor, o: 0 });
+  e.setAttribute('letter-spacing', '.12em');
+  if (t0 <= .01) put(e, { o: 1 }); else tw(e, { o: 1 }, t0, .25);
+  return e;
+}
+
+/* ---------- beats ---------- */
+const OPEN_PRE = .3;
+const BEATS = [
+  // 0. The hook: graves already pushing in, the official count runs up; the cut to the morgue trucks rolls it on to the estimate
+  ['hook', 'The count', (m, D) => {
+    const p = panel(0);
+    const sv = m('seven'), tb = m('best'), t27 = m('twentyseven');
+    let s = shot(p, 0, tb);
+    photo(s, 'ep5-graves', 0, tb + .3, { s0: 1.0, s1: 1.22, dy: -60, dim: .3 });
+    s = shot(p, tb, undefined);
+    found(s, 'morgue-trucks-nyc', 'Mortuary trucks, New York, April 2020 · Archer West, CC BY 4.0', tb, D + .8, { s0: 1.05, s1: 1.2, dx: -30, dim: .4 });
+    const top = G(p, {});
+    const lb = label(top, 'Officially', CX - 20, 600, 0, { size: 64, fill: LIGHT, colour: DARK });
+    hide(lb, tb - .05, .05, lin);
+    label(top, 'Best estimate', CX - 20, 600, tb, { size: 64, fill: RED, colour: DARK });
+    const n = T(top, '0', { x: CX - 20, y: 790, size: 150, fill: RED, font: SANS, weight: 600, anchor: 'middle' });
+    n.setAttribute('stroke', DARK); n.setAttribute('stroke-width', 10); n.setAttribute('paint-order', 'stroke');
+    roll(n, 0, 7115706, 0, sv + .9);
+    hide(caps(top, 'confirmed deaths', 870, sv + .3, { fill: LIGHT }), tb - .05, .05, lin);
+    srcTag(top, 'Confirmed: Wikipedia, as of 18 Sep 2026', 50, 1060, sv + .3);
+    caps(top, 'estimated deaths', 870, tb + .05, { fill: LIGHT });
+    caps(top, 'officially: 7.1 million', 960, tb + .3, { size: 40, fill: LIGHT });
+    roll(n, 7115706, 27000000, tb, t27 - tb + .4);
+    prog(() => fitNum(n, '≈ 27,000,000', 150), t27 + .45, 0, lin);
+    srcTag(top, 'Estimate: excess deaths, The Economist, to Jan 2024', 50, 1100, tb + .2);
+    sfx('hook', t27 + .45, 'thud', 1.2);
+  }, { pre: OPEN_PRE }],
+
+  // 1. Which series, which episode: the night globe behind the card
+  ['card', 'Part five', (m, D) => {
+    const p = panel(0);
+    const s = shot(p, 0, undefined, { bg: NIGHT, swipe: 'quiet' });
+    const gl = G(s, { o: .35 });
+    Globe.clearMarks();
+    globeShot(gl, D, t => ({ lon: 20 + t * 4, lat: 15, H: 1.1 }));
+    rect(s, 0, 0, W, H, { fill: DARK, opacity: .55 });
+    seriesCard(s, 0, 5, m('title'));
+  }],
+
+  // 2. Why two numbers: a death no one recorded; then all deaths against a normal year, the gap is the excess
+  ['uncounted', 'Never counted', (m, D) => {
+    const p = panel(0);
+    const tA = m('all'), tN = m('normal');
+    let s = shot(p, 0, tA, { whip: true });
+    photo(s, 'ep5-bed', 0, tA + .3, { s0: 1.0, s1: 1.16, dy: 30, dim: .25 });
+    word(s, 'Never counted', CX - 20, 1150, m('never'), { size: 130, fill: LIGHT, stroke: DARK });
+    // the diagram: bars, no numbers
+    s = shot(p, tA, undefined, { bg: MAPLAND, swipe: true });
+    const B = 1100, bw = 230, x1 = 150, x2 = 480, hN = 420, hP = 640;
+    caps(s, 'all deaths, every cause', 260, tA + .1, { size: 40, fill: MAPINK });
+    mk('path', { d: `M80 ${B}H780`, stroke: MAPINK, 'stroke-width': 3 }, s);
+    const bp = bar(s, x2, B, bw, 1, hP, MAPINK, tA + .15, .7);
+    T(s, 'PANDEMIC', { x: x2 + bw / 2, y: B + 56, size: 40, fill: MAPINK, font: SANS, weight: 600, anchor: 'middle' });
+    T(s, 'YEARS', { x: x2 + bw / 2, y: B + 100, size: 40, fill: MAPINK, font: SANS, weight: 600, anchor: 'middle' });
+    const nb = G(s, { o: 0 });
+    rect(nb, x1, B - hN, bw, hN, { fill: MAPLINE });
+    T(nb, 'A NORMAL', { x: x1 + bw / 2, y: B + 56, size: 40, fill: MAPINK, font: SANS, weight: 600, anchor: 'middle' });
+    T(nb, 'YEAR', { x: x1 + bw / 2, y: B + 100, size: 40, fill: MAPINK, font: SANS, weight: 600, anchor: 'middle' });
+    tw(nb, { o: 1 }, tN - .1, .25);
+    // the normal level carried across; what is above it is the excess, in red
+    const ln = mk('path', { d: `M${x1} ${B - hN}H${x2 + bw + 30}`, stroke: MAPINK, 'stroke-width': 4, 'stroke-dasharray': '14 10', opacity: 0 }, s);
+    tw(ln, { o: 1 }, tN + .3, .2);
+    const ex = rect(s, x2, B - hN, bw, 0, { fill: RED });
+    prog(q => { ex.setAttribute('y', B - hN - (hP - hN) * q); ex.setAttribute('height', (hP - hN) * q); }, tN + .5, .4, out);
+    label(s, 'Excess deaths', x2 + bw / 2, B - hP - 40, tN + .75, { size: 46, fill: RED, colour: LIGHT });
+    sfx('uncounted', tN + .75, 'thud', .8);
+    void bp;
+  }],
+
+  // 3. The gap on the film's dots: 71 counted, out to 352, most likely 274
+  ['estimate', 'The gap', (m, D) => {
+    const p = panel(0);
+    const s = shot(p, 0, undefined, { bg: DARK, whip: true });
+    const e18 = m('eighteen'), e27 = m('twentyseven');
+    const dots = dotGrid(s, 352, 16, CX - 20 - 304, 380, 38);
+    dots.forEach((d, i) => { if (i < 71) { fillDot(d, RED); tw(d, { o: 1 }, .1 + i * .006, .1, lin); } });
+    const n = T(s, '7.1 MILLION', { x: CX - 20, y: 260, size: 110, fill: RED, font: SANS, weight: 600, anchor: 'middle' });
+    const l = caps(s, 'confirmed deaths', 330, 0, { fill: LIGHT });
+    caps(s, 'one dot: 100,000 people', 1260, .3, { size: 26 });
+    dots.slice(71).forEach((d, i) => tw(d, { o: .55 }, e18 + i * .004, .12, lin));
+    prog(() => { fitNum(n, '18.5 – 35.2 MILLION', 110); l.textContent = 'ESTIMATED DEATHS'; }, e18, 0, lin);
+    sfx('estimate', e18, 'whoosh', .4);
+    dots.slice(71, 274).forEach((d, i) => { prog(() => fillDot(d, DIM_RED), e27 + i * .004, 0, lin); tw(d, { o: 1 }, e27 + i * .004, .12, lin); });
+    prog(() => { fitNum(n, '≈ 27 MILLION', 110); l.textContent = 'MOST LIKELY'; }, e27, 0, lin);
+    sfx('estimate', e27, 'thud', 1);
+    srcTag(s, 'Excess deaths, The Economist, to Jan 2024 · via Wikipedia', 50, 150, 0);
+  }],
+
+  // 4. Not evenly: every age on one scale, then at ten, 100,000 dots and two of them red
+  ['ten', 'Age 10', (m, D) => {
+    const p = panel(0);
+    const t10 = m('ten');
+    let s = shot(p, 0, t10, { bg: MAPLAND, whip: true });
+    const A = [[10, .002], [25, .01], [55, .4], [65, 1.4], [75, 4.6], [85, 15]], B = 1150, HM = 700;
+    A.forEach(([age, v], i) => {
+      const x = 75 + i * 120;
+      bar(s, x, B, 90, v, HM / 15, i === 5 ? RED : MAPINK, .1 + i * .12, .4);
+      T(s, String(age), { x: x + 45, y: B + 50, size: 40, fill: MAPINK, font: SANS, weight: 600, anchor: 'middle' });
+    });
+    caps(s, 'risk of dying once infected, by age', 300, 0, { size: 32, fill: MAPINK });
+    word(s, 'Not evenly', CX - 20, 230, m('evenly'), { size: 100, fill: MAPINK });
+    srcTag(s, 'Infection fatality ratio by age · Wikipedia', 50, 150, 0);
+    // 250 x 400 = 100,000 dots as one pattern fill; the two red ones are real circles, ringed as the camera pulls out
+    s = shot(p, t10, undefined, { bg: DARK, whip: true });
+    const C = 3.6, X0 = 0, Y0 = 80;
+    const pt = mk('pattern', { id: 'k100', width: C, height: C, patternUnits: 'userSpaceOnUse', x: X0, y: Y0 }, mk('defs', {}, s));
+    mk('circle', { cx: C / 2, cy: C / 2, r: C * .3, fill: LIGHT, opacity: .55 }, pt);
+    const RD = [[61, 217], [188, 96]].map(([i, j]) => [X0 + (i + .5) * C, Y0 + (j + .5) * C]);
+    const cam = G(s, {});
+    rect(cam, X0, Y0, 250 * C, 400 * C, { fill: 'url(#k100)' });
+    const rings = RD.map(([x, y]) => { mk('circle', { cx: x, cy: y, r: C * .38, fill: RED }, cam); return mk('circle', { cx: x, cy: y, r: 3, fill: 'none', stroke: RED, 'stroke-width': .4 }, cam); });
+    // the camera: close on the first red dot at the frame's centre, out to the whole field by "hundred thousand";
+    // the dot glides from the centre to its own place, so it never leaves the frame
+    const [fx, fy] = RD[0], z0 = 14, t1 = m('hundredk') + .2;
+    prog(q => {
+      const z = z0 * (1 / z0) ** q, sx = CX - 20 + (fx - CX + 20) * q, sy = 720 + (fy - 720) * q;
+      put(cam, { x: sx - fx * z, y: sy - fy * z, s: z });
+      rings.forEach(r => { r.setAttribute('r', 26 / z); r.setAttribute('stroke-width', 5 / z); });
+    }, t10, t1 - t10, io);
+    const top = G(s, {});
+    label(top, 'Age 10', CX - 20, 250, t10 + .05, { size: 70, fill: LIGHT, colour: DARK });
+    label(top, '2 in 100,000', CX - 20, 1200, m('two'), { size: 80, fill: RED, colour: LIGHT });
+    srcTag(top, 'Infection fatality ratio · Wikipedia · 250 × 400 dots', 50, 150, t10);
+  }],
+
+  // 5. At 85: a hundred dots, fifteen of them red; seven and a half thousand times
+  ['eightyfive', 'Age 85', (m, D) => {
+    const p = panel(0);
+    const s0 = shot(p, 0, undefined, { bg: DARK, whip: true });
+    const push = G(s0, { x: CX - 20, y: 720 });   // a slow push over the beat, so the held grid keeps moving
+    tw(push, { s: 1.15 }, 0, D + .8, lin);
+    const s = G(push, { x: -(CX - 20), y: -720 });
+    const f15 = m('fifteen');
+    label(s0, 'Age 85', CX - 20, 250, 0, { size: 70, fill: LIGHT, colour: DARK });
+    const dots = dotGrid(s, 100, 10, CX - 20 - 320, 380, 64, 24);
+    dots.forEach(d => put(d, { o: .8 }));
+    dots.slice(0, 15).forEach((d, i) => { prog(() => fillDot(d, RED), f15 + i * .07, 0, lin); });
+    for (let k = 0; k < 5; k++) sfx('eightyfive', f15 + k * .2, 'tick', .5);
+    label(s, '15 in 100', CX - 20, 1150, f15 + .2, { size: 80, fill: RED, colour: LIGHT });
+    stamp(s, '× 7,500', CX - 20, 760, m('times'), { size: 150 });
+    srcTag(s0, 'Infection fatality ratio · Wikipedia', 50, 150, 0);
+  }],
+
+  // 6. The vaccines: a vial, then the lives they kept, in blue under the dead
+  ['saved', 'Saved', (m, D) => {
+    const p = panel(0);
+    const tF = m('first'), t14 = m('fourteen');
+    let s = shot(p, 0, tF, { whip: true });
+    photo(s, 'ep5-vial', 0, tF + .3, { s0: 1.0, s1: 1.18, dx: 20, dim: .2 });
+    word(s, 'The vaccines', CX - 20, 1150, m('vax'), { size: 130, fill: LIGHT, stroke: DARK });
+    s = shot(p, tF, undefined, { bg: DARK });
+    const c = 26, x0 = CX - 20 - 8 * c;
+    const dead = dotGrid(s, 352, 16, x0, 350, c);
+    dead.forEach((d, i) => { if (i < 274) fillDot(d, i < 71 ? RED : DIM_RED); put(d, { o: i < 274 ? .5 : .25 }); });
+    caps(s, 'died', 340, tF, { size: 26, x: x0 - 14, anchor: 'end' });
+    const more = dotGrid(s, 198, 16, x0, 350 + 22 * c + 24, c);
+    more.forEach((d, i) => { d.setAttribute('stroke', BLUE); if (i < 144) fillDot(d, BLUE); tw(d, { o: i < 144 ? 1 : .55 }, t14 - .2 + i * .006, .12, lin); });
+    caps(s, 'saved', 350 + 22 * c + 34, t14, { size: 26, x: x0 - 14, anchor: 'end', fill: BLUE });
+    const n = T(s, '', { x: CX - 20, y: 220, size: 96, fill: BLUE, font: SANS, weight: 600, anchor: 'middle', o: 0 });
+    fitNum(n, '14.4 – 19.8 MILLION', 96); tw(n, { o: 1 }, t14, .25);
+    caps(s, 'deaths prevented · Dec 2020 – Dec 2021', 285, tF + .1, { size: 28, fill: LIGHT });
+    caps(s, 'one dot: 100,000 people', 1275, tF + .3, { size: 26 });
+    sfx('saved', t14, 'thud', 1);
+    srcTag(s, 'June 2022 study (Watson et al., Lancet) · via Wikipedia', 50, 150, tF);
+  }],
+
+  // 7. The end of the emergency, not of the pandemic: the WHO's words; what many heard, struck out
+  ['over', 'Over?', (m, D) => {
+    const p = panel(0);
+    const s = shot(p, 0, undefined, { bg: MAPLAND, whip: true });
+    const cam = G(s, { x: CX - 20, y: 720 });
+    tw(cam, { s: 1.1 }, 0, D + .8, lin);
+    const g = G(cam, { x: -(CX - 20), y: -720 });
+    label(g, '5 May 2023', CX - 20, 290, 0, { size: 70, fill: MAPINK, colour: MAPLAND });
+    const card = G(g, { o: 0, y: 30 });
+    rect(card, 60, 360, 740, 400, { fill: '#f8f4ea', stroke: MAPLINE, 'stroke-width': 3, rx: 6 });
+    caps(card, 'World Health Organization', 430, 0, { size: 30, fill: '#6a6258' });
+    const hl = G(card, {});
+    ['“I declare COVID-19 over', 'as a global health', 'emergency.”'].forEach((l, i) =>
+      T(card, l, { x: CX - 20, y: 520 + i * 66, size: 58, fill: MAPINK, font: SERIF, anchor: 'middle' }).setAttribute('font-style', 'italic'));
+    T(card, 'Tedros Adhanom Ghebreyesus, WHO Director-General', { x: CX - 20, y: 720, size: 24, fill: '#6a6258', font: SERIF, anchor: 'middle' });
+    tw(card, { o: 1, y: 0 }, m('who'), .35, out);
+    sfx('over', m('who'), 'page', .6);
+    marker(hl, 175, 600, 510, 66, m('emergency'), .4).setAttribute('opacity', .55);
+    // what many heard, in red; then struck out
+    caps(g, 'what many heard', 870, m('heard'), { size: 30, fill: '#6a6258' });
+    const heard = T(g, 'the pandemic is over', { x: CX - 20, y: 970, size: 80, fill: RED, font: SERIF, anchor: 'middle', o: 0 });
+    heard.setAttribute('font-style', 'italic');
+    tw(heard, { o: 1 }, m('pover'), .3);
+    const sk = mk('path', { d: 'M110 960L750 948', stroke: MAPINK, 'stroke-width': 9, 'stroke-linecap': 'round', 'stroke-dasharray': 660, 'stroke-dashoffset': 660 }, g);
+    prog(q => sk.setAttribute('stroke-dashoffset', 660 * (1 - q)), m('never'), .3, out);
+    sfx('over', m('never'), 'whoosh', .5);
+    label(g, 'The WHO did not say that', CX - 20, 1150, m('never') + .3, { size: 60, fill: MAPINK, colour: MAPLAND });
+    srcTag(s, 'WHO media briefing, 5 May 2023', 50, 150, m('who'));
+  }],
+
+  // 8. The map goes quiet: countries still reporting cases, lit red, go out one by one (Our World in Data)
+  ['quiet', 'Quiet', (m, D) => {
+    const p = panel(0);
+    const s = shot(p, 0, undefined, { bg: NIGHT, whip: true });
+    const P = QUIET.points, i0 = P.indexOf('2023-04-24'), i1 = P.indexOf('2023-09-11'), tq = m('quiet');
+    const at = t => i0 + (i1 - i0) * smooth(ramp01(t, .2, tq));
+    const view = t => ({ lon: 30 - t * 4, lat: 12, H: 1.12 });
+    paperMap(s, D, view, { lit: (c, t) => {
+      const b = QUIET.bits[c]; if (!b) return 0;
+      const x = at(t), i = Math.floor(x), f = x - i, a = b[i] === '1', z = b[Math.min(i + 1, P.length - 1)] === '1';
+      return (a ? 1 - f : 0) + (z ? f : 0);
+    } });
+    const n = T(s, '', { x: CX - 20, y: 290, size: 110, fill: RED, font: SANS, weight: 600, anchor: 'middle' });
+    n.setAttribute('stroke', NIGHT); n.setAttribute('stroke-width', 8); n.setAttribute('paint-order', 'stroke');
+    caps(s, 'countries reporting new cases', 345, 0, { size: 30, fill: LIGHT });
+    const dt = caps(s, '', 1110, 0, { size: 34, fill: LIGHT });
+    const mon = d => new Date(d + 'T00:00Z').toLocaleString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' }).toUpperCase();
+    let last = -1;
+    clockRun(t => {
+      const i = Math.round(at(t)); if (i === last) return; last = i;
+      n.textContent = String(Object.values(QUIET.bits).filter(b => b[i] === '1').length);
+      dt.textContent = mon(P[i]);
+    }, D, { tail: true });
+    word(s, 'The map went quiet', CX - 20, 1220, tq, { size: 90, fill: LIGHT, stroke: NIGHT });
+    srcTag(s, 'Our World in Data · new cases, last four weeks', 50, 150, 0);
+  }],
+
+  // 9. The end answers the hook: the biggest crisis, some 27 million; a question left over Wuhan; next, the origin
+  ['end', 'The biggest crisis', (m, D) => {
+    const p = panel(0);
+    const tw0 = m('where'), nx = m('next');
+    let s = shot(p, 0, nx, { bg: NIGHT });
+    const glob = G(s, { o: .7 });
+    Globe.clearMarks(); Globe.dot(...WUHAN);
+    const view = t => { const q = smooth(ramp01(t, tw0 - .6, tw0 + .6)); return { lon: -30 + t * 3 + (WUHAN[0] + 30 - tw0 * 3) * q, lat: 12 + (WUHAN[1] - 12) * q, H: 1.15 - .4 * q }; };
+    globeShot(glob, D + 2, view, (i, t) => t > tw0 ? 1 : 0, undefined, { on: [0, nx + .3] });
+    const words = G(s, {});
+    word(words, 'The biggest crisis', CX - 20, 330, 0, { size: 110, fill: LIGHT, stroke: NIGHT });
+    word(words, 'of our generation', CX - 20, 450, .7, { size: 110, fill: LIGHT, stroke: NIGHT });
+    word(words, '≈ 27,000,000 lives', CX - 20, 1150, m('millions'), { size: 90, fill: RED, stroke: NIGHT });
+    hide(words, tw0 - .3, .3);
+    word(s, '?', CX - 20, 830, tw0 + .4, { size: 300, fill: RED, stroke: NIGHT });
+    sfx('end', tw0 + .4, 'thud', 1);
+    s = shot(p, nx, undefined, { bg: DARK, swipe: true });
+    const tile = endCard(s, nx, 5);
+    tw(tile, { s: 2.2 }, nx + .5, D + 2 - nx, lin);   // keeps moving while it is held
+    prog(() => {}, D, 2, lin);   // the end card held while the music ends
+  }],
+].map(shortsBeat);
+
+// One track for the whole film; ?bgm= sets its level by ear (gain under the ducking to 30 %)
+music('audio/bgm/ep5.mp3', undefined, +(new URLSearchParams(location.search).get('bgm') || .35), .05);
+startPandemic();
+</script>
+</body>
+</html>
