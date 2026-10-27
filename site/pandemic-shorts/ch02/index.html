@@ -185,7 +185,7 @@ const BEATS = [
     const M = paperMap(s, D, view, { dots: cluster(CODOGNO, 14, 16, -1, .1, 9, 6), on: [tm - .05, D + 1] });
     place(s, M, 'Codogno', tm, D, { dy: -50, size: 36 }); place(s, M, 'Milan', lb + .5, D, { side: 'l', size: 36 });
     const zg = G(s, {});
-    hide(zone(zg, M, [circle([9.7, 45.18], 11)], D, tm + .1, { stroke: RED }), it, .4);
+    hide(zone(zg, M, [circle([9.7, 45.18], 11)], D, tm + .1, { sw: 5 }), it, .4);
     hide(zone(zg, M, [LOMBARDY], D, lb), it + .5, .4);
     zone(zg, M, ITALY, D, it);
     sfx('lock', lb, 'thud', .8); sfx('lock', it, 'thud', 1.2);
@@ -330,7 +330,7 @@ const BEATS = [
     paperMap(s, tr + .3, view, { lit: (c, t) => c === 'USA' ? .6 * ramp01(t, us, us + .4) : c === 'ITA' ? .5 : 0, dots: [[...NYC, -1, 9]], on: [0, tr + .3] });
     dateChip(s, 'End of March 2020', 0);
     word(s, 'Most confirmed cases', CX - 20, 1150, m('any') - .3, { size: 96, fill: LIGHT, stroke: DARK });
-    label(s, 'of any country', CX - 20, 1250, m('any'), { size: 52, fill: RED, colour: LIGHT });
+    label(s, 'of any country', CX - 20, 1250, m('any'), { size: 52, fill: MARK, colour: DARK });
     sfx('america', us, 'thud', 1);
     srcTag(s, 'Wikipedia, COVID-19 pandemic', 50, 150, 0);
     s = cut(p, tr, undefined, { whip: true });
