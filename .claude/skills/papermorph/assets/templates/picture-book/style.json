@@ -17,7 +17,7 @@
     "budget": "under $1 of pictures per episode",
     "cast": [{ "name": "Bo", "look": "round face, school uniform", "file": "site/jokes/lib/cast.js" }]
   },
-  "engine": { "source": "DozenTwelve/Papermorph", "ref": "engine-v2.5" },
+  "engine": { "source": "DozenTwelve/Papermorph", "ref": "engine-v2.7" },
   "models": { "script": "claude-opus-5-5", "kit": "claude-opus-5-5", "scenes": "claude-sonnet-5-5", "sound": "claude-haiku-5-5", "director": "claude-opus-5-5", "reviewers": "claude-sonnet-5-5" },
   "approved": [{ "chapter": "ch01", "why": "set-up before the punchline; a close-up on whoever speaks" }]
 }
