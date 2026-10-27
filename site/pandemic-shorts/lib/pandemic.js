@@ -10,6 +10,8 @@
                                             nothing jumps); H is the film's: Earth radius 450 / H px (1.15 the whole world,
                                             .3 a continent, .02 a province). opts, all optional:
        lit(iso, t) -> 0..1                    a country lit red (iso as in the film's GEO_W.countries: 'CHN', 'ITA', 'USA')
+       litFill: RED                           the lit()/prov() fill: MARK for what is not the virus (a stay-home order, a
+                                              vaccine), or (key) => colour to mix both on one map
        prov(name, t) -> 0..1                  a province of China lit red ('Hubei'); provinces: true draws their borders
        dots: [[lon, lat, t0, r = 7]]          red case dots, popping in at t0, r px
        routes: [[[lon, lat], [lon, lat], t0, dur = .8]]   a red arc drawn from a to b; a dot lands at b when it arrives
@@ -21,6 +23,7 @@
    seriesCard(s, t0, n, tLit)               the six episodes, n (1-6) lit at tLit;  endCard(s, t0, n): what comes next
    found(g, name, source, t0, t1, opts)     a full-bleed found photograph with its source tag (photo() tags 'AI illustration')
    wide(g, name, keys) · plate(g, name, x, y, opts) · liChip(p, x, y, r, t0, opts)   as in madness.js and the film
+   (series card rim, end card's 'Next' and liChip's ring are MARK: red is the virus only)
    Colours: shorts.js's DARK (night), LIGHT (cream ink), RED (the virus only), MARK (yellow), MUTED; here MAPLAND, MAPSEA,
    MAPINK, MAPLINE for the paper map. Needs ../img/art.js and ../img/geo-lite.js loaded before this file. */
 'use strict';
@@ -93,7 +96,8 @@ function grained(ctx, colour) {
 }
 const PX = 1;   // canvas px per stage px (the export is 1080 wide: 1.2 is sharper and a fifth slower)
 
-function paperMap(p, D, view, { lit, prov, provinces = false, dots = [], routes = [], cities = [], on } = {}) {
+function paperMap(p, D, view, { lit, prov, litFill = RED, provinces = false, dots = [], routes = [], cities = [], on } = {}) {
+  const fillOf = typeof litFill === 'function' ? litFill : () => litFill || RED;
   const geo = geoData();
   const g = G(p, {}), fo = mk('foreignObject', { x: 0, y: 0, width: W, height: H }, g);
   const cv = document.createElement('canvas'); cv.width = W * PX; cv.height = H * PX;
@@ -145,10 +149,10 @@ function paperMap(p, D, view, { lit, prov, provinces = false, dots = [], routes 
     ctx.save(); ctx.clip();
     ctx.beginPath(); shapes(L, all, v);
     ctx.fillStyle = land; ctx.fill(); ctx.strokeStyle = MAPLINE; ctx.lineWidth = 1; ctx.lineJoin = 'bevel'; ctx.stroke();
-    if (lit) for (const c of all) { const a = lit(c, t); if (a > 0) { ctx.beginPath(); shapes(L, [c], v); ctx.globalAlpha = a * .85; ctx.fillStyle = RED; ctx.fill(); ctx.globalAlpha = 1; } }
+    if (lit) for (const c of all) { const a = lit(c, t); if (a > 0) { ctx.beginPath(); shapes(L, [c], v); ctx.globalAlpha = a * .85; ctx.fillStyle = fillOf(c); ctx.fill(); ctx.globalAlpha = 1; } }
     if (provinces || prov) {
       const pk = Object.keys(geo.cn);
-      if (prov) for (const c of pk) { const a = prov(c, t); if (a > 0) { ctx.beginPath(); shapes(geo.cn, [c], v); ctx.globalAlpha = a * .85; ctx.fillStyle = RED; ctx.fill(); ctx.globalAlpha = 1; } }
+      if (prov) for (const c of pk) { const a = prov(c, t); if (a > 0) { ctx.beginPath(); shapes(geo.cn, [c], v); ctx.globalAlpha = a * .85; ctx.fillStyle = fillOf(c); ctx.fill(); ctx.globalAlpha = 1; } }
       if (provinces) { ctx.beginPath(); shapes(geo.cn, pk, v); ctx.setLineDash([4, 3]); ctx.lineWidth = .9; ctx.strokeStyle = MAPLINE; ctx.stroke(); ctx.setLineDash([]); }
     }
     ctx.restore();
@@ -206,7 +210,7 @@ function seriesCard(s, t0, n, tLit) {
   sfx(BEAT_ID, t0, 'thud', 1);
   const tiles = EP_POS.map(([x, y], i) => { const c = epTile(s, i, x, y); tw(c, { o: 1 }, t0 + .25 + i * .1, .25); return c; });
   const [x, y] = EP_POS[n - 1];
-  const rim = rect(s, x - EP_W / 2 - 10, y - EP_H / 2 - 10, EP_W + 20, EP_H + 20, { rx: 22, fill: 'none', stroke: RED, 'stroke-width': 10, opacity: 0 });
+  const rim = rect(s, x - EP_W / 2 - 10, y - EP_H / 2 - 10, EP_W + 20, EP_H + 20, { rx: 22, fill: 'none', stroke: MARK, 'stroke-width': 10, opacity: 0 });
   show(rim, tLit, .15, lin); sfx(BEAT_ID, tLit, 'tick', 1.2);
   tiles.forEach((c, i) => { if (i !== n - 1) tw(c, { o: .3 }, tLit, .3); else tw(c, { s: 1.06 }, tLit, .25, back); });
   return tiles;
@@ -214,7 +218,7 @@ function seriesCard(s, t0, n, tLit) {
 // the end card after episode n: the next episode's tile, big, with its number and title (the last one names the series)
 function endCard(s, t0, n) {
   if (n >= 6) { word(s, 'The Pandemic', CX - 20, 700, t0, { size: 130, fill: LIGHT }); word(s, 'Six parts · the end', CX - 20, 820, t0 + .3, { size: 56, fill: MUTED }); return; }
-  word(s, 'Next', CX - 20, 330, t0, { size: 90, fill: RED });
+  word(s, 'Next', CX - 20, 330, t0, { size: 90, fill: MARK });
   const c = epTile(s, n, CX - 20, 720);
   tw(c, { o: 1, s: 1.9 }, t0 + .15, .35, out);
   sfx(BEAT_ID, t0 + .15, 'whoosh', .5);
@@ -251,9 +255,9 @@ function wide(g, name, keys) {
 }
 // a doctor's chip: a toned portrait in a red ring. li-wenliang is his own selfie (fair use); doctor-1..7 are AI
 // illustrations standing in for the seven others, who are not identified here (tag them)
-function liChip(p, x, y, r, t0, { o = 1, img = 'li-wenliang' } = {}) {
+function liChip(p, x, y, r, t0, { o = 1, img = 'li-wenliang', ring = MARK } = {}) {
   const g = G(p, { x, y, s: 0, o: 0 }), k = r * .9;
-  mk('circle', { r, fill: RED }, g);
+  mk('circle', { r, fill: ring }, g);
   mk('image', { href: `../img/${img}.webp`, x: -k, y: -k, width: 2 * k, height: 2 * k, 'clip-path': 'url(#liclip)' }, g);
   tw(g, { s: 1, o }, t0, .5, back);
   return g;
