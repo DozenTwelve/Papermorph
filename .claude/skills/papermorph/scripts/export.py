@@ -113,10 +113,11 @@ async def main(a):
         video, part = out / f'{a.chapter}.mp4', out / f'{a.chapter}.tmp.mp4'   # renamed to video when the encoder is done
         # Pass 1: the sound track and the captions, beat by beat at the beat's length on screen.
         end_s = END_SECONDS if asks or a.link else 0   # a picture book ends on its own last scene
-        lengths, starts, counts, music_off, cues, offset, waits = [], [], [], [], [], 0.0, {}
+        lengths, starts, counts, music_off, cues, offset, waits, silent = [], [], [], [], [], 0.0, {}, set()
         for i, bid in beats:
             await open_beat(pg, base, i)
             end, T = await pg.evaluate('[P.end, TIMINGS[BEATS[P.i].id]]')
+            if T.get('silent'): silent.add(bid)   # { dur } in the beat's fourth slot: no clip, its sound is silence
             if info['beats'][i]['ask']: waits[bid] = end; end += info['beats'][i]['hold']   # from P.end the page waits
             # a scene lists its sfx() when its beat is built, so they are collected beat by beat
             for e in await pg.evaluate(SFX_JS):
@@ -136,7 +137,7 @@ async def main(a):
         track = np.zeros((round(total * RATE) + 1, 2), np.float32)
         for k, (i, bid) in enumerate(beats):
             o, pre = starts[k], info['beats'][i]['pre']
-            put(track, o + pre, decode(f'{a.url}{a.chapter}/audio/{info["lang"]}/{bid}.mp3'), 1, o + lengths[k])
+            if bid not in silent: put(track, o + pre, decode(f'{a.url}{a.chapter}/audio/{info["lang"]}/{bid}.mp3'), 1, o + lengths[k])
             for e in info['sfx']:   # effects sit at half volume under the voices; a new scene stops them
                 if e['beat'] == bid and 0 <= e['at'] < lengths[k]:
                     put(track, o + e['at'], decode(e['src']), .5 * e['vol'], o + lengths[k])

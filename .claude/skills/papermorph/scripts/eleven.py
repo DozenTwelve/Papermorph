@@ -3,7 +3,7 @@
 
     uv run --with faster-whisper --with numpy python eleven.py content/<book>/ch01/narration.en.json site/<book>/ch01/audio/en
     ... [--model elevenlabs/eleven-v4] [--voice george] [--only beat,beat] [--dry] [--ledger books/<book>/art/costs.tsv]
-    ... [--lufs -14] [--peak -1.5] [--no-level] [--max-pause 0.3]
+    ... [--lufs -14] [--peak -1.5] [--no-level] [--max-pause 0.3] [--tempo 1.1]
 
 Same input and output as tts.py: the narration file's beats with [[mark]] tags in, <beat>.mp3 and timings.js
 ({dur, marks, cues} per beat) out, so the page cannot tell the two apart. The voice and model come from the flags,
@@ -16,7 +16,9 @@ Whisper detects that line's language.
 ElevenLabs returns no word timings, so each clip is transcribed locally (faster-whisper base.en, or base for another
 language, from the file name narration.<lang>.json; the first run downloads the model) and the script's words are
 matched to the heard words in order; each [[mark]] is the start of the word after it, and there is one caption cue per
-sentence and per clause after a colon ("Mr." and "e.g." do not end one, as in tts.py). Audio is decoded with ffmpeg, not PyAV (faster-whisper's PyAV version clashes). Needs ffmpeg.
+sentence and per clause after a colon ("Mr." and "e.g." do not end one, as in tts.py). Whisper writes spoken numbers in
+digits ("a hundred and twenty" heard as "120"): a number's first word is matched to such a heard number, so a mark on it
+lands on the number's start. A rerun prints the marks that moved more than 0.1 s against the old timings.js. Audio is decoded with ffmpeg, not PyAV (faster-whisper's PyAV version clashes). Needs ffmpeg.
 
 v4 audio tags such as [cackles] or [whispers] act: they are performed, not read aloud, and left out of captions.
 Price: about $0.00008 per character (about $0.65 for a ten-minute film). Before paying, the run prints the characters
@@ -38,9 +40,15 @@ leading or trailing silence) longer than S to S, keeping S/2 at each side: a sho
 sentence pauses (0.4 to 1.0 s). It runs before the alignment, so the marks and cues come from the shortened clip; a
 shortened clip has no pause left to shorten, so a rerun keeps it. One cap for every pause of every beat; a pause that
 should stay long (a turn of the film) needs its beat run without it.
+
+--tempo K (or "tempo": K in the narration file, which a rerun then keeps without the flag) speeds every clip up
+(1.1: a tenth faster) or slows it, pitch kept (ffmpeg atempo, 0.5 to 2), before the pauses, the levelling and the
+alignment, so the marks, cues and loudness come from the clip as heard. takes.json records the tempo with the take, so a
+rerun keeps a sped clip, and a changed tempo makes it again from the cached take (no new take is paid for).
 """
-import argparse, atexit, datetime, hashlib, json, pathlib, re, subprocess, sys, urllib.error, urllib.request
+import argparse, atexit, hashlib, json, pathlib, re, subprocess, sys, urllib.error, urllib.request
 from paint import key
+from ledger import append
 from tts import ABBREV, split_marks, mark_times, duration, write_atomic
 import level as lv
 
@@ -57,8 +65,11 @@ ap.add_argument("--lufs", type=float, default=-14, help="level every clip to thi
 ap.add_argument("--peak", type=float, default=-1.5, help="true-peak ceiling of the levelled clips in dBTP (default -1.5)")
 ap.add_argument("--no-level", action="store_true", help="leave the clips at the loudness the voice service delivered")
 ap.add_argument("--max-pause", type=float, metavar="S", help="shorten pauses inside a clip longer than S seconds to S")
+ap.add_argument("--tempo", type=float, metavar="K", help="speed the clips by K (1.1), pitch kept (default: the narration file's \"tempo\", else 1)")
 a = ap.parse_args()
 spec = json.loads(pathlib.Path(a.narration).read_text(encoding="utf-8-sig"))
+tempo = a.tempo or spec.get("tempo", 1)
+if not .5 <= tempo <= 2: sys.exit(f"--tempo {tempo}: give 0.5 to 2")
 model = a.model or spec.get("model", "elevenlabs/eleven-v4")
 lang = pathlib.Path(a.narration).stem.split(".")[-1]
 out = pathlib.Path(a.out); out.mkdir(parents=True, exist_ok=True)
@@ -87,6 +98,12 @@ def tighten(mp3, cap):
     return sum(y - x for x, y in cuts)
 
 
+def atempo(mp3, k):
+    tmp = mp3.with_suffix(".part")
+    subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(mp3), "-filter:a", f"atempo={k}", "-b:a", "128k", "-f", "mp3", str(tmp)], check=True)
+    tmp.replace(mp3)
+
+
 def speak(text, voice, dst):
     body = json.dumps({"model": model, "input": text, "voice": voice, "response_format": "mp3"}).encode()
     k = key()
@@ -102,6 +119,9 @@ def speak(text, voice, dst):
 
 
 norm = lambda w: re.sub(r"\W", "", w.lower())
+NUM = re.compile("(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|"
+                 "seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million|billion)+")
+JOIN = {"a", "an", "and", "point", "half"}   # inside a number: "a hundred and twenty", "seven point one"
 asr = {}
 tf = out / "timings.js"
 old = {}
@@ -132,8 +152,7 @@ timings, spent = {}, 0
 def charge():
     """Log what was paid for, once the takes are made: a run stopped partway logs only its finished takes."""
     if a.ledger and spent:
-        led = pathlib.Path(a.ledger); led.parent.mkdir(parents=True, exist_ok=True)
-        with led.open("a", encoding="utf-8") as f: f.write(f"{datetime.date.today()}\t{a.out}\t{model}\ttts{spent}c\t{spent * PRICE:.4f}\n")
+        append(a.ledger, a.out, model, f"tts{spent}c", f"{spent * PRICE:.4f}")
 
 
 atexit.register(charge)   # at the end, or when a later step (a failed take, Whisper) stops the run
@@ -145,8 +164,10 @@ for beat, voice, sub, clean, marks, cached, fresh in beats:
     if fresh:
         speak(clean, voice, cached); spent += len(clean); print(beat, "synthesized")
     mp3 = out / f"{beat}.mp3"
-    if fresh or not mp3.exists() or takes.get(clip_key(mp3)) != cached.name:   # else keep it: perhaps levelled since
-        mp3.write_bytes(cached.read_bytes()); takes[clip_key(mp3)] = cached.name
+    take = cached.name + (f"@{tempo:g}" if tempo != 1 else "")
+    if fresh or not mp3.exists() or takes.get(clip_key(mp3)) != take:   # else keep it: perhaps levelled since
+        mp3.write_bytes(cached.read_bytes()); takes[clip_key(mp3)] = take
+        if tempo != 1: atempo(mp3, tempo)
     if a.max_pause and (cut := tighten(mp3, a.max_pause)): print(f"{beat}: pauses over {a.max_pause} s shortened, -{cut:.2f} s")
     if not a.no_level: print(lv.one(mp3, mp3, argparse.Namespace(lufs=a.lufs, gain=None, peak=a.peak)), flush=True)
     m = "base" if sub or lang != "en" else "base.en"
@@ -161,9 +182,18 @@ for beat, voice, sub, clean, marks, cached, fresh in beats:
     # the script's words (audio tags blanked out, positions kept), matched to heard words in order with a small look-ahead
     spoken = TAG.sub(lambda m: " " * len(m.group()), clean)
     toks = [w for w in re.findall(r"\S+", spoken) if norm(w)]
-    times, j = [], 0
-    for w in map(norm, toks):
-        k = next((k for k in range(j, min(j + 6, len(heard))) if heard[k][0] == w or len(w) >= 4 and heard[k][0].startswith(w[:4])), None)
+    ws, times, j, run = [norm(w) for w in toks], [], 0, None
+    for i, w in enumerate(ws):
+        win = range(j, min(j + 6, len(heard)))
+        if run is not None and (NUM.fullmatch(w) or w in JOIN) and not re.search(r"[.,:;!?]$", toks[i - 1]):
+            k = j if j < len(heard) and heard[j][0] == w else None   # the rest of a number heard as digits ("million")
+            times.append(run if k is None else heard[k][1]); j = j if k is None else k + 1   # else at the digits' start
+            continue
+        k = next((k for k in win if heard[k][0] == w or len(w) >= 4 and heard[k][0].startswith(w[:4])), None)
+        run = None
+        if NUM.fullmatch(w) or w in JOIN and i + 1 < len(ws) and NUM.fullmatch(ws[i + 1]):   # a number's first word
+            d = next((k for k in win if any(c.isdigit() for c in heard[k][0])), None)
+            if d is not None and (k is None or d < k): k, run = d, heard[d][1]
         times.append(None if k is None else heard[k][1]); j = j if k is None else k + 1
     dur = duration(mp3)
     for i, v in enumerate(times):   # words Whisper merged or split: halfway between their known neighbours
@@ -183,6 +213,9 @@ for beat, voice, sub, clean, marks, cached, fresh in beats:
     if cues: cues[0][0] = min(cues[0][0], .1)
     timings[beat] = {"dur": dur, "marks": mark_times(clean, marks, words), "cues": [[0, sub]] if sub else cues}
     if sub: timings[beat]["forced"] = True
+    moved = [f"{k} {old[beat]['marks'][k]} -> {v}" for k, v in timings[beat]["marks"].items()
+             if k in old.get(beat, {}).get("marks", {}) and abs(old[beat]["marks"][k] - v) > .1]
+    if moved: print(f"{beat}: marks moved: {', '.join(moved)}")
     print(f"{beat}: {dur} s, {len(marks)} marks")
 write_atomic(tf, "window.TIMINGS = " + json.dumps(timings, indent=1, ensure_ascii=False) + ";\n")
 write_atomic(tk, json.dumps(takes, indent=1))

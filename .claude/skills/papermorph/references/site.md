@@ -92,11 +92,19 @@ cp -R "$SK"/lib/. "$BOOK_SITE/lib/"
 cp -R "$DK/lib/fonts.css" "$DK/lib/fonts" "$BOOK_SITE/lib/"
 cp "$SK/chapter.html" "$BOOK_SITE/ch01/index.html"
 cp "$SK/narration.en.json" "content/$BOOK_ID/ch01/"
+echo 'window.ART = {};' > "$BOOK_SITE/img/art.js"
 uv run --with edge-tts python "$SKILL/scripts/tts.py" "content/$BOOK_ID/ch01/narration.en.json" "$BOOK_SITE/ch01/audio/en"
 uv run --with numpy python "$SKILL/scripts/sfx.py" "$BOOK_SITE/ch01/audio/sfx" whoosh bang tick thud
 ```
 
-Open `ch01/` to check the folder works: the kit's sample beat plays its line over `img/hook-picture.webp`, so until that picture exists the browser draws a broken image behind its words and the console shows one 404 (and `shot.py`, which stops on any page error, takes no screenshots). The music line in `chapter.html` is commented out until the episode has its track (`audio/bgm/ep1.mp3`). Then the script replaces the sample narration ([shorts.md](shorts.md#the-order-of-work)). Until the series has a page, the player's home button leads nowhere; a series of shorts can also live on its long film's series page (*Madness and Civilization* lists its shorts at `/madness/#shorts`, and the host's `_redirects` sends `/madness-shorts/` there).
+Open `ch01/` to check the folder works: the kit's sample beat plays its line over `img/hook-picture.webp`, so until that picture exists the browser draws a broken image behind its words and the console shows one 404 (and `shot.py`, which stops on any page error, takes no screenshots). The music line in `chapter.html` is commented out until the episode has its track (`audio/bgm/ep1.mp3`), and so are the map kit's lines. Then the script replaces the sample narration ([shorts.md](shorts.md#the-order-of-work)). Until the series has a page, the player's home button leads nowhere; a series of shorts can also live on its long film's series page (*Madness and Civilization* lists its shorts at `/madness/#shorts`, and the host's `_redirects` sends `/madness-shorts/` there).
+
+A series with a map adds the kit and its data (the regions, places and detail its films show: [documentary.md](documentary.md#maps)); a documentary does the same:
+
+```sh
+cp "$SKILL"/assets/templates/maps/lib/*.js "$BOOK_SITE/lib/"
+uv run --with pillow python3 "$SKILL/scripts/geo.py" "$BOOK_SITE/img" --globe "$BOOK_SITE/lib"   # the globe too; without --globe, plain python3
+```
 
 ### Every book
 

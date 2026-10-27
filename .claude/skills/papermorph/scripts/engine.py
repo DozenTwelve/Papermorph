@@ -20,7 +20,7 @@ with lib/mathjax.js keeps it in step like the rest.
 import argparse, filecmp, io, shutil, sys, tarfile, tempfile, urllib.request
 from pathlib import Path
 
-DEFAULT = 'DozenTwelve/Papermorph@engine-v2.6'   # follows the latest compatible release
+DEFAULT = 'DozenTwelve/Papermorph@engine-v2.7'   # follows the latest compatible release
 OWN = 'book.css'
 LATEX = {'vendor/mathjax/tex-svg-full.js': 'mathjax.js', 'vendor/mathjax/LICENSE': 'mathjax-LICENSE.txt'}
 
