@@ -9,6 +9,7 @@
 
 Run it from the folder that holds site/, books/, content/ and tools/ (or pass --root). It refuses a book that
 already has a site/<book>/ folder, so it never overwrites work; resume an existing book from its own files.
+When a step fails (engine.py without network or a local engine/), the new site/<book>/ is removed, so a rerun works.
 The engine comes from engine.py (the repository's engine/ when at hand, else the latest compatible release).
 It copies and creates files only; the voice, effects and baking steps it prints come next.
 """
@@ -45,11 +46,19 @@ def main():
         sys.exit(f'{site} exists: resume from its own files, or choose another slug')
     if a.maps and a.kind not in ('documentary', 'shorts'):
         sys.exit('--maps is for documentaries and shorts')
+    try:
+        start(a, root, ch, site, work, content)
+    except BaseException:
+        shutil.rmtree(site, ignore_errors=True)   # a half-made site/<book>/ would block the rerun
+        raise
 
+
+def start(a, root, ch, site, work, content):
     for d in (site / 'lib', site / 'img', site / ch, content, root / 'tools' / a.book):
         d.mkdir(parents=True, exist_ok=True)
     # engine.py first: it refuses a lib/ that already holds files but no engine
-    subprocess.run([sys.executable, str(HERE / 'engine.py'), str(site)], check=True)
+    if subprocess.run([sys.executable, str(HERE / 'engine.py'), str(site)]).returncode:
+        sys.exit(f'engine.py failed; {site} removed, rerun once the engine is reachable')
     narration = content / f'narration.{a.lang}.json'
 
     if a.kind == 'lesson':

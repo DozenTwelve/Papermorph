@@ -9,6 +9,6 @@
 
 Source: `https://registry.npmjs.org/mathjax/-/mathjax-3.2.2.tgz`, also `https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg-full.js`. The repository's `.gitattributes` keeps this folder byte-exact (`-text`), so the checksums hold on every OS.
 
-`engine.py <book> --latex` copies `tex-svg-full.js` to the book's `lib/mathjax.js` and `LICENSE` to `lib/mathjax-LICENSE.txt` ([site.md](../../../.claude/skills/papermorph/references/site.md#start-a-book-folder)); its chapters load `../lib/mathjax.js` right after `engine.js`, which sets the MathJax configuration.
+`engine.py <book> --latex` copies `tex-svg-full.js` to the book's `lib/mathjax.js` and `LICENSE` to `lib/mathjax-LICENSE.txt` ([lessons.md](../../../.claude/skills/papermorph/references/lessons/lessons.md#latex)); its chapters load `../lib/mathjax.js` right after `engine.js`, which sets the MathJax configuration.
 
 To update, replace both files from a newer 3.x release, update the version and checksums here, and run `engine/check_latex.py`. MathJax 4 splits extensions and fonts into separate files and needs a different setup.
