@@ -12,14 +12,16 @@ Errors (exit status 1):
   math      the chapter uses a maths helper from lib/math.js but does not load it after engine.js
   beat      a beat id has no entry in audio/<lang>/timings.js or no MP3
   mark      m('name') is not a mark of any beat
-  stale     the narration's text or [[marks]] differ from timings.js: run tts.py again
+  stale     the narration's text differs from timings.js, or a narration [[mark]] is missing there: run tts.py again
   style     style.json is not valid JSON or lacks schema, tier, book, words, look or voice
 Warnings: a beat's m('name') not among that beat's own marks (beats built by shared helpers can mislead this);
-  no beats recognised in a chapter; no narration file to check against.
+  a mark in timings.js that the narration lacks (added by hand: the next tts.py or eleven.py run drops it, so a
+  page-only time belongs in the page); no beats recognised in a chapter; no narration file to check against.
 --content defaults to content/<book> (content/ when that is missing and content/chNN exists: the first book's legacy
-layout), --brief to books/<book>. ElevenLabs audio tags such as [whispers] are not counted as narration text.
+layout), --brief to books/<book>. Both folders are git-ignored, so in a git worktree that lacks them they are taken
+from the main checkout (the worktree's git common dir), with a note. ElevenLabs audio tags such as [whispers] are not counted as narration text.
 """
-import argparse, json, re, sys
+import argparse, json, re, subprocess, sys
 from pathlib import Path
 
 DECL = re.compile(r'(?<![\w$.])(?:async\s+)?(function\*?|const|let|var|class)\s+([A-Za-z_$][\w$]*)')
@@ -198,8 +200,12 @@ def lint_chapter(ch, content, out):
             if b not in T:
                 err('stale', f'narration beat {b} has no timings')
                 continue
-            if set(MARK.findall(said)) != set(T[b].get('marks', {})):
-                err('stale', f'beat {b}: narration marks differ from timings.js')
+            said_marks, timed = set(MARK.findall(said)), set(T[b].get('marks', {}))
+            if said_marks - timed:
+                err('stale', f"beat {b}: narration marks {', '.join(sorted(said_marks - timed))} are not in timings.js")
+            if timed - said_marks:
+                warn('mark', f"beat {b}: marks {', '.join(sorted(timed - said_marks))} are in timings.js only (added by hand? "
+                             "the next voice run drops them: put a page-only time in the page)")
             cues = ' '.join(c[1] for c in T[b].get('cues', []))
             if cues and words(text) != words(cues):
                 err('stale', f'beat {b}: narration text differs from the generated audio')
@@ -220,6 +226,17 @@ def lint_style(brief, out):
         out.append(('E', 'style', f'style.json lacks {", ".join(missing)}'))
 
 
+def main_checkout(root):
+    """The main checkout when root is a git worktree (its git common dir's parent), else None."""
+    try:
+        d = subprocess.run(['git', '-C', str(root), 'rev-parse', '--path-format=absolute', '--git-common-dir'],
+                           capture_output=True, text=True, check=True).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    m = Path(d).parent
+    return m if m.resolve() != root.resolve() else None
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('book', type=Path, help='the book folder in site/')
@@ -230,12 +247,19 @@ def main():
     root, slug = a.book.resolve().parent.parent, a.book.resolve().name
     legacy = not (root / 'content' / slug).is_dir() and any((root / 'content').glob('ch[0-9]*'))   # the first book's content/chNN
     content = a.content or root / 'content' / ('' if legacy else slug)
+    brief = a.brief or root / 'books' / slug
+    main_root = main_checkout(root) if not (a.content and a.brief) else None
+    for name, d in (('content', content), ('books', brief)):
+        if not d.is_dir() and main_root and (main_root / name / slug).is_dir():   # git-ignored, so absent in a worktree
+            d = main_root / name / slug
+            print(f'note: {name}/{slug} is not in this worktree: using the main checkout\'s {d}')
+            content, brief = (d, brief) if name == 'content' else (content, d)
     chs = [a.book / c for c in a.chapters] if a.chapters else sorted(a.book.glob('ch[0-9]*'))
     out = []
     for ch in chs:
         if (ch / 'index.html').exists():
             lint_chapter(ch, content, out)
-    lint_style(a.brief or root / 'books' / slug, out)
+    lint_style(brief, out)
     for level, kind, msg in out:
         print(f'{"error" if level == "E" else "warn "} {kind:6} {msg}')
     n = sum(level == 'E' for level, _, _ in out)
