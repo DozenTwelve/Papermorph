@@ -85,40 +85,12 @@ function clockFace(g, x, y, r) {
   return { c, set };
 }
 
-// the whole world flat (equirectangular), drawn once: every continent at a glance, Antarctica as a band along the
-// bottom (geo-lite leaves it out). Returns the lon/lat -> px function and the Antarctica shape.
-const FW = { x0: 25, y0: 520, k: 850 / 360 };
-const fxy = ([lon, lat]) => [FW.x0 + (lon + 180) * FW.k, FW.y0 + (85 - lat) * FW.k];
-function flatWorld(g) {
-  const fo = mk('foreignObject', { x: 0, y: 0, width: W, height: H }, g);
-  const cv = document.createElement('canvas'); cv.width = W; cv.height = H; cv.style.cssText = `width:${W}px;height:${H}px;display:block`;
-  fo.appendChild(cv);
-  const ctx = cv.getContext('2d');
-  ctx.fillStyle = MAPSEA; ctx.fillRect(FW.x0, FW.y0, 360 * FW.k, 175 * FW.k);
-  ctx.beginPath();
-  for (const rs of Object.values(GEO_LITE.lod[0])) for (const r of rs) {
-    let x = 0, y = 0, px = null;
-    for (let i = 0; i < r.length; i += 2) {
-      x += r[i]; y += r[i + 1];
-      const [X, Y] = fxy([x / 100, y / 100]);
-      if (px === null) ctx.moveTo(X, Y);
-      else if (Math.abs(X - px) > 400) ctx.moveTo(X, Y);   // a ring crossing the date line: jump, do not streak
-      else ctx.lineTo(X, Y);
-      px = X;
-    }
-    ctx.closePath();
-  }
-  ctx.fillStyle = MAPLAND; ctx.fill('evenodd'); ctx.strokeStyle = MAPLINE; ctx.lineWidth = .8; ctx.stroke();
-  // Antarctica: a coast near 66-72 S with the peninsula reaching towards South America
-  const ant = [];
-  for (let lon = -180; lon <= 180; lon += 6) {
-    let lat = -70 + 2.5 * Math.sin(lon * DEG * 3) + 1.5 * Math.cos(lon * DEG * 7);
-    if (lon > -72 && lon < -54) lat = -63 - 3 * Math.abs(lon + 62) / 9;
-    ant.push(fxy([lon, lat]));
-  }
-  const [, yb] = fxy([0, -90]);
-  const d = `M${ant.map(([x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`).join('L')}L${ant[ant.length - 1][0]} ${yb}L${ant[0][0]} ${yb}Z`;
-  return path(g, d, { fill: MAPLAND, stroke: MAPLINE, 'stroke-width': .8 });
+// Antarctica's coast (geo-lite leaves the continent out): near 66-72 S, the peninsula reaching towards South America
+const ANT = [];
+for (let lon = -180; lon < 180; lon += 6) {
+  let lat = -70 + 2.5 * Math.sin(lon * DEG * 3) + 1.5 * Math.cos(lon * DEG * 7);
+  if (lon > -72 && lon < -54) lat = -63 - 3 * Math.abs(lon + 62) / 9;
+  ANT.push([lon, lat]);
 }
 
 // a paper map that holds still: drawn once when the beat is built (paperMap's on: [0, 0]), so Firefox pays nothing per
@@ -382,44 +354,53 @@ const BEATS = [
     photo(ps, 'ep1-train', tr - .1, tr + 1.2, { s0: 1.0, s1: 1.08, dx: -30 });
   }],
 
-  // 8. Locked; but the virus has left; every continent but one
+  // 8. Locked; but the virus has already left: the paper globe pulls out of Wuhan and turns to each continent as its
+  // first confirmed case lands (Wikipedia), arcs out of Wuhan; then it tilts to Antarctica, which stays clear
   ['gone', 'Already gone', (m, D) => {
     const p = panel(0);
-    const bt = m('but'), fb = m('feb'), ev = m('every'), bo = m('butone');
+    const bt = m('but'), lf = m('left'), fb = m('feb'), ev = m('every'), bo = m('butone');
     let s = shot(p, 0, bt, { whip: true });
     found(s, 'wuhan-bridge-empty', 'Wuhan, 29 Jan 2020 · 汮汐, CC BY-SA 4.0', 0, bt + .3, { s0: 1.1, s1: 1.2, dx: -40, dim: .15 });
     stamp(s, 'LOCKED DOWN', XC, 1150, .05, { size: 110, colour: LIGHT, r: -7 });
-    // the map pulls out: it has already reached other provinces
-    s = shot(p, bt, fb, { bg: NIGHT, whip: true });
-    const view = t => ({ lon: WUHAN[0] - 2, lat: WUHAN[1] + 2, H: .3 * (.75 / .3) ** smooth(ramp01(t, bt, fb + .3)) });
+    s = shot(p, bt, undefined, { bg: NIGHT, whip: true });
+    // first confirmed case per continent (Wikipedia): [chip, place, country lit, landing time]
+    const tA = lf + .15, step = (ev + .45 - tA) / 5;
+    const F = [['Asia · Dec 2019', WUHAN, 'CHN'], ['North America · 20 Jan', CITIES.Seattle, 'USA'], ['Europe · 24 Jan', [-.58, 44.84], 'FRA'],
+      ['Oceania · 25 Jan', [144.96, -37.81], 'AUS'], ['Africa · 14 Feb', CITIES.Cairo, 'EGY'], ['South America · 26 Feb', CITIES['Sao Paulo'], 'BRA']]
+      .map((f, i) => [...f, tA + i * step]);
+    // the camera: out of Wuhan, then to each continent as it lands, then down to the South Pole
+    const K = [[bt, WUHAN[0] - 2, WUHAN[1] + 2, .3], [tA, 108, 28, .78], [F[1][3], -135, 40, .8], [F[2][3], 8, 40, .8],
+      [F[3][3], 138, -24, .8], [F[4][3], 28, 14, .8], [F[5][3], -46, -14, .8], [bo + .15, 10, -74, .8], [D + 2, 30, -74, .82]];
+    const view = t => {
+      let i = 0; while (i < K.length - 2 && t > K[i + 1][0]) i++;
+      const [t0, l0, f0, h0] = K[i], [t1, l1, f1, h1] = K[i + 1], q = smooth(ramp01(t, t0, t1));
+      const dl = ((l1 - l0 + 540) % 360) - 180;   // the short way round
+      return { lon: l0 + dl * q, lat: f0 + (f1 - f0) * q, H: h0 * (h1 / h0) ** q, dy: -60 };
+    };
     const dests = ['Beijing', 'Shanghai', 'Guangzhou', 'Chongqing', 'Chengdu', 'Harbin', 'Kunming', 'Xian', 'Hangzhou', 'Shenzhen'];
-    paperMap(s, D, view, { dots: [[...WUHAN, -1, 9]], routes: dests.map((n, i) => [WUHAN, CITIES[n], bt + .25 + i * .1, .5]), cities: [['Wuhan', -1, 'l']], on: [bt - .1, fb + .4] });
-    label(s, 'Already left', XC, 260, m('left'), { size: 100, fill: DARK, colour: LIGHT });
-    // the whole world: the first case on each continent, in order (Wikipedia, COVID-19 pandemic)
-    s = shot(p, fb, undefined, { bg: NIGHT, swipe: true });
-    const ant = flatWorld(s);
-    const firsts = [['Asia', WUHAN, 'Dec'], ['North America', CITIES.Seattle, '13 Jan'], ['Europe', [-.58, 44.84], '24 Jan'], ['Oceania', [144.96, -37.81], '25 Jan'],
-      ['Africa', CITIES.Cairo, '14 Feb'], ['South America', CITIES['Sao Paulo'], '26 Feb']];
-    const step = (ev - fb - .2) / (firsts.length - 1);
-    firsts.forEach(([name, ll, dt], i) => {
-      const t0 = fb + .15 + i * step, [x, y] = fxy(ll), [ax, ay] = fxy(WUHAN);
-      if (i) {
-        const c = path(s, `M${ax} ${ay}Q${(ax + x) / 2} ${Math.min(ay, y) - 90} ${x} ${y}`, { stroke: RED, 'stroke-width': 3, opacity: .8 }, { d: 0 });
-        draw(c, t0 - .3, .3, lin);
-      }
-      const d = mk('circle', { cx: x, cy: y, r: 10, fill: RED }, G(s, {})), g = d.parentNode;
-      put(g, { o: 0 }); tw(g, { o: 1 }, t0, .1, lin);
-      const rg = mk('circle', { cx: x, cy: y, r: 10, fill: 'none', stroke: RED, 'stroke-width': 3 }, g);
-      prog(q => { rg.setAttribute('r', 10 + 40 * q); rg.setAttribute('opacity', 1 - q); }, t0, .6, out);
-      const col = i % 2, row = Math.floor(i / 2);
-      label(s, `${name} · ${dt}`, col ? 615 : 245, 1060 + row * 78, t0, { size: 36, fill: RED, colour: LIGHT });
+    const M = paperMap(s, D, view, {
+      lit: (c, t) => { const f = F.find(x => x[2] === c); return f ? .55 * ramp01(t, f[3], f[3] + .25) : 0; },
+      dots: [[...WUHAN, -1, 9]],
+      routes: [...dests.map((n, i) => [WUHAN, CITIES[n], bt + .25 + i * .08, .45]), ...F.slice(1).map(f => [WUHAN, f[1], f[3] - .45, .45])],
+    });
+    // Antarctica, drawn over the paper when it faces the camera; it stays clear
+    const ant = path(s, '', { fill: MAPLAND, stroke: LIGHT, 'stroke-width': 3, opacity: 0 });
+    clockRun(t => {
+      const v = view(t), P = ANT.map(ll => mapXY(ll, v));
+      if (P.some(q => !q)) return ant.setAttribute('opacity', 0);
+      ant.setAttribute('d', `M${P.map(([x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`).join('L')}Z`);
+      ant.setAttribute('opacity', 1);
+    }, D, { tail: true });
+    sfx('gone', bt, 'whoosh', .4);
+    const al = label(s, 'Already left', XC, 250, lf, { size: 100, fill: DARK, colour: LIGHT });
+    hide(al, fb - .1, .1, lin);
+    label(s, 'By the end of February', XC, 250, fb, { size: 72, fill: DARK, colour: LIGHT });
+    F.forEach(([name, , , t0], i) => {
+      label(s, name, i % 2 ? 615 : 245, 1062 + Math.floor(i / 2) * 76, t0, { size: 36, fill: RED, colour: LIGHT });
       sfx('gone', t0, 'tick', .6);
     });
-    word(s, 'By the end of February', XC, 280, fb, { size: 90, fill: LIGHT });
-    srcTag(s, 'Wikipedia, COVID-19 pandemic', 50, 150, fb);
-    // but one: Antarctica stays clear
-    tw(ant, { c_fill: '#ffffff' }, bo - .1, .3, lin);
-    word(s, 'But one', XC, 420, bo, { size: 110, fill: LIGHT });
+    srcTag(s, 'Wikipedia: first confirmed case per continent', 50, 150, tA);
+    label(s, 'But one', XC, 370, bo, { size: 90, fill: LIGHT, colour: DARK });
     label(s, 'Antarctica: not until December 2020', XC, 1290, bo + .3, { size: 36, fill: DARK, colour: LIGHT });
   }],
 
