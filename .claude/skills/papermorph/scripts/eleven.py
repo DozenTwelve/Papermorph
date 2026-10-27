@@ -46,8 +46,9 @@ should stay long (a turn of the film) needs its beat run without it.
 alignment, so the marks, cues and loudness come from the clip as heard. takes.json records the tempo with the take, so a
 rerun keeps a sped clip, and a changed tempo makes it again from the cached take (no new take is paid for).
 """
-import argparse, atexit, datetime, hashlib, json, pathlib, re, subprocess, sys, urllib.error, urllib.request
+import argparse, atexit, hashlib, json, pathlib, re, subprocess, sys, urllib.error, urllib.request
 from paint import key
+from ledger import append
 from tts import ABBREV, split_marks, mark_times, duration, write_atomic
 import level as lv
 
@@ -151,8 +152,7 @@ timings, spent = {}, 0
 def charge():
     """Log what was paid for, once the takes are made: a run stopped partway logs only its finished takes."""
     if a.ledger and spent:
-        led = pathlib.Path(a.ledger); led.parent.mkdir(parents=True, exist_ok=True)
-        with led.open("a", encoding="utf-8") as f: f.write(f"{datetime.date.today()}\t{a.out}\t{model}\ttts{spent}c\t{spent * PRICE:.4f}\n")
+        append(a.ledger, a.out, model, f"tts{spent}c", f"{spent * PRICE:.4f}")
 
 
 atexit.register(charge)   # at the end, or when a later step (a failed take, Whisper) stops the run

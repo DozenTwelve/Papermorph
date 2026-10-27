@@ -9,16 +9,17 @@ Reference pictures steer composition and characters (a baked set sketch makes a 
 bake_sets.py). Quality is low or medium only: high costs several times as much and has never been needed; the
 script refuses it. --bg transparent asks for a cut-out (props, characters); otherwise the model chooses.
 The key is read from ~/.config/openrouter/key or $OPENROUTER_API_KEY. OpenRouter refuses image requests while the
-account balance is below $1.00, so top up before a batch.
+account balance is below $1.00, so top up before a batch; a refusal for credit prints the balance left. Voice
+(eleven.py) spends from the same balance: when several runs share it, make the pictures first.
 
-Each call prints the cost OpenRouter reports and appends one line to the ledger (date, file, model, quality, cost, tab
-separated; the ledger and its folder are created). Test the cheapest quality first and total the ledger before and
+Each call prints the cost OpenRouter reports and appends one line to the ledger (date, chapter, file, model, quality,
+cost, tab separated, see ledger.py; the ledger and its folder are created). Test the cheapest quality first and total the ledger before and
 after a batch, so the spend is known. An existing OUT is never replaced (it may be an approved, paid picture) unless
 --force is given.
 """
-import argparse, base64, datetime, json, mimetypes, os, pathlib, sys, urllib.request, urllib.error
+import argparse, base64, json, mimetypes, os, pathlib, sys, urllib.request, urllib.error
 
-from ledger import print_total
+from ledger import append, print_total
 
 total = print_total
 
@@ -28,6 +29,16 @@ def key():
     if not k:
         raise SystemExit("no key: put it in ~/.config/openrouter/key or set OPENROUTER_API_KEY")
     return k
+
+
+def balance(k):
+    """The account's credit left in USD, or None when OpenRouter does not say."""
+    try:
+        d = json.load(urllib.request.urlopen(urllib.request.Request("https://openrouter.ai/api/v1/credits",
+                                                                    headers={"Authorization": f"Bearer {k}"}), timeout=30))["data"]
+        return d["total_credits"] - d["total_usage"]
+    except Exception:
+        return None
 
 
 def main():
@@ -59,13 +70,16 @@ def main():
         r = json.load(urllib.request.urlopen(req, timeout=600))
     except urllib.error.HTTPError as e:
         err = e.read().decode(errors="replace").replace(k, "***")[:500]  # redact the whole body, then trim
+        if e.code == 402 or "credit" in err.lower() or "balance" in err.lower():
+            left = balance(k)
+            err += (f"\nOpenRouter refuses image requests while the balance is under $1.00 (left: "
+                    f"{'unknown' if left is None else f'${left:.2f}'}). Top up at https://openrouter.ai/settings/credits; "
+                    "when several runs share the balance, make the pictures before the voice (eleven.py spends from it too).")
         raise SystemExit(f"{e.code} {err}")
     usage = r.get("usage") or {}
     cost = usage.get("cost", 0) or 0
     print(a.out, f"cost {cost} USD", json.dumps(usage))
-    led = pathlib.Path(a.ledger); led.parent.mkdir(parents=True, exist_ok=True)
-    with led.open("a", encoding="utf-8") as f:   # logged first: the call is paid for even if no picture came back
-        f.write(f"{datetime.date.today()}\t{a.out}\t{a.model}\t{a.q}\t{cost}\n")
+    append(a.ledger, a.out, a.model, a.q, cost)   # logged first: the call is paid for even if no picture came back
     try:
         png = base64.b64decode(r["data"][0]["b64_json"])
     except (KeyError, IndexError, TypeError):

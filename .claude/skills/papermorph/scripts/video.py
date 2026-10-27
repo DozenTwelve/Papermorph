@@ -11,11 +11,12 @@ Kling 3.0 std, 5 s, cost about $0.42 and kept an engraving's style; Veo 3.1 lite
 the script polls every 20 s for up to 15 minutes. A job that ends other than completed stops the script; a timeout or a
 lost connection prints the job id to --resume. The key is read from ~/.config/openrouter/key or $OPENROUTER_API_KEY.
 
-Prints the cost OpenRouter reports and appends a row to the ledger (date, file, model, "video<N>s", cost), the same
+Prints the cost OpenRouter reports and appends a row to the ledger (date, chapter, file, model, "video<N>s", cost), the same
 ledger paint.py writes, so `python3 paint.py --total LEDGER` sums both.
 """
-import argparse, base64, datetime, json, mimetypes, pathlib, sys, time, urllib.error, urllib.request
+import argparse, base64, json, mimetypes, pathlib, sys, time, urllib.error, urllib.request
 from paint import key
+from ledger import append
 
 ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
 ap.add_argument("out"); ap.add_argument("frame"); ap.add_argument("prompt")
@@ -56,6 +57,5 @@ if s["status"] != "completed": raise SystemExit(f"{s['status']}: {s.get('error')
 out = pathlib.Path(a.out); out.parent.mkdir(parents=True, exist_ok=True)
 out.write_bytes(call(f"https://openrouter.ai/api/v1/videos/{jid}/content?index=0").read())
 cost = (s.get("usage") or {}).get("cost", 0) or 0
-led = pathlib.Path(a.ledger); led.parent.mkdir(parents=True, exist_ok=True)
-with led.open("a", encoding="utf-8") as f: f.write(f"{datetime.date.today()}\t{a.out}\t{a.model}\tvideo{a.duration}s\t{cost}\n")
+append(a.ledger, a.out, a.model, f"video{a.duration}s", cost)
 print(a.out, f"cost {cost} USD")
