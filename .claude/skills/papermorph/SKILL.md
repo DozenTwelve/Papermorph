@@ -58,7 +58,7 @@ Needs: `uv`, `ffmpeg`/`ffprobe`, Edge TTS network access (or Kokoro, local), git
 
 ## Scripts
 
-All in `SKILL/scripts/`; each prints its usage with `--help`, run with the `uv run --with …` its docstring names (its first lines; without its packages even `--help` stops on the import). Packages: playwright for every script that opens a page, pillow for the ones that write pictures, numpy for strip, export, `music.py gaps`, prep, frames, sfx and eleven, faster-whisper for eleven, pymupdf for outline and split_pages, scikit-image for trace, edge-tts or kokoro for tts; the rest need only Python and ffmpeg.
+All in `SKILL/scripts/`; each prints its usage with `--help` when run with the `uv run --with …` its docstring's first lines name (without its packages even `--help` stops on the import).
 
 | For | Scripts |
 |---|---|
