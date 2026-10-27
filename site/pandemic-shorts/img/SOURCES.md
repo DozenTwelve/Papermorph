@@ -63,3 +63,14 @@ The code in this repository is MIT. The pictures and data here keep their own li
 |---|---|---|---|
 | `ch04-vax-arm.webp`, `ch04-vax-vials.webp`, `ch04-lab.webp`, `ch04-cargo.webp`, `ch04-india.webp` | Generated with an image model (gpt-image via OpenRouter, low quality); no real people, no faces | AI illustration | Tagged on screen |
 | India's weekly cases (in `ch04/index.html`) | New cases a day, 7-day average, [Our World in Data](https://ourworldindata.org/coronavirus) | Our World in Data | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
+
+### ch05 · The Count
+
+| File | Source | Author | Licence |
+|---|---|---|---|
+| `ep5-graves.webp` | Generated with an image model (gpt-image via OpenRouter, low quality): fresh graves from above | AI illustration | Tagged on screen; MIT, like the code |
+| `ep5-bed.webp` | Generated with an image model (gpt-image via OpenRouter, low quality): an empty hospital bed | AI illustration | Tagged on screen; MIT, like the code |
+| `ep5-vial.webp` | Generated with an image model (gpt-image via OpenRouter, low quality): a vaccine dose drawn from a vial | AI illustration | Tagged on screen; MIT, like the code |
+| numbers in ch05 | 7,115,706 confirmed deaths (as of 18 Sep 2026); 18.5–35.2 million estimated deaths (The Economist, excess deaths to 25 Jan 2024); infection fatality ratio 0.002 % at 10, 15 % at 85; 14.4–19.8 million deaths prevented, 8 Dec 2020 – 8 Dec 2021 (June 2022 study) | Wikipedia, "COVID-19 pandemic" | CC BY-SA 4.0 (facts) |
+| WHO quote in ch05 | [Director-General's opening remarks, 5 May 2023](https://www.who.int/news-room/speeches/item/who-director-general-s-opening-remarks-at-the-media-briefing---5-may-2023) | WHO | Quoted |
+| `quiet.js` in ch05 | countries reporting new cases in the four weeks before each point, April–September 2023 | Our World in Data | CC BY 4.0 |
