@@ -43,13 +43,15 @@ function zone(g, M, rings, D, t0, { fill = 'url(#ep2hatch)', stroke = MAPINK, sw
 }
 // a circle of km radius around a point, as a ring of lon/lat
 const circle = ([lon, lat], km) => [...Array(40)].map((_, i) => { const a = i / 40 * 2 * Math.PI; return [lon + km / 111 / Math.cos(lat * DEG) * Math.cos(a), lat + km / 111 * Math.sin(a)]; });
-// a flight from a to b on the map: a dashed ink arc drawn from t0 over dur with a plane at its head; cut at tCut
+// a flight from a to b on the map: a dashed ink arc drawn from t0 over dur with a plane at its head; at tCut the line
+// stops where the plane is, the plane goes and an ink cross marks the cut
 const PLANE = 'M0 -5L22 -5L34 -18L40 -18L32 -5L44 -5L50 -12L54 -12L50 0L54 12L50 12L44 5L32 5L40 18L34 18L22 5L0 5Z';
 function flight(g, M, a, b, t0, dur, D, tCut) {
   const e = G(g, {}), line = mk('path', { fill: 'none', stroke: MAPINK, 'stroke-width': 4, 'stroke-dasharray': '12 9', 'stroke-linecap': 'round' }, e);
   const pl = G(e, {}); mk('path', { d: PLANE, fill: MAPINK, transform: 'translate(-27 0)' }, pl);
+  const X = G(e, { o: 0 }); mk('path', { d: 'M-22 -22L22 22M22 -22L-22 22', stroke: MAPINK, 'stroke-width': 9, 'stroke-linecap': 'round' }, X);
   clockRun(t => {
-    const A = M.xy(a, t), B = M.xy(b, t), q = smooth(ramp01(t, t0, t0 + dur));
+    const A = M.xy(a, t), B = M.xy(b, t), q = smooth(ramp01(Math.min(t, tCut), t0, t0 + dur));
     if (!A || !B) return;
     const lift = Math.hypot(B[0] - A[0], B[1] - A[1]) * .3, mx = (A[0] + B[0]) / 2, my = (A[1] + B[1]) / 2 - lift;
     const at = u => [(1 - u) ** 2 * A[0] + 2 * u * (1 - u) * mx + u * u * B[0], (1 - u) ** 2 * A[1] + 2 * u * (1 - u) * my + u * u * B[1]];
@@ -57,13 +59,31 @@ function flight(g, M, a, b, t0, dur, D, tCut) {
     for (let i = 1; i <= 40 * q; i++) { const p = at(i / 40); d += `L${p[0].toFixed(1)} ${p[1].toFixed(1)}`; }
     line.setAttribute('d', d);
     const h = at(q), h2 = at(Math.min(1, q + .01));
-    put(pl, { x: h[0], y: h[1], r: Math.atan2(h2[1] - h[1], h2[0] - h[0]) * 180 / Math.PI, o: t < tCut && q < 1 ? 1 : 0 });
-    line.setAttribute('opacity', t < tCut ? 1 : .35);
+    put(pl, { x: h[0], y: h[1], r: Math.atan2(h2[1] - h[1], h2[0] - h[0]) * 180 / Math.PI, o: 1 - ramp01(t, tCut, tCut + .25) });
+    put(X, { x: h[0], y: h[1], o: ramp01(t, tCut, tCut + .1), s: 1.6 - .6 * ramp01(t, tCut, tCut + .15) });
+    line.setAttribute('opacity', 1 - .6 * ramp01(t, tCut + .6, tCut + 1));
   }, D, { tail: true });
   return e;
 }
 // case dots scattered around a point: n of them, popping in from t0 over dur
 const cluster = ([lon, lat], km, n, t0, dur, seed, r = 6) => { const R = seeded(seed); return [...Array(n)].map((_, i) => { const a = R() * 2 * Math.PI, d = km * Math.sqrt(R()) / 111; return [lon + d * Math.cos(a) / Math.cos(lat * DEG), lat + d * Math.sin(a), t0 + dur * i / n, r]; }); };
+// a city on the map, set larger than paperMap's labels (a phone reads them), with a paper halo; dy moves the name off
+// a cluster of dots
+function place(g, M, name, t0, D, { side = 'r', dy = 0, size = 42 } = {}) {
+  const ll = CITIES[name], e = G(g, { o: 0 }), str = name.toUpperCase(), w = inkW(str, size);
+  const dot = mk('circle', { r: 7, fill: MAPINK }, e);
+  const tx = T(e, str, { size, fill: MAPINK, font: SANS, weight: 600 });
+  tx.setAttribute('stroke', MAPLAND); tx.setAttribute('stroke-width', 9); tx.setAttribute('paint-order', 'stroke'); tx.setAttribute('stroke-linejoin', 'round');
+  clockRun(t => {
+    const P = M.xy(ll, t);
+    if (!P || P[0] < 0 || P[0] > W || P[1] < 140 || P[1] > 1290) return put(e, { o: 0 });
+    dot.setAttribute('cx', P[0]); dot.setAttribute('cy', P[1]);
+    const x = Math.max(50, Math.min(810 - w, side === 'l' ? P[0] - 16 - w : P[0] + 16));
+    tx.setAttribute('x', x); tx.setAttribute('y', Math.max(130 + size, Math.min(1290, P[1] + size * .35 + dy)));
+    put(e, { o: ramp01(t, t0, t0 + .3) });
+  }, D, { tail: true });
+  return e;
+}
 // a date in the corner of a map shot
 const dateChip = (s, str, t0) => label(s, str, CX - 20, 250, t0, { size: 46, fill: MAPINK, colour: MAPLAND });
 
@@ -87,11 +107,11 @@ const BEATS = [
     const M = paperMap(s, D, view, {
       lit: (c, t) => c === 'ITA' ? .5 * ramp01(t, still, still + .4) : 0,
       dots: [...cluster(CODOGNO, 90, 18, still + .1, .9, 3, 7), ...cluster([12.3, 45.4], 60, 6, still + .4, .6, 5, 6)],
-      cities: [['Beijing', 0, 'l'], ['Rome', 0, 'l']],
     });
-    flight(s, M, BEIJING, ROME, -.6, 1.9, D, cn);
+    place(s, M, 'Beijing', 0, D, { side: 'l' }); place(s, M, 'Rome', 0, D);
+    flight(s, M, BEIJING, ROME, -.6, 3.6, D, cn);   // cut on "China", half-way: it never lands
     hide(label(s, 'Flights from China', CX - 20, 250, 0, { size: 60, fill: MAPINK, colour: MAPLAND }), still - .1, .2);
-    const st = stamp(s, 'FLIGHTS STOPPED', CX - 20, 780, cn, { size: 84, colour: MAPINK, r: -7 });
+    const st = stamp(s, 'FLIGHTS STOPPED', CX - 20, 920, cn, { size: 84, colour: MAPINK, r: -7 });
     hide(st, still - .1, .2);
     sfx('hook', still, 'whoosh', .5);
     word(s, "Europe's first", CX - 20, 1120, m('first'), { size: 120, fill: LIGHT, stroke: DARK });
@@ -111,8 +131,10 @@ const BEATS = [
     const p = panel(0);
     const sm = m('same'), cs = m('cases');
     let s = cut(p, 0, sm, { bg: NIGHT, whip: true });
-    const view = t => lerpV({ lon: 12.4, lat: 42.6, H: .1 }, { lon: 12.5, lat: 42.0, H: .07 }, soft(ramp01(t, 0, sm + .3)));
-    paperMap(s, sm + .3, view, { dots: [[ROME[0] + .35, ROME[1] + .2, cs + .1, 8], [ROME[0] - .3, ROME[1] - .25, cs + .35, 8]], cities: [['Rome', m('rome'), 'l']], on: [0, sm + .3] });
+    const view = t => lerpV(lerpV({ lon: 12.4, lat: 42.6, H: .1 }, { lon: 12.5, lat: 42.0, H: .07 }, soft(ramp01(t, 0, sm + .3))),
+      { lon: ROME[0], lat: ROME[1], H: .052 }, soft(ramp01(t, m('rome') - .3, sm + .3)));   // into the two dots on "Rome"
+    const M = paperMap(s, sm + .3, view, { dots: [[ROME[0] + .35, ROME[1] + .2, cs + .1, 8], [ROME[0] - .3, ROME[1] - .25, cs + .35, 8]], on: [0, sm + .3] });
+    place(s, M, 'Rome', m('rome'), sm + .3, { side: 'l' });
     dateChip(s, '31 January 2020', 0);
     sfx('rome', cs + .1, 'tick', 1); sfx('rome', cs + .35, 'tick', 1);
     word(s, 'First two cases', CX - 20, 1120, cs, { size: 110, fill: LIGHT, stroke: DARK });
@@ -132,8 +154,8 @@ const BEATS = [
     let s = cut(p, 0, tn, { bg: NIGHT });
     const LV = { lon: 9.75, lat: 45.25, H: .028 };
     const view = t => lerpV({ lon: 12.4, lat: 42.4, H: .095 }, LV, .12 * ramp01(t, 0, f21 - .1) + .88 * soft(ramp01(t, f21 - .1, f21 + 1.4)));
-    const M = paperMap(s, tn + .3, view, { dots: cluster(CODOGNO, 14, 16, m('cluster'), 1.3, 9, 6), cities: [['Codogno', m('codogno') - .1], ['Milan', f21 + 1.2]], on: [0, tn + .3] });
-    flight(s, M, BEIJING, ROME, -9, 1, tn + .3, -1);   // the cut line from the hook, faint, as Italy is seen again
+    const M = paperMap(s, tn + .3, view, { dots: cluster(CODOGNO, 14, 16, m('cluster'), 1.3, 9, 6), on: [0, tn + .3] });
+    place(s, M, 'Codogno', m('codogno') - .1, tn + .3, { dy: -70 }); place(s, M, 'Milan', f21 + 1.2, tn + .3, { side: 'l' });
     hide(word(s, "It wasn't enough", CX - 20, 250, 0, { size: 100, fill: LIGHT, stroke: DARK }), f21 - .1, .15);
     dateChip(s, '21 February 2020', f21);
     word(s, 'A cluster', CX - 20, 1200, m('cluster'), { size: 120, fill: RED, stroke: DARK });
@@ -160,7 +182,8 @@ const BEATS = [
       const v = b ? lerpV(L, { ...ITALY_V, H: .1 }, b) : lerpV(Z, L, a);
       return { ...v, H: v.H * .82 ** ramp01(t, it + 1.1, D + .6) };   // still pushing while the numbers land
     };
-    const M = paperMap(s, D, view, { dots: cluster(CODOGNO, 14, 16, -1, .1, 9, 6), cities: [['Codogno', tm], ['Milan', lb + .5]], on: [tm - .05, D + 1] });
+    const M = paperMap(s, D, view, { dots: cluster(CODOGNO, 14, 16, -1, .1, 9, 6), on: [tm - .05, D + 1] });
+    place(s, M, 'Codogno', tm, D, { dy: -50, size: 36 }); place(s, M, 'Milan', lb + .5, D, { side: 'l', size: 36 });
     const zg = G(s, {});
     hide(zone(zg, M, [circle([9.7, 45.18], 11)], D, tm + .1, { stroke: RED }), it, .4);
     hide(zone(zg, M, [LOMBARDY], D, lb), it + .5, .4);
@@ -171,8 +194,8 @@ const BEATS = [
     const box = G(s, { o: 0 });
     rect(box, 60, 940, 740, 340, { fill: DARK, opacity: .88, rx: 8 });
     show(box, sx - .15, .2);
-    counter(box, 60e6, CX - 20, 1070, sx, { size: 130, fill: LIGHT, dur: 1.1 });
-    T(box, 'PEOPLE', { x: CX - 20, y: 1135, size: 44, fill: MUTED, font: SANS, weight: 500, anchor: 'middle' }).setAttribute('letter-spacing', '.14em');
+    counter(box, 60, CX - 20, 1070, sx, { size: 130, fill: LIGHT, dur: 1.1 });   // "approximately 60 million"
+    T(box, 'MILLION PEOPLE', { x: CX - 20, y: 1135, size: 44, fill: MUTED, font: SANS, weight: 500, anchor: 'middle' }).setAttribute('letter-spacing', '.14em');
     word(box, 'First nation to lock down', CX - 20, 1235, fr, { size: 70, fill: MARK });
     srcTag(s, 'Wikipedia, COVID-19 pandemic in Italy', 50, 150, tm);
   }],
@@ -215,7 +238,7 @@ const BEATS = [
     label(s, 'Reported deaths', CX - 20, 260, sn + .05, { size: 56, fill: LIGHT, colour: DARK });
     const base = 1060, hC = 560;
     rect(s, 110, base, 640, 4, { fill: MUTED });
-    bar(s, 170, base, 220, hC, 1, MUTED, sn + .15, .5);
+    bar(s, 170, base, 220, hC, 1, '#8e2a20', sn + .15, .5);   // China's deaths, a darker red
     const it = rect(s, 470, base, 220, 0, { fill: RED });
     prog(q => { const h = hC * (.82 * q + .2 * smooth(ramp01(q, .7, 1))); it.setAttribute('y', base - h); it.setAttribute('height', h); }, sn + .4, mo + .4 - sn, lin);
     const dash = mk('path', { d: `M130 ${base - hC}H730`, stroke: LIGHT, 'stroke-width': 3, 'stroke-dasharray': '10 8', opacity: 0 }, s);
@@ -240,12 +263,21 @@ const BEATS = [
     Globe.clearMarks(); Globe.dot(...NYC);
     globeShot(s, D, view, (i, t) => ramp01(t, ny - .2, ny), null, { on: [0, tH + .5] });
     sfx('newyork', .1, 'whoosh', .7);
+    hide(srcTag(s, 'Night lights: NASA Black Marble', 50, 150, 0), tH, .2);
     const mp = G(s, { o: 0 }); show(mp, tH, .4, lin);
-    const R = seeded(4), early = [...Array(14)].map((_, i) => [NYC[0] + (R() - .5) * 1.1, NYC[1] + (R() - .5) * .7, bn + .1 + i * .07, 4]);
-    paperMap(mp, D, t => ({ ...view(t), lon: view(t).lon + .3 * ramp01(t, tH, D), H: view(t).H * .7 ** ramp01(t, tH, D) }), { dots: [[...NYC, m('mar1'), 9], ...early], cities: [['New York', ny + .3, 'l']], on: [tH - .05, D + 1] });
+    // already there, on land: the Bronx, Queens, Brooklyn, Westchester, New Rochelle, Yonkers, Nassau, New Jersey
+    const LAND = [[-73.87, 40.85], [-73.8, 40.73], [-73.94, 40.66], [-73.77, 41.03], [-73.79, 40.92], [-73.89, 40.94], [-73.62, 40.74],
+      [-74.17, 40.74], [-74.07, 40.73], [-73.52, 40.79], [-74.03, 40.9], [-73.72, 41.12], [-73.85, 41.2], [-74.25, 40.85]];
+    const early = LAND.map(([lon, lat], i) => [lon, lat, bn + .1 + i * .07, 5]);
+    const M = paperMap(mp, D, t => ({ ...view(t), lon: view(t).lon + .3 * ramp01(t, tH, D), H: view(t).H * .7 ** ramp01(t, tH, D) }), { dots: [[...NYC, m('mar1'), 9], ...early], on: [tH - .05, D + 1] });
+    place(mp, M, 'New York', ny + .3, D, { side: 'l', dy: 40 });
     hide(label(s, 'Across the Atlantic', CX - 20, 250, m('atl'), { size: 52 }), m('mar1') - .1, .1);
     const d1 = dateChip(s, '1 March 2020', m('mar1'));
-    word(s, 'First case', CX - 20, 1150, m('mar1') + .1, { size: 130, fill: LIGHT, stroke: DARK });
+    const fc = word(s, 'First case', CX - 20, 1150, m('mar1') + .1, { size: 130, fill: LIGHT, stroke: DARK });
+    // the date runs back past it: the first case was not the first; struck as the chip leaves 1 March
+    const st = rect(s, CX - 20 - fc._w / 2 - 14, 1100, 0, 14, { fill: DARK, rx: 4 });
+    prog(q => st.setAttribute('width', (fc._w + 28) * q), bn, .25, out);
+    tw(fc, { o: .45 }, bn, .25);
     hide(d1, bn, .05, lin);
     const d2 = dateChip(s, 'February', bn); hide(d2, bn + .45, .05, lin);
     dateChip(s, 'January', bn + .45);
@@ -272,7 +304,8 @@ const BEATS = [
     s = cut(p, tm, undefined, { bg: NIGHT, whip: true });
     const view = () => ({ lon: 21, lat: 51, H: 1.08 });
     const EU = ['London', 'Paris', 'Milan', 'Madrid', 'Berlin'].map(n => CITIES[n]);
-    const M = paperMap(s, D, view, { dots: [[...NYC, -1, 8]], routes: EU.map((ll, i) => [ll, NYC, eu - .1 + i * .1, .7]), cities: [['New York', -1]], on: [tm - .05, D + 1] });
+    const M = paperMap(s, D, view, { dots: [[...NYC, -1, 8]], routes: EU.map((ll, i) => [ll, NYC, eu - .1 + i * .1, .7]), on: [tm - .05, D + 1] });
+    place(s, M, 'New York', -1, D, { dy: -40 });
     // Asia's arc, grey, crossed out
     const A = M.xy(CITIES.Wuhan, 0), B = M.xy(NYC, 0), mx = (A[0] + B[0]) / 2, my = Math.min(A[1], B[1]) - 330;
     const arc = mk('path', { d: `M${A[0]} ${A[1]}Q${mx} ${my} ${B[0]} ${B[1]}`, fill: 'none', stroke: '#8a919c', 'stroke-width': 5, 'stroke-dasharray': '1400', 'stroke-dashoffset': 1400 }, s);
@@ -282,7 +315,7 @@ const BEATS = [
     mk('path', { d: 'M-34 -34L34 34M34 -34L-34 34', stroke: MAPINK, 'stroke-width': 12, 'stroke-linecap': 'round' }, X);
     tw(X, { o: 1, s: 1 }, as + .45, .15, out); sfx('genes', as + .45, 'bang', .8);
     label(s, 'Not Asia', 640, A[1] + 90, as, { size: 48, fill: '#8a919c', colour: DARK });
-    word(s, 'Most cases', CX - 20, 270, tm + .1, { size: 110, fill: LIGHT });
+    word(s, 'Traced back to', CX - 20, 270, tm + .1, { size: 110, fill: LIGHT });
     word(s, 'From Europe', CX - 20, 1230, eu, { size: 140, fill: RED, stroke: DARK });
     sfx('genes', eu, 'whoosh', .6);
     srcTag(s, 'Wikipedia, COVID-19 pandemic in New York City', 50, 150, tm);
@@ -306,7 +339,7 @@ const BEATS = [
     word(s, 'For the bodies', CX - 20, 1200, m('bodies'), { size: 120, fill: LIGHT, stroke: DARK });
   }],
 
-  // 10. The end answers the hook: the door shuts, the red is already inside; next, the world stops
+  // 10. The end answers the hook: too late; the door is still shutting on a room already red; next, the world stops
   ['end', 'Too late', (m, D) => {
     const p = panel(0);
     const ins = m('inside'), nx = m('next');
@@ -320,19 +353,21 @@ const BEATS = [
     rect(s, dx - 22, dy - 22, dw + 44, dh + 22, { fill: 'none', stroke: '#5a4636', 'stroke-width': 22 });
     const door = rect(s, dx, dy, 0, dh, { fill: '#3a2c22', stroke: '#241a13', 'stroke-width': 4 });
     const knob = mk('circle', { cx: dx + dw - 40, cy: dy + dh / 2, r: 12, fill: MARK, opacity: 0 }, s);
-    prog(q => door.setAttribute('width', dw * q), .55, .9, io);
-    show(knob, 1.4, .1, lin);
-    sfx('end', 1.4, 'door', 1.2);
-    rect(s, 0, dy + dh, W, H - dy - dh, { fill: '#14161b' });   // the floor of the room we are in
-    // the red already in the room with us, spreading after the door is shut
+    prog(q => door.setAttribute('width', dw * q), .3, 1.9, io);   // slow: still shutting while the red spreads
+    show(knob, 2.2, .1, lin);
+    sfx('end', 2.15, 'door', 1.2);
+    rect(s, 0, dy + dh, W, H - dy - dh, { fill: '#14161b' });   // the floor of the room we are in: Italy, faint, in paper
+    const fv = { lon: 12.5, lat: 42, H: .22, dy: 520 };
+    mk('path', { d: ITALY.map(r => 'M' + r.map(ll => mapXY(ll, fv).map(v => v.toFixed(1)).join(' ')).join('L') + 'Z').join(''), fill: MAPLAND, opacity: .16, stroke: MAPLAND, 'stroke-opacity': .35, 'stroke-width': 2 }, s);
+    // the red already in the room: much of it there from the first frame, more spreading while the door shuts
     const R = seeded(17);
-    for (let i = 0; i < 70; i++) {
-      const x = 70 + R() * 720, y = 170 + R() * 1100, t0 = i < 12 ? 0 : 1.5 + (ins + .8 - 1.5) * Math.sqrt((i - 12) / 58);
+    for (let i = 0; i < 80; i++) {
+      const x = 70 + R() * 720, y = 170 + R() * 1100, t0 = i < 36 ? .5 * i / 36 : .6 + (ins + .8 - .6) * Math.sqrt((i - 36) / 44);
       if (x > dx - 30 && x < dx + dw + 30 && y > dy - 30 && y < dy + dh) continue;
       const d = mk('circle', { cx: x, cy: y, r: 0, fill: RED }, s), h = mk('circle', { cx: x, cy: y, r: 0, fill: RED, opacity: .25 }, s);
       prog(q => { d.setAttribute('r', Math.max(0, 9 * back(q))); h.setAttribute('r', 20 * q); }, t0, .25, lin);
     }
-    word(s, 'Shut the door', CX - 20, 260, 0, { size: 110, fill: LIGHT, stroke: DARK });
+    word(s, 'Too late', CX - 20, 260, 0, { size: 140, fill: LIGHT, stroke: DARK });
     word(s, 'Already inside', CX - 20, 1250, ins, { size: 130, fill: RED, stroke: DARK });
     sfx('end', ins, 'thud', 1.2);
     s = cut(p, nx, undefined, { bg: DARK, swipe: true });
