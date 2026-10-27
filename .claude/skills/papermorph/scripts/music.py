@@ -187,7 +187,7 @@ def gaps(a):
     loud = [i for i in range(0, len(voice) - w, hop) if 20 * np.log10(np.sqrt(np.mean(voice[i:i + w] ** 2)) + 1e-9) >= -45]
     last = (loud[-1] + w) / SR if loud else 0.0   # the end of the last word
     tail = [m for t, m in M if last + .4 <= t <= L and not math.isnan(m)]
-    if tail and L - last >= .4:
+    if tail and L - last >= .8:   # an end card, not the last word's own ring
         m = statistics.median(tail)
         print(f"ending: {L - last:.2f} s after the last word, {m:6.1f} LUFS momentary median ({m - med:+5.1f})"
               + ("  <- quiet ending: the track decays before the end (music.py cut picks its last note by loudness; or --end)" if m <= med - 8 else ""))
