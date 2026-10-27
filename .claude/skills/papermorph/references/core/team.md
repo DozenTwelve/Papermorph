@@ -4,7 +4,7 @@ A coordinator can hand each step of a chapter to a fresh subagent on the model t
 
 Why: one agent doing a whole chapter carries an ever larger context through every call, and long idle waits let that context expire and be written again; that, more than the model's price, makes a chapter expensive. Small workers that start from the files they need and finish quickly cost far less, and each step can use the cheapest model that does it well. On a physics book this cost about half as much per minute of narration as one strong agent doing everything, at the same quality.
 
-Each step runs on the model the user chose for it (`models` in `style.json`, [core/style.md](style.md#models)). The defaults are named by strength: **small** (fast and cheap), **middle**, **strong** (the most capable); where `models` is silent, use them and say which model you picked.
+Each step runs on the model the user chose for it (`models` in `style.json`), at the reasoning effort [core/style.md](style.md#models) sets: high unless the user asked for another. Pass both explicitly when you start a worker: the host's subagent tool or launcher takes them, and in Claude Code a subagent's model is `opus`, `sonnet`, `haiku` or `fable`. Where the host reports the model a worker actually got, compare it with the one asked for and tell the user when they differ. Where `models` is silent on a step, use the recommended option's model for it and say which model you picked.
 
 ## The coordinator
 
@@ -20,7 +20,7 @@ You read SKILL.md, your tier's file and this one, look at the sheets and the wor
 
 ## Before delivering
 
-Check the reports against each other (an odd claim is worth one look at the file), confirm lint and the tests pass, and deliver the chapter URL with `?review`. If the user wants the cost and runs Claude Code, it is in the subagent transcripts (`subagents/agent-<id>.jsonl` under the session's folder in `~/.claude/projects/`: usage per assistant message, each message id counted once) plus your own session's usage.
+Check the reports against each other (an odd claim is worth one look at the file), confirm lint and the tests pass, and deliver the chapter URL with `?review` and the model and effort each step ran on, so the user sees their choice was followed. If the user wants the cost and runs Claude Code, it is in the subagent transcripts (`subagents/agent-<id>.jsonl` under the session's folder in `~/.claude/projects/`: usage per assistant message, each message id counted once) plus your own session's usage.
 
 ## Workers in parallel
 
