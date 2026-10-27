@@ -1,0 +1,28 @@
+name: Checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  skill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skill docs agree with its files
+        run: python3 .github/scripts/check_skill.py
+      - name: Python scripts (pyflakes errors, no unused-import noise)
+        run: pipx run ruff check --select F,E9 --ignore F401 --output-format concise .claude/skills/papermorph/scripts .github engine
+
+  site:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Engine copies, lint, script syntax
+        run: python3 .github/scripts/check_site.py

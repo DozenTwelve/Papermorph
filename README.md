@@ -117,7 +117,7 @@ Ticked items are in the Skill today. The Skill currently goes as far as document
 
 ## Contributing
 
-Fixes to the Skill and the player are welcome. Please don't open pull requests that add a copyrighted book, its PDF, or lessons made from one.
+Fixes to the Skill and the player are welcome. Please don't open pull requests that add a copyrighted book, its PDF, or lessons made from one. Agents and people changing the repository: start with [AGENTS.md](AGENTS.md).
 
 ## Try the examples locally
 
