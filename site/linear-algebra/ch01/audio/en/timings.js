@@ -25,108 +25,110 @@ window.TIMINGS = {
   ]
  },
  "unknowns": {
-  "dur": 51.84,
+  "dur": 58.176,
   "marks": {
-   "eq": 4.128,
-   "q": 6.081,
-   "x1": 11.68,
-   "y3": 16.146,
-   "ok1": 17.708,
-   "pair1": 20.677,
-   "r2": 28.06,
-   "r3": 32.695,
-   "r4": 37.513,
-   "many": 42.643
+   "eq": 4.284,
+   "q": 6.576,
+   "x1": 12.031,
+   "y3": 16.107,
+   "ok1": 17.76,
+   "pair1": 21.159,
+   "r2": 33.542,
+   "r3": 38.411,
+   "r4": 43.464,
+   "many": 48.49
   },
   "cues": [
    [
-    0.117,
+    0.104,
     "Here's an equation with two unknowns, x and y."
    ],
    [
-    4.128,
+    4.284,
     "x plus y equals four."
    ],
    [
-    6.081,
+    6.576,
     "An unknown is just a number we haven't found yet."
    ],
    [
-    9.258,
+    9.557,
     "So, which numbers make this true?"
    ],
    [
-    11.68,
+    12.031,
     "Let's try x equals one."
    ],
    [
-    13.646,
+    13.958,
     "Then one plus y has to be four, so y must be three."
    ],
    [
-    17.708,
+    17.76,
     "One plus three is four."
    ],
    [
-    19.635,
+    20.156,
     "It works."
    ],
    [
-    20.677,
-    "So x equals one, y equals three is a solution."
+    21.159,
+    "So x equals one, y equals three is a solution: numbers that make the equation true."
    ],
    [
-    25.143,
-    "We write it as a pair: one, three."
+    28.034,
+    "We write it as a pair, one, three, always x first, then y."
    ],
    [
-    28.06,
+    33.542,
     "Try x equals two."
    ],
    [
-    29.596,
+    35.208,
     "Two plus two is four, so y is two."
    ],
    [
-    32.695,
+    38.411,
     "x equals four: four plus zero is four, so y is zero."
    ],
    [
-    37.513,
+    43.464,
     "Negative numbers are allowed too."
    ],
    [
-    39.635,
+    45.482,
     "Negative one plus five is four."
    ],
    [
-    42.643,
+    48.49,
     "One equation, and already four solutions."
    ],
    [
-    45.911,
+    51.562,
     "In fact there are endlessly many, and every one of them is a pair: an x and a y."
    ]
   ]
  },
  "points": {
-  "dur": 42.792,
+  "dur": 52.824,
   "marks": {
    "axes": 2.552,
-   "p1": 6.979,
-   "p2": 13.398,
-   "p3": 15.625,
-   "p4": 18.932,
-   "look": 22.461,
-   "line": 24.128,
-   "half": 25.99,
-   "halfp": 30.846,
-   "rule": 33.112,
-   "name": 38.906
+   "mid": 7.552,
+   "neg": 12.474,
+   "p1": 17.005,
+   "p2": 23.242,
+   "p3": 25.143,
+   "p4": 28.411,
+   "look": 32.018,
+   "line": 33.802,
+   "half": 35.807,
+   "halfp": 40.833,
+   "rule": 43.086,
+   "name": 48.737
   },
   "cues": [
    [
-    0.104,
+    0.091,
     "A pair of numbers is also a point."
    ],
    [
@@ -134,47 +136,59 @@ window.TIMINGS = {
     "Here are the x axis, going right, and the y axis, going up."
    ],
    [
-    6.979,
-    "The pair one, three means: start at the middle, go one step right, then three steps up."
+    7.552,
+    "They cross at the middle, the point zero, zero, called the origin."
    ],
    [
-    13.398,
+    12.474,
+    "Left of it, x is negative."
+   ],
+   [
+    14.974,
+    "Below it, y is negative."
+   ],
+   [
+    17.005,
+    "The pair one, three means: start at the origin, go one step right, then three steps up."
+   ],
+   [
+    23.242,
     "Two, two: two right, two up."
    ],
    [
-    15.625,
+    25.143,
     "Four, zero: four right, and no steps up."
    ],
    [
-    18.932,
+    28.411,
     "Negative one, five: one step left, five up."
    ],
    [
-    22.461,
+    32.018,
     "Now look at the four points."
    ],
    [
-    24.128,
+    33.802,
     "They sit on one straight line."
    ],
    [
-    25.99,
+    35.807,
     "And it isn't only whole numbers."
    ],
    [
-    27.786,
+    37.591,
     "One and a half plus two and a half is four, and that point is on the line too."
    ],
    [
-    33.112,
+    43.086,
     "Every point on this line is a solution."
    ],
    [
-    35.938,
+    45.833,
     "And every solution is a point on this line."
    ],
    [
-    38.906,
+    48.737,
     "So the equation x plus y equals four is this line."
    ]
   ]
@@ -549,14 +563,14 @@ window.TIMINGS = {
   ]
  },
  "flat": {
-  "dur": 24.912,
+  "dur": 24.864,
   "marks": {
-   "eq1": 1.55,
-   "zero": 2.826,
-   "h": 8.763,
-   "eq2": 12.331,
-   "v": 16.81,
-   "sum": 21.12
+   "eq1": 1.576,
+   "zero": 2.852,
+   "h": 8.555,
+   "eq2": 12.148,
+   "v": 16.862,
+   "sum": 21.198
   },
   "cues": [
    [
@@ -564,35 +578,35 @@ window.TIMINGS = {
     "What if a letter is missing?"
    ],
    [
-    1.55,
+    1.576,
     "y equals two."
    ],
    [
-    2.826,
+    2.852,
     "That's really zero x plus y equals two."
    ],
    [
-    6.003,
+    5.833,
     "x can be anything, and y must be two."
    ],
    [
-    8.763,
+    8.555,
     "So the line is flat: every point at height two."
    ],
    [
-    12.331,
-    "And x equals three is zero y plus x equals three."
+    12.148,
+    "And x equals three is really x plus zero y equals three."
    ],
    [
-    16.81,
+    16.862,
     "y can be anything, x must be three."
    ],
    [
-    19.505,
+    19.57,
     "The line stands straight up."
    ],
    [
-    21.12,
+    21.198,
     "A zero in front of a letter means that letter is free."
    ]
   ]
