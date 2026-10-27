@@ -230,7 +230,7 @@ def main():
     c.add_argument("src", type=pathlib.Path); c.add_argument("out"); c.add_argument("chapter", nargs="?", help="chNN, with --url the book")
     c.add_argument("--url", help="the book, served (http://localhost:8765/<book>/), or the chapter's URL")
     c.add_argument("--length", type=float, help="the film's length in s, instead of reading the page")
-    c.add_argument("--end", type=float, help="the recording's last note in s (default: where its trailing silence starts)")
+    c.add_argument("--end", type=float, help="the recording's last note in s (default: the last moment within 10 LU of its body)")
     c.add_argument("--shift", type=float, default=0.0, help="move the in-point by this many s (-1: the last note a second past the end)")
     c.add_argument("--rests", type=float, nargs="?", const=-40.0, metavar="DB", help="splice out rests under DB (default -40) for 0.25 s or more")
     c.add_argument("--af", default="", help="an ffmpeg filter on the cut, e.g. an EQ dip or a gentler dynaudnorm")
