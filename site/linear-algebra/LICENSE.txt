@@ -1,0 +1,13 @@
+Linear Algebra (site/linear-algebra/) — licence
+
+This book is based on MIT OpenCourseWare 18.06 Linear Algebra, Spring 2010, by Gilbert Strang
+(https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/), used under the Creative Commons
+Attribution-NonCommercial-ShareAlike 4.0 International licence
+(https://creativecommons.org/licenses/by-nc-sa/4.0/).
+
+Changes: the lectures were retold in new words for high-school readers, split into short chapters,
+with new examples, exercises, drawings, animation, interaction and narration.
+
+The book's content (the chapters' text, narration, audio, drawings and exercises) is shared under the
+same licence, CC BY-NC-SA 4.0. The engine and the code in lib/ that the rest of Papermorph shares
+stay under the repository's MIT licence. This book is not affiliated with or endorsed by MIT.

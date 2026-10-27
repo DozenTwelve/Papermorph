@@ -15,9 +15,10 @@
   const reset = s => { k = 0; return s; };
 
   window.UNIT_ART = [
-    // 1 An example: a number line with a dot hopping along it.
-    reset(P('M228 130H572') + Array.from({ length: 7 }, (_, i) => P(`M${250 + i * 50} 122v16`, 'a')).join('') +
-      `<circle class="t hop" r="8" fill="currentColor" stroke="none" style="--k:${k++};offset-path:path('M250 116Q275 84 300 116Q325 84 350 116Q375 84 400 116')"/>` +
-      Tx(250, 60, 'a sketch of this unit', 26) + C(530, 70, 24, 'a')),
+    // 1 The geometry of linear equations: two lines meet at a point; the same point is a mix of two arrows.
+    reset(P('M240 160L420 20') + P('M232 60L428 140', 'a') +
+      `<circle class="t ping" cx="330" cy="91" r="9" fill="currentColor" stroke="none" style="--k:${k++}"/>` +
+      P('M470 150L540 120', '', 'stroke-width="5"') + P('M540 120L520 60', 'a', 'stroke-width="5"') + P('M470 150L520 60', 'faint', 'stroke-dasharray="6 6"') +
+      Tx(230, 176, 'row picture', 18, 'a') + Tx(470, 176, 'column picture', 18, 'a')),
   ];
 })();
