@@ -1028,9 +1028,10 @@ const pickEls = (items, right, yes, no, onRight) => (body, api) => {
 };
 /* ---------- point and read ---------- */
 // A picture book's point-and-read moment, for young children learning words: a film's ask beat (CHAPTER.film),
-//   ask: done => tapWords(THINGS, done)        THINGS = [{ g, word: 'basket', clip: 'w-basket' }]
+//   ask: done => tapWords(THINGS, done)        THINGS = [{ g, word: 'basket', clip: 'w-basket', side: 'below' }]
 // which the scene fills as it builds the picture; g is what the reader taps (a puppet, a prop, or a transparent shape
-// over part of a baked set) and clip names audio/<lang>/<clip>.mp3, 'w-' + the word by default. Once the narration is
+// over part of a baked set), clip names audio/<lang>/<clip>.mp3, 'w-' + the word by default, and side puts the word
+// 'above', 'below', 'left' or 'right' of its thing (kept on the stage); without it the word goes above, or wherever fits. Once the narration is
 // over (P.waiting) every thing turns tappable: a tap hops it, shows its word in large letters beside it and says it, on
 // wall time at the player volume with the music ducked under it; tapping again says it again. A counter and Continue
 // (Enter) wait in the corner; Continue lights up once every thing has been heard. Seeking or replaying clears it all.
@@ -1038,6 +1039,7 @@ const pickEls = (items, right, yes, no, onRight) => (body, api) => {
 // end on wall time, so puppets posed as a function of time keep breathing and blinking.
 // The video (export.py) cannot tap: P.tapDemo.at(s) shows the words one by one, DEMO_STEP s apart, while it holds.
 const TAP_MIN = 120, DEMO_STEP = 2;   // TAP_MIN: the smallest hit box in stage px, a child's finger on a phone
+const SIDES = { above: 0, below: 1, right: 2, left: 3 };   // where a word goes, in the order tried
 const wordClip = word => 'w-' + word.toLowerCase().trim().replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '');
 function tapWords(things, done) {
   const gen = P.gen, stage = $('stage'), lang = CHAPTER.language || 'en';
@@ -1050,7 +1052,8 @@ function tapWords(things, done) {
     const clip = t.clip || wordClip(t.word), a = new Audio(`audio/${lang}/${clip}.mp3`);
     a.preload = 'auto';
     a.onerror = () => console.warn(`tapWords: "${t.word}" has no clip at audio/${lang}/${clip}.mp3`);
-    return { g: t.g, word: t.word, clip, a, heard: false };
+    if (t.side && !Object.hasOwn(SIDES, t.side)) console.warn(`tapWords: "${t.word}" has side "${t.side}": use above, below, left or right; its word goes where it fits`);
+    return { g: t.g, word: t.word, clip, a, side: Object.hasOwn(SIDES, t.side ?? '') ? t.side : null, heard: false };
   });
   const L = mk('g', { class: 'tapw' }, stage);   // the hit boxes, over the whole picture
   let on = false, alive = true, finished = false, word = null, shown = -1, bar, count, go;
@@ -1075,15 +1078,16 @@ function tapWords(things, done) {
     const n = list.filter(x => x.heard).length, all = n === list.length;
     count.textContent = all ? translate('allWordsHeard') : translate('wordsHeard', { k: n, n: list.length });
     if (all && !go.classList.contains('go')) { go.className = 'btn go'; bar.classList.add('lit'); }
-    // the word beside the thing: above it, else below, right or left, wherever it fits on the stage (slid along that
-    // side to stay on it)
+    // the word beside the thing: on its side, or above it, else below, right or left, wherever it fits on the stage
+    // (slid along that side to stay on it)
     word?.remove();
     word = h('div', 'card word', t.word);
     word.setAttribute('aria-hidden', 'true');   // the thing's own label already says the word
     $('ui').append(word);
-    const b = box(t), w = word.offsetWidth, hh = word.offsetHeight, m = 16, cx = b.x + (b.w - w) / 2, cy = b.y + (b.h - hh) / 2;
-    const spots = [[cx, b.y - hh - m], [cx, b.y + b.h + m], [b.x + b.w + m, cy], [b.x - w - m, cy]];
-    const [x, y] = spots.find(([x, y], k) => k < 2 ? y >= m && y + hh <= SH - m : x >= m && x + w <= SW - m) || spots[0];
+    // gap: clear of the thing's hop; m: the stage's margin
+    const b = box(t), w = word.offsetWidth, hh = word.offsetHeight, gap = 30, m = 16, cx = b.x + (b.w - w) / 2, cy = b.y + (b.h - hh) / 2;
+    const spots = [[cx, b.y - hh - gap], [cx, b.y + b.h + gap], [b.x + b.w + gap, cy], [b.x - w - gap, cy]];
+    const [x, y] = t.side ? spots[SIDES[t.side]] : spots.find(([x, y], k) => k < 2 ? y >= m && y + hh <= SH - m : x >= m && x + w <= SW - m) || spots[0];
     Object.assign(word.style, { left: Math.max(m, Math.min(SW - m - w, x)) + 'px', top: Math.max(m, Math.min(SH - m - hh, y)) + 'px' });
     if (quiet) { word.style.animation = go.style.animation = 'none'; return; }   // a video's frame shows it at rest
     for (const x of list) if (x !== t) x.a.pause();
@@ -1091,6 +1095,7 @@ function tapWords(things, done) {
     t.a.volume = +($('volume')?.value ?? 1);
     t.a.play().catch(() => {});
     SND.word = t.a;   // soundTick ducks the music under it
+    // the hop is the CSS translate property, which adds to the transform the scene sets (a prop posed every frame keeps its place)
     t.g.animate([{ translate: '0 0' }, { translate: '0 -18px', offset: .3 }, { translate: '0 0' }], { duration: 450, easing: 'ease-out' });
     t.ring.animate([{ strokeOpacity: 1 }, { strokeOpacity: 0 }], { duration: 700, easing: 'ease-out' });
   };
@@ -1114,6 +1119,18 @@ function tapWords(things, done) {
     go = h('button', 'btn quiet', [translate('continue'), kbd('Enter')]);
     go.onclick = finish;
     bar.append(h('div', 'acts', [count, go]));
+    // a thing whose box is covered where a finger lands (a card, a layer over the stage) cannot be tapped: once the
+    // counter's card has come in, try each box's middle and four points around it, and name what covers it
+    setTimeout(() => { if (alive) for (const t of list) {
+      const r = t.ring.getBoundingClientRect(), pts = [[.5, .5], [.3, .3], [.7, .3], [.3, .7], [.7, .7]];
+      const tops = pts.map(([u, v]) => document.elementFromPoint(r.left + u * r.width, r.top + v * r.height));
+      if (!tops.some(e => t.hit.contains(e))) {
+        const e = tops[0], cls = e?.getAttribute('class')?.split(' ')[0];
+        const what = !e ? 'it is off screen' : e.closest('.hit') ? `"${e.closest('.hit').getAttribute('aria-label')}" covers it`
+          : `<${e.tagName.toLowerCase()}${e.id ? '#' + e.id : cls ? '.' + cls : ''}> covers it`;
+        console.warn(`tapWords: "${t.word}" cannot be tapped: ${what}`);
+      }
+    } }, 600);
   };
   const cleanup = () => {
     alive = false;
