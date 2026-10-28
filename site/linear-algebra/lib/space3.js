@@ -3,7 +3,7 @@
 // and looks down at the floor (pitch; 90 looks straight down, so x runs right and y up, as in a flat 2D plane); the
 // projection is orthographic with a gentle perspective, so the near side of the cube is a little larger and depth reads
 // in motion. Everything re-projects when the camera moves: a beat turns it on the beat clock (view.turn, view.drift), so
-// seeking replays it; the reader orbits it while it is live (an ask) by dragging empty space, or by focusing the view
+// seeking replays it; the reader orbits it while it is live (an ask), or while the lesson is paused, by dragging empty space, or by focusing the view
 // (Tab) and pressing the arrow keys, as an offset of its own that the beat clock never touches.
 // Planes are cut along the lines where they meet each other and the pieces are painted far to near, so the plane in
 // front covers the one behind; plane.fade(k) and lin3's focus() light one plane and dim the others.
@@ -355,36 +355,60 @@ function space3(p, { cx = 1150, cy = 450, size = 640, range: R = 4, yaw = -30, p
   }
 
   /* ---------- the camera ---------- */
-  // The reader turns the view by dragging empty space, or with the arrow keys once the view has focus; only while live.
-  let drag = null;
+  // The reader turns the view by dragging empty space, or with the arrow keys once the view has focus: while live (a
+  // question) and whenever the lesson is paused. A turn made while paused eases back to the beat's own camera when play
+  // goes on, so the words that name a view ("look along x") still see it; the beat clock never touches it either way.
+  let drag = null, easing = false, turned = false;
+  const canTurn = () => live || (typeof P !== 'undefined' && !P.playing);
+  const easeBack = () => {   // one loop per view, only while the reader's own turn is not zero
+    if (easing) return;
+    easing = true;
+    const step = () => {
+      if (!g.isConnected) { easing = false; return; }
+      if (P.playing && !live && !drag) {
+        user.yaw *= .82; user.pitch *= .82;
+        if (Math.abs(user.yaw) < .05 && Math.abs(user.pitch) < .05) { user.yaw = user.pitch = 0; dirty(); easing = false; return; }
+        dirty();
+      }
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  };
   const turnBy = (dy, dp) => {
     user.yaw += dy;
     user.pitch = Math.max(PITCH[0] - cam.pitch, Math.min(PITCH[1] - cam.pitch, user.pitch + dp));
     dirty();
+    if (!live) easeBack();
   };
+  orbit.setAttribute('tabindex', 0);
+  orbit.addEventListener('pointerenter', () => { orbit.style.cursor = canTurn() ? 'grab' : ''; });
   orbit.addEventListener('pointerdown', e => {
-    if (!live) return;
+    if (!canTurn()) return;
     e.preventDefault();
     drag = { x: e.clientX, y: e.clientY, yaw: user.yaw, pitch: user.pitch, k: svg.getScreenCTM().a };
+    turned = false;
     orbit.setPointerCapture(e.pointerId);
   });
   orbit.addEventListener('pointermove', e => {
     if (!drag) return;
     user.yaw = drag.yaw; user.pitch = drag.pitch;
+    if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 4) turned = true;
     turnBy((e.clientX - drag.x) / drag.k * .4, (e.clientY - drag.y) / drag.k * .4);
   });
   const end = () => { drag = null; };
+  // A drag that turned the view is not a click: the stage would take it as "play" and the paused lesson would go on.
+  orbit.addEventListener('click', e => { if (turned) { e.stopPropagation(); turned = false; } });
   orbit.addEventListener('pointerup', end);
   orbit.addEventListener('lostpointercapture', end);
   orbit.addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); e.currentTarget.blur(); P.keys?.(e); return; }   // Enter checks (or goes on), as in an answer box
-    if (!live) return;
+    if (!canTurn()) return;
     const d = { ArrowLeft: [-10, 0], ArrowRight: [10, 0], ArrowUp: [0, 8], ArrowDown: [0, -8] }[e.key];
     if (!d) return;
     e.preventDefault(); e.stopPropagation();   // the player's ←/→ must not leave the beat
     turnBy(...d);
   });
-  orbit.addEventListener('focus', () => { if (live) { orbit.setAttribute('stroke', COL.faint); orbit.setAttribute('stroke-dasharray', '6 8'); } });
+  orbit.addEventListener('focus', () => { if (canTurn()) { orbit.setAttribute('stroke', COL.faint); orbit.setAttribute('stroke-dasharray', '6 8'); } });
   orbit.addEventListener('blur', () => orbit.removeAttribute('stroke'));
 
   dirty();
@@ -425,7 +449,7 @@ function space3(p, { cx = 1150, cy = 450, size = 640, range: R = 4, yaw = -30, p
     live(on) {
       live = on;
       orbit.style.cursor = on ? 'grab' : '';
-      if (on) orbit.setAttribute('tabindex', 0); else { orbit.removeAttribute('tabindex'); orbit.removeAttribute('stroke'); }
+      if (!on) orbit.removeAttribute('stroke');   // the view stays focusable: a paused lesson can be turned too
     },
   };
 }
