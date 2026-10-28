@@ -136,109 +136,109 @@ window.TIMINGS = {
   ]
  },
  "check": {
-  "dur": 55.152,
+  "dur": 57.096,
   "marks": {
-   "eq": 1.484,
-   "into": 8.359,
-   "a": 10.56,
-   "a1": 11.992,
-   "a2": 17.904,
-   "ano": 23.451,
-   "b": 27.865,
-   "b1": 29.583,
-   "bno": 35.911,
-   "b2": 41.641,
-   "c": 44.31,
-   "c1": 45.56,
-   "c2": 47.812,
-   "cok": 50.768
+   "eq": 1.51,
+   "into": 8.568,
+   "a": 10.547,
+   "a1": 11.966,
+   "a2": 17.812,
+   "ano": 23.88,
+   "b": 28.32,
+   "b1": 30.0,
+   "bno": 36.25,
+   "b2": 39.883,
+   "c": 46.237,
+   "c1": 47.565,
+   "c2": 49.831,
+   "cok": 52.747
   },
   "cues": [
    [
-    0.117,
+    0.13,
     "Here's another system."
    ],
    [
-    1.484,
+    1.51,
     "Two x minus y equals zero, and negative x plus two y equals three."
    ],
    [
-    7.292,
+    7.474,
     "To check a pair, put it into both equations."
    ],
    [
-    10.56,
+    10.547,
     "Try two, four."
    ],
    [
-    11.992,
+    11.966,
     "First equation: two times two, minus four, is zero."
    ],
    [
-    16.875,
+    16.758,
     "It works."
    ],
    [
-    17.904,
+    17.812,
     "Second: negative two, plus two times four, is six."
    ],
    [
-    22.396,
+    22.773,
     "Not three."
    ],
    [
-    23.451,
+    23.88,
     "So two, four solves the first equation, but not the system."
    ],
    [
-    27.865,
+    28.32,
     "Try negative one, one."
    ],
    [
-    29.583,
+    30.0,
     "First: two times negative one, minus one, is negative three."
    ],
    [
-    34.675,
+    35.104,
     "Not zero."
    ],
    [
-    35.911,
-    "One failed equation is enough: it's not a solution, even though the second equation does work, because one plus two is three."
+    36.25,
+    "One failed equation is enough: it's not a solution, even though the second equation does work: negative x is one, and one plus two is three."
    ],
    [
-    44.31,
+    46.237,
     "Try one, two."
    ],
    [
-    45.56,
+    47.565,
     "Two minus two is zero."
    ],
    [
-    47.812,
+    49.831,
     "Negative one plus four is three."
    ],
    [
-    50.768,
+    52.747,
     "Both work."
    ],
    [
-    51.849,
+    53.802,
     "One, two is the solution of this system."
    ]
   ]
  },
  "q1": {
-  "dur": 3.936,
+  "dur": 5.88,
   "marks": {},
   "cues": [
    [
-    0.104,
+    0.091,
     "Quick check."
    ],
    [
-    1.107,
-    "Which equations does each pair pass?"
+    1.12,
+    "Does each pair pass both equations, only one, or neither?"
    ]
   ]
  },
@@ -413,74 +413,78 @@ window.TIMINGS = {
   ]
  },
  "between": {
-  "dur": 41.784,
+  "dur": 44.76,
   "marks": {
-   "eq": 2.63,
-   "draw": 6.927,
-   "meet": 8.451,
-   "x": 10.872,
-   "y": 15.547,
-   "guess": 20.508,
-   "c1": 24.492,
-   "c2": 28.164,
-   "ok": 32.057,
-   "lesson": 36.458
+   "eq": 2.669,
+   "draw": 7.357,
+   "meet": 8.906,
+   "x": 11.302,
+   "y": 15.859,
+   "guess": 20.482,
+   "c1": 27.227,
+   "c2": 31.029,
+   "ok": 34.935,
+   "lesson": 39.479
   },
   "cues": [
    [
-    0.104,
+    0.078,
     "Not every crossing lands on the grid."
    ],
    [
-    2.63,
+    2.669,
     "Take x plus y equals two, and x minus y equals one."
    ],
    [
-    6.927,
+    7.357,
     "Draw both lines."
    ],
    [
-    8.451,
+    8.906,
     "They cross here, between the grid lines."
    ],
    [
-    10.872,
+    11.302,
     "x is between one and two, about halfway: maybe one and a half."
    ],
    [
-    15.547,
+    15.859,
     "y is between zero and one, about halfway: maybe one half."
    ],
    [
-    20.508,
+    20.482,
     "A picture can only say about."
    ],
    [
-    22.487,
+    22.448,
     "So let's check the guess exactly."
    ],
    [
-    24.492,
+    24.44,
+    "One and a half is three halves."
+   ],
+   [
+    27.227,
     "Three halves plus one half is four halves, and that's two."
    ],
    [
-    28.164,
+    31.029,
     "Three halves minus one half is two halves, and that's one."
    ],
    [
-    32.057,
+    34.935,
     "Both exactly right."
    ],
    [
-    33.555,
+    36.419,
     "The crossing is three halves, one half."
    ],
    [
-    36.458,
+    39.479,
     "The picture tells us where to look."
    ],
    [
-    38.398,
+    41.354,
     "Putting the numbers back into the equations proves it."
    ]
   ]
@@ -806,6 +810,30 @@ window.TIMINGS = {
    [
     1.198,
     "Make the lines meet with your hands."
+   ]
+  ]
+ },
+ "play": {
+  "dur": 12.0,
+  "marks": {
+   "go": 3.984
+  },
+  "cues": [
+   [
+    0.104,
+    "Playground."
+   ],
+   [
+    1.055,
+    "Nothing here is marked right or wrong."
+   ],
+   [
+    3.984,
+    "Change any number, drag a line, draw on the board if you like, and watch where the two lines meet."
+   ],
+   [
+    10.091,
+    "Press continue when you're done."
    ]
   ]
  },

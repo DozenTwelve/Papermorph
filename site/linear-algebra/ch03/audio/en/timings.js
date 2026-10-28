@@ -233,20 +233,21 @@ window.TIMINGS = {
   ]
  },
  "same": {
-  "dur": 51.264,
+  "dur": 56.664,
   "marks": {
-   "eq": 1.55,
-   "twice": 6.536,
-   "six": 14.531,
-   "half": 16.888,
-   "after": 17.747,
-   "draw": 22.852,
-   "p1": 27.24,
-   "p1b": 32.5,
-   "p2": 35.99,
-   "p2b": 39.74,
-   "all": 42.943,
-   "inf": 46.667
+   "eq": 1.523,
+   "twice": 6.562,
+   "six": 14.167,
+   "half": 16.419,
+   "after": 17.279,
+   "draw": 22.305,
+   "p1": 27.005,
+   "p1a": 32.031,
+   "p1b": 36.315,
+   "p2": 41.497,
+   "p2b": 45.208,
+   "all": 48.385,
+   "inf": 52.083
   },
   "cues": [
    [
@@ -254,47 +255,47 @@ window.TIMINGS = {
     "Now a different case."
    ],
    [
-    1.55,
+    1.523,
     "x plus two y equals three, and two x plus four y equals six."
    ],
    [
-    6.536,
+    6.562,
     "This time the whole second equation, both sides, is twice the first: two times x plus two y is two x plus four y, and two times three is six."
    ],
    [
-    16.888,
+    16.419,
     "Halve it, and it's x plus two y equals three again: the very same equation."
    ],
    [
-    22.852,
+    22.305,
     "In the picture, the coral line lies exactly on top of the blue line."
    ],
    [
-    27.24,
-    "Take any point on it."
+    27.005,
+    "Take any point on it, and check it in both equations as they were first written."
    ],
    [
-    28.568,
-    "Three, zero: three plus zero is three, and six plus zero is six."
+    32.031,
+    "Three, zero: three plus two times zero is three, and two times three, plus four times zero, is six."
    ],
    [
-    34.922,
+    40.43,
     "Both work."
    ],
    [
-    35.99,
+    41.497,
     "One, one: one plus two is three, and two plus four is six."
    ],
    [
-    41.862,
+    47.292,
     "Both work."
    ],
    [
-    42.943,
+    48.385,
     "Every point on this line solves both equations."
    ],
    [
-    46.667,
+    52.083,
     "So this system has endlessly many solutions: the whole line."
    ]
   ]
@@ -638,6 +639,30 @@ window.TIMINGS = {
    [
     1.237,
     "Build each system with your hands."
+   ]
+  ]
+ },
+ "play": {
+  "dur": 11.28,
+  "marks": {
+   "go": 3.75
+  },
+  "cues": [
+   [
+    0.104,
+    "Playground."
+   ],
+   [
+    1.107,
+    "Nothing here is marked right or wrong."
+   ],
+   [
+    3.75,
+    "Change any number, drag a line, and try to make the lines parallel, or one line."
+   ],
+   [
+    9.675,
+    "Press continue when you're done."
    ]
   ]
  },
