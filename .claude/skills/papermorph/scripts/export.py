@@ -11,7 +11,9 @@ of their scene, as a scene change stops them) and the BGM tracks with their cros
 checks and practice) are left out, and then the video ends on a card saying they are in the interactive lesson
 (--link adds its address); in a film with interactive moments (CHAPTER.film, e.g. the reader fires a rifle) they stay in,
 each holding its last picture for its `hold` seconds (1.5 by default, the music up at 70 % as the page plays it while
-it waits) before the next beat plays as if the reader had acted. With --link and no question beats left out, the end
+it waits) before the next beat plays as if the reader had acted. A point-and-read beat (tapWords) holds while it shows
+and says each word in turn, 2 s apart (its `hold`, if set, still wins); a word clip that is missing is named and
+left silent. With --link and no question beats left out, the end
 card shows the title and the link only. A mix that would clip is turned down as a whole (the run prints by how much).
 Odd sizes (an upright --height 720 is 405 wide) are cut to even ones, as H.264 needs. The video is written to
 OUT/chNN.tmp.mp4 and renamed when done, so a failed run leaves an earlier OUT/chNN.mp4 alone. Captions are not burned
@@ -120,7 +122,7 @@ async def main(a):
         if errs:
             sys.exit(f'page errors: {errs}')
         info = await pg.evaluate("""({lang: CHAPTER.language || 'en', film: !!CHAPTER.film,
-          beats: BEATS.map(b => ({id: b.id, ask: !!b.ask, pre: b.pre || 0, hold: b.hold ?? 1.5})),
+          beats: BEATS.map(b => ({id: b.id, ask: !!b.ask, pre: b.pre || 0, hold: b.hold ?? null})),
           bgm: typeof BGM === 'undefined' ? [] : BGM.map(m => ({src: m.a.src, beats: m.beats, gain: m.gain, fade: m.fade ?? .8})),
           upInPre: window.MUSIC_UP_IN_PRE || false})""")
         # a film's question beats (CHAPTER.film: the reader acts, e.g. fires) stay in the video: their picture holds `hold` s
@@ -135,11 +137,17 @@ async def main(a):
         # Pass 1: the sound track and the captions, beat by beat at the beat's length on screen.
         end_s = END_SECONDS if asks or a.link else 0   # a picture book ends on its own last scene
         lengths, starts, counts, music_off, cues, offset, waits, silent = [], [], [], [], [], 0.0, {}, set()
+        words, spoken = {}, []   # a point-and-read beat (tapWords): its word clips and the seconds between them; when each is said
         for i, bid in beats:
             await open_beat(pg, base, i)
             end, T = await pg.evaluate('[P.end, TIMINGS[BEATS[P.i].id]]')
             if T.get('silent'): silent.add(bid)   # { dur } in the beat's fourth slot: no clip, its sound is silence
-            if info['beats'][i]['ask']: waits[bid] = end; end += info['beats'][i]['hold']   # from P.end the page waits
+            if info['beats'][i]['ask']:   # from P.end the page waits
+                waits[bid], hold = end, info['beats'][i]['hold']
+                if demo := await pg.evaluate('P.tapDemo ? [P.tapDemo.clips, P.tapDemo.step] : null'):
+                    words[bid] = demo
+                    if hold is None: hold = len(demo[0]) * demo[1] + 1
+                end += 1.5 if hold is None else hold
             # a scene lists its sfx() when its beat is built, so they are collected beat by beat
             for e in await pg.evaluate(SFX_JS):
                 if e not in info['sfx']:
@@ -159,6 +167,11 @@ async def main(a):
         for k, (i, bid) in enumerate(beats):
             o, pre = starts[k], info['beats'][i]['pre']
             if bid not in silent: put(track, o + pre, decode(f'{a.url}{a.chapter}/audio/{info["lang"]}/{bid}.mp3'), 1, o + lengths[k])
+            for n, name in enumerate(words.get(bid, [[]])[0]):   # the words, said in turn while the picture holds
+                src, at = f'{a.url}{a.chapter}/audio/{info["lang"]}/{name}.mp3', waits[bid] + n * words[bid][1]
+                try: said = decode(src)
+                except subprocess.CalledProcessError: print(f'{bid}: no word clip {src}: that word is silent'); continue
+                put(track, o + at, said, 1, o + lengths[k]); spoken.append((bid, at, at + len(said) / RATE))
             for e in info['sfx']:   # effects sit at half volume under the voices; a new scene stops them
                 if e['beat'] == bid and 0 <= e['at'] < lengths[k]:
                     put(track, o + e['at'], decode(e['src']), .5 * e['vol'], o + lengths[k])
@@ -171,6 +184,8 @@ async def main(a):
         frames_off = [x for m in music_off for x in m]
         beat_len = {bid: lengths[k] for k, (_, bid) in enumerate(beats)}
         beat_pre = {x['id']: x['pre'] for x in info['beats']}
+        # a word said while the picture holds ducks the music at once, as the page ducks it under a tapped word
+        saying = lambda bid, t: any(b == bid and t0 <= t < t1 for b, t0, t1 in spoken)
         for m in info['bgm']:
             song, v, duck, pos = decode(m['src']), 0.0, .3, 0.0
             gain = np.zeros(n); at = np.zeros(n, int)
@@ -179,8 +194,8 @@ async def main(a):
                 current = bid in m['beats'] and not frames_off[f]
                 v = max(0.0, min(1.0, v + (1 if current else -1) / fps / m['fade'])) if m['fade'] > 0 else float(current)   # 0: a cut
                 up = info['upInPre']
-                want = .7 if (up and (up is True or bid in up) and t < beat_pre[bid]) or t >= waits.get(bid, 1e9) else .3
-                duck += max(-1 / fps, min(1 / fps, want - duck))
+                want = .7 if (up and (up is True or bid in up) and t < beat_pre[bid]) or t >= waits.get(bid, 1e9) and not saying(bid, t) else .3
+                duck += max(-(4 if want < duck and saying(bid, t) else 1) / fps, min(1 / fps, want - duck))
                 if current: pos = sum(beat_len.get(b, 0) for b in m['beats'][:m['beats'].index(bid)]) + t
                 else: pos += 1 / fps
                 gain[f], at[f] = v * m['gain'] * duck, round(pos * RATE) % len(song)
@@ -217,6 +232,9 @@ async def main(a):
             # depend on the frames before: each browser steps every frame since its last shot, as one browser would
             await w.evaluate('ts => { for (const t of ts) { P.t = t; evalTo(t); } }',
                              [g / a.fps for g in range(last[w] + 1, f + 1)])
+            bid = info['beats'][i]['id']
+            if bid in words and f / a.fps >= waits[bid]:   # the words in turn, as if tapped
+                await w.evaluate('s => P.tapDemo?.at(s)', f / a.fps - waits[bid])
             last[w] = f
             return await w.screenshot(clip=clip, type='jpeg', quality=92)
 

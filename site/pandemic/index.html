@@ -57,9 +57,16 @@
   .shorts b { margin: 2px 12px 4px; font: 600 19px/1.2 var(--key); letter-spacing: .03em; text-transform: uppercase; }
   .shorts span { margin: 0 12px 12px; color: var(--soft); font: 14px/1.45 var(--ui); }
   .shorts .watched small::after { content: " · ✓ watched"; color: var(--accent); }
+  .shorts .story { display: grid; grid-template-columns: 3fr 2fr; margin-top: 18px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; text-decoration: none; color: inherit; transition: border-color .15s, transform .15s; }
+  .shorts .story:hover, .shorts .story:focus-visible { border-color: var(--accent); transform: translateY(-2px); }
+  .shorts .story img { display: block; width: 100%; height: 100%; aspect-ratio: 1000 / 625; object-fit: cover; }
+  .shorts .story div { display: flex; flex-direction: column; justify-content: center; padding: 20px 24px; }
+  .shorts .story b { margin: 0; font: 600 22px/1.2 var(--key); letter-spacing: .03em; text-transform: uppercase; }
+  .shorts .story span { margin: 6px 0 0; color: var(--soft); font: 15px/1.5 var(--ui); }
+  .shorts .story i { margin-top: 12px; color: var(--accent); font: 600 14px/1.3 var(--ui); font-style: normal; }
   @media (max-width: 1000px) { .shorts ul { grid-template-columns: repeat(3, 1fr); } }
   @media (max-width: 860px) { figure { margin: 22px 0; } figcaption { margin: 8px 0 0; } }
-  @media (max-width: 760px) { header { grid-template-columns: 1fr; gap: 24px; } header .film span { left: 10px; bottom: 10px; padding: 7px 11px; font-size: 13px; } .pair, .numbers { grid-template-columns: 1fr; } .shorts ul { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 760px) { header { grid-template-columns: 1fr; gap: 24px; } header .film span { left: 10px; bottom: 10px; padding: 7px 11px; font-size: 13px; } .pair, .numbers { grid-template-columns: 1fr; } .shorts ul { grid-template-columns: 1fr 1fr; } .shorts .story { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -80,6 +87,12 @@
   <h2 id="shorts">As shorts</h2>
   <p>The same film told upright for a phone, in six episodes of about a minute and a quarter.</p>
   <ul id="shortList"></ul>
+</section>
+
+<section class="shorts">
+  <h2 id="scroll">As a scroll story</h2>
+  <p>The same film as a page you scroll: the map changes under your thumb, step by step, and scrolling back rewinds it.</p>
+  <a class="story" href="../pandemic-scroll/"><img src="img/scroll.webp" width="1000" height="625" alt="A step of the scroll story: Wuhan on the rail map of China at two in the morning on 23 January 2020." loading="lazy"><div><b>Scroll through the pandemic</b><span>23 steps, from Wuhan to the waves and the count. No sound, read at your own pace.</span><i>Start scrolling ↓</i></div></a>
 </section>
 
 <main>

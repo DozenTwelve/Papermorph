@@ -1,0 +1,12 @@
+The borders on this map (lib/borders.js) are adapted from CShapes 2.0:
+
+  Schvitz, Guy, Luc Girardin, Seraina Rüegger, Nils B. Weidmann, Lars-Erik Cederman and Kristian Skrede Gleditsch.
+  2022. "Mapping the International System, 1886-2019: The CShapes 2.0 Dataset." Journal of Conflict Resolution 66(1).
+  ETH Zürich, International Conflict Research. https://icr.ethz.ch/data/cshapes/
+
+CShapes 2.0 is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License
+(CC BY-NC-SA 4.0): https://creativecommons.org/licenses/by-nc-sa/4.0/
+
+Changes made: one snapshot of the state outlines for 1 July of each year 1919-1929; projected (Lambert azimuthal
+equal-area about 15°E 50°N), cut to the map's frame and simplified to about half a map unit. The adapted data in
+lib/borders.js is shared under the same licence, CC BY-NC-SA 4.0. It is not covered by the repository's MIT licence.
