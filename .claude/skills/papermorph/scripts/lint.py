@@ -15,7 +15,10 @@ Errors (exit status 1):
   mark      m('name') is not a mark of any beat
   stale     the narration's text differs from timings.js, or a narration [[mark]] is missing there: run tts.py again
   style     style.json is not valid JSON or lacks schema, tier, book, words, look or voice
-Warnings: a beat's m('name') not among that beat's own marks (beats built by shared helpers can mislead this);
+  word      a point-and-read thing (tapWords) has no clip: audio/<lang>/<clip>.mp3, w-<word>.mp3 by default (its word
+            belongs in the narration as "w-<word>": "<word>", voiced by tts.py)
+Warnings: a chapter that calls tapWords() without CHAPTER.film true, or with words not written as literals
+  (word: 'basket'), whose clips were not checked; a beat's m('name') not among that beat's own marks (beats built by shared helpers can mislead this);
   a mark in timings.js that the narration lacks (added by hand: the next tts.py or eleven.py run drops it, so a
   page-only time belongs in the page); no beats recognised in a chapter; no narration file to check against.
 --content defaults to content/<book> (content/ when that is missing and content/chNN exists: the first book's legacy
@@ -40,6 +43,7 @@ PARAMS = re.compile(r'function\s*[\w$]*\s*\(([^)]*)\)|\(([^()]*)\)\s*=>|([A-Za-z
 METHOD = re.compile(r'^\s*([A-Za-z_$][\w$]*)\s*\([^()]*\)\s*\{', re.M)   # name(a, b) { … } in an object
 DESTRUCT = re.compile(r'(?:const|let|var)\s*([\[{][^;]*?[\]}])\s*(?:=|of\b|in\b)')   # const {a, b: c, d = 1} = …, for (const [x, y] of …)
 DKEY = re.compile(r'[A-Za-z_$][\w$]*\s*:|=[^,\]}]*')   # in a pattern, a key (b: c declares c) and a default (= 1) declare nothing
+WORD = re.compile(r'(?<![\w$.])(word|clip)\s*:\s*([\'"`])')   # a point-and-read thing's word: 'basket', clip: 'w-basket'
 USE = re.compile(r'(?<![\w$.])([A-Za-z_$][\w$]*)(?![\w$])(?!\s*:)')   # a name, not a property or an object key
 
 
@@ -210,6 +214,28 @@ def lint_chapter(ch, content, out):
                 err('mark', f"m('{k}') in beat {b} is not a mark of any beat")
             elif b in T and k not in T[b].get('marks', {}):
                 warn('mark', f"m('{k}') in beat {b} is not one of its marks")
+    # point-and-read things (tapWords): each says its clip, the word's own unless clip: names another
+    if any(re.search(r'(?<![\w$.])tapWords\s*\(', depth0(c)[0]) for c in own):
+        if not re.search(r'\bfilm\s*[:=]\s*true', inline):
+            warn('word', 'calls tapWords() but CHAPTER.film is not true: the chapter plays as a lesson, without music or effects')
+        found, loose = 0, 0
+        for c in own:
+            code = depth0(c)[0]
+            loose += len(re.findall(r'(?<![\w$.])word\s*:\s*(?![\'"`\s])', code))   # word: name, not a literal
+            at = [(m.start(), m.group(1), c[m.end():c.index(m.group(2), m.end())]) for m in WORD.finditer(code)]
+            for k, (pos, key, text) in enumerate(at):
+                if key != 'word':
+                    continue
+                found += 1
+                # its clip: a clip: in the same object, between the braces around the word
+                lo, hi = code.rfind('{', 0, pos), code.find('}', pos)
+                clip = next((t for p, kk, t in at if kk == 'clip' and lo < p < hi), None)
+                clip = clip or 'w-' + re.sub(r'[\W_]+', '-', text.lower()).strip('-')   # as the engine names it
+                if not (ch / 'audio' / lang / f'{clip}.mp3').exists():
+                    err('word', f'"{text}" has no audio/{lang}/{clip}.mp3: add "{clip}": "{text}" to the narration and run tts.py')
+        if loose or not found:
+            warn('word', f"calls tapWords() with {loose or 'no'} word{'s' if loose != 1 else ''} not written as word: 'literal': "
+                         "their clips were not checked (the page warns about a missing one when the beat starts)")
     # narration against the generated audio
     nar = content / ch.name / f'narration.{lang}.json'
     if nar.exists():

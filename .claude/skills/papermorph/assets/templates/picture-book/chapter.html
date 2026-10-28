@@ -28,7 +28,9 @@ try { if (localStorage.getItem('captions') === null) setCaptions(true, false); }
 
 /* ---------- beats: one per scene ----------
    [id, title, run, { lead: false, pre }]: id names audio/en/<id>.mp3 (the joined scene clip) and its TIMINGS entry;
-   `pre` is the seconds of picture before the speech starts (the scene's PRE constant). */
+   `pre` is the seconds of picture before the speech starts (the scene's PRE constant).
+   A point-and-read stop for young readers (references/picture-books/stories.md, "Point and read") is one more scene whose
+   beat ends { …, ask: done => tapWords(THINGS, done) }, with film: true and questionKeys: false in CHAPTER. */
 const BEATS = [
   ['scene1', 'The visit', (m, D) => scene1(panel(0), D), { lead: false, pre: PRE1 }],
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));

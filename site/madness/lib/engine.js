@@ -49,6 +49,7 @@ const TRANSLATIONS = {
     chapterComplete: 'Chapter {n} complete', quickChecks: 'Quick checks', chapterPractice: 'Chapter practice', sources: 'Sources in this chapter', opensSource: '{label}, opens the source in a new tab',
     firstTryScore: '{name}: {r} of {t} right on the first try.', notAttempted: '{name}: not attempted.',
     watchAgain: 'Watch again', nextChapter: 'Next chapter',
+    wordsHeard: '{k} / {n}', allWordsHeard: 'You found them all!',
   },
   ru: {
     decimalSign: ',', stageLabel: 'Анимация урока', stageLabelTitled: 'Анимация урока: {title}',
@@ -86,6 +87,7 @@ const TRANSLATIONS = {
     chapterComplete: 'Глава {n} пройдена', quickChecks: 'Проверь себя', chapterPractice: 'Практика по главе', sources: 'Источники этой главы', opensSource: '{label}, источник откроется в новой вкладке',
     firstTryScore: '{name}: {r} из {t} верно с первой попытки.', notAttempted: '{name}: не выполнялось.',
     watchAgain: 'Смотреть снова', nextChapter: 'Следующая глава',
+    wordsHeard: '{k} / {n}', allWordsHeard: 'Все найдены!',
   },
   zh: {
     decimalSign: '.', stageLabel: '课程动画', stageLabelTitled: '课程动画：{title}',
@@ -121,6 +123,7 @@ const TRANSLATIONS = {
     chapterComplete: '第 {n} 章完成', quickChecks: '小测', chapterPractice: '本章练习', sources: '本章引用的文献', opensSource: '{label}，在新标签页中打开来源',
     firstTryScore: '{name}：第一次就答对 {r} / {t}。', notAttempted: '{name}：未作答。',
     watchAgain: '再看一遍', nextChapter: '下一章',
+    wordsHeard: '{k} / {n}', allWordsHeard: '全都找到啦！',
   },
   ja: {
     decimalSign: '.', stageLabel: '授業アニメーション', stageLabelTitled: '授業アニメーション：{title}',
@@ -156,6 +159,7 @@ const TRANSLATIONS = {
     chapterComplete: '第{n}章 完了', quickChecks: '確認問題', chapterPractice: '章末練習', sources: 'この章の出典', opensSource: '{label}（出典を新しいタブで開く）',
     firstTryScore: '{name}：1 回目で {t} 問中 {r} 問正解。', notAttempted: '{name}：未挑戦。',
     watchAgain: 'もう一度見る', nextChapter: '次の章へ',
+    wordsHeard: '{k} / {n}', allWordsHeard: 'ぜんぶ見つけたね！',
   },
 };
 // <html data-stage="portrait"> turns the stage upright: 900 wide, 1600 tall. Landscape (1600×900) otherwise.
@@ -951,35 +955,42 @@ function mcq(id, onRight) {
   if (!it) throw new Error(`mcq: no item "${id}" in items.js`);
   return { id, prompt: it.prompt, build: choice(it.opts, it.right, it.why, it.no, onRight) };
 }
-// The shared body of the stage tap questions: each target ring is a focusable button that answers on click or Enter,
-// and ← / → move the focus between them. targets: [{ g, label, ok, wrong }], wrong() shakes and returns the explanation.
-const stageTap = (api, targets, show, yes, onRight, hint) => {
-  let locked = false, cur = -1;
-  const gs = targets.map(({ g, label, ok, wrong }) => {
+// Stage targets the reader taps: each g turns into a focusable button named by its label that acts on a click, Enter or
+// Space. Returns key(e) for P.keys: ← / → move the focus between them (from the one focused, if any).
+function tappable(items) {   // [{ g, label, act }]
+  for (const { g, label, act } of items) {
     g.classList.add('hit');
     g.setAttribute('tabindex', 0);
     g.setAttribute('role', 'button');
     g.setAttribute('aria-label', label);
-    const act = () => {
-      if (locked) return;
-      if (ok) { g.classList.add('good'); onRight?.(); api.grade(true, yes); }
-      else { g.classList.add('bad'); api.grade(false, wrong()); }
-    };
     g.addEventListener('click', act);
     keyAct(g, act);
-    return g;
-  });
+  }
+  let cur = -1;
+  return e => {
+    const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+    if (!d || !items.length) return false;
+    const on = items.findIndex(it => it.g === document.activeElement);
+    if (on >= 0) cur = on;
+    cur = cur < 0 ? (d > 0 ? 0 : items.length - 1) : (cur + d + items.length) % items.length;
+    items[cur].g.focus();
+    return true;
+  };
+}
+// The shared body of the stage tap questions: each target ring answers on click or Enter (tappable), wrong() shakes
+// and returns the explanation. targets: [{ g, label, ok, wrong }].
+const stageTap = (api, targets, show, yes, onRight, hint) => {
+  let locked = false;
+  const move = tappable(targets.map(({ g, label, ok, wrong }) => ({ g, label, act: () => {
+    if (locked) return;
+    if (ok) { g.classList.add('good'); onRight?.(); api.grade(true, yes); }
+    else { g.classList.add('bad'); api.grade(false, wrong()); }
+  } })));
   return {
-    reveal() { gs[show].classList.add('good'); onRight?.(); return yes; },
+    reveal() { targets[show].g.classList.add('good'); onRight?.(); return yes; },
     lock() { locked = true; },
     hint,
-    key(e) {
-      const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
-      if (!d || locked) return false;
-      cur = cur < 0 ? (d > 0 ? 0 : gs.length - 1) : (cur + d + gs.length) % gs.length;
-      gs[cur].focus();
-      return true;
-    },
+    key: e => !locked && move(e),
   };
 };
 // Tap a point on the stage number line.
@@ -1015,6 +1026,130 @@ const pickEls = (items, right, yes, no, onRight) => (body, api) => {
   return stageTap(api, targets, right, yes, onRight,
     [kbd('←'), kbd('→'), translate('hintMove'), kbd('Enter'), translate('hintChooseOrClick')]);
 };
+/* ---------- point and read ---------- */
+// A picture book's point-and-read moment, for young children learning words: a film's ask beat (CHAPTER.film),
+//   ask: done => tapWords(THINGS, done)        THINGS = [{ g, word: 'basket', clip: 'w-basket', side: 'below' }]
+// which the scene fills as it builds the picture; g is what the reader taps (a puppet, a prop, or a transparent shape
+// over part of a baked set), clip names audio/<lang>/<clip>.mp3, 'w-' + the word by default, and side puts the word
+// 'above', 'below', 'left' or 'right' of its thing (kept on the stage); without it the word goes above, or wherever fits. Once the narration is
+// over (P.waiting) every thing turns tappable: a tap hops it, shows its word in large letters beside it and says it, on
+// wall time at the player volume with the music ducked under it; tapping again says it again. A counter and Continue
+// (Enter) wait in the corner; Continue lights up once every thing has been heard. Seeking or replaying clears it all.
+// While the page waits, the scene's continuous motion (stopClock, clockRun with tail: true) runs on past the beat's
+// end on wall time, so puppets posed as a function of time keep breathing and blinking.
+// The video (export.py) cannot tap: P.tapDemo.at(s) shows the words one by one, DEMO_STEP s apart, while it holds.
+const TAP_MIN = 120, DEMO_STEP = 2;   // TAP_MIN: the smallest hit box in stage px, a child's finger on a phone
+const SIDES = { above: 0, below: 1, right: 2, left: 3 };   // where a word goes, in the order tried
+const wordClip = word => 'w-' + word.toLowerCase().trim().replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '');
+function tapWords(things, done) {
+  const gen = P.gen, stage = $('stage'), lang = CHAPTER.language || 'en';
+  if (!CHAPTER.film) console.warn('tapWords: CHAPTER.film is not true, so the chapter plays as a lesson: no music or effects');
+  const list = things.filter(t => {
+    const why = !t.word ? 'has no word' : !(t.g instanceof SVGGraphicsElement && stage.contains(t.g)) ? 'is not an element on the stage' : '';
+    if (why) console.warn(`tapWords: ${t.word ? `"${t.word}"` : 'a thing'} ${why}: left out`);
+    return !why;
+  }).map(t => {
+    const clip = t.clip || wordClip(t.word), a = new Audio(`audio/${lang}/${clip}.mp3`);
+    a.preload = 'auto';
+    a.onerror = () => console.warn(`tapWords: "${t.word}" has no clip at audio/${lang}/${clip}.mp3`);
+    if (t.side && !Object.hasOwn(SIDES, t.side)) console.warn(`tapWords: "${t.word}" has side "${t.side}": use above, below, left or right; its word goes where it fits`);
+    return { g: t.g, word: t.word, clip, a, side: Object.hasOwn(SIDES, t.side ?? '') ? t.side : null, heard: false };
+  });
+  const L = mk('g', { class: 'tapw' }, stage);   // the hit boxes, over the whole picture
+  let on = false, alive = true, finished = false, word = null, shown = -1, bar, count, go;
+  // a thing's box in stage px (its picture may move: puppets idle), and its hit box, at least TAP_MIN square
+  const box = t => {
+    const s = stage.getBoundingClientRect(), r = t.g.getBoundingClientRect(), kx = SW / s.width, ky = SH / s.height;
+    return { x: (r.left - s.left) * kx, y: (r.top - s.top) * ky, w: r.width * kx, h: r.height * ky };
+  };
+  const place = () => {
+    for (const t of list) {
+      const b = box(t), w = Math.max(TAP_MIN, b.w), hh = Math.max(TAP_MIN, b.h);
+      for (const [k, v] of Object.entries({ x: b.x + (b.w - w) / 2, y: b.y + (b.h - hh) / 2, width: w, height: hh })) t.ring.setAttribute(k, v.toFixed(1));
+    }
+  };
+  const finish = () => { if (finished || P.gen !== gen) return; finished = true; done(); };
+  const idle = s => { for (const w of TW) if (w.tail === true && w.dur) w.pf(1 + s / w.dur); };   // s seconds past the end
+  let since = 0;
+  const tapIt = (k, quiet) => {
+    const t = list[k];
+    shown = k;
+    t.heard = true;
+    const n = list.filter(x => x.heard).length, all = n === list.length;
+    count.textContent = all ? translate('allWordsHeard') : translate('wordsHeard', { k: n, n: list.length });
+    if (all && !go.classList.contains('go')) { go.className = 'btn go'; bar.classList.add('lit'); }
+    // the word beside the thing: on its side, or above it, else below, right or left, wherever it fits on the stage
+    // (slid along that side to stay on it)
+    word?.remove();
+    word = h('div', 'card word', t.word);
+    word.setAttribute('aria-hidden', 'true');   // the thing's own label already says the word
+    $('ui').append(word);
+    // gap: clear of the thing's hop; m: the stage's margin
+    const b = box(t), w = word.offsetWidth, hh = word.offsetHeight, gap = 30, m = 16, cx = b.x + (b.w - w) / 2, cy = b.y + (b.h - hh) / 2;
+    const spots = [[cx, b.y - hh - gap], [cx, b.y + b.h + gap], [b.x + b.w + gap, cy], [b.x - w - gap, cy]];
+    const [x, y] = t.side ? spots[SIDES[t.side]] : spots.find(([x, y], k) => k < 2 ? y >= m && y + hh <= SH - m : x >= m && x + w <= SW - m) || spots[0];
+    Object.assign(word.style, { left: Math.max(m, Math.min(SW - m - w, x)) + 'px', top: Math.max(m, Math.min(SH - m - hh, y)) + 'px' });
+    if (quiet) { word.style.animation = go.style.animation = 'none'; return; }   // a video's frame shows it at rest
+    for (const x of list) if (x !== t) x.a.pause();
+    t.a.currentTime = 0;
+    t.a.volume = +($('volume')?.value ?? 1);
+    t.a.play().catch(() => {});
+    SND.word = t.a;   // soundTick ducks the music under it
+    // the hop is the CSS translate property, which adds to the transform the scene sets (a prop posed every frame keeps its place)
+    t.g.animate([{ translate: '0 0' }, { translate: '0 -18px', offset: .3 }, { translate: '0 0' }], { duration: 450, easing: 'ease-out' });
+    t.ring.animate([{ strokeOpacity: 1 }, { strokeOpacity: 0 }], { duration: 700, easing: 'ease-out' });
+  };
+  const enable = () => {
+    on = true;
+    since = performance.now();
+    linkStage();   // the stage is no longer one picture to a screen reader: the things are its buttons
+    const at = new Map(list.map(t => [t, box(t)]));
+    for (const [t, b] of at) if (b.x + b.w <= 0 || b.x >= SW || b.y + b.h <= 0 || b.y >= SH || !b.w || !b.h) console.warn(`tapWords: "${t.word}" is not in the picture`);
+    // smaller boxes on top, so a thing standing in front of a bigger one can still be tapped
+    for (const t of [...list].sort((a, c) => at.get(c).w * at.get(c).h - at.get(a).w * at.get(a).h)) { t.hit = G(L); t.ring = mk('rect', { class: 'ring', rx: 22 }, t.hit); }
+    place();
+    // the arrows go through the things from left to right
+    const order = [...list].sort((a, c) => at.get(a).x + at.get(a).w / 2 - at.get(c).x - at.get(c).w / 2);
+    const move = tappable(order.map(t => ({ g: t.hit, label: t.word, act: () => { if (alive) tapIt(list.indexOf(t)); } })));
+    P.keys = e => e.key === 'Enter' ? (finish(), true) : move(e);
+    bar = card({ x: 0, y: SH - 130, w: 0, cls: 'side' }, 'words');
+    Object.assign(bar.style, { left: 'auto', right: '40px', width: 'auto' });
+    count = h('span', 'count', translate('wordsHeard', { k: 0, n: list.length }));
+    count.setAttribute('role', 'status');
+    go = h('button', 'btn quiet', [translate('continue'), kbd('Enter')]);
+    go.onclick = finish;
+    bar.append(h('div', 'acts', [count, go]));
+    // a thing whose box is covered where a finger lands (a card, a layer over the stage) cannot be tapped: once the
+    // counter's card has come in, try each box's middle and four points around it, and name what covers it
+    setTimeout(() => { if (alive) for (const t of list) {
+      const r = t.ring.getBoundingClientRect(), pts = [[.5, .5], [.3, .3], [.7, .3], [.3, .7], [.7, .7]];
+      const tops = pts.map(([u, v]) => document.elementFromPoint(r.left + u * r.width, r.top + v * r.height));
+      if (!tops.some(e => t.hit.contains(e))) {
+        const e = tops[0], cls = e?.getAttribute('class')?.split(' ')[0];
+        const what = !e ? 'it is off screen' : e.closest('.hit') ? `"${e.closest('.hit').getAttribute('aria-label')}" covers it`
+          : `<${e.tagName.toLowerCase()}${e.id ? '#' + e.id : cls ? '.' + cls : ''}> covers it`;
+        console.warn(`tapWords: "${t.word}" cannot be tapped: ${what}`);
+      }
+    } }, 600);
+  };
+  const cleanup = () => {
+    alive = false;
+    L.remove();
+    for (const t of list) { t.a.onerror = null; t.a.pause(); t.a.removeAttribute('src'); t.a.load(); if (SND.word === t.a) SND.word = null; }
+    if (P.tapDemo?.gen === gen) delete P.tapDemo;
+  };
+  P.cleanup.push(cleanup);
+  P.tapDemo = { gen, clips: list.map(t => t.clip), step: DEMO_STEP, at(s) { if (!on) enable(); idle(s); const k = Math.min(list.length - 1, Math.floor(s / DEMO_STEP)); if (k >= 0 && k !== shown) { list.slice(0, k).forEach(t => { t.heard = true; }); tapIt(k, true); } } };
+  const tick = () => {
+    if (!alive) return;
+    if (P.gen !== gen) { cleanup(); return; }   // a seek away, or the beat replayed
+    if (P.waiting && !on) enable();
+    if (on && P.waiting) idle((performance.now() - since) / 1000);
+    if (on) place();
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
 // Rows of toggles. items: { parts, ans: [keys], why }. parts are math parts (strings, F, R) unless text: true,
 // where they are rich text (strings and $m(...)). cols: [[key, label, colour?, shortcut?]]. multi: several per row.
 const grid = (items, cols, { multi = true, text = false } = {}) => (body, api) => {
@@ -1279,7 +1414,9 @@ function soundTick(dt) {
   if (!SND.bgm.length || BEATS.some(b => b.ask) && !CHAPTER.film) return;   // a lesson with questions plays no music
   // the film's clock moved this frame (a clip loading or buffering holds it), or jumped (a seek, a replay)
   const runs = on && same && P.t > L.t, jump = !same && !(L.i === P.i - 1 && P.t < .5);
-  if (!held) SND.duck += Math.max(-dt, Math.min(dt, (wait || P.t < pre && (up === true || up?.includes?.(id)) ? .7 : .3) - SND.duck));
+  // a word the reader tapped (tapWords) ducks the music at once, as the narration does
+  const saying = !!SND.word && !SND.word.paused && !SND.word.ended;
+  if (!held) SND.duck += Math.max(-dt * (saying ? 4 : 1), Math.min(dt, (wait && !saying || P.t < pre && (up === true || up?.includes?.(id)) ? .7 : .3) - SND.duck));
   for (const m of SND.bgm) {
     const k = m.beats.indexOf(id), current = (on || wait) && k >= 0 && !window.MUSIC_OFF?.[id]?.(P.t);
     if (jump) m.off = 0;   // a seek or a replay puts every track back where the film's own timing says
@@ -1741,7 +1878,7 @@ return { TRANSLATIONS, PORTRAIT, SW, SH, LANGUAGE, translate, DECIMAL_SIGN, isSh
   R, E, TX, $tex, texGraphic, texPart, OV, M, chip, tokens, layRow, collapse, mathEl, io, out, back, lin, tw, prog,
   show, hide, draw, pop, pulse, stream, mix, evalTo, soft, clockRun, camera, scene, S, AXIS, X, Y0, num, reset, tick,
   dot, arrow, panel, retire, header, fx, fxp, finishFx, pulseFx, shakeFx, floatText, TF, $, kbd, sources, uiW, SCORE,
-  h, rich, card, mascotEl, quiz, qlayer, keyAct, choice, mcq, tap, tapEls, pickEls, grid, rat, gcd, lowest, blanks,
+  h, rich, card, mascotEl, quiz, qlayer, keyAct, choice, mcq, tap, tapEls, pickEls, tapWords, grid, rat, gcd, lowest, blanks,
   SND, P, HOLD, clearCards, seek, seekInto, start, setSpeed, setPlaying, setCaptions, hideCover, restart, boot,
   finishCard };
 })();
@@ -1768,7 +1905,7 @@ const TRANSLATIONS = ENGINE.TRANSLATIONS, PORTRAIT = ENGINE.PORTRAIT, SW = ENGIN
   uiW = ENGINE.uiW, SCORE = ENGINE.SCORE, h = ENGINE.h, rich = ENGINE.rich, card = ENGINE.card,
   mascotEl = ENGINE.mascotEl, quiz = ENGINE.quiz, qlayer = ENGINE.qlayer, keyAct = ENGINE.keyAct,
   choice = ENGINE.choice, mcq = ENGINE.mcq, tap = ENGINE.tap, tapEls = ENGINE.tapEls, pickEls = ENGINE.pickEls,
-  grid = ENGINE.grid, rat = ENGINE.rat, gcd = ENGINE.gcd, lowest = ENGINE.lowest, blanks = ENGINE.blanks,
+  tapWords = ENGINE.tapWords, grid = ENGINE.grid, rat = ENGINE.rat, gcd = ENGINE.gcd, lowest = ENGINE.lowest, blanks = ENGINE.blanks,
   SND = ENGINE.SND, P = ENGINE.P, HOLD = ENGINE.HOLD, clearCards = ENGINE.clearCards, seek = ENGINE.seek,
   seekInto = ENGINE.seekInto, start = ENGINE.start, setSpeed = ENGINE.setSpeed, setPlaying = ENGINE.setPlaying,
   setCaptions = ENGINE.setCaptions, hideCover = ENGINE.hideCover, restart = ENGINE.restart, boot = ENGINE.boot;

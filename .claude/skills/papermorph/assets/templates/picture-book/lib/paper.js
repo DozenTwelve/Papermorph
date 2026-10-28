@@ -60,7 +60,7 @@ function paperCam(p, setName, v0 = {}, { after = null, stages = [] } = {}) {
     if (stages.includes(L.name)) layers.push({ g: stageAt[L.name] = mk('g', {}, world), k: L.k });
     if (L.name === after || (!after && L.k === 1 && !stage)) layers.push({ g: stage = mk('g', {}, world), k: 1 });
   }
-  mk('rect', { width: 1600, height: 900, fill: 'url(#vignette)' }, root);
+  mk('rect', { width: 1600, height: 900, fill: 'url(#vignette)', 'pointer-events': 'none' }, root);   // a tap goes through to the picture
   // Parallax is measured from the set's own framing (base), wherever the beat's first view is.
   const base = { x: 800, y: 450, z: 1 }, start = { ...base, ...v0 };
   function at(t, n = ops.length) {

@@ -126,6 +126,90 @@ window.TIMINGS = {
    ]
   ]
  },
+ "s04w": {
+  "dur": 5.808,
+  "marks": {},
+  "cues": [
+   [
+    0.125,
+    "Little Red Riding Hood saw so many things in the meadow."
+   ],
+   [
+    3.763,
+    "Touch them to hear their names!"
+   ]
+  ]
+ },
+ "w-tree": {
+  "dur": 1.872,
+  "marks": {},
+  "cues": [
+   [
+    0.138,
+    "tree"
+   ]
+  ]
+ },
+ "w-flower": {
+  "dur": 1.872,
+  "marks": {},
+  "cues": [
+   [
+    0.1,
+    "flower"
+   ]
+  ]
+ },
+ "w-sun": {
+  "dur": 1.872,
+  "marks": {},
+  "cues": [
+   [
+    0.113,
+    "sun"
+   ]
+  ]
+ },
+ "w-cloud": {
+  "dur": 1.872,
+  "marks": {},
+  "cues": [
+   [
+    0.1,
+    "cloud"
+   ]
+  ]
+ },
+ "w-basket": {
+  "dur": 1.872,
+  "marks": {},
+  "cues": [
+   [
+    0.1,
+    "basket"
+   ]
+  ]
+ },
+ "w-bird": {
+  "dur": 1.872,
+  "marks": {},
+  "cues": [
+   [
+    0.1,
+    "bird"
+   ]
+  ]
+ },
+ "w-butterfly": {
+  "dur": 1.872,
+  "marks": {},
+  "cues": [
+   [
+    0.113,
+    "butterfly"
+   ]
+  ]
+ },
  "s05": {
   "dur": 4.92,
   "marks": {},
@@ -177,11 +261,7 @@ window.TIMINGS = {
   "cues": [
    [
     0.1,
-    "Good morning, Mr."
-   ],
-   [
-    1.5,
-    "Woodcutter!"
+    "Good morning, Mr. Woodcutter!"
    ]
   ]
  },
