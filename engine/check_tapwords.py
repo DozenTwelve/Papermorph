@@ -39,7 +39,7 @@ function picture(p, D) {
   mk('rect', { width: 80, height: 60, fill: '#86c9e8' }, cup);
   clockRun(t => cup.setAttribute('transform', `translate(${(1300 + t * 20).toFixed(1)} 40)`), D, { tail: true });
   const box = mk('rect', { x: 1380, y: 795, width: 40, height: 20, fill: '#9aaba3' }, p);   // under the counter's card
-  THINGS = [{ g: ball, word: 'ball' }, { g: tree, word: 'tree' }, { g: bee, word: 'bee', clip: 'w-bee-2' }, { g: cup, word: 'Ice cream' },
+  THINGS = [{ g: ball, word: 'ball', side: 'right' }, { g: tree, word: 'tree' }, { g: bee, word: 'bee', clip: 'w-bee-2', side: 'top' }, { g: cup, word: 'Ice cream' },
             { g: box, word: 'box' }, { g: tree, word: '' }, { g: document.createElementNS(NS, 'g'), word: 'ghost' }];
 }
 music('audio/bgm/m.mp3', ['q', 'after', 'end'], .5);
@@ -121,7 +121,7 @@ async def main():
         assert "w-ball.mp3" in await js("PLAYED"), "the word was not said"
         assert await js("THINGS[0].g.getAnimations().length") > 0, "the thing did not hop"
         assert await js("""(() => { const a = document.querySelector('#ui .card.word').getBoundingClientRect(), b = THINGS[0].g.getBoundingClientRect();
-          return a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom; })()"""), "the word covers the thing"
+          return a.left >= b.right; })()"""), "the word is not right of the thing (side: 'right')"
         await page.wait_for_timeout(250)
         assert await js("SND.duck") < .5, "the music did not duck under the word"
         await tap_at("THINGS[2].g")   # the bee, in front of the tree: the smaller box is on top
@@ -132,7 +132,7 @@ async def main():
           return a.top >= b.bottom; })()"""), "a thing at the top did not get its word below"
         await tap_at("THINGS[0].g")   # again: says it again, counts once
         assert await js("PLAYED.at(-1)") == "w-ball.mp3" and await js(count) == "3 / 5"
-        print("PASS taps: motion runs on while waiting, hit boxes follow, word beside the thing, clip played, music ducked, hop, smaller thing on top, a second tap says it again")
+        print("PASS taps: motion runs on while waiting, hit boxes follow, word on its side of the thing, clip played, music ducked, hop, smaller thing on top, a second tap says it again")
 
         await page.keyboard.press("ArrowRight")   # left to right: ball, tree, bee, ice cream, box
         await page.keyboard.press("ArrowRight")
@@ -159,9 +159,9 @@ async def main():
 
         await page.wait_for_timeout(300)
         for w in ('a thing has no word', '"ghost" is not an element on the stage', '"Ice cream" has no clip at audio/en/w-ice-cream.mp3',
-                  '"box" cannot be tapped: <'):
+                  '"box" cannot be tapped: <', '"bee" has side "top"'):
             assert any(w in x for x in warnings), f"no warning: {w}\n{warnings}"
-        print("PASS warnings: no word, not on the stage, missing clip, covered by the counter")
+        print("PASS warnings: no word, not on the stage, missing clip, covered by the counter, unknown side")
 
         await js("seek(1, false)")
         await page.wait_for_timeout(100)
