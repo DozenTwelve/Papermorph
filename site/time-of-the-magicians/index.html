@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Time of the Magicians: Europe 1919–1929</title>
+<meta name="description" content="A map of Europe, 1919 to 1929: follow Wittgenstein, Heidegger, Benjamin and Cassirer year by year.">
+<link rel="stylesheet" href="lib/page.css">
+</head>
+<body>
+<main id="stage">
+  <header id="top">
+    <div id="yearbar">
+      <button id="prev" class="step" aria-label="Previous year" title="Previous year (←)">‹</button>
+      <h1 id="year" aria-live="polite">1919</h1>
+      <button id="next" class="step" aria-label="Next year" title="Next year (→)">›</button>
+    </div>
+    <p id="title">Time of the Magicians <span>Europe 1919–1929</span></p>
+    <p id="hint">Click a philosopher to hear his year. Click the right of the map, or press →, for the next year.</p>
+  </header>
+
+  <svg id="map" role="group" tabindex="-1" aria-label="Map of Europe" preserveAspectRatio="xMidYMid slice"></svg>
+
+  <nav id="people" aria-label="The four philosophers"></nav>
+
+  <section id="europe" class="card" role="dialog" aria-labelledby="europe-h" hidden>
+    <button class="close" aria-label="Close">×</button>
+    <h2 id="europe-h">Europe in <span></span></h2>
+    <ul></ul>
+    <div class="row">
+      <button class="play" hidden>▶ Listen</button>
+      <button class="go">See where they go →</button>
+    </div>
+    <audio preload="none"></audio>
+  </section>
+
+  <section id="person" class="card" role="dialog" aria-labelledby="person-h" hidden>
+    <button class="close" aria-label="Close">×</button>
+    <div class="head">
+      <img alt="">
+      <div>
+        <h2 id="person-h"></h2>
+        <p class="where"></p>
+      </div>
+    </div>
+    <p class="text"></p>
+    <div class="row"><button class="play" hidden>▶ Listen</button></div>
+    <audio preload="none"></audio>
+  </section>
+
+  <button id="credits-open" class="link">Sources and credits</button>
+  <section id="credits" class="card" role="dialog" aria-labelledby="credits-h" hidden>
+    <button class="close" aria-label="Close">×</button>
+    <h2 id="credits-h">Sources and credits</h2>
+    <p>The story follows Wolfram Eilenberger, <i>Time of the Magicians: The Great Decade of Philosophy, 1919–1929</i>
+      (2018; English translation by Shaun Whiteside, Penguin 2020), told here in our own words. Dates and places not in the
+      book, and every “Europe in” event, were checked against Wikipedia (English and German) and, for some dates, the
+      Deutsche Biographie, the Metzler philosophers' lexicon (spektrum.de), <i>Russell: the Journal of Bertrand Russell
+      Studies</i> and the Goethe-Institut. Facts we could not confirm in a second source were left out.</p>
+    <p>Borders: CShapes 2.0, ETH Zürich (Schvitz, Girardin, Rüegger, Weidmann, Cederman and Gleditsch, 2022), one
+      snapshot for 1 July of each year, under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a>
+      (<a href="LICENSE-borders.txt">notice</a>). The Saar, the Memel territory and the 1922 split of Upper Silesia are not
+      in the data.</p>
+    <p>The four figures were drawn for this page by an image model from descriptions of how the men looked in the 1920s;
+      they are not photographs. Voice: ElevenLabs v4. Fonts: Oswald and EB Garamond (SIL Open Font License).</p>
+  </section>
+</main>
+<script src="lib/borders.js"></script>
+<script src="lib/story.js"></script>
+<script src="audio/voiced.js"></script>
+<script src="lib/app.js"></script>
+</body>
+</html>
