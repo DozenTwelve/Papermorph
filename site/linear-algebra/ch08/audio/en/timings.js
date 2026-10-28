@@ -653,13 +653,13 @@ window.TIMINGS = {
   ]
  },
  "wrap": {
-  "dur": 34.776,
+  "dur": 35.688,
   "marks": {
-   "w1": 1.003,
-   "w2": 10.391,
-   "w3": 15.794,
-   "w4": 22.057,
-   "end": 32.513
+   "w1": 1.029,
+   "w2": 10.352,
+   "w3": 15.859,
+   "w4": 23.164,
+   "end": 33.529
   },
   "cues": [
    [
@@ -667,35 +667,35 @@ window.TIMINGS = {
     "To sum up."
    ],
    [
-    1.003,
+    1.029,
     "A system can be written as A x equals b: A holds the numbers in front of the unknowns, x the unknowns, b the right sides."
    ],
    [
-    10.391,
+    10.352,
     "Each row of A is one equation."
    ],
    [
-    12.669,
+    12.643,
     "Each column of A belongs to one unknown."
    ],
    [
-    15.794,
+    15.859,
     "Size: rows first, then columns."
    ],
    [
-    18.841,
-    "Three rows and two columns is three by two."
+    18.984,
+    "This one has two rows and two columns: two by two."
    ],
    [
-    22.057,
+    23.164,
     "The entry in row two, column one is the number in the second equation, in front of the first unknown."
    ],
    [
-    29.245,
+    30.26,
     "Change it in one place, and it changes in the other."
    ],
    [
-    32.513,
+    33.529,
     "Now try the chapter practice."
    ]
   ]

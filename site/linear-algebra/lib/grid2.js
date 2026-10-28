@@ -6,10 +6,11 @@
 // Loads after engine.js and math.js (it uses plane()).
 const G2_COLS = [COL.irr, COL.real], G2_AX = COL.task;
 // A small flag: a pole and a pennant pointing right, so a flip or a turn shows at once.
-const G2_FLAG = [[.3, .25], [.45, .25], [.45, 1.05], [1.2, 1.3], [.45, 1.55], [.45, 1.75], [.3, 1.75]];
+// It stands beside the unit square (x 1.4 … 2.3), not on it, so the square and the flag never hide each other.
+const G2_FLAG = [[1.4, .25], [1.55, .25], [1.55, 1.05], [2.3, 1.3], [1.55, 1.55], [1.55, 1.75], [1.4, 1.75]];
 
 function grid2(p, { A = [[1, 0], [0, 1]], x = null, mat = [90, 300], size = 54, plane: po = {}, grid = true, square = true, shape = false,
-  units = true, pts = [], t0 = .1, hidePlane = false, result = true, showMat = true } = {}) {
+  units = true, pts = [], t0 = .1, hidePlane = false, result = true, showMat = true, brackets = false } = {}) {
   const v = { a00: A[0][0], a01: A[0][1], a10: A[1][0], a11: A[1][1], x0: x ? x[0] : 0, x1: x ? x[1] : 0 };
   const RANGE = { a00: 9, a01: 9, a10: 9, a11: 9, x0: 9, x1: 9 }, K = 14;   // grid lines k = −K … K
   const holder = G(p, { o: hidePlane ? 0 : 1 });
@@ -31,7 +32,7 @@ function grid2(p, { A = [[1, 0], [0, 1]], x = null, mat = [90, 300], size = 54, 
     const t = T(g, '', { x, y, size, fill, font: MATH, anchor: 'middle' });
     t.style.pointerEvents = 'none';
     bx.setAttribute('aria-label', key);
-    const s = { key, t, box: bx, set: () => setText(t, fmt(v[key])) };
+    const s = { key, t, box: bx, set: () => { const str = fmt(v[key]); setText(t, str); const fs = String(str.length > 2 ? Math.round(size * .74) : size); if (t.getAttribute('font-size') !== fs) t.setAttribute('font-size', fs); } };
     let drag = null;
     bx.addEventListener('pointerdown', e => { if (!live || !s.on) return; e.preventDefault(); drag = { x: e.clientX, from: Math.round(v[key]) }; bx.setPointerCapture(e.pointerId); });
     bx.addEventListener('pointermove', e => { if (!drag) return; const k = svg.getScreenCTM().a; edit({ [key]: clamp(key, drag.from + Math.round((e.clientX - drag.x) / k / 22)) }); });
@@ -88,7 +89,7 @@ function grid2(p, { A = [[1, 0], [0, 1]], x = null, mat = [90, 300], size = 54, 
   const sq = path(sqG, '', { fill: COL.chalk, 'fill-opacity': .12, stroke: COL.chalk, 'stroke-opacity': .7, 'stroke-width': 2.5 });
   const sh = path(shG, '', { fill: COL.chalk, 'fill-opacity': .45, stroke: COL.chalk, 'stroke-width': 2, 'stroke-linejoin': 'round' });
   path(unG, `M${PX(0)} ${PY(0)}H${PX(1)}M${PX(0)} ${PY(0)}V${PY(1)}`, { stroke: COL.chalk, 'stroke-opacity': .45, 'stroke-width': 3, 'stroke-dasharray': '5 6' });
-  [[.5, 0, '[1, 0]', 0, -12, 'middle'], [0, .5, '[0, 1]', -10, 7, 'end']].forEach(([a, b, s, dx, dy, anchor]) => T(unG, s, { x: PX(a) + dx, y: PY(b) + dy, size: 20, fill: COL.dim, font: MATH, anchor }));   // beside the dashed arrows, clear of the axis numbers
+  [[.5, 0, '(1, 0)', 0, -12, 'middle'], [0, .5, '(0, 1)', -10, 7, 'end']].forEach(([a, b, s, dx, dy, anchor]) => T(unG, s, { x: PX(a) + dx, y: PY(b) + dy, size: 20, fill: COL.dim, font: MATH, anchor }));   // beside the dashed arrows, clear of the axis numbers
   const arrowD = (a, c, hl0 = 18) => {
     const A1 = [PX(a[0]), PY(a[1])], C = [PX(c[0]), PY(c[1])], L = Math.hypot(C[0] - A1[0], C[1] - A1[1]);
     if (L < 1) return '';
@@ -107,7 +108,7 @@ function grid2(p, { A = [[1, 0], [0, 1]], x = null, mat = [90, 300], size = 54, 
   const xRing = G(xG, {});
   mk('circle', { r: 22, fill: 'transparent' }, xRing);
   mk('circle', { r: 9, fill: COL.board, stroke: COL.chalk, 'stroke-width': 3 }, xRing);
-  const xLab = T(xG, '', { size: 24, fill: COL.chalk, font: MATH, anchor: 'end' });
+  const xLab = T(xG, '', { size: 24, fill: COL.chalk, font: MATH, anchor: 'start' });
   const axDot = G(xG, {});
   mk('circle', { r: 10, fill: G2_AX, stroke: COL.board, 'stroke-width': 3 }, axDot);
   const axLab = T(xG, '', { size: 26, fill: G2_AX, font: MATH, weight: 600 });
@@ -161,6 +162,47 @@ function grid2(p, { A = [[1, 0], [0, 1]], x = null, mat = [90, 300], size = 54, 
     }
     return 'M' + pts.map(XY).join('L') + 'Z';
   };
+  // The labels beside the tips (col 1, col 2, Ax, x) go where they cover least: each tries eight places around its
+  // point and takes the one over the fewest arrow and axis pixels and clear of the labels already placed, preferring
+  // the side the arrow points to. A function of the state alone, so seeking and playing give the same frame.
+  const unitBoxes = units ? [[PX(.5) - 28, PY(0) - 30, 56, 22], [PX(0) - 64, PY(.5) - 10, 56, 22]] : [];
+  const tickBoxes = po.labels === false ? [] : [[PX(P2.x0) - 10, P2.cy + 8, PX(P2.x1) - PX(P2.x0) + 20, 22], [P2.cx - 36, PY(P2.y1) - 10, 30, PY(P2.y0) - PY(P2.y1) + 20]];
+  const widthOf = (e, n, size) => { let w = 0; try { w = e.getBBox().width; } catch (_) {} return w || n * size * .55; };
+  function placeLabels(c0, c1, ax) {
+    const pts = [], seg = (a, b, wt = 1) => {
+      const A1 = [PX(a[0]), PY(a[1])], B = [PX(b[0]), PY(b[1])], n = Math.max(1, Math.ceil(Math.hypot(B[0] - A1[0], B[1] - A1[1]) / 10));
+      for (let i = 0; i <= n; i++) pts.push([A1[0] + (B[0] - A1[0]) * i / n, A1[1] + (B[1] - A1[1]) * i / n, wt]);
+    };
+    seg([P2.x0, 0], [P2.x1, 0], .5); seg([0, P2.y0], [0, P2.y1], .5);
+    seg([0, 0], c0); seg([0, 0], c1);
+    if (x) { const m1 = [v.x0 * c0[0], v.x0 * c0[1]]; seg([0, 0], m1); seg(m1, ax); seg([0, 0], ax); }
+    if (shape) { const F = G2_FLAG.map(map); F.forEach((q, i) => seg(q, F[(i + 1) % F.length], 1.5)); seg(F[1], F[3], 1.5); seg(F[0], F[5], 1.5); }   // the flag, outline and body
+    // the dots and handles themselves weigh most
+    for (const q of x ? [c0, c1, ax, [v.x0, v.x1]] : [c0, c1]) for (const [ox, oy] of [[0, 0], [-12, 0], [12, 0], [0, -12], [0, 12]]) pts.push([PX(q[0]) + ox, PY(q[1]) + oy, 4]);
+    const placed = [...unitBoxes.map(b => [...b, 120]), ...tickBoxes.map(b => [...b, 120])];
+    const over = (a, b) => Math.max(0, Math.min(a[0] + a[2], b[0] + b[2]) - Math.max(a[0], b[0])) * Math.max(0, Math.min(a[1] + a[3], b[1] + b[3]) - Math.max(a[1], b[1]));
+    const place = (e, tip, dir, w, hh, baseline) => {
+      const [X, Y] = [PX(tip[0]), PY(tip[1])], gp = 14, n = Math.hypot(...dir) || 1, d = [dir[0] / n, -dir[1] / n];
+      const near = [[gp, -hh - 4], [gp, 6], [-w - gp, -hh - 4], [-w - gp, 6], [-w / 2, -hh - gp - 4], [-w / 2, gp + 6], [gp + 6, -hh / 2], [-w - gp - 6, -hh / 2]];
+      const cands = [...near.map(c => [...c, 0]), ...near.map(([dx, dy]) => [dx + (dx > 0 ? 26 : dx < -w / 2 ? -26 : 0), dy + (dy > 0 ? 22 : -22), 1.5])];   // a farther ring, a little dearer
+      let best = null;
+      for (const [dx, dy, extra] of cands) {
+        const b = [X + dx, Y + dy, w, hh], cx = dx + w / 2, cy = dy + hh / 2, cn = Math.hypot(cx, cy) || 1;
+        let cost = extra + (1 - (cx * d[0] + cy * d[1]) / cn) * .6;   // 0 straight ahead of the arrow … 1.2 behind it
+        for (const [px, py, wt] of pts) if (px > b[0] - 3 && px < b[0] + w + 3 && py > b[1] - 3 && py < b[1] + hh + 3) cost += wt;
+        for (const q of placed) cost += over(b, q) / (w * hh) * (q[4] || 200);
+        if (b[0] < 10 || b[0] + w > 1590 || b[1] < 10 || b[1] + hh > 890) cost += 100;
+        if (!best || cost < best[0] - 1e-9) best = [cost, b];
+      }
+      placed.push(best[1]);
+      put(e, { x: best[1][0], y: best[1][1] + baseline });
+    };
+    [c0, c1].forEach((c, j) => { const L = tipLabels[j]; if (L.firstChild) place(L, c, c, widthOf(L, 5, 28), 32, 23); });
+    if (x) {
+      place(axLab, ax, ax, widthOf(axLab, axLab.textContent.length, 26), 30, 22);
+      place(xLab, [v.x0, v.x1], [v.x0, v.x1], widthOf(xLab, xLab.textContent.length, 24), 28, 21);
+    }
+  }
   function draw() {
     slots.forEach(s => s.set());
     const c0 = [v.a00, v.a10], c1 = [v.a01, v.a11], ax = map([v.x0, v.x1]);
@@ -185,8 +227,6 @@ function grid2(p, { A = [[1, 0], [0, 1]], x = null, mat = [90, 300], size = 54, 
     [c0, c1].forEach((c, j) => {
       setD(cols[j], arrowD([0, 0], c));
       put(tips[j], { x: PX(c[0]), y: PY(c[1]) });
-      const n = Math.hypot(...c) || 1;
-      put(tipLabels[j], { x: PX(c[0]) + c[0] / n * 30, y: PY(c[1]) - c[1] / n * 30 + 10 });
     });
     if (x) {
       const m1 = [v.x0 * c0[0], v.x0 * c0[1]];
@@ -194,15 +234,12 @@ function grid2(p, { A = [[1, 0], [0, 1]], x = null, mat = [90, 300], size = 54, 
       setD(combo[1], arrowD(m1, ax, 14));
       setD(axArrow, arrowD([0, 0], ax));
       put(xRing, { x: PX(v.x0), y: PY(v.x1) });
-      put(xLab, { x: PX(v.x0) - 14, y: PY(v.x1) + 30 });
-      setText(xLab, `x = (${fmt(v.x0)}, ${fmt(v.x1)})`);
+      const br = brackets ? ['[', ']'] : ['(', ')'];   // brackets: x and Ax read as vectors, else as points
+      setText(xLab, `x = ${br[0]}${fmt(v.x0)}, ${fmt(v.x1)}${br[1]}`);
       put(axDot, { x: PX(ax[0]), y: PY(ax[1]) });
-      const n = Math.hypot(...ax) || 1;
-      let lx = PX(ax[0]) + ax[0] / n * 26 + (ax[0] < 0 ? -150 : 8);
-      if (lx + 170 > 1590) lx = PX(ax[0]) - 180;   // near the right edge: put the label on the left
-      put(axLab, { x: lx, y: PY(ax[1]) - ax[1] / n * 26 + (ax[1] < 0 ? 24 : -8) });
-      setText(axLab, `Ax = (${fmt(ax[0])}, ${fmt(ax[1])})`);
+      setText(axLab, `Ax = ${br[0]}${fmt(ax[0])}, ${fmt(ax[1])}${br[1]}`);
     }
+    placeLabels(c0, c1, ax);
     listeners.forEach(f => f(v));
   }
   function edit(to) {
@@ -252,7 +289,8 @@ function grid2(p, { A = [[1, 0], [0, 1]], x = null, mat = [90, 300], size = 54, 
     col: j => j ? [v.a01, v.a11] : [v.a00, v.a10],
     Ax: () => map([v.x0, v.x1]),
     map,
-    labels(names) { names.forEach((n, i) => { tipLabels[i].replaceChildren(); M(tipLabels[i], [n], { size: 28, fill: G2_COLS[i] }); }); },
+    labels(names) { names.forEach((n, i) => { tipLabels[i].replaceChildren(); M(tipLabels[i], [n], { size: 28, fill: G2_COLS[i], anchor: 'start' }); }); draw(); },
+    tipLabels,   // the groups that hold the column names (to show or hide one on its own)
   };
   return api;
 }

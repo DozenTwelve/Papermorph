@@ -15,7 +15,7 @@
 <script src="audio/en/timings.js"></script>
 <script>
 'use strict';
-const CHAPTER = { number: 10, title: 'A Matrix Moves the Whole Plane', minutes: 9, language: 'en' };
+const CHAPTER = { number: 10, title: 'A Matrix Moves the Whole Plane', minutes: 10, language: 'en' };
 
 /* ---------- layout and colours ---------- */
 const DISP = [90, 230];                                        // the matrix in brackets, top left
@@ -24,6 +24,7 @@ const LEFT = { x: 40, y: 420, w: 720, cls: 'side' };          // question card u
 const TOPL = { x: 40, y: 190, w: 720, cls: 'side' };          // question card at the top left (matrix hidden)
 const A1 = [[2, -1], [1, 1]];                                  // the chapter's first matrix
 const I2 = [[1, 0], [0, 1]];
+const ZOOM = { u: 68, x0: -5, x1: 5, y0: -5, y1: 5 };                 // a closer plane for the named moves: the square and flag read
 
 /* ---------- chapter drawing helpers ---------- */
 const say = (p, parts, x, y, t0, { size = 40, fill = COL.chalk, anchor = 'start' } = {}) => { const e = M(p, [].concat(parts), { x, y, size, fill, anchor, o: 0 }); show(e, t0); return e; };
@@ -114,15 +115,16 @@ const BEATS = [
     [0, 1].forEach(i => put(g.res(i), { o: 0 }));
     put(g.parts.cols, { o: 0 });
     put(g.parts.x, { o: 0 }); show(g.parts.x, m('x'), .4);
+    ['x0', 'x1'].forEach(k => g.num(k).forEach(e => { put(e, { o: 0 }); show(e, m('x') + .2, .4); }));   // x's numbers come with "take the point"
     // by rows, then the answer appears in the brackets and in the plane
     [0, 1].forEach(i => band(p, DISP[0] + 6, g.lay.A[1][i] - 48, 192, 64, ROWC[i], m('rows') + i * 2.4, m('land')));
-    say(p, ['2·1 − 1 = 1,   1 + 1 = 2'], 90, 480, m('rows') + .4, { size: 36 });
+    say(p, ['2·1 − 1 = 1,'], 90, 480, m('rows') + .4, { size: 36 }); say(p, ['1 + 1 = 2'], 300, 480, m('rows') + 2.4, { size: 36 });
     [0, 1].forEach(i => { tw(g.res(i), { o: 1 }, m('land'), .4); tw(g.res(i), { o: 0 }, m('x2'), .3); tw(g.res(i), { o: 1 }, m('land2'), .4); });
-    [g.axDot, g.axLab].forEach(e => { show(e, m('land') + .2, .4); hide(e, m('x2'), .3); show(e, m('land2') + .2, .4); });
-    show(g.axArrow, m('land') + .2, .4); hide(g.axArrow, m('many'), .3); hide(g.axDot, m('many'), .3); hide(g.axLab, m('many'), .3); hide(g.parts.x, m('many'), .3);
-    const trail = G(p, {});
-    const tr = (from, to, t) => g.P.arrow(...from, ...to, COL.dim, t, { into: trail });
-    tr([1, 1], [1, 2], m('land'));
+    [g.axDot, g.axLab, g.axArrow].forEach(e => { show(e, m('land') + .2, .4); hide(e, m('x2'), .3); show(e, m('land2') + .2, .4); });
+    hide(g.axArrow, m('many'), .3); hide(g.axDot, m('many'), .3); hide(g.axLab, m('many'), .3); hide(g.parts.x, m('many'), .3);
+    const trail = G(p, {}), trail1 = G(trail, {});
+    const tr = (from, to, t, into = trail) => g.P.arrow(...from, ...to, COL.dim, t, { into });
+    tr([1, 1], [1, 2], m('land'), trail1); hide(trail1, m('x2'), .3);
     g.to({ x0: 2, x1: 0 }, m('x2'), .9);
     say(p, ['2·2 − 0 = 4,   2 + 0 = 2'], 90, 540, m('x2') + 1.6, { size: 36 });
     tr([2, 0], [4, 2], m('land2'));
@@ -132,7 +134,15 @@ const BEATS = [
     const pts = [];
     for (let x = -2; x <= 2; x++) for (let y = -2; y <= 2; y++) pts.push([x, y]);
     // they appear where they are, then all slide together on "Watch"
-    pts.forEach((q, i) => { const special = (q[0] === 1 && q[1] === 1) || (q[0] === 2 && q[1] === 0); carry(g, q, dots, m('many') + .3 + i * .08, { color: special ? COL.task : COL.chalk, dur: 2.4, r: special ? 10 : 7, move: m('go') + .2 }); });
+    const ghosts = G(p, { o: 0 });   // where the dots were: faint rings left behind
+    pts.forEach((q, i) => {
+      const special = (q[0] === 1 && q[1] === 1) || (q[0] === 2 && q[1] === 0);
+      mk('circle', { cx: g.P.PX(q[0]), cy: g.P.PY(q[1]), r: 6, fill: 'none', stroke: COL.chalk, 'stroke-opacity': .45, 'stroke-width': 2 }, ghosts);
+      const d = carry(g, q, dots, m('many') + .3 + i * .08, { color: special ? COL.task : COL.chalk, dur: 2.4, r: special ? 10 : 7, move: m('go') + .2 });
+      if (special) pulse(d, m('check') + (q[0] === 1 ? .3 : 2.2), 1.5);
+    });
+    show(ghosts, m('go') + .2, .4);
+    text(p, 'rings: where the dots started', 90, 760, m('go') + 1.4, { size: 26, fill: COL.dim });
     text(p, '(1, 1) → (1, 2)', 90, 640, m('check') + .3, { size: 32, fill: COL.task, weight: 600 });
     text(p, '(2, 0) → (4, 2)', 90, 690, m('check') + 2.2, { size: 32, fill: COL.task, weight: 600 });
   }],
@@ -140,12 +150,12 @@ const BEATS = [
   ['grid', 'The grid moves', (m) => {
     const p = panel(0);
     text(p, 'The whole grid moves', 60, 110, .2, { size: 40, weight: 600 });
-    const g = S.g = planeOf(p, I2, { units: false });
+    const g = S.g = planeOf(p, I2, { units: false, shape: false });
     put(g.M, { o: 0 }); show(g.M, m('go') + 3, .5);
     g.to(keysOf(A1), m('go') + .3, 2.6);
     // one line of the grid, and its neighbour: still straight, still parallel, evenly spaced
     const L = G(g.P.g, {});
-    [1, 2, 3].forEach((k, i) => { const l = g.P.line(...mul(A1, [0, k]), ...mul(A1, [1, k]), COL.task, (i ? m('par') : m('straight')) + .3 + Math.max(0, i - 1) * .6, { into: L }); hide(l, m('faint'), .4); });
+    [1, 2, 3].forEach((k, i) => { const l = g.P.line(...mul(A1, [0, k]), ...mul(A1, [1, k]), COL.chalk, (i ? m('par') : m('straight')) + .3 + Math.max(0, i - 1) * .6, { into: L }); hide(l, m('faint'), .4); });
     const gp = g.P.g.querySelector('path'); tw(gp, { 'a_stroke-opacity': .45 }, m('faint') + .3, .4); tw(gp, { 'a_stroke-opacity': .1 }, m('faint') + 2.6, .6);
     text(p, 'straight lines stay straight', 90, 480, m('straight') + .4, { size: 30, weight: 600, fill: COL.task });
     text(p, 'parallel lines stay parallel,', 90, 530, m('par') + .4, { size: 30, weight: 600, fill: COL.task });
@@ -161,23 +171,27 @@ const BEATS = [
     const g = S.g = planeOf(p, A1, { shape: false });
     g.labels(['col 1', 'col 2']);
     put(g.parts.cols, { o: 0 });
-    carry(g, [1, 0], p, m('e1'), { color: COL.irr, dur: 1.4, r: 10 });
-    say(p, ['A·(1, 0) = (2, 1)'], 90, 480, m('e1') + 1.6, { size: 36, fill: COLC[0] });
+    // (1, 0) by rows, row 1 then row 2 while they are said; it lands as "it lands on two, one" is said
+    [0, 1].forEach(i => band(p, DISP[0] + 6, g.lay.A[1][i] - 48, 192, 64, ROWC[i], m('e1') + 2 + i * 1.6, m('e1') + 5.6));
+    carry(g, [1, 0], p, m('e1'), { color: COL.irr, dur: 1.4, r: 10, move: m('e1') + 4.4 });
+    say(p, ['A·(1, 0) = (2, 1)'], 90, 480, m('e1') + 5.6, { size: 36, fill: COLC[0] });
     show(g.parts.cols, m('c1'), .4); put(g.cols[1], { o: 0 });
     colFrame(p, g, 0, m('c1'), m('why'));
-    carry(g, [0, 1], p, m('e2'), { color: COL.real, dur: 1.4, r: 10 });
+    put(g.tipLabels[1], { o: 0 }); show(g.tipLabels[1], m('e2') + 1.8, .4);   // "col 2" comes with its arrow
+    carry(g, [0, 1], p, m('e2'), { color: COL.real, dur: 1.4, r: 10, move: m('e2') + .9 });
     say(p, ['A·(0, 1) = (−1, 1)'], 90, 535, m('e2') + 1.6, { size: 36, fill: COLC[1] });
     show(g.cols[1], m('e2') + 1.8, .4);
     colFrame(p, g, 1, m('e2') + 1.8, m('why'));
     say(p, ['(1, 0) → 1·col 1 + 0·col 2'], 90, 610, m('why') + 2.5, { size: 32 });
     say(p, ['(x, y) → x·col 1 + y·col 2'], 90, 680, m('all') + 4, { size: 36, fill: COL.task });
     const st1 = G(p, {});
-    [[0, 0, 1, 0], [1, 0, 2, 0], [2, 0, 2, 1]].forEach(([a, b, c, d], i) => g.P.arrow(a, b, c, d, COL.chalk, m('all') + 1 + i * .6, { into: st1 }));
+    [[0, 0, 1, 0], [1, 0, 2, 0], [2, 0, 2, 1]].forEach(([a, b, c, d], i) => g.P.arrow(a, b, c, d, COL.chalk, m('all') + 1 + i * .6, { into: st1 }).setAttribute('stroke-width', 6));
+    tw(g.parts.square, { o: .25 }, m('all') + .6, .4); tw(g.parts.square, { o: 1 }, m('read'), .4);   // the slanted box steps back while the steps are walked
     thick(g.cols[0], m('why') + 4.5);
     hide(st1, m('grid') - .3, .3);
     // the moved grid is steps of the two columns: walk a few of them
     const steps = G(p, {});
-    [[0, 0, 2, 1, COLC[0]], [2, 1, 4, 2, COLC[0]], [4, 2, 3, 3, COLC[1]], [3, 3, 2, 4, COLC[1]]].forEach(([a, b, c, d, col], i) => g.P.arrow(a, b, c, d, col, m('grid') + .4 + i * .7, { into: steps }));
+    [[0, 0, 2, 1, COLC[0]], [2, 1, 4, 2, COLC[0]], [4, 2, 3, 3, COLC[1]]].forEach(([a, b, c, d, col], i) => g.P.arrow(a, b, c, d, col, m('grid') + .4 + i * .7, { into: steps }));
     hide(steps, m('read') - .2, .4);
     thick(g.cols[0], m('read') + 1.8); colFrame(p, g, 0, m('read') + 1.8, m('read') + 4);
     thick(g.cols[1], m('read') + 4.2); colFrame(p, g, 1, m('read') + 4.2);
@@ -191,17 +205,17 @@ const BEATS = [
     const g = S.g = planeOf(p, A1, { shape: false });
     g.labels(['col 1', 'col 2']);
     const P2 = g.P, w1 = G(p, {}), w2 = G(p, {});
-    ring(P2, [2, 1], COL.chalk, w1, m('q'), '');
-    say(w1, ['(2, 1):'], 90, 480, m('q') + .2, { size: 36 });
-    const cs = [P2.arrow(0, 0, 2, 1, COLC[0], m('s1') + .2, { into: w1 }), P2.arrow(2, 1, 4, 2, COLC[0], m('s1') + .9, { into: w1 })];
-    say(w1, ['2·(2, 1) = (4, 2)'], 220, 480, m('s1') + .4, { size: 36, fill: COLC[0] });
-    cs.push(P2.arrow(4, 2, 3, 3, COLC[1], m('s2') + .3, { into: w1 }));
+    ring(P2, [3, 1], COL.chalk, w1, m('q'), '(3, 1)', { dx: 16, dy: 34 });
+    say(w1, ['(3, 1):'], 90, 480, m('q') + .2, { size: 36 });
+    const cs = [P2.arrow(0, 0, 2, 1, COLC[0], m('s1') + .2, { into: w1 }), P2.arrow(2, 1, 4, 2, COLC[0], m('s1') + .9, { into: w1 }), P2.arrow(4, 2, 6, 3, COLC[0], m('s1') + 1.6, { into: w1 })];
+    say(w1, ['3·(2, 1) = (6, 3)'], 220, 480, m('s1') + .4, { size: 36, fill: COLC[0] });
+    cs.push(P2.arrow(6, 3, 5, 4, COLC[1], m('s2') + .3, { into: w1 }));
     cs.forEach((a, i) => thick(a, m('grid') + 2.4 + i * 1.1, 4));
     say(w1, ['+ 1·(−1, 1)'], 220, 535, m('s2') + .4, { size: 36, fill: COLC[1] });
-    pulse(P2.dot(3, 3, COL.task, m('land') + .3, { label: '(3, 3)', into: w1 }), m('land') + 3);
-    say(w1, ['= (3, 3)'], 220, 590, m('land') + .5, { size: 36, fill: COL.task });
-    carry(g, [2, 1], w1, m('grid') + .2, { color: COL.task, dur: 1.6, r: 9 });
-    say(w1, ['rows:  4 − 1 = 3,   2 + 1 = 3  ✓'], 90, 650, m('rows') + .4, { size: 32 });
+    pulse(P2.dot(5, 4, COL.chalk, m('land') + .3, { label: '(5, 4)', dx: -14, anchor: 'end', into: w1 }), m('land') + 3);
+    say(w1, ['= (5, 4)'], 220, 590, m('land') + .5, { size: 36 });
+    carry(g, [3, 1], w1, m('grid') + .2, { color: COL.chalk, dur: 1.6, r: 9 });
+    say(w1, ['rows:  6 − 1 = 5,   3 + 1 = 4  ✓'], 90, 650, m('rows') + .4, { size: 32 });
     hide(w1, m('q2') - .3, .4);
     ring(P2, [-1, 2], COL.chalk, w2, m('q2'), '');
     say(w2, ['(−1, 2):'], 90, 480, m('q2') + .2, { size: 36 });
@@ -247,70 +261,144 @@ const BEATS = [
     ring(g.P, [-2, 1], COLC[1], p, undefined, 'column 2 here', { dx: -20, anchor: 'end' });
   }, { ask: done => quiz(LEFT, [{
     id: 'c-cols', prompt: ['Drag the green tip onto ', $m('(1, 2)'), ' and the violet tip onto ', $m('(−2, 1)'), '. What does the matrix say?'],
-    build: g2Task(S.g, v => v.a00 === 1 && v.a10 === 2 && v.a01 === -2 && v.a11 === 1, 'A = [1 −2; 2 1]: column 1 is (1, 2), column 2 is (−2, 1). The plane turns and grows.',
+    build: g2Task(S.g, v => v.a00 === 1 && v.a10 === 2 && v.a01 === -2 && v.a11 === 1, 'Column 1 is (1, 2) and column 2 is (−2, 1), so A has rows 1, −2 and 2, 1. The plane turns and grows.',
       'Column 1 is where (1, 0) lands: its tip goes on (1, 2). Column 2 goes on (−2, 1). You can also type the numbers into the matrix.', () => S.g.set({ a00: 1, a10: 2, a01: -2, a11: 1 }), ['A', 'cols']),
   }], done) }],
 
   ['stretch', 'Stretch', (m) => {
     const p = panel(0);
     text(p, 'Stretch', 60, 110, .2, { size: 40, weight: 600 });
-    const g = S.g = planeOf(p, I2);
+    const g = S.g = planeOf(p, I2, { plane: ZOOM });
     g.labels(['col 1', 'col 2']);
-    g.to({ a00: 2 }, m('A') + .3, 1.6);
+    g.to({ a00: 2 }, m('A') + .3, 1.6);                 // the number changes as it is read, and the plane with it
     colFrame(p, g, 0, m('c'), m('c') + 4); thick(g.cols[0], m('c') + .3);
     colFrame(p, g, 1, m('c') + 4, m('see')); thick(g.cols[1], m('c') + 4.3);
+    g.to({ a00: 1 }, m('see'), .7); g.to({ a00: 2 }, m('see') + 1, 2);   // once more, slowly, as it is described
     text(p, 'twice as wide, same height', 90, 480, m('see') + .4, { size: 30, weight: 600, fill: COL.task });
-    pulse(g.parts.shape.firstChild, m('flag') + .3, 1.08);
-    tw(g.parts.shape.firstChild, { 'a_fill-opacity': .9 }, m('flag'), .3); tw(g.parts.shape.firstChild, { 'a_fill-opacity': .55 }, m('flag') + 2, .5);
+    tw(g.parts.shape.firstChild, { 'a_fill-opacity': .9 }, m('flag'), .3); tw(g.parts.shape.firstChild, { 'a_fill-opacity': .45 }, m('flag') + 3.4, .5);
+    g.to({ a00: 1 }, m('flag') + .2, .6); g.to({ a00: 2 }, m('flag') + 1, 1.6);   // the flag widens while it is watched
     g.to({ a11: 2 }, m('both') + 1, 1.4);
-    text(p, 'two, zero, zero, two: twice as big', 90, 540, m('both') + 1.4, { size: 30, weight: 600, fill: COL.task });
+    text(p, '2, 0 and 0, 2: twice as big', 90, 540, m('both') + 1.4, { size: 30, weight: 600, fill: COL.task });
   }],
 
   ['flip', 'Flip', (m) => {
     const p = panel(0);
     text(p, 'Flip', 60, 110, .2, { size: 40, weight: 600 });
-    const g = S.g = planeOf(p, I2);
+    const g = S.g = planeOf(p, I2, { plane: ZOOM });
     g.labels(['col 1', 'col 2']);
     g.to({ a00: -1 }, m('A') + .4, 2);
     colFrame(p, g, 0, m('c'), m('see')); thick(g.cols[0], m('c') + .3);
-    text(p, 'a mirror image across the y-axis', 90, 480, m('see') + .4, { size: 30, weight: 600, fill: COL.task });
-    const mir = path(p, `M${g.P.PX(0)} ${g.P.PY(6.4)}V${g.P.PY(-6.4)}`, { stroke: COL.task, 'stroke-width': 3, 'stroke-dasharray': '8 8' }, { o: 0 });
-    show(mir, m('see') + .3, .4);
-    tw(g.parts.shape.firstChild, { 'a_fill-opacity': .9 }, m('flag'), .3); tw(g.parts.shape.firstChild, { 'a_fill-opacity': .55 }, m('flag') + 2, .5);
-    text(p, 'the flag points left', 90, 540, m('flag') + .4, { size: 30, fill: COL.task });
+    const mir = path(p, `M${g.P.PX(0)} ${g.P.PY(5.4)}V${g.P.PY(-5.4)}`, { stroke: COL.chalk, 'stroke-width': 3, 'stroke-dasharray': '8 8' }, { o: 0 });
+    show(mir, m('see') + .2, .4); hide(mir, m('flip2'), .3);
+    g.to({ a00: 1 }, m('see') + .3, .8); g.to({ a00: -1 }, m('see') + 1.4, 2.2);   // over the mirror line, slowly, as it is said
+    const cap1 = [text(p, 'a mirror image across the y-axis', 90, 480, m('see') + .4, { size: 30, weight: 600, fill: COL.task })];
+    tw(g.parts.shape.firstChild, { 'a_fill-opacity': .9 }, m('flag'), .3); tw(g.parts.shape.firstChild, { 'a_fill-opacity': .45 }, m('flag') + 2, .5);
+    cap1.push(text(p, 'the flag points left', 90, 540, m('flag') + .4, { size: 30, fill: COL.task }));
+    cap1.forEach(e => hide(e, m('flip2'), .3));
+    // the second flip: upside down (back through the plain plane, not through the zero matrix)
+    g.to({ a00: 1 }, m('flip2') + .2, .9);
+    g.to({ a11: -1 }, m('flip2') + 2, 2);
+    colFrame(p, g, 1, m('flip2') + 4.5, m('see2')); thick(g.cols[1], m('flip2') + 4.8);
+    const mir2 = path(p, `M${g.P.PX(-5.4)} ${g.P.PY(0)}H${g.P.PX(5.4)}`, { stroke: COL.chalk, 'stroke-width': 3, 'stroke-dasharray': '8 8' }, { o: 0 });
+    show(mir2, m('see2') + .2, .4);
+    g.to({ a11: 1 }, m('see2') + .3, .8); g.to({ a11: -1 }, m('see2') + 1.4, 2.2);
+    text(p, 'upside down: a mirror across the x-axis', 90, 480, m('see2') + .4, { size: 30, weight: 600, fill: COL.task });
   }],
 
   ['shear', 'Shear', (m) => {
     const p = panel(0);
     text(p, 'Shear', 60, 110, .2, { size: 40, weight: 600 });
-    const g = S.g = planeOf(p, I2);
+    const g = S.g = planeOf(p, I2, { plane: ZOOM });
     g.labels(['col 1', 'col 2']);
     g.to({ a01: 1 }, m('A') + .4, 2);
     colFrame(p, g, 1, m('c') + 1.6, m('see')); thick(g.cols[1], m('c') + 1.9);
-    const { PX, PY } = g.P;
+    g.to({ a01: 0 }, m('see'), .7); g.to({ a01: 1 }, m('see') + 1, 2.2);
     // the bottom line stays, higher lines slide further: arrows show how far
     const sl = G(p, {});
-    [1, 2, 3].forEach((k, i) => { g.P.arrow(-3, k, -3 + k, k, COL.task, m('see') + 2 + i * .6, { into: sl }); });
-    text(p, 'higher lines slide further', 90, 480, m('see') + 1, { size: 30, weight: 600, fill: COL.task });
-    tw(g.parts.shape.firstChild, { 'a_fill-opacity': .9 }, m('flag'), .3); tw(g.parts.shape.firstChild, { 'a_fill-opacity': .55 }, m('flag') + 2, .5);
+    [1, 2, 3].forEach((k, i) => { g.P.arrow(-4, k, -4 + k, k, COL.chalk, m('see') + 2.4 + i * .6, { into: sl }); });
+    hide(sl, m('up'), .3);
+    hide(text(p, 'higher lines slide further', 90, 480, m('see') + 1, { size: 30, weight: 600, fill: COL.task }), m('up'), .3);
+    tw(g.parts.shape.firstChild, { 'a_fill-opacity': .9 }, m('flag'), .3); tw(g.parts.shape.firstChild, { 'a_fill-opacity': .45 }, m('flag') + 2, .5);
+    // the other shear: upright lines slide up
+    g.to({ a01: 0 }, m('up') + .2, .9);
+    g.to({ a10: 1 }, m('up') + 2.2, 2);
+    colFrame(p, g, 0, m('up') + 5, m('see2')); thick(g.cols[0], m('up') + 5.3);
+    g.to({ a10: 0 }, m('see2'), .7); g.to({ a10: 1 }, m('see2') + 1, 2.2);
+    const su = G(p, {});
+    [1, 2, 3].forEach((k, i) => { g.P.arrow(k, -4, k, -4 + k, COL.chalk, m('see2') + 2.4 + i * .6, { into: su }); });
+    text(p, 'further right, further up', 90, 480, m('see2') + 1, { size: 30, weight: 600, fill: COL.task });
   }],
 
   ['turn', 'Turn', (m) => {
     const p = panel(0);
     text(p, 'Turn', 60, 110, .2, { size: 40, weight: 600 });
-    const g = S.g = planeOf(p, I2);
+    const g = S.g = planeOf(p, I2, { plane: ZOOM });
     g.labels(['col 1', 'col 2']);
     g.turn(0, 90, m('A') + .3, 2.2);
     colFrame(p, g, 0, m('c'), m('c') + 4); thick(g.cols[0], m('c') + .3);
     colFrame(p, g, 1, m('c') + 4, m('see')); thick(g.cols[1], m('c') + 4.3);
     text(p, 'a quarter turn, counterclockwise', 90, 480, m('see') + .4, { size: 30, weight: 600, fill: COL.task });
-    const { PX, PY } = g.P;
-    const arc = path(p, `M${PX(2.5)} ${PY(0)}A${2.5 * g.P.u} ${2.5 * g.P.u} 0 0 0 ${PX(0)} ${PY(2.5)}`, { stroke: COL.task, 'stroke-width': 3, fill: 'none' }, { d: 0 });
-    tw(arc, { d: 1 }, m('see') + 1, 1);
+    const { PX, PY } = g.P, R = 3.4 * g.P.u;
+    // the arc grows with the turn, and its head shows which way
+    const arc = G(p, { o: 0 });
+    const ap = path(arc, `M${PX(3.4)} ${PY(0)}A${R} ${R} 0 0 0 ${PX(0)} ${PY(3.4)}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' }, { d: 0 });
+    path(arc, `M${PX(0) + 14} ${PY(3.4) - 9}L${PX(0)} ${PY(3.4)}L${PX(0) + 14} ${PY(3.4) + 9}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' });
+    g.turn(90, 0, m('see'), .7); g.turn(0, 90, m('see') + 1, 2.2);
+    show(arc, m('see') + 1, .2); tw(ap, { d: 1 }, m('see') + 1, 2.2, io);
     hide(arc, m('half'), .3);
-    tw(g.parts.shape.firstChild, { 'a_fill-opacity': .9 }, m('flag'), .3); tw(g.parts.shape.firstChild, { 'a_fill-opacity': .55 }, m('flag') + 2, .5);
+    tw(g.parts.shape.firstChild, { 'a_fill-opacity': .9 }, m('flag'), .3); tw(g.parts.shape.firstChild, { 'a_fill-opacity': .45 }, m('flag') + 2, .5);
     g.turn(90, 180, m('half') + 1.5, 2.2);
-    text(p, 'minus one, zero, zero, minus one: a half turn', 90, 540, m('half') + 2, { size: 28, weight: 600, fill: COL.task });
+    text(p, 'half turn:  rows −1, 0 and 0, −1', 90, 540, m('half') + 2, { size: 28, weight: 600, fill: COL.task });
+    // the other way: a quarter turn clockwise
+    g.turn(180, 360, m('cw') + .2, .8);   // on round to the start (never backwards through the quarter turn)
+    g.turn(0, -90, m('cw') + 2, 2.4);
+    colFrame(p, g, 0, m('cw') + 2.8, m('cwm')); colFrame(p, g, 1, m('cw') + 4.6, m('cwm'));
+    const arc2 = G(p, { o: 0 });
+    const ap2 = path(arc2, `M${PX(3.4)} ${PY(0)}A${R} ${R} 0 0 1 ${PX(0)} ${PY(-3.4)}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' }, { d: 0 });
+    path(arc2, `M${PX(0) + 14} ${PY(-3.4) - 9}L${PX(0)} ${PY(-3.4)}L${PX(0) + 14} ${PY(-3.4) + 9}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' });
+    show(arc2, m('cw') + 2, .2); tw(ap2, { d: 1 }, m('cw') + 2, 2.4, io);
+    ['a00', 'a01', 'a10', 'a11'].forEach((k, i) => flash(g, k, m('cwm') + .4 + i * .5));
+    text(p, 'clockwise:  rows 0, 1 and −1, 0', 90, 600, m('cwm') + .4, { size: 28, weight: 600, fill: COL.task });
+  }],
+
+  ['readit', 'Read the matrix off', (m) => {
+    const p = panel(0);
+    text(p, 'Read the matrix off the picture', 60, 110, .2, { size: 40, weight: 600 });
+    const g = S.g = planeOf(p, [[1, 2], [-1, 1]], { shape: false, showMat: false });
+    g.labels(['col 1', 'col 2']);
+    const q = G(p, { o: 0 }); show(q, .4, .4);   // the hidden matrix: brackets with "?"
+    [[0, 0], [0, 1], [1, 0], [1, 1]].forEach(([i, j]) => T(q, '?', { x: g.lay.A[0][j], y: g.lay.A[1][i], size: 54, fill: COL.dim, font: MATH, anchor: 'middle' }));
+    const bx = mk('path', { d: `M104 ${DISP[1] - 51}H90V${DISP[1] + 92}H104M${90 + 54 * 3.4 + 6} ${DISP[1] - 51}H${90 + 54 * 3.4 + 20}V${DISP[1] + 92}H${90 + 54 * 3.4 + 6}`, stroke: COL.chalk, 'stroke-width': 3, fill: 'none' }, q);
+    hide(q, m('show'), .3);
+    const { PX, PY } = g.P;
+    const first = G(p, {});   // the first picture's notes, gone when the second picture comes
+    ring(g.P, [1, -1], COLC[0], first, m('c1') + 2, '', {}); thick(g.cols[0], m('c1') + 1.4);
+    say(first, ['column 1 = (1, −1)'], 90, 480, m('c1') + 4, { size: 34, fill: COLC[0] });
+    ring(g.P, [2, 1], COLC[1], first, m('c2') + 2, '', {}); thick(g.cols[1], m('c2') + 1.4);
+    say(first, ['column 2 = (2, 1)'], 90, 535, m('c2') + 3.4, { size: 34, fill: COLC[1] });
+    hide(first, m('two') - .5, .4);
+    show(g.M, m('show') + .2, .5);
+    ['a00', 'a01'].forEach((k, i) => flash(g, k, m('show') + .8 + i * .5)); ['a10', 'a11'].forEach((k, i) => flash(g, k, m('show') + 2.8 + i * .5));   // read as rows, as it is said
+    // the check: (1, 1) is one step of each column
+    const ck = G(p, {});
+    ring(g.P, [1, 1], COL.chalk, ck, m('check') + 1.2, '(1, 1)', { dx: -20, dy: -16, anchor: 'end' });
+    g.P.arrow(0, 0, 1, -1, COLC[0], m('check') + 3, { into: ck }); g.P.arrow(1, -1, 3, 0, COLC[1], m('check') + 4.3, { into: ck });
+    say(ck, ['(1, 1) → (1, −1) + (2, 1)'], 90, 600, m('check') + 3, { size: 32 });
+    ['a00', 'a01'].forEach(k => flash(g, k, m('check') + 5.4)); say(ck, ['1 + 2 = 3'], 90, 655, m('check') + 5.4, { size: 32 });
+    ['a10', 'a11'].forEach(k => flash(g, k, m('check') + 7.4)); say(ck, ['−1 + 1 = 0'], 290, 655, m('check') + 7.4, { size: 32 });
+    say(ck, ['= (3, 0)'], 470, 600, m('check') + 9.5, { size: 32, fill: COL.chalk });
+    carry(g, [1, 1], ck, m('on') - .2, { dur: 1.4, r: 9, move: m('on') + .3 });
+    hide(ck, m('two') - .2, .4);
+    // a second picture: a turn that also doubles
+    g.to({ a00: 0, a01: -2, a10: 2, a11: 0 }, m('two') - .4, 1.8);
+    tw(g.M, { o: 0 }, m('two') - .5, .3);
+    const q2 = G(p, { o: 0 }); [[0, 0], [0, 1], [1, 0], [1, 1]].forEach(([i, j]) => T(q2, '?', { x: g.lay.A[0][j], y: g.lay.A[1][i], size: 54, fill: COL.dim, font: MATH, anchor: 'middle' }));
+    q2.append(bx.cloneNode());
+    show(q2, m('two') - .2, .3); hide(q2, m('show2'), .3); tw(g.M, { o: 1 }, m('show2') + .2, .5);
+    thick(g.cols[0], m('two') + 1.6); thick(g.cols[1], m('two') + 3.4);
+    say(p, ['column 1 = (0, 2),   column 2 = (−2, 0)'], 90, 480, m('two') + 2, { size: 32 });
+    text(p, 'a quarter turn, twice as big', 90, 540, m('show2') + 4.6, { size: 30, weight: 600, fill: COL.task });
+    g.to({ a00: 1, a01: 0, a10: 0, a11: 1 }, m('show2') + 4.4, .6); g.to({ a00: 0, a01: -2, a10: 2, a11: 0 }, m('show2') + 5.2, 2.4);   // once more from the plain plane: it turns and grows
   }],
 
   ['q2', 'Quick check', () => {
@@ -322,41 +410,60 @@ const BEATS = [
     id: 'c-read', prompt: ['Which matrix moved the plane like this? Read the columns off the picture.'],
     build: blanks([
       { parts: ['column 1  =  (', { box: '2' }, ', ', { box: '-1' }, ')'], why: 'The green arrow: where (1, 0) lands.', hint: 'Column 1 is the green arrow. Where is its tip?' },
-      { parts: ['column 2  =  (', { box: '1' }, ', ', { box: '1' }, ')'], why: 'The violet arrow: where (0, 1) lands. So A = [2 1; −1 1].', hint: 'Column 2 is the violet arrow. Where is its tip?', fx: () => fx(S.g.M, { o: 1 }, 0, .5) },
+      { parts: ['column 2  =  (', { box: '1' }, ', ', { box: '1' }, ')'], why: 'The violet arrow: where (0, 1) lands. So A has rows 2, 1 and −1, 1.', hint: 'Column 2 is the violet arrow. Where is its tip?', fx: () => fx(S.g.M, { o: 1 }, 0, .5) },
     ]),
   }], done) }],
 
   ['squash', 'Squash', (m) => {
     const p = panel(0);
     text(p, 'Squash: the plane falls onto a line', 60, 110, .2, { size: 40, weight: 600 });
-    const g = S.g = planeOf(p, I2);
+    const g = S.g = planeOf(p, I2, { plane: { u: 46, x0: -7, x1: 7, y0: -7, y1: 7 } });
     g.labels(['col 1', 'col 2']);
     g.to({ a01: 2, a10: 2, a11: 4 }, m('A') + .4, 2.6);
+    // at "squashed onto one line": back to the plain plane, dots on it, and all of it falls onto the line together
+    g.to({ a01: 0, a10: 0, a11: 1 }, m('see') - .2, .6);
+    const dots = G(p, { o: 0 }), { PX: QX, PY: QY } = g.P;
+    for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) {
+      if (Math.abs(a + 2 * b) > 3) continue;   // only the dots that land inside the picture
+      const d = G(dots, { x: QX(a), y: QY(b) }); mk('circle', { r: 6, fill: COL.chalk, stroke: COL.board, 'stroke-width': 2 }, d);
+      tw(d, { x: QX(a + 2 * b), y: QY(2 * a + 4 * b) }, m('see') + 1.2, 2.4);
+    }
+    show(dots, m('see') + .4, .3); hide(dots, m('lost'), .4);
+    g.to({ a01: 2, a10: 2, a11: 4 }, m('see') + 1.2, 2.4);
+    const ln = path(p, `M${QX(-3.5)} ${QY(-7)}L${QX(3.5)} ${QY(7)}`, { stroke: COL.chalk, 'stroke-width': 2, 'stroke-dasharray': '6 8' }, { o: 0 });
+    show(ln, m('see') + 3.8, .4);
+    text(p, 'the line through (1, 2)', 90, 580, m('see') + 4, { size: 26, fill: COL.dim });
     colFrame(p, g, 0, m('c'), m('c') + 3.5); colFrame(p, g, 1, m('c') + 3.5, m('see'));
     text(p, 'column 2 = 2 × column 1', 90, 480, m('c') + 4.5, { size: 30, weight: 600, fill: COLC[1] });
-    text(p, 'everything lands on one line', 90, 530, m('see') + .4, { size: 30, weight: 600, fill: COL.task });
+    text(p, 'everything lands on one line', 90, 530, m('see') + 1, { size: 30, weight: 600, fill: COL.task });
     const { PX, PY } = g.P;
     const d = G(p, { x: PX(2), y: PY(-1), o: 0 });
     mk('circle', { r: 9, fill: COL.task, stroke: COL.board, 'stroke-width': 2 }, d);
     const dl = T(d, '(2, −1)', { x: 14, y: 24, size: 22, fill: COL.task, font: MATH });
-    show(d, m('lost') + 1.5, .3); hide(dl, m('lost') + 3, .3); tw(d, { x: PX(0), y: PY(0) }, m('lost') + 3, 1.4);
-    say(p, ['(2, −1) → (2 − 2, 4 − 4) = (0, 0)'], 90, 590, m('lost') + 3, { size: 30 });
+    show(d, m('lost') + 2.2, .3); hide(dl, m('lost') + 5.6, .3); tw(d, { x: PX(0), y: PY(0) }, m('lost') + 5.6, 1.2);
+    say(p, ['(2, −1) → (2 − 2, 4 − 4) = (0, 0)'], 90, 620, m('lost') + 3.2, { size: 30 });
+    [[-2, 1], [4, -2]].forEach(([a, b], i) => {
+      const e = G(p, { x: QX(a), y: QY(b), o: 0 }); mk('circle', { r: 9, fill: COL.task, stroke: COL.board, 'stroke-width': 2 }, e);
+      show(e, m('lost2') + .3 + i * .5, .3); tw(e, { x: QX(0), y: QY(0) }, m('lost2') + 2, 1.4);
+    });
     ring(g.P, [1, 0], COL.bad, p, m('miss') + .5, '(1, 0): never reached');
-    text(p, 'Ax = (1, 0): no solution', 90, 650, m('miss') + 4, { size: 30, weight: 600, fill: COL.bad });
+    text(p, 'Ax = (1, 0): no solution', 90, 680, m('miss') + 4, { size: 30, weight: 600, fill: COL.bad });
     thick(g.cols[0], m('miss') + 6); thick(g.cols[1], m('miss') + 6.6);
-    text(p, 'every b?  chapter 14', 90, 700, m('miss') + 8.5, { size: 28, fill: COL.dim });
+    text(p, 'every b?  chapter 14', 90, 725, m('miss') + 8.5, { size: 28, fill: COL.dim });
     g.to({ a00: 0, a01: 0, a10: 0, a11: 0 }, m('zero') + 1, 1.8);
     hide(g.parts.cols, m('zero') + 2.4, .4);
-    text(p, 'all zeros: one single point', 90, 760, m('zero') + 1.4, { size: 30, weight: 600, fill: COL.task });
+    text(p, 'all zeros: one single point', 90, 790, m('zero') + 1.4, { size: 30, weight: 600, fill: COL.task });
   }],
 
   ['solve', 'Solving Ax = b', (m) => {
     const p = panel(0);
     text(p, 'Solving Ax = b: which point lands on b?', 60, 110, .2, { size: 40, weight: 600 });
-    const g = S.g = planeOf(p, [[2, -1], [-1, 2]], { x: [0, 0], shape: false, units: false, t0: m('A') - .4 });
+    const g = S.g = planeOf(p, [[2, -1], [-1, 2]], { x: [0, 0], shape: false, units: false, t0: .3 });
     g.labels(['col 1', 'col 2']);
     g.combo.forEach(e => put(e, { o: 0 }));
-    ring(g.P, [0, 3], COL.task, p, m('A') + 6.5, 'b = (0, 3)', { dx: 22, dy: 32 });
+    put(g.xLab, { o: 0 });   // x is in the brackets; its label would sit on the other labels
+    ring(g.P, [0, 3], COL.task, p, m('A') + 6.5, 'b = (0, 3)', { dx: -22, dy: -14, anchor: 'end' });
+    say(p, ['want:  Ax = b = (0, 3)'], 90, 420, m('A') + 6.5, { size: 32, fill: COL.task });
     ['a00', 'a01', 'a10', 'a11'].forEach((k, i) => flash(g, k, m('A') + 1.6 + i * 1.1));
     pulse(g.axDot, m('q') + .3); pulse(g.xRing, m('q') + 1.2);
     g.to({ x0: 2, x1: 1 }, m('try') + .3, 1.4);
@@ -368,7 +475,9 @@ const BEATS = [
     show(g.combo[0], m('found') + 2, .4); show(g.combo[1], m('found') + 2.6, .4);
     text(p, 'the solution from chapter 2', 90, 600, m('same') + .5, { size: 28, fill: COL.dim });
     thick(g.combo[0], m('same') + 2.5, 4); thick(g.combo[1], m('same') + 3.6, 4); pulse(g.xRing, m('same') + 5);
-    ring(g.P, [3, 0], COL.task, p, m('other') + .4, 'b = (3, 0)');
+    ring(g.P, [3, 0], COL.task, p, m('other') + .4, 'b = (3, 0)', { dx: -18, dy: -18, anchor: 'end' });
+    g.to({ x0: 2, x1: 1 }, m('other') + 1.4, 1.4);   // and (2, 1) lands in the new ring
+    show(g.combo[0], m('other') + 1.4, .3); show(g.combo[1], m('other') + 1.4, .3);
     text(p, 'b = (3, 0)  →  x = (2, 1)', 90, 660, m('other') + 1.2, { size: 30, fill: COL.task, weight: 600 });
   }],
 
@@ -400,11 +509,16 @@ const BEATS = [
     k.to(keysOf(A1), m('w1') + 1, 2);
     k.to({ a00: 3, a10: 0 }, m('w3') + 3.6, 1.2); k.to(keysOf(A1), m('w3') + 6.4, 1.2);
     thick(k.cols[0], m('w3') + .4); thick(k.cols[1], m('w3') + 1.6);
-    k.to(keysOf([[2, 0], [0, 1]]), m('w4'), 1);
-    k.to(keysOf([[-1, 0], [0, 1]]), m('w4') + 1.6, 1);
-    k.to(keysOf([[1, 1], [0, 1]]), m('w4') + 3.2, 1);
-    k.turn(0, 90, m('w4') + 4.8, 1.2);
-    k.to(keysOf([[1, 2], [2, 4]]), m('w4') + 6.4, 1.2);
+    k.to(keysOf([[2, 0], [0, 1]]), m('w4'), .8);
+    k.to(keysOf([[1, 0], [0, 1]]), m('k2') - .1, .3); k.to(keysOf([[-1, 0], [0, 1]]), m('k2') + .2, .7);
+    k.to(keysOf([[1, 0], [0, 1]]), m('k3') - .1, .3); k.to(keysOf([[1, 1], [0, 1]]), m('k3') + .2, .7);
+    k.to(keysOf([[1, 0], [0, 1]]), m('k4') - .1, .3); k.turn(0, 90, m('k4') + .2, .8);
+    k.to(keysOf([[1, 2], [2, 4]]), m('k5'), 1);
+    const cap = G(sm, {});
+    [['stretch', 'w4'], ['flip', 'k2'], ['shear', 'k3'], ['turn', 'k4'], ['squash', 'k5']].forEach(([w, mk_], i, arr) => {
+      const c = text(cap, w, 1390, 708, m(mk_), { size: 30, weight: 600, fill: COL.chalk });
+      hide(c, i < arr.length - 1 ? m(arr[i + 1][1]) - .1 : m('sol'), .2);
+    });
     k.to(keysOf(A1), m('end') - 1, 1.2);
   }],
   ['final1', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, LANDQ.map((q, k) => ({

@@ -55,7 +55,7 @@ function rings(sys, key, into, t0, t1, { tag = true } = {}) {
     const [ax, ay, aw, ah] = boxOf(matText(sys, key)), [ex, ey, ew, eh] = termBox(sys, key);
     const set = (r, x, y, w, hh) => { for (const [k, v] of Object.entries({ x: x - 10, y: y - 6, width: w + 20, height: hh + 12 })) r.setAttribute(k, v); };
     set(r1, ax - Math.max(0, 40 - aw) / 2, ay, Math.max(aw, 40), ah); set(r2, ex, ey, ew, eh);
-    if (lab) put(lab, { x: ax + aw / 2, y: key[1] === '0' ? ay - 18 : MX.row[1] + 124 });
+    if (lab) put(lab, { x: ax + aw / 2, y: MX.row[1] + 124 });   // under the matrix: above it sit the column names
   };
   fit();
   if (t0 !== undefined) { sys.onChange(fit); prog(fit, t0, Math.max(.1, (t1 ?? t0 + 3) - t0), lin); show(g, t0, .3); if (t1 !== undefined) hide(g, t1, .3); }
@@ -212,6 +212,8 @@ const BEATS = [
     frame(p, 214, 572, 168, 96, COLC[1], m('c2'), m('c3')); thick(sys.cols[1], m('c2') + .3);
     frame(p, 428, 572, 98, 96, COL.task, m('c3'), m('mix')); thick(sys.bArrow, m('c3') + .3);
     say(p, ['1·col 1 + 2·col 2 = b'], 90, 760, m('mix') + .3, { size: 34, fill: COL.task });
+    sys.combo.forEach((c, i) => { put(c, { o: 0 }); show(c, m('mix') + .4 + i * 1.2, .5); });   // tip to tail on "one of the first … two of the second"
+    thick(sys.bArrow, m('mix') + 2.6);
     // the letters, again and again; then only the numbers matter
     const letters = [...sys.E.querySelectorAll('text')].filter(t => /^[xy]$/.test(t.textContent));
     letters.forEach((t, i) => { tw(t, { c_fill: COL.task }, m('letters') + 1 + i * .25, .25); tw(t, { c_fill: COL.chalk }, m('numbers') - .2, .4); });
@@ -238,10 +240,11 @@ const BEATS = [
     frame(p, ...(([x, y, w, hh]) => [x - 8, y - 6, w + 16, hh + 12])(termBox(sys, 'a01')), COL.task, m('one'), m('r2'));
     fly('a01', '−1', [mid('a01'), EQ[1]], m('one') + 2.6, COLC[1]);
     text(p, '−x  =  −1·x', 590, EQ[1] + 92, m('r2') + .4, { size: 30, fill: COL.task, weight: 600 });
+    frame(p, ...(([x, y, w, hh]) => [x - 8, y - 6, w + 16, hh + 12])(termBox(sys, 'a10')), COL.task, m('r2'), m('r2') + 2.6);
     fly('a10', '−1', [mid('a10'), EQ[1] + 92], m('r2') + 2, COLC[0]);
     fly('a11', '2', [mid('a11') - 10, EQ[1] + 92], m('r2') + 4.2, COLC[1]);
     show(parts.A, m('box'), .5);
-    pulse(parts.A, m('box') + 3.5);
+    ['a00', 'a01', 'a10', 'a11'].forEach((k, i) => pulse(matText(sys, k), m('box') + 3.5 + i * .15, 1.3));
     const nm = text(p, 'a matrix', MX.col[0] + 46, 620, m('box') + 2.5, { size: 28, fill: COL.chalk, anchor: 'middle', weight: 600 });
     hide(nm, m('read') - .3, .3);
     // the letters go down into their own column
@@ -255,7 +258,7 @@ const BEATS = [
     fly('b1', '3', [mid('b1'), EQ[1] + 92], m('bcol') + 1, COL.task);
     show(parts.eq, m('bcol') + 2, .4); show(parts.b, m('bcol') + 2, .4);
     const big = say(p, ['Ax = b'], 90, 700, m('read'), { size: 60 });
-    say(p, ['the whole system in one line'], 290, 700, m('read') + 1.4, { size: 28, fill: COL.dim });
+    text(p, 'the whole system in one line', 290, 698, m('read') + 1.4, { size: 28, fill: COL.dim });
     keys.forEach((k, i) => flash(sys, k, m('same') + .6 + i * .25));
     sys.lines.forEach((l, i) => { tw(l.l, { 'a_stroke-width': 9 }, m('same') + 2 + i * .4, .3); tw(l.l, { 'a_stroke-width': 5 }, m('same') + 2.8 + i * .4, .5); });
   }],
@@ -264,24 +267,24 @@ const BEATS = [
     const p = panel(0);
     text(p, 'Ax = b: three pieces', 60, 110, .2, { size: 40, weight: 600 });
     const sys = S.sys = sysOf(p, [[2, -1], [-1, 2]], [0, 3]);
-    frame(p, MAT[0] - 10, MAT[1] - 56, 224, 200, COL.chalk, m('A'), m('x'));
+    frame(p, MAT[0] - 10, MAT[1] - 60, 224, 236, COL.chalk, m('A'), m('x'));
     text(p, 'the matrix', MAT[0] + 102, 620, m('A') + .4, { size: 26, fill: COL.chalk, anchor: 'middle', weight: 600 });
     ['a00', 'a01', 'a10', 'a11'].forEach((k, i) => flash(sys, k, m('A') + 2.6 + i * .5));
-    frame(p, MX.xcol - 44, MAT[1] - 56, 88, 200, COL.chalk, m('x'), m('b'));
+    frame(p, MX.xcol - 50, MAT[1] - 60, 100, 236, COL.chalk, m('x'), m('b'));
     text(p, 'the unknowns', MX.xcol, 660, m('x') + .4, { size: 26, fill: COL.chalk, anchor: 'middle', weight: 600 });
-    frame(p, MX.bcol - 58, MAT[1] - 56, 116, 200, COL.task, m('b'), m('r1'));
+    frame(p, MX.bcol - 58, MAT[1] - 60, 116, 236, COL.task, m('b'), m('r1'));
     text(p, 'the right sides', MX.bcol + 20, 620, m('b') + .4, { size: 26, fill: COL.task, anchor: 'middle', weight: 600 });
     [0, 1].forEach(i => {
       const t = m(`r${i + 1}`), t1 = i ? m('next') : m('r2');
       rowBand(p, i, t, t1, { b: true });
-      frame(p, MX.xcol - 44, MAT[1] - 56, 88, 200, COL.chalk, t + 1.4, t1);
+      frame(p, MX.xcol - 50, MAT[1] - 60, 100, 236, COL.chalk, t + 1.4, t1);
       tw(sys.lines[i].l, { 'a_stroke-width': 10 }, t + 3, .35); tw(sys.lines[i].l, { 'a_stroke-width': 5 }, t + 4.2, .6);
     });
     text(p, 'how A times x works: chapter 9', 90, 760, m('next') + .5, { size: 28, fill: COL.dim });
     frame(p, EQ[0] - 50, EQ[1] - 56, 540, 160, COL.task, m('short') + .6);
-    frame(p, MAT[0] - 14, MAT[1] - 60, 500, 200, COL.task, m('short') + 1.6);
-    text(p, '=', 600, 340, m('short') + 2.4, { size: 54, fill: COL.task, anchor: 'middle' });
-    ['a00', 'a01', 'a10', 'a11', 'b0', 'b1'].forEach((k, i) => flash(sys, k, m('short') + 3 + i * .35));
+    frame(p, MAT[0] - 14, MAT[1] - 64, 500, 244, COL.task, m('short') + 1.6);
+    text(p, 'the same system', 330, 338, m('short') + 2.4, { size: 28, fill: COL.task, anchor: 'middle', weight: 600 });
+    ['a00', 'a01', 'a10', 'a11', 'b0', 'b1'].forEach((k, i) => flash(sys, k, m('short') + 2.2 + i * .2));
   }],
 
   ['rowscols', 'Rows and columns', (m) => {
@@ -304,7 +307,7 @@ const BEATS = [
     tw(sys.cols[1], { 'a_stroke-width': 10 }, m('arrows') + 5.4, .3); tw(sys.cols[1], { 'a_stroke-width': 5 }, m('arrows') + 6.8, .5);
     text(p, 'one column  =  one unknown  =  one arrow', 90, 730, m('arrows') + .3, { size: 30, weight: 600, fill: COLC[0] });
     const sz = G(p, { o: 0 });
-    M(sz, ['2 by 2'], { x: 90, y: 810, size: 44, fill: COL.task });
+    M(sz, ['2 by 2'], { x: 90, y: 810, size: 44, fill: COL.task, anchor: 'start' });
     T(sz, '2 rows, 2 columns', { x: 260, y: 808, size: 28, fill: COL.dim });
     show(sz, m('size') + .4);
     text(p, 'rows first', 520, 808, m('first') + .2, { size: 28, fill: COL.task, weight: 600 });
@@ -342,7 +345,7 @@ const BEATS = [
     rowBand(p, 1, m('rule') + .3, m('rule') + 3);
     colBand(p, 0, m('rule') + 2.2, m('sub'));
     const sub = G(p, { o: 0 });
-    M(sub, ['a₂₁ = −1'], { x: 90, y: 815, size: 40, fill: COL.task });
+    M(sub, ['a₂₁ = −1'], { x: 90, y: 815, size: 40, fill: COL.task, anchor: 'start' });
     T(sub, 'row 2, column 1', { x: 290, y: 812, size: 28, fill: COL.dim });
     show(sub, m('sub') + 1);
     rings(sys, 'a10', p, m('sub') + 1, m('try'));
@@ -353,9 +356,9 @@ const BEATS = [
     path(ptr, 'M0 0L0 30L8 22L14 36L20 33L14 20L25 20Z', { fill: COL.chalk, stroke: COL.board, 'stroke-width': 2 });
     put(ptr, { x: 640, y: 600 });
     show(ptr, m('try') + 1, .3);
-    tw(ptr, { x: MX.col[1] + 6, y: MX.row[0] - 10 }, m('try') + 1.2, .9);
+    tw(ptr, { x: MX.col[1] + 26, y: MX.row[0] + 4 }, m('try') + 1.2, .9);
     rings(sys, 'a01', p, m('try') + 2.1, m('try') + 3.4);
-    tw(ptr, { x: MX.bcol + 6, y: MX.row[1] - 10 }, m('try') + 3.4, .9);
+    tw(ptr, { x: MX.bcol + 30, y: MX.row[1] + 4 }, m('try') + 3.4, .9);
     rings(sys, 'b1', p, m('try') + 4.3, m('try') + 5.6);
     hide(ptr, m('try') + 5.6, .3);
   }],
@@ -386,15 +389,16 @@ const BEATS = [
     const ghost = sys.P.line(0, 1.5, 3, 3, LS_ROW[1], m('flip'), { dash: '10 10', w: 3, into: p }); tw(ghost, { o: .35 }, m('flip') + .6, .4);
     sys.to({ a10: 1 }, m('flip'), 1.2);
     flash(sys, 'a10', m('both'));
-    text(p, '−x  becomes  +x', 590, EQ[1] + 92, m('both') + .4, { size: 30, fill: COL.task, weight: 600 });
+    const bx_ = text(p, '−x  becomes  +x', 90, EQ[1] + 150, m('both') + .4, { size: 30, fill: COL.task, weight: 600 }); hide(bx_, m('b'), .3);
+    { const gh = sys.P.arrow(0, 0, 2, -1, LS_COLS[0], m('col'), { into: p }); gh.setAttribute('stroke-dasharray', '8 8'); tw(gh, { o: .5 }, m('col') + .5, .3); hide(gh, m('b'), .4); }
     tw(sys.lines[1].l, { 'a_stroke-width': 10 }, m('turn') + .3, .35); tw(sys.lines[1].l, { 'a_stroke-width': 5 }, m('turn') + 1.5, .6);
     tw(sys.cols[0], { 'a_stroke-width': 10 }, m('col') + .4, .35); tw(sys.cols[0], { 'a_stroke-width': 5 }, m('col') + 1.8, .6);
     colBand(p, 0, m('col') + .2, m('b'));
     rings(sys, 'b1', p, m('b'), m('meet'));
     const ghost2 = sys.P.line(-3, 3, 3, 0, LS_ROW[1], m('b') + .2, { dash: '10 10', w: 3, into: p }); tw(ghost2, { o: .3 }, m('b') + .8, .4);
     hide(ghost, m('b') + .2, .4);
-    sys.to({ b1: 5 }, m('b') + .6, 1.4);
-    flash(sys, 'b1', m('b') + .8);
+    sys.to({ b1: 5 }, m('b') + 2.3, 1.6);   // on "to five", sliding into "The second line slides"
+    flash(sys, 'b1', m('b') + 2.4);
     pulse(sys.meet, m('meet') + 1.4); pulse(sys.meet, m('meet') + 2.6);
     say(p, ['1 + 2·2 = 5'], 90, 690, m('meet') + 3, { size: 36 });
     text(p, '✓', 300, 690, m('meet') + 4.6, { size: 34, fill: COL.good, weight: 700 });
@@ -429,14 +433,14 @@ const BEATS = [
     });
     const A = mtx(A1, [[1, 1], [1, -1], [2, 1]], 150, 440, { o: 0 });
     show(A.g, m('rows3'));
-    [0, 1, 2].forEach(i => band(A1, 156, 440 + i * 62 - 42, 156, 58, ROWC[i], m('rows3') + .2 + i * .4, m('cols2')));
+    [0, 1, 2].forEach(i => { band(A1, 156, 440 + i * 62 - 42, 156, 58, ROWC[i], m('rows3') + .2 + i * .4, m('cols2')); band(A1, 70, 190 + i * 70 - 44, 340, 60, ROWC[i], m('rows3') + .2 + i * .4, m('cols2')); });
     [0, 1].forEach(j => band(A1, 160 + 78 * j + 3, 395, 72, 186, COLC[j], m('cols2') + .2 + j * .4, m('lines3')));
-    const sz = G(A1, { o: 0 }); M(sz, ['3 by 2'], { x: 150, y: 640, size: 40, fill: COL.task }); T(sz, '3 rows, 2 columns', { x: 150, y: 690, size: 26, fill: COL.dim }); show(sz, m('cols2') + 1.5);
-    const xv = mtx(A1, [['x'], ['y']], 350, 471, { o: 0 }), eqs = M(A1, ['='], { x: 470, y: 516, size: 42, o: 0 }), bv = mtx(A1, [[3], [1], [5]], 505, 440, { o: 0 });
+    const sz = G(A1, { o: 0 }); M(sz, ['3 by 2'], { x: 150, y: 640, size: 40, fill: COL.task, anchor: 'start' }); T(sz, '3 rows, 2 columns', { x: 150, y: 690, size: 26, fill: COL.dim }); show(sz, m('cols2') + 1.5);
+    const xv = mtx(A1, [['x'], ['y']], 350, 471, { o: 0 }), eqs = M(A1, ['='], { x: 488, y: 516, size: 42, o: 0 }), bv = mtx(A1, [[3], [1], [5]], 520, 440, { o: 0 });
     bv.cells.flat().forEach(c => c.setAttribute('fill', COL.task));
     show(xv.g, m('xb') + .2); show(eqs, m('xb') + .2); show(bv.g, m('xb') + 1.6);
     text(A1, '2 entries', 389, 590, m('xb') + .6, { size: 22, fill: COL.dim, anchor: 'middle' });
-    text(A1, '3 entries', 554, 640, m('xb') + 2, { size: 22, fill: COL.dim, anchor: 'middle' });
+    text(A1, '3 entries', 569, 640, m('xb') + 2, { size: 22, fill: COL.dim, anchor: 'middle' });
     [[0, 3, 3, 0], [1, 0, 3, 2], [0, 5, 2, 1]].forEach(([xa, ya, xb, yb], i) => P2.line(xa, ya, xb, yb, ROWC[i], m('lines3') + .2 + i * .6, { into: A1 }));
     P2.dot(2, 1, COL.chalk, m('lines3') + 3, { label: '(2, 1)', into: A1 });
     // two equations, three unknowns
@@ -450,8 +454,8 @@ const BEATS = [
     show(B.g, m('A23'));
     [0, 1].forEach(i => band(A2, 156, 440 + i * 62 - 42, 234, 58, ROWC[i], m('A23') + .2 + i * .4, m('A23') + 3));
     [0, 1, 2].forEach(j => band(A2, 160 + 78 * j + 3, 395, 72, 124, COLC[j], m('A23') + 3 + j * .4, m('x3')));
-    const sz2 = G(A2, { o: 0 }); M(sz2, ['2 by 3'], { x: 150, y: 640, size: 40, fill: COL.task }); T(sz2, '2 rows, 3 columns', { x: 150, y: 690, size: 26, fill: COL.dim }); show(sz2, m('A23') + 4);
-    const xv2 = mtx(A2, [['x'], ['y'], ['z']], 430, 409, { o: 0 }), eq2 = M(A2, ['='], { x: 550, y: 485, size: 42, o: 0 }), bv2 = mtx(A2, [[4], [1]], 585, 440, { o: 0 });
+    const sz2 = G(A2, { o: 0 }); M(sz2, ['2 by 3'], { x: 150, y: 640, size: 40, fill: COL.task, anchor: 'start' }); T(sz2, '2 rows, 3 columns', { x: 150, y: 690, size: 26, fill: COL.dim }); show(sz2, m('A23') + 4);
+    const xv2 = mtx(A2, [['x'], ['y'], ['z']], 430, 409, { o: 0 }), eq2 = M(A2, ['='], { x: 568, y: 485, size: 42, o: 0 }), bv2 = mtx(A2, [[4], [1]], 600, 440, { o: 0 });
     bv2.cells.flat().forEach(c => c.setAttribute('fill', COL.task));
     show(xv2.g, m('x3')); show(eq2, m('x3')); show(bv2.g, m('x3') + 1.5);
     text(A2, 'three unknowns live in space: chapter 11', 1160, 450, m('two3') + 2, { size: 28, fill: COL.dim, anchor: 'middle' });
@@ -487,18 +491,27 @@ const BEATS = [
     put(sys.ROWV, { o: 0 });
     // row 1 read with x and y, written out in full first
     rowBand(p, 0, m('r1'), m('r2'), { eq: false, b: true });
-    frame(p, MX.xcol - 44, MAT[1] - 56, 88, 200, COL.chalk, m('r1') + 1.2, m('r2'));
+    frame(p, MX.xcol - 50, MAT[1] - 60, 100, 236, COL.chalk, m('r1') + 1.2, m('r2'));
     [['a00', 'a01'], ['a10', 'a11'], ['b0', 'b1']].forEach((ks, i) => ks.forEach(k => flash(sys, k, m('given') + 1.2 + i * 2.2)));
     rowBand(p, 0, m('given') + 1, m('given') + 3, { eq: false }); rowBand(p, 1, m('given') + 3.2, m('given') + 5.2, { eq: false });
     frame(p, MX.bcol - 50, MAT[1] - 56, 100, 140, COL.task, m('given') + 5.4, m('r1'));
-    const full1 = say(p, ['1·x + 4·y = 9'], EQ[0], EQ[1], m('r1') + 1, { size: 54 });
+    // a row read out loud: each number flies from A, each letter from x, the right side from b, on its word
+    const readRow = (i, nums, times) => {
+      const [a, c, r] = nums, row = tokens(p, [{ t: String(a), fill: COLC[0] }, '·', 'x', '  +  ', { t: String(c), fill: COLC[1] }, '·', 'y', '  =  ', { t: String(r), fill: COL.task }], { x: EQ[0], y: EQ[1] + i * 92, size: 54 });
+      const at = el => { const [x, y, w, hh] = boxOf(el); return [x + w / 2, y + hh * .8]; };
+      const from = [at(matText(sys, `a${i}0`)), null, [MX.xcol, MX.row[0]], null, at(matText(sys, `a${i}1`)), null, [MX.xcol, MX.row[1]], null, at(matText(sys, `b${i}`))];
+      const when = [times[0], times[0] + .3, times[1], times[2], times[2], times[2] + .3, times[3], times[4], times[4] + .2];
+      row.forEach((e, k) => { put(e, { o: 0 }); if (from[k]) { const y = st(e).y; put(e, { x: from[k][0], y: from[k][1] }); tw(e, { x: e._px, y }, when[k], .8, io); } show(e, when[k], .25); });
+      return row;
+    };
+    const full1 = G(p, {}); readRow(0, [1, 4, 9], [m('r1') + 3.2, m('r1') + 3.6, m('r1') + 4.8, m('r1') + 5.2, m('r1') + 6.6]).forEach(e => full1.append(e));
     hide(full1, m('r1b'), .4); show(g0, m('r1b') + .2);
     text(p, 'the 1 is not written', 590, EQ[1], m('r1b') + .6, { size: 26, fill: COL.dim });
     rowBand(p, 1, m('r2'), m('lines'), { eq: false, b: true });
-    frame(p, MX.xcol - 44, MAT[1] - 56, 88, 200, COL.chalk, m('r2') + 1, m('lines'));
-    const full2 = say(p, ['2·x + 0·y = 2'], EQ[0], EQ[1] + 92, m('r2') + .8, { size: 54 });
+    frame(p, MX.xcol - 50, MAT[1] - 60, 100, 236, COL.chalk, m('r2') + 1, m('lines'));
+    const full2 = G(p, {}); readRow(1, [2, 0, 2], [m('r2') + 1.4, m('r2') + 1.8, m('r2') + 2.8, m('r2') + 3.2, m('r2') + 4.2]).forEach(e => full2.append(e));
     hide(full2, m('zero') - .2, .4); show(g1, m('zero'));
-    text(p, '0y is nothing:  2x = 2', 590, EQ[1] + 92, m('zero') + 1.4, { size: 28, fill: COL.task, weight: 600 });
+    text(p, '0y is nothing:  2x = 2', 90, EQ[1] + 150, m('zero') + 1.4, { size: 28, fill: COL.task, weight: 600 });
     rings(sys, 'a11', p, m('zero') + .3, m('zero') + 3, { tag: false });
     { const [x, y, w, hh] = termBox(sys, 'a11'); const k = path(p, `M${x - 6} ${y + hh * .55}L${x + w + 6} ${y + hh * .45}`, { stroke: COL.task, 'stroke-width': 4 }, { d: 0 }); tw(k, { d: 1 }, m('zero') + 3.4, .5); }
     show(sys.ROWV, m('lines'), .8);
@@ -512,16 +525,29 @@ const BEATS = [
   ['tidy', 'Line it up first', (m) => {
     const p = panel(0);
     text(p, 'Line it up first', 60, 110, .2, { size: 40, weight: 600 });
+    // the two lines, drawn from the untidy equations: tidying them never moves them
+    const P0 = plane(p, { cx: 1160, cy: 450, u: 52, t0: m('eq') });
+    P0.line(-3, 6, 6, -3, ROWC[0], m('eq') + .6, { into: P0.g }); P0.line(-3, -6, 3, 6, ROWC[1], m('eq') + 2.8, { into: P0.g });
+    hide(P0.g, m('mat') + .6, .4);
     const steps = G(p, {});
     say(steps, ['y = 3 − x'], 90, 200, m('eq') + .2, { size: 48 });
     say(steps, ['2x = y'], 470, 200, m('eq') + 2.4, { size: 48 });
     const rule = G(steps, { o: 0 });
-    [['x term', COLC[0]], ['y term', COLC[1]], ['=', COL.chalk], ['number', COL.task]].forEach(([s, c], i) => text(rule, s, 90 + [0, 150, 300, 360][i], 300, m('rule') + 1.4 + i * 1.3, { size: 28, fill: c, weight: 600 }));
+    [['x term', COLC[0]], ['y term', COLC[1]], ['=', COL.chalk], ['number', COL.task]].forEach(([s, c], i) => text(rule, s, 90 + [0, 150, 300, 360][i], 300, m('rule') + 2.2 + i * 1.9, { size: 28, fill: c, weight: 600 }));
     put(rule, { o: 1 });
-    text(steps, '+ x on both sides', 90, 380, m('e1'), { size: 26, fill: COL.dim });
-    say(steps, ['x + y = 3'], 90, 440, m('e1b'), { size: 48, fill: COL.task });
-    text(steps, '− y on both sides', 470, 380, m('e2'), { size: 26, fill: COL.dim });
-    say(steps, ['2x − y = 0'], 470, 440, m('e2b'), { size: 48, fill: COL.task });
+    // one move per equation, done in the equation itself: the same thing added to both sides, then what cancels struck out
+    const move = (items, x, t, tStrike, from, to) => {
+      const row = tokens(steps, items, { x, y: 390, size: 40 });
+      row.forEach((e, i) => { put(e, { o: 0 }); show(e, t + (items[i].fill ? .5 : 0), .4); });
+      const a = row[from], b = row[to], k = path(steps, `M${a._px - a._w / 2} 378L${b._px + b._w / 2} 378`, { stroke: COL.bad, 'stroke-width': 4 }, { d: 0 });
+      tw(k, { d: 1 }, tStrike, .5);
+      return row;
+    };
+    const add = { fill: COL.irr };
+    move(['y ', { t: '+ x', ...add }, '  =  3 ', '− x ', { t: '+ x', ...add }], 90, m('e1') + 1.8, m('e1b') - .6, 3, 4);
+    say(steps, ['x + y = 3'], 90, 470, m('e1b'), { size: 48 });
+    move(['2x ', { t: '− y', ...add }, '  =  ', 'y ', { t: '− y', ...add }], 470, m('e2') + 1.6, m('e2b') - .6, 3, 4);
+    say(steps, ['2x − y = 0'], 470, 470, m('e2b'), { size: 48 });
     hide(steps, m('mat') - .2, .4);
     const sys = S.sys = sysOf(p, [[1, 1], [2, -1]], [3, 0], { t0: m('mat') });
     ['a00', 'a01', 'a10', 'a11', 'b0', 'b1'].forEach((k, i) => flash(sys, k, m('mat') + 1.5 + i * .5));
@@ -546,7 +572,7 @@ const BEATS = [
   ['wrap', 'Summary', (m) => {
     const p = panel(0);
     [['Ax = b is the system: A the numbers, x the unknowns, b the right sides.', 'w1'], ['Each row of A is one equation; each column belongs to one unknown.', 'w2'],
-     ['Size: rows first, then columns. 3 rows, 2 columns: 3 by 2.', 'w3'], ['Row 2, column 1: the second equation, in front of x. One number, two places.', 'w4']].forEach(([str, mark], i) => {
+     ['Size: rows first, then columns. 2 rows, 2 columns: 2 by 2.', 'w3'], ['Row 2, column 1: the second equation, in front of x. One number, two places.', 'w4']].forEach(([str, mark], i) => {
       const g = G(p, { x: -16, y: 150 + i * 105, o: 0 });
       mk('circle', { cx: 150, cy: -12, r: 26, fill: COL.task }, g);
       T(g, String(i + 1), { x: 150, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
@@ -630,7 +656,7 @@ const BEATS = [
   ['play', 'Playground', (m, D) => {
     const p = panel(0);
     text(p, 'Playground', 60, 110, .2, { size: 40, weight: 600 });
-    S.sys = sysOf(p, [[2, -1], [-1, 2]], [0, 3], { view: 'both', plane: { cx: 1180, cy: 590, u: 36 } });   // a smaller plane under the card
+    S.sys = sysOf(p, [[2, -1], [-1, 2]], [0, 3], { view: 'both', plane: { cx: 1150, cy: 604, u: 42, x0: -5, x1: 5, y0: -5, y1: 5 } });   // a smaller plane under the card
     S.sys.labels(['col 1', 'col 2', 'b']);
     const hint = text(p, 'try: row 2 = 2 × row 1 · a 0 in row 1, column 2 · meet at (2, 1)', 400, 700, m('go'), { size: 24, fill: COL.dim, anchor: 'middle' });
     hide(hint, Math.min(m('go') + 9, D - .7), .6);

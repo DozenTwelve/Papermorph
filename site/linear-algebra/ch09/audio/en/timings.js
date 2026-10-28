@@ -412,6 +412,64 @@ window.TIMINGS = {
    ]
   ]
  },
+ "system2": {
+  "dur": 42.24,
+  "marks": {
+   "A": 0.99,
+   "r": 8.62,
+   "lines": 19.167,
+   "c": 22.214,
+   "mix": 27.695,
+   "land": 34.076,
+   "same": 37.214
+  },
+  "cues": [
+   [
+    0.104,
+    "One more."
+   ],
+   [
+    0.99,
+    "A is one, one in the first row, and one, minus one in the second, and b is five, one."
+   ],
+   [
+    8.62,
+    "By rows, A x is x plus y, and x minus y."
+   ],
+   [
+    13.242,
+    "So A x equals b says: x plus y equals five, and x minus y equals one."
+   ],
+   [
+    19.167,
+    "Two lines, and they meet at three, two."
+   ],
+   [
+    22.214,
+    "By columns, A x is x times column one, plus y times column two."
+   ],
+   [
+    27.695,
+    "Three of one, one is three, three."
+   ],
+   [
+    30.547,
+    "Two of one, minus one is two, minus two."
+   ],
+   [
+    34.076,
+    "Together: five, one."
+   ],
+   [
+    36.237,
+    "That's b."
+   ],
+   [
+    37.214,
+    "The meeting point of the rows, three, two, is the mix of the columns."
+   ]
+  ]
+ },
  "q2": {
   "dur": 4.176,
   "marks": {},
@@ -493,13 +551,15 @@ window.TIMINGS = {
   ]
  },
  "tall": {
-  "dur": 34.368,
+  "dur": 46.032,
   "marks": {
-   "A": 2.188,
-   "x": 6.771,
-   "rows": 11.263,
-   "cols": 18.268,
-   "sizes": 25.938
+   "A": 2.253,
+   "x": 6.901,
+   "rows": 11.471,
+   "r2": 18.763,
+   "r3": 23.698,
+   "cols": 30.56,
+   "sizes": 37.865
   },
   "cues": [
    [
@@ -507,39 +567,51 @@ window.TIMINGS = {
     "Now a matrix that isn't square."
    ],
    [
-    2.188,
+    2.253,
     "This A is three by two: three rows, two columns."
    ],
    [
-    6.771,
+    6.901,
     "So x has two numbers, one for each column: four and one."
    ],
    [
-    11.263,
-    "By rows: four plus two is six."
+    11.471,
+    "By rows."
    ],
    [
-    14.154,
-    "Zero plus one is one."
+    12.539,
+    "Row one: one times four, plus two times one."
    ],
    [
-    15.911,
+    16.576,
+    "Four plus two is six."
+   ],
+   [
+    18.763,
+    "Row two: zero times four, plus one times one, is one."
+   ],
+   [
+    23.698,
+    "Row three: three times four, plus minus one times one."
+   ],
+   [
+    28.086,
     "Twelve minus one is eleven."
    ],
    [
-    18.268,
+    30.56,
     "By columns: four times column one, plus one times column two, gives the same: six, one, eleven."
    ],
    [
-    25.938,
+    37.865,
     "Notice the sizes."
    ],
    [
-    27.5,
+    39.44,
     "Two columns in A, so x has two numbers."
    ],
    [
-    30.82,
+    42.734,
     "Three rows in A, so A x has three numbers."
    ]
   ]
@@ -585,6 +657,69 @@ window.TIMINGS = {
    [
     26.263,
     "And A x comes out with as many numbers as A has rows."
+   ]
+  ]
+ },
+ "wide": {
+  "dur": 50.784,
+  "marks": {
+   "A": 2.839,
+   "x": 7.5,
+   "r1": 13.281,
+   "r2": 23.516,
+   "ans": 32.018,
+   "c": 36.927,
+   "sum": 42.669,
+   "rule": 48.503
+  },
+  "cues": [
+   [
+    0.104,
+    "One more shape: a wide matrix."
+   ],
+   [
+    2.839,
+    "This A is two by three: two rows, three columns."
+   ],
+   [
+    7.5,
+    "So x needs three numbers, one for each column: two, one, one."
+   ],
+   [
+    13.281,
+    "By rows."
+   ],
+   [
+    14.362,
+    "Row one: one times two, plus two times one, plus zero times one."
+   ],
+   [
+    20.182,
+    "Two plus two plus zero is four."
+   ],
+   [
+    23.516,
+    "Row two: three times two, plus minus one times one, plus one times one."
+   ],
+   [
+    29.258,
+    "Six minus one plus one is six."
+   ],
+   [
+    32.018,
+    "A x is four, six: two numbers, one for each row."
+   ],
+   [
+    36.927,
+    "By columns: two of column one, plus one of column two, plus one of column three."
+   ],
+   [
+    42.669,
+    "Two, six, plus two, minus one, plus zero, one: four, six again."
+   ],
+   [
+    48.503,
+    "Three numbers go in, two come out."
    ]
   ]
  },

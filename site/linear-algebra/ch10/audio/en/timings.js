@@ -195,19 +195,19 @@ window.TIMINGS = {
   ]
  },
  "count": {
-  "dur": 45.696,
+  "dur": 46.704,
   "marks": {
-   "q": 1.146,
-   "s1": 2.656,
-   "s2": 7.083,
-   "land": 11.172,
-   "grid": 17.148,
-   "rows": 22.539,
-   "q2": 29.297,
-   "t1": 31.615,
-   "t2": 35.951,
-   "land2": 39.336,
-   "back": 41.602
+   "q": 1.159,
+   "s1": 2.852,
+   "s2": 8.151,
+   "land": 11.602,
+   "grid": 17.357,
+   "rows": 22.93,
+   "q2": 30.013,
+   "t1": 32.318,
+   "t2": 36.628,
+   "land2": 40.078,
+   "back": 42.565
   },
   "cues": [
    [
@@ -215,47 +215,47 @@ window.TIMINGS = {
     "Let's use it."
    ],
    [
-    1.146,
-    "Where does two, one go?"
+    1.159,
+    "Where does three, one go?"
    ],
    [
-    2.656,
-    "Two steps of column one: two times two, one is four, two."
+    2.852,
+    "Three steps of column one: three times two, one is six, three."
    ],
    [
-    7.083,
-    "Then one step of column two: plus minus one, one."
+    8.151,
+    "Then one step of column two: minus one, one."
    ],
    [
-    11.172,
-    "Four minus one is three, two plus one is three: it lands on three, three."
+    11.602,
+    "Six minus one is five, three plus one is four: it lands on five, four."
    ],
    [
-    17.148,
-    "On the moved grid, you can count it: two green steps, then one violet step."
+    17.357,
+    "On the moved grid, you can count it: three green steps, then one violet step."
    ],
    [
-    22.539,
-    "Check by rows: two times two, minus one, is three, and two plus one is three."
+    22.93,
+    "Check by rows: two times three, minus one, is five, and three plus one is four."
    ],
    [
-    29.297,
+    30.013,
     "One more: minus one, two."
    ],
    [
-    31.615,
+    32.318,
     "Minus one step of column one is minus two, minus one."
    ],
    [
-    35.951,
+    36.628,
     "Two steps of column two is minus two, two."
    ],
    [
-    39.336,
+    40.078,
     "Together: minus four, one."
    ],
    [
-    41.602,
+    42.565,
     "One green step backwards, two violet steps forwards."
    ]
   ]
@@ -323,13 +323,13 @@ window.TIMINGS = {
   ]
  },
  "stretch": {
-  "dur": 28.752,
+  "dur": 30.984,
   "marks": {
-   "A": 2.63,
-   "c": 5.247,
-   "see": 14.479,
-   "flag": 19.609,
-   "both": 22.747
+   "A": 2.721,
+   "c": 7.8,
+   "see": 17.227,
+   "flag": 22.161,
+   "both": 25.208
   },
   "cues": [
    [
@@ -337,138 +337,255 @@ window.TIMINGS = {
     "Now some matrices with a clear meaning."
    ],
    [
-    2.63,
-    "Two, zero, zero, one."
+    2.721,
+    "A is two, zero in the first row, and zero, one in the second."
    ],
    [
-    5.247,
+    7.8,
     "Column one is two, zero: one, zero goes twice as far."
    ],
    [
-    10.911,
+    13.164,
     "Column two is zero, one: it stays."
    ],
    [
-    14.479,
+    17.227,
     "So the plane is stretched sideways to twice its width, and heights don't change."
    ],
    [
-    19.609,
+    22.161,
     "Watch the little flag: it gets twice as wide."
    ],
    [
-    22.747,
+    25.208,
     "Two, zero, zero, two stretches both ways: everything twice as big."
    ]
   ]
  },
  "flip": {
-  "dur": 16.296,
+  "dur": 37.104,
   "marks": {
-   "A": 0.091,
-   "c": 3.073,
-   "see": 8.763,
-   "flag": 13.255
+   "A": 0.104,
+   "c": 4.857,
+   "see": 10.234,
+   "flag": 15.013,
+   "flip2": 17.956,
+   "see2": 29.766
   },
   "cues": [
    [
-    0.091,
-    "Minus one, zero, zero, one."
+    0.104,
+    "Minus one, zero in the first row, zero, one in the second."
    ],
    [
-    3.073,
+    4.857,
     "Column one is minus one, zero: one, zero lands on the other side."
    ],
    [
-    8.763,
+    10.234,
     "Every point goes to its mirror image across the up and down axis."
    ],
    [
-    13.255,
+    15.013,
     "The flag now points left."
    ],
    [
-    15.234,
+    16.914,
     "This is a flip."
+   ],
+   [
+    17.956,
+    "Now one, zero in the first row, and zero, minus one in the second."
+   ],
+   [
+    23.438,
+    "One, zero stays where it is, and zero, one goes down to zero, minus one."
+   ],
+   [
+    29.766,
+    "This time the plane flips upside down, across the left and right axis, and the flag hangs below the line."
    ]
   ]
  },
  "shear": {
-  "dur": 17.664,
+  "dur": 35.88,
   "marks": {
-   "A": 0.117,
-   "c": 1.953,
-   "see": 7.018,
-   "flag": 14.805
+   "A": 0.104,
+   "c": 4.219,
+   "see": 9.414,
+   "flag": 16.745,
+   "up": 19.479,
+   "see2": 30.247
   },
   "cues": [
    [
-    0.117,
-    "One, one, zero, one."
+    0.104,
+    "One, one in the first row, zero, one in the second."
    ],
    [
-    1.953,
+    4.219,
     "Column one stays at one, zero."
    ],
    [
-    4.401,
+    6.693,
     "Column two leans over, to one, one."
    ],
    [
-    7.018,
+    9.414,
     "The bottom line stays put, and every line above it slides sideways: the higher it is, the further it slides."
    ],
    [
-    14.805,
+    16.745,
     "The flag leans."
    ],
    [
-    16.302,
+    18.164,
     "This is called a shear."
+   ],
+   [
+    19.479,
+    "Now swap the roles: one, zero in the first row, one, one in the second."
+   ],
+   [
+    25.417,
+    "Zero, one stays put, and one, zero tips up to one, one."
+   ],
+   [
+    30.247,
+    "Every upright line slides up: the further right it is, the higher it goes."
    ]
   ]
  },
  "turn": {
-  "dur": 30.456,
+  "dur": 48.36,
   "marks": {
-   "A": 0.091,
-   "c": 2.513,
-   "see": 10.573,
-   "flag": 16.562,
-   "half": 21.875
+   "A": 0.078,
+   "c": 5.039,
+   "see": 12.982,
+   "flag": 19.115,
+   "half": 24.518,
+   "cw": 33.255,
+   "cwm": 42.175
+  },
+  "cues": [
+   [
+    0.078,
+    "Zero, minus one in the first row, one, zero in the second."
+   ],
+   [
+    5.039,
+    "One, zero lands on zero, one: straight up."
+   ],
+   [
+    8.438,
+    "And zero, one lands on minus one, zero: to the left."
+   ],
+   [
+    12.982,
+    "Both arrows have turned a quarter turn, counterclockwise, and the whole plane turns with them."
+   ],
+   [
+    19.115,
+    "The flag stands up."
+   ],
+   [
+    20.677,
+    "Nothing is stretched, nothing is flipped: it's a turn."
+   ],
+   [
+    24.518,
+    "Turn twice, and you get minus one, zero, zero, minus one: a half turn."
+   ],
+   [
+    31.198,
+    "The flag hangs upside down."
+   ],
+   [
+    33.255,
+    "And to turn the other way, clockwise: one, zero goes down to zero, minus one, and zero, one goes right, to one, zero."
+   ],
+   [
+    42.175,
+    "So the matrix is zero, one in the first row, and minus one, zero in the second."
+   ]
+  ]
+ },
+ "readit": {
+  "dur": 53.4,
+  "marks": {
+   "hide": 1.536,
+   "c1": 5.104,
+   "c2": 12.643,
+   "show": 18.138,
+   "check": 23.607,
+   "on": 34.466,
+   "two": 36.914,
+   "show2": 43.516
   },
   "cues": [
    [
     0.091,
-    "Zero, minus one, one, zero."
+    "Now the other way round."
    ],
    [
-    2.513,
-    "One, zero lands on zero, one: straight up."
+    1.536,
+    "Here the plane has been moved, and the matrix is hidden."
    ],
    [
-    5.938,
-    "And zero, one lands on minus one, zero: to the left."
+    5.104,
+    "Where did one, zero land?"
    ],
    [
-    10.573,
-    "Both arrows have turned a quarter turn, counterclockwise, and the whole plane turns with them."
+    7.331,
+    "Follow the green arrow to its tip: one, minus one."
    ],
    [
-    16.562,
-    "The flag stands up."
+    11.367,
+    "That's column one."
    ],
    [
-    18.021,
-    "Nothing is stretched, nothing is flipped: it's a turn."
+    12.643,
+    "Where did zero, one land?"
    ],
    [
-    21.875,
-    "Turn twice, and you get minus one, zero, zero, minus one: a half turn."
+    14.544,
+    "The violet tip is at two, one."
    ],
    [
-    28.62,
-    "The flag hangs upside down."
+    16.81,
+    "That's column two."
+   ],
+   [
+    18.138,
+    "So A is one, two in the first row, and minus one, one in the second."
+   ],
+   [
+    23.607,
+    "Check one point."
+   ],
+   [
+    24.714,
+    "One, one lands on column one plus column two: one plus two is three, and minus one plus one is zero."
+   ],
+   [
+    33.06,
+    "Three, zero."
+   ],
+   [
+    34.466,
+    "And on the moved grid, it does."
+   ],
+   [
+    36.914,
+    "One more."
+   ],
+   [
+    37.826,
+    "The green tip is at zero, two, and the violet tip at minus two, zero."
+   ],
+   [
+    43.516,
+    "So A is zero, minus two in the first row, and two, zero in the second: a quarter turn that also makes everything twice as big."
    ]
   ]
  },
@@ -487,14 +604,15 @@ window.TIMINGS = {
   ]
  },
  "squash": {
-  "dur": 44.712,
+  "dur": 54.552,
   "marks": {
-   "A": 1.862,
-   "c": 3.737,
-   "see": 12.161,
-   "lost": 16.888,
-   "miss": 25.234,
-   "zero": 37.878
+   "A": 2.161,
+   "c": 5.755,
+   "see": 14.297,
+   "lost": 18.932,
+   "lost2": 27.344,
+   "miss": 35.443,
+   "zero": 48.151
   },
   "cues": [
    [
@@ -502,51 +620,55 @@ window.TIMINGS = {
     "One more, and it's strange."
    ],
    [
-    1.862,
-    "One, two, two, four."
+    2.161,
+    "One, two in the first row, two, four in the second."
    ],
    [
-    3.737,
+    5.755,
     "Column one is one, two."
    ],
    [
-    5.534,
+    7.578,
     "Column two is two, four: exactly twice column one."
    ],
    [
-    10.104,
+    12.279,
     "Both columns point the same way."
    ],
    [
-    12.161,
+    14.297,
     "So the whole plane gets squashed onto one line, the line through one, two."
    ],
    [
-    16.888,
+    18.932,
     "Many points land on the same point."
    ],
    [
-    19.232,
+    21.12,
     "Two, minus one goes to two minus two, and four minus four: zero, zero."
    ],
    [
-    25.234,
+    27.344,
+    "So do minus two, one and four, minus two: the whole line through two, minus one falls onto the origin."
+   ],
+   [
+    35.443,
     "And a point off that line, like one, zero, can never be reached."
    ],
    [
-    29.883,
+    39.883,
     "Can A x equal b for every b?"
    ],
    [
-    33.372,
+    43.425,
     "For this matrix, no."
    ],
    [
-    34.935,
+    45.039,
     "That's the big question of chapter fourteen."
    ],
    [
-    37.878,
+    48.151,
     "And the matrix of all zeros squashes everything into one single point: the origin."
    ]
   ]
@@ -626,6 +748,11 @@ window.TIMINGS = {
    "w2": 5.677,
    "w3": 11.315,
    "w4": 20.951,
+   "k2": 21.562,
+   "k3": 22.201,
+   "k4": 22.956,
+   "k5": 23.633,
+   "sol": 26.536,
    "end": 30.69
   },
   "cues": [
