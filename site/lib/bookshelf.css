@@ -1,75 +1,130 @@
+/* The bookshelf belongs to this website, not the book-making Skill. The scene is one photograph of a birch shelf on
+   a wall, drawers and all (assets/shelf/wall.webp, 1024 x 1536); the shelf is also cut into strips (cap, each bay's
+   back panel, each shelf's lip, the drawers), laid over the photo exactly where they are in it, so the lips can stand in front of the books' feet
+   and, on a phone, the bays can grow to hold two rows. Books are links standing face out, each with a coloured
+   label card (after Dynamicland's shelf). Adding a book is one <a class="book"> and one cover in assets/covers/.
+   Sizes are in source pixels of the photo: --s is one of them. */
+@font-face { font-family: Oswald; font-weight: 600; font-display: swap; src: url(fonts/Oswald-latin.woff2) format('woff2'); }   /* SIL OFL, fonts/OFL-Oswald.txt */
 :root {
   --ui: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   --book: "Iowan Old Style", Palatino, Georgia, serif;
-  color-scheme: dark;
+  --ink: #26231f;
+  --red: #b5383c; --blue: #2b78a6; --purple: #6a3f9c; --brown: #5b3c2d;
+  color-scheme: light;
 }
 * { box-sizing: border-box; }
-body { margin: 0; min-height: 100svh; background: #c4a47e; font: 18px/1.5 var(--ui); }
+html { background: #151413; }
+body { margin: 0; color: var(--ink); font: 16px/1.4 var(--ui); }
 a { color: inherit; }
 @view-transition { navigation: auto; }
 ::view-transition-group(*) { animation-duration: .5s; animation-timing-function: cubic-bezier(.2, .8, .2, 1); }
-/* The photographed bookshelf belongs to this website, not the book-making Skill. */
-#shelf { position: relative; width: 100%; min-height: 100dvh; margin: 0; color: #443526; }
-.shelf-top { position: absolute; z-index: 2; inset: 0 0 auto; display: flex; justify-content: space-between; align-items: center; height: 3%; padding: 0 2.6%; }
-#shelf-title { margin: 0; font: 600 clamp(14px, 1.35vw, 25px)/1 var(--ui); letter-spacing: -.4px; view-transition-name: none; }
-.shelf-brand { text-decoration: none; }
-.shelf-brand { display: inline-flex; align-items: center; gap: 6px; color: #352b20; text-shadow: 0 1px #ecd3a54a; }
-.shelf-brand > span { font: clamp(21px, 2vw, 36px)/.7 var(--book); color: #3c3021; }
-.shelf-top p { margin: 0; color: #493b2d; font: 500 clamp(10px, .9vw, 15px) var(--ui); text-shadow: 0 1px #ecd3a54a; }
-.photo-shelf { position: relative; width: 100%; aspect-ratio: 3 / 4; container-type: inline-size; margin: 0; }
-.shelf-photo { display: block; width: 100%; height: auto; }
-.shelf-tier { display: contents; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
-.book-hotspot { position: absolute; display: block; top: 4.9%; height: 23.3%; text-decoration: none; border-radius: 2px; outline-offset: 4px; }
-.algebra-book { left: 10.1%; width: 26.1%; }
-.math-book { left: 39.9%; width: 24.5%; }
-.physics-book { left: 66.8%; width: 25.3%; }
-/* The middle shelf: the photographed covers of our picture books. */
-.pigs-book { left: 8.1%; width: 25.8%; top: 34.5%; height: 19.6%; }
-.red-book { left: 37.2%; width: 26%; top: 34.4%; height: 19.6%; }
-.joke-book { left: 65.6%; width: 26.4%; top: 34.2%; height: 19.9%; }
-.pigs-book .book-caption { background: linear-gradient(110deg, #7a4a1ef5, #5a3414f0); }
-.red-book .book-caption { background: linear-gradient(110deg, #8a2a22f5, #5e1a16f0); }
-.joke-book .book-caption { background: linear-gradient(110deg, #2f5aa8f5, #1f3d78f0); }
-.foucault-book { left: 8.5%; width: 25.8%; top: 58.4%; height: 20.3%; }
-.foucault-book .book-caption { background: linear-gradient(110deg, #6a1420f5, #3e0a12f2); }
-.elephant-book { left: 37.1%; width: 25.6%; top: 58.4%; height: 19.9%; }
-.elephant-book .book-caption { background: linear-gradient(110deg, #1d3527f5, #0e1d14f2); }
-.pandemic-book { left: 65.5%; width: 25.9%; top: 58.3%; height: 20.3%; }
-.pandemic-book .book-caption { background: linear-gradient(110deg, #8a2a1ef5, #2a1410f2); }
-.book-hotspot:hover { box-shadow: 0 0 0 2px #f7d998b3, 0 0 28px #edc97833; }
-#shelf a:focus-visible { outline: 3px solid #f4d786; outline-offset: 5px; }
-.book-caption { position: absolute; bottom: 0; left: 0; right: 0; display: flex; flex-direction: column; justify-content: center; gap: .35cqw; min-height: 6.45cqw; padding: 1.1cqw 1.2cqw .9cqw; color: #faf7e9; background: linear-gradient(110deg, #263d32f5, #182a23f0); box-shadow: 0 -2px 8px #0003; font: 1.4cqw/1.25 var(--ui); transition: background .2s; }
-.math-book .book-caption { background: linear-gradient(110deg, #704732f7, #503721f0); }
-.physics-book .book-caption { background: linear-gradient(110deg, #1f2f4ef5, #141d33f0); }
-.book-caption strong { font-weight: 600; padding-right: 1.5cqw; }
-.book-caption strong > span { position: absolute; right: 1.2cqw; top: 1.1cqw; color: #e8c68b; }
-.book-caption small { color: #e2dbca; font-size: 1.03cqw; letter-spacing: .03em; }
-.resume-label { position: absolute; padding: .46cqw .74cqw; background: #fcf4df; color: #3c4336; box-shadow: 1px 2px 5px #0003; font: 1.03cqw var(--ui); transform: rotate(-3deg); }
-.github-drawer, .youtube-drawer { position: absolute; top: 83.6%; width: 46.1%; height: 14.6%; text-decoration: none; }
-.github-drawer { left: 4.1%; }
-.youtube-drawer { left: 50.7%; }
-.shelf-noscript { position: absolute; bottom: 0; left: 24px; margin: 0; font: 11px var(--ui); color: #352c21; }
-.shelf-footer { position: absolute; inset: auto 0 0; display: flex; justify-content: center; align-items: center; gap: 3%; height: 3%; padding: 0 3%; color: #594129; font: 500 clamp(10px, .85vw, 14px)/1.4 var(--ui); text-shadow: 0 1px #ffe6bd66; }
-.shelf-footer button { padding: 2px 0; border: 0; border-bottom: 1px solid #59412966; background: transparent; color: inherit; font: inherit; cursor: pointer; text-shadow: inherit; }
-.shelf-footer button:hover { color: #2d2116; border-bottom-color: currentColor; }
-.shelf-footer button:focus-visible { outline: 2px solid #594129; outline-offset: 5px; }
+#shelf a:focus-visible, #shelf button:focus-visible, .drawer:focus-visible { outline: 3px solid #f6b741; outline-offset: 4px; }
+
+/* The photo, as wide as the window (it is 1024 px: wider than that it softens a little). The shelf in it spans source x 82-946 and starts at y 175. */
+.scene { position: relative; width: 100%; aspect-ratio: 1024 / 1536; margin: 0 auto; container-type: inline-size; background: url(../assets/shelf/wall.webp) 0 0 / 100% 100%; }
+.scene > * { position: absolute; left: 8.008cqw; width: 84.375cqw; }
+.banner { top: 1.37cqw; margin: 0; line-height: 0; filter: drop-shadow(3px 6px 6px #0004); }
+.banner button { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; transition: transform .15s; }
+.banner button:hover { transform: translateY(-2px); }
+.banner svg { display: block; width: 100%; height: auto; }
+.case { --s: calc(84.375cqw / 864); top: 17.09cqw; }
+.cap, .lip { background: 0 0 / 100% 100% no-repeat; }
+.cap { aspect-ratio: 864 / 15; background-image: url(../assets/shelf/cap.webp); }
+.shelf { position: relative; background: 0 0 / 100% 100% no-repeat; }
+.lip { position: relative; z-index: 3; display: grid; place-items: center; }   /* in front of the books' feet */
+.shelf:nth-of-type(1) { aspect-ratio: 864 / 266; background-image: url(../assets/shelf/bay1.webp); } .shelf:nth-of-type(1) .lip { aspect-ratio: 864 / 33; background-image: url(../assets/shelf/lip1.webp); }
+.shelf:nth-of-type(2) { aspect-ratio: 864 / 257; background-image: url(../assets/shelf/bay2.webp); } .shelf:nth-of-type(2) .lip { aspect-ratio: 864 / 33; background-image: url(../assets/shelf/lip2.webp); }
+.shelf:nth-of-type(3) { aspect-ratio: 864 / 251; background-image: url(../assets/shelf/bay3.webp); } .shelf:nth-of-type(3) .lip { aspect-ratio: 864 / 36; background-image: url(../assets/shelf/lip3.webp); }
+.shelf:nth-of-type(4) { aspect-ratio: 864 / 129; background-image: url(../assets/shelf/bay4.webp); } .shelf:nth-of-type(4) .lip { aspect-ratio: 864 / 21; background-image: url(../assets/shelf/lip4.webp); }
+.shelf .lip { position: absolute; top: 100%; left: 0; right: 0; }   /* the lip below the bay, where it is in the photo */
+.shelf + .shelf { margin-top: calc(33 * var(--s)); }
+.shelf:nth-of-type(3) { margin-top: calc(33 * var(--s)); } .shelf:nth-of-type(4) { margin-top: calc(36 * var(--s)); }
+.row { --padx: calc(44 * var(--s)); display: grid; grid-template-columns: repeat(4, 1fr); gap: 0 calc(12 * var(--s)); height: 100%; padding: 0 var(--padx); align-items: end; }
+.row > * { margin-bottom: calc(-14 * var(--s)); }
+.label { margin: 0; padding: .25em .6em .2em; background: #1e1d1b; color: #f4f1ea; font: 700 clamp(10px, calc(13 * var(--s)), 14px)/1.2 var(--ui); letter-spacing: .08em; text-transform: uppercase; box-shadow: 1px 2px 3px #0004; }
+
+/* A book: a printed cover standing at the back of the bay (185 x 247 source px on the photo), its label card
+   leaning in front of the lower half. Covers sit a hair off straight, the way real ones do. */
+.book { position: relative; display: block; aspect-ratio: 3 / 4; text-decoration: none; color: #fff; }
+.doc { position: absolute; inset: 0 3% 0; overflow: hidden; background: #f8f6f1; box-shadow: 1px 0 0 #d9d4c8, 2px 0 0 #bdb6a8, 2px 2px 2px #0003, 7px 9px 12px #0003; transition: transform .2s; }
+.doc::after { content: ""; position: absolute; inset: 0; background: linear-gradient(115deg, #ffffff30, #fff0 32% 70%, #0000000d); pointer-events: none; }
+.doc img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; }
+/* Covers, one look a tier. Lessons: a cream textbook with a coloured spine, a serif title and a framed plate.
+   Picture books: the picture full bleed, the title in fat white letters. Documentaries: a poster, dark at the top. */
+.ct { position: absolute; z-index: 1; left: 8%; right: 8%; top: 6%; }
+.lessons a.book .doc { background: #f3ecdc; box-shadow: inset calc(15 * var(--s)) 0 0 var(--c), 1px 0 0 #d9d4c8, 2px 0 0 #bdb6a8, 2px 2px 2px #0003, 7px 9px 12px #0003; }
+.lessons .doc img { inset: 33% 8% auto 17%; width: auto; height: 23%; outline: 1px solid #00000026; outline-offset: 2px; }
+.lessons .ct { left: 17%; top: 7%; color: #2a251e; font: 600 calc(20 * var(--s))/1.02 var(--book); }
+.lessons .ct::before { content: "Papermorph"; display: block; margin-bottom: calc(5 * var(--s)); color: var(--c); font: 700 calc(8 * var(--s))/1 var(--ui); letter-spacing: .18em; text-transform: uppercase; }
+.pictures .ct { text-align: center; color: #fff; font: 800 calc(19 * var(--s))/1.02 var(--ui); letter-spacing: -.01em; text-shadow: 0 1px 0 #0007, 0 0 calc(9 * var(--s)) #0006; }
+.films .doc::after { background: linear-gradient(#000000b3, #0000 38%), linear-gradient(115deg, #ffffff22, #fff0 32%); }
+.films .ct { z-index: 2; color: #fff; font: 600 calc(19 * var(--s))/1.02 Oswald, var(--ui); letter-spacing: .03em; text-transform: uppercase; }
+.row > :nth-child(1) .doc { rotate: -.5deg; } .row > :nth-child(2) .doc { rotate: .4deg; } .row > :nth-child(3) .doc { rotate: -.2deg; } .row > :nth-child(4) .doc { rotate: .6deg; }
+.tag { position: absolute; inset: 58% 0 0; display: flex; flex-direction: column; padding: 6% 7% 10%; background: var(--c); box-shadow: 1px 1px 1px #0003, 5px 6px 9px #0003; font-size: clamp(10px, calc(12 * var(--s)), 13px); line-height: 1.3; transition: transform .2s; }
+.tag::after { content: ""; position: absolute; inset: 0; background: linear-gradient(170deg, #ffffff1a, #fff0 40%); pointer-events: none; }
+.tag b { font: italic 700 clamp(11.5px, calc(16 * var(--s)), 17px)/1.15 var(--ui); }
+.tag em { margin-top: 2px; font-style: normal; opacity: .9; }
+/* The one-line blurb shows once a book is wide enough to print it (a scene 1100 px wide); below that it is for screen readers. */
+.tag > span { margin-top: .5em; opacity: .95; }
+@container (max-width: 1099px) { .tag > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; } }
+a.book:hover .doc { transform: translateY(-5px); }
+a.book:hover .tag { transform: translateY(-2px); }
+.lessons { --c: var(--red); }
+.pictures { --c: var(--blue); }
+.films { --c: var(--purple); }
+.archive { --c: var(--brown); }
+
+/* Not ready yet: a black binder in its place, the card says so, nothing to open. */
+.soon .doc { background: linear-gradient(100deg, #2a2a2a, #111 45%, #262626); box-shadow: 2px 0 0 #000, 2px 2px 2px #0004, 7px 9px 12px #0003; }
+.soon .doc::before { content: ""; position: absolute; inset: 0 auto 0 9%; width: 2px; background: #ffffff1c; }
+.soon .tag { filter: saturate(.55) brightness(.9); }
+.empty { visibility: hidden; }
+
+/* The one that is different: a hand-made sign, like "Start here". */
+.sign { position: absolute; z-index: 2; top: calc(-20 * var(--s)); left: calc(-14 * var(--s)); padding: .3em .6em .25em; background: #f6b741; border: 2px solid #1e1d1b; color: #1e1d1b; font: 700 clamp(11px, calc(15 * var(--s)), 16px)/1 Oswald, var(--ui); letter-spacing: .05em; text-transform: uppercase; transform: rotate(-7deg); box-shadow: 3px 4px 4px #0003; }
+
+/* "Continue · Chapter N": a sticky note on the cover of a book the reader has started. */
+.book-slot { position: relative; }
+.resume-label { position: absolute; z-index: 4; top: 44%; right: -4px; padding: 3px 7px; background: #fff7c9; color: #3c3a2e; box-shadow: 1px 2px 5px #0003; font: clamp(10px, calc(12 * var(--s)), 13px) var(--ui); text-decoration: none; transform: rotate(3deg); }
+
+/* The archive: books stand spine out in a row (a.spine, title written down the spine). */
+.spines { display: flex; gap: calc(6 * var(--s)); align-items: end; justify-content: center; padding-bottom: calc(14 * var(--s)); }
+.spine { display: block; width: calc(40 * var(--s)); height: calc(105 * var(--s)); padding: 8px 0; background: var(--c); color: #fff; text-decoration: none; writing-mode: vertical-rl; font: 600 clamp(10px, calc(14 * var(--s)), 15px)/calc(40 * var(--s)) var(--ui); box-shadow: inset -4px 0 6px #0003, 5px 6px 9px #0003; }
+.note { align-self: center; margin: 0; padding: .7em 1.1em; background: var(--brown); color: #f1e9df; font: clamp(12px, calc(15 * var(--s)), 15px)/1.4 var(--ui); box-shadow: 5px 6px 9px #0003; transform: rotate(-1deg); }
+
+/* Under the archive, the photo's own pair of drawers, GitHub and YouTube cut into them: each link is the front. */
+.drawers { position: relative; aspect-ratio: 864 / 176; margin-top: calc(21 * var(--s)); background: url(../assets/shelf/drawers.webp) 0 0 / 100% 100%; }
+.drawer { position: absolute; top: 0; height: 85%; border-radius: 2px; transition: background .15s; }
+.drawer:nth-child(1) { left: 2.3%; width: 46.7%; }
+.drawer:nth-child(2) { left: 50.9%; width: 46.7%; }
+.drawer:hover { background: #ffffff1f; box-shadow: 0 0 0 2px #ffffff55; }
+
 .shelf-about { max-width: 580px; padding: 38px 42px; border: 1px solid #a08760; border-radius: 3px; background: #f6efdf; color: #403527; box-shadow: 0 20px 80px #291b1455; }
 .shelf-about::backdrop { background: #20180fc4; backdrop-filter: blur(4px); }
 .shelf-about h2 { margin: 12px 0 20px; font: 400 32px var(--book); }
 .shelf-about p { font: 15px/1.7 var(--ui); }
 .shelf-about .about-kicker { margin: 0; color: #826545; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
 .about-close { position: absolute; right: 16px; top: 12px; padding: 0 7px; background: transparent; border: 0; color: #675542; font: 26px var(--ui); cursor: pointer; }
-/* On a phone the labels scaled with the photo are too small to read: the book's name gets a floor, the line under it
-   (also in the link's label) goes, and the footer follows the photo instead of the bottom of a taller screen. */
+
+/* A phone: too narrow for four books a shelf. The photo goes; the strips stack down the page, two books to a row,
+   each bay's panel stretched to hold both rows and a second lip under the first. */
 @media (max-width: 700px) {
-  #shelf { min-height: 0; }
-  .book-caption { font-size: max(10px, 1.4cqw); }
-  .book-caption small, .book-caption strong > span { display: none; }
-  .resume-label { font-size: max(10px, 1.03cqw); }
-  .shelf-footer { position: static; height: auto; padding: 14px 3% 22px; }
+  html { background: #e9e6e1; }
+  .scene { aspect-ratio: auto; width: calc(100% - 16px); padding: 12px 0 40px; background: none; }
+  .scene > * { position: static; width: auto; }
+  .case { --s: calc(100cqw / 864); margin-top: 0; filter: drop-shadow(5px 8px 10px #0003); }
+  .shelf { aspect-ratio: auto !important; }
+  .row { grid-template-columns: 1fr 1fr; gap: calc(75 * var(--s)) calc(30 * var(--s)); padding-top: calc(40 * var(--s)); padding-bottom: 0; }
+  .row:not(.spines) > :first-child::after { content: ""; position: absolute; z-index: 3; top: calc(100% - 22 * var(--s)); left: calc(-1 * var(--padx)); width: 100cqw; aspect-ratio: 864 / 33; background: url(../assets/shelf/lip1.webp) 0 0 / 100% 100%; }
+  .tag { inset: 56% 0 0; font-size: 10.5px; }
+  .tag b { font-size: 13px; }
+  .empty { display: none; }
+  .sign { font-size: 12px; }
+  .label { font-size: 11px; }
+  .spines { min-height: calc(180 * var(--s)); align-items: center; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .book-caption { transition: none; }
+  .doc, .tag { transition: none; }
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
 }

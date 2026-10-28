@@ -1,4 +1,4 @@
-/* Website-only book navigation. The picture, links and hotspot positions live in index.html/bookshelf.css. */
+/* Website-only bookshelf behaviour: old root links, the About note, and a "Continue" note on books the reader has started. */
 'use strict';
 (() => {
   // Old root hashes referred to the first book before each book had its own folder.
@@ -31,8 +31,9 @@
     resume.className = 'resume-label';
     resume.textContent = `Continue · Chapter ${saved.last} →`;
     resume.href = `${book.chapterBase}ch${String(saved.last).padStart(2, '0')}/`;
-    resume.style.left = { 'elementary-algebra': '11%', 'math-notebook': '40.8%', science: '67.7%' }[book.id];
-    resume.style.top = '5.7%';
-    document.getElementById('shelf-books').append(resume);
+    const slot = document.createElement('div');   // a link can't hold a link: the note sits beside the cover, over it
+    slot.className = 'book-slot';
+    cover.replaceWith(slot);
+    slot.append(cover, resume);
   }
 })();
