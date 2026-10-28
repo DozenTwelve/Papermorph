@@ -222,7 +222,7 @@ function sceneOpen(P) {
 function sceneCount(P, a0, range = 0) {
   if (a0 <= 0) return;
   toScreen();
-  const cx = cw / 2, y = chh * .32, k = 27e6 / 7115706, Ub = Math.min(cw * .86, fs(80)) / k, bx = cx - Ub * k / 2, by = chh * .7, bh = fs(3.4);
+  const cx = cw / 2, y = chh * .32, k = 27e6 / 7115706, kMax = 35e6 / 7115706, Ub = Math.min(cw * .86, fs(80)) / kMax, bx = cx - Ub * kMax / 2, by = chh * .7, bh = fs(3.4);
   const c1 = ramp(P, at('count', .05), at('count', .3)), c2 = ramp(P, at('count', .4), at('count', .7));
   const a1 = a0 * ramp(P, at('count', 0), at('count', .1)), a2 = a0 * ramp(P, at('count', .38), at('count', .45));
   text(fmtN(7115706 * c1), cx, y, { size: 9, weight: 600, fill: CREAM, align: 'center', a: a1 });
@@ -238,7 +238,7 @@ function sceneCount(P, a0, range = 0) {
   if (range > 0) {   // 18 to 35 million: a bracket over the bar
     const x18 = bx + Ub * 18e6 / 7115706, x35 = bx + Ub * 35e6 / 7115706, yb = by - fs(2.2);
     ctx.globalAlpha = a0 * range; ctx.strokeStyle = CREAM; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(x18, by - 2); ctx.lineTo(x18, yb); ctx.lineTo(Math.min(x35, cw - 4), yb); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x18, by - 2); ctx.lineTo(x18, yb); ctx.lineTo(x35, yb); ctx.stroke();
     text('18 to 35 million', x18, yb - fs(1.2), { size: 3, font: SERF, weight: 400, fill: CREAM, a: a0 * range });
   }
   ctx.globalAlpha = 1;
