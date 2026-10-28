@@ -11,6 +11,8 @@
 //   el.ring(0, 0, at)                            // a circle round an entry: the pivot
 //   el.diag(at); el.upper(at)                    // behind the numbers: the diagonal band, the upper triangle (U)
 //   el.opNow(2, 1)                               // inside a question: open "row 3 − ℓ × row 2" at once
+//   el.swap(1, 2, at, dur, { label: [x, y] })    // rows 2 and 3 slide past each other (elSwap, below)
+//   elim(p, sys, { noB: true })                  // A alone: no divider, no b column (a matrix times a matrix)
 //
 // While elim is attached, move the system through el.to(next, at, dur) (or el.step, el.mult): elim keeps the plan
 // that the next step starts from. Hands on: el.scrub(true) makes the open operation's multiplier a number to drag
@@ -19,12 +21,12 @@
 // Loads after engine.js (and linsys.js or space3.js).
 const EL_ROW = [COL.whole, COL.nat, COL.int];
 
-function elim(p, sys, { at: [x0, y0] = [130, 450], size = 46, cw = 96, rh = 70, t0 = .1, dens = [1], step: lStep = 1, o = 0, labelX = null } = {}) {
+function elim(p, sys, { at: [x0, y0] = [130, 450], size = 46, cw = 96, rh = 70, t0 = .1, dens = [1], step: lStep = 1, o = 0, labelX = null, noB = false } = {}) {
   const n = 'a22' in sys.v ? 3 : 2, I = [...Array(n).keys()], svg = $('stage');
   const keysOf = i => [...I.map(j => `a${i}${j}`), `b${i}`];
   const g = G(p, { o });
   show(g, t0 + .2);
-  const W = n * cw + 24 + cw;   // A, the divider, b
+  const W = noB ? n * cw : n * cw + 24 + cw;   // A, the divider, b (A alone with noB)
   const cx = j => j < n ? x0 + cw * (j + .5) : x0 + n * cw + 24 + cw / 2;
   const ry = i => y0 + i * rh;
   let plan = { ...sys.v };
@@ -63,8 +65,9 @@ function elim(p, sys, { at: [x0, y0] = [130, 450], size = 46, cw = 96, rh = 70, 
   }));
   const names = G(g, {});   // "A" over the numbers in front of the letters, "b" over the right sides
   T(names, 'A', { x: x0 + n * cw / 2, y: top - 16, size: 28, fill: COL.dim, font: MATH, weight: 700, anchor: 'middle' });
-  T(names, 'b', { x: cx(n), y: top - 16, size: 28, fill: COL.dim, font: MATH, weight: 700, anchor: 'middle' });
+  if (!noB) T(names, 'b', { x: cx(n), y: top - 16, size: 28, fill: COL.dim, font: MATH, weight: 700, anchor: 'middle' });
   put(names, { o: 0 });
+  if (noB) { put(divider, { o: 0 }); I.forEach(i => put(cells[i][n].c, { o: 0 })); }
 
   function draw() {
     const v = sys.v;
@@ -313,7 +316,7 @@ function elim(p, sys, { at: [x0, y0] = [130, 450], size = 46, cw = 96, rh = 70, 
 
   draw();
   sys.onChange(draw);
-  return {
+  const api = {
     g, n, cells, rowG, bars, names, divider, W, cx, ry, size, rh,
     get plan() { return plan; },
     get l() { return lNow; },
@@ -341,7 +344,49 @@ function elim(p, sys, { at: [x0, y0] = [130, 450], size = 46, cw = 96, rh = 70, 
       scrub(on);
     },
     solve: () => sys.solve(),
+    swap: (i, j, at, dur, opts) => elSwap(api, sys, i, j, at, dur, opts),
   };
+  return api;
+}
+
+// Swap rows i and j of an elim table and of its system, on the beat clock (or on the answer clock with { now: true },
+// inside a question). The numbers slide past each other while the row colours trade (the table's bars, the equations'
+// bars and, in 2D, the lines), then the system takes the swapped numbers. Lines and planes stay where they are: the same
+// equations in a new order. label: [x, y] writes "row i ↔ row j" there (the open operation's label goes as it comes).
+function elSwap(el, sys, i, j, at, dur = 1.4, { label = null, now = false } = {}) {
+  const n = el.n, keys = r => [...[...Array(n).keys()].map(c => `a${r}${c}`), `b${r}`];
+  const from = now ? { ...sys.v } : { ...el.plan }, next = {};
+  keys(i).forEach((k, c) => { const k2 = keys(j)[c]; next[k] = from[k2]; next[k2] = from[k]; });
+  const dy = el.ry(j) - el.ry(i);
+  const eqs = sys.eqRows ? sys.eqRows.map(r => r.g) : sys.rows || [];
+  const eqBar = g => g?.querySelector('rect');
+  const eqDy = eqs[i] && eqs[j] ? +eqBar(eqs[j]).getAttribute('y') - +eqBar(eqs[i]).getAttribute('y') : 0;
+  const lines = sys.lines?.[0]?.l ? sys.lines.map(l => l.l) : [];   // 2D lines (lin3's lines are its meeting lines)
+  let lab = null;
+  if (label && !now) {
+    if (el.op_?.lab?.g.parentNode) hide(el.op_.lab.g, at - .7, .3);
+    lab = G(el.g, { x: label[0], y: label[1], o: 0 });
+    M(lab, [`row ${i + 1}`], { size: 34, fill: EL_ROW[i], anchor: 'start' });
+    M(lab, ['↔'], { x: 112, size: 34, fill: COL.chalk, anchor: 'start' });
+    M(lab, [`row ${j + 1}`], { x: 166, size: 34, fill: EL_ROW[j], anchor: 'start' });
+    show(lab, at - .4, .4);
+  }
+  const frame = q => {
+    const s = q < 1 ? q : 0, c = (a, b) => q < 1 ? mix(a, b, q) : a;
+    el.cells[i].forEach(cl => put(cl.c, { y: el.ry(i) + dy * s }));
+    el.cells[j].forEach(cl => put(cl.c, { y: el.ry(j) - dy * s }));
+    el.bars[i].setAttribute('fill', c(EL_ROW[i], EL_ROW[j])); el.bars[j].setAttribute('fill', c(EL_ROW[j], EL_ROW[i]));
+    if (eqs[i] && eqs[j]) {
+      put(eqs[i], { y: eqDy * s }); put(eqs[j], { y: -eqDy * s });
+      eqBar(eqs[i]).setAttribute('fill', c(EL_ROW[i], EL_ROW[j])); eqBar(eqs[j]).setAttribute('fill', c(EL_ROW[j], EL_ROW[i]));
+    }
+    if (lines[i] && lines[j]) { lines[i].setAttribute('stroke', c(EL_ROW[i], EL_ROW[j])); lines[j].setAttribute('stroke', c(EL_ROW[j], EL_ROW[i])); }
+    if (q >= 1 && now) el.load(next);
+  };
+  if (now) { fxp(frame, 0, dur); return next; }
+  prog(frame, at, dur);
+  el.to(next, at + dur, 0);
+  return lab;
 }
 
 // A question on the multiplier: the reader scrubs it (and, with only, some of the system's numbers) until test holds.

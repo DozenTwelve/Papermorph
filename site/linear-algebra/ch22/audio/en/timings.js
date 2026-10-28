@@ -210,16 +210,16 @@ window.TIMINGS = {
   ]
  },
  "twice": {
-  "dur": 29.616,
+  "dur": 32.136,
   "marks": {
-   "again": 2.135,
-   "r1": 4.701,
-   "back": 8.607,
-   "pp": 10.599,
-   "undo": 13.529,
-   "calc": 15.716,
-   "calc2": 22.695,
-   "eye": 27.669
+   "again": 2.279,
+   "r1": 6.979,
+   "back": 10.951,
+   "pp": 12.969,
+   "undo": 15.755,
+   "calc": 18.086,
+   "calc2": 25.0,
+   "eye": 30.117
   },
   "cues": [
    [
@@ -227,35 +227,35 @@ window.TIMINGS = {
     "What happens if we swap twice?"
    ],
    [
-    2.135,
-    "Multiply by P one two once more."
+    2.279,
+    "Put the answer back in, and multiply by P one two once more."
    ],
    [
-    4.701,
+    6.979,
     "Row one of P takes row two, which is now the old row one."
    ],
    [
-    8.607,
+    10.951,
     "Everything is back where it started."
    ],
    [
-    10.599,
+    12.969,
     "So P times P is the identity: a swap undoes itself."
    ],
    [
-    15.716,
+    18.086,
     "We can check it on P itself."
    ],
    [
-    17.513,
+    19.896,
     "Row one of P, zero, one, takes row two of P, which is one, zero."
    ],
    [
-    22.695,
+    25.0,
     "Row two of P, one, zero, takes row one of P, which is zero, one."
    ],
    [
-    27.669,
+    30.117,
     "The answer is the identity."
    ]
   ]
@@ -304,6 +304,83 @@ window.TIMINGS = {
    [
     34.023,
     "Each of those two is one swap after another."
+   ]
+  ]
+ },
+ "cycle": {
+  "dur": 53.088,
+  "marks": {
+   "want": 3.32,
+   "s1": 7.201,
+   "s2": 11.107,
+   "read": 15.677,
+   "r2": 21.849,
+   "r3": 25.872,
+   "same": 30.404,
+   "again": 35.82,
+   "twice": 40.234,
+   "third": 47.578
+  },
+  "cues": [
+   [
+    0.104,
+    "Let's build one of the two that move every row."
+   ],
+   [
+    3.32,
+    "We want row three on top, then row one, then row two."
+   ],
+   [
+    7.201,
+    "Start from the identity, and swap its rows one and three."
+   ],
+   [
+    11.107,
+    "Then swap its rows two and three."
+   ],
+   [
+    13.685,
+    "That's one swap after another."
+   ],
+   [
+    15.677,
+    "Now read the rows of P."
+   ],
+   [
+    17.578,
+    "Row one is zero, zero, one: it takes row three."
+   ],
+   [
+    21.849,
+    "Row two is one, zero, zero: it takes row one."
+   ],
+   [
+    25.872,
+    "Row three is zero, one, zero: it takes row two."
+   ],
+   [
+    30.404,
+    "The answer starts with four y plus z equals two, and the planes have not moved."
+   ],
+   [
+    35.82,
+    "Now put the answer back in, and multiply by this P once more."
+   ],
+   [
+    40.234,
+    "Every row moves down one more place."
+   ],
+   [
+    43.125,
+    "That's not where we started: this P does not undo itself."
+   ],
+   [
+    47.578,
+    "A third time brings every row home."
+   ],
+   [
+    49.987,
+    "So P times P times P is the identity."
    ]
   ]
  },
@@ -387,6 +464,64 @@ window.TIMINGS = {
    [
     53.75,
     "P on the right swaps columns, and swaps the unknowns."
+   ]
+  ]
+ },
+ "right2": {
+  "dur": 42.24,
+  "marks": {
+   "sys": 1.302,
+   "swap": 7.513,
+   "eq": 11.602,
+   "blue": 18.464,
+   "coral": 29.466,
+   "pt": 32.487,
+   "check": 36.328
+  },
+  "cues": [
+   [
+    0.104,
+    "One more on the right."
+   ],
+   [
+    1.302,
+    "x plus y equals four, and x minus two y equals one."
+   ],
+   [
+    5.82,
+    "They meet at three, one."
+   ],
+   [
+    7.513,
+    "Put P one two on the right of A: the columns of A trade places."
+   ],
+   [
+    11.602,
+    "The equations become x plus y equals four, and minus two x plus y equals one."
+   ],
+   [
+    18.464,
+    "Look at the blue line."
+   ],
+   [
+    19.727,
+    "Its two numbers were one and one, so trading them changes nothing, and it stays where it was."
+   ],
+   [
+    26.445,
+    "It is its own mirror image in the diagonal."
+   ],
+   [
+    29.466,
+    "The coral line flips over the diagonal."
+   ],
+   [
+    32.487,
+    "So the meeting point moves from three, one to one, three."
+   ],
+   [
+    36.328,
+    "Check it: one plus three is four, and minus two plus three is one."
    ]
   ]
  },

@@ -1,52 +1,12 @@
 // Row exchanges on an elim table, and a matrix on the left (or right) of a system, shown as a product computed row by row.
 //
-//   elSwap(el, sys, 1, 2, at)          // rows 2 and 3 of [A | b] slide past each other; the system takes the new order
+//   elSwap(el, sys, 1, 2, at)          // (in elim.js since 10-28; el.swap does the same) rows of [A | b] slide past each other
 //
 // Loads after engine.js, elim.js (and linsys.js or space3.js).
 const EM_ROW = [COL.whole, COL.nat, COL.int], EM_COL = [COL.irr, COL.real, COL.rat];
 
-// Swap rows i and j of an elim table and of its system, on the beat clock (or on the answer clock with { now: true },
-// inside a question). The numbers slide past each other while the row colours trade (the table's bars, the equations'
-// bars and, in 2D, the lines), then the system takes the swapped numbers. Lines and planes stay where they are: the same
-// equations in a new order. label: [x, y] writes "row i ↔ row j" there.
-function elSwap(el, sys, i, j, at, dur = 1.4, { label = null, now = false } = {}) {
-  const n = el.n, keys = r => [...[...Array(n).keys()].map(c => `a${r}${c}`), `b${r}`];
-  const from = now ? { ...sys.v } : { ...el.plan }, next = {};
-  keys(i).forEach((k, c) => { const k2 = keys(j)[c]; next[k] = from[k2]; next[k2] = from[k]; });
-  const dy = el.ry(j) - el.ry(i);
-  const eqs = sys.eqRows ? sys.eqRows.map(r => r.g) : sys.rows || [];
-  const eqBar = g => g?.querySelector('rect');
-  const eqDy = eqs[i] && eqs[j] ? +eqBar(eqs[j]).getAttribute('y') - +eqBar(eqs[i]).getAttribute('y') : 0;
-  const lines = sys.lines?.[0]?.l ? sys.lines.map(l => l.l) : [];   // 2D lines (lin3's lines are its meeting lines)
-  let lab = null;
-  if (label && !now) {
-    if (el.op_?.lab?.g.parentNode) hide(el.op_.lab.g, at, .3);
-    lab = G(el.g, { x: label[0], y: label[1], o: 0 });
-    M(lab, [`row ${i + 1}`], { size: 34, fill: EM_ROW[i], anchor: 'start' });
-    M(lab, ['↔'], { x: 112, size: 34, fill: COL.chalk, anchor: 'start' });
-    M(lab, [`row ${j + 1}`], { x: 166, size: 34, fill: EM_ROW[j], anchor: 'start' });
-    show(lab, at - .6, .4);
-  }
-  const frame = q => {
-    const s = q < 1 ? q : 0, c = (a, b) => q < 1 ? mix(a, b, q) : a;
-    el.cells[i].forEach(cl => put(cl.c, { y: el.ry(i) + dy * s }));
-    el.cells[j].forEach(cl => put(cl.c, { y: el.ry(j) - dy * s }));
-    el.bars[i].setAttribute('fill', c(EM_ROW[i], EM_ROW[j])); el.bars[j].setAttribute('fill', c(EM_ROW[j], EM_ROW[i]));
-    if (eqs[i] && eqs[j]) {
-      put(eqs[i], { y: eqDy * s }); put(eqs[j], { y: -eqDy * s });
-      eqBar(eqs[i]).setAttribute('fill', c(EM_ROW[i], EM_ROW[j])); eqBar(eqs[j]).setAttribute('fill', c(EM_ROW[j], EM_ROW[i]));
-    }
-    if (lines[i] && lines[j]) { lines[i].setAttribute('stroke', c(EM_ROW[i], EM_ROW[j])); lines[j].setAttribute('stroke', c(EM_ROW[j], EM_ROW[i])); }
-    if (q >= 1 && now) el.load(next);
-  };
-  if (now) { fxp(frame, 0, dur); return next; }
-  prog(frame, at, dur);
-  el.to(next, at + dur, 0);
-  return lab;
-}
-
 /* ---------- a matrix times [A | b], computed row by row ---------- */
-// emat draws  E · [A | b] = [EA | Eb]  (side 'left') or  A · P = AP  with b kept (side 'right'), in one line from `at`.
+// emat draws  E · [A | b] = [EA | Eb]  (side 'left') or  A · P = [AP | b]  (side 'right': A first, then P), in one line from `at`.
 // The product is the system sys (a linsys or lin3) shows: change a number of E, or of A and b, and the product, the
 // lines or planes and the working all follow. E's numbers are drawn here; [A | b] and the product are elim tables
 // (read-only uses of elim.js), so their rings, flashes and working rows are elim's.
@@ -77,11 +37,15 @@ function emat(p, sys, { A, b, E = null, at: [x0, y0] = [70, 270], size = 40, cw 
   const key = ps => ps.map(q => typeof q === 'string' ? q : q.f.join('/')).join('');
 
   /* ---------- E ---------- */
-  const ex = x0 + 30, ecx = j => ex + ecw * (j + .5), ry = i => y0 + i * rh;
+  // left: E, then [A | b]; right: A alone, then P (whose row bars are hidden: on the right P mixes columns)
+  const right = side === 'right', BW = right || noB ? n * cw : n * cw + 24 + cw, EW0 = n * ecw;
+  const bx = right ? x0 + 52 : x0 + 30 + EW0 + gap + 16;
+  const ex = right ? bx + BW + gap : x0 + 30, ecx = j => ex + ecw * (j + .5), ry = i => y0 + i * rh;
   const top = y0 - size * .95, bot = y0 + (n - 1) * rh + size * .35, EW = n * ecw;
   const Eg = G(g, {});
   path(Eg, `M${ex - 2} ${top}H${ex - 14}V${bot}H${ex - 2}M${ex + EW + 2} ${top}H${ex + EW + 14}V${bot}H${ex + EW + 2}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' });
   const Ebars = I.map(i => mk('rect', { x: ex - 34, y: ry(i) - size * .7, width: 7, height: size * .8, rx: 3.5, fill: EM_ROW[i] }, Eg));
+  if (right) Ebars.forEach(e => put(e, { o: 0 }));
   const Ename = G(Eg, {});
   const setName = nm => { Ename.replaceChildren(); M(Ename, [].concat(nm), { x: ex + EW / 2, y: top - 16, size: 28, fill: COL.dim, anchor: 'middle' }); };
   setName(name);
@@ -97,19 +61,17 @@ function emat(p, sys, { A, b, E = null, at: [x0, y0] = [70, 270], size = 40, cw 
   }));
 
   /* ---------- [A | b] (a bare system drawn by elim) and the product ---------- */
-  const bx = ex + EW + gap + 16;
   const base = { v: {}, fs: [], set(to) { Object.assign(this.v, to); this.fs.forEach(f => f(this.v)); }, onChange(f) { this.fs.push(f); }, to() {}, solve: () => ({}), live() {} };
   I.forEach(i => { I.forEach(j => { base.v[`a${i}${j}`] = s[`a${i}${j}`]; }); base.v[`b${i}`] = s[`b${i}`]; });
-  const B = elim(g, base, { at: [bx, y0], size, cw, rh, t0: -1, dens });
-  const px = bx + B.W + 120;
-  const eqSign = M(g, ['='], { x: bx + B.W + 42, y: y0 + (n - 1) * rh / 2 + 12, size: size * 1.1, fill: COL.chalk, anchor: 'middle' });
-  const Pt = elim(g, sys, { at: [px, y0], size, cw, rh, t0: -1, dens });
+  const B = elim(g, base, { at: [bx, y0], size, cw, rh, t0: -1, dens, noB: right || noB });
+  const last = right ? ex + EW : bx + B.W, px = last + 120;
+  const eqSign = M(g, ['='], { x: last + 42, y: y0 + (n - 1) * rh / 2 + 12, size: size * 1.1, fill: COL.chalk, anchor: 'middle' });
+  const Pt = elim(g, sys, { at: [px, y0], size, cw, rh, t0: -1, dens, noB });
   const label = (el, a, bb) => { el.names.replaceChildren(); [[a, el.cx(0) + (el.cx(n - 1) - el.cx(0)) / 2], [bb, el.cx(n)]].forEach(([t, x]) => { if (t) M(el.names, [t], { x, y: top - 16, size: 28, fill: COL.dim, anchor: 'middle' }); }); };
   // names: [over A, over b, over the product's A part, over its b part]; noB hides the b columns (a matrix times a matrix)
-  const nm = names || (side === 'right' ? ['A', '', 'AP', 'b'] : ['A', 'b', 'EA', 'Eb']);
+  let nm = names || (side === 'right' ? ['A', '', 'AP', 'b'] : ['A', 'b', 'EA', 'Eb']);
+  const relabel = to => { nm = to; label(B, nm[0], nm[1]); label(Pt, nm[2], nm[3]); workKey = ''; drawWork(); };
   label(B, nm[0], nm[1]); label(Pt, nm[2], nm[3]);
-  if (side === 'right' || noB) { I.forEach(i => put(B.cells[i][n].c, { o: 0 })); put(B.divider, { o: 0 }); }
-  if (noB) { I.forEach(i => put(Pt.cells[i][n].c, { o: 0 })); put(Pt.divider, { o: 0 }); }
   put(B.names, { o: 1 }); put(Pt.names, { o: 1 });
 
   const prod = v => {
@@ -236,7 +198,7 @@ function emat(p, sys, { A, b, E = null, at: [x0, y0] = [70, 270], size = 40, cw 
 
   draw();
   const api = {
-    g, n, side, Eg, ecells, Ebars, B, Pt, eqSign, W, ecx, ry, bx, px, setName,
+    g, n, side, Eg, ecells, Ebars, B, Pt, eqSign, W, ecx, ry, bx, px, setName, names: relabel,
     get plan() { return plan; },
     // Move numbers of E (e..) and of [A | b] (a.., b..) over dur seconds on the beat clock; product and picture follow.
     to(next, at, dur = 1.4, ease = io) {
@@ -286,9 +248,14 @@ const emTask = (em, test, why, hint, reveal, { only = null } = {}) => (body, api
 // rows slide past each other while the product's row colours (and a linsys's lines) trade; then E takes the swapped
 // rows. { cols: true } swaps E's columns instead; on the right (side 'right') the product's columns slide past each
 // other, and the picture jumps to the swapped system at the end. sys: the linsys whose line colours should trade.
-function emSwap(em, i, j, at, dur = 1.4, { cols = false, sys = null } = {}) {
+// { base: true } swaps rows i and j of [A | b] instead (E stays): its rows and the product's slide, as when the answer
+// PA is put back in to be multiplied again.
+function emSwap(em, i, j, at, dur = 1.4, { cols = false, sys = null, base = false } = {}) {
   const n = em.n, I = [...Array(n).keys()], E = em.plan, next = {};
-  I.forEach(r => I.forEach(c => {
+  if (base) {
+    const ks = r => [...I.map(c => `a${r}${c}`), `b${r}`];
+    ks(i).forEach((k, c) => { next[k] = E[ks(j)[c]]; next[ks(j)[c]] = E[k]; });
+  } else I.forEach(r => I.forEach(c => {
     const [r2, c2] = cols ? [r, c === i ? j : c === j ? i : c] : [r === i ? j : r === j ? i : r, c];
     next[`e${r}${c}`] = E[`e${r2}${c2}`];
   }));
@@ -297,8 +264,8 @@ function emSwap(em, i, j, at, dur = 1.4, { cols = false, sys = null } = {}) {
   prog(q => {
     const s = q < 1 ? q : 0, c = (a, b) => q < 1 ? mix(a, b, q) : a;
     if (rowsMove) {
-      const dy = em.ry(j) - em.ry(i);
-      em.ecells[i].forEach(cl => put(cl.c, { y: em.ry(i) + dy * s })); em.ecells[j].forEach(cl => put(cl.c, { y: em.ry(j) - dy * s }));
+      const dy = em.ry(j) - em.ry(i), moving = base ? em.B.cells : em.ecells;
+      moving[i].forEach(cl => put(cl.c, { y: em.ry(i) + dy * s })); moving[j].forEach(cl => put(cl.c, { y: em.ry(j) - dy * s }));
       if (!right) {
         Pt.cells[i].forEach(cl => put(cl.c, { y: Pt.ry(i) + dy * s })); Pt.cells[j].forEach(cl => put(cl.c, { y: Pt.ry(j) - dy * s }));
         Pt.bars[i].setAttribute('fill', c(EM_ROW[i], EM_ROW[j])); Pt.bars[j].setAttribute('fill', c(EM_ROW[j], EM_ROW[i]));

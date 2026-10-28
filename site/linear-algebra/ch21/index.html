@@ -67,11 +67,7 @@ const matDraw = (p, rows, x, y, t0, { size = 34, cw = 50, rh = 46, name = '', ri
   show(g, t0, .5);
   return g;
 };
-const triangle = (p, el, t0) => {
-  const e = path(p, `M${el.cx(0) - 28} ${el.ry(0) - 40}L${el.cx(2) + 30} ${el.ry(0) - 40}L${el.cx(2) + 30} ${el.ry(2) + 16}Z`, { fill: COL.chalk, stroke: COL.chalk, 'stroke-width': 2, 'fill-opacity': .1 }, { o: 0 });
-  show(e, t0, .6);
-  return e;
-};
+const triangle = (p, el, t0) => el.upper(t0, { color: COL.chalk });   // the staircase behind the numbers: nothing struck through
 const keysOf = ({ A, b }, E = null) => {
   const o = {}, n = A.length;
   A.forEach((r, i) => { r.forEach((x, j) => { o[`a${i}${j}`] = x; o[`e${i}${j}`] = E ? E[i][j] : +(i === j); }); o[`b${i}`] = b[i]; });
@@ -102,11 +98,12 @@ const PRODQ = [
 ];
 // Hands-on in 3D: lecture A, then a system of our own through column 1 (two numbers at once) and column 2.
 const OWN = { A: [[1, 1, 1], [2, 3, 1], [-1, 1, 2]], b: [3, 6, 2] }, OWN1 = { A: [[1, 1, 1], [0, 1, -1], [0, 2, 3]], b: [3, 0, 5] };
+const xs = c => { const r = Math.round(c * 10) / 10; return r === 1 ? 'x' : r === -1 ? '−x' : `${num(r)}x`; };   // 1x and −1x written x and −x
 const HANDS = [
   { sys: LEC, only: ['e10'], test: (v, pr) => Math.abs(pr.a10) < 1e-9, ans: { e10: -3 }, prompt: 'Make row 2 of the answer lose its x (the lecture’s first step).',
     why: '−3 in row 2, column 1: row 2 − 3 × row 1 = (0, 2, −2 | 6).', hint: (v, pr) => `Row 2 still has ${num(Math.round(pr.a10 * 10) / 10)}x. ℓ = 3 ÷ 1; the entry is −ℓ.` },
   { sys: OWN, only: ['e10', 'e20'], test: (v, pr) => Math.abs(pr.a10) < 1e-9 && Math.abs(pr.a20) < 1e-9, ans: { e10: -2, e20: 1 }, prompt: 'One E for both steps of column 1: clear the x from rows 2 and 3.',
-    why: '−2 and 1: row 2 − 2 × row 1 and row 3 + row 1. Rows 2 and 3 become (0, 1, −1 | 0) and (0, 2, 3 | 5).', hint: (v, pr) => `Rows 2 and 3 still have ${num(Math.round(pr.a10 * 10) / 10)}x and ${num(Math.round(pr.a20 * 10) / 10)}x. The pivot is 1.` },
+    why: '−2 and 1: row 2 − 2 × row 1 and row 3 + row 1. Rows 2 and 3 become (0, 1, −1 | 0) and (0, 2, 3 | 5).', hint: (v, pr) => `Rows 2 and 3 still have ${xs(pr.a10)} and ${xs(pr.a20)}. The pivot is 1.` },
   { sys: OWN1, only: ['e21'], test: (v, pr) => Math.abs(pr.a21) < 1e-9, ans: { e21: -2 }, prompt: 'Column 2: make the yellow plane flat.',
     why: '−2 in row 3, column 2: row 3 − 2 × row 2 = (0, 0, 5 | 5), so z = 1.', hint: (v, pr) => `Row 3 still has ${num(Math.round(pr.a21 * 10) / 10)}y. The pivot of row 2 is 1, the number to remove 2.` },
 ];
@@ -123,8 +120,8 @@ const BEATS = [
     const s = bare([[1, 2], [3, 4]]); s.v.b0 = 5; s.v.b1 = 11;
     const em = emat(lg, s, { A: [[1, 2], [3, 4]], b: [5, 11], at: [380, 640], size: 36, cw: 62, ecw: 54, rh: 56, t0: 0 });
     show(lg, m('sub') + 1.5, .5);
-    em.ringE(1, 0, m('move') + .2);
-    em.to({ e10: -3 }, m('move') + .8, 2.2);
+    em.ringE(1, 0, m('move'));
+    em.to({ e10: -3 }, m('move') + .3, 1.6);   // done before the card fades
     tw(g, { o: 0, y: -24 }, D - .9, .8); hide(r, D - .9, .8); hide(lg, D - .9, .8);
   }],
 
@@ -132,18 +129,19 @@ const BEATS = [
     const p = panel(0);
     text(p, 'Numbers on the left mix the rows', 60, 110, .2, { size: 40, weight: 600 });
     const L = { A: [[1, 2], [3, 4]], b: [5, 11] };
-    const { sys, em } = two(p, L, 'x + 2y = 5,    3x + 4y = 11', { t0: m('sys') - .3 });
+    const { sys, em } = two(p, L, 'x + 2y = 5,    3x + 4y = 11', { t0: .4 });
     put(em.Eg, { o: 0 }); show(em.Eg, m('E'), .5);
     put(em.eqSign, { o: 0 }); show(em.eqSign, m('row2'), .4);
-    put(em.Pt.g, { o: 0 }); show(em.Pt.g, m('row2'), .5);
+    tw(em.Pt.g, { o: 0 }, 0, 0); show(em.Pt.g, m('row2'), .5);   // elim's own fade-in would show it at once
     em.focusE(1, m('row2')); em.Pt.focus(1, m('row2'));
     em.flashE(1, m('row2') + .4);
     em.work(1, 0, { times: [m('w'), m('w') + 1.8, m('sum')] });
     em.Pt.flash(1, m('sum'));
     // chapter 9 in one line, then the new idea, while the voice recalls them
-    const c9 = text(p, 'chapter 9:   A times a column of numbers = a mix of the columns of A', 70, 480, .6, { size: 26, fill: COL.dim, weight: 600 });
-    const nw = text(p, 'now:   numbers on the left of A = a mix of the rows of A', 70, 530, 4.6, { size: 28, fill: COL.chalk, weight: 600 });
+    const c9 = text(p, 'chapter 9:   A times a column = a mix of the columns of A', 70, 480, .6, { size: 26, fill: COL.dim, weight: 600 });
+    const nw = text(p, 'now:   numbers on the left of A mix its rows', 70, 530, 4.6, { size: 28, fill: COL.chalk, weight: 600 });
     [c9, nw].forEach(e => hide(e, m('sys') + 1, .4));
+    em.B.flash(0, 6.6); em.B.flash(1, 7.6);   // "they mix its rows"
     [0, 1].forEach(i => em.B.flash(i, m('sys') + 2 + 2.5 * i));
     ghost(sys, 3, 4, 1, 2, m('one'));
     em.ringE(1, 0, m('one'));
@@ -290,11 +288,13 @@ const BEATS = [
     e1.Pt.flash(0, m('r12') + .6); e1.Pt.flash(1, m('r12') + 2.8); e1.Pt.flash(2, m('res'));
     const part2 = G(p, { o: 0 }); show(part2, m('ea'), .5);
     const e2 = emat(part2, sys, { A: LEC.A, b: LEC.b, at: AT3, size: 32, cw: 52, ecw: 44, rh: 54, gap: 64, t0: 0 });
-    e2.to({ e10: -3, e20: 6, e21: -2 }, m('ea') + 1, Math.max(2, D - m('ea') - .8));
+    e2.to({ e10: -3, e20: 6, e21: -2 }, m('go') - .4, 3);   // the three numbers of the one matrix slide in while both planes turn
     e2.setName('E₃₂E₂₁');
     e2.work(2, m('ea') + .5);
     V.turn({ yaw: 10, pitch: 28 }, m('ea'), Math.max(2, D - m('ea')));
-    hinge(sys, 0, m('go') - .5, 1.6); hinge(sys, 2, m('go') - .5, 1.6);
+    hinge(sys, 0, m('go') + .4, 1.6); hinge(sys, 2, m('go') + .4, 1.6);
+    e2.Pt.flash(2, m('check') + 1); e2.Pt.flash(2, m('check') + 6);
+    triangle(p, e2.Pt, m('check') + 7);
   }],
 
   ['order', 'Order matters', (m) => {

@@ -47,11 +47,11 @@ const dashSame = sys => sys.onChange((v, s) => {
   if ((sys.lines[1].l.getAttribute('stroke-dasharray') || '') !== d) sys.lines[1].l.setAttribute('stroke-dasharray', d);
 });
 // Two equations top left, the plane on the right, [A | b] under the equations; no readout (elimination finds it).
-const two = (p, A, b, { t0 = .1, meet = true, table = true } = {}) => {
+const two = (p, A, b, { t0 = .1, meet = true, table = true, at = MAT } = {}) => {
   const sys = linsys(p, { A, b, eq: [90, 200], mat: null, sol: false, t0 });
   if (!meet) put(sys.meetBox, { o: 0 });
   dashSame(sys);
-  const el = table ? elim(p, sys, { at: MAT, t0 }) : null;
+  const el = table ? elim(p, sys, { at, t0 }) : null;
   return { sys, el };
 };
 // The old line of row 2, dashed, through (sx, sy): a·x + b·y = c runs along (b, −a).
@@ -75,11 +75,7 @@ const three = (p, { A, b }, caption, { t0 = .1, view = VIEW } = {}) => {
   const el = elim(p, sys, { at: TBL, size: 44, cw: 84, rh: 66, t0, labelX: 530 });
   return { sys, el, V: sys.space };
 };
-const triangle = (p, el, t0) => {
-  const e = path(p, `M${el.cx(0) - 40} ${el.ry(0) - 48}L${el.cx(2) + 42} ${el.ry(0) - 48}L${el.cx(2) + 42} ${el.ry(2) + 20}Z`, { fill: COL.chalk, stroke: COL.chalk, 'stroke-width': 2, 'fill-opacity': .1 }, { o: 0 });
-  show(e, t0, .6);
-  return e;
-};
+const triangle = (p, el, t0) => el.upper(t0, { color: COL.chalk });   // the staircase behind the numbers: nothing struck through
 // A small system with no picture (title card, the flow in "decide"): the .v, .to, .set, .onChange elim uses.
 const bare = (A, b) => {
   const v = {}, fs = [];
@@ -94,7 +90,7 @@ const keys2 = (A, b) => ({ a00: A[0][0], a01: A[0][1], a10: A[1][0], a11: A[1][1
 const fr = v => { const r = Math.round(v * 10) / 10; return Math.abs(v - Math.round(v)) < 1e-9 ? num(Math.round(v)) : Math.abs(v * 2 - Math.round(v * 2)) < 1e-9 ? num(Math.round(v * 2)) + '/2' : num(r); };
 // Under the table, live: what row 2 − ℓ × row 1 (ℓ = number to remove ÷ pivot) leaves, and what that row says.
 const verdict = (p, sys, el, t0) => {
-  const g = G(p, { o: 0 }), y = el.ry(2) + 50, out = G(g, {});
+  const g = G(p, { o: 0 }), y = el.ry(2) - 6, out = G(g, {});   // a third row under the table; the words beside it
   show(g, t0);
   let key = '';
   const drawV = v => {
@@ -103,12 +99,12 @@ const verdict = (p, sys, el, t0) => {
     if (k === key) return;
     key = k;
     out.replaceChildren();
-    if (!v.a00) { T(out, 'pivot spot 0: swap first', { x: 90, y: y - 50, size: 28, fill: COL.bad, weight: 600 }); return; }
-    T(out, `row 2 − ${fr(l).replace('-', '−')} × row 1 gives:`, { x: 90, y: y - 50, size: 28, fill: COL.dim, weight: 600 });
-    r.forEach((x, j) => M(out, [fr(x).replace('-', '−')], { x: el.cx(j), y: y + 10, size: 40, fill: j === 2 ? COL.task : COL.chalk, anchor: 'middle' }));
+    if (!v.a00) { T(out, 'pivot spot 0: swap first', { x: 470, y, size: 28, fill: COL.bad, weight: 600 }); return; }
+    T(out, `row 2 − ${fr(l).replace('-', '−')} × row 1 leaves:`, { x: 470, y: y - 34, size: 24, fill: COL.dim, weight: 600 });
+    r.forEach((x, j) => M(out, [fr(x).replace('-', '−')], { x: el.cx(j), y: y + 4, size: 40, fill: j === 2 ? COL.task : COL.chalk, anchor: 'middle' }));
     const z = Math.abs(r[1]) < 1e-9;
     const say_ = z ? (Math.abs(r[2]) < 1e-9 ? '0 = 0: endlessly many' : `0 = ${fr(r[2]).replace('-', '−')}: no solution`) : 'a pivot: one solution';
-    T(out, say_, { x: 470, y: y + 6, size: 30, fill: z ? (Math.abs(r[2]) < 1e-9 ? COL.good : COL.bad) : COL.chalk, weight: 600 });
+    T(out, say_, { x: 470, y: y + 6, size: 28, fill: z ? (Math.abs(r[2]) < 1e-9 ? COL.good : COL.bad) : COL.chalk, weight: 600 });
   };
   sys.onChange(drawV); drawV(sys.v);
   return g;
@@ -166,7 +162,8 @@ const BEATS = [
     const p = panel(0);
     text(p, 'A zero in the pivot spot', 60, 110, .2, { size: 40, weight: 600 });
     const A = [[0, 2], [3, 1]], b = [4, 5];
-    const { sys, el } = two(p, A, b, { t0: m('eq') - .3, meet: false });
+    const { sys, el } = two(p, A, b, { t0: .4, meet: false });
+    thick(sys, 0, m('eq') + .6); el.flash(0, m('eq') + .6); thick(sys, 1, m('eq') + 3.4); el.flash(1, m('eq') + 3.4);   // each line as its equation is read
     show(sys.meetBox, m('meet'), .5); pulse(sys.meet, m('meet') + .3);
     el.ring(0, 0, m('piv'), { color: COL.bad, label: 'pivot spot', below: false });
     el.ring(1, 0, m('div'), { dash: true });
@@ -178,7 +175,9 @@ const BEATS = [
     el.mult(1, m('l1'), 1.4);
     el.mult(2, m('l2'), 1.4);
     el.mult(-1, m('l3'), 1.8);
-    [m('l1') + 1.4, m('l2') + 1.4, m('l3') + 1.8, m('stays') + .3].forEach(t => el.flash(1, t, 0));
+    // while the voice says the 3x never changes, the multiplier keeps sweeping: the line turns, the 3 stays lit
+    el.mult(3, m('stays') + .5, 2.6); el.mult(-2, m('stays') + 3.6, 3); el.mult(-1, m('stays') + 7.1, 1.6);
+    [m('l1') + 1.4, m('l2') + 1.4, m('l3') + 1.8, m('stays') + .3, m('stays') + 3.1, m('stays') + 6.6, m('stays') + 8.7].forEach(t => el.flash(1, t, 0));
     pin(sys, 1, 2, m('stays'));
     say(p, ['0 · ℓ = 0,   so   3 − 0 = 3'], 90, 680, m('stays') + 3, { size: 36, fill: COL.chalk });
     text(p, 'no multiplier removes the 3x', 90, 750, m('none'), { size: 32, fill: COL.bad, weight: 600 });
@@ -200,11 +199,11 @@ const BEATS = [
     text(p, 'already 0: a triangle', 90, 640, m('zero') + .6, { size: 28, fill: COL.good, weight: 600 });
     wl(p, '2y', '4', 710, m('y'), { xEq: 200, size: 38 });
     say(p, ['→'], 320, 710, m('y') + 2, { size: 38, fill: COL.dim });
-    wl(p, 'y', '2', 710, m('y') + 2, { xEq: 420, size: 38, fill: COL.task });
+    wl(p, 'y', '2', 710, m('y') + 2, { xEq: 450, size: 38, fill: COL.task });
     wl(p, '3x + 2', '5', 780, m('x'), { xEq: 200, size: 38 });
     say(p, ['→'], 320, 780, m('x') + 2.4, { size: 38, fill: COL.dim });
-    wl(p, '3x', '3', 780, m('x') + 2.4, { xEq: 420, size: 38 });
-    say(p, ['→   x = 1'], 520, 780, m('x') + 4, { size: 38, fill: COL.task });
+    wl(p, '3x', '3', 780, m('x') + 2.4, { xEq: 450, size: 38 });
+    say(p, ['→   x = 1'], 560, 780, m('x') + 4, { size: 38, fill: COL.task });
     text(p, 'a row exchange: temporary trouble', 90, 850, m('temp'), { size: 30, fill: COL.good, weight: 600 });
     el.flash(0, m('temp') + 3); el.flash(1, m('temp') + 5); pulse(sys.meet, m('temp') + 6.5);
   }],
@@ -212,7 +211,7 @@ const BEATS = [
   ['zero3', 'A zero in the middle', (m) => {
     const p = panel(0);
     text(p, 'A zero in the middle', 60, 110, .2, { size: 40, weight: 600 });
-    const { sys, el, V } = three(p, { A: [[1, 2, 1], [2, 4, 3], [3, 7, 5]], b: [1, 3, 4] }, 'x + 2y + z = 1,    2x + 4y + 3z = 3,    3x + 7y + 5z = 4', { t0: m('eq') - .3, view: { yaw: -30, pitch: 22 } });
+    const { sys, el, V } = three(p, { A: [[1, 2, 1], [2, 4, 3], [3, 7, 5]], b: [1, 3, 4] }, 'x + 2y + z = 1,    2x + 4y + 3z = 3,    3x + 7y + 5z = 4', { t0: .4, view: { yaw: -30, pitch: 22 } });
     V.sway(5, 13);
     tw(sys.meet.e, { o: 0 }, 0, 0);
     el.ring(0, 0, m('c1'));
@@ -284,11 +283,11 @@ const BEATS = [
     say(p, ['0 = 0'], 90, 730, m('zero'), { size: 44, fill: COL.good });
     text(p, 'always true: it rules nothing out', 260, 726, m('zero') + 1.5, { size: 30, fill: COL.good, weight: 600 });
     thick(sys, 0, m('say') + 1.5);
-    const pts = [[1, 0, 'p1', '1 + 0 = 1'], [3, -1, 'p2', '3 − 2 = 1'], [-1, 1, 'p3', '−1 + 2 = 1']];
+    const pts = [[1, 0, 'p1', '1 + 2·0 = 1'], [3, -1, 'p2', '3 + 2·(−1) = 1'], [-1, 1, 'p3', '−1 + 2·1 = 1']];
     pts.forEach(([x, y, k, chk], i) => {
-      sys.P.dot(x, y, COL.chalk, m(k), { label: `(${num(x)}, ${num(y)})`, dx: 14, dy: 30, into: sys.stage });
-      say(p, [chk], 90 + 225 * i, 800, m(k) + .2, { size: 32, fill: COL.chalk });
-      okMark(p, 90 + 225 * i + 170, 800, m(k) + .8, 30);
+      sys.P.dot(x, y, COL.chalk, m(k), { label: `(${num(x)}, ${num(y)})`, dx: 12, dy: -14, into: sys.stage });
+      say(p, [chk], 90 + 238 * i, 800, m(k) + .2, { size: 28, fill: COL.chalk });
+      okMark(p, 90 + 238 * i + 200, 800, m(k) + .8, 28);
     });
     text(p, 'endlessly many solutions', 90, 860, m('many'), { size: 32, fill: COL.good, weight: 600 });
   }],
@@ -307,7 +306,7 @@ const BEATS = [
   ['planes', 'Parallel planes', (m) => {
     const p = panel(0);
     text(p, 'Three planes, no point', 60, 110, .2, { size: 40, weight: 600 });
-    const { sys, el, V } = three(p, { A: [[1, 1, 1], [1, 2, 3], [2, 3, 4]], b: [2, 5, 9] }, 'x + y + z = 2,    x + 2y + 3z = 5,    2x + 3y + 4z = 9', { t0: m('eq') - .3 });
+    const { sys, el, V } = three(p, { A: [[1, 1, 1], [1, 2, 3], [2, 3, 4]], b: [2, 5, 9] }, 'x + y + z = 2,    x + 2y + 3z = 5,    2x + 3y + 4z = 9', { t0: .4 });
     V.sway(5, 13);
     el.step(1, 0, 1, m('c1') + 1, 2, { lead: .5 });
     el.step(2, 0, 2, m('c1b'), 2.2, { lead: .5 });
@@ -344,10 +343,11 @@ const BEATS = [
     el.flash(2, m('row'));
     say(p, ['0 = 0'], 90, 560, m('zero'), { size: 44, fill: COL.good });
     text(p, 'row 3 says nothing', 230, 556, m('zero') + .5, { size: 30, fill: COL.good, weight: 600 });
+    V.turn({ yaw: 35, pitch: 30 }, m('line') - 1.2, 3);   // turn until the shared line lies across the view
     prog(q => sys.lines[0].e.setAttribute('stroke-width', 2.5 + 6 * Math.sin(Math.PI * q)), m('line'), 2, lin);
     prog(q => sys.lines[0].e.setAttribute('stroke-width', 2.5 + 6 * Math.sin(Math.PI * q)), m('line') + 2.4, 2, lin);
     const pts = [[-1, 3, 0], [0, 1, 1], [1, -1, 2]].map((q, i) => {
-      const pt = V.point(q, { label: `(${q.map(num).join(', ')})`, size: 24 });
+      const pt = V.point(q, { label: `(${q.map(num).join(', ')})`, size: 24, halo: true });
       put(pt.e, { o: 0 }); show(pt.e, m('pts') + 1.4 * i, .4);
       return pt;
     });
@@ -357,11 +357,11 @@ const BEATS = [
   ['why', 'The pictures said so', (m) => {
     const p = panel(0);
     text(p, 'The pictures said so too', 60, 110, .2, { size: 40, weight: 600 });
-    const { sys } = two(p, [[1, 2], [2, 4]], [1, 6], { t0: m('rows') - .3, table: false });
+    const { sys } = two(p, [[1, 2], [2, 4]], [1, 6], { t0: .4, table: false });
     sys.labels(['col 1', 'col 2', 'b']);
     text(p, 'chapter 3: same tilt, different right sides', 90, 420, m('par'), { size: 28, fill: COL.dim, weight: 600 });
     thick(sys, 0, m('rows') + 1.5); thick(sys, 1, m('rows') + 3); thick(sys, 0, m('par') + 2); thick(sys, 1, m('par') + 2);
-    say(p, ['parallel: no solution'], 90, 475, m('par') + 3, { size: 34, fill: COL.bad });
+    const v1 = say(p, ['parallel: no solution'], 90, 475, m('par') + 3, { size: 34, fill: COL.bad });
     sys.view('col', m('cols'));
     text(p, 'chapter 14: the columns', 90, 560, m('cols'), { size: 28, fill: COL.dim, weight: 600 });
     const ln = sys.P.line(-3, -6, 3, 6, COL.dim, m('line') + 1, { dash: '8 10', w: 3, into: sys.stage });
@@ -376,11 +376,14 @@ const BEATS = [
     const ring = G(sys.stage, { x: sys.P.PX(1), y: sys.P.PY(6), o: 0 });
     mk('circle', { r: 22, fill: 'none', stroke: COL.bad, 'stroke-width': 3.5 }, ring);
     show(ring, m('off'), .3); hide(ring, m('move'), .3); pulse(ring, m('off') + 2.5, 1.3);
-    say(p, ['b off the line: no mix reaches it'], 90, 670, m('off') + .6, { size: 30, fill: COL.bad });
+    const v2 = say(p, ['b off the line: no mix reaches it'], 90, 670, m('off') + .6, { size: 30, fill: COL.bad });
+    [v1, v2].forEach(e => tw(e, { o: .28 }, m('move'), .5));   // they were true of b = (1, 6), not of (1, 2)
     sys.to({ b1: 2 }, m('move') + .3, 1.6);
     say(p, ['b = 1 · col 1 = ½ · col 2 = …'], 90, 725, m('on'), { size: 32, fill: COL.good });
+    [0, 1].forEach(j => { tw(sys.cols[j], { 'a_stroke-width': 9 }, m('on') + 1 + 2.6 * j, .35); tw(sys.cols[j], { 'a_stroke-width': 5 }, m('on') + 1.9 + 2.6 * j, .5); });   // one of col 1, half of col 2
     sys.view('row', m('rows2'));
     thick(sys, 1, m('one') + .2);
+    say(p, ['one line: endlessly many'], 460, 475, m('one') + .3, { size: 30, fill: COL.good });
     text(p, 'elimination: a row of zeros, then 0 = 4 or 0 = 0', 90, 800, m('sum'), { size: 28, fill: COL.chalk, weight: 600 });
     thick(sys, 0, m('sum') + 3); thick(sys, 1, m('sum') + 5);
   }],
@@ -404,9 +407,9 @@ const BEATS = [
     step('a 0 in the pivot spot', 90, 210, m('q') - .4);
     step('look below it, in the same column:', 90, 270, m('q') + .4, COL.dim);
     step('a number that is not 0?', 130, 350, m('below'));
-    step('→   swap that row up: temporary', 520, 350, m('swap'), COL.good);
+    step('→   swap that row up: temporary', 560, 350, m('swap'), COL.good);
     step('every number below is 0?', 130, 450, m('none'));
-    step('→   no pivot in this column', 520, 450, m('none') + 1.5, COL.bad);
+    step('→   no pivot in this column', 560, 450, m('none') + 1.5, COL.bad);
     step('elimination ends with a row of zeros on the left:', 130, 540, m('row'));
     step('0 = 0', 170, 620, m('zero0'), COL.good); step('endlessly many solutions', 330, 620, m('zero0') + .5, COL.good);
     step('0 = 4', 170, 690, m('zeroc'), COL.bad); step('no solution', 330, 690, m('zeroc') + .5, COL.bad);
@@ -444,10 +447,10 @@ const BEATS = [
   ['final4', 'Chapter practice', () => {
     const p = panel(0);
     text(p, 'Break it on purpose', 60, 110, .2, { size: 40, weight: 600 });
-    const t = two(p, HANDS[0].A, HANDS[0].b);
+    const t = two(p, HANDS[0].A, HANDS[0].b, { at: [108, 390] });   // higher than elsewhere: the card and its hints need the room
     S.sys = t.sys; S.el = t.el;
     S.ver = verdict(p, t.sys, t.el, .3);
-  }, { ask: done => quiz({ x: 40, y: 672, w: 720, cls: 'side' }, [...HANDS.map((h, k) => ({
+  }, { ask: done => quiz({ x: 40, y: 572, w: 720, cls: 'side' }, [...HANDS.map((h, k) => ({
     id: `p-break${k + 1}`, prompt: [h.prompt],
     build: (body, api) => { put(S.ver, { o: 1 }); S.el.load(keys2(h.A, h.b)); return lsTask(S.sys, h.test, h.why, h.hint, () => S.sys.set(h.answer), { only: h.only })(body, api); },
   })), {

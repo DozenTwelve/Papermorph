@@ -50,11 +50,7 @@ const bare = A => {
   return { v, set(to) { Object.assign(v, to); fs.forEach(f => f(v)); }, onChange: f => fs.push(f), solve: () => ({}), live() {}, to() {} };
 };
 const pin = (sys, x, y, t0, color = COL.chalk) => { const g = G(sys.stage, { x: sys.P.PX(x), y: sys.P.PY(y), o: 0 }); mk('circle', { r: 20, fill: 'none', stroke: color, 'stroke-width': 3.5, 'stroke-dasharray': '6 5' }, g); show(g, t0, .4); return g; };
-const triangle = (p, el, t0) => {
-  const e = path(p, `M${el.cx(0) - 28} ${el.ry(0) - 40}L${el.cx(2) + 30} ${el.ry(0) - 40}L${el.cx(2) + 30} ${el.ry(2) + 16}Z`, { fill: COL.chalk, stroke: COL.chalk, 'stroke-width': 2, 'fill-opacity': .1 }, { o: 0 });
-  show(e, t0, .6);
-  return e;
-};
+const triangle = (p, el, t0) => el.upper(t0, { color: COL.chalk });   // the staircase behind the numbers: nothing struck through
 const colFlash = (el, j, at) => [...Array(el.n).keys()].forEach(i => el.flash(i, at, j));
 // E's numbers as keys, from a matrix
 const eKeys = P => Object.fromEntries(P.flatMap((r, i) => r.map((x, j) => [`e${i}${j}`, x])));
@@ -137,7 +133,7 @@ const BEATS = [
     put(em.Eg, { o: 0 }); show(em.Eg, m('eye'), .5);
     em.setName('I');
     hide(em.B.ring(0, 0, m('zero'), { color: COL.bad }), m('swap'), .3);
-    text(p, 'a 0 in the pivot spot (chapter 20)', 70, 640, m('zero') + .5, { size: 26, fill: COL.bad, weight: 600 });
+    hide(text(p, 'a 0 in the pivot spot (chapter 20)', 70, 640, m('zero') + .5, { size: 26, fill: COL.bad, weight: 600 }), m('piv') - .4, .4);
     em.flashE(0, m('eye') + .8, 0); em.flashE(1, m('eye') + 1.2, 1);
     emSwap(em, 0, 1, m('swap') + .3, 1.8, { sys });
     prog(q => { if (q > 0) em.setName('P'); else em.setName('I'); }, m('p'), 0, lin);
@@ -207,9 +203,11 @@ const BEATS = [
     em.setName('P₁₂');
     const part1 = G(p, {});
     part1.appendChild(em.g);
-    emSwap(em, 0, 1, m('again') + .4, 1.8, { sys });
-    prog(q => em.setName(q > 0 ? 'I' : 'P₁₂'), m('again') + 2.2, 0, lin);
-    em.work(0, m('r1'));
+    // the answer P A goes back in as the table on the right of P; P's rows take it apart again
+    em.Pt.flash(0, m('again') - 1.4); em.Pt.flash(1, m('again') - 1.2);
+    emSwap(em, 0, 1, m('again') + .6, 1.8, { sys, base: true });
+    prog(q => em.names(q > 0 ? ['PA', 'Pb', 'P(PA)', 'P(Pb)'] : ['A', 'b', 'PA', 'Pb']), m('again') + .6, 0, lin);
+    em.flashE(0, m('r1') + .2); em.work(0, m('r1') + .4);
     text(p, 'back where it started', 70, 620, m('back'), { size: 30, fill: COL.good, weight: 600 });
     say(p, ['P P = I'], 70, 700, m('pp'), { size: 44, fill: COL.chalk });
     text(p, 'a swap undoes itself', 300, 694, m('undo'), { size: 30, fill: COL.chalk, weight: 600 });
@@ -241,6 +239,47 @@ const BEATS = [
     text(p, 'swap one pair', 620, 345, m('swaps'), { size: 24, fill: COL.dim, weight: 600 });
     text(p, 'move every row', 620, 595, m('cycles'), { size: 24, fill: COL.dim, weight: 600 });
     text(p, 'each = one swap after another', 620, 860, m('two'), { size: 26, fill: COL.chalk, weight: 600 });
+  }],
+
+  ['cycle', 'Move every row', (m) => {
+    const p = panel(0);
+    text(p, 'A P that moves every row', 60, 110, .2, { size: 40, weight: 600 });
+    const { sys, em, V } = three(p, LEC, 'x + 2y + z = 2,    3x + 8y + z = 12,    4y + z = 2', { t0: .4 });
+    V.sway(5, 13);
+    em.setName('I');
+    // the order of the rows in the answer, as chips in their own colours (top = left)
+    const ch = G(p, { o: 0 }), cy = 800, slot = k => 340 + k * 130;
+    T(ch, 'answer, top to bottom:', { x: 64, y: cy + 8, size: 24, fill: COL.dim, weight: 600 });
+    const chips = [0, 1, 2].map(k => { const c = G(ch, { x: slot(k), y: cy }); mk('rect', { x: 0, y: -18, width: 110, height: 34, rx: 8, fill: EM_ROW[k], 'fill-opacity': .25, stroke: EM_ROW[k], 'stroke-width': 2.5 }, c); T(c, `row ${k + 1}`, { x: 55, y: 7, size: 22, fill: EM_ROW[k], weight: 700, anchor: 'middle' }); return c; });
+    let last = null;
+    const count = (str, t) => { if (last) hide(last, t, .3); last = text(p, str, 760, cy + 8, t, { size: 24, fill: COL.chalk, weight: 600 }); };
+    show(ch, m('want'), .4);
+    const order = (ord, t) => ord.forEach((k, pos) => tw(chips[k], { x: slot(pos) }, t, 1.2));   // ord: which row of A sits at each place
+    const goal = say(p, ['want:   row 3,   row 1,   row 2'], 64, 670, m('want') + .3, { size: 30, fill: COL.chalk });
+    const fade = (t, d = 2.2) => { [0, 1, 2].forEach(i => { sys.planes[i].fade(.3, t, .3); sys.planes[i].fade(1, t + d, .4); }); };
+    fade(m('s1'), 2.4); emSwap(em, 0, 2, m('s1') + .4, 1.6); order([2, 1, 0], m('s1') + .4);
+    const n1 = text(p, 'swap rows 1, 3 of I', 540, 655, m('s1') + .3, { size: 24, fill: COL.dim, weight: 600 });
+    fade(m('s2'), 2.4); emSwap(em, 1, 2, m('s2') + .4, 1.6); order([2, 0, 1], m('s2') + .4);
+    const n2 = text(p, 'then rows 2, 3', 540, 690, m('s2') + .3, { size: 24, fill: COL.dim, weight: 600 });
+    prog(q => em.setName(q > 0 ? 'P' : 'I'), m('s2') + 2, 0, lin);
+    count('P once', m('s2') + 1.6);
+    [goal, n1, n2].forEach(e => hide(e, m('read') - .3, .3));
+    em.focusE(0, m('read') + 1.5); em.work(0, m('read') + 1.5);
+    em.focusE(1, m('r2')); em.work(1, m('r2'));
+    em.focusE(2, m('r3')); em.work(2, m('r3'));
+    em.focusE(null, m('same')); em.work(null, m('same'));
+    em.Pt.flash(0, m('same') + .5); pulse(sys.meet.e, m('same') + 3);
+    // again: the answer goes back in, P acts on it once more (the planes stay; only their order and colours change)
+    const PA = { a00: 0, a01: 4, a02: 1, b0: 2, a10: 1, a11: 2, a12: 1, b1: 2, a20: 3, a21: 8, a22: 1, b2: 12 };
+    const P2A = { a00: 3, a01: 8, a02: 1, b0: 12, a10: 0, a11: 4, a12: 1, b1: 2, a20: 1, a21: 2, a22: 1, b2: 2 };
+    fade(m('again') + .3, 1.6); em.to(PA, m('again') + .8, 0); em.B.flash(0, m('again') + .8); em.B.flash(1, m('again') + 1); em.B.flash(2, m('again') + 1.2);
+    prog(q => em.names(q > 0 ? ['PA', 'Pb', 'P(PA)', 'P(Pb)'] : ['A', 'b', 'PA', 'Pb']), m('again') + .8, 0, lin);
+    order([1, 2, 0], m('twice')); count('P twice', m('twice'));
+    text(p, 'not back: this P does not undo itself', 64, 860, m('twice') + 1.5, { size: 26, fill: COL.bad, weight: 600 });
+    fade(m('third') - .2, 1.6); em.to(P2A, m('third') + .3, 0);
+    prog(q => em.names(q > 0 ? ['P²A', 'P²b', 'P³A', 'P³b'] : ['PA', 'Pb', 'P(PA)', 'P(Pb)']), m('third') + .3, 0, lin);
+    order([0, 1, 2], m('third') + .3); count('three times: home', m('third') + .3);
+    say(p, ['P P P = I'], 620, 860, m('third') + 3, { size: 34, fill: COL.good });
   }],
 
   ['q2', 'Your turn', () => {
@@ -284,6 +323,32 @@ const BEATS = [
     tw(diag, { 'a_stroke-width': 7 }, m('flip') + 1, .4); tw(diag, { 'a_stroke-width': 3 }, m('flip') + 1.6, .5);
     text(p, 'flipped over the line y = x', 70, 650, m('flip') + .5, { size: 28, fill: COL.chalk, weight: 600 });
     text(p, 'P A: rows trade, nothing moves.    A P: columns trade, x and y trade.', 70, 730, m('rows'), { size: 26, fill: COL.chalk, weight: 600 });
+  }],
+
+  ['right2', 'One more on the right', (m) => {
+    const p = panel(0);
+    text(p, 'One more: a line that stays', 60, 110, .2, { size: 40, weight: 600 });
+    const { sys, em } = two(p, { A: [[1, 1], [1, -2]], b: [4, 1] }, 'x + y = 4,    x − 2y = 1', { t0: .4, side: 'right' });
+    const old = G(sys.stage, { o: 0 });
+    sys.P.line(3, 1, 1, 3, BLUE, 0, { dash: '8 9', w: 3, into: old }); sys.P.line(3, 1, 1, 0, CORAL, 0, { dash: '8 9', w: 3, into: old });
+    show(old, m('swap'), .3); tw(old, { o: .5 }, m('swap') + .4, .4);
+    [0, 1].forEach(i => em.B.flash(i, m('sys') + 1 + 2.5 * i));
+    pin(sys, 3, 1, m('sys') + 5, COL.dim);
+    emSwap(em, 0, 1, m('swap') + .6, 1.8, { cols: true });
+    prog(q => em.setName(q > 0 ? 'P₁₂' : 'I'), m('swap') + 2.4, 0, lin);
+    em.setName('I');
+    say(p, ['x + y = 4,    −2x + y = 1'], 70, 470, m('eq'), { size: 34, fill: COL.chalk });
+    em.Pt.flash(0, m('eq') + .4); em.Pt.flash(1, m('eq') + 2.5);
+    const diag = sys.P.line(-6, -6, 6, 6, COL.dim, m('blue') + 2, { dash: '10 10', w: 3, into: sys.stage });
+    thick(sys, 0, m('blue') + .5); thick(sys, 0, m('blue') + 4); thick(sys, 0, m('blue') + 8.5); em.Pt.flash(0, m('blue') + 8.5); em.Pt.flash(0, m('blue') + 1.5);
+    text(p, 'x + y = 4: its numbers 1 and 1 trade, nothing changes', 70, 530, m('blue') + .5, { size: 26, fill: BLUE, weight: 600 });
+    thick(sys, 1, m('coral') + .3); tw(diag, { 'a_stroke-width': 7 }, m('coral') + 1, .4); tw(diag, { 'a_stroke-width': 3 }, m('coral') + 1.6, .5);
+    text(p, 'the coral line flips over y = x', 70, 580, m('coral') + .3, { size: 26, fill: CORAL, weight: 600 });
+    pin(sys, 1, 3, m('pt') + 1);
+    draw(path(sys.stage, `M${sys.P.PX(3) + 8} ${sys.P.PY(1) - 18}Q${sys.P.PX(3) + 14} ${sys.P.PY(3) - 14} ${sys.P.PX(1) + 22} ${sys.P.PY(3) - 6}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' }, { d: 0 }), m('pt') + .3, .8);
+    say(p, ['(3, 1)  →  (1, 3)'], 70, 640, m('pt') + .3, { size: 32, fill: COL.chalk });
+    say(p, ['1 + 3 = 4,    −2 + 3 = 1'], 70, 710, m('check') + .3, { size: 32, fill: COL.task });
+    text(p, '✓', 470, 710, m('check') + 4, { size: 34, fill: COL.good, weight: 700 });
   }],
 
   ['q3', 'Your turn', () => {

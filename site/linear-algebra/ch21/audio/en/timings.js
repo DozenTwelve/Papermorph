@@ -359,17 +359,18 @@ window.TIMINGS = {
   ]
  },
  "both": {
-  "dur": 57.24,
+  "dur": 69.192,
   "marks": {
-   "write": 2.461,
-   "read": 8.854,
-   "one": 13.294,
-   "r": 19.544,
-   "r12": 26.458,
-   "r3": 33.568,
-   "res": 47.331,
-   "ea": 49.792,
-   "go": 54.062
+   "write": 2.513,
+   "read": 8.568,
+   "one": 13.542,
+   "r": 19.779,
+   "r12": 26.576,
+   "r3": 33.164,
+   "res": 47.07,
+   "ea": 49.609,
+   "go": 53.919,
+   "check": 57.266
   },
   "cues": [
    [
@@ -377,48 +378,56 @@ window.TIMINGS = {
     "Two steps, two matrices."
    ],
    [
-    2.461,
+    2.513,
     "In symbols: E three two, times E two one times A, equals U."
    ],
    [
-    8.854,
+    8.568,
     "Read it from the right."
    ],
    [
-    10.104,
+    9.792,
     "E two one acts first, so it stands next to A."
    ],
    [
-    13.294,
+    13.542,
     "We can also multiply the two matrices first, and get one matrix that does both steps."
    ],
    [
-    19.544,
+    19.779,
     "Each row of E three two mixes the rows of E two one, the same way as before."
    ],
    [
-    26.458,
+    26.576,
     "Rows one and two of E three two are rows of the identity, so they copy rows one and two of E two one."
    ],
    [
-    33.568,
+    33.164,
     "Row three is minus two times row two, plus row three."
    ],
    [
-    38.294,
+    38.138,
     "Minus two times minus three, one, zero is six, minus two, zero."
    ],
    [
-    44.375,
+    44.062,
     "Add zero, zero, one, and you get six, minus two, one."
    ],
    [
-    49.792,
+    49.609,
     "This one matrix E, times A, gives U at once."
    ],
    [
-    54.062,
+    53.919,
     "Both planes turn together, each on its hinge."
+   ],
+   [
+    57.266,
+    "Row three of the answer is six times row one, minus two times row two, plus row three: zero, zero, five, minus ten."
+   ],
+   [
+    66.419,
+    "The same U as before, in one step."
    ]
   ]
  },
