@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Row Exchanges as Matrices</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render"><!-- hold the first frame until the player exists, so the page transition can run -->
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/math.js"></script>
+<script src="../lib/linsys.js"></script>
+<script src="../lib/space3.js"></script>
+<script src="../lib/elim.js"></script>
+<script src="../lib/emat.js"></script>
+<script src="../lib/play.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 22, title: 'Row Exchanges as Matrices', minutes: 10, language: 'en', next: '../ch23/' };
+
+/* ---------- chapter drawing helpers (chapter 21's) ---------- */
+const BLUE = LS_ROW[0], CORAL = LS_ROW[1], YELLOW = S3_ROW[2];
+const ZERO = { A: [[0, 2], [3, 1]], b: [4, 5] };                         // chapter 20's system with a 0 in the pivot spot
+const AF = { A: [[1, 2, 1], [0, 0, 1], [0, 1, 2]], b: [1, 1, 1] };        // chapter 20's 3 × 3 after column 1
+const LEC = { A: [[1, 2, 1], [3, 8, 1], [0, 4, 1]], b: [2, 12, 2] };
+const AT2 = [70, 290], AT3 = [64, 262];
+const CARD2 = { x: 40, y: 586, w: 760, cls: 'side' }, CARD3 = { x: 40, y: 640, w: 820, cls: 'side' };
+const say = (p, parts, x, y, t0, { size = 40, fill = COL.chalk, anchor = 'start' } = {}) => { const e = M(p, [].concat(parts), { x, y, size, fill, anchor, o: 0 }); show(e, t0); return e; };
+const text = (p, str, x, y, t0, { size = 30, fill = COL.chalk, anchor = 'start', weight = 500 } = {}) => { const e = T(p, str, { x, y, size, fill, anchor, weight, o: 0 }); show(e, t0); return e; };
+const thick = (sys, i, t0) => { tw(sys.lines[i].l, { 'a_stroke-width': 10 }, t0, .35); tw(sys.lines[i].l, { 'a_stroke-width': 5 }, t0 + .9, .6); };
+const two = (p, { A, b }, caption, { t0 = .1, E = null, side = 'left' } = {}) => {
+  const sys = linsys(p, { A, b, eq: [90, 200], mat: null, sol: false, plane: { cx: 1215, u: 50 }, t0 });
+  sys.E.style.display = 'none';
+  if (caption) say(p, [caption], 70, 175, t0 + .1, { size: 28, fill: COL.dim });
+  const em = emat(p, sys, { A, b, E, side, name: 'P', names: side === 'right' ? ['A', '', 'AP', 'b'] : ['A', 'b', 'PA', 'Pb'], at: AT2, size: 38, cw: 64, ecw: 56, rh: 62, gap: 66, t0 });
+  return { sys, em };
+};
+const three = (p, { A, b }, caption, { t0 = .1, E = null, view = { yaw: -30, pitch: 22 } } = {}) => {
+  const sys = lin3(p, { A, b, eq: [90, 190], mat: null, sol: false, space: { cx: 1262, size: 520, ...view }, t0 });
+  sys.E.style.display = 'none';
+  if (caption) say(p, [caption], 64, 160, t0 + .1, { size: 26, fill: COL.dim });
+  const em = emat(p, sys, { A, b, E, name: 'P', names: ['A', 'b', 'PA', 'Pb'], at: AT3, size: 32, cw: 52, ecw: 44, rh: 54, gap: 64, t0 });
+  return { sys, em, V: sys.space };
+};
+const bare = A => {
+  const v = {}, fs = [];
+  A.forEach((r, i) => { r.forEach((x, j) => { v[`a${i}${j}`] = x; }); v[`b${i}`] = 0; });
+  return { v, set(to) { Object.assign(v, to); fs.forEach(f => f(v)); }, onChange: f => fs.push(f), solve: () => ({}), live() {}, to() {} };
+};
+const pin = (sys, x, y, t0, color = COL.chalk) => { const g = G(sys.stage, { x: sys.P.PX(x), y: sys.P.PY(y), o: 0 }); mk('circle', { r: 20, fill: 'none', stroke: color, 'stroke-width': 3.5, 'stroke-dasharray': '6 5' }, g); show(g, t0, .4); return g; };
+const triangle = (p, el, t0) => {
+  const e = path(p, `M${el.cx(0) - 28} ${el.ry(0) - 40}L${el.cx(2) + 30} ${el.ry(0) - 40}L${el.cx(2) + 30} ${el.ry(2) + 16}Z`, { fill: COL.chalk, stroke: COL.chalk, 'stroke-width': 2, 'fill-opacity': .1 }, { o: 0 });
+  show(e, t0, .6);
+  return e;
+};
+const colFlash = (el, j, at) => [...Array(el.n).keys()].forEach(i => el.flash(i, at, j));
+// E's numbers as keys, from a matrix
+const eKeys = P => Object.fromEntries(P.flatMap((r, i) => r.map((x, j) => [`e${i}${j}`, x])));
+const baseKeys = ({ A, b }) => Object.fromEntries([...A.flatMap((r, i) => r.map((x, j) => [`a${i}${j}`, x])), ...b.map((x, i) => [`b${i}`, x])]);
+const isPerm = (v, n) => { const I = [...Array(n).keys()], ok = x => x === 0 || x === 1; return I.every(i => I.every(j => ok(v[`e${i}${j}`]))) && I.every(i => I.reduce((s, j) => s + v[`e${i}${j}`], 0) === 1) && I.every(j => I.reduce((s, i) => s + v[`e${i}${j}`], 0) === 1); };
+const EK3 = ['e00', 'e01', 'e02', 'e10', 'e11', 'e12', 'e20', 'e21', 'e22'];
+const sameE = (v, P) => P.every((r, i) => r.every((x, j) => v[`e${i}${j}`] === x));
+const SIX = [
+  [[1, 0, 0], [0, 1, 0], [0, 0, 1]], [[0, 1, 0], [1, 0, 0], [0, 0, 1]], [[0, 0, 1], [0, 1, 0], [1, 0, 0]],
+  [[1, 0, 0], [0, 0, 1], [0, 1, 0]], [[0, 0, 1], [1, 0, 0], [0, 1, 0]], [[0, 1, 0], [0, 0, 1], [1, 0, 0]],
+];
+const SIXNAME = ['I', 'P₁₂', 'P₁₃', 'P₂₃', '', ''];
+// A small permutation matrix with, beside it, the rows of A as coloured bars: they slide from 1, 2, 3 into P's order.
+const mini = (p, P, name, x, y, t0, tMove) => {
+  const g = G(p, { o: 0 }), cw = 34, rh = 38, size = 26, top = y - size * .9, bot = y + 2 * rh + size * .3;
+  path(g, `M${x + 10} ${top}H${x}V${bot}H${x + 10}M${x + 3 * cw - 10} ${top}H${x + 3 * cw}V${bot}H${x + 3 * cw - 10}`, { stroke: COL.chalk, 'stroke-width': 2.5, fill: 'none' });
+  P.forEach((r, i) => r.forEach((v, j) => M(g, [String(v)], { x: x + cw * (j + .5), y: y + i * rh, size, fill: v ? COL.chalk : COL.dim, anchor: 'middle' })));
+  if (name) M(g, [name], { x: x + 1.5 * cw, y: bot + 38, size: 26, fill: COL.dim, anchor: 'middle' });
+  M(g, ['→'], { x: x + 3 * cw + 34, y: y + rh, size: 30, fill: COL.dim, anchor: 'middle' });
+  [0, 1, 2].forEach(k => {
+    const to = P.findIndex(r => r[k] === 1);   // row k of A lands in row `to`
+    const bar = G(g, { x: x + 3 * cw + 64, y: y + k * rh - 22 });
+    mk('rect', { width: 64, height: 22, rx: 6, fill: EM_ROW[k] }, bar);
+    T(bar, `row ${k + 1}`, { x: 76, y: 18, size: 18, fill: EM_ROW[k], weight: 700 });
+    if (to !== k) tw(bar, { y: y + to * rh - 22 }, tMove, 1.2);
+  });
+  show(g, t0, .5);
+  return g;
+};
+
+/* ---------- practice data (every answer worked twice: by the rows of P, and by the order it gives) ---------- */
+const WHEREQ = [
+  { parts: ['P₁₃ (swap rows 1 and 3):    the 1 of row 1 → column ', { box: '3' }, ',   row 2 → ', { box: '2' }, ',   row 3 → ', { box: '1' }], why: 'Row 1 takes row 3, row 2 stays, row 3 takes row 1.', hint: 'Swap rows 1 and 3 of the identity.' },
+  { parts: ['P₂₃:    row 1 → column ', { box: '1' }, ',   row 2 → ', { box: '3' }, ',   row 3 → ', { box: '2' }], why: 'Row 1 stays; rows 2 and 3 take each other.', hint: 'Swap rows 2 and 3 of the identity.' },
+  { parts: ['2 × 2, P₁₂:    row 1 → column ', { box: '2' }, ',   row 2 → ', { box: '1' }], why: 'P = (0, 1), (1, 0).', hint: 'Row 1 of P must take row 2.' },
+  { parts: ['order row 3, row 1, row 2:    row 1 → column ', { box: '3' }, ',   row 2 → ', { box: '1' }, ',   row 3 → ', { box: '2' }], why: 'The 1 of row k sits in the column of the row that lands there: 3, then 1, then 2.', hint: 'Which row of A goes on top? Put the 1 of row 1 in that column.' },
+  { parts: ['order row 2, row 3, row 1:    row 1 → column ', { box: '2' }, ',   row 2 → ', { box: '3' }, ',   row 3 → ', { box: '1' }], why: 'Read the order: 2, 3, 1.', hint: 'Row 1 of P takes row 2 of A.' },
+];
+const ORDERQ = [
+  { parts: ['P rows (0, 1, 0), (0, 0, 1), (1, 0, 0);   A rows (1, 2), (3, 4), (5, 6):    row 1 of PA = (', { box: '3' }, ', ', { box: '4' }, ')'], why: 'Row 1 of P has its 1 in column 2: it takes row 2 of A.', hint: 'Where is the 1 in row 1 of P? That row of A comes.' },
+  { parts: ['the same P and A:    row 2 of PA = (', { box: '5' }, ', ', { box: '6' }, '),    row 3 = (', { box: '1' }, ', ', { box: '2' }, ')'], why: 'Row 2 takes row 3, row 3 takes row 1.', hint: 'Row 2 of P is (0, 0, 1); row 3 is (1, 0, 0).' },
+  { parts: ['P₁₂ on A | b rows (2, 1 | 3), (0, 4 | 8):    (', { box: '0' }, ', ', { box: '4' }, ' | ', { box: '8' }, '),  (', { box: '2' }, ', ', { box: '1' }, ' | ', { box: '3' }, ')'], why: 'The rows trade places, right sides too.', hint: 'Swap the two rows, the right sides with them.' },
+  { parts: ['A rows (1, 2), (3, 4), P₁₂ on the right:    AP = (', { box: '2' }, ', ', { box: '1' }, '),  (', { box: '4' }, ', ', { box: '3' }, ')'], why: 'On the right, P swaps the columns: (1, 3) and (2, 4) trade places.', hint: 'On the right P mixes columns: column 1 of AP is column 2 of A.' },
+  { parts: ['P rows (0, 1, 0), (0, 0, 1), (1, 0, 0):    row 1 of PP = (', { box: '0' }, ', ', { box: '0' }, ', ', { box: '1' }, ')'], why: 'Row 1 of P takes row 2 of P, which is (0, 0, 1). So PP is the other cycle, not I.', hint: 'Row 1 of the left P is (0, 1, 0): it takes row 2 of the right P.' },
+];
+const TFC = [['t', 'true', COL.good, '1'], ['f', 'false', COL.bad, '2']];
+const TFQ = [
+  { parts: [$m('P₂₃ P₂₃ = I')], ans: ['t'], why: 'Swapping rows 2 and 3 twice puts them back.' },
+  { parts: ['P A x = P b has the same solution as A x = b'], ans: ['t'], why: 'The same equations in a new order: the lines and planes do not move.' },
+  { parts: [$m('A P'), ' swaps the rows of ', $m('A')], ans: ['f'], why: 'On the right, P swaps the columns.' },
+  { parts: ['every column of a permutation matrix has exactly one 1'], ans: ['t'], why: 'Each row of A lands in exactly one place.' },
+  { parts: ['there are 6 permutation matrices of size 3 × 3'], ans: ['t'], why: '3 · 2 · 1 = 6 orders.' },
+  { parts: ['the cycle (0, 1, 0), (0, 0, 1), (1, 0, 0) times itself is I'], ans: ['f'], why: 'Moving every row down one place twice is not the start: it is the other cycle. Three times gets back to I.' },
+];
+const HANDS = [
+  { P: [[0, 0, 1], [1, 0, 0], [0, 1, 0]], prompt: 'Put row 3 on top, then row 1, then row 2.', why: 'Rows (0, 0, 1), (1, 0, 0), (0, 1, 0): row 1 of P takes row 3, row 2 takes row 1, row 3 takes row 2.' },
+  { P: [[0, 0, 1], [0, 1, 0], [1, 0, 0]], prompt: 'Turn the order upside down: row 3, row 2, row 1.', why: 'P₁₃: swap rows 1 and 3 of the identity.' },
+];
+
+/* ---------- beats ---------- */
+const BEATS = [
+  ['intro', 'Row exchanges as matrices', (m, D) => {
+    const g = G(scene, { o: 0, y: 24 });
+    T(g, 'Unit 2, Chapter 22', { x: 800, y: 270, size: 28, fill: COL.dim, anchor: 'middle' });
+    T(g, 'Row Exchanges as Matrices', { x: 800, y: 380, size: 88, weight: 600, anchor: 'middle' });
+    tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+    const r = text(scene, 'swap the rows of the identity, and you have a matrix that swaps rows', 800, 480, m('sub'), { size: 34, fill: COL.dim, anchor: 'middle' });
+    const lg = G(scene, { o: 0 });
+    const s = bare(ZERO.A); s.v.b0 = 4; s.v.b1 = 5;
+    const em = emat(lg, s, { A: ZERO.A, b: ZERO.b, name: 'P', names: ['A', 'b', 'PA', 'Pb'], at: [380, 640], size: 36, cw: 62, ecw: 54, rh: 56, t0: 0 });
+    show(lg, m('sub') + 1.5, .5);
+    emSwap(em, 0, 1, m('move') + .6, 1.6);
+    tw(g, { o: 0, y: -24 }, D - .9, .8); hide(r, D - .9, .8); hide(lg, D - .9, .8);
+  }],
+
+  ['recall', 'A swap as a matrix', (m) => {
+    const p = panel(0);
+    text(p, 'Which matrix swaps two rows?', 60, 110, .2, { size: 40, weight: 600 });
+    const { sys, em } = two(p, ZERO, '0x + 2y = 4,    3x + y = 5', { t0: m('sys') - .3 });
+    put(em.Eg, { o: 0 }); show(em.Eg, m('eye'), .5);
+    em.setName('I');
+    hide(em.B.ring(0, 0, m('zero'), { color: COL.bad }), m('swap'), .3);
+    text(p, 'a 0 in the pivot spot (chapter 20)', 70, 640, m('zero') + .5, { size: 26, fill: COL.bad, weight: 600 });
+    em.flashE(0, m('eye') + .8, 0); em.flashE(1, m('eye') + 1.2, 1);
+    emSwap(em, 0, 1, m('swap') + .3, 1.8, { sys });
+    prog(q => { if (q > 0) em.setName('P'); else em.setName('I'); }, m('p'), 0, lin);
+    [0, 1].forEach(i => em.B.flash(i, m('sys') + .6 + 2.6 * i));
+    em.Pt.flash(0, m('ask') + .5); em.Pt.flash(1, m('ask') + 1.3);
+    em.ringE(0, 1, m('r1')); em.focusE(0, m('r1')); em.work(0, 0, { times: [m('r1') + 1.8, m('r1') + 3.2, m('r2') - 1.2] });
+    em.focusE(1, m('r2')); em.work(1, 0, { times: [m('r2') + 1.8, m('r2') + 3.2, m('same') - 1] });
+    em.focusE(null, m('same'));
+    pin(sys, 1, 2, m('same') + .5);
+    thick(sys, 0, m('same') + 3); thick(sys, 1, m('same') + 4);
+    em.Pt.ring(0, 0, m('piv'), { color: COL.good });
+  }],
+
+  ['name', 'Permutation matrices', (m) => {
+    const p = panel(0);
+    text(p, 'Permutation matrices', 60, 110, .2, { size: 40, weight: 600 });
+    const { sys, em } = two(p, ZERO, '0x + 2y = 4,    3x + y = 5', { E: [[0, 1], [1, 0]] });
+    text(p, 'permutation = a change of order', 70, 470, m('name') + .5, { size: 30, fill: COL.chalk, weight: 600 });
+    text(p, 'the identity, rows in a new order', 70, 530, m('rows'), { size: 28, fill: COL.dim, weight: 600 });
+    em.ringE(0, 1, m('ones')); em.ringE(1, 0, m('ones') + .5);
+    text(p, 'one 1 in every row and every column', 70, 590, m('ones') + .8, { size: 28, fill: COL.dim, weight: 600 });
+    em.flashE(0, m('where'), 1); em.B.flash(1, m('where') + 1.5); em.Pt.flash(0, m('where') + 3);
+    prog(q => em.setName(q > 0 ? 'P₁₂' : 'P'), m('name2'), 0, lin);
+    say(p, ['P₁₂:   swap rows 1 and 2'], 70, 660, m('name2') + .3, { size: 34, fill: COL.chalk });
+  }],
+
+  ['three', 'Three rows', (m) => {
+    const p = panel(0);
+    text(p, 'P₂₃ in three dimensions', 60, 110, .2, { size: 40, weight: 600 });
+    const { sys, em, V } = three(p, AF, 'after column 1:   x + 2y + z = 1,    z = 1,    y + 2z = 1', { t0: m('sys') - .3 });
+    V.sway(5, 13);
+    hide(em.B.ring(1, 1, m('sys') + 3, { color: COL.bad }), m('p'), .3);
+    hide(em.B.ring(2, 1, m('sys') + 5, { color: COL.good, dash: true }), m('p'), .3);
+    em.setName('I');
+    sys.planes[1].fade(.3, m('p') + 2, .4); sys.planes[2].fade(.3, m('p') + 2, .4);
+    emSwap(em, 1, 2, m('p') + 2.4, 1.8);
+    sys.planes[1].fade(1, m('p') + 4.4, .5); sys.planes[2].fade(1, m('p') + 4.4, .5);
+    prog(q => em.setName(q > 0 ? 'P₂₃' : 'I'), m('p') + 4.2, 0, lin);
+    em.focusE(0, m('r1')); em.work(0, m('r1'));
+    em.focusE(1, m('r2')); em.work(1, m('r2'));
+    em.focusE(2, m('r3')); em.work(2, m('r3'));
+    em.focusE(null, m('tri'));
+    triangle(p, em.Pt, m('tri'));
+    pulse(sys.meet.e, m('same') + 1); pulse(sys.meet.e, m('same') + 3);
+  }],
+
+  ['q1', 'Quick check', () => {
+    const p = panel(0);
+    text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
+    const t = three(p, LEC, 'x + 2y + z = 2,    3x + 8y + z = 12,    4y + z = 2');
+    S.em = t.em;
+  }, { ask: done => quiz({ x: 40, y: 440, w: 820, cls: 'side' }, [{
+    id: 'c-p13', prompt: ['Build P₁₃, the matrix that swaps rows 1 and 3.'],
+    build: blanks([
+      { parts: ['rows 1, 2 of P₁₃:  (', { box: '0' }, ' ', { box: '0' }, ' ', { box: '1' }, '),  (', { box: '0' }, ' ', { box: '1' }, ' ', { box: '0' }, ')'],
+        why: 'Row 1 takes row 3; row 2 stays.', hint: 'Swap rows 1 and 3 of the identity: row 1 becomes (0, 0, 1).' },
+      { parts: ['row 3 of P₁₃:  (', { box: '1' }, ' ', { box: '0' }, ' ', { box: '0' }, ')'],
+        why: 'Row 3 takes row 1. The planes stay; their order turns over.', hint: 'Row 3 of P must take row 1 of A.',
+        fx: () => fxp(q => { if (q >= 1) S.em.set(eKeys([[0, 0, 1], [0, 1, 0], [1, 0, 0]])); }, .2, 0) },
+    ]),
+  }], done) }],
+
+  ['twice', 'Swap twice', (m) => {
+    const p = panel(0);
+    text(p, 'Swap twice', 60, 110, .2, { size: 40, weight: 600 });
+    const { sys, em } = two(p, ZERO, '0x + 2y = 4,    3x + y = 5', { E: [[0, 1], [1, 0]] });
+    em.setName('P₁₂');
+    const part1 = G(p, {});
+    part1.appendChild(em.g);
+    emSwap(em, 0, 1, m('again') + .4, 1.8, { sys });
+    prog(q => em.setName(q > 0 ? 'I' : 'P₁₂'), m('again') + 2.2, 0, lin);
+    em.work(0, m('r1'));
+    text(p, 'back where it started', 70, 620, m('back'), { size: 30, fill: COL.good, weight: 600 });
+    say(p, ['P P = I'], 70, 700, m('pp'), { size: 44, fill: COL.chalk });
+    text(p, 'a swap undoes itself', 300, 694, m('undo'), { size: 30, fill: COL.chalk, weight: 600 });
+    hide(part1, m('calc') - .3, .4);
+    const part2 = G(p, { o: 0 }); show(part2, m('calc'), .4);
+    const e2 = emat(part2, bare([[0, 1], [1, 0]]), { A: [[0, 1], [1, 0]], b: [0, 0], E: [[0, 1], [1, 0]], name: 'P', names: ['P', '', 'PP', ''], noB: true, at: AT2, size: 38, cw: 64, ecw: 56, rh: 62, gap: 66, t0: 0 });
+    e2.work(0, m('calc') + .3); e2.Pt.flash(0, m('calc') + 3);
+    e2.work(1, m('calc2')); e2.Pt.flash(1, m('calc2') + 3);
+    [0, 1].forEach(i => e2.Pt.ring(i, i, m('eye') + .4 * i, { color: COL.good }));
+  }],
+
+  ['six', 'All six', (m) => {
+    const p = panel(0);
+    text(p, 'Three rows: six orders', 60, 110, .2, { size: 40, weight: 600 });
+    // three places, filled one after another
+    const slot = (k, t0, n, choices) => {
+      const x = 180 + k * 300, g = G(p, { o: 0 });
+      mk('rect', { x, y: 180, width: 200, height: 46, rx: 10, fill: 'none', stroke: COL.dim, 'stroke-width': 2.5, 'stroke-dasharray': '8 7' }, g);
+      choices.forEach((c, i) => mk('rect', { x: x + 12 + i * 64, y: 192, width: 52, height: 22, rx: 6, fill: EM_ROW[c] }, g));
+      T(g, `${n} choice${n > 1 ? 's' : ''}`, { x: x + 100, y: 260, size: 26, fill: COL.chalk, weight: 600, anchor: 'middle' });
+      show(g, t0, .5);
+    };
+    slot(0, m('top'), 3, [0, 1, 2]); slot(1, m('next'), 2, [1, 2]); slot(2, m('last'), 1, [2]);
+    say(p, ['3 · 2 · 1 = 6'], 1300, 220, m('count'), { size: 40, fill: COL.chalk });
+    const at = (k, t) => mini(p, SIX[k], SIXNAME[k], 140 + (k % 3) * 480, 380 + Math.floor(k / 3) * 250, t, t + .8);
+    at(0, m('i'));
+    [1, 2, 3].forEach((k, i) => at(k, m('swaps') + 1.2 * i));
+    [4, 5].forEach((k, i) => at(k, m('cycles') + 1.5 * i));
+    text(p, 'swap one pair', 620, 345, m('swaps'), { size: 24, fill: COL.dim, weight: 600 });
+    text(p, 'move every row', 620, 595, m('cycles'), { size: 24, fill: COL.dim, weight: 600 });
+    text(p, 'each = one swap after another', 620, 860, m('two'), { size: 26, fill: COL.chalk, weight: 600 });
+  }],
+
+  ['q2', 'Your turn', () => {
+    const p = panel(0);
+    text(p, 'Your turn', 60, 110, .2, { size: 40, weight: 600 });
+    const t = three(p, AF, 'after column 1:   x + 2y + z = 1,    z = 1,    y + 2z = 1');
+    S.em = t.em;
+  }, { ask: done => quiz(CARD3, [{
+    id: 'c-tri', prompt: ['Change the numbers of P until PA is a triangle (a number that is not 0 in every pivot spot, zeros below).'],
+    build: emTask(S.em, (v, pr) => isPerm(v, 3) && Math.abs(pr.a10) + Math.abs(pr.a20) + Math.abs(pr.a21) < 1e-9 && pr.a11 !== 0 && pr.a22 !== 0,
+      'P₂₃ = (1, 0, 0), (0, 0, 1), (0, 1, 0): rows 2 and 3 trade places, and the pivots are 1, 1, 1.',
+      (v, pr) => !isPerm(v, 3) ? 'Keep P a permutation matrix: only 0s and 1s, one 1 in every row and every column.' : 'Not a triangle yet. Which two rows must trade places?',
+      () => S.em.set(eKeys([[1, 0, 0], [0, 0, 1], [0, 1, 0]])), { only: EK3 }),
+  }], done) }],
+
+  ['right', 'P on the right', (m) => {
+    const p = panel(0);
+    text(p, 'P on the right swaps columns', 60, 110, .2, { size: 40, weight: 600 });
+    const { sys, em } = two(p, { A: [[1, 2], [3, 4]], b: [5, 11] }, 'x + 2y = 5,    3x + 4y = 11', { t0: m('sys') - .3, side: 'right' });
+    // the old lines, dashed, and the old meeting point: they stay while the picture flips
+    const old = G(sys.stage, { o: 0 });
+    sys.P.line(1, 2, 3, 1, BLUE, 0, { dash: '8 9', w: 3, into: old }); sys.P.line(1, 2, 5, -1, CORAL, 0, { dash: '8 9', w: 3, into: old });
+    show(old, m('cols'), .3); tw(old, { o: .5 }, m('cols') + .4, .4);
+    [0, 1].forEach(i => em.B.flash(i, m('sys') + 1.5 + 3 * i));
+    thick(sys, 0, m('sys') + 2); thick(sys, 1, m('sys') + 5);
+    emSwap(em, 0, 1, m('cols') + .4, 1.8, { cols: true });
+    prog(q => em.setName('P'), m('cols'), 0, lin);
+    em.ringE(0, 0, m('c1') - .2); em.ringE(1, 0, m('c1') - .2);
+    colFlash(em.B, 1, m('c1') + 1.5); colFlash(em.Pt, 0, m('c1') + 3);
+    colFlash(em.B, 0, m('c2') + .4); colFlash(em.Pt, 1, m('c2') + 1.6);
+    say(p, ['2x + y = 5,    4x + 3y = 11'], 70, 470, m('eq'), { size: 34, fill: COL.chalk });
+    em.Pt.flash(0, m('eq') + .4); em.Pt.flash(1, m('eq') + 2.5); thick(sys, 0, m('eq') + .6); thick(sys, 1, m('eq') + 2.7);
+    colFlash(em.Pt, 0, m('xy') + .5); colFlash(em.Pt, 1, m('xy') + 2);
+    pulse(sys.meet, m('pt') + 3); pulse(sys.meet, m('flip') - 1);
+    colFlash(em.Pt, 0, m('rows') + 3); colFlash(em.B, 1, m('rows') + 3); em.flashE(0, m('rows') + 5);
+    text(p, 'x and y trade places', 70, 530, m('xy'), { size: 28, fill: COL.chalk, weight: 600 });
+    pin(sys, 1, 2, m('pt'), COL.dim); pin(sys, 2, 1, m('pt') + 1.2);
+    draw(path(sys.stage, `M${sys.P.PX(1) + 10} ${sys.P.PY(2) - 18}Q${sys.P.PX(2) + 30} ${sys.P.PY(2) - 20} ${sys.P.PX(2) + 14} ${sys.P.PY(1) - 18}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' }, { d: 0 }), m('pt') + .4, .8);
+    say(p, ['(1, 2)  →  (2, 1)'], 70, 590, m('pt') + .4, { size: 32, fill: COL.chalk });
+    const diag = sys.P.line(-6, -6, 6, 6, COL.dim, m('flip'), { dash: '10 10', w: 3, into: sys.stage });
+    tw(diag, { 'a_stroke-width': 7 }, m('flip') + 1, .4); tw(diag, { 'a_stroke-width': 3 }, m('flip') + 1.6, .5);
+    text(p, 'flipped over the line y = x', 70, 650, m('flip') + .5, { size: 28, fill: COL.chalk, weight: 600 });
+    text(p, 'P A: rows trade, nothing moves.    A P: columns trade, x and y trade.', 70, 730, m('rows'), { size: 26, fill: COL.chalk, weight: 600 });
+  }],
+
+  ['q3', 'Your turn', () => {
+    const p = panel(0);
+    text(p, 'Your turn', 60, 110, .2, { size: 40, weight: 600 });
+    const t = two(p, { A: [[1, 3], [2, 1]], b: [7, 4] }, 'x + 3y = 7,    2x + y = 4', { side: 'right' });
+    S.em = t.em;
+    pin(t.sys, 2, 1, .4, COL.task);
+  }, { ask: done => quiz(CARD2, [{
+    id: 'c-right', prompt: ['Change the numbers of P (on the right) until the lines meet at the ring, (2, 1).'],
+    build: emTask(S.em, (v, pr) => { const d = pr.a00 * pr.a11 - pr.a01 * pr.a10; return Math.abs(d) > 1e-9 && Math.abs(pr.a00 * 2 + pr.a01 - pr.b0) < 1e-9 && Math.abs(pr.a10 * 2 + pr.a11 - pr.b1) < 1e-9; },
+      'P = (0, 1), (1, 0): the columns trade, 3x + y = 7 and x + 2y = 4 meet at (2, 1). The old answer was (1, 2).',
+      'Not yet at (2, 1). The lines met at (1, 2): which P makes x and y trade places?', () => S.em.set(eKeys([[0, 1], [1, 0]])), { only: ['e00', 'e01', 'e10', 'e11'] }),
+  }], done) }],
+
+  ['wrap', 'Summary', (m) => {
+    const p = panel(0);
+    [['A permutation matrix P is the identity with its rows in a new order.', 'w1'], ['P A puts the rows of A in that order: lines and planes do not move.', 'w2'],
+     ['A P reorders the columns: the unknowns trade places, the picture flips.', 'w3'], ['P P = I for a swap; three rows have 6 orders, 6 permutation matrices.', 'w4']].forEach(([str, mark], i) => {
+      const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
+      mk('circle', { cx: 120, cy: -12, r: 26, fill: COL.chalk }, g);
+      T(g, String(i + 1), { x: 120, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+      T(g, str, { x: 170, size: 34, weight: 600 });
+      tw(g, { o: 1, x: 0 }, m(mark), .6);
+    });
+  }],
+  ['final1', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-where', prompt: ['Each row of P has one 1. Say which column it sits in.'],
+    build: blanks(WHEREQ),
+  }], done, 'Chapter practice · set 1 of 4') }],
+  ['final2', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
+    id: 'p-order', prompt: ['Reorder with P. Rows are written (numbers of A | right side).'],
+    build: blanks(ORDERQ),
+  }], done, 'Chapter practice · set 2 of 4') }],
+  ['final3', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
+    id: 'p-tf', prompt: ['True or false?'],
+    build: grid(TFQ, TFC, { text: true }),
+  }], done, 'Chapter practice · set 3 of 4') }],
+  ['final4', 'Chapter practice', () => {
+    const p = panel(0);
+    text(p, 'Build P', 60, 110, .2, { size: 40, weight: 600 });
+    const t = three(p, LEC, 'x + 2y + z = 2,    3x + 8y + z = 12,    4y + z = 2');
+    S.em = t.em;
+  }, { ask: done => quiz(CARD3, HANDS.map((h, k) => ({
+    id: `p-build${k + 1}`, prompt: [h.prompt],
+    build: (body, api) => { S.em.set(eKeys(SIX[0])); return emTask(S.em, v => sameE(v, h.P), h.why,
+      v => !isPerm(v, 3) ? 'Keep P a permutation matrix: only 0s and 1s, one 1 in every row and every column.' : 'Another order. The 1 in row 1 sits in the column of the row that goes on top.',
+      () => S.em.set(eKeys(h.P)), { only: EK3 })(body, api); },
+  })), done, 'Chapter practice · set 4 of 4') }],
+  ['play', 'Playground', (m) => {
+    const p = panel(0);
+    text(p, 'Playground', 60, 110, .2, { size: 40, weight: 600 });
+    const t = three(p, LEC, '');
+    S.em = t.em;
+    t.em.work(0, .3);
+    text(p, 'try: all six orders; a 2 instead of a 1; two 1s in one row', 64, 160, m('go'), { size: 24, fill: COL.dim });
+  }, { ask: playAsk(() => S.em, { pos: { x: 40, y: 600, w: 820, cls: 'side' }, tip: 'Your matrices. Change any number of P or of A | b, turn the space, or draw on the board. Nothing is marked.' }) }],
+  ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+boot();
+</script>
+</body>
+</html>
