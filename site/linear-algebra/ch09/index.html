@@ -12,6 +12,7 @@
 <script src="../lib/math.js"></script>
 <script src="../lib/linsys.js"></script>
 <script src="../lib/grid2.js"></script>
+<script src="../lib/play.js"></script>
 <script src="audio/en/timings.js"></script>
 <script>
 'use strict';
@@ -105,7 +106,7 @@ const xBand = (p, g, t0, t1) => band(p, g.lay.x - 40, DISP[1] - 52, 80, 140, COL
 const target = (P2, [x, y], into, t0 = .3) => {
   const g = G(into, { x: P2.PX(x), y: P2.PY(y), o: 0 });
   mk('circle', { r: 17, fill: 'none', stroke: COL.task, 'stroke-width': 3, 'stroke-dasharray': '5 5' }, g);
-  T(g, `target (${num(x)}, ${num(y)})`, { x: 22, y: -18, size: 22, fill: COL.task, font: MATH });
+  T(g, `target (${num(x)}, ${num(y)})`, { x: 20, y: 40, size: 22, fill: COL.task, font: MATH });
   show(g, t0, .4);
   return g;
 };
@@ -119,7 +120,7 @@ function matEl(rows, { size = 30, fill = null } = {}) {
   rows.forEach((r, i) => r.forEach((v, j) => T(svg, num(v), { x: 8 + cw * (j + .5), y: rh * (i + .5) + size * .5, size, fill: fill || COLC[j], font: MATH, anchor: 'middle' })));
   return svg;
 }
-const prodEl = (A, x) => { const s = h('span', '', [$m('A'), ' = ', matEl(A), '      ', $m('x'), ' = ', matEl(x.map(v => [v]), { fill: 'currentColor' })]); s.style.whiteSpace = 'pre'; return s; };
+const prodEl = (A, x) => { const s = h('span', '', [rich([$m('A'), ' = ']), matEl(A), '      ', rich([$m('x'), ' = ']), matEl(x.map(v => [v]), { fill: 'currentColor' })]); s.style.whiteSpace = 'pre'; return s; };
 
 /* ---------- practice data ---------- */
 const COLQ = [
@@ -560,6 +561,14 @@ const BEATS = [
         'x = (0, 2) means 0 of column 1 plus 2 of column 2. So 2 · column 2 = (−2, 4).', () => S.g.set({ a01: -1, a11: 2 }), ['A', 'cols'])),
     }], done, 'Chapter practice · set 4 of 4');
   } }],
+  ['play', 'Playground', (m, D) => {
+    const p = panel(0);
+    text(p, 'Playground', 60, 110, .2, { size: 40, weight: 600 });
+    S.sys = g2Of(p, [[2, 1], [1, 3]], [1, 1]);
+    S.sys.labels(['col 1', 'col 2']);
+    const hint = text(p, 'try: x = (1, 0) gives column 1 · x = (0, 1) gives column 2 · a negative number in x', 1160, 860, m('go'), { size: 24, fill: COL.dim, anchor: 'middle' });
+    hide(hint, Math.min(m('go') + 9, D - .7), .6);
+  }, { ask: playAsk(() => S.sys, { tip: 'A times x, live. Change A or x, drag the point x or a column tip, or draw on the board. Nothing is marked.' }) }],
   ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
 

@@ -700,6 +700,30 @@ window.TIMINGS = {
    ]
   ]
  },
+ "play": {
+  "dur": 12.984,
+  "marks": {
+   "go": 4.036
+  },
+  "cues": [
+   [
+    0.091,
+    "Playground."
+   ],
+   [
+    1.055,
+    "Nothing here is marked right or wrong."
+   ],
+   [
+    4.036,
+    "Change A or x, drag the point x or the columns, and watch A x follow, one column step at a time."
+   ],
+   [
+    11.263,
+    "Press continue when you're done."
+   ]
+  ]
+ },
  "finish": {
   "dur": 9.432,
   "marks": {},

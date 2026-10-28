@@ -11,6 +11,7 @@
 <script src="../lib/engine.js"></script>
 <script src="../lib/math.js"></script>
 <script src="../lib/linsys.js"></script>
+<script src="../lib/play.js"></script>
 <script src="audio/en/timings.js"></script>
 <script>
 'use strict';
@@ -46,6 +47,7 @@ const termBox = (sys, key) => {
 // Rounded frames around both copies of a number; redrawn while shown, so they follow a number that changes width.
 function rings(sys, key, into, t0, t1, { tag = true } = {}) {
   const g = G(into, { o: 0 }), c = keyColor(key);
+  g.style.pointerEvents = 'none';   // a frame never takes the pointer from the number under it
   const r1 = mk('rect', { rx: 12, fill: c, 'fill-opacity': .14, stroke: c, 'stroke-width': 3 }, g);
   const r2 = mk('rect', { rx: 12, fill: c, 'fill-opacity': .14, stroke: c, 'stroke-width': 3 }, g);
   const lab = tag ? T(g, where(key), { size: 24, fill: c, weight: 600, anchor: 'middle' }) : null;
@@ -625,6 +627,14 @@ const BEATS = [
         'Leave every other number as it was. (1, 1) must solve the first equation: 1 + (row 1, column 2)·1 = 3.', () => S.sys.set({ a01: 2 }))),
     }], done, 'Chapter practice · set 4 of 4');
   } }],
+  ['play', 'Playground', (m, D) => {
+    const p = panel(0);
+    text(p, 'Playground', 60, 110, .2, { size: 40, weight: 600 });
+    S.sys = sysOf(p, [[2, -1], [-1, 2]], [0, 3], { view: 'both', plane: { cx: 1180, cy: 590, u: 36 } });   // a smaller plane under the card
+    S.sys.labels(['col 1', 'col 2', 'b']);
+    const hint = text(p, 'try: row 2 = 2 × row 1 · a 0 in row 1, column 2 · meet at (2, 1)', 400, 700, m('go'), { size: 24, fill: COL.dim, anchor: 'middle' });
+    hide(hint, Math.min(m('go') + 9, D - .7), .6);
+  }, { ask: playAsk(() => S.sys, { pos: { x: 800, y: 24, w: 776, cls: 'side' }, tip: 'Change any number, in A or in the equations, drag a line or an arrow, or draw. Nothing is marked.' }) }],
   ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
 
