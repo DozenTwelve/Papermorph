@@ -41,7 +41,7 @@ const dotAt = (P2, [x, y], into, t0, { r = 9, color = COL.chalk, label = null, d
   show(d, t0, .3); return d;
 };
 // a dot that starts at p and slides to where A sends it
-const land = (P2, A, p, into, t0, t1, opts = {}) => { const d = dotAt(P2, p, into, t0, opts); const [X, Y] = ivMul(A, [[p[0]], [p[1]]]).map(r => r[0]); tw(d, { x: P2.PX(X), y: P2.PY(Y) }, t1, 1.4); if (opts.label) hide(d.lastChild, t1 + 1.8, .3); return d; };   // its label goes once it has landed
+const land = (P2, A, p, into, t0, t1, opts = {}) => { const d = dotAt(P2, p, into, t0, opts); const [X, Y] = ivMul(A, [[p[0]], [p[1]]]).map(r => r[0]); tw(d, { x: P2.PX(X), y: P2.PY(Y) }, t1, 1.4); if (opts.label) hide(d.lastChild, t1 - .1, .3); return d; };   // its label (x's name) goes as it leaves for Ax
 const ringAt = (P2, [x, y], color, into, t0, label, { dx = 20, dy = -18, anchor = 'start' } = {}) => {
   const g = G(into, { x: P2.PX(x), y: P2.PY(y), o: 0 });
   mk('circle', { r: 17, fill: 'none', stroke: color, 'stroke-width': 3, 'stroke-dasharray': '5 5' }, g);
@@ -170,7 +170,7 @@ const BEATS = [
   ['many', 'Many points, one landing spot', (m) => {
     const p = panel(0);
     title(p, 'A folds whole lines onto points');
-    const g = S.g = grid2(p, { A: A2, mat: null, shape: false, lost: true });
+    const g = S.g = grid2(p, { A: A2, mat: null, shape: false, units: false, lost: true });
     g.labels(['col 1', 'col 2']);
     mat(p, A2, 90, 250, .3);
     const { PX, PY } = g.P;
@@ -178,7 +178,7 @@ const BEATS = [
     draw(ln, m('slide'), 1.2);
     const pts = [[1, 0], [2, 1], [3, 2]];
     const ds = pts.map((q, k) => dotAt(g.P, q, p, k ? m('slide') + 1 + k * 1.2 : m('pt') + .3, { label: `(${q.map(num).join(', ')})`, dx: 12, dy: -14 }));
-    ringAt(g.P, [2, -1], COL.chalk, p, m('pt') + 1.6, '(2, −1)', { dx: 14, dy: 30 });
+    ringAt(g.P, [2, -1], COL.chalk, p, m('pt') + 1.6, '(2, −1)', { dx: -22, dy: 36, anchor: 'end' });
     say(p, ['A·(1, 0) = (2, −1)'], 90, 450, m('pt') + 1.6, { size: 30 });
     say(p, ['A·(2, 1) = (4 − 2, −2 + 1) = (2, −1)'], 90, 510, m('same') + .3, { size: 30 });
     ds.forEach((d, k) => { hide(d.lastChild, m('same') + 1.3, .2); tw(d, { x: PX(2), y: PY(-1) }, m('same') + 1.5 + k * .4, 1.4); });
@@ -214,19 +214,23 @@ const BEATS = [
     const F1 = [[2, 4], [1, 2]], F2 = [[3, -6], [1, -2]];
     const m1 = mat(p, F1, 90, 250, m('look') + .3);
     g.to(keysOf(F1), m('look') + .8, 2);
-    say(p, ['column 2 = 2 × column 1'], 90, 440, m('look') + 3, { size: 30 });
-    say(p, ['2·(2, 1) − 1·(4, 2) = (0, 0)'], 90, 500, m('mix') + .3, { size: 30 });
-    land(g.P, F1, [2, -1], p, m('x') + .2, m('chk') + .4, { label: 'x = (2, −1)', dx: 14, dy: 28 });
-    say(p, ['rows:  2·2 − 4 = 0,   1·2 − 2 = 0'], 90, 560, m('chk') + .6, { size: 28, fill: COL.good });
-    hide(m1.g, m('ex2') - .2, .3);
+    // example 1, then example 2 in the same places (the first clears away)
+    const e1 = G(p, {});
+    say(e1, ['column 2 = 2 × column 1'], 90, 440, m('look') + 3, { size: 30 });
+    say(e1, ['2·(2, 1) − 1·(4, 2) = (0, 0)'], 90, 500, m('mix') + .3, { size: 30 });
+    say(e1, ['x = (2, −1)'], 90, 560, m('x') + .3, { size: 30 });
+    land(g.P, F1, [2, -1], e1, m('x') + .2, m('chk') + .4, { label: 'x = (2, −1)', dx: 14, dy: 28 });
+    say(e1, ['rows:  2·2 − 4 = 0,   1·2 − 2 = 0'], 90, 620, m('chk') + .6, { size: 28, fill: COL.good });
+    hide(m1.g, m('ex2') - .2, .3); hide(e1, m('ex2') - .2, .3);
     mat(p, F2, 90, 250, m('ex2') + .2);
     g.to(keysOf(F2), m('ex2') + .8, 2);
-    say(p, ['column 2 = −2 × column 1'], 90, 640, m('ex2') + 4, { size: 30 });
-    say(p, ['x = (−2, −1)  or  (2, 1)'], 90, 700, m('x2') + .4, { size: 30 });
-    land(g.P, F2, [2, 1], p, m('x2') + 3.4, m('chk2') + .3, { label: '(2, 1)', dx: 14, dy: -14 });
-    say(p, ['rows:  3·2 − 6 = 0,   2 − 2 = 0'], 90, 760, m('chk2') + .5, { size: 28, fill: COL.good });
+    say(p, ['column 2 = −2 × column 1'], 90, 440, m('ex2') + 4, { size: 30 });
+    say(p, ['2·(3, 1) + 1·(−6, −2) = (0, 0)'], 90, 500, m('x2') + .3, { size: 30 });
+    say(p, ['x = (2, 1)'], 90, 560, m('x2') + 4, { size: 30 });
+    land(g.P, F2, [2, 1], p, m('x2') + 4, m('chk2') + .3, { label: 'x = (2, 1)', dx: 14, dy: -14 });
+    say(p, ['rows:  3·2 − 6 = 0,   2 − 2 = 0'], 90, 620, m('chk2') + .5, { size: 28, fill: COL.good });
     show(g.parts.lost, m('any') + .3, .5);
-    text(p, 'any multiple: the whole red line is lost', 90, 830, m('any') + .8, { size: 28, fill: COL.bad, weight: 600 });
+    text(p, 'any multiple: the whole red line is lost', 90, 700, m('any') + .8, { size: 28, fill: COL.bad, weight: 600 });
   }],
 
   ['q1', 'Quick check', () => {
@@ -265,7 +269,7 @@ const BEATS = [
     t.block(0, m('stuck') + 1, m('three'), COL.bad);
     say(p, ['1.  ad − bc = 6 − 6 = 0'], 90, 600, m('three') + 1.5, { size: 30 });
     say(p, ['2.  A·(3, −1) = (0, 0)'], 90, 655, m('t2') + .2, { size: 30 });
-    say(p, ['3.  a zero row'], 90, 710, m('t3') + .2, { size: 30 });
+    say(p, ['3.  elimination: zero row'], 90, 710, m('t3') + .2, { size: 30 });
   }],
 
   ['three', 'Three by three', (m) => {
@@ -387,10 +391,10 @@ const BEATS = [
     k.turn(90, 0, m('w4') + 3, 1); k.to({ p01: 0 }, m('w4') + 4.2, 1);
   }],
 
-  ['final1', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
-    id: 'p-which', prompt: ['Which matrices have an inverse? Use any test.'],
-    build: grid(WHICHQ.map(q => ({ parts: [matEl(q.A)], ans: q.ans, why: q.why })), YESNO, { multi: false, text: true }),
-  }], done, 'Chapter practice · set 1 of 4') }],
+  ['final1', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [0, 1].map(k => ({   // two cards of three: six matrices do not fit one
+    id: k ? 'p-which2' : 'p-which', prompt: ['Which matrices have an inverse? Use any test.'],
+    build: grid(WHICHQ.slice(3 * k, 3 * k + 3).map(q => ({ parts: [matEl(q.A)], ans: q.ans, why: q.why })), YESNO, { multi: false, text: true }),
+  })), done, 'Chapter practice · set 1 of 4') }],
   ['final2', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, LOSTQ.map((q, k) => ({
     id: `p-lost${k + 1}`, prompt: ['Find an ', $m('x ≠ 0'), ' with ', $m('A x = 0'), ' for ', $m('A'), ' = ', matEl(q.A), '. (Any multiple is fine.)'],
     build: blanks([{

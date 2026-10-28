@@ -352,18 +352,14 @@ window.TIMINGS = {
   ]
  },
  "ex2": {
-  "dur": 67.2,
+  "dur": 37.704,
   "marks": {
-   "A": 3.164,
-   "down": 7.721,
-   "d2": 14.427,
-   "up": 19.414,
-   "u2": 24.622,
-   "div": 29.349,
-   "d3": 34.284,
-   "read": 42.331,
-   "check": 49.284,
-   "plane": 61.797
+   "A": 3.333,
+   "down": 7.852,
+   "d2": 14.323,
+   "up": 19.323,
+   "u2": 24.779,
+   "left": 29.388
   },
   "cues": [
    [
@@ -371,64 +367,84 @@ window.TIMINGS = {
     "A second example, where the pivots are not one."
    ],
    [
-    3.164,
+    3.333,
     "A is two, one in the first row, and six, four in the second."
    ],
    [
-    7.721,
+    7.852,
     "Down: the multiplier is six over two, three."
    ],
    [
-    11.602,
+    11.758,
     "Row two minus three times row one."
    ],
    [
-    14.427,
+    14.323,
     "Row two becomes zero, one, and on the right, minus three, one."
    ],
    [
-    19.414,
+    19.323,
     "Up: above the second pivot there's a one."
    ],
    [
-    22.266,
+    22.161,
     "Row one minus one times row two."
    ],
    [
-    24.622,
+    24.779,
     "Row one becomes two, zero, and on the right, four, minus one."
    ],
    [
-    29.349,
-    "The left half isn't I yet: the first pivot is two."
+    29.388,
+    "Now the left half is two, zero, zero, one."
    ],
    [
-    32.552,
-    "Divide row one by two."
+    32.982,
+    "That's not I yet: on the plane, everything is still twice as wide."
+   ]
+  ]
+ },
+ "divp": {
+  "dur": 42.288,
+  "marks": {
+   "piv": 1.224,
+   "d3": 5.052,
+   "nums": 11.029,
+   "read": 22.591,
+   "check": 29.974
+  },
+  "cues": [
+   [
+    0.104,
+    "One more step."
    ],
    [
-    34.284,
-    "Two over two is one."
+    1.224,
+    "The first pivot is two, so divide row one by two."
    ],
    [
-    36.276,
+    5.052,
+    "Watch the plane: dividing by two squeezes it to half the width, and now it's home."
+   ],
+   [
+    11.029,
+    "In the table: two over two is one, and zero over two is zero."
+   ],
+   [
+    16.641,
     "On the right: four over two is two, and minus one over two is minus one half."
    ],
    [
-    42.331,
+    22.591,
     "So A inverse is two, minus one half in the first row, and minus three, one in the second."
    ],
    [
-    49.284,
+    29.974,
     "Check with the formula from chapter twenty-six: a d minus b c is eight minus six, two."
    ],
    [
-    56.302,
+    36.81,
     "One half of four, minus one, minus six, two gives the same matrix."
-   ],
-   [
-    61.797,
-    "On the plane, that last step was a squeeze to half the width, and it brought the plane home."
    ]
   ]
  },

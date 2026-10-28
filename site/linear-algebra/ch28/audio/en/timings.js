@@ -262,16 +262,16 @@ window.TIMINGS = {
   ]
  },
  "find": {
-  "dur": 55.032,
+  "dur": 55.296,
   "marks": {
-   "look": 1.745,
-   "mix": 11.211,
-   "x": 15.781,
-   "chk": 18.685,
-   "ex2": 26.979,
-   "x2": 37.344,
-   "chk2": 43.216,
-   "any": 50.052
+   "look": 1.81,
+   "mix": 10.885,
+   "x": 15.508,
+   "chk": 18.529,
+   "ex2": 27.148,
+   "x2": 37.448,
+   "chk2": 43.477,
+   "any": 50.078
   },
   "cues": [
    [
@@ -279,51 +279,51 @@ window.TIMINGS = {
     "How do you find such an x?"
    ],
    [
-    1.745,
+    1.81,
     "Compare the columns."
    ],
    [
-    3.216,
+    3.281,
     "In A equals two, four in the first row, and one, two in the second, column two is two times column one."
    ],
    [
-    11.211,
+    10.885,
     "So two of column one, minus one of column two, is zero."
    ],
    [
-    15.781,
+    15.508,
     "That's x equals two, minus one."
    ],
    [
-    18.685,
+    18.529,
     "Check by rows: two times two, minus four, is zero."
    ],
    [
-    23.32,
+    23.398,
     "And one times two, minus two, is zero."
    ],
    [
-    26.979,
+    27.148,
     "Another one: three, minus six in the first row, and one, minus two in the second."
    ],
    [
-    33.724,
+    33.893,
     "Column two is minus two times column one."
    ],
    [
-    37.344,
-    "So x is minus two, minus one."
+    37.448,
+    "So two of column one, plus one of column two, is zero."
    ],
    [
-    40.143,
-    "Or, turning both signs around, two, one."
+    41.55,
+    "That's x equals two, one."
    ],
    [
-    43.216,
+    43.477,
     "Check: three times two, minus six, is zero, and two minus two is zero."
    ],
    [
-    50.052,
+    50.078,
     "And any multiple of x works too: the whole line through it is lost."
    ]
   ]

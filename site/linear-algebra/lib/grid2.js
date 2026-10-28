@@ -20,7 +20,16 @@
 //                 each number's column colour, so the swap of a and d and the sign change of b and c are visible.
 //   g.det(), g.inverseOf() (null when ad − bc = 0), g.total() (the plane's matrix A·pre), g.turn(d0, d1, at, dur, ease, 'p')
 //                 turns pre instead of A.
+// Labels on the plane (chapters 23–25 asked for these; all optional):
+//   names: { x: 'column 2 of B', ax: 'column 2 of AB' }, or a function of the state v returning that object: what the
+//                 x and Ax labels call their points ("x = (…)", "Ax = (…)" by default). g.names(n) changes it later.
+//   avoid: [[x, y], …] in plane units, or a function of v returning them: extra dots the chapter draws (mm's numbered
+//                 dots) that the labels keep clear of, like the tips. g.avoid(a) changes it later.
+//   Labels never pile up at one spot: a column label hides while its tip is at the origin, the x label hides while x is
+//   at the origin or on Ax while Ax's label shows (it names the spot), and the Ax label hides while both are at the origin. Hiding uses
+//   the display attribute, so a chapter's own opacity or visibility on these labels is untouched.
 // Exact fractions: g2frac(v) → [n, d] or null; g2parts(v) → math parts (whole, F(n, d), or one decimal while moving).
+// g2mid(e): e scales and turns about its own middle (pulse it without it sliding); numbers (g2val, the scrubbable ones) have it.
 const G2_COLS = [COL.irr, COL.real], G2_AX = COL.task;
 // A small flag: a pole and a pennant pointing right, so a flip or a turn shows at once.
 // It stands beside the unit square (x 1.4 … 2.3), not on it, so the square and the flag never hide each other.
@@ -36,14 +45,17 @@ const g2parts = v => {
 };
 const g2key = ps => ps.map(q => typeof q === 'string' ? q : q.f.join('/')).join('');
 // A number drawn as math parts, rebuilt only when what it shows changes.
+// Scale and turn an element about the middle of its own box (pulse, flash), not about the stage's corner.
+const g2mid = e => { e.style.transformBox = 'fill-box'; e.style.transformOrigin = 'center'; return e; };
 function g2val(parent, { x = 0, y = 0, size = 40, fill = COL.chalk, anchor = 'middle' } = {}) {
-  const g = G(parent, {});
+  const g = g2mid(G(parent, {}));
   let key = null;
   return { g, set(v, color = fill, parts = g2parts(v)) { const k = g2key(parts) + color; if (k === key) return; key = k; g.replaceChildren(); M(g, parts, { x, y, size, fill: color, anchor }); } };
 }
 
 function grid2(p, { A = [[1, 0], [0, 1]], x = null, mat = [90, 300], size = 54, plane: po = {}, grid = true, square = true, shape = false,
-  units = true, pts = [], t0 = .1, hidePlane = false, result = true, showMat = true, brackets = false, pre = null, fracs = false, name = 'A', lost = false } = {}) {
+  units = true, pts = [], t0 = .1, hidePlane = false, result = true, showMat = true, brackets = false, pre = null, fracs = false, name = 'A', lost = false,
+  names = null, avoid = null } = {}) {
   const Pm = pre || [[1, 0], [0, 1]];
   const v = { a00: A[0][0], a01: A[0][1], a10: A[1][0], a11: A[1][1], x0: x ? x[0] : 0, x1: x ? x[1] : 0, p00: Pm[0][0], p01: Pm[0][1], p10: Pm[1][0], p11: Pm[1][1] };
   const RANGE = { a00: 9, a01: 9, a10: 9, a11: 9, x0: 9, x1: 9 }, K = 14;   // grid lines k = −K … K
@@ -64,7 +76,7 @@ function grid2(p, { A = [[1, 0], [0, 1]], x = null, mat = [90, 300], size = 54, 
   /* ---------- numbers you can scrub ---------- */
   function slot(g, key, x, y, fill) {
     const bx = mk('rect', { x: x - 44, y: y - size * .85, width: 88, height: size * 1.1, rx: 10, fill: 'transparent' }, g);
-    const t = T(g, '', { x, y, size, fill, font: MATH, anchor: 'middle' });
+    const t = g2mid(T(g, '', { x, y, size, fill, font: MATH, anchor: 'middle' }));
     t.style.pointerEvents = 'none';
     bx.setAttribute('aria-label', key);
     const fv = fracs ? g2val(g, { x, y, size: size * .8, fill }) : null;
@@ -220,13 +232,15 @@ function grid2(p, { A = [[1, 0], [0, 1]], x = null, mat = [90, 300], size = 54, 
     if (x) { const m1 = [v.x0 * c0[0], v.x0 * c0[1]]; seg([0, 0], m1); seg(m1, ax); seg([0, 0], ax); }
     if (shape) { const F = G2_FLAG.map(tmap); F.forEach((q, i) => seg(q, F[(i + 1) % F.length], 1.5)); seg(F[1], F[3], 1.5); seg(F[0], F[5], 1.5); }   // the flag, outline and body
     // the dots and handles themselves weigh most
-    for (const q of x ? [c0, c1, ax, [v.x0, v.x1]] : [c0, c1]) for (const [ox, oy] of [[0, 0], [-12, 0], [12, 0], [0, -12], [0, 12]]) pts.push([PX(q[0]) + ox, PY(q[1]) + oy, 4]);
+    const extra = (typeof avoid === 'function' ? avoid(v) : avoid) || [];
+    for (const q of [...(x ? [c0, c1, ax, [v.x0, v.x1]] : [c0, c1]), ...extra]) for (const [ox, oy] of [[0, 0], [-12, 0], [12, 0], [0, -12], [0, 12]]) pts.push([PX(q[0]) + ox, PY(q[1]) + oy, 4]);
     const placed = [...unitBoxes.map(b => [...b, 120]), ...tickBoxes.map(b => [...b, 120])];
     const over = (a, b) => Math.max(0, Math.min(a[0] + a[2], b[0] + b[2]) - Math.max(a[0], b[0])) * Math.max(0, Math.min(a[1] + a[3], b[1] + b[3]) - Math.max(a[1], b[1]));
     const place = (e, tip, dir, w, hh, baseline) => {
       const [X, Y] = [PX(tip[0]), PY(tip[1])], gp = 14, n = Math.hypot(...dir) || 1, d = [dir[0] / n, -dir[1] / n];
       const near = [[gp, -hh - 4], [gp, 6], [-w - gp, -hh - 4], [-w - gp, 6], [-w / 2, -hh - gp - 4], [-w / 2, gp + 6], [gp + 6, -hh / 2], [-w - gp - 6, -hh / 2]];
-      const cands = [...near.map(c => [...c, 0]), ...near.map(([dx, dy]) => [dx + (dx > 0 ? 26 : dx < -w / 2 ? -26 : 0), dy + (dy > 0 ? 22 : -22), 1.5])];   // a farther ring, a little dearer
+      const ring = (k, cost) => near.map(([dx, dy]) => [dx + (dx > 0 ? 26 * k : dx < -w / 2 ? -26 * k : 0), dy + (dy > 0 ? 22 * k : -22 * k), cost]);
+      const cands = [...near.map(c => [...c, 0]), ...ring(1, 1.5), ...ring(2.2, 4)];   // farther rings, a little dearer: a crowded spot sends a label out
       let best = null;
       for (const [dx, dy, extra] of cands) {
         const b = [X + dx, Y + dy, w, hh], cx = dx + w / 2, cy = dy + hh / 2, cn = Math.hypot(cx, cy) || 1;
@@ -239,17 +253,22 @@ function grid2(p, { A = [[1, 0], [0, 1]], x = null, mat = [90, 300], size = 54, 
       placed.push(best[1]);
       put(e, { x: best[1][0], y: best[1][1] + baseline });
     };
-    [c0, c1].forEach((c, j) => { const L = tipLabels[j]; if (L.firstChild) place(L, c, c, widthOf(L, 5, 28), 32, 23); });
+    // one label per spot: a zero column, x = 0, or x sitting on Ax leave their names to what is already there
+    const near0 = q => Math.hypot(q[0], q[1]) < .12, same = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]) < .3;
+    const shown = (e, on) => { if (on) e.removeAttribute('display'); else { e.setAttribute('display', 'none'); put(e, { x: 0, y: 0 }); } return on; };   // hidden: an attribute and no place of its own, so a replay leaves the same markup
+    [c0, c1].forEach((c, j) => { const L = tipLabels[j]; if (shown(L, !near0(c)) && L.firstChild) place(L, c, c, widthOf(L, 5, 28), 32, 23); });
     if (x) {
-      place(axLab, ax, ax, widthOf(axLab, axLab.textContent.length, 26), 30, 22);
-      place(xLab, [v.x0, v.x1], [v.x0, v.x1], widthOf(xLab, xLab.textContent.length, 24), 28, 21);
+      const xv = [v.x0, v.x1];
+      if (shown(axLab, !(near0(ax) && near0(xv)))) place(axLab, ax, ax, widthOf(axLab, axLab.textContent.length, 26), 30, 22);
+      const axSeen = axLab.getAttribute('display') !== 'none' && axLab.style.visibility !== 'hidden';   // x hands its name to Ax's label unless a chapter hid it (not its fading: that would make the frame depend on the path)
+      if (shown(xLab, !near0(xv) && !(axSeen && same(xv, ax)))) place(xLab, xv, xv, widthOf(xLab, xLab.textContent.length, 24), 28, 21);
     }
   }
   /* ---------- the inverse, live: ad − bc and A⁻¹ = 1/(ad − bc) · [d −b; −c a] ---------- */
   let inv = null;
   function inverse({ at: [ix, iy] = [90, 520], size: s = 40 } = {}) {
     const root = G(p, {}), part = () => G(root, {});
-    const det = part(), lhs = part(), scale = part(), adj = part(), eq = part(), res = part(), none = part();
+    const det = part(), lhs = part(), scale = part(), adj = part(), eq = part(), res = part(), none = g2mid(part());
     const rh = s * 1.6, mid = iy + s * 2.4 + rh / 2;   // matrices: rows at mid ± rh/2
     const xL = ix, xS = xL + s * 3.1, xA = xS + s * 1.9, cwA = s * 2, xE = xA + cwA * 2 + 36, xR = xE + s * 1.3, cwR = s * 2.1;
     const brk = (g, x0, w) => { const top = mid - rh / 2 - s * .95, bot = mid + rh / 2 + s * .45; path(g, `M${x0 + 12} ${top}H${x0}V${bot}H${x0 + 12}M${x0 + w - 12} ${top}H${x0 + w}V${bot}H${x0 + w - 12}`, { stroke: COL.chalk, 'stroke-width': 2.5, fill: 'none' }); };
@@ -318,9 +337,10 @@ function grid2(p, { A = [[1, 0], [0, 1]], x = null, mat = [90, 300], size = 54, 
       setD(axArrow, arrowD([0, 0], ax));
       put(xRing, { x: PX(v.x0), y: PY(v.x1) });
       const br = brackets ? ['[', ']'] : ['(', ')'];   // brackets: x and Ax read as vectors, else as points
-      setText(xLab, `x = ${br[0]}${fmt(v.x0)}, ${fmt(v.x1)}${br[1]}`);
+      const nm = { x: 'x', ax: 'Ax', ...(typeof names === 'function' ? names(v) : names) };
+      setText(xLab, `${nm.x} = ${br[0]}${fmt(v.x0)}, ${fmt(v.x1)}${br[1]}`);
       put(axDot, { x: PX(ax[0]), y: PY(ax[1]) });
-      setText(axLab, `Ax = ${br[0]}${fmt(ax[0])}, ${fmt(ax[1])}${br[1]}`);
+      setText(axLab, `${nm.ax} = ${br[0]}${fmt(ax[0])}, ${fmt(ax[1])}${br[1]}`);
     }
     placeLabels(c0, c1, ax);
     listeners.forEach(f => f(v));
@@ -379,6 +399,8 @@ function grid2(p, { A = [[1, 0], [0, 1]], x = null, mat = [90, 300], size = 54, 
     map,
     labels(names) { names.forEach((n, i) => { tipLabels[i].replaceChildren(); M(tipLabels[i], [n], { size: 28, fill: G2_COLS[i], anchor: 'start' }); }); draw(); },
     tipLabels,   // the groups that hold the column names (to show or hide one on its own)
+    names(n) { names = n; draw(); },    // what the x and Ax labels call their points (see the header)
+    avoid(a) { avoid = a; draw(); },    // extra dots the labels keep clear of (see the header)
   };
   return api;
 }

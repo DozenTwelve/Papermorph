@@ -19,11 +19,11 @@ const IV_ROW = [COL.whole, COL.nat, COL.int], IV_COL = [COL.irr, COL.real, COL.r
 
 const ivParts = v => typeof v === 'number' ? g2parts(v) : [].concat(v);   // a number, or math parts (letters)
 function ivMat(p, rows, { x = 0, y = 0, size = 40, cw = size * 1.9, rh = size * 1.5, fill = () => COL.chalk, name = null, o = 1 } = {}) {
-  const n = rows.length, m = rows[0].length, g = G(p, { o });
+  const n = rows.length, m = rows[0].length, g = g2mid(G(p, { o }));
   const w = cw * m + 20, top = y - size * .95, bot = y + (n - 1) * rh + size * .45;
   path(g, `M${x + 12} ${top}H${x}V${bot}H${x + 12}M${x + w - 12} ${top}H${x + w}V${bot}H${x + w - 12}`, { stroke: COL.chalk, 'stroke-width': 2.5, fill: 'none' });
   const cx = j => x + 10 + cw * (j + .5), ry = i => y + i * rh;
-  const cells = rows.map((r, i) => r.map((v, j) => { const c = g2val(G(g, {}), { x: cx(j), y: ry(i), size, fill: fill(i, j) }); c.set(0, fill(i, j), ivParts(v)); return c; }));
+  const cells = rows.map((r, i) => r.map((v, j) => { const c = g2val(g2mid(G(g, {})), { x: cx(j), y: ry(i), size, fill: fill(i, j) }); c.set(0, fill(i, j), ivParts(v)); return c; }));
   let lab = null;
   if (name) lab = M(g, [].concat(name), { x: x + w / 2, y: bot + size * .95, size: size * .75, fill: COL.dim, anchor: 'middle' });
   return { g, cells, w, cw, cx, ry, top, bot, x, y, n, m, lab, set(r2) { r2.forEach((r, i) => r.forEach((v, j) => cells[i][j].set(0, fill(i, j), ivParts(v)))); } };
@@ -56,7 +56,7 @@ function ivProd(p, L, R, { at: [x, y] = [90, 260], size = 40, names = ['A', 'B',
       show(wl, t + .3, .3); hide(wl, t + dur, .3);
     } else {
       const lhs = [];
-      L[i].forEach((a, k) => { if (k) lhs.push(' + '); lhs.push(...g2parts(a), '·', ...ivPP(R[k][j])); });
+      L[i].forEach((a, k) => { if (k) lhs.push(' + '); lhs.push(...(k ? ivPP(a) : g2parts(a)), '·', ...ivPP(R[k][j])); });   // 1·7 + (−1)·1
       const wl = M(g, lhs, { x: wx, y: wy, size: workSize, anchor: 'start', o: 0 });
       const wr = M(g, ['  =  ', ...g2parts(C[i][j])], { x: wx + wl._w, y: wy, size: workSize, anchor: 'start', o: 0 });
       show(wl, t + .3, .3); hide(wl, t + dur, .3); show(wr, tr, .3); hide(wr, t + dur, .3);
@@ -87,7 +87,7 @@ function gj(p, A, { at: [x0, y0] = [110, 300], size = 42, cw = size * 2.05, rh =
   const divider = right ? path(g, `M${x0 + cw * n + 14} ${top + 6}V${bot - 6}`, { stroke: COL.dim, 'stroke-width': 2.5, 'stroke-dasharray': '6 6', fill: 'none' }) : null;
   const bars = I.map(i => mk('rect', { x: x0 - 52, y: ry(i) - size * .7, width: 8, height: size * .8, rx: 4, fill: IV_ROW[i] }, g));
   const fillOf = j => j < n ? COL.chalk : COL.task;
-  const cells = I.map(i => J.map(j => g2val(G(g, {}), { x: cx(j), y: ry(i), size, fill: fillOf(j) })));
+  const cells = I.map(i => J.map(j => g2val(g2mid(G(g, {})), { x: cx(j), y: ry(i), size, fill: fillOf(j) })));
   const nameG = [G(g, {}), G(g, {})];
   const setNames = (ns) => ns.forEach((s, k) => { if (k && !right) return; nameG[k].replaceChildren(); M(nameG[k], [].concat(s), { x: k ? (cx(n) + cx(mcols - 1)) / 2 : (cx(0) + cx(n - 1)) / 2, y: top - 18, size: size * .7, fill: k ? COL.task : COL.dim, anchor: 'middle' }); });
   setNames(nm);
@@ -188,7 +188,10 @@ function gj(p, A, { at: [x0, y0] = [110, 300], size = 42, cw = size * 2.05, rh =
     g, v, n, cells, cx, ry, top, bot, W, bars, divider, nameG,
     get plan() { return plan; },
     sub, div, ring, flash, block, label,
-    names(ns, t) { const old = nameG.map(e => e.cloneNode(true)); old.forEach((e, k) => { nameG[k].parentNode.append(e); hide(e, t, .3); }); nameG.forEach(e => put(e, { o: 0 })); setNames(ns); nameG.forEach(e => show(e, t + .2, .4)); },
+    names(ns, t) {   // the old names keep their own timeline (a reveal set on them still runs) and fade at t; new ones take their place
+      nameG.forEach((e, k) => { hide(e, t, .3); nameG[k] = G(g, { o: 0 }); show(nameG[k], t + .2, .4); });
+      setNames(ns);
+    },
     done(t) { if (open) hide(open, t, .3); },
     to(next, t, dur = 1.2) { const from = { ...plan }; plan = { ...plan, ...next }; prog(lerp(from, plan), t, dur); },
     open: openNow, commit, load,

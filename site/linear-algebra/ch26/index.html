@@ -146,9 +146,13 @@ const BEATS = [
     g.to({ p00: 2 }, m('a1') + .3, 1.6);
     lab('(6, 1)', 5.6, 1, m('a1') + 1.9, m('a2') + .2);
     g.to({ a00: .5 }, m('a2') + .3, 1.6);
-    lab('(3, 1) again', 3, 1, m('a2') + 1.9);
+    const again = T(p, '(3, 1) again', { x: PX(3) + 16, y: PY(1) - 16, size: 24, fill: COL.chalk, font: MATH, anchor: 'start', o: 0 }); show(again, m('a2') + 1.9, .3);
+    const how = G(p, {});
+    say(how, ['A:   (3, 1)  →  (6, 1)'], 90, 230, m('a1') + .3, { size: 34 });
+    say(how, [...INV, ':   (6, 1)  →  (3, 1)'], 90, 300, m('a2') + .3, { size: 34 });
+    hide(how, m('mult') - .1, .3);
     say(p, ['first A, then ', ...INV, ':   ', ...INV, 'A'], 90, 210, m('mult') + .2, { size: 34 });
-    text(p, 'A acts first, so it stands on the right, next to x', 90, 260, m('mult') + 3, { size: 24, fill: COL.dim });
+    text(p, 'A acts on x first, so A stands on the right:  A⁻¹(A x)', 90, 260, m('mult') + 3, { size: 24, fill: COL.dim });
     const pr = ivProd(p, [[.5, 0], [0, 1]], [[2, 0], [0, 1]], { at: [90, 380], size: 42, names: [INV, 'A', 'I'], work: [90, 560], o: 0 });
     show(pr.g, m('mult') + .3, .5);
     pr.entry(0, 0, m('rc'), m('rc2') - m('rc') - .2); pr.entry(0, 1, m('rc2'), m('rc3') - m('rc2') - .2);
@@ -184,7 +188,8 @@ const BEATS = [
 
   ['shear', 'Undo a shear, undo a flip', (m) => {
     const p = panel(0);
-    title(p, 'Undo a shear: slide back');
+    const tt = title(p, 'Undo a shear: slide back'); hide(tt, m('flip') - .1, .3);
+    text(p, 'Undo a flip: flip again', 60, 110, m('flip') + .2, { size: 40, weight: 600 });
     const g = S.g = grid2(p, { A: I2, pre: I2, mat: null, shape: true, plane: ZOOM });
     put(g.parts.cols, { o: 0 });
     const a = mat(p, [[1, 1], [0, 1]], 90, 260, m('A'));
@@ -201,19 +206,19 @@ const BEATS = [
     [a.g, b.g, t1, r1, r2].forEach(e => hide(e, m('flip') - .1, .4));
     // reset to home without a jump (pre and A cancel throughout), then the flip
     g.to({ p01: 0, a01: 0 }, m('flip') - .2, .05);
-    mat(p, [[-1, 0], [0, 1]], 90, 600, m('flip') + .2);
-    text(p, 'a flip', 90, 520, m('flip') + .2, { size: 30, weight: 600 });
-    g.to({ p00: -1 }, m('flip') + .6, 1.8);
-    mat(p, [[-1, 0], [0, 1]], 420, 600, m('flip2') + .2, { name: INV });
-    g.to({ a00: -1 }, m('flip2') + .6, 1.8);
-    say(p, [...INV, ' = A:  its own inverse'], 90, 830, m('flip2') + 2.6, { size: 32 });
+    mat(p, [[-1, 0], [0, 1]], 90, 260, m('flip') + .2);
+    text(p, 'a flip: left and right change places', 90, 480, m('flip') + .6, { size: 28, weight: 600 });
+    g.to({ p00: -1 }, m('flip') + .8, .8);   // quick: a flip passes through flat only for a blink
+    mat(p, [[-1, 0], [0, 1]], 420, 260, m('flip2') + .2, { name: INV });
+    g.to({ a00: -1 }, m('flip2') + .8, .8);
+    say(p, [...INV, ' = A:  its own inverse'], 90, 550, m('flip2') + 2.6, { size: 32 });
   }],
 
   ['q1', 'Quick check', () => {
     const p = panel(0);
     title(p, 'Quick check');
     mat(p, [[1, 0], [2, 1]], 90, 250, .3, { size: 44 });
-    text(p, 'A sheared the plane up', 90, 370, .4, { size: 26, fill: COL.dim });
+    text(p, 'A sheared the plane up', 90, 402, .4, { size: 24, fill: COL.dim });
     const g = S.g = grid2(p, { A: I2, pre: [[1, 0], [2, 1]], mat: [420, 250], size: 44, shape: true, name: 'B' });
     g.labels(['col 1', 'col 2']);
   }, { ask: done => quiz(LEFT, [{
@@ -229,7 +234,7 @@ const BEATS = [
     const s = 56, gg = G(p, {});
     say(gg, ['A  ='], 90, 290, m('gen') - .4, { size: s });
     const br = (x0, y0, w, t0) => { const e = path(gg, `M${x0 + 14} ${y0 - s}H${x0}V${y0 + 80 + s * .45}H${x0 + 14}M${x0 + w - 14} ${y0 - s}H${x0 + w}V${y0 + 80 + s * .45}H${x0 + w - 14}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' }, { o: 0 }); show(e, t0); return e; };
-    br(200, 260, 230, m('gen') - .4);
+    br(218, 260, 212, m('gen') - .4);
     const L = { a: [260, 260, COLC[0]], b: [370, 260, COLC[1]], c: [260, 340, COLC[0]], d: [370, 340, COLC[1]] };
     const letter = (k, t0) => { const g = G(gg, { x: L[k][0], y: L[k][1], o: 0 }); M(g, [k], { size: s, fill: L[k][2], anchor: 'middle' }); show(g, t0, .3); return g; };
     ['a', 'b', 'c', 'd'].forEach((k, i) => letter(k, m('gen') + .3 + i * .5));
@@ -241,21 +246,22 @@ const BEATS = [
     fly('d', m('swap') + .3); fly('a', m('swap') + .7);
     fly('b', m('sign') + .3); fly('c', m('sign') + .6);
     say(gg, ['−'], 662, 530, m('sign') + 1.6, { size: s, fill: COLC[1] }); say(gg, ['−'], 502, 610, m('sign') + 1.9, { size: s, fill: COLC[0] });
-    const fr = say(gg, [F('1', 'ad − bc')], 330, 590, m('div') + .4, { size: s * .8 });
+    const fr = say(gg, [F('1', 'ad − bc')], 290, 590, m('div') + .4, { size: s * .95 });
     // the recipe on the right, one step at a time
     const step = (n, words, t0) => { const g = G(p, { o: 0, x: 20 }); mk('circle', { cx: 900, cy: -12, r: 24, fill: COL.chalk }, g); T(g, String(n), { x: 900, y: -2, size: 28, fill: COL.board, weight: 700, anchor: 'middle' }); M(g, words, { x: 945, size: 34, anchor: 'start' }); tw(g, { o: 1, x: 0 }, t0, .5); put(g, { y: 280 + n * 100 }); return g; };
     const s1 = step(1, ['swap a and d'], m('swap') + .2), s2 = step(2, ['minus signs on b and c'], m('sign') + .2), s3 = step(3, ['divide by ad − bc'], m('div') + .2);
     const hl = mk('rect', { x: 860, y: 340, width: 600, height: 64, rx: 14, fill: COL.chalk }, p); put(hl, { o: 0 });   // the recipe read once more, step by step
     tw(hl, { o: .12 }, m('all'), .3); [1, 2].forEach(k => tw(hl, { a_y: 340 + k * 100 }, m('all') + k * 1.1, .4)); tw(hl, { o: 0 }, m('all') + 3.6, .4);
     [s1, s2, s3].forEach((e, i) => pulse(e, m('all') + .2 + i * 1, 1));
-    pulse(fr, m('all') + 2.2, 1);
+    pulse(g2mid(fr), m('all') + 2.2, 1.15);
   }],
 
   ['fex1', 'Example: the formula', (m) => {
     const p = panel(0);
     title(p, 'Use it: A = [2 1; 1 1]');
     text(p, 'swap a and d · minus signs on b and c · divide by ad − bc', 60, 165, .3, { size: 24, fill: COL.dim });
-    const g = S.g = grid2(p, { A: [[2, 1], [1, 1]], mat: [90, 290], size: 50, shape: true, t0: m('A') - .5 });
+    const A0 = [[2, 1], [1, 1]];
+    const g = S.g = grid2(p, { A: A0, mat: [90, 290], size: 50, shape: true, t0: m('A') - .5 });
     g.labels(['col 1', 'col 2']);
     const iv = g.inverse({ at: [90, 475], size: 40 });
     ['det', 'lhs', 'scale', 'adj', 'eq', 'res'].forEach(k => put(iv[k], { o: 0 }));
@@ -264,22 +270,29 @@ const BEATS = [
     [1, 2].forEach(k => { put(iv.adjCells[k].g, { o: 0 }); show(iv.adjCells[k].g, m('sg') + .3 + (k - 1) * .5, .3); });
     [0, 3].forEach(k => pulse(iv.adjCells[k].g, m('sw') + .5, 1.2));
     show(iv.scale, m('res'), .3);
-    [0, 1, 2, 3].forEach(k => pulse(iv.resCells[k].g, m('res') + 3.6 + k * 1.1, 1)); show(iv.eq, m('res') + 1, .3); show(iv.res, m('res') + 1.4, .4);
-    hide(iv.root, m('check') - .2, .4);
-    const pr = ivProd(p, [[1, -1], [-1, 2]], [[2, 1], [1, 1]], { at: [90, 490], size: 40, names: [INV, 'A', 'I'], work: [90, 660], o: 0 });
-    show(pr.g, m('check'), .5);
-    pr.entry(0, 0, m('check') + 1.2, m('c2') - m('check') - 1.4); pr.entry(0, 1, m('c2'), m('c3') - m('c2') - .2);
-    pr.entry(1, 0, m('c3'), m('c4') - m('c3') - .2); pr.entry(1, 1, m('c4'), 2);
-    hide(g.M, m('grid') + .1, .3);
-    g.to(keysOf(I2), m('grid') + 2.2, 2.4);
-    text(p, 'A⁻¹ brings the plane home', 90, 770, m('grid') + 2.2, { size: 30, weight: 600 });
+    [0, 1, 2, 3].forEach(k => pulse(iv.resCells[k].g, m('res') + 3.6 + k * 1.1, 1.2)); show(iv.eq, m('res') + 1, .3); show(iv.res, m('res') + 1.4, .4);
+    // A⁻¹ acts on the moved plane (the plane is A, then A⁻¹: arrows put away, A and its panel stay as they are)
+    hide(g.parts.cols, m('grid') + .2, .4);
+    g.to(keysOf(inv2(A0), 'p'), m('grid') + .9, 2.6);
+    text(p, 'A⁻¹ brings the plane home', 90, 820, m('grid') + .9, { size: 30, weight: 600 });
+  }],
+
+  ['fex1c', 'Check by multiplying', (m) => {
+    const p = panel(0);
+    title(p, 'Check: A⁻¹ times A');
+    const pr = ivProd(p, [[1, -1], [-1, 2]], [[2, 1], [1, 1]], { at: [150, 330], size: 52, names: [INV, 'A', 'I'], work: [150, 560], workSize: 40, o: 0 });
+    show(pr.g, .3, .5);
+    pr.entry(0, 0, m('c1'), m('c2') - m('c1') - .2); pr.entry(0, 1, m('c2'), m('c3') - m('c2') - .2);
+    pr.entry(1, 0, m('c3'), m('c4') - m('c3') - .2); pr.entry(1, 1, m('c4'), m('I') - m('c4'));
+    text(p, 'A⁻¹A = I: the formula worked', 150, 680, m('I') + .3, { size: 32, weight: 600, fill: COL.good });
   }],
 
   ['fex2', 'Example with fractions', (m) => {
     const p = panel(0);
     title(p, 'A second one: A = [3 1; 4 2]');
     text(p, 'swap a and d · minus signs on b and c · divide by ad − bc', 60, 165, .3, { size: 24, fill: COL.dim });
-    const g = S.g = grid2(p, { A: [[3, 1], [4, 2]], mat: [90, 290], size: 50, shape: true, t0: m('A') - .5 });
+    const A0 = [[3, 1], [4, 2]];
+    const g = S.g = grid2(p, { A: A0, mat: [90, 290], size: 50, shape: true, t0: m('A') - .5 });
     g.labels(['col 1', 'col 2']);
     const iv = g.inverse({ at: [90, 475], size: 40 });
     ['det', 'lhs', 'scale', 'adj', 'eq', 'res'].forEach(k => put(iv[k], { o: 0 }));
@@ -287,15 +300,21 @@ const BEATS = [
     show(iv.lhs, m('sw'), .3); show(iv.adj, m('sw'), .3);
     [1, 2].forEach(k => { put(iv.adjCells[k].g, { o: 0 }); show(iv.adjCells[k].g, m('sg') + .3 + (k - 1) * .5, .3); });
     [0, 3].forEach(k => pulse(iv.adjCells[k].g, m('sw') + .5, 1.2));
-    show(iv.scale, m('div') + .3, .3); show(iv.eq, m('res'), .3); show(iv.res, m('res') + .3, .4);
-    hide(iv.root, m('check') - .2, .4);
-    const pr = ivProd(p, [[3, 1], [4, 2]], [[1, -.5], [-2, 1.5]], { at: [90, 490], size: 40, names: ['A', INV, 'I'], work: [90, 680], o: 0 });
-    show(pr.g, m('check'), .5);
-    pr.entry(0, 0, m('check') + 2.4, m('c2') - m('check') - 2.6); pr.entry(0, 1, m('c2'), m('c3') - m('c2') - .2);
-    pr.entry(1, 0, m('c3'), m('c4') - m('c3') - .2); pr.entry(1, 1, m('c4'), m('I') - m('c4') + 1);
-    hide(g.M, m('home') - .1, .3);
-    g.to(keysOf(I2), m('home') + .3, 2.4);
-    text(p, 'A⁻¹ brings the plane home', 90, 800, m('home') + .3, { size: 30, weight: 600 });
+    show(iv.scale, m('div') + .3, .3); pulse(g2mid(iv.scale), m('div') + .8, 1.25); show(iv.eq, m('res'), .3); show(iv.res, m('res') + .3, .4);
+    [0, 1, 2, 3].forEach(k => pulse(iv.resCells[k].g, m('res') + .9 + k * 1.3, 1.2));
+    hide(g.parts.cols, m('home') + .1, .4);
+    g.to(keysOf(inv2(A0), 'p'), m('home') + .7, 2.6);
+    text(p, 'A⁻¹ brings the plane home', 90, 820, m('home') + .7, { size: 30, weight: 600 });
+  }],
+
+  ['fex2c', 'Check in the other order', (m) => {
+    const p = panel(0);
+    title(p, 'Check, the other order: A times A⁻¹');
+    const pr = ivProd(p, [[3, 1], [4, 2]], [[1, -.5], [-2, 1.5]], { at: [150, 330], size: 52, names: ['A', INV, 'I'], work: [150, 580], workSize: 40, o: 0 });
+    show(pr.g, .3, .5);
+    pr.entry(0, 0, m('c1'), m('c2') - m('c1') - .2); pr.entry(0, 1, m('c2'), m('c3') - m('c2') - .2);
+    pr.entry(1, 0, m('c3'), m('c4') - m('c3') - .2); pr.entry(1, 1, m('c4'), m('I') - m('c4'));
+    text(p, 'A A⁻¹ = I as well: A⁻¹ works on either side', 150, 700, m('I') + .3, { size: 32, weight: 600, fill: COL.good });
   }],
 
   ['why', 'Why the formula works', (m) => {

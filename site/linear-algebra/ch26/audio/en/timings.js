@@ -353,19 +353,14 @@ window.TIMINGS = {
   ]
  },
  "fex1": {
-  "dur": 52.728,
+  "dur": 35.208,
   "marks": {
-   "A": 1.12,
-   "det": 6.042,
-   "sw": 12.109,
-   "sg": 14.675,
-   "res": 19.102,
-   "check": 28.555,
-   "c2": 35.117,
-   "c3": 39.336,
-   "c4": 43.633,
-   "I": 47.422,
-   "grid": 48.568
+   "A": 1.107,
+   "det": 5.911,
+   "sw": 11.823,
+   "sg": 14.505,
+   "res": 18.958,
+   "grid": 28.086
   },
   "cues": [
    [
@@ -373,23 +368,23 @@ window.TIMINGS = {
     "Let's use it."
    ],
    [
-    1.12,
+    1.107,
     "A is two, one in the first row, and one, one in the second."
    ],
    [
-    6.042,
+    5.911,
     "a d minus b c is two times one, minus one times one: one."
    ],
    [
-    12.109,
+    11.823,
     "Swap the two and the one on the diagonal."
    ],
    [
-    14.675,
+    14.505,
     "Put minus signs on the other two: minus one, and minus one."
    ],
    [
-    19.102,
+    18.958,
     "Divide by one, which changes nothing."
    ],
    [
@@ -397,50 +392,69 @@ window.TIMINGS = {
     "A inverse is one, minus one in the first row, and minus one, two in the second."
    ],
    [
-    28.555,
-    "Check: A inverse times A."
+    28.086,
+    "Now let A inverse act on the moved plane."
    ],
    [
-    30.794,
+    31.263,
+    "Every grid line slides back, and the plane is home."
+   ]
+  ]
+ },
+ "fex1c": {
+  "dur": 23.112,
+  "marks": {
+   "c1": 4.388,
+   "c2": 8.307,
+   "c3": 12.604,
+   "c4": 16.979,
+   "I": 20.651
+  },
+  "cues": [
+   [
+    0.104,
+    "Is it right?"
+   ],
+   [
+    1.055,
+    "Check by multiplying: A inverse times A."
+   ],
+   [
+    4.388,
     "One times two, plus minus one times one: one."
    ],
    [
-    35.117,
+    8.307,
     "One times one, plus minus one times one: zero."
    ],
    [
-    39.336,
+    12.604,
     "Minus one times two, plus two times one: zero."
    ],
    [
-    43.633,
+    16.979,
     "Minus one times one, plus two times one: one."
    ],
    [
-    47.422,
+    20.651,
     "The identity."
    ],
    [
-    48.568,
-    "And on the plane: A moves it, and A inverse brings it home."
+    21.797,
+    "The formula worked."
    ]
   ]
  },
  "fex2": {
-  "dur": 62.28,
+  "dur": 34.392,
   "marks": {
-   "A": 2.63,
-   "det": 8.073,
-   "sw": 16.81,
-   "sg": 18.893,
-   "div": 21.406,
-   "res": 24.115,
-   "check": 30.039,
-   "c2": 41.003,
-   "c3": 48.789,
-   "c4": 53.62,
-   "I": 57.982,
-   "home": 59.401
+   "A": 2.721,
+   "det": 8.125,
+   "sw": 17.135,
+   "sg": 19.219,
+   "div": 21.797,
+   "res": 24.492,
+   "home": 30.404
   },
   "cues": [
    [
@@ -448,56 +462,72 @@ window.TIMINGS = {
     "A second example, with a fraction."
    ],
    [
-    2.63,
+    2.721,
     "A is three, one in the first row, and four, two in the second."
    ],
    [
-    8.073,
+    8.125,
     "a d minus b c: three times two is six, minus one times four, which is four."
    ],
    [
-    15.039,
+    15.352,
     "Six minus four is two."
    ],
    [
-    16.81,
+    17.135,
     "Swap the three and the two."
    ],
    [
-    18.893,
+    19.219,
     "Minus signs on the one and the four."
    ],
    [
-    21.406,
+    21.797,
     "Now divide every number by two: one, minus one half in the first row, and minus two, three halves in the second."
    ],
    [
-    30.039,
+    30.404,
+    "And on the plane, A inverse takes the moved plane home."
+   ]
+  ]
+ },
+ "fex2c": {
+  "dur": 31.728,
+  "marks": {
+   "c1": 4.245,
+   "c2": 11.237,
+   "c3": 18.867,
+   "c4": 23.372,
+   "I": 27.565
+  },
+  "cues": [
+   [
+    0.104,
     "Check, this time in the other order: A times A inverse."
    ],
    [
-    34.154,
+    4.245,
     "Row three, one, times column one, minus two: three minus two is one."
    ],
    [
-    41.003,
+    11.237,
     "Three times minus one half, plus one times three halves: minus three halves plus three halves is zero."
    ],
    [
-    48.789,
+    18.867,
     "Row four, two, times column one: four minus four, zero."
    ],
    [
-    53.62,
+    23.372,
     "And times column two: minus two plus three, one."
    ],
    [
-    57.982,
+    27.565,
     "The identity again."
    ],
    [
-    59.401,
-    "And on the plane, A inverse brings it home."
+    28.997,
+    "A inverse undoes A from either side."
    ]
   ]
  },
@@ -568,17 +598,16 @@ window.TIMINGS = {
   ]
  },
  "live": {
-  "dur": 41.472,
+  "dur": 55.968,
   "marks": {
-   "set": 3.268,
-   "b": 17.07,
-   "grow": 20.586,
-   "s4": 22.917,
-   "s3": 23.529,
-   "s2": 24.44,
-   "s1": 24.688,
-   "big": 25.443,
-   "zero": 32.109
+   "set": 3.438,
+   "b": 17.266,
+   "s4": 20.664,
+   "s3": 26.172,
+   "s2": 30.534,
+   "s1": 33.034,
+   "big": 40.091,
+   "zero": 46.536
   },
   "cues": [
    [
@@ -586,35 +615,47 @@ window.TIMINGS = {
     "Now let's change A, and watch its inverse follow."
    ],
    [
-    3.268,
+    3.438,
     "Here is A, two, one, one, three, with its inverse beside it, built by the formula."
    ],
    [
-    10.859,
+    10.872,
     "a d minus b c is six minus one, five, so the inverse has fifths in it."
    ],
    [
-    17.07,
+    17.266,
     "Now push the top right number up, one step at a time."
    ],
    [
-    20.586,
-    "a d minus b c shrinks: four, three, two, one."
+    20.664,
+    "Two: a d minus b c is four, and the inverse has quarters."
    ],
    [
-    25.443,
-    "And the numbers in the inverse grow."
+    26.172,
+    "Three: a d minus b c is three, so thirds."
    ],
    [
-    27.604,
+    30.534,
+    "Four: it's two, so halves."
+   ],
+   [
+    33.034,
+    "Five: it's one, and the inverse is whole numbers: three, minus five, minus one, two."
+   ],
+   [
+    40.091,
+    "The numbers in the inverse grow."
+   ],
+   [
+    42.044,
     "The plane is getting thinner, so undoing it takes a bigger stretch."
    ],
    [
-    32.109,
+    46.536,
     "At six, a d minus b c is zero."
    ],
    [
-    35.964,
+    50.365,
     "The two columns lie on one line, the plane is flat, and there is no inverse."
    ]
   ]

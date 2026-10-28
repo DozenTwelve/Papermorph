@@ -161,7 +161,7 @@ const BEATS = [
     title(p, 'Step 2: eliminate up');
     const { g, t } = table2(p, LEC, { rows: [[1, 3, 1, 0], [0, 1, -2, 1]] });
     text(p, 'back substitution would stop here; Gauss–Jordan goes on', 90, 470, 1, { size: 24, fill: COL.dim });
-    const upA = G(p, {}); draw(path(upA, `M${t.cx(3) + 70} ${t.ry(1) - 10}V${t.ry(0) - 30}M${t.cx(3) + 58} ${t.ry(0) - 16}L${t.cx(3) + 70} ${t.ry(0) - 32}L${t.cx(3) + 82} ${t.ry(0) - 16}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' }, { d: 0 }), 3, 1.2); hide(upA, m('op') - .3, .3);
+    const upA = G(p, {}); draw(path(upA, `M${t.cx(3) + 100} ${t.ry(1) - 10}V${t.ry(0) - 30}M${t.cx(3) + 88} ${t.ry(0) - 16}L${t.cx(3) + 100} ${t.ry(0) - 32}L${t.cx(3) + 112} ${t.ry(0) - 16}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' }, { d: 0 }), 3, 1.2); hide(upA, m('op') - .3, .3);
     t.ring(1, 1, m('above') - .3, m('op'));
     t.ring(0, 1, m('above') + .4, m('op'), { dash: true });
     t.sub(0, 1, 3, m('go') + .2, 2.6, { lead: m('go') + .2 - m('op') });
@@ -206,7 +206,7 @@ const BEATS = [
     const t = gj(sm, LEC, { at: [900, 300], size: 36 });
     put(t.g, { o: 1 });
     show(sm, m('E') + .5, .4);
-    t.sub(1, 0, 2, m('E') + 2, 1.2, { lead: .6 }); t.sub(0, 1, 3, m('E') + 4.5, 1.2, { lead: .6 }); t.done(m('all'));
+    t.sub(1, 0, 2, m('E') + 2, 1.2, { lead: .6 }); t.sub(0, 1, 3, m('E') + 4.5, 1.2, { lead: .6 }); t.done(m('all')); t.names(['I', INV], m('left') + .4);
     t.block(1, m('right') + .5, m('rec') + 3); t.block(0, m('left') + 1, m('right'));
   }],
 
@@ -230,16 +230,26 @@ const BEATS = [
     t.ring(1, 1, m('up') + .3, m('up') + 3);
     t.sub(0, 1, 1, m('u2') - .4, 2, { lead: m('u2') - .4 - (m('up') + 3) });
     say(p, ['ℓ = 1 ÷ 1 = 1'], 90, 530, m('up') + 1, { size: 30 });
-    t.ring(0, 0, m('div') + .4, m('div') + 3.5, { color: COL.bad });
-    t.div(0, 2, m('d3') - .3, 1.8, { lead: m('d3') - .3 - (m('div') + 3.2) });
-    say(p, ['pivot 2: divide row 1 by 2'], 90, 590, m('div') + 3.2, { size: 30 });
+    t.done(m('left'));
+    t.block(0, m('left') + .2, m('left') + 4);
+    text(p, 'left half [2 0; 0 1]: not I yet, the plane is twice as wide', 90, 610, m('left') + .4, { size: 28, weight: 600 });
+  }],
+
+  ['divp', 'Divide by the pivots', (m) => {
+    const p = panel(0);
+    title(p, 'Step 3: divide by the pivots');
+    const { g, t } = table2(p, EX2, { rows: [[2, 0, 4, -1], [0, 1, -3, 1]] });
+    t.ring(0, 0, m('piv') + .2, m('d3'));
+    t.div(0, 2, m('d3') + .4, 2.6, { lead: m('d3') + .4 - m('piv') - 1.6 });
+    say(p, ['pivot 2: divide row 1 by 2'], 90, 470, m('piv') + 1.6, { size: 30 });
+    text(p, '÷ 2 squeezes the plane to half the width: home', 90, 540, m('d3') + 1.2, { size: 28, weight: 600 });
+    say(p, ['2 ÷ 2 = 1,    0 ÷ 2 = 0'], 90, 610, m('nums') + .6, { size: 28 });
+    say(p, ['4 ÷ 2 = 2,   −1 ÷ 2 = −', F(1, 2)], 90, 665, m('nums') + 3.2, { size: 28, fill: COL.task });
     t.names(['I', INV], m('read')); t.done(m('read'));
-    say(p, ['4 ÷ 2 = 2,   −1 ÷ 2 = −', F(1, 2)], 90, 650, m('d3') + 2.6, { size: 28, fill: COL.task });
     [0, 1].forEach(i => rowBand(p, t, i, m('read') + .8 + i * 2.6, m('read') + 3.2 + i * 2.6));
-    const ck = say(p, ['check:  ad − bc = 8 − 6 = 2,'], 90, 720, m('check') + .5, { size: 28 });
-    const ck2 = say(p, [F(1, 2), '·[4  −1; −6  2]'], 90 + ck._w + 14, 720, m('check') + 5.2, { size: 28 });
-    say(p, ['= [2  −', F(1, 2), '; −3  1]'], 90 + ck._w + ck2._w + 26, 720, m('check') + 9, { size: 28 });
-    text(p, 'the last step, ÷ 2, squeezed the plane home', 90, 790, m('plane') + .3, { size: 28, weight: 600 });
+    const ck = say(p, ['check:  ad − bc = 8 − 6 = 2,'], 90, 750, m('check') + .5, { size: 28 });
+    const ck2 = say(p, [F(1, 2), '·[4  −1; −6  2]'], 90 + ck._w + 14, 750, m('check') + 5.2, { size: 28 });
+    say(p, ['= [2  −', F(1, 2), '; −3  1]'], 90 + ck._w + ck2._w + 26, 750, m('check') + 9, { size: 28 });
   }],
 
   ['q2', 'Quick check', () => {
@@ -270,7 +280,8 @@ const BEATS = [
     t.sub(1, 0, 2, m('c1') + 2.2, 1.4, { lead: 1.2 });
     t.sub(2, 0, 1, m('c1b') + 1.3, 1.4, { lead: 1 });
     t.sub(2, 1, 1, m('c2') + 1.6, 1.4, { lead: 1.2 });
-    const tri = path(p, `M${t.cx(0) - 40} ${t.ry(0) - 44}L${t.cx(2) + 40} ${t.ry(0) - 44}L${t.cx(2) + 40} ${t.ry(2) + 20}Z`, { fill: COL.chalk, 'fill-opacity': .1, stroke: COL.chalk, 'stroke-width': 2 }, { o: 0 });
+    const L_ = j => t.cx(j) - 44, R_ = j => t.cx(j) + 44, T_ = i => t.ry(i) - 48, B_ = i => t.ry(i) + 20;
+    const tri = path(p, `M${L_(0)} ${T_(0)}H${R_(2)}V${B_(2)}H${L_(2)}V${B_(1)}H${L_(1)}V${B_(0)}H${L_(0)}Z`, { fill: COL.chalk, 'fill-opacity': .1, stroke: COL.chalk, 'stroke-width': 2 }, { o: 0 });
     show(tri, m('tri') + .3, .5); hide(tri, m('up'), .4);
     text(p, 'down: zeros below the pivots ✓', 160, 560, m('tri') + 1, { size: 28, weight: 600 });
     t.sub(1, 2, 1, m('up') + 1.8, 1.2, { lead: .9 });
