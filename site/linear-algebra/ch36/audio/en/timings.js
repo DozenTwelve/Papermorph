@@ -350,18 +350,22 @@ window.TIMINGS = {
   ]
  },
  "rtr": {
-  "dur": 34.512,
+  "dur": 73.056,
   "marks": {
-   "R": 3.255,
-   "rt": 13.333,
-   "mult": 17.617,
-   "size": 20.365,
-   "work": 24.557,
-   "c11": 25.482,
-   "c12": 26.393,
-   "c21": 27.266,
-   "c22": 27.982,
-   "sym": 29.023
+   "R": 3.789,
+   "rt": 14.206,
+   "mult": 18.49,
+   "size": 21.094,
+   "work": 27.474,
+   "c11": 29.648,
+   "s11": 38.984,
+   "c12": 41.953,
+   "s12": 49.635,
+   "c21": 52.344,
+   "s21": 60.312,
+   "c22": 61.523,
+   "s22": 64.805,
+   "sym": 67.695
   },
   "cues": [
    [
@@ -369,50 +373,78 @@ window.TIMINGS = {
     "Here is where symmetric matrices come from."
    ],
    [
-    3.255,
+    3.789,
     "Take any matrix R, even one that is not square."
    ],
    [
-    6.875,
+    7.826,
     "This R is three by two: one, three; two, three; four, one."
    ],
    [
-    13.333,
+    14.206,
     "Its transpose, R transpose, is two by three."
    ],
    [
-    17.617,
+    18.49,
     "Multiply R transpose times R."
    ],
    [
-    20.365,
-    "Two by three times three by two: the answer is two by two."
+    21.094,
+    "Two by three times three by two: the inside threes match, and the answer is two by two."
    ],
    [
-    24.557,
-    "Work it out."
+    27.474,
+    "Work it out, one number at a time."
    ],
    [
-    25.482,
-    "Twenty-one, thirteen, thirteen, nineteen."
+    29.648,
+    "Top left: row one of R transpose, times column one of R."
    ],
    [
-    29.023,
+    34.258,
+    "One times one, plus two times two, plus four times four: one plus four plus sixteen, twenty-one."
+   ],
+   [
+    41.953,
+    "Top right: row one times column two."
+   ],
+   [
+    44.857,
+    "One times three, plus two times three, plus four times one: three plus six plus four, thirteen."
+   ],
+   [
+    52.344,
+    "Bottom left: row two times column one."
+   ],
+   [
+    55.638,
+    "Three times one, plus three times two, plus one times four: thirteen again."
+   ],
+   [
+    61.523,
+    "Bottom right: row two times column two: nine plus nine plus one, nineteen."
+   ],
+   [
+    67.695,
     "Look at the two thirteens, in mirror spots."
    ],
    [
-    32.266,
+    70.703,
     "R transpose R is symmetric."
    ]
   ]
  },
  "rtr2": {
-  "dur": 21.6,
+  "dur": 40.608,
   "marks": {
-   "R": 2.096,
-   "prod": 5.0,
-   "sym": 9.323,
-   "other": 13.268
+   "R": 1.966,
+   "prod": 4.753,
+   "sym": 9.076,
+   "other": 13.242,
+   "o11": 20.0,
+   "o12": 25.677,
+   "o22": 31.055,
+   "o2": 32.93
   },
   "cues": [
    [
@@ -420,24 +452,44 @@ window.TIMINGS = {
     "Another one, to be sure."
    ],
    [
-    2.096,
+    1.966,
     "R is one, two; zero, one."
    ],
    [
-    5.0,
+    4.753,
     "R transpose R is one, two; two, five."
    ],
    [
-    9.323,
+    9.076,
     "The two twos sit in mirror spots: symmetric again."
    ],
    [
-    13.268,
-    "And the other order, R times R transpose, is five, two; two, one."
+    13.242,
+    "Now the other order, R times R transpose."
    ],
    [
-    18.997,
-    "A different matrix, but symmetric too."
+    16.458,
+    "Here each number is a row of R times a row of R."
+   ],
+   [
+    20.0,
+    "Row one with itself: one times one plus two times two, five."
+   ],
+   [
+    25.677,
+    "Row one with row two: one times zero plus two times one, two."
+   ],
+   [
+    31.055,
+    "Row two with itself: one."
+   ],
+   [
+    32.93,
+    "So R R transpose is five, two; two, one."
+   ],
+   [
+    36.836,
+    "A different matrix from R transpose R, but symmetric too."
    ]
   ]
  },

@@ -25,32 +25,36 @@ window.TIMINGS = {
   ]
  },
  "recap": {
-  "dur": 20.496,
+  "dur": 21.936,
   "marks": {
-   "cols": 2.005,
-   "sheet": 6.732,
-   "reach": 12.904,
-   "now": 16.797
+   "cols": 2.161,
+   "sheet": 7.383,
+   "reach": 11.302,
+   "now": 17.917
   },
   "cues": [
    [
-    0.091,
+    0.104,
     "Remember chapter fourteen."
    ],
    [
-    2.005,
-    "We took columns and mixed them: x times column one plus y times column two."
+    2.161,
+    "We took two columns and mixed them: x times column one plus y times column two."
    ],
    [
-    6.732,
-    "When column three fell into the flat sheet of the first two, every mix stayed in that sheet."
+    7.383,
+    "Every mix landed in one flat sheet through the origin."
    ],
    [
-    12.904,
+    11.302,
     "So A x equals b could be solved only when b was on the sheet."
    ],
    [
-    16.797,
+    15.326,
+    "Off the sheet, no mix reaches it."
+   ],
+   [
+    17.917,
     "That sheet is a subspace, and today it gets its name."
    ]
   ]
@@ -58,6 +62,7 @@ window.TIMINGS = {
  "name": {
   "dur": 36.864,
   "marks": {
+   "A": 2.591,
    "c1": 5.547,
    "c2": 8.333,
    "mix": 13.672,
@@ -114,14 +119,16 @@ window.TIMINGS = {
   ]
  },
  "sub": {
-  "dur": 44.616,
+  "dur": 60.36,
   "marks": {
-   "two": 3.776,
-   "add": 13.32,
-   "mix": 15.312,
-   "mult": 25.638,
-   "zero": 34.948,
-   "yes": 38.646
+   "two": 3.607,
+   "two2": 10.612,
+   "add": 16.51,
+   "mix": 20.482,
+   "mult": 34.18,
+   "mult2": 43.893,
+   "zero": 50.938,
+   "yes": 54.505
   },
   "cues": [
    [
@@ -129,51 +136,68 @@ window.TIMINGS = {
     "Is the column space a subspace?"
    ],
    [
-    2.734,
+    2.604,
     "Let's test it."
    ],
    [
-    3.776,
-    "Take two vectors in it: four, five, five, which is one, one of the columns, and minus two, minus one, three, which is one, minus one."
+    3.607,
+    "Take two vectors in it: four, five, five, which is one times column one plus one times column two, and two, one, minus three, which is minus one times column one plus one times column two."
    ],
    [
-    13.32,
-    "Their sum is two, four, eight."
+    16.51,
+    "Add them, tip to tail: the sum is six, six, two."
    ],
    [
-    15.312,
-    "And that's two times column one plus zero times column two: the mixes add, one plus one, and one plus minus one."
+    20.482,
+    "And the mixes add too: one plus minus one is zero, and one plus one is two."
    ],
    [
-    24.167,
+    26.953,
+    "Zero times column one plus two times column two is six, six, two."
+   ],
+   [
+    32.669,
     "A combination again."
    ],
    [
-    25.638,
-    "Multiply a combination by a number c, and you get c x times column one plus c y times column two: a combination again."
+    34.18,
+    "Now multiply a combination by a number."
    ],
    [
-    34.948,
+    37.005,
+    "Minus one half times six, six, two is minus three, minus three, minus one."
+   ],
+   [
+    43.893,
+    "Its mix gets multiplied by minus one half too: zero, and minus one."
+   ],
+   [
+    49.479,
+    "A combination again."
+   ],
+   [
+    50.938,
     "And zero times both columns gives the zero vector."
    ],
    [
-    38.646,
+    54.505,
     "So sums and multiples never leave."
    ],
    [
-    41.667,
+    57.422,
     "The column space is always a subspace."
    ]
   ]
  },
  "plane": {
-  "dur": 30.24,
+  "dur": 29.448,
   "marks": {
-   "two": 1.367,
-   "fill": 6.628,
-   "edge": 15.0,
-   "back": 20.807,
-   "not": 25.781
+   "two": 1.328,
+   "fill": 6.406,
+   "zero": 9.349,
+   "edge": 14.714,
+   "back": 20.299,
+   "not": 25.247
   },
   "cues": [
    [
@@ -181,23 +205,27 @@ window.TIMINGS = {
     "What shape is it?"
    ],
    [
-    1.367,
+    1.328,
     "The two columns point in different directions: neither is a multiple of the other."
    ],
    [
-    6.628,
-    "So their combinations fill a whole flat plane, and it passes through the origin, since zero times both columns is zero."
+    6.406,
+    "So their combinations fill a whole flat plane."
    ],
    [
-    15.0,
+    9.349,
+    "And it passes through the origin, since zero times both columns is zero."
+   ],
+   [
+    14.714,
     "Turn the picture to look along the plane: it shrinks to a line, and both columns lie in it."
    ],
    [
-    20.807,
+    20.299,
     "For this A, C of A is a plane through the origin in R three."
    ],
    [
-    25.781,
+    25.247,
     "It's not all of R three: most vectors in space are off this plane."
    ]
   ]
@@ -407,6 +435,99 @@ window.TIMINGS = {
    [
     57.656,
     "No solution: b is not in the column space."
+   ]
+  ]
+ },
+ "more": {
+  "dur": 66.96,
+  "marks": {
+   "b1": 3.398,
+   "x1": 6.263,
+   "y1": 12.474,
+   "t1": 20.846,
+   "mix1": 28.385,
+   "b2": 37.669,
+   "x2": 40.938,
+   "y2": 44.466,
+   "t2": 50.482,
+   "no2": 57.318
+  },
+  "cues": [
+   [
+    0.104,
+    "Two more, step by step."
+   ],
+   [
+    1.875,
+    "Watch both pictures."
+   ],
+   [
+    3.398,
+    "b equals five, four, minus two."
+   ],
+   [
+    6.263,
+    "Subtract the first equation from the second: x equals four minus five, which is minus one."
+   ],
+   [
+    12.474,
+    "The first equation: minus one plus three y equals five."
+   ],
+   [
+    17.669,
+    "So three y is six, and y is two."
+   ],
+   [
+    20.846,
+    "Test the third: four times minus one, plus two, is minus two."
+   ],
+   [
+    25.885,
+    "That's b three."
+   ],
+   [
+    27.148,
+    "It matches!"
+   ],
+   [
+    28.385,
+    "So b is minus one times column one plus two times column two."
+   ],
+   [
+    33.385,
+    "And down below, the three lines meet at minus one, two."
+   ],
+   [
+    37.669,
+    "Now b equals zero, three, three."
+   ],
+   [
+    40.938,
+    "x equals three minus zero, which is three."
+   ],
+   [
+    44.466,
+    "The first equation: three plus three y equals zero, so y is minus one."
+   ],
+   [
+    50.482,
+    "Test the third: four times three, minus one, is eleven."
+   ],
+   [
+    55.052,
+    "But b three is three."
+   ],
+   [
+    57.318,
+    "Eleven is not three: no solution."
+   ],
+   [
+    60.456,
+    "In space, b sits off the plane."
+   ],
+   [
+    62.865,
+    "Below, the yellow line misses the point where the other two meet."
    ]
   ]
  },

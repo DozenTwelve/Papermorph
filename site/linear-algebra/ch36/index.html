@@ -29,12 +29,14 @@ const CARD = { x: 40, y: 450, w: 740, cls: 'side' };
 const say = (p, parts, x, y, t0, { size = 40, fill = COL.chalk, anchor = 'start' } = {}) => { const e = M(p, [].concat(parts), { x, y, size, fill, anchor, o: 0 }); show(e, t0); return e; };
 const text = (p, str, x, y, t0, { size = 30, fill = COL.chalk, anchor = 'start', weight = 500 } = {}) => { const e = T(p, str, { x, y, size, fill, anchor, weight, o: 0 }); show(e, t0); return e; };
 const title = (p, str) => text(p, str, 60, 110, .2, { size: 40, weight: 600 });
+// A beat that carries on the last beat's panel names itself: the old title fades, the new one comes in.
+const retitle = str => { hide(S.title, .1, .3); S.title = text(S.p, str, 60, 110, .35, { size: 40, weight: 600 }); };
 const thick = (tp, t0) => { const w = tp.dash ? 4 : 6; tw(tp.shaft, { 'a_stroke-width': w + 5 }, t0, .3); tw(tp.shaft, { 'a_stroke-width': w }, t0 + 1.2, .6); };
 const hideArrows = T_ => [...T_.arrows.cols, ...T_.arrows.rows].forEach(tp => put(tp.ag, { o: 0 }));
 // One mirror pair of a matrix laid out by mmT or mm (cx, ry): two rings and a bow between them, drawn at t0.
 const pairRing = (into, Mx, i, j, t0, color, size) => {
   const g = G(into, { o: 0 }), c = (r, k) => [Mx.cx(k), Mx.ry(r) - size * .3];
-  [c(i, j), c(j, i)].forEach(([x, y]) => mk('circle', { cx: x, cy: y, r: size * .62, fill: 'none', stroke: color, 'stroke-width': 3 }, g));
+  [c(i, j), c(j, i)].forEach(([x, y]) => mk('ellipse', { cx: x, cy: y, rx: size * .74, ry: size * .62, fill: 'none', stroke: color, 'stroke-width': 3 }, g));
   const [x1, y1] = c(i, j), [x2, y2] = c(j, i), bend = 18 + 10 * (j - i);
   path(g, `M${x1 - size * .5} ${y1 + size * .4}Q${(x1 + x2) / 2 + bend} ${(y1 + y2) / 2 + bend} ${x2 + size * .5} ${y2 - size * .4}`, { stroke: color, 'stroke-width': 2.5, fill: 'none', 'stroke-opacity': .8 });
   show(g, t0, .4);
@@ -49,7 +51,7 @@ const symRings = (into, P_, size, t0) => {
     if (!C || C.length !== C[0].length) return;
     for (let i = 0; i < C.length; i++) for (let j = i + 1; j < C.length; j++) {
       const ok = Math.abs(C[i][j] - C[j][i]) < 1e-9, col = ok ? COL.good : COL.bad;
-      [[i, j], [j, i]].forEach(([r, k]) => mk('circle', { cx: c.cx(k), cy: c.ry(r) - size * .3, r: size * .66, fill: 'none', stroke: col, 'stroke-width': 3 }, g));
+      [[i, j], [j, i]].forEach(([r, k]) => mk('ellipse', { cx: c.cx(k), cy: c.ry(r) - size * .3, rx: Math.min(size * .8, c.c / 2 - 2), ry: size * .64, fill: 'none', stroke: col, 'stroke-width': 3 }, g));
     }
   };
   P_.onChange(redraw); redraw();
@@ -68,6 +70,22 @@ const rtrLink = P_ => {
   });
 };
 const matEl = rows => mmEl(rows, { size: 22 });
+// blanks() writes a row's parts as math text and drops a drawn matrix (mmEl), so a row that shows one becomes its own
+// question with the matrix in its prompt; rows without a matrix stay together in one question.
+const blankQs = (id, prompt, rows) => {
+  const qs = [], plain = [];
+  const flush = () => { if (plain.length) qs.push({ id: `${id}${qs.length + 1}`, prompt: [prompt], build: blanks(plain.splice(0)) }); };
+  rows.forEach(r => {
+    const k = r.parts.findLastIndex(p => p instanceof Element);
+    if (k < 0) { plain.push(r); return; }
+    flush();
+    const head = r.parts.slice(0, k + 1), rest = r.parts.slice(k + 1);
+    if (typeof rest[0] === 'string') rest[0] = rest[0].replace(/^[\s.,]+/, '');
+    qs.push({ id: `${id}${qs.length + 1}`, prompt: [prompt + '   ', ...(head[0] instanceof Element ? ['A = '] : []), ...head], build: blanks([{ ...r, parts: rest }]) });
+  });
+  flush();
+  return qs;
+};
 
 /* ---------- practice data (every matrix checked pair by pair, every product by columns of R) ---------- */
 const YN = [['y', 'Symmetric', COL.good, 'Y'], ['n', 'Not', COL.bad, 'N']];
@@ -88,7 +106,7 @@ const SYMQ = [
 ];
 const FILLQ = [
   { parts: [matEl([[4, 0], [-3, 1]]), '   row 1, column 2 must be ', { box: '-3' }], why: 'Its mirror, row 2, column 1, is −3.', hint: 'Look across the diagonal: the mirror number is in row 2, column 1.' },
-  { parts: [matEl([[0, 2, 0], [0, 5, 6], [7, 0, 1]]), '   (zeros show the gaps)   row 1, column 3 = ', { box: '7' }, ',  row 2, column 1 = ', { box: '2' }, ',  row 3, column 2 = ', { box: '6' }],
+  { parts: [matEl([[3, 2, 0], [0, 5, 6], [7, 0, 1]]), '   (the zeros off the diagonal are gaps)   row 1, column 3 = ', { box: '7' }, ',  row 2, column 1 = ', { box: '2' }, ',  row 3, column 2 = ', { box: '6' }],
     why: 'Each gap copies its mirror: 7 from row 3, column 1; 2 from row 1, column 2; 6 from row 2, column 3.', hint: 'Swap the address of each gap and copy the number you find there.' },
   { parts: ['Pairs 1, 2, 3 given; the diagonal is yours:  ', matEl([[0, 1, 2], [1, 0, 3], [2, 3, 0]]), '   diagonal = (', { box: '0' }, ', ', { box: '0' }, ', ', { box: '0' }, ')'],
     test: () => true, why: 'Any numbers work: the diagonal never moves in a flip, so it is free.', hint: 'The diagonal stays in place when you flip. Does it have to match anything?' },
@@ -107,7 +125,7 @@ const RTRQ = [
 const HANDQ = [
   { id: 'p-sym1', start: { a00: 2, a01: 3, a10: -1, a11: 1 }, only: ['a10', 't01'], prompt: ['Make A symmetric by changing only the number in row 2, column 1.'],
     why: 'Row 2, column 1 must copy its mirror, 3. Now column 1 is (2, 3) = row 1.', hint: 'Its mirror is row 1, column 2. Copy that number.', ans: { a10: 3 } },
-  { id: 'p-sym2', start: { a00: 0, a01: 0, a10: 0, a11: 0 }, only: null, prompt: ['Make A symmetric with column 1 equal to (1, 4). Then the blue dashed arrow must lie on the green one.'],
+  { id: 'p-sym2', start: { a00: 1, a01: 0, a10: 0, a11: 1 }, only: null, prompt: ['Make A symmetric with column 1 equal to (1, 4). Then the blue dashed arrow must lie on the green one.'],
     why: 'Column 1 = (1, 4), so row 2, column 1 is 4; symmetric, so row 1, column 2 is 4 too. Row 2, column 2 is free.', hint: v => v.a00 === 1 && v.a10 === 4 ? 'Column 1 is right. Now its mirror: row 1 must be (1, 4) as well.' : 'Column 1 is the left column of A: 1 on top, 4 under it.',
     test: (v, T_) => v.a00 === 1 && v.a10 === 4 && T_.sym(), ans: { a00: 1, a10: 4, a01: 4 } },
 ];
@@ -139,15 +157,15 @@ const BEATS = [
     T_.flash('a', [[0, 1], [1, 0]], m('diff')); T_.flash('t', [[0, 1], [1, 0]], m('diff') + .3);
     pairRing(T_.front, T_.L.a, 0, 1, m('diff') + .2, COL.bad, 54);
     const n = G(p, { o: 0 });
-    M(n, ['Aᵀ ≠ A'], { x: 980, y: 330, size: 54, fill: COL.bad });
+    M(n, ['Aᵀ ≠ A'], { x: 980, y: 330, size: 54, fill: COL.bad, anchor: 'start' });
     T(n, 'the 2 and the 3 traded places', { x: 980, y: 380, size: 28, fill: COL.dim, weight: 600 });
     show(n, m('diff') + 1, .5);
     text(p, 'most matrices change', 980, 470, m('most'), { size: 30, weight: 600 });
   }],
 
   ['sym', 'When the flip changes nothing', (m) => {
-    const p = panel(0);
-    title(p, 'When the flip changes nothing');
+    const p = S.p = panel(0);
+    S.title = title(p, 'When the flip changes nothing');
     const T_ = S.T = mmT(p, { A: S2, at: AT, size: 54, cw: 86, rh: 76, gap: 200, names: ['S', 'Sᵀ'], hideT: true, t0: m('S') - .4 });
     put(T_.L.t.g, { o: 0 }); show(T_.L.t.g, m('flip') - .2, .4);
     T_.show('row', 0, m('flip') + .3); T_.show('row', 1, m('flip') + 3.6); T_.show(null, null, m('same'));
@@ -163,7 +181,7 @@ const BEATS = [
 
   ['pairs', 'Mirror pairs', (m) => {
     const T_ = S.T;
-    hide(S.note, .1, .4);
+    hide(S.note, .1, .4); retitle('Mirror pairs');
     T_.diag(m('diag')); T_.show('diag', null, m('diag'));
     T_.show(null, null, m('pair'));
     T_.flash('a', [[0, 1], [1, 0]], m('pair')); T_.flash('t', [[0, 1], [1, 0]], m('pair'));
@@ -179,15 +197,16 @@ const BEATS = [
   ['ex3', 'Three by three', (m) => {
     const p = panel(0);
     title(p, 'Three by three: check the pairs');
-    const T_ = mmT(p, { A: S3, at: [140, 290], size: 54, cw: 86, rh: 76, gap: 200, names: ['S', 'Sᵀ'], hideT: true, t0: m('S') - .4 });
+    const T_ = mmT(p, { A: S3, at: [140, 300], size: 56, cw: 108, rh: 92, gap: 200, names: ['S', 'Sᵀ'], hideT: true, t0: m('S') - .4 });   // room for a ring round each number
     put(T_.L.t.g, { o: 0 }); show(T_.L.t.g, m('flip') - .2, .4);
     [0, 1, 2].forEach(k => T_.show('row', k, m('S') + .8 + k * 2.4, { side: 'a' }));
     T_.diag(m('diag')); T_.show('diag', null, m('diag'), { side: 'a' }); T_.show(null, null, m('p1'));
-    [['p1', 0, 1], ['p2', 0, 2], ['p3', 1, 2]].forEach(([k, i, j]) => { T_.flash('a', [[i, j]], m(k) + .2); T_.flash('a', [[j, i]], m(k) + 2.2); pairRing(T_.front, T_.L.a, i, j, m(k) + 3, COL.good, 54); });
+    const rings = [['p1', 0, 1], ['p2', 0, 2], ['p3', 1, 2]].map(([k, i, j]) => { T_.flash('a', [[i, j]], m(k) + .2); T_.flash('a', [[j, i]], m(k) + 2.2); return pairRing(T_.front, T_.L.a, i, j, m(k) + 3, COL.good, 56); });
+    rings.slice(0, 2).forEach((g, n) => tw(g, { o: .35 }, m(['p2', 'p3'][n]), .4));   // a checked pair steps back while the next is read
     T_.fly(m('flip') + .4, { by: 'rows', step: .7, dur: 1 });
     const n = G(p, { o: 0 });
-    T(n, '3 pairs, all equal:', { x: 1040, y: 330, size: 32, weight: 600 });
-    T(n, 'symmetric', { x: 1040, y: 380, size: 40, weight: 700 });
+    T(n, '3 pairs, all equal:', { x: 1120, y: 340, size: 32, weight: 600 });
+    T(n, 'symmetric', { x: 1120, y: 390, size: 40, weight: 700 });
     show(n, m('yes'), .5);
   }],
 
@@ -255,14 +274,19 @@ const BEATS = [
     [0, 1, 2].forEach(i => P_.flash('b', { row: i }, m('R') + 5.2 + i * 1.3));
     P_.flash('a', { row: 0 }, m('rt') + .6); P_.flash('a', { row: 1 }, m('rt') + 1.4);
     P_.inner(m('size') + .4); P_.outer(m('size') + 2.6);
-    [['c11', [0, 0]], ['c12', [0, 1]], ['c21', [1, 0]], ['c22', [1, 1]]].forEach(([k, ij], n) => {
-      P_.show('entry', ij, m(k) - (n ? .2 : 1.2), { times: [m(k) - (n ? .2 : 1.2)] });
-      P_.reveal({ cell: ij }, m(k) + .1);
+    const ks = ['11', '12', '21', '22'];
+    ks.forEach((k, n) => {
+      const c = m('c' + k), s_ = m('s' + k), done = Math.min(s_ + 1.4, n < 3 ? m('c' + ks[n + 1]) - .3 : 1e9);   // the sum lands before the next entry's working starts
+      const ij = [+k[0] - 1, +k[1] - 1];
+      P_.show('entry', ij, c, { times: [c + .3, Math.max(c + 1.5, s_ - .2), done] });
+      P_.reveal({ cell: ij }, done);
+      // while the products are read aloud, each pair that is multiplied lights up: one number of Rᵀ's row, one of R's column
+      if (k !== '22') [0, 1, 2].forEach(q => { const t = s_ - 4.8 + q * 1.6; P_.flash('a', { cell: [ij[0], q] }, t); P_.flash('b', { cell: [q, ij[1]] }, t); });
     });
     P_.show(null, null, m('sym'));
     symRings(p, P_, 40, m('sym') + .4);
     const n = G(p, { o: 0 });
-    M(n, ['RᵀR is symmetric'], { x: 1000, y: 330, size: 40 });
+    M(n, ['RᵀR is symmetric'], { x: 1000, y: 330, size: 40, anchor: 'start' });
     T(n, '13 and 13 in mirror spots', { x: 1000, y: 380, size: 28, fill: COL.dim, weight: 600 });
     show(n, m('sym') + 1.4, .5);
   }],
@@ -274,10 +298,16 @@ const BEATS = [
     const P1 = mm(p, { A: tr(R2), B: R2, at: [70, 260], names: ['Rᵀ', 'R', 'RᵀR'], tintB: 'cols', ...o, t0: m('R') - .4 });
     P1.reveal('all', m('prod') + .3);
     symRings(p, P1, 40, m('sym') + .3);
-    const P2 = mm(p, { A: R2, B: tr(R2), at: [70, 580], names: ['R', 'Rᵀ', 'RRᵀ'], tintA: 'cols', ...o, t0: m('other') - .3 });
-    P2.reveal('all', m('other') + 2.4);
-    symRings(p, P2, 40, m('other') + 4.4);
-    text(p, 'RᵀR ≠ RRᵀ, but both are symmetric', 860, 470, m('other') + 4.8, { size: 30, weight: 600 });
+    const P2 = mm(p, { A: R2, B: tr(R2), at: [70, 520], names: ['R', 'Rᵀ', 'RRᵀ'], tintA: 'cols', work: [90, 770], wsize: 30, ...o, t0: m('other') - .3 });
+    P2.flash('a', { row: 0 }, m('other') + 3.4); P2.flash('a', { row: 1 }, m('other') + 4.2);
+    [['o11', [0, 0], [[0, 0]]], ['o12', [0, 1], [[0, 1], [1, 0]]], ['o22', [1, 1], [[1, 1]]]].forEach(([k, ij, cells]) => {
+      const tt = k === 'o22' ? [m(k) + .1, m(k) + .6, m(k) + 1.2] : [m(k) + .2, m(k) + 1.6, m(k) + 2.6];   // "Row two with itself: one" is short
+      P2.show('entry', ij, m(k), { times: tt });
+      cells.forEach(cell => P2.reveal({ cell }, tt[2]));
+    });
+    P2.show(null, null, m('o2'));
+    symRings(p, P2, 40, m('o2') + 2.6);
+    text(p, 'RᵀR ≠ RRᵀ, but both are symmetric', 860, 470, m('o2') + 3.4, { size: 30, weight: 600 });
   }],
 
   ['why', 'Why: columns times columns', (m) => {
@@ -291,11 +321,11 @@ const BEATS = [
     const G1 = MM_COL[0], V1 = MM_COL[1];
     say(p, ['row 1, column 2:'], 90, 600, m('pairs'), { size: 32, fill: COL.dim });
     say(p, ['1·3 + 2·3 + 4·1'], 380, 600, m('pairs') + 3.4, { size: 36 });
-    say(p, ['= 13'], 680, 600, m('pairs') + 8.6, { size: 36 });
+    say(p, ['= 13'], 380 + mathW(['1·3 + 2·3 + 4·1'], 36) + 8, 600, m('pairs') + 8.6, { size: 36 });
     P_.show('entry', [1, 0], m('mirror'));
     say(p, ['row 2, column 1:'], 90, 680, m('mirror') + .3, { size: 32, fill: COL.dim });
     say(p, ['3·1 + 3·2 + 1·4'], 380, 680, m('same') + 1.6, { size: 36 });
-    say(p, ['= 13'], 680, 680, m('same') + 7, { size: 36 });
+    say(p, ['= 13'], 380 + mathW(['3·1 + 3·2 + 1·4'], 36) + 8, 680, m('same') + 7, { size: 36 });
     // the two columns of R, side by side: their numbers pair up the same way either way round
     const cg = G(p, { o: 0 });
     T(cg, 'column 1', { x: 1050, y: 470, size: 26, fill: G1, weight: 600, anchor: 'middle' });
@@ -332,7 +362,7 @@ const BEATS = [
     say(p, ['= RᵀR'], X, Y[2], m('back') + 1, { size: 56 });
     text(p, '(Rᵀ)ᵀ = R: two flips undo each other', 720, Y[2] - 10, m('back'), { size: 28, fill: COL.dim, weight: 600 });
     const e = G(p, { o: 0 });
-    M(e, ['(RᵀR)ᵀ = RᵀR'], { x: X, y: 720, size: 56 });
+    M(e, ['(RᵀR)ᵀ = RᵀR'], { x: X, y: 720, size: 56, anchor: 'start' });
     T(e, 'symmetric, for every R', { x: X + 440, y: 712, size: 34, fill: COL.good, weight: 700 });
     show(e, m('end') + .5, .5);
     draw(path(p, `M${X} 742H${X + 410}`, { stroke: COL.good, 'stroke-width': 4 }, { d: 0 }), m('end') + 3, .8);
@@ -383,17 +413,14 @@ const BEATS = [
     });
   }],
   ['final1', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
-    id: 'p-sym', prompt: ['Symmetric or not?'],
-    build: grid(SYMQ, YN, { multi: false, text: true }),
-  }], done, 'Chapter practice · set 1 of 4') }],
-  ['final2', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
-    id: 'p-fill', prompt: ['Fill the gaps so that each matrix is symmetric.'],
-    build: blanks(FILLQ),
-  }], done, 'Chapter practice · set 2 of 4') }],
-  ['final3', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
-    id: 'p-rtr', prompt: ['Work out RᵀR (columns of R times columns of R) or RRᵀ (rows times rows).'],
-    build: blanks(RTRQ),
+    id: 'p-sym1', prompt: ['Symmetric or not? Check each pair across the diagonal.'],
+    build: grid(SYMQ.slice(0, 4), YN, { multi: false, text: true }),
   }, {
+    id: 'p-sym2', prompt: ['Symmetric or not? Three more.'],
+    build: grid(SYMQ.slice(4), YN, { multi: false, text: true }),
+  }], done, 'Chapter practice · set 1 of 4') }],
+  ['final2', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, blankQs('p-fill', 'Fill the gaps so that the matrix is symmetric.', FILLQ), done, 'Chapter practice · set 2 of 4') }],
+  ['final3', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [...blankQs('p-rtr', 'RᵀR: columns of R times columns of R. RRᵀ: rows times rows.', RTRQ), {
     id: 'p-square', prompt: ['R is 4 × 2. What is RᵀR?'],
     build: choice(['2 × 2 and symmetric', '4 × 4 and symmetric', '2 × 2, symmetric only by luck', 'it does not fit'], 0,
       'Rᵀ is 2 × 4, so RᵀR = (2 × 4)(4 × 2) = 2 × 2; and RᵀR is always symmetric.',

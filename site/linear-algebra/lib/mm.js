@@ -545,7 +545,15 @@ function mmT(p, { A, at: [x0, y0] = [70, 300], size = 40, cw = 62, rh = 60, gap 
       const dd = G(M_.g, { o: diagOn ? 1 : 0 });
       M_.g.insertBefore(dd, M_.g.firstChild);
       const k = Math.min(M_.rows, M_.cols) - 1;
-      path(dd, `M${M_.cx(0) - cw * .45} ${M_.ry(0) - size * .78}L${M_.cx(k) + cw * .45} ${M_.ry(k) + size * .3}`, { stroke: COL.chalk, 'stroke-width': 2.5, 'stroke-dasharray': '8 7', 'stroke-opacity': .7, fill: 'none' });
+      // corner to corner, broken round each number on it so the dashes never strike a digit through
+      const A0 = [M_.cx(0) - cw * .45, M_.ry(0) - size * .78], B0 = [M_.cx(k) + cw * .45, M_.ry(k) + size * .3];
+      const L0 = Math.hypot(B0[0] - A0[0], B0[1] - A0[1]), u = [(B0[0] - A0[0]) / L0, (B0[1] - A0[1]) / L0], r = size * .5;
+      const at = t => [A0[0] + u[0] * t, A0[1] + u[1] * t];   // the gaps sit where each number's middle falls on the line
+      const ts = [...Array(k + 1).keys()].map(i => (M_.cx(i) - A0[0]) * u[0] + (M_.ry(i) - size * .3 - A0[1]) * u[1]);
+      const ends = [A0, ...ts.flatMap(t => [at(t - r), at(t + r)]), B0];
+      let dPath = '';
+      for (let i = 0; i < ends.length; i += 2) dPath += `M${ends[i][0].toFixed(1)} ${ends[i][1].toFixed(1)}L${ends[i + 1][0].toFixed(1)} ${ends[i + 1][1].toFixed(1)}`;
+      path(dd, dPath, { stroke: COL.chalk, 'stroke-width': 2.5, 'stroke-dasharray': '8 7', 'stroke-opacity': .7, fill: 'none' });
       return dd;
     });
     L = { a, t, dg, bottom: yS + 12, right: t.x + t.W, mid: a.x + a.W + gap / 2, midY: y0 + (Math.max(d.m, d.n) - 1) * rh / 2 - size * .3 };
@@ -641,6 +649,7 @@ function mmT(p, { A, at: [x0, y0] = [70, 300], size = 40, cw = 62, rh = 60, gap 
       const at_ = cands.find(c => !hits(c)) || cands[0];
       placed.push(at_);
       put(tp.lab, { x: at_[0], y: at_[1] });
+      tp.lab.style.opacity = Ln < 1 ? 0 : '';   // an arrow of length 0 has no name (zero columns would pile theirs on the origin)
       tp.hit.setAttribute('cx', X2); tp.hit.setAttribute('cy', Y2);
     });
   }

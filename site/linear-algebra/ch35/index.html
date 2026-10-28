@@ -30,6 +30,15 @@ const CARD = { x: 40, y: 450, w: 740, cls: 'side' };
 const say = (p, parts, x, y, t0, { size = 40, fill = COL.chalk, anchor = 'start' } = {}) => { const e = M(p, [].concat(parts), { x, y, size, fill, anchor, o: 0 }); show(e, t0); return e; };
 const text = (p, str, x, y, t0, { size = 30, fill = COL.chalk, anchor = 'start', weight = 500 } = {}) => { const e = T(p, str, { x, y, size, fill, anchor, weight, o: 0 }); show(e, t0); return e; };
 const title = (p, str) => text(p, str, 60, 110, .2, { size: 40, weight: 600 });
+// A beat that carries on the last beat's panel names itself: the old title fades, the new one comes in.
+const retitle = str => { hide(S.title, .1, .3); S.title = text(S.p, str, 60, 110, .35, { size: 40, weight: 600 }); };
+// A copy of A's number (i, j) flies on an arc to its place in Aᵀ, row j, column i, and fades there.
+const ghost = (p, T_, i, j, t0, { size = 54, dur = 1.3, lift = 90 } = {}) => {
+  const { a, t } = T_.L, x1 = a.cx(j), y1 = a.ry(i), x2 = t.cx(i), y2 = t.ry(j);
+  const e = M(p, [num(T_.v[`a${i}${j}`])], { x: x1, y: y1, size, fill: MMT_ROW[i], o: 0 });
+  prog(q => put(e, { x: x1 + (x2 - x1) * q, y: y1 + (y2 - y1) * q - lift * Math.sin(Math.PI * q), o: q <= 0 || q >= 1 ? 0 : Math.min(1, q / .08, (1 - q) / .12) }), t0, dur, io);
+  return e;
+};
 // A chalk ring around a box, drawn on at t0.
 const ring = (p, x, y, w, h, t0, color = COL.chalk) => { const r = path(p, `M${x + 14} ${y}H${x + w - 14}Q${x + w} ${y} ${x + w} ${y + 14}V${y + h - 14}Q${x + w} ${y + h} ${x + w - 14} ${y + h}H${x + 14}Q${x} ${y + h} ${x} ${y + h - 14}V${y + 14}Q${x} ${y} ${x + 14} ${y}Z`, { stroke: color, 'stroke-width': 3, fill: 'none' }, { d: 0 }); draw(r, t0, .6); return r; };
 // A curved arrow from (x1, y1) to (x2, y2), bulging by `bend`, drawn on at t0.
@@ -38,7 +47,8 @@ const bow = (p, x1, y1, x2, y2, t0, { bend = -60, color = COL.chalk, w = 3 } = {
   const cx = mx + nx * bend, cy = my + ny * bend, tx = x2 - cx, ty = y2 - cy, tl = Math.hypot(tx, ty), ux = tx / tl, uy = ty / tl;
   const g = G(p, {});
   draw(path(g, `M${x1} ${y1}Q${cx} ${cy} ${x2} ${y2}`, { stroke: color, 'stroke-width': w, fill: 'none' }, { d: 0 }), t0, .6);
-  const hd = path(g, `M${x2 - 14 * ux - 8 * uy} ${y2 - 14 * uy + 8 * ux}L${x2} ${y2}L${x2 - 14 * ux + 8 * uy} ${y2 - 14 * uy - 8 * ux}`, { stroke: color, 'stroke-width': w, fill: 'none', o: 0 });
+  const hd = path(g, `M${x2 - 14 * ux - 8 * uy} ${y2 - 14 * uy + 8 * ux}L${x2} ${y2}L${x2 - 14 * ux + 8 * uy} ${y2 - 14 * uy - 8 * ux}`, { stroke: color, 'stroke-width': w, fill: 'none' });
+  put(hd, { o: 0 });
   show(hd, t0 + .5, .2);
   return g;
 };
@@ -64,6 +74,22 @@ const target = (P2, [x, y], into, t0 = .3) => {
   return g;
 };
 const matEl = rows => mmEl(rows, { size: 22 });
+// blanks() writes a row's parts as math text and drops a drawn matrix (mmEl), so a row that shows one becomes its own
+// question with the matrix in its prompt; rows without a matrix stay together in one question.
+const blankQs = (id, prompt, rows) => {
+  const qs = [], plain = [];
+  const flush = () => { if (plain.length) qs.push({ id: `${id}${qs.length + 1}`, prompt: [prompt], build: blanks(plain.splice(0)) }); };
+  rows.forEach(r => {
+    const k = r.parts.findLastIndex(p => p instanceof Element);
+    if (k < 0) { plain.push(r); return; }
+    flush();
+    const head = r.parts.slice(0, k + 1), rest = r.parts.slice(k + 1);
+    if (typeof rest[0] === 'string') rest[0] = rest[0].replace(/^[\s.,]+/, '');
+    qs.push({ id: `${id}${qs.length + 1}`, prompt: [prompt + '   ', ...(head[0] instanceof Element ? ['A = '] : []), ...head], build: blanks([{ ...r, parts: rest }]) });
+  });
+  flush();
+  return qs;
+};
 
 /* ---------- practice data (every answer read off twice: by rows of A and by columns of Aᵀ) ---------- */
 const TRQ = [
@@ -100,7 +126,7 @@ const PRODQ = [
     why: 'AB is 2 × 5, so (AB)ᵀ is 5 × 2. Bᵀ is 5 × 3, and BᵀAᵀ = (5 × 3)(3 × 2) = 5 × 2 agrees.', hint: 'Find the size of AB first (outside numbers), then swap. For Bᵀ, swap B’s size.' },
 ];
 const HANDQ = [
-  { id: 'p-hand1', start: { mA: 2, nA: 2, a00: 0, a01: 0, a10: 0, a11: 0 }, prompt: ['Change A until Aᵀ = ', matEl([[1, 4], [-2, 0]]), '.'],
+  { id: 'p-hand1', start: { mA: 2, nA: 2, a00: 1, a01: 0, a10: 0, a11: 1 }, prompt: ['Change A until Aᵀ = ', matEl([[1, 4], [-2, 0]]), '.'],
     test: (v, T_) => v.mA === 2 && v.nA === 2 && T_.T(0, 0) === 1 && T_.T(0, 1) === 4 && T_.T(1, 0) === -2 && T_.T(1, 1) === 0,
     why: 'A = (1, −2), (4, 0): its columns (1, 4) and (−2, 0) are the rows of Aᵀ.', hint: 'Row 1 of Aᵀ, (1, 4), must be column 1 of A. You can also type straight into Aᵀ.',
     ans: { a00: 1, a01: -2, a10: 4, a11: 0 } },
@@ -108,7 +134,7 @@ const HANDQ = [
     test: v => v.mA === 2 && v.nA === 2 && v.a10 === -3 && v.a11 === 2,
     why: 'Column 2 of Aᵀ is row 2 of A: (−3, 2) across the bottom of A.', hint: v => v.a01 === -3 && v.a11 === 2 ? 'That moved the violet arrow, column 2 of A. The coral dashed one is row 2 of A: the bottom row.' : 'The coral dashed arrow is row 2 of A. Its numbers are the bottom row of A.',
     ans: { a10: -3, a11: 2 } },
-  { id: 'p-hand3', start: { mA: 2, nA: 2, a00: 0, a01: 0, a10: 0, a11: 0 }, prompt: ['Change the size and the numbers of A so that Aᵀ is the row (1, 2, 3).'],
+  { id: 'p-hand3', start: { mA: 2, nA: 2, a00: 1, a01: 0, a10: 0, a11: 1 }, prompt: ['Change the size and the numbers of A so that Aᵀ is the row (1, 2, 3).'],
     test: v => v.mA === 3 && v.nA === 1 && v.a00 === 1 && v.a10 === 2 && v.a20 === 3,
     why: 'A must be the column (1, 2, 3): 3 × 1. Its transpose lies down as a row.', hint: v => v.mA === 1 && v.nA === 3 ? 'A is a row now, so Aᵀ is a column. Make A the column: 3 rows, 1 column.' : 'Aᵀ is 1 × 3, so A must be 3 × 1: three rows, one column. Change the size numbers under A.',
     ans: { mA: 3, nA: 1, a00: 1, a10: 2, a20: 3 } },
@@ -133,7 +159,7 @@ const BEATS = [
 
   ['recall', 'Rows and columns', (m) => {
     const p = S.p = panel(0);
-    title(p, 'Rows and columns, again');
+    S.title = title(p, 'Rows and columns, again');
     const T_ = S.T = mmT(p, { A: A1, at: AT, size: 54, cw: 86, rh: 76, gap: 200, hideT: true, t0: m('A') - .4 });
     put(T_.L.t.g, { o: 0 });
     const a = T_.L.a;
@@ -144,7 +170,7 @@ const BEATS = [
     const n = S.note = G(p, {});
     hide(sizeRing(p, a, T_.L.bottom - 12, m('size')), m('last') - .3, .3);
     const s1 = G(n, { o: 0 });
-    M(s1, ['2 × 3'], { x: 900, y: 300, size: 44, fill: COL.chalk });
+    M(s1, ['2 × 3'], { x: 900, y: 300, size: 44, fill: COL.chalk, anchor: 'start' });
     T(s1, '2 rows, 3 columns: rows first', { x: 900, y: 350, size: 28, fill: COL.dim, weight: 600 });
     show(s1, m('size') + .3, .4); hide(s1, m('last') - .3, .3);
     // chapter 34: the permutation P and its flip
@@ -160,7 +186,7 @@ const BEATS = [
 
   ['flip', 'Rows stand up as columns', (m) => {
     const p = S.p, T_ = S.T, { a, t } = T_.L;
-    hide(S.note, .1, .4);
+    hide(S.note, .1, .4); retitle('Rows stand up as columns');
     show(t.g, m('r1') + .3, .4);
     T_.show('row', 0, m('r1')); T_.show('row', 1, m('r2'));
     T_.fly(m('c1'), { by: (i, j) => (i ? m('c2') - m('c1') : 0) + j * .2, dur: 1.1 });
@@ -168,19 +194,19 @@ const BEATS = [
     T_.show(null, null, m('name'));
     const n = S.note = G(p, {});
     const nm = G(n, { o: 0 });
-    M(nm, ['Aᵀ'], { x: 900, y: 320, size: 54 });
+    M(nm, ['Aᵀ'], { x: 900, y: 320, size: 54, anchor: 'start' });
     T(nm, 'say: “A transpose”', { x: 900, y: 372, size: 28, fill: COL.dim, weight: 600 });
     show(nm, m('name') + .2, .4);
     sizeRing(p, a, T_.L.bottom - 12, m('size')); sizeRing(p, t, T_.L.bottom - 12, m('size') + .5);
     const sz = G(n, { o: 0 });
-    M(sz, ['2 × 3  →  3 × 2'], { x: 900, y: 560, size: 40 });
+    M(sz, ['2 × 3  →  3 × 2'], { x: 900, y: 560, size: 40, anchor: 'start' });
     T(sz, 'the size numbers swap too', { x: 900, y: 606, size: 28, fill: COL.dim, weight: 600 });
     show(sz, m('size') + 1, .4);
   }],
 
   ['cols', 'Columns lie down as rows', (m) => {
     const p = S.p, T_ = S.T, { t } = T_.L;
-    hide(S.note, .1, .4);
+    hide(S.note, .1, .4); retitle('Columns lie down as rows');
     [0, 1, 2].forEach(j => {
       T_.show('col', j, m(`col${j + 1}`), { side: 'a' });
       T_.show('col', j, m(`row${j + 1}`));
@@ -194,24 +220,24 @@ const BEATS = [
   }],
 
   ['entry', 'One number at a time', (m) => {
-    const p = S.p, T_ = S.T, { a, t } = T_.L;
-    hide(S.note, .1, .4);
+    const p = S.p, T_ = S.T;
+    hide(S.note, .1, .4); retitle('One number at a time');
     const n = S.note = G(p, {});
     T_.show('cell', [1, 0], m('pick'), { side: 't' }); T_.show('cell', [1, 0], m('from'));
     say(n, ['row 1, column 2 of Aᵀ:  4'], 960, 300, m('pick') + .3, { size: 32 });
     say(n, ['=  row 2, column 1 of A'], 960, 350, m('from') + .3, { size: 32 });
-    bow(n, a.cx(0) + 20, a.ry(1) + 20, t.cx(1) - 10, t.ry(0) + 22, m('from'), { bend: 90 });
+    ghost(n, T_, 1, 0, m('from') + .3);
     T_.show('cell', [0, 2], m('two'), { side: 't' }); T_.show('cell', [0, 2], m('from2'));
     say(n, ['row 3, column 1 of Aᵀ:  3'], 960, 440, m('two') + .3, { size: 32 });
     say(n, ['=  row 1, column 3 of A'], 960, 490, m('from2') + .3, { size: 32 });
-    bow(n, a.cx(2), a.ry(0) - 50, t.cx(0) - 20, t.ry(2) - 40, m('from2'), { bend: -70 });
+    ghost(n, T_, 0, 2, m('from2') + .3);
     T_.show(null, null, m('rule'));
     const r = G(n, { o: 0 });
-    M(r, ['row i, column j of Aᵀ'], { x: 960, y: 610, size: 34, fill: COL.chalk });
-    M(r, ['=  row j, column i of A'], { x: 960, y: 660, size: 34, fill: COL.chalk });
+    M(r, ['row i, column j of Aᵀ'], { x: 960, y: 610, size: 34, fill: COL.chalk, anchor: 'start' });
+    M(r, ['=  row j, column i of A'], { x: 960, y: 660, size: 34, fill: COL.chalk, anchor: 'start' });
     show(r, m('rule') + .2, .5);
     text(n, 'swap the address', 960, 730, m('swap'), { size: 30, weight: 600 });
-    [[0, 1], [2, 1], [1, 1], [0, 0]].forEach(([i, j], k) => T_.show('cell', [i, j], m('rule') + 1 + k * 1.4));
+    [[0, 1], [1, 2], [1, 1], [0, 0]].forEach(([i, j], k) => { T_.show('cell', [i, j], m('rule') + 1 + k * 1.4); ghost(n, T_, i, j, m('rule') + 1.1 + k * 1.4, { dur: 1.1, lift: 60 }); });
     T_.show(null, null, m('rule') + 6.6);
   }],
 
@@ -261,7 +287,7 @@ const BEATS = [
     bow(p, T1.L.a.x + T1.L.a.W + 14, T1.L.midY, T1.L.t.x - 14, T1.L.midY, m('again') + 1, { bend: -40 });
     bow(p, T2.L.a.x + T2.L.a.W + 14, T2.L.midY, T2.L.t.x - 14, T2.L.midY, m('back') - .3, { bend: -40 });
     const r = G(p, { o: 0 });
-    M(r, ['(Aᵀ)ᵀ = A'], { x: 1100, y: 330, size: 54 });
+    M(r, ['(Aᵀ)ᵀ = A'], { x: 1100, y: 330, size: 54, anchor: 'start' });
     T(r, 'two flips undo each other', { x: 1100, y: 380, size: 28, fill: COL.dim, weight: 600 });
     show(r, m('rule'), .5);
     T1.flash('a', 'all', m('rule') + .3); T2.flash('t', 'all', m('rule') + .9);
@@ -271,7 +297,7 @@ const BEATS = [
     X.fly(m('row'), { by: 'cells', step: .3, dur: .9 });
     X.show('col', 0, m('col'), { side: 'a' }); X.show(null, null, m('row'));
     const nm = G(p, { o: 0 });
-    M(nm, ['xᵀ = a row'], { x: 1100, y: 640, size: 44 });
+    M(nm, ['xᵀ = a row'], { x: 1100, y: 640, size: 44, anchor: 'start' });
     T(nm, 'a column (3 × 1) lies down: 1 × 3', { x: 1100, y: 690, size: 28, fill: COL.dim, weight: 600 });
     show(nm, m('name'), .5);
   }],
@@ -356,7 +382,7 @@ const BEATS = [
     verdict();
     show(v3, m('wrong') + 1.5, .4); show(v2, m('match'), .4);
     const r = S.rule = G(p, { o: 0 });
-    M(r, ['(AB)ᵀ = BᵀAᵀ'], { x: 1080, y: 300, size: 54 });
+    M(r, ['(AB)ᵀ = BᵀAᵀ'], { x: 1080, y: 300, size: 54, anchor: 'start' });
     T(r, 'flip each one, and reverse the order', { x: 1080, y: 350, size: 28, fill: COL.dim, weight: 600 });
     show(r, m('rule'), .5);
     P2.flash('a', 'all', m('rule') + 2.6); P2.flash('b', 'all', m('rule') + 3.2); TT.flash('t', 'all', m('rule') + 4.2); P2.flash('c', 'all', m('rule') + 4.2);
@@ -439,21 +465,12 @@ const BEATS = [
       tw(g, { o: 1, x: 0 }, m(mark), .6);
     });
   }],
-  ['final1', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
-    id: 'p-tr', prompt: ['Write the rows of Aᵀ. (Row k of Aᵀ is column k of A.)'],
-    build: blanks(TRQ),
-  }], done, 'Chapter practice · set 1 of 4') }],
-  ['final2', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
-    id: 'p-size', prompt: ['Sizes and addresses.'],
-    build: blanks(SIZEQ),
-  }, {
+  ['final1', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, blankQs('p-tr', 'Write the rows of Aᵀ. (Row k of Aᵀ is column k of A.)', TRQ), done, 'Chapter practice · set 1 of 4') }],
+  ['final2', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [...blankQs('p-size', 'Sizes and addresses.', SIZEQ), {
     id: 'p-tf', prompt: ['True or false?'],
     build: grid(TFQ, [['t', 'True', COL.good, 'T'], ['f', 'False', COL.bad, 'F']], { multi: false, text: true }),
   }], done, 'Chapter practice · set 2 of 4') }],
-  ['final3', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
-    id: 'p-prod', prompt: ['Transposes of products.'],
-    build: blanks(PRODQ),
-  }, {
+  ['final3', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [...blankQs('p-prod', 'Transposes of products.', PRODQ), {
     id: 'p-abc', prompt: ['Three matrices: (ABC)ᵀ = (AB · C)ᵀ. Use the rule twice. Which is it?'],
     build: choice(['AᵀBᵀCᵀ', 'CᵀBᵀAᵀ', 'CᵀAᵀBᵀ', 'CBA'], 1,
       '(AB · C)ᵀ = Cᵀ(AB)ᵀ = CᵀBᵀAᵀ: flip each, and the whole order turns around.',
@@ -462,7 +479,7 @@ const BEATS = [
   ['final4', 'Chapter practice', () => {
     const p = panel(0);
     title(p, 'Build it');
-    S.T = mmT(p, { A: [[0, 0], [0, 0]], at: [90, 270], size: 44, cw: 70, rh: 62, gap: 130, plane: { cx: 1190, cy: 470, u: 44 } });
+    S.T = mmT(p, { A: [[1, 0], [0, 1]], at: [90, 270], size: 44, cw: 70, rh: 62, gap: 130, plane: { cx: 1190, cy: 470, u: 44 } });
   }, { ask: done => quiz({ x: 40, y: 500, w: 740, cls: 'side' }, HANDQ.map(q => ({
     id: q.id, prompt: q.prompt,
     build: (body, api) => { S.T.set(q.start); return mmTTask(S.T, q.test, q.why, q.hint, () => S.T.set(q.ans), { sizes: q.id === 'p-hand3' })(body, api); },

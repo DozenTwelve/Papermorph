@@ -10,20 +10,22 @@
 <body>
 <script src="../lib/engine.js"></script>
 <script src="../lib/math.js"></script>
+<script src="../lib/mm.js"></script>
 <script src="../lib/space3.js"></script>
 <script src="../lib/play.js"></script>
 <script src="audio/en/timings.js"></script>
 <script>
 'use strict';
-const CHAPTER = { number: 40, title: 'The Column Space', minutes: 11, language: 'en' };
+const CHAPTER = { number: 40, title: 'The Column Space', minutes: 12, language: 'en' };
 
 /* ---------- the matrices of this chapter ---------- */
 const LEC = [[1, 3], [2, 3], [4, 1]];          // the lecture's A: columns (1, 2, 4) and (3, 3, 1); C(A) is the plane −10x + 11y − 3z = 0
 const CH14 = [[2, -1], [-1, 2], [0, -3]];      // chapter 14's columns 1 and 2: their sheet x + 2y + z = 0
 const FLOOR = [[1, 0], [0, 1], [0, 0]], LINE = [[1, 2], [1, 2], [1, 2]];
 const VIEW = { yaw: -24, pitch: 22 };
-const SPACE = { cx: 1190, cy: 430, size: 720, range: 8, ...VIEW };
-const ROWS2 = { cx: 600, cy: 680, u: 19, r: 6 };
+const SPACE = { cx: 1190, cy: 430, size: 720, range: 6, ...VIEW };   // every vector the lessons draw fits in ±6
+const ROWS2 = { cx: 420, cy: 650, u: 27, r: 6 };            // the row picture, under the equations
+const ROWS2S = { cx: 650, cy: 680, u: 22, r: 6 };           // beside a question card
 const CARD = { x: 40, y: 560, w: 720, cls: 'side' };
 const say = (p, parts, x, y, t0, { size = 40, fill = COL.chalk, anchor = 'start' } = {}) => { const e = M(p, [].concat(parts), { x, y, size, fill, anchor, o: 0 }); show(e, t0); return e; };
 const text = (p, str, x, y, t0, { size = 30, fill = COL.chalk, anchor = 'start', weight = 500 } = {}) => { const e = T(p, str, { x, y, size, fill, anchor, weight, o: 0 }); show(e, t0); return e; };
@@ -42,6 +44,8 @@ const ring3 = (V, q, label, color = COL.task) => {
   const c = d.e.firstChild; c.setAttribute('fill', 'none'); c.setAttribute('stroke', color); c.setAttribute('stroke-dasharray', '5 5'); c.setAttribute('stroke-width', 3.5);
   return d;
 };
+// a question where only b's numbers move: its key line names no tip drag
+const numbersOnly = task => (body, api) => ({ ...task(body, api), hint: [kbd('Tab'), ' pick the number ', kbd('↑'), kbd('↓'), ' or drag it sideways to change it; drag empty space to turn'] });
 const hideB = cs => [cs.bArrow.e, cs.labels[2].e].forEach(e => put(e, { o: 0 }));
 const showB = (cs, t0) => [cs.bArrow.e, cs.labels[2].e].forEach(e => show(e, t0, .4));
 
@@ -98,7 +102,7 @@ const BEATS = [
   ['recap', 'Chapter 14’s sheet', (m) => {
     const p = S.p = panel(0);
     text(p, 'Chapter 14: the flat sheet', 60, 110, .2, { size: 40, weight: 600 });
-    const cs = S.cs = cspace(p, CH14, [1, 1, -3]), V = cs.V;
+    const cs = S.cs = cspace(p, CH14, [1, 1, -3], { space: { range: 4 } }), V = cs.V;   // its mixes stay within ±4: a closer view
     V.sway(5, 16);
     const F = cs.form({ x: 90, y: 260, size: 32, o: 0 });
     show(F.g, m('cols'), .5);
@@ -119,7 +123,13 @@ const BEATS = [
     V.sway(5, 18);
     cs.CA.fade(0, 0, 0); hideB(cs);
     [...cs.cols, ...cs.labels.slice(0, 2)].forEach(c => put(c.e, { o: 0 }));
-    const F = S.F = cs.form({ x: 90, y: 260, size: 32 });
+    // A itself: three rows, two columns, each column in its colour
+    const Am = G(p, { o: 0 });
+    T(Am, 'A =', { x: 90, y: 262, size: 32, font: MATH });
+    mmSmall(Am, LEC, 152, 252, { size: 30, fill: (i, j) => S3_COLS[j] });
+    show(Am, .3, .5);
+    text(p, '3 rows, 2 columns', 90, 350, m('A') + .2, { size: 24, fill: COL.dim });
+    const F = S.F = cs.form({ x: 320, y: 260, size: 32 });
     Object.values(F.parts).forEach(g => put(g, { o: 0 }));
     show(F.parts.c0, m('c1')); show(cs.cols[0].e, m('c1') + .3); show(cs.labels[0].e, m('c1') + .3);
     show(F.parts.c1, m('c2')); show(cs.cols[1].e, m('c2') + .3); show(cs.labels[1].e, m('c2') + .3);
@@ -133,7 +143,7 @@ const BEATS = [
     let k = 0;
     for (let x = -2; x <= 2; x++) for (let y = -2; y <= 2; y++) {
       const q = Ax(LEC, [x, y]);
-      if ((x === 1 && Math.abs(y) === 1) || q.some(c => Math.abs(c) > 8)) continue;
+      if ((x === 1 && Math.abs(y) === 1) || q.some(c => Math.abs(c) > SPACE.range)) continue;
       dotAt(V, q, COL.task, m('many') + .2 + (k++) * .12, 5);
     }
     cs.to({ x0: .5, x1: 1.5 }, m('many') + .6, 1.4); cs.to({ x0: -1.5, x1: .5 }, m('many') + 2.2, 1.4);
@@ -147,21 +157,32 @@ const BEATS = [
 
   ['sub', 'C(A) is a subspace', (m) => {
     const p = S.p, cs = S.cs, V = cs.V;
+    V.sway(5, 18);
     [...p.querySelectorAll(':scope > g')].slice(-1).forEach(e => hide(e, .1, .3));
     const t = G(p, {});
-    const L = (parts, y, t0, fill = COL.chalk, size = 30) => say(t, parts, 90, y, t0, { size, fill });
-    L(['(4, 5, 5):  x = 1, y = 1'], 450, m('two') + .5);
-    cs.to({ x0: 1, x1: -1 }, m('two') + 3.4, 1.2); cs.flash('x1', m('two') + 3.6);
-    L(['(−2, −1, 3):  x = 1, y = −1'], 500, m('two') + 3.6);
-    ring3(V, [4, 5, 5], '', COL.chalk); ring3(V, [-2, -1, 3], '', COL.chalk);
-    L(['sum (2, 4, 8):  x = 1 + 1, y = 1 + (−1)'], 560, m('add'));
-    cs.to({ x0: 2, x1: 0 }, m('add') + .3, 1.4); cs.flash('x0', m('mix')); cs.flash('x1', m('mix'));
-    cs.to({ x0: 1, x1: 1 }, m('mix') + 3.4, 1); cs.to({ x0: 1, x1: -1 }, m('mix') + 4.8, 1); cs.to({ x0: 2, x1: 0 }, m('mix') + 6.2, 1.2);
-    L(['c·(x col 1 + y col 2) = (cx) col 1 + (cy) col 2'], 630, m('mult'), COL.chalk, 28);
-    cs.to({ x0: -.5, x1: 0 }, m('mult') + 2, 1.2); cs.to({ x0: 1, x1: 0 }, m('mult') + 3.6, 1);
-    L(['0·col 1 + 0·col 2 = (0, 0, 0)'], 690, m('zero'), COL.chalk, 28);
+    const L = (parts, y, t0, fill = COL.chalk, size = 28) => say(t, parts, 90, y, t0, { size, fill });
+    const O = [0, 0, 0], U = [4, 5, 5], W = [2, 1, -3], SUM = [6, 6, 2];
+    // the two vectors in chalk, so b is free to show each combination
+    const au = V.arrow(O, U, { color: COL.chalk, w: 4 }), aw = V.arrow(O, W, { color: COL.chalk, w: 4 }), aw2 = V.arrow(U, SUM, { color: COL.chalk, w: 4, dash: '9 7' });
+    [au, aw, aw2].forEach(a => put(a.e, { o: 0 }));
+    L(['(4, 5, 5) = 1·col 1 + 1·col 2'], 400, m('two') + .5);
+    show(au.e, m('two') + 1, .5);
+    cs.to({ x0: -1, x1: 1 }, m('two2') + .2, 1.2); cs.flash('x0', m('two2') + .4);
+    L(['(2, 1, −3) = −1·col 1 + 1·col 2'], 448, m('two2') + .3);
+    show(aw.e, m('two2') + 1.4, .5);
+    L(['sum: (4, 5, 5) + (2, 1, −3) = (6, 6, 2)'], 506, m('add'));
+    show(aw2.e, m('add') + .6, .6);
+    cs.to({ x0: 0, x1: 2 }, m('add') + 1.8, 1.4);
+    L(['mixes add: x = 1 + (−1) = 0,  y = 1 + 1 = 2'], 554, m('mix') + .3);
+    cs.flash('x0', m('mix') + 1); cs.flash('x1', m('mix') + 3);
+    [au, aw, aw2].forEach(a => hide(a.e, m('mult'), .5));
+    L(['−½·(6, 6, 2) = (−3, −3, −1)'], 612, m('mult') + .5);
+    cs.to({ x0: 0, x1: -1 }, m('mult') + 3, 2);
+    L(['mix: −½·0 = 0,  −½·2 = −1'], 660, m('mult2') + .3);
+    cs.flash('x0', m('mult2') + .8); cs.flash('x1', m('mult2') + 2.4);
+    L(['0·col 1 + 0·col 2 = (0, 0, 0)'], 718, m('zero'));
     cs.to({ x0: 0, x1: 0 }, m('zero') + .3, 1.2);
-    text(p, 'C(A) is always a subspace', 90, 770, m('yes') + 1, { size: 32, fill: COL.good, weight: 700 });
+    text(p, 'C(A) is always a subspace', 90, 790, m('yes') + 1, { size: 32, fill: COL.good, weight: 700 });
     cs.to({ x0: 1, x1: 1 }, m('yes') + 1.5, 1.2);
   }],
 
@@ -172,7 +193,9 @@ const BEATS = [
     cs.form({ x: 90, y: 260, size: 32 });
     text(p, 'col 2 is not a multiple of col 1:', 90, 430, m('two'), { size: 30, weight: 600 });
     text(p, 'two directions → a plane through 0', 90, 480, m('fill'), { size: 30, weight: 600 });
-    [[2, -1], [-1, 2], [1, 1]].forEach(([x, y], i) => cs.to({ x0: x, x1: y }, m('fill') + .8 + i * 1.3, 1.1));
+    [[2, -1], [-1, 2]].forEach(([x, y], i) => cs.to({ x0: x, x1: y }, m('fill') + .5 + i * 1.2, 1));
+    cs.to({ x0: 0, x1: 0 }, m('zero') + 1.6, 1.2); cs.flash('x0', m('zero') + 1.8); cs.flash('x1', m('zero') + 1.8);
+    cs.to({ x0: 1, x1: 1 }, m('zero') + 4, 1.1);
     const n = S3_cross([1, 2, 4], [3, 3, 1]), ey = edgeYaw(n, 8, VIEW.yaw);
     V.turn({ yaw: ey, pitch: 8 }, m('edge'), 2.4);
     text(p, 'seen along it: a line', 90, 540, m('edge') + 2, { size: 28, fill: COL.dim, weight: 600 });
@@ -192,7 +215,7 @@ const BEATS = [
     const F = cs.form({ x: 90, y: 260, size: 32 });
     put(F.parts.b, { o: 0 }); hideB(cs); cs.legs.forEach(l => put(l.e, { o: 0 }));
   }, { ask: done => quiz({ ...CARD, y: 420 }, [{
-    id: 'c-ax', prompt: ['With ', $m('x = 1, y = −1'), ': compute ', $m('A x = 1·col 1 − 1·col 2'), '.'],
+    id: 'c-ax', prompt: ['With ', $m('x = 1, y = −1'), ', compute ', $m('A x = 1·col 1 − 1·col 2')],
     build: blanks([{ parts: ['A x = (', { box: '-2' }, ', ', { box: '-1' }, ', ', { box: '3' }, ')'], why: '(1 − 3, 2 − 3, 4 − 1) = (−2, −1, 3): a vector in C(A).', hint: 'Top: 1·1 − 1·3. Middle: 1·2 − 1·3. Bottom: 1·4 − 1·1.',
       fx: () => { const cs = S.cs; [cs.bArrow.e, cs.labels[2].e, ...cs.legs.map(l => l.e)].forEach((e, i) => fx(e, { o: 1 }, .1 + i * .2, .5)); } }]),
   }], done) }],
@@ -225,12 +248,12 @@ const BEATS = [
     const rd = cs.readout({ x: 90, y: 400, size: 32 });
     put(cs.R2.P.g, { o: 0 }); show(cs.R2.P.g, m('rows') - .4, .5);
     E.rows.forEach((r, i) => pulseG(r, m('rows') + 3 + i * 1.2));
-    text(p, 'row picture: x, y', ROWS2.cx, ROWS2.cy + 152, m('rows') + .5, { size: 24, fill: COL.dim, anchor: 'middle' });
+    text(p, 'row picture: x, y', ROWS2.cx, ROWS2.cy + ROWS2.r * ROWS2.u + 38, m('rows') + .5, { size: 24, fill: COL.dim, anchor: 'middle' });
     cs.to({ x0: 1, x1: 1 }, m('b1'), 1.4); cs.flash('b0', m('b1') + .2); cs.flash('b1', m('b1') + .2); cs.flash('b2', m('b1') + .2);
     pulse(cs.R2.dot, m('meet') + 1);
     cs.to({ b2: 6 }, m('off'), 1.4); cs.flash('b2', m('off'));
-    text(p, 'off the plane: no common point', 90, 470, m('slide') + 1, { size: 28, fill: COL.bad, weight: 600 });
-    cs.to({ b2: 5 }, m('on'), 1.4); cs.flash('b2', m('on'));
+    const offT = text(p, 'off the plane: no common point', 90, 448, m('slide') + 1, { size: 28, fill: COL.bad, weight: 600 });
+    cs.to({ b2: 5 }, m('on'), 1.4); cs.flash('b2', m('on')); hide(offT, m('on') + .2, .4);
   }],
 
   ['decide', 'Solve two, test the third', (m) => {
@@ -241,34 +264,63 @@ const BEATS = [
     const E = cs.eqs({ x: 110, y: 200, size: 28 });
     const st = G(p, {});
     say(st, ['(2) − (1):   x = b₂ − b₁'], 90, 370, m('e12'), { size: 30 });
+    pulseG(E.rows[0], m('e12') + .5); pulseG(E.rows[1], m('e12') + .5);
     say(st, ['(1):   y = (b₁ − x) / 3'], 90, 418, m('ey'), { size: 30 });
+    pulseG(E.rows[0], m('ey') + .3);
     say(st, ['test (3):   4x + y = b₃ ?'], 90, 466, m('t1') - .4, { size: 30 });
-    const tb = G(p, {}), row = (cells, y, t0, ok) => {
-      const g = G(tb, { o: 0 });
-      cells.forEach((c, j) => M(g, [c], { x: [90, 290, 400, 510][j], y, size: 28, fill: j === 3 ? (ok ? COL.good : COL.bad) : j === 0 ? COL.task : COL.chalk, anchor: 'start' }));
-      show(g, t0, .5); return g;
-    };
-    row(['(4, 5, 5)', 'x = 1', 'y = 1', '4 + 1 = 5 ✓'], 590, m('ex1') + .6, true);
+    // the table fills in as the voice works: b and x, then y, then the test
+    const tb = G(p, {}), row = (cells, y, times, ok) => cells.forEach((c, j) => {
+      const e = M(tb, [c], { x: [90, 290, 400, 530][j], y, size: 28, fill: j === 3 ? (ok ? COL.good : COL.bad) : j === 0 ? COL.task : COL.chalk, anchor: 'start', o: 0 });
+      show(e, times[j], .4);
+    });
+    row(['(4, 5, 5)', 'x = 1', 'y = 1', '4 + 1 = 5 ✓'], 590, [m('ex1') + .3, m('ex1') + 1.6, m('ex1') + 6, m('t1') + 1.5], true);
     cs.to({ b0: -2, b1: -1, b2: 3 }, m('ex2'), 1.4);
-    row(['(−2, −1, 3)', 'x = 1', 'y = −1', '4 − 1 = 3 ✓'], 640, m('ex2') + .8, true);
+    row(['(−2, −1, 3)', 'x = 1', 'y = −1', '4 − 1 = 3 ✓'], 640, [m('ex2') + .3, m('ex2') + 4.5, m('ex2') + 9.5, m('t2') + 1.5], true);
     cs.to({ b0: 1, b1: 2, b2: 3 }, m('ex3'), 1.4);
-    row(['(1, 2, 3)', 'x = 1', 'y = 0', '4 + 0 = 4 ≠ 3 ✗'], 690, m('ex3') + .8, false);
+    row(['(1, 2, 3)', 'x = 1', 'y = 0', '4 + 0 = 4 ≠ 3 ✗'], 690, [m('ex3') + .3, m('ex3') + 1.4, m('ex3') + 2.6, m('t3') + 1.8], false);
+    pulseG(E.rows[2], m('t1')); pulseG(E.rows[2], m('t2')); pulseG(E.rows[2], m('t3'));
     const rd = cs.readout({ x: 90, y: 780, size: 30, o: 0 }); show(rd, m('no'), .4);
-    // the 3D answer at each step: b on the plane, or a red ring off it
-    pulseG(E.rows[2], m('t1'));
-    pulseG(E.rows[2], m('t2')); pulseG(E.rows[2], m('t3'));
+  }],
+
+  ['more', 'Two more, step by step', (m) => {
+    const p = S.p = panel(0);
+    text(p, 'Two more, step by step', 60, 110, .2, { size: 40, weight: 600 });
+    const R2 = { cx: 430, cy: 694, u: 24, r: 6 };
+    const cs = S.cs = cspace(p, LEC, [4, 5, 5], { rows2: R2 }), V = cs.V;
+    V.sway(4, 18);
+    const E = cs.eqs({ x: 110, y: 200, size: 28 });
+    text(p, 'row picture: x, y', R2.cx, R2.cy + R2.r * R2.u + 34, .4, { size: 22, fill: COL.dim, anchor: 'middle' });
+    // each example: four lines of working, the next example replacing them
+    const work = (lines, t0, tEnd) => {
+      const g = G(p, {});
+      lines.forEach(([parts, t, fill = COL.chalk], i) => say(g, parts, 90, 345 + i * 44, t, { size: 28, fill }));
+      if (tEnd != null) hide(g, tEnd, .4);
+    };
+    cs.to({ b0: 5, b1: 4, b2: -2 }, m('b1'), 1.4); ['b0', 'b1', 'b2'].forEach(k => cs.flash(k, m('b1') + .2));
+    work([[['b = (5, 4, −2)'], m('b1'), COL.task], [['x = 4 − 5 = −1'], m('x1') + .8], [['−1 + 3y = 5,  3y = 6,  y = 2'], m('y1') + 1],
+      [['test: 4·(−1) + 2 = −2 = b₃ ✓'], m('t1') + 1, COL.good]], 0, m('b2'));
+    pulseG(E.rows[0], m('x1')); pulseG(E.rows[1], m('x1')); pulseG(E.rows[0], m('y1')); pulseG(E.rows[2], m('t1'));
+    const r1 = text(p, 'b = −1·col 1 + 2·col 2: the lines meet at (−1, 2)', 90, 520, m('mix1'), { size: 26, fill: COL.task, weight: 600 });
+    pulse(cs.R2.dot, m('mix1') + 4);
+    hide(r1, m('b2'), .4);
+    cs.to({ b0: 0, b1: 3, b2: 3 }, m('b2'), 1.4); ['b0', 'b1', 'b2'].forEach(k => cs.flash(k, m('b2') + .2));
+    work([[['b = (0, 3, 3)'], m('b2'), COL.task], [['x = 3 − 0 = 3'], m('x2') + .6], [['3 + 3y = 0,  y = −1'], m('y2') + 1],
+      [['test: 4·3 + (−1) = 11 ≠ 3 ✗'], m('t2') + 2, COL.bad]], 0, null);
+    pulseG(E.rows[0], m('x2')); pulseG(E.rows[1], m('x2')); pulseG(E.rows[0], m('y2')); pulseG(E.rows[2], m('t2'));
+    text(p, 'no solution: b is off the plane', 90, 520, m('no2') + .4, { size: 26, fill: COL.bad, weight: 600 });
+    pulseG(cs.R2.lines[2], m('no2') + 4);
   }],
 
   ['q2', 'Your turn', () => {
     const p = panel(0);
     text(p, 'Your turn', 60, 110, .2, { size: 40, weight: 600 });
-    const cs = S.cs = cspace(p, LEC, [1, 2, 3], { rows2: { ...ROWS2, cx: 660, cy: 690 } });
+    const cs = S.cs = cspace(p, LEC, [1, 2, 3], { rows2: ROWS2S });
     cs.eqs({ x: 110, y: 210, size: 28 });
     cs.readout({ x: 90, y: 380, size: 30 });
   }, { ask: done => quiz({ ...CARD, y: 420, w: 470 }, [{
     id: 'c-b3', prompt: ['Change only the bottom number of ', $m('b'), ' until ', $m('A x = b'), ' can be solved.'],
-    build: csTask(S.cs, (v, cs) => cs.solve().x !== undefined, 'b = (1, 2, 4): x = 1, y = 0, and 4·1 + 0 = 4. b is in C(A), and the three lines meet at (1, 0).',
-      v => `With b₃ = ${num(v.b2)} the third line misses the point where the first two meet. x = 1 and y = 0 from the first two: what is 4x + y?`, () => S.cs.set({ b2: 4 }), { only: ['b2'], drag: [] }),
+    build: numbersOnly(csTask(S.cs, (v, cs) => cs.solve().x !== undefined, 'b = (1, 2, 4): x = 1, y = 0, and 4·1 + 0 = 4. b is in C(A), and the three lines meet at (1, 0).',
+      v => `With b₃ = ${num(v.b2)} the third line misses the point where the first two meet. x = 1 and y = 0 from the first two: what is 4x + y?`, () => S.cs.set({ b2: 4 }), { only: ['b2'], drag: [] })),
   }], done) }],
 
   ['shapes', 'Other matrices, other shapes', (m) => {
@@ -305,8 +357,8 @@ const BEATS = [
     text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
     const cs = S.cs = cspace(p, [[1, 2], [2, 4], [3, 6]], [1, 2, 3]);
     cs.V.sway(5, 16);
-    cs.form({ x: 90, y: 260, size: 32 });
-    put(cs.CAline.e, { o: 0 });
+    const F = cs.form({ x: 90, y: 260, size: 32 });
+    put(cs.CAline.e, { o: 0 }); hideB(cs); cs.legs.forEach(l => put(l.e, { o: 0 })); [F.parts.eq, F.parts.b].forEach(e => put(e, { o: 0 }));
   }, { ask: done => quiz({ ...CARD, y: 420 }, [{
     id: 'c-shape', prompt: ['What is the column space of this ', $m('A'), '?'],
     build: choice(['the zero vector alone', 'a line through the origin', 'a plane through the origin', 'all of R³'], 1,
@@ -333,7 +385,7 @@ const BEATS = [
     build: blanks(AXQ),
   }], done, 'Chapter practice · set 1 of 4') }],
   ['final2', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
-    id: 'p-in', prompt: ['Same A. Is b in the column space? (x = b₂ − b₁, y = (b₁ − x)/3, then test 4x + y = b₃.)'],
+    id: 'p-in', prompt: ['Same A. Is b in C(A)? Solve two equations, test the third.'],
     build: grid(INQ, YN, { multi: false, text: true }),
   }], done, 'Chapter practice · set 2 of 4') }],
   ['final3', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
@@ -343,7 +395,7 @@ const BEATS = [
   ['final4', 'Chapter practice', () => {
     const p = panel(0);
     text(p, 'Move b', 60, 110, .2, { size: 40, weight: 600 });
-    const cs = S.cs = cspace(p, LEC, [4, 5, 5], { rows2: { ...ROWS2, cx: 660, cy: 690 } });
+    const cs = S.cs = cspace(p, LEC, [4, 5, 5], { rows2: ROWS2S });
     cs.form({ x: 90, y: 250, size: 30 });
     cs.readout({ x: 90, y: 400, size: 30 });
   }, { ask: done => quiz({ ...CARD, y: 440, w: 470 }, [{
@@ -355,16 +407,16 @@ const BEATS = [
     },
   }, {
     id: 'p-off', prompt: ['Now change only the middle number of ', $m('b'), ' so that ', $m('A x = b'), ' has no solution.'],
-    build: (body, api) => { S.cs.set({ b0: 4, b1: 5, b2: 5 }); return csTask(S.cs, (v, cs) => !!cs.solve().none, 'Any middle number but 5 lifts b off the plane: the three lines no longer meet.',
-      'b is still in C(A): the three lines still meet. Change the middle number.', () => S.cs.set({ b1: 6 }), { only: ['b1'], drag: [] })(body, api); },
+    build: (body, api) => { S.cs.set({ b0: 4, b1: 5, b2: 5 }); return numbersOnly(csTask(S.cs, (v, cs) => !!cs.solve().none, 'Any middle number but 5 lifts b off the plane: the three lines no longer meet.',
+      'b is still in C(A): the three lines still meet. Change the middle number.', () => S.cs.set({ b1: 6 }), { only: ['b1'], drag: [] }))(body, api); },
   }], done, 'Chapter practice · set 4 of 4') }],
   ['play', 'Playground', (m) => {
     const p = panel(0);
     text(p, 'Playground', 60, 110, .2, { size: 40, weight: 600 });
-    const cs = S.cs = cspace(p, LEC, [4, 5, 5], { rows2: { ...ROWS2, cx: 640, cy: 470, u: 15 } });
+    const cs = S.cs = cspace(p, LEC, [4, 5, 5], { rows2: { ...ROWS2, cx: 660, cy: 420, u: 14 } });
     cs.form({ x: 90, y: 250, size: 30 });
     cs.readout({ x: 90, y: 400, size: 30 });
-    text(p, 'try: lift b off the plane · make col 2 = 2·col 1', 90, 520, m('go'), { size: 24, fill: COL.dim });
+    text(p, 'try: lift b off the plane · make col 2 = 2·col 1', 90, 568, m('go'), { size: 24, fill: COL.dim });
   }, { ask: playAsk(() => S.cs, { pos: { x: 40, y: 610, w: 720, cls: 'side' }, tip: 'Your column space. Change any number, drag b or a column by its tip, turn the picture; the three lines are the row picture.' }) }],
   ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));

@@ -113,7 +113,7 @@ function S3_pick(cands, boxes, segs = [], bounds = null) {
 
 function space3(p, { cx = 1150, cy = 450, size = 640, range: R = 4, yaw = -30, pitch = 22, t0 = .1 } = {}) {
   const g = G(p, { o: 0 }), svg = $('stage'), k = size / (3.4 * R), dist = S3_DIST * R;
-  const cam = { yaw, pitch }, user = { yaw: 0, pitch: 0 }, drifts = [], items = [], sorted = [], hooks = [], avoids = [], planeItems = [];
+  const cam = { yaw, pitch }, user = { yaw: 0, pitch: 0 }, drifts = [], items = [], sorted = [], hooks = [], avoids = [], segAvoids = [], planeItems = [];
   let plan = { yaw, pitch }, live = false, queued = false, sortKey = '', ca = 1, sa = 0, cb = 1, sb = 0;
   const PITCH = [-15, 80];   // what the reader may reach; a beat may turn the camera up to 90 (straight down)
 
@@ -214,7 +214,7 @@ function space3(p, { cx = 1150, cy = 450, size = 640, range: R = 4, yaw = -30, p
     // a dot just given a position is still hidden until its own redraw below: it counts as shown
     const vis = pts.filter(it => it.pos && (it.hid || st(it.e).o >= .05) && seen(it.e.parentNode)), out = [];
     const named = it => it.t.textContent.trim() && st(it.t).o >= .05;
-    const segs = axes.filter(A => seen(A.g)).map(A => [A.at(-R), A.at(R + .7)]);
+    const segs = [...axes.filter(A => seen(A.g)).map(A => [A.at(-R), A.at(R + .7)]), ...segAvoids.flatMap(f => f(proj) || [])];
     const boxes = [...lab.filter(l => l.o).map(l => [l.x - 13, l.y - 15, l.x + 13, l.y + 14]),
       ...avoidPts.map(([x, y]) => [x - 30, y - 12, x + 30, y + 10]),
       ...vis.map(it => { const q = proj(it.pos); return [q[0] - it.r - 2, q[1] - it.r - 2, q[0] + it.r + 2, q[1] + it.r + 2]; })];
@@ -399,6 +399,8 @@ function space3(p, { cx = 1150, cy = 450, size = 640, range: R = 4, yaw = -30, p
     on(f) { hooks.push(f); dirty(); },
     // f(proj) returns screen points of labels drawn over the view; axis numbers near them step aside (hide).
     avoid(f) { avoids.push(f); dirty(); },
+    // f(proj) returns screen segments [[x0, y0], [x1, y1]] (arrows drawn over the view) that point labels keep off.
+    avoidSegs(f) { segAvoids.push(f); dirty(); },
     // A pointer event in the view's own coordinates (the stage's, unless the panel moved).
     local(e) { const q = svg.createSVGPoint(); q.x = e.clientX; q.y = e.clientY; const w = q.matrixTransform(g.getScreenCTM().inverse()); return [w.x, w.y]; },
     // Turn the camera to { yaw, pitch } (degrees) over dur seconds on the beat clock, from where earlier turns left it.
@@ -833,7 +835,7 @@ const lin3Task = (sys, test, why, hint, reveal, keys = null) => (body, api) => {
 // A value as math parts: a whole number, a fraction in lowest terms (denominators up to 12), else one decimal.
 function S3_parts(n) {
   if (Math.abs(n - Math.round(n)) < 1e-9) return [num(Math.round(n) || 0)];
-  for (let q = 2; q <= 12; q++) { const k = Math.round(n * q); if (Math.abs(n * q - k) < 5e-6) return [k < 0 ? '−' : '', F(Math.abs(k), q)]; }
+  for (let q = 2; q <= 12; q++) { const k = Math.round(n * q); if (Math.abs(n * q - k) < 5e-6) return k % q ? [k < 0 ? '−' : '', F(Math.abs(k), q)] : [num(k / q || 0)]; }   // a hair off a whole number reads whole, never 4/2
   const r = Math.round(n * 10) / 10;
   return [num(r) + (Number.isInteger(r) ? DECIMAL_SIGN + '0' : '')];
 }
@@ -855,11 +857,18 @@ function S3_slot(g, key, x, y, ctx, { size = 40, fill = COL.chalk, w = size * 1.
     set() {
       let pp = pf ? pf(ctx.v) : S3_parts(abs ? Math.abs(ctx.v[key]) : ctx.v[key]);
       if (coef && !s.held && pp.length === 1 && /^−?1$/.test(pp[0])) pp = [pp[0].slice(0, -1)];
-      const k = JSON.stringify(pp);
+      const k = JSON.stringify(pp) + (s.pad ?? '');   // a row made tight redraws
       if (k === shown) return;
       shown = k; ink.replaceChildren();
       const long = pp.some(q => typeof q === 'string' && q.includes(DECIMAL_SIGN));
-      M(ink, pp, { x, y: long ? y - size * .06 : y, size: long ? size * .78 : size, fill: 'currentColor', anchor });
+      const draw_ = dx => M(ink, pp, { x: x - dx, y: long ? y - size * .06 : y, size: long ? size * .78 : size, fill: 'currentColor', anchor });
+      s.inkW = draw_(0)._w || 0;
+      if (s.pad != null) {   // in a tight row (S3_tight): an end-anchored number gives back the room it does not fill (its box too)
+        s.own = Math.max(0, w - s.inkW - s.pad);
+        if (s.own) { ink.replaceChildren(); draw_(s.own); }
+        box?.setAttribute('x', bx - s.own);
+      }
+      s.after?.();
     },
     paint(on) {
       if (!box) return;
@@ -902,6 +911,14 @@ function S3_slot(g, key, x, y, ctx, { size = 40, fill = COL.chalk, w = size * 1.
   ctx.slots.push(s);
   s.set();
   return s;
+}
+// One equation's parts left to right, each a group [{ g, s: an end-anchored slot in it, pad }]: a scalar's box keeps
+// room for a longer number; the number gives back what it does not fill and every part after it moves left, whenever
+// a number is redrawn, so "x +   y +   z = 0" reads "x + y + z = 0". pad: room kept before the number (after a sign).
+function S3_tight(pieces) {
+  const fit = () => { let sh = 0; pieces.forEach(pc => { if (st(pc.g).x !== -sh) put(pc.g, { x: -sh }); sh += pc.s?.own || 0; }); };
+  pieces.forEach(pc => { if (pc.s) { pc.s.pad = pc.pad || 0; pc.s.after = fit; pc.s.set(); } });
+  fit();
 }
 // A column of three numbers in brackets, centred at x, its middle number on baseline y; keys [k0, k1, k2] (scrubbable)
 // or pf: [v → parts, …] (computed). Returns { g, w }.
@@ -1184,16 +1201,18 @@ function subspace3(p, { set = 'plane', plane: N0 = [1, 1, 1, 0], line: L0 = { di
     eq({ x = 90, y = 200, size: sz = 44, o = 1 } = {}) {
       const g = G(p, { o });
       mk('rect', { x: x - 30, y: y - sz * .7, width: 8, height: sz * .8, rx: 4, fill: SET }, g);
-      const sp = sz * 2.7;
+      const sp = sz * 2.7, pcs = [], pc = () => { const e = G(g, {}); pcs.push({ g: e }); return pcs[pcs.length - 1]; };
       ['x', 'y', 'z'].forEach((L, j) => {
         const sx = x + j * sp, key = 'n' + j;
-        if (j) S3_slot(g, null, sx - sz * .5, y, ctx, { size: sz, pf: s => [s[key] < -1e-9 ? '−' : '+'] });
-        S3_slot(g, key, sx + sz * 1.0, y, ctx, { size: sz, anchor: 'end', w: sz * 1.25, coef: true, abs: j > 0 });
-        const t = T(g, L, { x: sx + sz * 1.06, y, size: sz, fill: COL.chalk, font: MATH }); t.setAttribute('font-style', 'italic');
+        if (j) S3_slot(pc().g, null, sx - sz * .5, y, ctx, { size: sz, pf: s => [s[key] < -1e-9 ? '−' : '+'] });
+        const c = pc();
+        Object.assign(c, { s: S3_slot(c.g, key, sx + sz * 1.0, y, ctx, { size: sz, anchor: 'end', w: sz * 1.25, coef: true, abs: j > 0 }), w: sz * 1.25, pad: sz * (j ? .3 : .25) });
+        const t = T(pc().g, L, { x: sx + sz * 1.06, y, size: sz, fill: COL.chalk, font: MATH }); t.setAttribute('font-style', 'italic');
       });
-      const ex = x + 3 * sp - sz * .6;
-      T(g, '=', { x: ex, y, size: sz, fill: COL.chalk, font: MATH, anchor: 'middle' });
-      S3_slot(g, 'k', ex + sz * .75, y, ctx, { size: sz, anchor: 'start', w: sz * 1.4 });
+      const ex = x + 3 * sp - sz * .45, eg = pc().g;
+      T(eg, '=', { x: ex, y, size: sz, fill: COL.chalk, font: MATH, anchor: 'middle' });
+      S3_slot(eg, 'k', ex + sz * .7, y, ctx, { size: sz, anchor: 'start', w: sz * 1.4 });
+      S3_tight(pcs);
       draw();
       return g;
     },
@@ -1211,23 +1230,25 @@ function subspace3(p, { set = 'plane', plane: N0 = [1, 1, 1, 0], line: L0 = { di
     vec(n, { x = 90, y = 360, size: sz = 34, o = 1 } = {}) {
       const g = G(p, { o }), w = sz * 2;
       const t = T(g, n, { x, y: y + sz * .3, size: sz * 1.1, fill: COLR[n], font: MATH }); t.setAttribute('font-style', 'italic');
-      T(g, '=', { x: x + sz * 1.15, y: y + sz * .3, size: sz, fill: COL.chalk, font: MATH, anchor: 'middle' });
-      S3_col(g, [n + '0', n + '1', n + '2'], x + sz * 1.7 + w / 2, y, ctx, { size: sz, w, fill: COLR[n] });
+      T(g, '=', { x: x + sz * 1.3, y: y + sz * .3, size: sz, fill: COL.chalk, font: MATH, anchor: 'middle' });
+      S3_col(g, [n + '0', n + '1', n + '2'], x + sz * 1.9 + w / 2, y, ctx, { size: sz, w, fill: COLR[n] });
       draw();
       return g;
     },
     combo({ x = 90, y = 560, size: sz = 34, o = 1 } = {}) {
       const g = G(p, { o }), w = sz * 2;
       let cx = x;
-      S3_slot(g, 'c', cx + sz * .9, y + sz * .3, ctx, { size: sz, anchor: 'end', w: sz * 1.2, coef: true });
-      const t1 = T(g, 'u', { x: cx + sz * .95, y: y + sz * .3, size: sz * 1.1, fill: COLR.u, font: MATH }); t1.setAttribute('font-style', 'italic');
+      const g1 = G(g, {}), g2 = G(g, {}), g3 = G(g, {}), g4 = G(g, {}), g5 = G(g, {});
+      const sc = S3_slot(g1, 'c', cx + sz * .9, y + sz * .3, ctx, { size: sz, anchor: 'end', w: sz * 1.2, coef: true });
+      const t1 = T(g2, 'u', { x: cx + sz * .95, y: y + sz * .3, size: sz * 1.1, fill: COLR.u, font: MATH }); t1.setAttribute('font-style', 'italic');
       cx += sz * 1.75;
-      S3_slot(g, null, cx + sz * .3, y + sz * .3, ctx, { size: sz, pf: s => [s.d < -1e-9 ? '−' : '+'] });
-      S3_slot(g, 'd', cx + sz * 1.75, y + sz * .3, ctx, { size: sz, anchor: 'end', w: sz * 1.2, coef: true, abs: true });
-      const t2 = T(g, 'w', { x: cx + sz * 1.8, y: y + sz * .3, size: sz * 1.1, fill: COLR.w, font: MATH }); t2.setAttribute('font-style', 'italic');
+      S3_slot(g2, null, cx + sz * .3, y + sz * .3, ctx, { size: sz, pf: s => [s.d < -1e-9 ? '−' : '+'] });
+      const sd = S3_slot(g3, 'd', cx + sz * 1.75, y + sz * .3, ctx, { size: sz, anchor: 'end', w: sz * 1.2, coef: true, abs: true });
+      const t2 = T(g4, 'w', { x: cx + sz * 1.8, y: y + sz * .3, size: sz * 1.1, fill: COLR.w, font: MATH }); t2.setAttribute('font-style', 'italic');
       cx += sz * 2.8;
-      T(g, '=', { x: cx + sz * .3, y: y + sz * .3, size: sz, fill: COL.chalk, font: MATH, anchor: 'middle' });
-      S3_col(g, null, cx + sz * .8 + w / 2, y, ctx, { size: sz, w, pf: I.map(j => s => S3_parts(calc(s).sum[j])) });
+      T(g5, '=', { x: cx + sz * .45, y: y + sz * .3, size: sz, fill: COL.chalk, font: MATH, anchor: 'middle' });
+      S3_col(g5, null, cx + sz * 1.0 + w / 2, y, ctx, { size: sz, w, pf: I.map(j => s => S3_parts(calc(s).sum[j])) });
+      S3_tight([{ g: g1, s: sc, w: sz * 1.2, pad: sz * .3 }, { g: g2 }, { g: g3, s: sd, w: sz * 1.2, pad: sz * .3 }, { g: g4 }, { g: g5 }]);
       draw();
       return g;
     },
@@ -1356,6 +1377,15 @@ function colsp3(p, { A = [[1, 3], [2, 3], [4, 1]], b = [4, 5, 5], space: so = {}
     return { k, g, rg };
   });
   V.on(proj => tips.forEach(({ k, g }) => { const q = proj(tipOf(k)); put(g, { x: Math.round(q[0] * 10) / 10, y: Math.round(q[1] * 10) / 10 }); }));
+  // the labels col 1, col 2, b keep off the arrows (and the mix's legs), not only off the axes
+  const vis_ = e => { for (let n = e; n && n !== V.g; n = n.parentNode) if (n._st && n._st.o < .05) return false; return true; };
+  V.avoidSegs(proj => {
+    const O = proj([0, 0, 0]), m1 = col(0).map(x => x * v.x0), out = [];
+    J.forEach(j => { if (vis_(cols[j].e)) out.push([O, proj(col(j))]); });
+    if (vis_(bArrow.e)) out.push([O, proj(bv())]);
+    if (vis_(legs[1].e) && inC(bv())) out.push([proj(m1), proj(bv())]);
+    return out;
+  });
 
   /* ---------- the row picture: three lines in the x y plane ---------- */
   let R2 = null;
@@ -1483,9 +1513,9 @@ function colsp3(p, { A = [[1, 3], [2, 3], [4, 1]], b = [4, 5, 5], space: so = {}
       parts.x = G(g, {}); S3_slot(parts.x, 'x0', cx + sz * .95, y + sz * .3, ctx, { size: sz, anchor: 'end', w: sz * 1.2 });
       parts.c0 = G(g, {}); S3_col(parts.c0, I.map(i => `a${i}0`), cx + sz * 1.2 + w / 2, y, ctx, { size: sz, w, fill: S3_COLS[0] });
       cx += sz * 1.2 + w;
-      parts.plus = G(g, {}); T(parts.plus, '+', { x: cx + sz * .45, y: y + sz * .3, size: sz, fill: COL.chalk, font: MATH, anchor: 'middle' });
-      cx += sz * .9;
-      parts.y = G(g, {}); S3_slot(parts.y, 'x1', cx + sz * .95, y + sz * .3, ctx, { size: sz, anchor: 'end', w: sz * 1.2 });
+      parts.plus = G(g, {}); S3_slot(parts.plus, null, cx + sz * .55, y + sz * .3, ctx, { size: sz, anchor: 'middle', pf: s => [s.x1 < -1e-9 ? '−' : '+'] });
+      cx += sz * .8;
+      parts.y = G(g, {}); S3_slot(parts.y, 'x1', cx + sz * .95, y + sz * .3, ctx, { size: sz, anchor: 'end', w: sz * 1.2, abs: true });
       parts.c1 = G(g, {}); S3_col(parts.c1, I.map(i => `a${i}1`), cx + sz * 1.2 + w / 2, y, ctx, { size: sz, w, fill: S3_COLS[1] });
       cx += sz * 1.2 + w;
       parts.eq = G(g, {}); T(parts.eq, '=', { x: cx + sz * .5, y: y + sz * .3, size: sz, fill: COL.chalk, font: MATH, anchor: 'middle' });

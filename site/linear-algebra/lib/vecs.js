@@ -12,9 +12,9 @@
 //                        onto: (name, q, inBox) => [X, Y]  where a dragged tip of a named vector lands (default inBox(q): the grid),
 //                        fix: (v, changedKeys) => {}  run after every change, to put the state back in order (a point kept on a line) })
 //   state vs.v = { v0, v1, w0, w1, c, d };  arrows vs.A[id] (id: each name, 'cv', 'dw', 'dw0', 'cv1', 'sum') with .g .path .lab
-//   vs.row(items, { x, y, size, o })   the algebra, live (see row below);  vs.to(next, t0, dur);  vs.set(next);  vs.onChange(f)
+//   vs.row(items, { x, y, size, o, tight })   the algebra, live (see row below);  vs.to(next, t0, dur);  vs.set(next);  vs.onChange(f)
 //   vs.show / hide / dim(ids, t0);  vs.legs(ids, t0, on);  vs.label(id, parts | v => parts, 'tip' | 'mid', [dx, dy]);  vs.lattice(t0)
-//   vs.solve(on);  vs.solveFor(x, y) → { c, d };  vs.flash(key, t0);  vs.num(key);  vs.fmt(n), vs.parts(n), vs.paren(n), vs.nice(n)
+//   vs.combo(state) → parts "2v − w" (label('sum', vs.combo));  vs.solve(on);  vs.solveFor(x, y) → { c, d };  vs.flash(key, t0);  vs.num(key);  vs.fmt(n), vs.parts(n), vs.paren(n), vs.nice(n)
 //   vs.live(on, { drag: ids, move, only: keys });  questions: vsTask(vs, test, why, hint, reveal, opts), vcolBlanks(rows, { cols }), hcol(top, bottom, colour)
 const VS_COL = [COL.irr, COL.real, COL.rat];   // first, second, third vector: green, violet, pink (the columns of A later)
 
@@ -37,7 +37,7 @@ function vecs(p, { vecs: list = { v: [3, 2] }, c = 1, d = 1, plane: po = {}, sna
   // like 0.666667, still reads 2/3), else one decimal.
   const parts = n => {
     if (isInt(n)) return [num(Math.round(n) || 0)];
-    for (let q = 2; q <= 12; q++) { const k = Math.round(n * q); if (Math.abs(n * q - k) < 5e-6) return [k < 0 ? '−' : '', F(Math.abs(k), q)]; }
+    for (let q = 2; q <= 12; q++) { const k = Math.round(n * q); if (Math.abs(n * q - k) < 5e-6) return k % q ? [k < 0 ? '−' : '', F(Math.abs(k), q)] : [num(k / q || 0)]; }   // a hair off a whole number reads whole, never 4/2
     const r = Math.round(n * 10) / 10;   // a value in passing: always with its decimal sign (−0.97 is "−1.0", not a whole −1)
     return [num(r) + (Number.isInteger(r) ? DECIMAL_SIGN + '0' : '')];
   };
@@ -88,11 +88,18 @@ function vecs(p, { vecs: list = { v: [3, 2] }, c = 1, d = 1, plane: po = {}, sna
       set() {
         let pp = pf ? pf(v) : parts(get(key));
         if (coef && !s.held && pp.length === 1 && /^−?1$/.test(pp[0])) pp = [pp[0].slice(0, -1)];
-        const k = JSON.stringify(pp);
+        const k = JSON.stringify(pp) + (s.pad ?? '');   // a row made tight redraws
         if (k === shownKey) return;
         shownKey = k; ink.replaceChildren();
         const long = pp.some(q => typeof q === 'string' && q.includes(DECIMAL_SIGN));   // a value passing between whole numbers
-        M(ink, pp, { x, y: long ? y - sz * .06 : y, size: long ? sz * .78 : sz, fill: 'currentColor', anchor });
+        const draw_ = dx => M(ink, pp, { x: x - dx, y: long ? y - sz * .06 : y, size: long ? sz * .78 : sz, fill: 'currentColor', anchor });
+        s.inkW = draw_(0)._w || 0;
+        if (s.pad != null) {   // a tight row: an end-anchored number gives back the room it does not fill (its box too)
+          s.own = Math.max(0, w - s.inkW - s.pad);
+          if (s.own) { ink.replaceChildren(); draw_(s.own); }
+          box?.setAttribute('x', bx - s.own);
+        }
+        s.after?.();
       },
     };
     if (box) {
@@ -138,8 +145,10 @@ function vecs(p, { vecs: list = { v: [3, 2] }, c = 1, d = 1, plane: po = {}, sna
   //   A scalar in front of a letter or a column is a coefficient: a 1 is not written (−1 shows as −) unless the reader
   //   can scrub it; { key: 'c', one: true } writes it anyway (a beat whose voice reads "one times v").
   // Each item is its own group in .parts, so a beat can reveal them one by one; o: 0 starts them all hidden.
-  function row(items, { x = 90, y = 250, size: sz = size, o = 1, gap = sz * .28 } = {}) {
-    const g = G(p, {}), out = [], mid = y - sz * .32, rh = sz * 1.3;
+  // tight: true closes the room a scalar's box keeps for longer numbers ("x −  2y =   0" reads "x − 2y = 0"); the parts
+  // after it move left as its number narrows or a 1 is hidden (an equation; columns of a system keep the default).
+  function row(items, { x = 90, y = 250, size: sz = size, o = 1, gap = sz * .28, tight = false } = {}) {
+    const g = G(p, {}), out = [], mid = y - sz * .32, rh = sz * 1.3, room = [];
     let cx = x;
     for (const it of items) {
       const part = G(g, { o });
@@ -166,10 +175,17 @@ function vecs(p, { vecs: list = { v: [3, 2] }, c = 1, d = 1, plane: po = {}, sna
           cx += sz * .45 + gap * .5;
         }
         const w = sz * 1.15, k = it.key, nx = items[items.indexOf(it) + 1], coef = !it.one && !!nx && typeof nx === 'object' && (nx.t !== undefined || !!nx.col || !!nx.fn);
-        slot(part, k, cx + w, y, { sz, fill: it.fill ?? COL.chalk, w, anchor: 'end', coef, pf: it.signed ? vv => parts(Math.abs(vv[k])) : undefined });
+        const s = slot(part, k, cx + w, y, { sz, fill: it.fill ?? COL.chalk, w, anchor: 'end', coef, pf: it.signed ? vv => parts(Math.abs(vv[k])) : undefined });
+        if (tight) { s.pad = it.signed ? sz * .3 : 0; s.set(); room[out.length] = s; }   // as much room after a sign as before it
         cx += w + gap * .5 + (nx?.col || nx?.fn ? sz * .14 : 0);   // clear of a bracket after it: "1[" must not touch
       }
       out.push(part);
+    }
+    if (tight) {
+      // each part moves left by the room its scalars closed before it (a scalar closes its own; a sign before it stays)
+      const fit = () => { let sh = 0; out.forEach((part, i) => { if (st(part).x !== -sh) put(part, { x: -sh }); sh += room[i]?.own || 0; }); };
+      room.forEach(s => { if (s) s.after = fit; });
+      fit();
     }
     return { g, parts: out, w: cx - x };
   }
@@ -343,6 +359,17 @@ function vecs(p, { vecs: list = { v: [3, 2] }, c = 1, d = 1, plane: po = {}, sna
     v, P: P2, stage: holder, A, names, calc, solveFor, parts, fmt, row, latticeG: latG, layer, colorOf, clip: clipDir, at: pt,   // vs.lattice() shows it; vs.latticeG is the group
     paren: n => n < 0 ? `(${fmt(n)})` : fmt(n),   // a number inside a sum: 1 + (−4)
     nice: n => !fmt(n).includes(DECIMAL_SIGN),   // whole, or a simple fraction (not a value in passing)
+    // The combination's name as it is written: "2v − w", "½v", "−v + 3w", "0" (no 1s, no "+ −", no 0 terms);
+    // [] while c or d passes between nice values. vs.label('sum', vs.combo) names the sum live.
+    combo(st = v, a = n1, b = n2) {
+      const c = st.c, d = st.d, one = k => Math.abs(Math.abs(k) - 1) < 5e-6, z = k => Math.abs(k) < 5e-6;   // as parts() reads a value a hair off
+      if (!vs.nice(c) || !vs.nice(d)) return [];
+      const term = (k, n) => one(k) ? [n] : [...parts(Math.abs(k)), n];
+      const out = [];
+      if (!z(c)) out.push(...(c < 0 ? ['−'] : []), ...term(c, a));
+      if (!z(d)) out.push(out.length ? (d < 0 ? ' − ' : ' + ') : (d < 0 ? '−' : ''), ...term(d, b));
+      return out.length ? out : ['0'];
+    },
     // Move the numbers to new values over dur seconds, on the beat clock (deterministic, so seeking replays it).
     to(next, at, dur = 1.2, ease = io) {
       const from = { ...plan };
@@ -500,14 +527,7 @@ function subspace2(p, { set = 'line', line: L0 = [1, -2, 0], u = [2, 1], w = [-4
     onto, fix, show: shown, plane: po, snap, labelSize, t0, hidePlane, size,
     range: { a: [-6, 6], b: [-6, 6], k: [-12, 12], ...range } });
   const P2 = vs.P, { PX, PY } = P2, svg = $('stage');
-  const term = (k, n) => Math.abs(k - 1) < 1e-9 ? n : Math.abs(k + 1) < 1e-9 ? '−' + n : vs.fmt(k) + n;
-  vs.label('sum', v => {
-    if (!vs.nice(v.c) || !vs.nice(v.d)) return [];
-    if (!v.c && !v.d) return ['0'];
-    if (!v.d) return [term(v.c, 'u')];
-    if (!v.c) return [term(v.d, 'w')];
-    return [`${term(v.c, 'u')} ${v.d < 0 ? '−' : '+'} ${term(Math.abs(v.d), 'w')}`];
-  });
+  vs.label('sum', vs.combo);   // "u + w", "2u − w", "0"; nothing while c or d is between values
 
   /* ---------- the set, under the arrows ---------- */
   const sg = G(P2.g, {});
@@ -593,7 +613,7 @@ function subspace2(p, { set = 'line', line: L0 = [1, -2, 0], u = [2, 1], w = [-4
     },
     multiples(at, on = true, dur = .6) { tw(mult, { o: on ? 1 : 0 }, at, dur); },
     eq({ x = 90, y = 200, size: sz = 46, o = 1 } = {}) {
-      const r = vs.row([{ key: 'a' }, { t: 'x' }, { key: 'b', signed: true }, { t: 'y' }, '=', { key: 'k' }], { x, y, size: sz, o });
+      const r = vs.row([{ key: 'a' }, { t: 'x' }, { key: 'b', signed: true }, { t: 'y' }, '=', { key: 'k' }], { x, y, size: sz, o, tight: true });
       mk('rect', { x: x - 30, y: y - sz * .7, width: 8, height: sz * .8, rx: 4, fill: SET }, r.g);
       return r;
     },

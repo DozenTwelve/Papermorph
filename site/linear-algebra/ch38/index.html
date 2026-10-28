@@ -35,7 +35,7 @@ const testBoard = (p, { set = 'line', line = [1, -2, 0], u = [2, 1], w = [-4, -2
     eq: eq ? sb.eq({ x: 90, y: 200, size: 46, o }) : null,
     u: sb.row([{ t: 'u', fill: GREEN }, '=', { col: 'u' }], { x: 90, y: 345, size: 40, o }),
     w: sb.row([{ t: 'w', fill: VIOLET }, '=', { col: 'w' }], { x: 330, y: 345, size: 40, o }),
-    combo: sb.row([{ key: 'c' }, { t: 'u', fill: GREEN }, { key: 'd', signed: true }, { t: 'w', fill: VIOLET }, '=', { col: 'sum' }], { x: 90, y: 540, size: 40, o }),
+    combo: sb.row([{ key: 'c' }, { t: 'u', fill: GREEN }, { key: 'd', signed: true }, { t: 'w', fill: VIOLET }, '=', { col: 'sum' }], { x: 90, y: 540, size: 40, o, tight: true }),
     cu: sb.check('u', { x: 90, y: 428, size: 26, o }),
     cw: sb.check('w', { x: 330, y: 428, size: 26, o }),
     out: sb.readout({ x: 90, y: 650, size: 32, o }),
@@ -57,6 +57,23 @@ const hand = (sb, id) => {
   path(g, 'M0 0L0 30L8 23L14 36L20 33L14 21L24 21Z', { fill: COL.chalk, stroke: COL.board, 'stroke-width': 2.5, 'stroke-linejoin': 'round' });
   const upd = v => { const q = id === 'u' || id === 'w' ? [v[id + '0'], v[id + '1']] : sb.vs.calc()[id]; put(g, { x: PX(q[0]) + 6, y: PY(q[1]) + 6 }); };
   sb.onChange(upd); upd(sb.v);
+  return g;
+};
+// The walk tip to tail as hops over the line, as on a number line: u from 0, then w from u's tip (arrows on one line
+// lie on top of each other, so the hops show the order). pts are plane points; the first hop bulges up, the next down.
+const hops = (sb, pts, cols, t0, gap = 1.2) => {
+  const { PX, PY } = sb.P, g = G(sb.P.g, {});
+  g.style.pointerEvents = 'none';
+  for (let i = 0; i + 1 < pts.length; i++) {
+    const A = [PX(pts[i][0]), PY(pts[i][1])], B = [PX(pts[i + 1][0]), PY(pts[i + 1][1])], L = Math.hypot(B[0] - A[0], B[1] - A[1]);
+    let n = [-(B[1] - A[1]) / L, (B[0] - A[0]) / L];
+    if ((i % 2 === 0) === (n[1] > 0)) n = [-n[0], -n[1]];   // first hop above, the next below
+    const C = [(A[0] + B[0]) / 2 + n[0] * L * .45, (A[1] + B[1]) / 2 + n[1] * L * .45];
+    const arc = path(g, `M${A[0]} ${A[1]}Q${C[0]} ${C[1]} ${B[0]} ${B[1]}`, { stroke: cols[i], 'stroke-width': 3.5, 'stroke-dasharray': '1 1' }, { d: 0 });
+    const dx = B[0] - C[0], dy = B[1] - C[1], dl = Math.hypot(dx, dy), ux = dx / dl, uy = dy / dl;
+    const head = path(g, `M${B[0] - 16 * ux - 8 * uy} ${B[1] - 16 * uy + 8 * ux}L${B[0]} ${B[1]}L${B[0] - 16 * ux + 8 * uy} ${B[1] - 16 * uy - 8 * ux}`, { stroke: cols[i], 'stroke-width': 3.5 }, { o: 0 });
+    draw(arc, t0 + i * gap, .8); show(head, t0 + i * gap + .7, .2);
+  }
   return g;
 };
 // A dashed amber ring at a plane point: a target.
@@ -147,8 +164,9 @@ const BEATS = [
     sb.to({ c: 2, d: 0 }, m('r2') + 5.2, 1.4); sb.hide(['dw', 'w'], m('r2') + 5, .4);
     // a smaller set: the plane shrinks to one line through the origin
     hide(r2t, m('q') - .2, .3);
+    // vs.to plans from the moves written before it, so moves are written in the order they play
+    sb.to({ c: 1, d: 1, u0: 2, u1: 1, w0: -4, w1: -2 }, m('q') - .5, .8);
     sb.kind('line', m('q') + .4);
-    sb.to({ c: 1, d: 1, u0: 2, u1: 1, w0: -4, w1: -2 }, m('q') + .2, .01);
     sb.show(['w', 'dw'], m('q') + .6);
     tw(sb.setG, { o: 0 }, m('q'), .4); tw(sb.setG, { o: 1 }, m('q') + .45, .6);
     text(p, 'a part of the plane: one line', 90, 340, m('q') + .6, { size: 30, fill: SETC, weight: 600 });
@@ -156,7 +174,7 @@ const BEATS = [
     T(nm, 'subspace:', { x: 90, y: 440, size: 40, weight: 700 });
     T(nm, 'a set inside R² that obeys the rule by itself', { x: 90, y: 490, size: 30, weight: 600 });
     show(nm, m('name'), .6);
-    sb.to({ u0: 4, u1: 2 }, m('name') + 3, 2); sb.to({ w0: 2, w1: 1 }, m('name') + 5.5, 2); sb.to({ u0: -4, u1: -2 }, m('name') + 8, 2.4);
+    sb.to({ w0: 2, w1: 1 }, m('name') + 3, 2); sb.to({ u0: 4, u1: 2 }, m('name') + 5.5, 2); sb.to({ u0: 2, u1: 1 }, m('name') + 8, 2.4);   // 2u and −1.5u stay on the board
     const tt = G(p, { o: 0 });
     T(tt, 'the test:  pick u and w in the set', { x: 90, y: 580, size: 30, fill: COL.chalk, weight: 600 });
     T(tt, 'is u + w in it?   is every multiple c·u in it?', { x: 90, y: 628, size: 30, fill: COL.chalk, weight: 600 });
@@ -182,6 +200,8 @@ const BEATS = [
     boxNums(p, [nb('u0')], m('add') + .9, m('add') + 4, GREEN); boxNums(p, [nb('w0')], m('add') + 1.5, m('add') + 4, VIOLET); boxNums(p, [nb('sum0')], m('add') + 2.5, m('add') + 4);
     boxNums(p, [nb('u1')], m('add') + 4.1, m('add') + 7.6, GREEN); boxNums(p, [nb('w1')], m('add') + 4.7, m('add') + 7.6, VIOLET); boxNums(p, [nb('sum1')], m('add') + 5.7, m('add') + 7.6);
     sb.show('dw', m('pic')); sb.show('sum', m('pic') + 2.6);
+    const hp = hops(sb, [[0, 0], [2, 1], [-2, -1]], [GREEN, VIOLET], m('pic') + .3);
+    hide(hp, m('three') - .3, .3);
     show(B.out, m('test')); thickSet(sb, m('test') + 1.5);
     tw(sb.ring, { s: 1.5 }, m('test') + 3.4, .25); tw(sb.ring, { s: 1 }, m('test') + 3.7, .4);
     tw(sb.ring, { s: 1.5 }, m('on') + .2, .25); tw(sb.ring, { s: 1 }, m('on') + .5, .4);
@@ -196,14 +216,14 @@ const BEATS = [
     const p = S.p, B = S.B, sb = S.sb;
     sb.to({ c: 1, d: 1 }, .2, .8); sb.show(['w', 'dw'], .3); show(B.cw, .3);
     pulseG(B.cu, m('each') + .6); pulseG(B.cw, m('each') + 3.2);
-    sb.to({ u0: 4, u1: 2 }, m('each') + 4.6, 1.4); sb.to({ u0: 2, u1: 1 }, m('sum') + .2, 1.2);
+    sb.to({ u0: 6, u1: 3 }, m('each') + 4.6, 1.4); sb.to({ u0: 2, u1: 1 }, m('sum') + .2, 1.2);
     sb.to({ c: 2 }, m('mult') + 1.5, 1.2); sb.to({ c: -1 }, m('mult') + 3, 1.2); sb.to({ c: 1 }, m('mult') + 4.5, 1);
     const n1 = text(p, 'u + w gives  0 + 0 = 0', 90, 765, m('sum') + 4.6, { size: 30, weight: 600 });
     const n2 = text(p, 'c·u gives  c · 0 = 0', 430, 765, m('mult'), { size: 30, weight: 600 });
     // a hand moves u and w along the line; every check stays 0
     const hu = hand(sb, 'u'), hw = hand(sb, 'w');
     show(hu, m('drag') - .2, .3);
-    sb.to({ u0: 4, u1: 2 }, m('drag') + .2, 1.1); sb.to({ u0: -2, u1: -1 }, m('drag') + 1.5, 1.1);
+    sb.to({ u0: 6, u1: 3 }, m('drag') + .2, 1.1); sb.to({ u0: -2, u1: -1 }, m('drag') + 1.5, 1.1);
     hide(hu, m('drag') + 2.7, .3); show(hw, m('drag') + 2.7, .3);
     sb.to({ w0: 6, w1: 3 }, m('drag') + 3, 1.1); sb.to({ w0: 4, w1: 2 }, m('drag') + 4.3, 1);
     hide(hw, m('drag') + 5.4, .3);
@@ -217,10 +237,13 @@ const BEATS = [
     text(p, 'Test 2: the line 3x + y = 0', 60, 110, .2, { size: 40, weight: 600 });
     const B = S.B = testBoard(p, { line: [1, -2, 0], u: [2, 1], w: [-4, -2], o: 1, show: ['u', 'w'] }), sb = S.sb = B.sb;
     hide(B.combo.g, 0, 0); hide(B.out, 0, 0);
+    [B.cu, B.cw].forEach(e => { hide(e, m('turn') - .2, .2); show(e, m('turn') + 1.9, .4); });
     sb.to({ a: 3, b: 1, u0: 1, u1: -3, w0: -2, w1: 6 }, m('turn'), 1.8);
     ['a', 'b'].forEach(k => sb.flash(k, m('turn')));
     pulseG(B.cu, m('u') + .5); pulseG(B.cw, m('w') + .5);
     show(B.combo.g, m('add'), .5); sb.show(['dw', 'sum'], m('add') + .4); show(B.out, m('add') + 2.6);
+    const hp = hops(sb, [[0, 0], [1, -3], [-1, 3]], [GREEN, VIOLET], m('add') + .5);
+    hide(hp, m('two') - .3, .3);
     tw(sb.ring, { s: 1.5 }, m('on'), .25); tw(sb.ring, { s: 1 }, m('on') + .3, .4);
     sb.hide(['dw', 'w'], m('two') - .3, .3); hide(B.cw, m('two') - .3, .3);
     sb.to({ c: 2, d: 0 }, m('two'), 1.2); sb.flash('c', m('two'));
@@ -311,17 +334,17 @@ const BEATS = [
     [B.u.g, B.w.g, B.cu, B.cw].forEach(e => put(e, { o: 0 }));
     const t1 = text(p, 'the zero vector alone', 90, 210, m('z'), { size: 36, fill: SETC, weight: 600 });
     put(sb.setG, { o: 0 }); show(sb.setG, m('z'), .5);
-    showRow(B.u, m('z') + 1.2); showRow(B.w, m('z') + 1.2);
-    say(p, ['0 + 0 = 0,     c · 0 = 0'], 90, 450, m('zz'), { size: 34 });
+    [B.u.g, B.w.g].forEach(e => show(e, m('z') + 1.2, .5));
+    const zz = say(p, ['0 + 0 = 0,     c · 0 = 0'], 90, 450, m('zz'), { size: 34 });
     [[2, -1], [3, -2], [-1, 4], [2, 2]].forEach(([c, d], i) => { sb.to({ c, d }, (i ? m('stay') + (i - 1) * 1.3 : m('zz') + 1.5), 1); });
     const n1 = text(p, 'a subspace: the smallest one', 90, 765, m('name'), { size: 30, fill: COL.good, weight: 700 });
     // the whole plane
-    [t1, n1].forEach(e => hide(e, m('all') - .3, .3));
+    [t1, n1, zz].forEach(e => hide(e, m('all') - .3, .3));
     sb.kind('all', m('all'));
     sb.to({ u0: 2, u1: 1, w0: -1, w1: 3, c: 1, d: 1 }, m('all') + .1, 1.2);
     sb.show('dw', m('all') + .4);
     text(p, 'the whole plane R²', 90, 210, m('all') + .2, { size: 36, fill: SETC, weight: 600 });
-    [[2, -1], [-1, -1], [1, 2]].forEach(([c, d], i) => { sb.to({ c, d }, m('roam') + .4 + i * 1.4, 1.1); });
+    [[2, -1], [-1, -1], [1, 1]].forEach(([c, d], i) => { sb.to({ c, d }, m('roam') + .4 + i * 1.4, 1.1); });
     sb.to({ u0: -3, u1: 2, w0: 1, w1: -2 }, m('name2') - .4, 1.2);
     text(p, 'a subspace of itself: the biggest one', 90, 765, m('name2') + .4, { size: 30, fill: COL.good, weight: 700 });
   }],
@@ -376,11 +399,11 @@ const BEATS = [
     sb.kind('line', m('l'));
     sb.to({ u0: 2, u1: 1 }, m('l') + .05, .01);
     L('every line through the origin', 280, m('l'));
-    sb.to({ a: 2, b: 1 }, m('l') + .4, 1.2); sb.to({ a: 1, b: -3 }, m('l') + 1.8, 1.2); sb.to({ a: 1, b: -2 }, m('l') + 3.2, 1);
+    sb.to({ a: 2, b: 1 }, m('l') + .2, .6); sb.to({ a: 1, b: -3 }, m('l') + .85, .6); sb.to({ a: 1, b: -2 }, m('l') + 1.5, .5);   // done before the plane comes in
     sb.kind('all', m('p'));
     L('the whole plane R²', 340, m('p'));
     // could there be more? one vector u gives its whole line
-    sb.kind('line', m('one') - .1);
+    sb.kind('line', m('one') - .1); sb.to({ u0: 2, u1: 1 }, m('one') - .05, .01);   // the turns moved u along: a long u again, before it shows
     const q = text(p, 'anything else?', 90, 430, m('q'), { size: 32, fill: COL.dim, weight: 600 });
     sb.show(['u', 'sum'], m('one') + .2); sb.multiples(m('one') + 1.5);
     sb.to({ c: -2 }, m('one') + 2.4, 1.2); sb.to({ c: 2.5 }, m('one') + 3.7, 1.6); sb.to({ c: 1 }, m('one') + 5.4, .8);
@@ -397,6 +420,7 @@ const BEATS = [
     T(so, 'nothing in between:', { x: 90, y: 730, size: 30, fill: COL.good, weight: 700 });
     T(so, 'a point, a line through 0, or all of R²', { x: 90, y: 777, size: 30, fill: COL.good, weight: 700 });
     show(so, m('so') + 1.4, .5);
+    sb.to({ c: 1, d: -1 }, m('so') + 2.8, .5);
     sb.kind('zero', m('so') + 3.4); sb.kind('line', m('so') + 4.6); sb.to({ u0: 2, u1: 1, w0: 4, w1: 2 }, m('so') + 4.65, .01); sb.kind('all', m('so') + 6); sb.to({ w0: -1, w1: 2 }, m('so') + 6.05, .01);
   }],
 
@@ -452,8 +476,8 @@ const BEATS = [
   ['final4', 'Chapter practice', () => {
     const p = panel(0);
     text(p, 'Make it', 60, 110, .2, { size: 40, weight: 600 });
-    const sb = S.sb = subspace2(p, { line: [1, 1, 2], u: [0, 2], w: [3, -1], show: ['u', 'w', 'dw', 'sum'] });
-    S.B = { sb, eq: sb.eq({ x: 90, y: 200, size: 46 }), out: sb.readout({ x: 90, y: 300, size: 32 }) };
+    const sb = S.sb = subspace2(p, { line: [1, 1, 2], u: [0, 2], w: [3, -1], show: ['u', 'w'] });   // the sum waits for p-back (it would sit on the target)
+    S.B = { sb, eq: sb.eq({ x: 90, y: 200, size: 46 }), out: sb.readout({ x: 90, y: 300, size: 32, o: 0 }) };   // the sum's test, for p-back
     S.tg = G(p, {});
   }, { ask: done => quiz({ ...CARD, y: 495 }, [{
     id: 'p-make', prompt: ['Make the line a subspace that passes through ', $m('(3, 1)'), '. Change its numbers or drag it.'],
@@ -467,7 +491,8 @@ const BEATS = [
     id: 'p-back', prompt: ['Now ', $m('u = [2, 1]'), ' and ', $m('w = [4, 2]'), '. Find ', $m('c ≠ 0'), ' and ', $m('d'), ' with ', $m('cu + dw'), ' = the zero vector.'],
     build: (body, api) => {
       S.sb.set({ a: 1, b: -2, k: 0, u0: 2, u1: 1, w0: 4, w1: 2, c: 1, d: 1 });
-      if (!S.combo) S.combo = S.sb.row([{ key: 'c' }, { t: 'u', fill: GREEN }, { key: 'd', signed: true }, { t: 'w', fill: VIOLET }, '=', { col: 'sum' }], { x: 90, y: 425, size: 38 });
+      ['dw', 'sum'].forEach(id => { put(S.sb.vs.A[id].g, { o: 1 }); put(S.sb.vs.A[id].lab, { o: 1 }); }); put(S.sb.ring, { o: 1 }); put(S.B.out, { o: 1 });
+      if (!S.combo) S.combo = S.sb.row([{ key: 'c' }, { t: 'u', fill: GREEN }, { key: 'd', signed: true }, { t: 'w', fill: VIOLET }, '=', { col: 'sum' }], { x: 90, y: 425, size: 38, tight: true });
       return sbTask(S.sb, v => Math.abs(v.c) > 1e-9 && Math.hypot(...S.sb.vs.calc().sum) < 1e-9, 'w = 2u, so 2u − w = 0 (and any multiple: −4u + 2w, …).',
         v => Math.abs(v.c) < 1e-9 ? 'c must not be 0.' : 'Not zero yet. w is twice u: how many u cancel one w?', () => S.sb.set({ c: 2, d: -1 }), { only: ['c', 'd'], drag: [] })(body, api);
     },
@@ -477,9 +502,9 @@ const BEATS = [
     text(p, 'Playground', 60, 110, .2, { size: 40, weight: 600 });
     const B = S.B = testBoard(p, { line: [1, -2, 0], u: [2, 1], w: [-4, -2], o: 1, show: ['u', 'w', 'dw', 'sum'] }), sb = S.sb = B.sb;
     [B.cu, B.cw].forEach(e => put(e, { o: 0 }));
-    put(B.combo.g, { y: -80 }); put(B.out, { y: -110 });
+    put(B.combo.g, { y: -80 }); put(B.out, { x: 330, y: -195 });   // the readout beside c u + d w: the card fits under them
     text(p, 'try: slide it off the origin · make c negative · turn the line', 90, 256, m('go'), { size: 24, fill: COL.dim });
-  }, { ask: playAsk(() => S.sb, { pos: { x: 40, y: 625, w: 720, cls: 'side' }, tip: 'Your test. Change any number, drag the line, or a tip along it. The ring is green while c u + d w stays on the line.' }) }],
+  }, { ask: playAsk(() => S.sb, { pos: { x: 40, y: 540, w: 720, cls: 'side' }, tip: 'Your test. Change any number, drag the line, or a tip along it. The ring is green while c u + d w stays on the line.' }) }],
   ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
 
