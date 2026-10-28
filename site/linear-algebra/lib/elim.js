@@ -9,6 +9,7 @@
 //   el.step(1, 0, 3, at, dur)                    // the label and the step: row 2 − 3 × row 1, on the beat clock
 //   el.mult(2, at, dur)                          // the open operation with another multiplier (its label counts)
 //   el.ring(0, 0, at)                            // a circle round an entry: the pivot
+//   el.diag(at); el.upper(at)                    // behind the numbers: the diagonal band, the upper triangle (U)
 //   el.opNow(2, 1)                               // inside a question: open "row 3 − ℓ × row 2" at once
 //
 // While elim is attached, move the system through el.to(next, at, dur) (or el.step, el.mult): elim keeps the plan
@@ -99,7 +100,7 @@ function elim(p, sys, { at: [x0, y0] = [130, 450], size = 46, cw = 96, rh = 70, 
       const m = M(mh, ps, { size: fs + 2, fill: COL.chalk, anchor: 'start' });
       const w1 = t1.getComputedTextLength() || 80, w2 = t2.getComputedTextLength() || 14, mw = m._w || 20, frac = ps.some(q => q.f);
       put(t2, { x: w1 + 14 });
-      const mx = w1 + 14 + w2 + 16;
+      const mx = w1 + 14 + w2 + 22;
       put(mg, { x: mx });
       const hgt = frac ? fs * 1.75 : fs * 1.3, ytop = frac ? -fs * 1.12 : -fs * .98;
       for (const [a, b] of Object.entries({ x: -9, y: ytop, width: mw + 18, height: hgt })) mbox.setAttribute(a, b);
@@ -176,6 +177,24 @@ function elim(p, sys, { at: [x0, y0] = [130, 450], size = 46, cw = 96, rh = 70, 
     return e;
   }
   const draw_ = (e, at, dur) => tw(e, { d: 1 }, at, dur);
+  // Behind the numbers (so nothing is struck through): the diagonal as a soft band through the pivot places, and the
+  // upper triangle as a staircase round the entries on and above it (A only, not b).
+  const behind = e => { g.insertBefore(e, rowG[0]); return e; };
+  const mid = i => ry(i) - size * .32;
+  function diag(at, { color = COL.task, dur = .5 } = {}) {
+    const e = behind(path(g, `M${cx(0)} ${mid(0)}L${cx(n - 1)} ${mid(n - 1)}`, { stroke: color, 'stroke-width': size * 1.3, 'stroke-linecap': 'round', 'stroke-opacity': .2, fill: 'none' }, { o: 0 }));
+    show(e, at, dur);
+    return e;
+  }
+  function upper(at, { color = COL.task, dur = .6 } = {}) {
+    const L = j => cx(j) - cw / 2 + 2, R = cx(n - 1) + cw / 2 - 2, B = i => mid(i) + rh / 2 - 3;
+    let d = `M${L(0)} ${mid(0) - rh / 2 + 3}H${R}V${B(n - 1)}`;
+    for (let i = n - 1; i > 0; i--) d += `H${L(i)}V${B(i - 1)}`;
+    d += `H${L(0)}Z`;
+    const e = behind(path(g, d, { fill: color, 'fill-opacity': .12, stroke: color, 'stroke-opacity': .75, 'stroke-width': 2.5, 'stroke-linejoin': 'round' }, { o: 0 }));
+    show(e, at, dur);
+    return e;
+  }
   // Light the entries of row i (one entry with j) for a moment.
   function flash(i, at, j = null) {
     cells[i].forEach((cl, c) => { if (j === null || j === c) { tw(cl.glow, { o: .32 }, at, .25); tw(cl.glow, { o: 0 }, at + 1.1, .6); } });
@@ -299,7 +318,7 @@ function elim(p, sys, { at: [x0, y0] = [130, 450], size = 46, cw = 96, rh = 70, 
     get plan() { return plan; },
     get l() { return lNow; },
     get op_() { return cur; },
-    op, opNow, mult, step, ring, line, rule, flash, focus, to, load,
+    op, opNow, mult, step, ring, line, rule, flash, focus, to, load, diag, upper,
     scrub,
     // playAsk and elTask: the system's numbers plus the multiplier l
     get v() { return { ...sys.v, l: lNow }; },

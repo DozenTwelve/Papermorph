@@ -33,7 +33,7 @@ const table = (p, A, b, caption, { t0 = .1, meet = true, dens = [1, 2], step = 1
   sys.E.style.display = 'none';
   if (!meet) put(sys.meetBox, { o: 0 });
   const cap = say(p, [caption], 90, 182, t0 + .1, { size: 32, fill: COL.dim });
-  const el = elim(p, sys, { at: TOP, size: 50, cw: 92, rh: 78, t0, dens, step, labelX: 494 });
+  const el = elim(p, sys, { at: TOP, size: 50, cw: 92, rh: 78, t0, dens, step, labelX: 466 });
   return { sys, el, cap };
 };
 // The old line of row 2, dashed, through the meeting point (sx, sy).
@@ -127,7 +127,7 @@ const BEATS = [
     const { sys, el } = table(p, A, b, 'x + 2y = 5,     3x + 4y = 11', { t0: m('sys') - .3 });
     el.op(1, 0, 3, m('step'));
     el.ring(0, 0, m('piv'));
-    text(p, 'pivot row', 494, 268, m('piv') + 2.5, { size: 28, fill: BLUE, weight: 600 });
+    text(p, 'pivot row', 466, 268, m('piv') + 2.5, { size: 28, fill: BLUE, weight: 600 });
     legend(p, false, ['pivot:  1'], 500, m('piv'));
     el.ring(1, 0, m('rem'), { dash: true });
     legend(p, true, ['to remove:  3'], 560, m('rem'));
@@ -163,8 +163,8 @@ const BEATS = [
     say(p, ['8 − ℓ·4 = 0'], 90, 630, m('ask'), { size: 34, fill: COL.task });
     say(p, ['ℓ = 8 ÷ 4 = 2'], 340, 630, m('div') + 1.4, { size: 34, fill: COL.task });
     const box = G(p, { o: 0 });
-    mk('rect', { x: 76, y: 664, width: 520, height: 76, rx: 14, fill: 'none', stroke: COL.task, 'stroke-width': 3 }, box);
-    M(box, ['multiplier  ℓ  =  ', F('number to remove', 'pivot')], { x: 96, y: 712, size: 32, fill: COL.task, anchor: 'start' });
+    mk('rect', { x: 76, y: 660, width: 600, height: 92, rx: 14, fill: 'none', stroke: COL.task, 'stroke-width': 3 }, box);
+    M(box, ['multiplier  ℓ  =  ', F('number to remove', 'pivot')], { x: 96, y: 716, size: 40, fill: COL.task, anchor: 'start' });
     show(box, m('rule'));
     el.op(1, 0, 2, m('go'));
     el.mult(2, m('go') + .6, 1.8, { count: false });
@@ -230,6 +230,25 @@ const BEATS = [
     show(sys.meetBox, m('x') + 3, .5);
   }],
 
+  ['both', 'Negative and a fraction', (m) => {
+    const p = panel(0);
+    text(p, 'Negative and a fraction', 60, 110, .2, { size: 40, weight: 600 });
+    const A = [[2, 1], [-1, 3]], b = [4, 5];
+    const { sys, el } = table(p, A, b, '2x + y = 4,     −x + 3y = 5', { t0: m('sys') - .3, meet: false });
+    el.ring(1, 0, m('div'), { dash: true }); el.ring(0, 0, m('div') + 2.2);
+    say(p, ['ℓ = −1 ÷ 2 = −', F(1, 2)], 90, 520, m('div') + 4, { size: 36, fill: COL.task });
+    el.op(1, 0, -.5, m('op'));
+    say(p, ['row 2 − (−', F(1, 2), ') × row 1  =  row 2 + ', F(1, 2), ' × row 1'], 90, 590, m('op') + 3.4, { size: 30, fill: COL.task });
+    el.line([1, .5, 2], 2, m('half'), { label: [F(1, 2), ' × row 1'], color: BLUE, sign: '+' });
+    ghost(sys, -1, 3, 1, 2, m('go'));
+    el.mult(-.5, m('go') + .2, 2, { count: false });
+    lightCells(el, [m('e1'), m('e2'), m('e3')]);
+    pin(sys, 1, 2, m('turn'));
+    say(p, [F(7, 2), 'y = 7,   y = 2'], 90, 680, m('y'), { size: 36, fill: COL.task });
+    say(p, ['2x + 2 = 4,   x = 1'], 90, 760, m('x'), { size: 36, fill: COL.task });
+    show(sys.meetBox, m('x') + 2, .5);
+  }],
+
   ['drill', 'Three quick ones', (m) => {
     const p = panel(0);
     text(p, 'Three quick ones', 60, 110, .2, { size: 40, weight: 600 });
@@ -267,13 +286,11 @@ const BEATS = [
     const s = bare([[1, 2], [0, -2]], [5, -4]);
     const el = elim(p, s, { at: TOP, size: 50, cw: 92, rh: 78, t0: .2 });
     say(p, ['x + 2y = 5,     −2y = −4'], 90, 182, .3, { size: 32, fill: COL.dim });
-    // the diagonal through the pivots, the zero under it, the triangle above it
-    const d = path(p, `M${el.cx(0) - 40} ${el.ry(0) - 60}L${el.cx(1) + 40} ${el.ry(1) + 20}`, { stroke: COL.task, 'stroke-width': 4, 'stroke-dasharray': '10 8', fill: 'none' }, { o: 0 });
-    show(d, m('diag'), .5);
+    // the diagonal through the pivots, the zero under it, the triangle on and above it (all behind the numbers)
+    el.diag(m('diag'));
     el.ring(0, 0, m('diag') + .4); el.ring(1, 1, m('diag') + 1);
     el.flash(1, m('below'), 0); el.flash(1, m('below') + 1.4, 0);
-    const tri = path(p, `M${el.cx(0) - 44} ${el.ry(0) - 56}L${el.cx(1) + 46} ${el.ry(0) - 56}L${el.cx(1) + 46} ${el.ry(1) + 26}Z`, { fill: COL.task, stroke: COL.task, 'stroke-width': 2, 'fill-opacity': .14 }, { o: 0 });
-    show(tri, m('tri'), .6);
+    el.upper(m('tri'));
     say(p, ['U'], el.cx(0) + 46, el.ry(1) + 120, m('tri') + 3, { size: 54, fill: COL.task, anchor: 'middle' });
     text(p, 'upper triangular', el.cx(0) + 90, el.ry(1) + 112, m('tri') + 3, { size: 30, fill: COL.task, weight: 600 });
     el.focus(1, m('why')); el.focus(null, m('why') + 4);
@@ -284,8 +301,7 @@ const BEATS = [
     // three equations make a bigger triangle (chapter 18)
     const s3 = bare([[1, 2, 1], [0, 2, -2], [0, 0, 5]], [2, 6, -10]);
     const e3 = elim(p, s3, { at: [980, 330], size: 44, cw: 80, rh: 70, t0: m('tri') + 4.5 });
-    const tri3 = path(p, `M${e3.cx(0) - 38} ${e3.ry(0) - 50}L${e3.cx(2) + 40} ${e3.ry(0) - 50}L${e3.cx(2) + 40} ${e3.ry(2) + 22}Z`, { fill: COL.task, stroke: COL.task, 'stroke-width': 2, 'fill-opacity': .12 }, { o: 0 });
-    show(tri3, m('tri') + 5, .6);
+    e3.upper(m('tri') + 5);
     text(p, 'three equations: a bigger triangle (chapter 18)', 1120, 630, m('tri') + 5, { size: 26, fill: COL.dim, weight: 600, anchor: 'middle' });
   }],
 

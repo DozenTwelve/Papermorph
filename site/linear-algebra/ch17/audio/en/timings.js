@@ -353,6 +353,84 @@ window.TIMINGS = {
    ]
   ]
  },
+ "both": {
+  "dur": 51.024,
+  "marks": {
+   "sys": 5.013,
+   "div": 10.286,
+   "op": 18.021,
+   "half": 26.966,
+   "go": 29.818,
+   "e1": 31.107,
+   "e2": 34.01,
+   "e3": 36.992,
+   "turn": 39.141,
+   "y": 42.773,
+   "x": 46.615
+  },
+  "cues": [
+   [
+    0.104,
+    "Now both at once: a multiplier that is negative and a fraction."
+   ],
+   [
+    5.013,
+    "Two x plus y equals four, and minus x plus three y equals five."
+   ],
+   [
+    10.286,
+    "The number to remove is minus one."
+   ],
+   [
+    12.943,
+    "The pivot is two."
+   ],
+   [
+    14.544,
+    "Minus one divided by two is minus one half."
+   ],
+   [
+    18.021,
+    "So the step is row two minus, minus one half, times row one."
+   ],
+   [
+    22.734,
+    "Taking away minus a half is the same as adding a half."
+   ],
+   [
+    26.966,
+    "Half of row one is one, one half, two."
+   ],
+   [
+    29.818,
+    "Add it to row two."
+   ],
+   [
+    31.107,
+    "Minus one plus one is zero."
+   ],
+   [
+    34.01,
+    "Three plus one half is seven halves."
+   ],
+   [
+    36.992,
+    "Five plus two is seven."
+   ],
+   [
+    39.141,
+    "The line swings round the meeting point and lies flat."
+   ],
+   [
+    42.773,
+    "Seven halves y equals seven, so y equals two."
+   ],
+   [
+    46.615,
+    "Then two x plus two equals four, so x equals one."
+   ]
+  ]
+ },
  "drill": {
   "dur": 29.304,
   "marks": {

@@ -473,6 +473,82 @@ window.TIMINGS = {
    ]
   ]
  },
+ "slip": {
+  "dur": 51.552,
+  "marks": {
+   "eq": 2.513,
+   "z": 9.961,
+   "y": 15.052,
+   "x": 18.607,
+   "orig": 23.906,
+   "c1": 29.141,
+   "c2": 34.115,
+   "c3": 40.039,
+   "bad": 44.023
+  },
+  "cues": [
+   [
+    0.104,
+    "Why bother checking?"
+   ],
+   [
+    1.419,
+    "Watch a slip."
+   ],
+   [
+    2.513,
+    "Say that in the last step of elimination we worked out two minus twelve as minus five, instead of minus ten."
+   ],
+   [
+    9.961,
+    "Then five z equals minus five, and z is minus one."
+   ],
+   [
+    15.052,
+    "Two y plus two equals six, so y is two."
+   ],
+   [
+    18.607,
+    "And x plus four minus one equals two, so x is minus one."
+   ],
+   [
+    23.906,
+    "Now check minus one, two, minus one in the original equations."
+   ],
+   [
+    29.141,
+    "Row one: minus one plus four minus one is two."
+   ],
+   [
+    33.346,
+    "True."
+   ],
+   [
+    34.115,
+    "Row two: minus three plus sixteen minus one is twelve."
+   ],
+   [
+    39.036,
+    "True again."
+   ],
+   [
+    40.039,
+    "Row three: eight minus one is seven, not two."
+   ],
+   [
+    44.023,
+    "One false row is enough."
+   ],
+   [
+    45.99,
+    "The real planes don't meet at the ring, so the answer is wrong."
+   ],
+   [
+    49.87,
+    "Go back and find the slip."
+   ]
+  ]
+ },
  "q3": {
   "dur": 2.832,
   "marks": {},

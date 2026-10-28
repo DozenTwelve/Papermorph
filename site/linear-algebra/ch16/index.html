@@ -128,10 +128,12 @@ const BEATS = [
     text(p, 'An easy system', 60, 110, .2, { size: 40, weight: 600 });
     const sys = twoLines(p, [[1, 2], [0, 2]], [5, 4], { t0: m('eq') - .3, lines: false, meet: false });
     show(sys.lines[0].l, m('eq') + 1, .8);
+    text(p, 'row 1', 560, 194, m('rows'), { size: 26, fill: BLUE, weight: 600 });
+    text(p, 'row 2', 560, 286, m('rows') + .6, { size: 26, fill: CORAL, weight: 600 });
     show(sys.lines[1].l, m('flat') + 2.4, .8);
     flash(sys, 'a10', m('flat'));
     hl(p, 128, 252, 110, 58, m('flat'), m('y') - .3);
-    text(p, 'no x: a flat line', 520, 300, m('flat') + 2.4, { size: 28, fill: CORAL, weight: 600 });
+    text(p, 'no x: a flat line', 90, 352, m('flat') + 2.4, { size: 28, fill: CORAL, weight: 600 });
     wl(p, '2y', '4', 420, m('y') + 1);
     wl(p, 'y', '2', 420, m('y') + 3, { xEq: 610, fill: COL.task });
     say(p, ['→'], 500, 420, m('y') + 3, { size: 40, fill: COL.dim });
@@ -280,7 +282,7 @@ const BEATS = [
 
   ['swing', 'A little at a time', (m) => {
     const p = panel(0);
-    text(p, 'Row 2 − ℓ × row 1, a little at a time', 60, 110, .2, { size: 40, weight: 600 });
+    text(p, 'Take row 1 away a little at a time', 60, 110, .2, { size: 40, weight: 600 });
     const A = [[1, 2], [3, 4]], b = [5, 11];
     const sys = twoLines(p, A, b, { t0: .2 });
     const el = elim(p, sys, { at: MAT, t0: .2 });
@@ -321,8 +323,9 @@ const BEATS = [
     wl(p, 'y', '−1', 600, m('y') + 2.4, { xEq: 420, size: 38, fill: COL.task });
     wl(p, '2x − 1', '3', 670, m('x'), { xEq: 200, size: 38 });
     say(p, ['→'], 320, 670, m('x') + 2.2, { size: 38, fill: COL.dim });
-    wl(p, '2x', '4', 670, m('x') + 2.2, { xEq: 420, size: 38 });
-    wl(p, 'x', '2', 740, m('x2'), { xEq: 420, size: 38, fill: COL.task });
+    wl(p, '2x', '4', 670, m('x') + 2.2, { xEq: 440, size: 38 });
+    say(p, ['→'], 540, 670, m('x2'), { size: 38, fill: COL.dim });
+    wl(p, 'x', '2', 670, m('x2'), { xEq: 640, size: 38, fill: COL.task });
     show(sys.meetBox, m('pt'), .5); pulse(sys.meet, m('pt') + .3);
   }],
 
@@ -349,7 +352,7 @@ const BEATS = [
     ghost(sys, 6, -1, 2, 1, m('go'));
     el.mult(2, m('go') + .2, 2, { count: false });
     lightCells(el, [m('e1'), m('e2'), m('e3')]);
-    const sgn = say(p, ['−1 − 2 = −3'], 470, 680, m('e2') + 1, { size: 34, fill: COL.task });
+    const sgn = say(p, ['y:   −1 − 2 = −3'], 90, 680, m('e2') + 1, { size: 34, fill: COL.task });
     hide(sgn, m('y') - .3, .3);
     hide(w, m('y') - .3, .3);
     const wg = G(p, {});
@@ -358,9 +361,9 @@ const BEATS = [
     wl(wg, 'y', '1', 600, m('y') + 2.4, { xEq: 420, size: 38, fill: COL.task });
     wl(wg, '3x + 1', '7', 660, m('x'), { xEq: 200, size: 38 });
     say(wg, ['→'], 320, 660, m('x') + 2.4, { size: 38, fill: COL.dim });
-    wl(wg, '3x', '6', 660, m('x') + 2.4, { xEq: 420, size: 38 });
-    say(wg, ['→'], 500, 660, m('x2'), { size: 38, fill: COL.dim });
-    wl(wg, 'x', '2', 660, m('x2'), { xEq: 610, size: 38, fill: COL.task });
+    wl(wg, '3x', '6', 660, m('x') + 2.4, { xEq: 440, size: 38 });
+    say(wg, ['→'], 540, 660, m('x2'), { size: 38, fill: COL.dim });
+    wl(wg, 'x', '2', 660, m('x2'), { xEq: 640, size: 38, fill: COL.task });
     tw(wg, { o: 0 }, m('chk') - .4, .4);
     text(p, 'check (2, 1) in the original equations:', 90, 600, m('chk'), { size: 28, fill: COL.dim, weight: 600 });
     say(p, ['3x + y = 7:     3·2 + 1 = 7'], 90, 665, m('c1'), { size: 36, fill: BLUE });
@@ -373,13 +376,13 @@ const BEATS = [
   ['q3', 'Quick check', () => {
     const p = panel(0);
     text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
-    S.sys = twoLines(p, [[1, 1], [2, 3]], [4, 11]);
+    S.sys = twoLines(p, [[1, 1], [2, 3]], [4, 11], { meet: false });
   }, { ask: done => quiz(CARD, [{
     id: 'c-which', prompt: ['Row 2 − 2 × row 1 gives which new row 2?'],
     build: choice([[$m('y = 3')], [$m('y = 7')], [$m('2y = 3')], [$m('4x + 5y = 19')]], 0,
       '2 × row 1 is 2x + 2y = 8. Take it away: 3y − 2y = y and 11 − 8 = 3.',
       [null, 'The right side was not multiplied: take away 2 × 4 = 8, not 4.', 'Only the x number was doubled: 2 × row 1 is 2x + 2y, so 3y − 2y = y.', 'That adds 2 × row 1. Subtract it, so the x numbers cancel.'],
-      () => { const s = S.sys; fxp(q => s.set({ a10: 2 - 2 * q, a11: 3 - 2 * q, b1: 11 - 8 * q }), 0, 1.6); }),
+      () => { const s = S.sys; fxp(q => s.set({ a10: 2 - 2 * q, a11: 3 - 2 * q, b1: 11 - 8 * q }), 0, 1.6); fx(s.meetBox, { o: 1 }, 1.6, .5); }),
   }], done) }],
 
   ['wrap', 'Summary', (m) => {

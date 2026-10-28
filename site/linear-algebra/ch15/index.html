@@ -17,7 +17,7 @@
 <script src="audio/en/timings.js"></script>
 <script>
 'use strict';
-const CHAPTER = { number: 15, title: 'More Numbers Than Axes', minutes: 9, language: 'en' };
+const CHAPTER = { number: 15, title: 'More Numbers Than Axes', minutes: 9, language: 'en' , next: '../ch16/' };
 
 /* ---------- the systems of this chapter ---------- */
 const LA = [[2, -1], [-1, 2]];                          // the lecture's 2 × 2 (the unit close)
@@ -191,7 +191,7 @@ const BEATS = [
       barsFlash(bs, [key], m(k));
       barsFlash(bs, cells, m(kb));
     });
-    const glow = (rows, t, color = COL.task, dur = 1.6) => rows.forEach(i => {
+    const glow = (rows, t, color = COL.chalk, dur = 1.6) => rows.forEach(i => {
       const r = mk('rect', { x: 96, y: bs.zeroY(i) - 35, width: 1430, height: 70, rx: 10, fill: color, 'fill-opacity': .1, stroke: color, 'stroke-opacity': .5, 'stroke-width': 2 }, p);
       put(r, { o: 0 }); show(r, t, .3); hide(r, t + dur, .4);
     });
@@ -246,7 +246,7 @@ const BEATS = [
     show(bs.ax.g, m('same'), .5); bs.eqs.forEach(e => show(e, m('same') + .3, .3));
     const span = m('match') - m('move') + 1.2;
     x9.forEach((x, j) => bs.to({ [`x${j}`]: x }, m('move') + j * span / 9, .55));
-    const cant = text(p, 'nine axes: we can’t draw them.  nine numbers: we can compute, and watch them move.', 800, 855, m('cant'), { size: 28, fill: COL.task, anchor: 'middle', weight: 600 });
+    const cant = text(p, 'nine axes: we can’t draw them.  nine numbers: we can compute, and watch them move.', 800, 855, m('cant'), { size: 28, fill: COL.chalk, anchor: 'middle', weight: 600 });
     hide(cant, m('q') - .3, .3);
     text(p, 'every b?  yes, when each column brings a new direction', 800, 855, m('yes'), { size: 28, fill: COL.good, anchor: 'middle', weight: 600 });
     // keep the bars alive while the voice talks: the amounts step back and land again
@@ -283,11 +283,11 @@ const BEATS = [
     all3({ b0: -4, b1: 2 }, m('no') + 5.6, 1.2);     // a b on their line: endlessly many mixes (rows: one line)
     all3({ a01: -1, a11: 2, b0: 0, b1: 3 }, m('next'), 1.2);
     const big = G(p, { o: 0 });
-    T(big, 'every b?', { x: 90, y: 830, size: 30, fill: COL.task, weight: 600 });
+    T(big, 'every b?', { x: 90, y: 830, size: 30, fill: COL.chalk, weight: 600 });
     show(big, m('big'), .4);
     text(p, 'yes: the columns fill the space', 270, 830, m('yes'), { size: 30, fill: COL.good, weight: 600 });
     text(p, 'no: they lie flat (a line, a plane)', 810, 830, m('no'), { size: 30, fill: COL.bad, weight: 600 });
-    text(p, 'next: Unit 2, elimination', 1520, 110, m('next'), { size: 30, fill: COL.task, anchor: 'end', weight: 600 });
+    text(p, 'next: Unit 2, elimination', 1520, 110, m('next'), { size: 30, fill: COL.dim, anchor: 'end', weight: 600 });
   }],
 
   ['wrap', 'Summary', (m) => {
@@ -297,7 +297,7 @@ const BEATS = [
      ['4 or 9 numbers: no axes to draw, the same rules, the same question.', 'w3'],
      ['Unit 1: row picture, column picture, and A x = b.', 'w4']].forEach(([str, mark], i) => {
       const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
-      mk('circle', { cx: 150, cy: -12, r: 26, fill: COL.task }, g);
+      mk('circle', { cx: 150, cy: -12, r: 26, fill: COL.chalk }, g);
       T(g, String(i + 1), { x: 150, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
       T(g, str, { x: 210, size: 34, weight: 600 });
       tw(g, { o: 1, x: 0 }, m(mark), .6);

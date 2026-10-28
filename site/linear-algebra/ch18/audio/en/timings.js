@@ -440,6 +440,115 @@ window.TIMINGS = {
    ]
   ]
  },
+ "ex3": {
+  "dur": 84.288,
+  "marks": {
+   "eq": 3.841,
+   "c1": 13.698,
+   "l21": 16.758,
+   "w21": 22.487,
+   "s21": 25.521,
+   "l31": 32.461,
+   "w31": 36.315,
+   "s31": 39.987,
+   "c2": 45.69,
+   "l32": 49.349,
+   "w32": 54.062,
+   "s32": 63.828,
+   "u": 71.185,
+   "z": 80.26
+  },
+  "cues": [
+   [
+    0.104,
+    "One more, slowly, with every line of working."
+   ],
+   [
+    3.841,
+    "x plus y plus z equals two."
+   ],
+   [
+    6.432,
+    "Two x plus three y plus z equals one."
+   ],
+   [
+    10.247,
+    "And three x plus y plus four z equals ten."
+   ],
+   [
+    13.698,
+    "Column one."
+   ],
+   [
+    14.714,
+    "The pivot is the one at the top."
+   ],
+   [
+    16.758,
+    "Row two starts with two, so the multiplier is two divided by one: two."
+   ],
+   [
+    22.487,
+    "Two times row one is two, two, two, four."
+   ],
+   [
+    25.521,
+    "Take it away, and watch the coral plane turn: zero, one, minus one, minus three."
+   ],
+   [
+    32.461,
+    "Row three starts with three, so the multiplier is three."
+   ],
+   [
+    36.315,
+    "Three times row one is three, three, three, six."
+   ],
+   [
+    39.987,
+    "Take it away, and the yellow plane turns: zero, minus two, one, four."
+   ],
+   [
+    45.69,
+    "Column two."
+   ],
+   [
+    46.81,
+    "The new pivot is the one in row two."
+   ],
+   [
+    49.349,
+    "Under it sits minus two."
+   ],
+   [
+    51.016,
+    "Minus two divided by one is minus two."
+   ],
+   [
+    54.062,
+    "Taking away minus two rows means adding two rows: two times row two is zero, two, minus two, minus six."
+   ],
+   [
+    63.828,
+    "Add it, and row three becomes zero, zero, minus one, minus two."
+   ],
+   [
+    69.167,
+    "The yellow plane lies flat."
+   ],
+   [
+    71.185,
+    "The triangle again, with pivots one, one, and minus one."
+   ],
+   [
+    75.638,
+    "And through all three steps, the meeting point stayed where it was."
+   ],
+   [
+    80.26,
+    "Minus z equals minus two, so z equals two."
+   ]
+  ]
+ },
  "q3": {
   "dur": 4.728,
   "marks": {},

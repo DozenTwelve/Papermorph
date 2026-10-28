@@ -37,7 +37,7 @@ const three = (p, { A, b }, { t0 = .1, view = VIEW, meet = false } = {}) => {
 const lineOf23 = (sys, t0, dur = 1.6) => prog(q => sys.lines[2].e.setAttribute('stroke-width', 2.5 + 6 * Math.sin(Math.PI * q)), t0, dur, lin);
 // A box round a term of lin3's equations: row i (0–2), term j (0: x, 1: y, 2: z).
 const termBox = (p, i, j, t0, t1, color = COL.task) => {
-  const r = mk('rect', { x: 128 + 135 * j, y: 190 + 70 * i - 42, width: 92, height: 56, rx: 10, fill: 'none', stroke: color, 'stroke-width': 3 }, p);
+  const r = mk('rect', { x: 136 + 135 * j, y: 190 + 70 * i - 42, width: 80, height: 56, rx: 10, fill: 'none', stroke: color, 'stroke-width': 3 }, p);
   put(r, { o: 0 }); show(r, t0, .3); if (t1) hide(r, t1, .3);
   return r;
 };
@@ -133,10 +133,10 @@ const BEATS = [
     V.sway(5, 13);
     sys.focus(2, m('row'));
     termBox(p, 2, 2, m('row') + .8, m('div') + 3);
-    say(p, ['5z = −10'], 90, 450, m('div'), { size: 40, fill: YELLOW });
-    say(p, ['z = −10 ÷ 5 = −2'], 330, 450, m('div') + 2.6, { size: 40, fill: COL.task });
+    say(p, ['5z = −10'], 90, 440, m('div'), { size: 40, fill: YELLOW });
+    say(p, ['z = −10 ÷ 5 = −2'], 330, 440, m('div') + 2.6, { size: 40, fill: COL.task });
     V.turn({ yaw: VIEW.yaw + 15, pitch: 34 }, m('floor'), 2.5);
-    text(p, 'every point on the yellow plane has z = −2', 90, 790, m('floor') + 1, { size: 26, fill: YELLOW, weight: 600 });
+    text(p, 'every point on the yellow plane has z = −2', 90, 490, m('floor') + 1, { size: 26, fill: YELLOW, weight: 600 });
   }],
 
   ['middle', 'The middle row', (m) => {
@@ -145,10 +145,10 @@ const BEATS = [
     const w = G(p, {});
     sys.focus([1, 2], m('eq'));
     termBox(p, 1, 1, m('eq') + .5, m('div') + 3);
-    say(w, ['2y − 2·(−2) = 6'], 90, 520, m('put') + 1.4, { size: 38 });
-    say(w, ['2y + 4 = 6'], 90, 580, m('sign') + 2.4, { size: 38 });
-    say(w, ['2y = 2'], 90, 640, m('sub4'), { size: 38 });
-    say(w, ['y = 1'], 330, 640, m('div') + 1.4, { size: 38, fill: COL.task });
+    say(w, ['2y − 2·(−2) = 6'], 90, 560, m('put') + 1.4, { size: 38 });
+    say(w, ['2y + 4 = 6'], 90, 615, m('sign') + 2.4, { size: 38 });
+    say(w, ['2y = 2'], 90, 670, m('sub4'), { size: 38 });
+    say(w, ['y = 1'], 330, 670, m('div') + 1.4, { size: 38, fill: COL.task });
     lineOf23(sys, m('line') + .4, 2); lineOf23(sys, m('line') + 3, 2);
     V.turn({ yaw: VIEW.yaw - 10, pitch: 28 }, m('line'), 3);
     S.w = w;
@@ -159,11 +159,11 @@ const BEATS = [
     V.sway(5, 13);
     sys.focus(null, m('eq'));
     termBox(p, 0, 0, m('eq') + .5, m('pt'));
-    say(p, ['x + 2·1 + (−2) = 2'], 90, 720, m('put') + 1.6, { size: 38 });
-    say(p, ['x = 2'], 470, 720, m('x'), { size: 38, fill: COL.task });
+    say(p, ['x + 2·1 + (−2) = 2'], 90, 750, m('put') + 1.6, { size: 38 });
+    say(p, ['x = 2'], 470, 750, m('x'), { size: 38, fill: COL.task });
     show(sys.meet.e, m('pt'), .4); pulse(sys.meet.e, m('pt') + .4); pulse(sys.meet.e, m('pt') + 1.6);
     V.turn({ yaw: VIEW.yaw + 20 }, m('pt'), 4);
-    const a = chip(p, ['(2, 1, −2)'], COL.task, { x: 640, y: 628, size: 34 });
+    const a = chip(p, ['(2, 1, −2)'], COL.task, { x: 690, y: 738, size: 34 });
     put(a, { o: 0, s: .6 }); tw(a, { o: 1, s: 1 }, m('ans'), .5, back);
   }],
 
@@ -172,7 +172,7 @@ const BEATS = [
     text(p, 'One new unknown in each row', 60, 110, .2, { size: 40, weight: 600 });
     const sys = three(p, U_, { meet: true });
     sys.space.sway(5, 13);
-    const sh = path(p, 'M120 140L640 140L640 345Z', { fill: COL.task, 'fill-opacity': .1, stroke: COL.task, 'stroke-width': 2 }, { o: 0 });
+    const sh = path(p, 'M106 140H500V354H374V284H239V214H106Z', { fill: COL.task, 'fill-opacity': .1, stroke: COL.task, 'stroke-width': 2, 'stroke-linejoin': 'round' }, { o: 0 });
     show(sh, m('look'), .5); hide(sh, m('r3') + .5, .4);
     termBox(p, 2, 2, m('r3'));
     termBox(p, 1, 1, m('r2')); termBox(p, 1, 2, m('r2') + 1.2, null, COL.dim);
@@ -182,7 +182,7 @@ const BEATS = [
     say(p, ['pivot 0:   ÷ 0 ✗'], 90, 560, m('zero'), { size: 34, fill: COL.bad });
     say(p, ['3x + 8y + z = 12'], 90, 660, m('orig'), { size: 40, fill: CORAL });
     text(p, 'three unknowns at once, none known', 90, 720, m('orig') + 2.5, { size: 28, fill: COL.dim, weight: 600 });
-    const ob = mk('rect', { x: 80, y: 618, width: mathW(['3x + 8y + z'], 40) + 20, height: 58, rx: 10, fill: 'none', stroke: COL.bad, 'stroke-width': 3 }, p);
+    const ob = mk('rect', { x: 80, y: 618, width: mathW(['3x + 8y + z'], 40) + 6, height: 58, rx: 10, fill: 'none', stroke: COL.bad, 'stroke-width': 3 }, p);
     put(ob, { o: 0 }); show(ob, m('orig') + 4, .3); pulse(ob, m('orig') + 5, 1.08);
   }],
 
@@ -241,7 +241,7 @@ const BEATS = [
   ['frac', 'A fraction', (m) => {
     const p = panel(0);
     text(p, 'Fractions change nothing', 60, 110, .2, { size: 40, weight: 600 });
-    const sys = three(p, { A: [[1, 1, 2], [0, 2, 4], [0, 0, 4]], b: [4, 4, 2] }, { t0: m('eq') - .3 });
+    const sys = three(p, { A: [[1, 1, 2], [0, 2, 4], [0, 0, 4]], b: [4, 4, 2] }, { t0: m('eq') - .3, view: { yaw: -40, pitch: 46 } });
     sys.meet.label('(2, 1, ½)');
     sys.space.sway(5, 13);
     sys.focus(0, m('eq') + .8); sys.focus(1, m('eq') + 3); sys.focus(2, m('eq') + 5.4);
@@ -254,7 +254,7 @@ const BEATS = [
     say(p, ['x + 1 + 2·', F(1, 2), ' = 4,   x + 2 = 4'], 90, 680, m('x') + .6, { size: 38 });
     say(p, ['x = 2'], 90, 760, m('x2'), { size: 38, fill: COL.task });
     show(sys.meet.e, m('pt'), .4); pulse(sys.meet.e, m('pt') + .4);
-    sys.space.turn({ yaw: VIEW.yaw + 30 }, m('z'), 14);
+    sys.space.turn({ yaw: -10, pitch: 40 }, m('z'), 14);
   }],
 
   ['q2', 'Your turn', () => {
@@ -268,6 +268,34 @@ const BEATS = [
       'Bottom row first: with z = 1, 5z is 5. Then 2y − 2z with y = 2, z = 1. Then x + 2y + z with all three.',
       () => S.sys.set({ b0: 5, b1: 2, b2: 5 }), ['b0', 'b1', 'b2']),
   }], done) }],
+
+  ['slip', 'A slip, caught', (m) => {
+    const p = panel(0);
+    text(p, 'A slip, caught by the check', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = three(p, { A: U_.A, b: [2, 6, -5] }, { t0: .2, view: { yaw: -35, pitch: 26 } });
+    sys.space.sway(5, 13);
+    termBox(p, 2, 3, m('eq') + .3, m('z') - .2, COL.bad).setAttribute('x', 562);   // the right side of row 3
+    say(p, ['2 − 12 = −5 ✗     (it is −10)'], 90, 430, m('eq') + 1.2, { size: 32, fill: COL.bad });
+    sys.focus(2, m('z'));
+    say(p, ['5z = −5,   z = −1'], 90, 490, m('z') + .4, { size: 34 });
+    sys.focus([1, 2], m('y'));
+    say(p, ['2y + 2 = 6,   y = 2'], 90, 545, m('y') + .4, { size: 34 });
+    sys.focus(null, m('x'));
+    say(p, ['x + 4 − 1 = 2,   x = −1'], 90, 600, m('x') + .4, { size: 34 });
+    // the slipped answer, ringed; then the original system: its planes meet somewhere else
+    const r = ring3(sys.space, [-1, 2, -1], '(−1, 2, −1)?');
+    put(r.e, { o: 0 }); show(r.e, m('x') + 2, .4);
+    sys.to(keys3(LEC), m('orig') + .4, 1.2);
+    show(sys.meet.e, m('orig') + 1.6, .4);
+    [['row 1:   −1 + 4 − 1 = 2', 'c1', true], ['row 2:   −3 + 16 − 1 = 12', 'c2', true], ['row 3:   8 − 1 = 7, not 2', 'c3', false]].forEach(([str, k, ok], i) => {
+      sys.focus(i, m(k));
+      say(p, [str], 90, 670 + 50 * i, m(k) + .3, { size: 30, fill: S3_ROW[i] });
+      text(p, ok ? '✓' : '✗', 470, 670 + 50 * i, m(k) + 2, { size: 30, fill: ok ? COL.good : COL.bad, weight: 700 });
+    });
+    sys.focus(null, m('bad'));
+    pulse(r.e, m('bad') + .5, 1.5); pulse(sys.meet.e, m('bad') + 2, 1.4);
+    sys.space.turn({ yaw: -5, pitch: 26 }, m('orig'), 12);
+  }],
 
   ['q3', 'Quick check', () => {
     const p = panel(0);

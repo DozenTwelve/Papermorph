@@ -25,15 +25,16 @@ window.TIMINGS = {
   ]
  },
  "easy": {
-  "dur": 44.136,
+  "dur": 46.32,
   "marks": {
-   "eq": 3.073,
-   "flat": 7.109,
-   "y": 14.349,
-   "put": 19.648,
-   "x": 25.768,
-   "meet": 29.531,
-   "lesson": 34.401
+   "eq": 3.229,
+   "rows": 7.279,
+   "flat": 9.883,
+   "y": 17.005,
+   "put": 22.318,
+   "x": 28.385,
+   "meet": 32.044,
+   "lesson": 36.888
   },
   "cues": [
    [
@@ -41,47 +42,51 @@ window.TIMINGS = {
     "Let's start with a system that is easy to solve."
    ],
    [
-    3.073,
+    3.229,
     "x plus two y equals five, and two y equals four."
    ],
    [
-    7.109,
+    7.279,
+    "We'll call them row one and row two."
+   ],
+   [
+    9.883,
     "The second equation has no x."
    ],
    [
-    9.648,
+    12.266,
     "In chapter one we saw what that means: x is free, so its line is flat."
    ],
    [
-    14.349,
+    17.005,
     "And it tells us y straight away."
    ],
    [
-    16.393,
+    19.115,
     "Two y equals four, so y equals two."
    ],
    [
-    19.648,
+    22.318,
     "Now put two in place of y in the first equation."
    ],
    [
-    22.891,
+    25.247,
     "x plus two times two equals five."
    ],
    [
-    25.768,
+    28.385,
     "x plus four equals five, so x equals one."
    ],
    [
-    29.531,
+    32.044,
     "The answer is one, two, and there it is, where the two lines meet."
    ],
    [
-    34.401,
+    36.888,
     "So a system is easy when one equation has lost its x."
    ],
    [
-    38.464,
+    40.859,
     "That's our plan for every system: make the second equation lose its x."
    ]
   ]
