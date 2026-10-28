@@ -155,22 +155,22 @@ window.TIMINGS = {
   ]
  },
  "cols2": {
-  "dur": 65.376,
+  "dur": 64.776,
   "marks": {
-   "A": 2.812,
-   "a1": 3.112,
-   "a2": 5.925,
-   "B": 8.229,
-   "n": 15.208,
-   "c1": 19.023,
-   "c2": 26.927,
-   "c3": 35.365,
-   "ab": 42.487,
-   "r1": 43.086,
-   "r2": 46.276,
-   "change": 48.958,
-   "only": 54.987,
-   "why": 61.576
+   "A": 2.865,
+   "a1": 3.19,
+   "a2": 5.951,
+   "B": 7.878,
+   "n": 14.44,
+   "c1": 18.411,
+   "c2": 26.784,
+   "c3": 35.195,
+   "ab": 41.797,
+   "r1": 42.357,
+   "r2": 45.703,
+   "change": 48.151,
+   "only": 54.036,
+   "why": 60.807
   },
   "cues": [
    [
@@ -178,63 +178,63 @@ window.TIMINGS = {
     "Another one, with three columns."
    ],
    [
-    2.812,
+    2.865,
     "A is one, minus one in the first row, and two, one in the second."
    ],
    [
-    8.229,
-    "B has three columns: one, one; then two, one; then zero, three."
+    7.878,
+    "B has three columns: one, one; then two, one; then zero, two."
    ],
    [
-    15.208,
+    14.44,
     "Three columns in B, so three columns in A B."
    ],
    [
-    19.023,
+    18.411,
     "Column one: one of column one of A, plus one of column two."
    ],
    [
-    22.982,
+    22.448,
     "One, two plus minus one, one is zero, three."
    ],
    [
-    26.927,
+    26.784,
     "Column two: two of column one, plus one of column two."
    ],
    [
-    31.445,
+    31.367,
     "Two, four plus minus one, one is one, five."
    ],
    [
-    35.365,
-    "Column three: none of column one, and three of column two."
+    35.195,
+    "Column three: none of column one, and two of column two."
    ],
    [
-    40.352,
-    "That's minus three, three."
+    40.169,
+    "That's minus two, two."
    ],
    [
-    42.487,
-    "So A B is zero, one, minus three on top, and three, five, three below."
+    41.797,
+    "So A B is zero, one, minus two on top, and three, five, two below."
    ],
    [
-    48.958,
+    48.151,
     "Now watch while one number of B changes."
    ],
    [
-    51.589,
-    "The bottom of column three goes from three down to one."
+    50.742,
+    "The bottom of column three goes from two up to four."
    ],
    [
-    54.987,
-    "Only column three of A B moves, to minus one, one."
+    54.036,
+    "Only column three of A B moves, to minus four, four."
    ],
    [
-    58.737,
+    57.904,
     "Columns one and two stay where they are."
    ],
    [
-    61.576,
+    60.807,
     "Each column of A B depends only on its own column of B."
    ]
   ]

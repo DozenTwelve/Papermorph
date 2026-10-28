@@ -11,6 +11,8 @@
 //   P.to({ b01: 3 }, at, dur)               // beat clock: numbers (and sizes mA nA nB pB) move, the product follows
 //   P.reveal({ col: 0 }, at)                // with hideC: true the product shows ? until revealed ('all', {col}, {row}, {cell: [i, j]})
 //   P.link(g, { col: 0 })                   // a grid2 made with x: A and column `col` of B drive it, its drags drive them
+//                                           (Ax and the dots follow reveal(): the picture never shows what AB still hides;
+//                                           a legend under the plane says which column of B and of AB x and Ax are)
 //   P.live(true, { only: ['b01', 'b11'], sizes: false })   // hands on; mmTask is the question type; playAsk works
 //
 // Keys: a<i><j>, b<i><j> (rows and columns from 0), the sizes mA × nA and nB × pB (1 … 3). Loads after engine.js.
@@ -46,7 +48,7 @@ function mmEl(rows, { size = 26, fill = () => 'currentColor' } = {}) {
 }
 
 function mm(p, { A, B, at: [x0, y0] = [70, 300], size = 40, cw = 62, cwC = null, rh = 60, gap = 44, names = ['A', 'B', 'AB'],
-  tintA = null, tintB = null, hideC = false, fillC = COL.task, t0 = .1, work: wpos = null, wsize = 30, sizes = true, o = 0, range = 9 } = {}) {
+  tintA = null, tintB = null, hideC = false, fillC = COL.task, t0 = .1, work: wpos = null, wsize = 36, sizes = true, o = 0, range = 9 } = {}) {
   const svg = $('stage'), K3 = [0, 1, 2];
   const s = { mA: A.length, nA: A[0].length, nB: B.length, pB: B[0].length };
   K3.forEach(i => K3.forEach(j => { s[`a${i}${j}`] = A[i]?.[j] ?? 0; s[`b${i}${j}`] = B[i]?.[j] ?? 0; }));
@@ -121,9 +123,11 @@ function mm(p, { A, B, at: [x0, y0] = [70, 300], size = 40, cw = 62, cwC = null,
     M(mg, [name], { x: x + W / 2, y: top - 16, size: 28, fill: COL.dim, anchor: 'middle' });
     return { g: mg, back, x, W, top, bot, cx, ry, c, cs, rows, cols };
   }
-  // the size under a matrix: "2 × 3", each number scrubbable when sizes are live
+  // the size under a matrix: "2 × 3", each number scrubbable when sizes are live. It lives in its matrix's group, so a
+  // matrix hidden on the beat clock hides its size too.
   function sizeLab(m, kr, kc, rows, cols, yS) {
-    const mid = m.x + m.W / 2, sg = G(body, {});
+    const mid = m.x + m.W / 2, sg = G(m.g, {});
+    if (!sizes) put(sg, { o: 0 });
     const part = (k, v, dx) => {
       const t = T(sg, String(v), { x: mid + dx, y: yS, size: 28, fill: COL.dim, font: MATH, anchor: 'middle', weight: 600 });
       t.style.pointerEvents = 'none';
@@ -142,15 +146,14 @@ function mm(p, { A, B, at: [x0, y0] = [70, 300], size = 40, cw = 62, cwC = null,
     const a = mat('a', d.mA, d.nA, x0, cw, tintA, names[0]);
     const b = mat('b', d.nB, d.pB, a.x + a.W + gap, cw, tintB, names[1]);
     const eqx = b.x + b.W + 40, cx0 = eqx + 40;
-    const midY = y0 + (Math.max(d.mA, d.nB) - 1) * rh / 2 + size * .3;
-    const eq = M(body, ['='], { x: eqx, y: midY, size: size * 1.1, fill: COL.chalk, anchor: 'middle' });
+    const midY = y0 + (d.mA - 1) * rh / 2 + size * .3;   // level with the middle of A and AB (B may be taller)
     const ok = d.nA === d.nB;
     const c = ok ? mat('c', d.mA, d.pB, cx0, cwc, null, names[2]) : null;
+    const eq = M(ok ? c.g : body, ['='], { x: eqx, y: midY, size: size * 1.1, fill: COL.chalk, anchor: 'middle' });   // comes with the product
     const yS = y0 + (Math.max(d.mA, d.nB) - 1) * rh + size * .35 + 42;
     const sa = sizeLab(a, 'mA', 'nA', d.mA, d.nA, yS), sb = sizeLab(b, 'nB', 'pB', d.nB, d.pB, yS);
     const sc = ok ? sizeLab(c, null, null, d.mA, d.pB, yS) : null;
-    const sz = G(body, {});
-    [sa, sb, sc].forEach(q => q && sz.append(q.g));
+    const sz = G(body, {});   // the "must match" join and the rings (the size labels themselves are in the matrices)
     if (!sizes) put(sz, { o: 0 });
     // the inner sizes joined under the matrices: they must match
     const yA = yS + 14, inner = G(sz, { o: innerOn || !ok ? 1 : 0 });
@@ -163,12 +166,12 @@ function mm(p, { A, B, at: [x0, y0] = [70, 300], size = 40, cw = 62, cwC = null,
     let no = null;
     if (!ok) {
       no = G(body, {});
-      const top = y0 - size * .95, hh = Math.max(d.mA, d.nB) * rh + 10;
-      mk('rect', { x: cx0, y: top, width: 330, height: hh, rx: 14, fill: COL.bad, 'fill-opacity': .1, stroke: COL.bad, 'stroke-width': 3, 'stroke-dasharray': '8 6' }, no);
-      T(no, 'no product', { x: cx0 + 165, y: top + hh / 2 - 4, size: 34, fill: COL.bad, anchor: 'middle', weight: 700 });
-      T(no, `a row of ${names[0]} has ${d.nA}, a column of ${names[1]} has ${d.nB}`, { x: cx0 + 165, y: top + hh / 2 + 32, size: 19, fill: COL.bad, anchor: 'middle', weight: 600 });
+      const top = y0 - size * .95, hh = Math.max(d.mA, d.nB) * rh + 10, bw = 420;
+      mk('rect', { x: cx0, y: top, width: bw, height: hh, rx: 14, fill: COL.bad, 'fill-opacity': .1, stroke: COL.bad, 'stroke-width': 3, 'stroke-dasharray': '8 6' }, no);
+      T(no, 'no product', { x: cx0 + bw / 2, y: top + hh / 2 - 4, size: 34, fill: COL.bad, anchor: 'middle', weight: 700 });
+      T(no, `a row of ${names[0]} has ${d.nA}, a column of ${names[1]} has ${d.nB}`, { x: cx0 + bw / 2, y: top + hh / 2 + 32, size: 21, fill: COL.bad, anchor: 'middle', weight: 600 });
     }
-    L = { a, b, c, eq, ok, sz, inner, outer, no, sa, sb, sc, right: ok ? c.x + c.W : cx0 + 330, bottom: yA + 66 };
+    L = { a, b, c, eq, ok, sz, inner, outer, no, sa, sb, sc, right: ok ? c.x + c.W : cx0 + 420, bottom: yA + 66 };
     rebands();
     boxesLive();
   }
@@ -199,7 +202,7 @@ function mm(p, { A, B, at: [x0, y0] = [70, 300], size = 40, cw = 62, cwC = null,
   /* ---------- the working ---------- */
   const W = G(g, {});
   let wMode = null, wIdx = null, wN = 99, wKey = '';
-  const wx = () => wpos ? wpos[0] : x0, wy = () => wpos ? wpos[1] : L.bottom + 84;
+  const wx = () => wpos ? wpos[0] : x0, wy = () => wpos ? wpos[1] : L.bottom + 104;
   function drawWork() {
     const C = prod();
     if (wMode === null || !C) { if (wKey) { W.replaceChildren(); wKey = ''; } return; }
@@ -210,12 +213,14 @@ function mm(p, { A, B, at: [x0, y0] = [70, 300], size = 40, cw = 62, cwC = null,
     if (kk === wKey) return;
     wKey = kk;
     W.replaceChildren();
-    const y = wy(), fs = wsize;
-    let x = wx();
+    let y = wy(), x = wx();
+    const fs = wsize;
     const txt = (st, str, fill = COL.chalk) => { if (st > wN) return; const e = M(W, [].concat(str), { x, y: y + fs * .36, size: fs, fill, anchor: 'start' }); x += (e._w || 20) + 10; };
     const sm = (st, rows, fill) => { if (st > wN) return; x += mmSmall(W, rows, x, y, { size: fs, fill }) + 10; };
+    // a second line, under the first, for working too long for one (a row way at full size)
+    const nl = st => { if (st > wN) return; y += fs * 1.75; x = wx() + fs * .8; };
     const tall = Math.max(wMode === 'rows' ? 1 : d.mA, 1);
-    const cap = str => T(W, str, { x: wx(), y: y - Math.max(48, tall * fs * .55 + 30), size: 24, fill: COL.dim, weight: 600 });
+    const cap = str => T(W, str, { x: wx(), y: y - Math.max(48, tall * fs * .55 + 30), size: 26, fill: COL.dim, weight: 600 });
     const col = v => v.map(q => [q]);
     const [nA, nB, nC] = names;
     if (wMode === 'cols') {
@@ -235,6 +240,7 @@ function mm(p, { A, B, at: [x0, y0] = [70, 300], size = 40, cw = 62, cwC = null,
       const i = wIdx, a = Arow(i);
       cap(`row ${i + 1} of ${nC}  =  row ${i + 1} of ${nA} times ${nB}: a mix of the rows of ${nB}`);
       a.forEach((v, k) => { if (k) txt(1, '+'); txt(1, [...mmFac(v), '·']); sm(1, [Brow(k)], () => tint(tintB, k, 0)); });
+      if (fs > 30) nl(2);
       txt(2, '=');
       a.forEach((v, k) => { if (k) txt(2, '+'); sm(2, [Brow(k).map(b => b * v)], () => tint(tintB, k, 0)); });
       txt(3, '='); sm(3, [C[i]], () => fillC);
@@ -275,13 +281,24 @@ function mm(p, { A, B, at: [x0, y0] = [70, 300], size = 40, cw = 62, cwC = null,
     pic.g.set(pic.rows ? { a00: s.b00, a01: s.b10, a10: s.b01, a11: s.b11, x0: s[`a${c}0`], x1: s[`a${c}1`] }
       : { a00: s.a00, a01: s.a01, a10: s.a10, a11: s.a11, x0: s[`b0${c}`], x1: s[`b1${c}`] });
     quiet = false;
+    // The picture never shows a number AB still hides: Ax (the arrow, its steps and its label) and the numbered dots
+    // appear when their column (row) of AB is revealed. The dot of the column in the picture is Ax itself.
+    const d = D(), n = pic.rows ? d.mA : d.pB;
+    const shown = j => pic.rows ? known[j].slice(0, d.pB).every(Boolean) : known.slice(0, d.mA).every(r => r[j]);
+    const axOn = shown(c);
+    [pic.g.axArrow, pic.g.axDot, pic.g.axLab, ...pic.g.combo].forEach(e => { e.style.visibility = axOn ? '' : 'hidden'; });
     if (pic.dots) {
-      const C = prod(), d = D(), n = pic.rows ? d.mA : d.pB;
+      const C = prod();
       pic.dots.forEach((dt, j) => {
-        const on = j < n;
+        const on = j < n && j !== c && shown(j);
         dt.style.display = on ? '' : 'none';
         if (on) put(dt, pic.rows ? { x: pic.g.P.PX(C[j][0]), y: pic.g.P.PY(C[j][1]) } : { x: pic.g.P.PX(C[0][j]), y: pic.g.P.PY(C[1][j]) });
       });
+    }
+    // grid2 calls the ring x and the arrow Ax; say which column of B and of AB they are here
+    if (pic.say) {
+      const [nA, nB, nC] = names, what = pic.rows ? 'row' : 'column', of = pic.rows ? nA : nB;
+      pic.say.textContent = `here x is ${what} ${c + 1} of ${of},  and Ax is ${what} ${c + 1} of ${nC}`;
     }
   }
   // a number the reader touches brings its column of B (or row of A) into the picture
@@ -378,6 +395,10 @@ function mm(p, { A, B, at: [x0, y0] = [70, 300], size = 40, cw = 62, cwC = null,
     link(gr, { col = 0, dots = false, rows = false } = {}) {
       picCol = col;
       pic = { g: gr, dots: null, rows };
+      const P2 = gr.P;
+      // the legend sits with the ring x, so it is hidden whenever x is
+      pic.say = T(gr.parts.x, '', { x: P2.cx, y: P2.PY(P2.y0) + 44, size: 24, fill: COL.dim, weight: 600, anchor: 'middle' });
+      pic.say.style.pointerEvents = 'none';
       if (dots) {
         pic.dotsG = G(gr.P.g, {});
         pic.dotsG.style.pointerEvents = 'none';   // never over a handle

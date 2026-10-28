@@ -401,6 +401,68 @@ window.TIMINGS = {
    ]
   ]
  },
+ "assoc2": {
+  "dur": 42.408,
+  "marks": {
+   "left": 3.984,
+   "ab": 18.477,
+   "abc": 24.01,
+   "right": 27.552,
+   "bc": 29.453,
+   "abc2": 31.536,
+   "same": 36.771
+  },
+  "cues": [
+   [
+    0.104,
+    "One more time, with the swap, a stretch and the shear."
+   ],
+   [
+    3.984,
+    "A is the swap: zero, one, one, zero."
+   ],
+   [
+    8.516,
+    "B stretches sideways: two, zero, zero, one."
+   ],
+   [
+    12.878,
+    "And C is the shear: one, one, zero, one."
+   ],
+   [
+    17.109,
+    "A B first."
+   ],
+   [
+    18.477,
+    "The swap on the left swaps the rows of B: zero, one, and two, zero."
+   ],
+   [
+    24.01,
+    "Times C: zero, one, and two, two."
+   ],
+   [
+    27.552,
+    "Now B C first."
+   ],
+   [
+    29.453,
+    "Two, two, and zero, one."
+   ],
+   [
+    31.536,
+    "And the swap on the left swaps its rows: zero, one, and two, two."
+   ],
+   [
+    36.771,
+    "The same matrix again."
+   ],
+   [
+    38.281,
+    "The brackets moved, but the order A, B, C did not."
+   ]
+  ]
+ },
  "dist": {
   "dur": 48.216,
   "marks": {
@@ -458,6 +520,64 @@ window.TIMINGS = {
    [
     42.383,
     "Keep A on the left in every term: A B plus A C, never B A."
+   ]
+  ]
+ },
+ "dist2": {
+  "dur": 43.44,
+  "marks": {
+   "add": 3.177,
+   "bc": 9.609,
+   "lhs": 18.451,
+   "ab": 25.299,
+   "ac": 30.794,
+   "sum": 35.677,
+   "same": 39.492
+  },
+  "cues": [
+   [
+    0.104,
+    "Once more, with two matrices we know well."
+   ],
+   [
+    3.177,
+    "A is two, one, zero, one."
+   ],
+   [
+    5.69,
+    "B is the identity, and C is the swap."
+   ],
+   [
+    9.609,
+    "B plus C: one plus zero, zero plus one, zero plus one, one plus zero."
+   ],
+   [
+    17.357,
+    "All ones."
+   ],
+   [
+    18.451,
+    "A times all ones: each row of A just adds up its two numbers."
+   ],
+   [
+    23.229,
+    "Three, three, and one, one."
+   ],
+   [
+    25.299,
+    "Now A times the identity is A itself: two, one, zero, one."
+   ],
+   [
+    30.794,
+    "A times the swap swaps the columns of A: one, two, one, zero."
+   ],
+   [
+    35.677,
+    "Add them: three, three, and one, one."
+   ],
+   [
+    39.492,
+    "The same as A times B plus C, just as the rule says."
    ]
   ]
  },

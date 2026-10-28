@@ -49,6 +49,42 @@ const cellBands = (p, mats, i, j, ymid, t0, size = 34) => mats.forEach(([rows, x
   put(r, { o: 0 }); show(r, t0, .25); hide(r, t0 + 1.7, .3);
 });
 const mmS = (p, A, B, at, names, o = {}) => mm(p, { A, B, at, names, size: 34, cw: 50, rh: 52, sizes: false, ...o });
+// (AB)C on the top line, A(BC) under it, revealed on the marks left, ab, abc, right, bc, abc2.
+const brackets = (p, m, A, B, C) => {
+  const o = { hideC: true };
+  const m1 = mmS(p, A, B, [70, 260], ['A', 'B', 'AB'], { ...o, t0: m('left') - .3 });
+  const m2 = mmS(p, mul(A, B), C, [760, 260], ['AB', 'C', '(AB)C'], { ...o, t0: m('ab') + .8 });
+  const m3 = mmS(p, B, C, [70, 560], ['B', 'C', 'BC'], { ...o, t0: m('right') - .3 });
+  const m4 = mmS(p, A, mul(B, C), [760, 560], ['A', 'BC', 'A(BC)'], { ...o, t0: m('bc') + .8 });
+  [m1, m2, m3, m4].forEach(q => put(q.W, { o: 0 }));
+  [[m1, 'left'], [m2, 'ab'], [m3, 'right'], [m4, 'bc']].forEach(([q, k]) => { put(q.g, { o: 0 }); show(q.g, m(k) - .2 + (k === 'ab' || k === 'bc' ? 1 : 0), .5); });
+  m1.reveal('all', m('ab')); m2.reveal('all', m('abc'));
+  m3.reveal('all', m('bc')); m4.reveal('all', m('abc2'));
+  return { m1, m2, m3, m4 };
+};
+// B + C number by number (the same place lit in all three, `step` seconds apart from bc + off), then A(B + C) on lhs,
+// AB on ab, AC on ac and their sum on sum.
+const madd = (X, Y) => X.map((r, i) => r.map((v, j) => v + Y[i][j]));
+const sums = (p, m, A, B, C, step, off) => {
+  const BC = madd(B, C);
+  const ad = G(p, { o: 0 }); show(ad, m('add'), .5);
+  let x = 70;
+  const BX = [];
+  [['B + C ='], B, ['+'], C, ['='], BC].forEach((it, k) => {
+    if (typeof it[0] === 'string') { const w = M(ad, it, { x, y: 272, size: 34, anchor: 'start' }); x += (w._w || 20) + 12; }
+    else { BX.push(x); const g0 = G(ad, {}); x += mmSmall(g0, it, x, 260, { size: 34 }) + 12; if (k === 5) { put(g0, { o: 0 }); show(g0, m('bc'), .4); } }
+  });
+  const L = mmS(p, A, BC, [760, 260], ['A', 'B + C', 'A(B + C)'], { hideC: true, t0: m('lhs') - .3 });
+  put(L.W, { o: 0 }); put(L.g, { o: 0 }); show(L.g, m('lhs') - .2, .5); L.reveal('all', m('lhs') + 1);
+  const P1 = mmS(p, A, B, [70, 560], ['A', 'B', 'AB'], { hideC: true, t0: m('ab') - .3 });
+  const P2 = mmS(p, A, C, [620, 560], ['A', 'C', 'AC'], { hideC: true, t0: m('ac') - .3 });
+  [P1, P2].forEach(q => put(q.W, { o: 0 }));
+  put(P1.g, { o: 0 }); show(P1.g, m('ab') - .2, .5); P1.reveal('all', m('ab') + 1);
+  put(P2.g, { o: 0 }); show(P2.g, m('ac') - .2, .5); P2.reveal('all', m('ac') + 1);
+  const S_ = named(p, 'AB + AC', madd(mul(A, B), mul(A, C)), 1170, 584, m('sum'), { fill: () => COL.task });
+  [[0, 0], [0, 1], [1, 0], [1, 1]].forEach(([i, j], k) => cellBands(p, [[B, BX[0]], [C, BX[1]], [BC, BX[2]]], i, j, 260, m('bc') + off + k * step));
+  return { L, S_ };
+};
 // Two products side by side, A B and B A, each with the plane it makes; the second follows the first.
 const commute = (p, A, B, { t0 = .1 } = {}) => {
   const P_ = mmS(p, A, B, [60, 230], ['A', 'B', 'AB'], { t0 });
@@ -64,6 +100,7 @@ const commute = (p, A, B, { t0 = .1 } = {}) => {
   P_.onChange(sync); sync(P_.v);
   return { P: P_, Q, gL, gR };
 };
+const rowsStr = X => `[${X.map(r => r.map(num).join(' ')).join('; ')}]`;   // [0 −1; 1 1]
 const same = (C, D_) => C.every((r, i) => r.every((v, j) => Math.abs(v - D_[i][j]) < 1e-9));
 const pairEl = (A, B) => ['A = ', mmEl(A), '      B = ', mmEl(B)];
 const boxes = rows => rows.flatMap((r, i) => [...(i ? [';  '] : []), ...r.flatMap((v, j) => [...(j ? [' '] : []), { box: String(v) }])]);
@@ -83,9 +120,9 @@ const RULEQ = [
   ['(AB)² = A²B² for every A and B', false, '(AB)² = ABAB; turning the middle BA into AB needs AB = BA.'],
 ].map(([s, ok, why]) => ({ parts: [s], ans: [ok ? 't' : 'f'], why }));
 const HANDS = [
-  { A: TURN, B: SHEAR, prompt: 'A is a quarter turn. Change B until AB = BA: both planes end the same way.', why: 'Any B of the form [a −b; b a] works (a turn and a stretch), for example I, or the turn itself.' },
-  { A: [[2, 0], [0, 1]], B: SHEAR, prompt: 'A stretches sideways. Change B until AB = BA.', why: 'B must not mix x and y: its corner numbers must be 0, as in [a 0; 0 d].' },
-  { A: SHEAR, B: [[1, 0], [1, 1]], prompt: 'A is the shear. Change B until AB = BA.', why: 'B must be [a b; 0 a]: another shear (times a number), or the identity.' },
+  { A: TURN, B: SHEAR, tip: 'Try B with equal diagonal numbers and opposite corners.', prompt: 'A is a quarter turn. Change B until AB = BA: both planes end the same way.', why: 'Any B of the form [a −b; b a] works (a turn and a stretch), for example I, or the turn itself.' },
+  { A: [[2, 0], [0, 1]], B: SHEAR, tip: 'Watch the corner numbers of AB and BA: they differ unless the corners of B are 0.', prompt: 'A stretches sideways. Change B until AB = BA.', why: 'B must not mix x and y: its corner numbers must be 0, as in [a 0; 0 d].' },
+  { A: SHEAR, B: [[1, 0], [1, 1]], tip: 'Start from B = A, then try other numbers on the top right.', prompt: 'A is the shear. Change B until AB = BA.', why: 'B must be [a b; 0 a]: another shear (times a number), or the identity.' },
 ];
 
 /* ---------- beats ---------- */
@@ -125,15 +162,16 @@ const BEATS = [
   ['motion', 'First B, then A', (m, D) => {
     const p = panel(0);
     title(p, 'A B x = A (B x):  first B, then A');
-    const P_ = mm(p, { A: TURN, B: SHEAR, at: [70, 280], hideC: true, t0: m('ex') - .3 });
-    put(P_.W, { o: 0 });
+    const P_ = mm(p, { A: TURN, B: SHEAR, at: [70, 280], hideC: true, t0: m('ex') - .3, wsize: 32 });
+    put(P_.W, { o: 0 }); show(P_.W, m('ab') - .2, .3);
     put(P_.g, { o: 0 }); show(P_.g, m('ex'), .5);
     const na = text(p, 'A: quarter turn', P_.L.a.x + P_.L.a.W / 2, 450, m('ex') + 4, { size: 26, fill: COL.dim, weight: 600, anchor: 'middle' });
     const nb = text(p, 'B: shear', P_.L.b.x + P_.L.b.W / 2, 450, m('ex') + 2, { size: 26, fill: COL.dim, weight: 600, anchor: 'middle' });
     [nb, na].forEach(e => hide(e, m('ab') - .4, .3));
     const sx = say(p, ['AB x  =  A (B x)'], 70, 200, m('x'), { size: 36 });
     hide(sx, m('ex') - .3, .3);
-    [text(p, 'B acts first', 340, 250, m('first') + .4, { size: 26, fill: COL.dim, weight: 600 }), text(p, 'then A', 175, 250, m('first') + 3, { size: 26, fill: COL.dim, weight: 600 })].forEach(e => hide(e, m('ex') - .3, .3));
+    [text(p, '1.  B stands next to x: B acts first, making B x', 70, 270, m('first') + .4, { size: 28, fill: COL.dim, weight: 600 }),
+     text(p, '2.  then A acts on what B made: A (B x)', 70, 320, m('first') + 3, { size: 28, fill: COL.dim, weight: 600 })].forEach(e => hide(e, m('ex') - .3, .3));
     const g = motion(p, 1150, 450, 56, 5);
     P_.flash('b', 'all', m('b'));
     prog(q => g.set(gv(shear(q))), m('b') + .4, 2.4, io);
@@ -181,7 +219,7 @@ const BEATS = [
     S.P = mmS(p, A, B, [90, 260], ['A', 'B', 'AB'], { hideC: true });
     S.Q = mmS(p, B, A, [860, 260], ['B', 'A', 'BA'], { hideC: true });
   }, { ask: done => quiz({ x: 40, y: 470, w: 860, cls: 'side' }, [{
-    id: 'c-order', prompt: ['B swaps. Work out both orders, row by row.'],
+    id: 'c-order', prompt: ['B swaps. Work out both orders.'],
     build: blanks([
       { parts: ['AB  =  [', ...boxes([[0, 1], [2, 0]]), ']'], why: 'B on the right swaps the columns of A: [0 1; 2 0].', hint: 'By columns: column 1 of B, (0, 1), takes column 2 of A.',
         fx: () => fxp(q => { if (q > 0) S.P.uncover('all'); }, 0, .1) },
@@ -232,17 +270,8 @@ const BEATS = [
   ['assoc', 'Brackets can move', (m) => {
     const p = panel(0);
     title(p, '(A B) C  =  A (B C)');
-    const A = [[1, 1], [0, 1]], B = [[2, 0], [0, 1]], C = [[1, 0], [1, 1]];
-    const o = { hideC: true };
-    const m1 = mmS(p, A, B, [70, 260], ['A', 'B', 'AB'], { ...o, t0: m('left') - .3 });
-    const m2 = mmS(p, mul(A, B), C, [760, 260], ['AB', 'C', '(AB)C'], { ...o, t0: m('ab') + .8 });
-    const m3 = mmS(p, B, C, [70, 560], ['B', 'C', 'BC'], { ...o, t0: m('right') - .3 });
-    const m4 = mmS(p, A, mul(B, C), [760, 560], ['A', 'BC', 'A(BC)'], { ...o, t0: m('bc') + .8 });
-    [m1, m2, m3, m4].forEach(q => put(q.W, { o: 0 }));
-    [[m1, 'left'], [m2, 'ab'], [m3, 'right'], [m4, 'bc']].forEach(([q, k]) => { put(q.g, { o: 0 }); show(q.g, m(k) - .2 + (k === 'ab' || k === 'bc' ? 1 : 0), .5); });
+    const { m1, m2, m3, m4 } = brackets(p, m, [[1, 1], [0, 1]], [[2, 0], [0, 1]], [[1, 0], [1, 1]]);
     text(p, 'A, B, C', 1440, 200, m('three'), { size: 30, weight: 600, anchor: 'end' });
-    m1.reveal('all', m('ab')); m2.reveal('all', m('abc'));
-    m3.reveal('all', m('bc')); m4.reveal('all', m('abc2'));
     m2.flash('c', 'all', m('rule')); m4.flash('c', 'all', m('rule') + .2);
     m1.flash('a', 'all', m('rule') + 3); m1.flash('b', 'all', m('rule') + 3.6); m2.flash('b', 'all', m('rule') + 4.2);
     m4.flash('a', 'all', m('rule') + 5.5); m3.flash('a', 'all', m('rule') + 6.1); m3.flash('b', 'all', m('rule') + 6.7);
@@ -252,30 +281,36 @@ const BEATS = [
     text(p, 'chapter 21:  E₃₂ (E₂₁ A) = (E₃₂ E₂₁) A', 900, 860, m('e'), { size: 26, fill: COL.dim, weight: 600 });
   }],
 
+  ['assoc2', 'Brackets, again', (m) => {
+    const p = panel(0);
+    title(p, '(A B) C  =  A (B C),  once more');
+    const { m1, m2, m3, m4 } = brackets(p, m, [[0, 1], [1, 0]], [[2, 0], [0, 1]], SHEAR);
+    text(p, 'A: the swap    B: a stretch    C: the shear', 1500, 170, m('left') + .5, { size: 24, fill: COL.dim, weight: 600, anchor: 'end' });
+    // each matrix lit as it is named; C comes in (under B, in B C) on "and C is the shear"
+    m1.flash('a', 'all', m('left') + .4); m1.flash('b', 'all', m('left') + 4.8);
+    show(m3.g, m('left') + 8.9, .5); m3.flash('b', 'all', m('left') + 9.4);
+    m1.flash('b', { row: 0 }, m('ab') + 1.2); m1.flash('b', { row: 1 }, m('ab') + 1.8);
+    m4.flash('b', { row: 0 }, m('abc2') + 1.2); m4.flash('b', { row: 1 }, m('abc2') + 1.8);
+    m2.flash('c', 'all', m('same'), { color: COL.good }); m4.flash('c', 'all', m('same') + .2, { color: COL.good });
+    text(p, 'the brackets moved;  the order A, B, C did not', 70, 810, m('same') + 2, { size: 30, weight: 600 });
+  }],
+
   ['dist', 'Multiplying a sum', (m) => {
     const p = panel(0);
     title(p, 'A (B + C)  =  A B + A C');
-    const A = [[1, 2], [0, 1]], B = [[1, 0], [2, 1]], C = [[0, 1], [1, 0]], BC = [[1, 1], [3, 1]];
-    const ad = G(p, { o: 0 }); show(ad, m('add'), .5);
-    let x = 70;
-    const BX = [];
-    [['B + C ='], B, ['+'], C, ['='], BC].forEach((it, k) => {
-      if (typeof it[0] === 'string') { const w = M(ad, it, { x, y: 272, size: 34, anchor: 'start' }); x += (w._w || 20) + 12; }
-      else { BX.push(x); const g0 = G(ad, {}); x += mmSmall(g0, it, x, 260, { size: 34 }) + 12; if (k === 5) { put(g0, { o: 0 }); show(g0, m('bc'), .4); } }
-    });
-    const L = mmS(p, A, BC, [760, 260], ['A', 'B + C', 'A(B + C)'], { hideC: true, t0: m('lhs') - .3 });
-    put(L.W, { o: 0 }); put(L.g, { o: 0 }); show(L.g, m('lhs') - .2, .5); L.reveal('all', m('lhs') + 1);
-    const P1 = mmS(p, A, B, [70, 560], ['A', 'B', 'AB'], { hideC: true, t0: m('ab') - .3 });
-    const P2 = mmS(p, A, C, [620, 560], ['A', 'C', 'AC'], { hideC: true, t0: m('ac') - .3 });
-    [P1, P2].forEach(q => put(q.W, { o: 0 }));
-    put(P1.g, { o: 0 }); show(P1.g, m('ab') - .2, .5); P1.reveal('all', m('ab') + 1);
-    put(P2.g, { o: 0 }); show(P2.g, m('ac') - .2, .5); P2.reveal('all', m('ac') + 1);
-    named(p, 'AB + AC', [[7, 3], [3, 1]], 1170, 584, m('sum'), { fill: () => COL.task });
-    // B + C read entry by entry: the same place lit in all three
-    [[0, 0], [0, 1], [1, 0], [1, 1]].forEach(([i, j], k) => cellBands(p, [[B, BX[0]], [C, BX[1]], [BC, BX[2]]], i, j, 260, m('bc') + 1.3 + k * 2.1));
+    const { L } = sums(p, m, [[1, 2], [0, 1]], [[1, 0], [2, 1]], [[0, 1], [1, 0]], 2.1, 1.3);
     L.flash('c', 'all', m('sum') + 2.4);
     text(p, 'column by column:  A(b + c) = Ab + Ac', 70, 790, m('why'), { size: 28, fill: COL.dim, weight: 600 });
     text(p, 'A stays on the left:  AB + AC,  never BA', 70, 850, m('keep'), { size: 28, weight: 600 });
+  }],
+
+  ['dist2', 'A sum, again', (m) => {
+    const p = panel(0);
+    title(p, 'A (B + C)  =  A B + A C,  once more');
+    const { L, S_ } = sums(p, m, [[2, 1], [0, 1]], [[1, 0], [0, 1]], [[0, 1], [1, 0]], 1.6, 1.3);
+    L.flash('a', { row: 0 }, m('lhs') + 2.5); L.flash('a', { row: 1 }, m('lhs') + 4.5);
+    L.flash('c', 'all', m('same'), { color: COL.good }); pulse(S_, m('same') + .2);
+    text(p, 'B = I,  C = the swap', 70, 170, m('add') + 1.5, { size: 24, fill: COL.dim, weight: 600 });
   }],
 
   ['q2', 'Quick check', () => {
@@ -309,15 +344,15 @@ const BEATS = [
     prog(q => g.set(gv(rot(90 * q))), m('t') + .8, 1.6, io);
     named(p, 'T²', [[-1, 0], [0, -1]], 460, 380, m('t2'));
     prog(q => g.set(gv(rot(90 + 90 * q))), m('t2') + .3, 1.6, io);
-    const wn = named(p, 'not', [[0, 1], [1, 0]], 90, 640, m('warn'), { fill: () => COL.bad });
+    const wn = named(p, 'not T²', [[0, 1], [1, 0]], 90, 640, m('warn'), { fill: () => COL.bad });
     prog(q => g.set(gv([[-1 + q, q], [q, -1 + q]])), m('warn') + 3.5, 1.4, io);
     prog(q => g.set(gv([[-q, 1 - q], [1 - q, -q]])), m('warn') + 6.5, 1.4, io);
     text(p, 'each number squared: a flip, not a turn', 90, 730, m('warn') + 2, { size: 26, fill: COL.bad, weight: 600 });
     hide(wn, m('order'), .3);
     named(p, 'T³', [[0, 1], [-1, 0]], 460, 500, m('t3'));
     prog(q => g.set(gv(rot(180 + 90 * q))), m('t3') + .3, 1.6, io);
-    named(p, 'T⁴', [[1, 0], [0, 1]], 760, 260, m('t4'));
-    text(p, '= I', 760, 340, m('t4') + 1.5, { size: 28, fill: COL.dim, weight: 600 });
+    const t4 = named(p, 'T⁴', [[1, 0], [0, 1]], 460, 620, m('t4'));
+    text(p, '= I', 700, 632, m('t4') + 1.5, { size: 34, weight: 600 });
     prog(q => g.set(gv(rot(270 + 90 * q))), m('t4') + .3, 1.6, io);
     text(p, 'A² A  =  A A²  =  A³', 90, 820, m('order'), { size: 34, weight: 600 });
     prog(q => g.set(gv(rot(180 * q))), m('order') + 1, 1.6, io); prog(q => g.set(gv(rot(180 + 90 * q))), m('order') + 2.9, 1.2, io);
@@ -331,7 +366,7 @@ const BEATS = [
   }, { ask: done => quiz({ x: 460, y: 470, w: 560, cls: 'side' }, [{
     id: 'c-commute', prompt: ['Change B until AB = BA.'],
     build: mmTask(S.P, (v, C) => same(C, S.Q.C()), 'AB = BA. For a quarter turn A, B must be [a −b; b a]: a turn with a stretch (I and A itself work too).',
-      (v, C) => `AB = [${C.flat().map(num).join(' ')}] but BA = [${S.Q.C().flat().map(num).join(' ')}]. Try B with equal diagonal numbers and opposite corners.`,
+      (v, C) => `AB = ${rowsStr(C)} but BA = ${rowsStr(S.Q.C())}. Try B with equal diagonal numbers and opposite corners.`,
       () => S.P.set({ b00: 1, b01: 0, b10: 0, b11: 1 }), { only: ['b00', 'b01', 'b10', 'b11'] }),
   }], done) }],
 
@@ -382,7 +417,7 @@ const BEATS = [
     build: (body, api) => {
       S.P.set({ ...Object.fromEntries(Object.entries(gv(h.A)).map(([kk, v]) => [kk, v])), b00: h.B[0][0], b01: h.B[0][1], b10: h.B[1][0], b11: h.B[1][1] });
       return mmTask(S.P, (v, C) => same(C, S.Q.C()), h.why,
-        (v, C) => `AB = [${C.flat().map(num).join(' ')}] but BA = [${S.Q.C().flat().map(num).join(' ')}].`,
+        (v, C) => `AB = ${rowsStr(C)} but BA = ${rowsStr(S.Q.C())}. ${h.tip}`,
         () => S.P.set({ b00: 1, b01: 0, b10: 0, b11: 1 }), { only: ['b00', 'b01', 'b10', 'b11'] })(body, api);
     },
   })), done, 'Chapter practice · set 4 of 4') }],

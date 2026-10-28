@@ -169,6 +169,78 @@ window.TIMINGS = {
    ]
   ]
  },
+ "columns2": {
+  "dur": 57.72,
+  "marks": {
+   "A": 2.604,
+   "B": 8.763,
+   "c1": 12.135,
+   "m1": 19.349,
+   "r1": 21.953,
+   "c2": 23.724,
+   "m2": 30.469,
+   "r2": 33.359,
+   "ab": 35.3,
+   "e12": 39.987,
+   "p12": 49.115,
+   "r12": 54.167,
+   "same": 55.286
+  },
+  "cues": [
+   [
+    0.091,
+    "One more pair, worked both ways."
+   ],
+   [
+    2.604,
+    "A is one, minus one, and one, two."
+   ],
+   [
+    5.729,
+    "Its columns are one, one and minus one, two."
+   ],
+   [
+    8.763,
+    "B is one, two, and one, minus one."
+   ],
+   [
+    12.135,
+    "Way two, column one of B is one, one: one of column one of A, plus one of column two."
+   ],
+   [
+    19.349,
+    "One, one plus minus one, two is zero, three."
+   ],
+   [
+    23.724,
+    "Column two of B is two, minus one: two of column one, and minus one of column two."
+   ],
+   [
+    30.469,
+    "Two, two plus one, minus two is three, zero."
+   ],
+   [
+    35.3,
+    "So A B is zero, three, and three, zero."
+   ],
+   [
+    39.987,
+    "Now check one number by way one: the top of column two."
+   ],
+   [
+    43.945,
+    "Row one of A, one, minus one, times column two of B, two, minus one."
+   ],
+   [
+    49.115,
+    "One times two, plus minus one times minus one: two plus one is three."
+   ],
+   [
+    55.286,
+    "Three, the same number both ways."
+   ]
+  ]
+ },
  "q1": {
   "dur": 3.432,
   "marks": {},
