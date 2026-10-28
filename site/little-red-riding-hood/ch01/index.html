@@ -310,41 +310,32 @@ function butterflyProp(parent) {
 }
 function scene4w(p, D) {
   const cam = paperCam(p, 'forest', CAM4W), st = cam.stage;
-  cam.root.querySelector(':scope > rect').setAttribute('pointer-events', 'none');   // the vignette over the view: taps go through
   // the set's own clouds sit at the very top of this view: one more, lower and drifting, is the one to tap
   const sky = mk('g', {}, st);
   prop(sky, `<g filter="url(#paper)"><circle cx="-40" cy="10" r="30" fill="#fbf4e2"/><circle cx="0" cy="-8" r="40" fill="#fbf4e2"/>
     <circle cx="45" cy="8" r="32" fill="#fbf4e2"/><rect x="-70" y="10" width="148" height="30" rx="15" fill="#fbf4e2"/></g>`);
   mk('rect', { x: -80, y: -56, width: 170, height: 106, rx: 40, fill: 'transparent' }, sky);
   const hits = mk('g', {}, st);   // invisible hit shapes over the set's own things, under the puppets
-  const spot = (word, d) => { const g = mk('g', {}, hits); mk('path', { d, fill: 'transparent' }, g); return { g, word, clip: 'w-' + word }; };
+  const spot = (word, d) => { const g = mk('g', {}, hits); mk('path', { d, fill: 'transparent' }, g); return { g, word }; };
   const at = (sx, sy) => meadowAt(sx, sy).map(v => v.toFixed(0)).join(',');
   const circle = (sx, sy, r) => { const [x, y] = meadowAt(sx, sy), R = r / CAM4W.z; return `M${x - R},${y} a${R},${R} 0 1 0 ${2 * R},0 a${R},${R} 0 1 0 ${-2 * R},0 Z`; };
   const box = (x0, y0, x1, y1) => `M${at(x0, y0)} L${at(x1, y0)} L${at(x1, y1)} L${at(x0, y1)} Z`;
-  const things = [
-    spot('sun', circle(1200, 85, 88)),
-    spot('tree', box(905, 425, 1112, 690)),
-    spot('flower', box(885, 700, 1040, 795)),
-  ];
-  const red = redPuppet(st), basket = mk('g', {}, st), bird = birdProp(st), fly = butterflyProp(st);
-  mk('rect', { x: -44, y: -44, width: 88, height: 88, rx: 20, fill: 'transparent' }, basket);
-  things.splice(1, 0, { g: sky, word: 'cloud', clip: 'w-cloud' });
-  things.push({ g: basket, word: 'basket', clip: 'w-basket' }, { g: bird.g, word: 'bird', clip: 'w-bird' }, { g: fly.g, word: 'butterfly', clip: 'w-butterfly' });
-  MEADOW_THINGS = things;
-  const [RX, RY] = meadowAt(640, 0), GY = 738, s = .6, wipe = trunkWipe(p, 0, .8, 'out');
+  const sun = spot('sun', circle(1200, 85, 88)), tree = spot('tree', box(905, 425, 1112, 690)), flower = spot('flower', box(885, 700, 1040, 795));
+  const red = redPuppet(st), bird = birdProp(st), fly = butterflyProp(st);
+  MEADOW_THINGS = [sun, { g: sky, word: 'cloud' }, tree, flower, { g: red.g.querySelector('[data-p="basketF"]'), word: 'basket' },   // the basket in her right hand
+    { g: bird.g, word: 'bird' }, { g: fly.g, word: 'butterfly' }];
+  const [RX] = meadowAt(640, 0), GY = 738, s = .6;
   const [BX, BY] = meadowAt(1478, 362);   // the bird on the crown of the round tree at the right
   // Red: bent over a flower, then up and round to face us (1.0–1.6); after that she breathes and looks about,
   // for as long as the page waits (draw runs on past D).
   const draw = (q, f) => {
-    cam.apply(q, f); wipe(q);
+    cam.apply(q, f);
     const up = span(q, .9, 1.3), turn = q < 1.1 ? 1 : 1 - Math.min(1, (q - 1.1) / .5), front = q >= 1.6;
     const look = front ? Math.sin(q * .9) : 0, breathe = Math.sin(q * 2.4);
     red.pose({ x: RX, y: hipOn(GY, s) + 10 * (1 - up) - (front ? 1.5 * breathe : 0), s, turn, head: front ? 'F' : 'P',
       kNear: 30 * (1 - up), kFar: 20 * (1 - up), ua: front ? -8 : 40 * (1 - up) - 8 * up, fa: front ? -78 : 30 * (1 - up) - 78 * up,
       rua: 8 + 2 * breathe, rfa: -6, lua: -14, lfa: 40, headR: front ? 6 * look : 14 * (1 - up), cape: 3 + 2 * breathe,
       bouquet: 7, shut: blinking(q, [2.6, 6.4]) || (q > D && (q % 4.3) < 2 / FPS) }, f);
-    // the basket's hit square follows her right hand
-    tf(basket, `translate(${(RX + s * 22).toFixed(1)},${(hipOn(GY, s) + s * 25).toFixed(1)})`);
     const peck = Math.floor(q * 1.3) % 3 === 0 && (q * 1.3) % 1 < .25 ? 1 : 0;
     bird.pose(BX, BY, .8, { peck, look: peck ? 0 : Math.sign(Math.sin(q * .7)) });
     // the butterfly loops slowly over the flowers at the right, wings on twos
@@ -356,7 +347,8 @@ function scene4w(p, D) {
   meadowDraw = draw;
   stopClock(D, draw);
 }
-// While the page waits, the clock of the beat stands still: run the picture on wall time from where it stopped.
+// While the page waits, the clock of the beat stands still: run the picture on wall time from where it stopped
+// (tapWords does that only for tail runs, and stopClock is not one).
 function meadowAsk(done) {
   const i = P.i, gen = P.gen;
   let from = null;
@@ -370,10 +362,7 @@ function meadowAsk(done) {
     requestAnimationFrame(tick);
   };
   requestAnimationFrame(tick);
-  if (typeof tapWords === 'function') return tapWords(MEADOW_THINGS, done);
-  // ponytail: stand-in until the engine's tapWords is merged: a tap says the word, Enter goes on
-  for (const t of MEADOW_THINGS) t.g.addEventListener('click', () => P.waiting && P.gen === gen && new Audio(`audio/en/${t.clip}.mp3`).play());
-  addEventListener('keydown', function go(e) { if (e.key === 'Enter' && P.waiting && P.gen === gen) { removeEventListener('keydown', go); done(); } });
+  tapWords(MEADOW_THINGS, done);
 }
 
 /* ---------- scene 5: Grandma's door ---------- */
@@ -730,7 +719,7 @@ function bgmTick(now) {
   const wait = P.started && P.playing && P.waiting && !P.done;
   if (!(P.i === bgmLast.i && P.t >= bgmLast.t || P.i === bgmLast.i + 1)) for (const m of BGM) m.off = 0;
   bgmLast = { i: P.i, t: P.t };
-  const speaking = P.audio && !P.audio.paused && !P.audio.ended;
+  const speaking = [P.audio, SND.word].some(a => a && !a.paused && !a.ended);   // the narration, or a word tapped (tapWords)
   const master = +(document.getElementById('volume')?.value ?? 1) * (speaking ? .16 : .3);
   for (const m of BGM) {
     const k = m.beats.indexOf(id), current = (on || wait) && k >= 0;
