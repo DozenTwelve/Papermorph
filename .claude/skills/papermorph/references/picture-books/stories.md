@@ -12,6 +12,7 @@ This file covers the story, the shots, the sound and the team; [puppets.md](pupp
 - The script comes first
 - Scenes, shots, cuts
 - Sound
+- Point and read
 - Team
 - Review rounds
 - Delivering
@@ -98,6 +99,36 @@ Voices, levels, effects and music work as in [core/sound.md](../core/sound.md); 
 - **Sounds a voice makes.** A speaking animal (a dog's "Woof!") came out best as an Edge voice shouting the word, trimmed and normalized; synthesized barks lost to it. A whispered "Shh." is shaped pink noise, not Edge's voiced "shh-uh". Write such a clip over the line's MP3 and set its `dur` in `timings.js` before joining.
 - **Effects and music** go on the scene clock (`sfx(scene, t, …)`, `music(…, [scene ids], …)`). When silence is the joke, `window.MUSIC_OFF = { scene: t => … }` fades the music out for the stare.
 - **Captions** are on at a reader's first visit (`chapter.html` does this); after that the reader's own choice is remembered. A caption ends at the first real pause after its words; a hole inside a sentence keeps it up. When that gives words away before they are said (a punchline after a pause), split the caption at the hole in `shots.js` and hold a punchline's caption into the silence after it; do it in the audio script after `join.py`, so a rerun keeps it.
+
+## Point and read
+
+A picture book for young children learning a language can stop once and let the child touch the things in the picture to hear their names, as a point-and-read pen does: Little Red Riding Hood stops in the woods, and a tap on the basket shows **basket** in big letters and says it. It suits a story read to children of about four to seven who are learning the words; it is a pause in the film, so one per episode is plenty, at a moment where the story rests (Red in the meadow once the wolf has gone), never inside a joke's timing. Offer it when the user's readers are young language learners; most picture books have none.
+
+**The words.** Six to eight concrete nouns the child can see in that one picture and probably half knows: tree, flower, basket, bird, mushroom, butterfly. Each should be a whole thing drawn clearly apart from the others, so the child finds it and the word plainly belongs to it; a part too small to find (a coat's button) or an idea (*quiet*) has nothing to point at. The word is the whole lesson: a tap shows the word and says it once, with no sentence and no translation. The beat's narration is one prompt line in the narrator's voice that tells the child what to do ("Little Red Riding Hood saw so many things in the woods. Touch them to hear their names!").
+
+**The beat.** It is the episode's one `ask` beat, with `tapWords(things, done)` as its ask, so the chapter is a film with a question: `film: true` in `CHAPTER` keeps its music and effects, and `questionKeys: false` keeps a lesson's question keys out of the help ([core/engine.md](../core/engine.md#player)). The scene fills the list each time it builds the picture; `g` is what the child taps: a puppet's `g`, a `prop()`, or, for something painted into a baked set, a transparent shape laid over it:
+
+```js
+let WOODS = [];   // the things to tap, filled by scene4w
+function scene4w(p, D) {
+  const cam = paperCam(p, 'woods');
+  const basket = prop(cam.stage, BASKET, { transform: 'translate(640 700)' });
+  const tree = mk('rect', { x: 90, y: 120, width: 260, height: 560, fill: 'transparent' }, cam.stage);   // painted into the set
+  const red = kidPuppet(cam.stage, { coat: '#c94a3c' });
+  WOODS = [{ g: tree, word: 'tree' }, { g: basket, word: 'basket' }, { g: red.g, word: 'girl' }];
+  stopClock(D, (q, f) => { cam.apply(q, f); red.pose({ x: 900, y: 800, shut: q % 4 > 3.85 }, f); });   // blinks every 4 s, while it waits too
+}
+// in BEATS:
+['scene4w', 'In the woods', (m, D) => scene4w(panel(0), D), { lead: false, pre: PRE4W, ask: done => tapWords(WOODS, done) }],
+```
+
+Once the prompt's narration is over the things turn tappable, each with a hit box at least 120 px square (a child's finger on a phone; smaller boxes lie on top of bigger ones). A tap hops the thing, shows its word beside it, above where there is room, and says the word with the music ducked; tapping again says it again. A counter and Continue (Enter) wait in the corner, and Continue lights up with a short praise once every thing has been heard; the child can go on at any time. ← and → move between the things and Enter or Space taps, and each thing is named by its word for a screen reader. While the page waits, the scene's `stopClock` runs on past the beat's end, so pose the puppets as a function of `q` that keeps living there: a breath, a blink every few seconds, a glance. A book with its own early-reader typeface sets `--word-font` in `lib/book.css`.
+
+**The word clips** are plain narration entries, voiced by `tts.py` with the rest and in the same voice: `"w-basket": "basket"` in `narration.<lang>.json` makes `audio/<lang>/w-basket.mp3`. A thing's clip is `'w-' + its word` (lower case, spaces as hyphens: *ice cream* says `w-ice-cream`); `clip: 'w-red'` names another. They stay out of `join.py`'s list, since each plays alone; run `level.py` on them with the other clips.
+
+**The video.** `export.py` cannot tap, so it shows and says the words in turn, as if a child were tapping them ([core/publish.md](../core/publish.md#video-export)).
+
+**Check it** as a child would. `?beat=N` opens the beat; play its prompt and wait: nothing is tappable until the narration ends. Then tap every thing in the browser, by mouse and with the arrows and Enter: is every word beside its thing and not over it, does every word sound, does the counter count, does Continue light up and go on once? Step back into the beat and out of it mid-wait and replay it: no box, card or word may stay behind. `lint.py` names a word whose clip file is missing (it reads the `word: '…'` written in the scene, so write words as literals), and the page warns in the console about a thing with no word, an element that is not on the stage or not in the picture, and a clip that will not load, which `check.py` lists.
 
 ## Team
 

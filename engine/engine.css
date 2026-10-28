@@ -103,6 +103,15 @@ button[hidden] { display: none; }
 .hit:hover .ring, .hit:focus .ring { stroke-opacity: .7; }
 .hit.bad .ring { stroke: var(--bad); stroke-opacity: 1; }
 .hit.good .ring { stroke: var(--good); stroke-opacity: 1; stroke-width: 4; }
+/* Point and read (tapWords): hit boxes over the picture, the word beside a tapped thing, the counter and Continue.
+   A book can set --word-font for its early-reader letters. */
+.tapw .ring { stroke-width: 5; }
+#ui > .card.word { pointer-events: none; padding: 2px 36px 10px; border-left-width: 1.5px; border-radius: 30px; font: 600 96px/1.15 var(--word-font, var(--ui)); white-space: nowrap; animation: word-in .3s cubic-bezier(.3, 1.5, .6, 1); }
+@keyframes word-in { from { transform: scale(.6); opacity: 0; } }
+.card.words .acts { margin: 0; gap: 18px; }
+.card.words .count { font-size: 24px; font-weight: 600; color: var(--dim); }
+.card.words.lit .count { color: var(--good); }
+.card.words.lit .btn.go { animation: word-in .4s cubic-bezier(.3, 1.5, .6, 1); }
 .tok { cursor: grab; touch-action: none; }   /* a finger drags the chip instead of scrolling the page */
 
 /* Controls strip, part of the frame. */
