@@ -828,3 +828,716 @@ const lin3Task = (sys, test, why, hint, reveal, keys = null) => (body, api) => {
     hint: [kbd('Tab'), 'pick a number', kbd('↑'), kbd('↓'), 'change it; drag the picture to turn it'],
   };
 };
+
+/* ---------- numbers and columns you can scrub, for the components below ---------- */
+// A value as math parts: a whole number, a fraction in lowest terms (denominators up to 12), else one decimal.
+function S3_parts(n) {
+  if (Math.abs(n - Math.round(n)) < 1e-9) return [num(Math.round(n) || 0)];
+  for (let q = 2; q <= 12; q++) { const k = Math.round(n * q); if (Math.abs(n * q - k) < 5e-6) return [k < 0 ? '−' : '', F(Math.abs(k), q)]; }
+  const r = Math.round(n * 10) / 10;
+  return [num(r) + (Number.isInteger(r) ? DECIMAL_SIGN + '0' : '')];
+}
+const S3_fmt = n => S3_parts(n).map(x => typeof x === 'string' ? x : x.f.join('/')).join('');
+const S3_pp = n => n < -1e-9 ? ['(', ...S3_parts(n), ')'] : S3_parts(n);   // a number inside a sum: 1 + (−4)
+// One number on screen that the reader can scrub (drag sideways, or focus it and press ↑/↓), as in vecs and lin3.
+// ctx: { v, edit(to), live() → bool, can(key) → bool, step(key), clamp(key, n), slots: [] }.
+// coef: a number in front of a letter; a 1 there is not written (−1 is "−") unless the reader can scrub it.
+// pf: v → parts, for a computed number (no box).
+// abs: the number's size only (a later term, whose sign is drawn before it).
+function S3_slot(g, key, x, y, ctx, { size = 40, fill = COL.chalk, w = size * 1.6, anchor = 'middle', coef = false, pf = null, abs = false } = {}) {
+  const scrub = !pf, svg = $('stage');
+  const bx = anchor === 'middle' ? x - w / 2 : anchor === 'end' ? x - w : x;
+  const box = scrub ? mk('rect', { x: bx, y: y - size * .95, width: w, height: size * 1.3, rx: 10, fill: 'transparent' }, g) : null;
+  const ink = G(g, {}); ink.style.pointerEvents = 'none'; ink.setAttribute('color', fill);
+  let shown = '';
+  const s = {
+    key, box, ink, fill, coef, held: false,
+    set() {
+      let pp = pf ? pf(ctx.v) : S3_parts(abs ? Math.abs(ctx.v[key]) : ctx.v[key]);
+      if (coef && !s.held && pp.length === 1 && /^−?1$/.test(pp[0])) pp = [pp[0].slice(0, -1)];
+      const k = JSON.stringify(pp);
+      if (k === shown) return;
+      shown = k; ink.replaceChildren();
+      const long = pp.some(q => typeof q === 'string' && q.includes(DECIMAL_SIGN));
+      M(ink, pp, { x, y: long ? y - size * .06 : y, size: long ? size * .78 : size, fill: 'currentColor', anchor });
+    },
+    paint(on) {
+      if (!box) return;
+      const ok = on && ctx.can(key);
+      box.style.cursor = ok ? 'ew-resize' : '';
+      box.style.touchAction = ok ? 'none' : '';
+      box.setAttribute('stroke', ok ? COL.faint : 'none');
+      box.setAttribute('stroke-dasharray', '4 6');
+      if (ok) box.setAttribute('tabindex', 0); else box.removeAttribute('tabindex');
+      if (coef && s.held !== ok) { s.held = ok; s.set(); }
+    },
+  };
+  if (box) {
+    box.setAttribute('aria-label', key);
+    let drag = null;
+    const snapTo = n => Math.round(n / ctx.step(key)) * ctx.step(key);
+    box.addEventListener('pointerdown', e => {
+      if (!ctx.live() || !ctx.can(key)) return;
+      e.preventDefault();
+      drag = { x: e.clientX, from: snapTo(ctx.v[key]) };
+      box.setPointerCapture(e.pointerId);
+    });
+    box.addEventListener('pointermove', e => {
+      if (!drag) return;
+      const k = svg.getScreenCTM().a;
+      ctx.edit({ [key]: ctx.clamp(key, drag.from + Math.round((e.clientX - drag.x) / k / 22) * ctx.step(key)) });
+    });
+    const end = () => { drag = null; };
+    box.addEventListener('pointerup', end);
+    box.addEventListener('lostpointercapture', end);
+    box.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); box.blur(); P.keys?.(e); return; }   // Enter checks, as in an answer box
+      if (!ctx.live() || !ctx.can(key)) return;
+      const dd = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 }[e.key];
+      if (!dd) return;
+      e.preventDefault(); e.stopPropagation();   // the player's ←/→ must not leave the beat
+      ctx.edit({ [key]: ctx.clamp(key, snapTo(ctx.v[key]) + dd * ctx.step(key)) });
+    });
+  }
+  ctx.slots.push(s);
+  s.set();
+  return s;
+}
+// A column of three numbers in brackets, centred at x, its middle number on baseline y; keys [k0, k1, k2] (scrubbable)
+// or pf: [v → parts, …] (computed). Returns { g, w }.
+function S3_col(g, keys, x, y, ctx, { size = 38, fill = COL.chalk, w = size * 2, pf = null } = {}) {
+  const rh = size * 1.18, top = y - rh - size * .95, bot = y + rh + size * .38, x0 = x - w / 2, x1 = x + w / 2;
+  path(g, `M${x0 + 12} ${top}H${x0}V${bot}H${x0 + 12}M${x1 - 12} ${top}H${x1}V${bot}H${x1 - 12}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' });
+  [0, 1, 2].forEach(i => S3_slot(g, keys?.[i], x, y + (i - 1) * rh, ctx, { size, fill, w: w - 14, pf: pf?.[i] }));
+  return { g, w };
+}
+
+/* ---------- the subspace test in space ---------- */
+// A set S in space drawn in blue (row 1's colour: S is an equation's plane, or a line), two vectors u and w kept inside
+// S, the numbers c and d, and the combination c·u + d·w from the origin with a ring at its tip: green while it stays in
+// S, red once it leaves. One state (sb.v), so the numbers and the picture move together: scrub any number, drag a tip
+// (it slides in S), drag the plane by its edge (it slides along its normal, k follows), orbit by dragging empty space.
+//   set: 'plane'  n0·x + n1·y + n2·z = k             'line'  every p + t·e (through the origin when p = 0)
+//        'zero'   the zero vector alone              'all'   every vector of space
+//   const sb = subspace3(p, { set, plane: [n0, n1, n2, k], line: { dir: e, at: p }, u, w, c, d, space: { cx, cy, size, range, yaw, pitch } })
+//   state sb.v = { n0 n1 n2 k  e0 e1 e2  p0 p1 p2  u0 u1 u2  w0 w1 w2  c d }
+//   sb.eq({ x, y, size })          the plane's equation, scrubbable, with a blue bar
+//   sb.lineRow({ x, y, size })     the line: [p] + t·[e] (or t·[e] when p is 0 and nothing moves it), scrubbable
+//   sb.vec('u' | 'w', { x, y, size })   u = [ ] as a column;  sb.combo({ x, y, size })  c u + d w = [ ]
+//   sb.check(id, { x, y, size })   one vector ('u', 'w', 'sum') put into S's rule, live, with ✓ or ✗
+//   sb.readout({ x, y, size })     the test of c u + d w with the verdict in words
+//   sb.kind(name, t0);  sb.ok();  sb.inSet(q);  sb.calc() → { cu, dw, sum };  sb.multiples(t0, on)
+//   sb.to / set / onChange / flash / num / show / hide (ids: 'u', 'w', 'cv', 'dw', 'sum', 'set')
+//   sb.live(on, { only: keys, drag: ['u', 'w'], slide: true });  sub3Task(sb, test, why, hint, reveal, opts)
+function subspace3(p, { set = 'plane', plane: N0 = [1, 1, 1, 0], line: L0 = { dir: [1, 2, 2], at: [0, 0, 0] }, u = [1, 0, -1], w = [0, 1, -1], c = 1, d = 1,
+                        space: so = {}, show: shown = ['u', 'w', 'dw', 'sum'], t0 = .1, snap = 1, range = {} } = {}) {
+  const V = space3(p, { t0, ...so }), R = V.R, SET = COL.whole, I = [0, 1, 2], listeners = [], slots = [];
+  // the kind of set is part of the state (v.kind, an index into KINDS): a move planned for later uses the set it will be then
+  const KINDS = ['plane', 'line', 'zero', 'all'], kindOf = s => KINDS[Math.round(s.kind)] ?? 'plane';
+  let live = false, only = null, dragOn = ['u', 'w'], slideOn = true;
+  const v = { c, d, k: N0[3], kind: KINDS.indexOf(set) }, K = () => kindOf(v);
+  I.forEach(j => { v['n' + j] = N0[j]; v['e' + j] = L0.dir[j]; v['p' + j] = (L0.at ?? [0, 0, 0])[j]; v['u' + j] = u[j]; v['w' + j] = w[j]; });
+  const vec = (n, s = v) => I.map(j => s[n + j]);
+  const nrm = (s = v) => vec('n', s), nOK = s => Math.hypot(...nrm(s)) > 1e-9, eOK = s => Math.hypot(...vec('e', s)) > 1e-9;
+  const calc = (s = v) => { const cu = vec('u', s).map(x => s.c * x), dw = vec('w', s).map(x => s.d * x); return { cu, dw, sum: cu.map((x, j) => x + dw[j]) }; };
+  const inSet = (q, s = v) => {
+    const kind = kindOf(s);
+    if (kind === 'all') return true;
+    if (kind === 'zero') return Math.hypot(...q) < 1e-6;
+    if (kind === 'plane') return nOK(s) && Math.abs(S3_dot(nrm(s), q) - s.k) < 1e-6 * (1 + Math.abs(s.k));
+    const r = q.map((x, j) => x - s['p' + j]), e = vec('e', s);
+    return eOK(s) ? Math.hypot(...S3_cross(r, e)) < 1e-6 * (1 + Math.hypot(...r)) : Math.hypot(...r) < 1e-6;
+  };
+  // The coordinate of a point that is solved for on the plane: not one just changed, the largest |n_j| among the rest.
+  const dep = (s, n, changed) => {
+    const free = I.filter(j => !changed.includes(n + j) && Math.abs(s['n' + j]) > 1e-9);
+    const pool = free.length ? free : I.filter(j => Math.abs(s['n' + j]) > 1e-9);
+    return pool.reduce((a, j) => Math.abs(s['n' + j]) > Math.abs(s['n' + a]) ? j : a, pool[0]);
+  };
+  const fix = (s, changed = []) => {
+    const kind = kindOf(s);
+    for (const n of ['u', 'w']) {
+      if (kind === 'zero') I.forEach(j => { s[n + j] = 0; });
+      else if (kind === 'plane' && nOK(s)) {
+        const j = dep(s, n, changed);
+        s[n + j] = (s.k - I.filter(i => i !== j).reduce((t, i) => t + s['n' + i] * s[n + i], 0)) / s['n' + j] || 0;
+      } else if (kind === 'line' && eOK(s)) {
+        const e = vec('e', s), pt = vec('p', s), q = vec(n, s), ch = I.find(j => changed.includes(n + j) && Math.abs(e[j]) > 1e-9 && !I.some(i => i !== j && changed.includes(n + i)));
+        const t = ch !== undefined ? (q[ch] - pt[ch]) / e[ch] : S3_dot(q.map((x, j) => x - pt[j]), e) / S3_dot(e, e);
+        I.forEach(j => { s[n + j] = pt[j] + t * e[j] || 0; });
+      }
+    }
+  };
+  fix(v);
+  let plan = { ...v };
+  const RANGE = key => range[key] ?? (key === 'c' || key === 'd' ? [-5, 5] : key === 'k' ? [-12, 12] : /^[ne]/.test(key) ? [-6, 6] : [-R, R]);
+  const ctx = {
+    v, slots, live: () => live,
+    can: key => key in v && (!only || only.includes(key)),
+    step: key => key === 'c' || key === 'd' ? 1 : snap,
+    clamp: (key, n) => Math.max(RANGE(key)[0], Math.min(RANGE(key)[1], n)),
+    edit: to => edit(to),
+  };
+
+  /* ---------- the picture ---------- */
+  const setG = G(V.content, {}), planeIt = V.plane(0, 0, 0, 0, { color: SET, fo: .2, into: V.polys });
+  const lineIt = V.seg(null, null, { color: SET, w: 6, into: setG });
+  lineIt.e.setAttribute('stroke-linecap', 'round');
+  const zeroIt = V.point(null, { color: SET, r: 12, into: setG });
+  const faces = [];   // 'all': the cube's faces, faintly
+  for (const j of I) for (const sgn of [-1, 1]) {
+    const a = (j + 1) % 3, b = (j + 2) % 3, q = (x, y) => { const r = [0, 0, 0]; r[j] = sgn * R; r[a] = x; r[b] = y; return r; };
+    faces.push(V.poly([q(-R, -R), q(R, -R), q(R, R), q(-R, R)], { color: SET, fo: .05, w: 0 }));
+  }
+  const multL = V.seg(null, null, { color: COL.chalk, w: 2.5, dash: '8 9', into: setG });
+  const multG = G(setG, { o: 0 }); multG.append(multL.e);
+  const COLR = { u: S3_COLS[0], w: S3_COLS[1], cv: S3_COLS[0], dw: S3_COLS[1], sum: COL.chalk };
+  const arrG = G(V.content, {}), A = {};
+  for (const id of ['cv', 'dw', 'u', 'w', 'sum']) {
+    const g = G(arrG, { o: shown.includes(id) ? 1 : 0 });
+    const a = V.arrow(null, null, { color: COLR[id], w: id === 'sum' ? 6 : 5, into: g, ...(id === 'cv' || id === 'dw' ? { dash: '10 8' } : {}) });
+    const lab = V.point(null, { color: COLR[id], r: .1, label: '', size: 28, into: g, halo: true });
+    A[id] = { g, a, lab };
+  }
+  const ringP = V.point(null, { color: COL.good, r: 17, into: arrG });
+  const ringC = ringP.e.firstChild;
+  Object.entries({ fill: 'none', 'stroke-width': 4 }).forEach(([k, x]) => ringC.setAttribute(k, x));
+  const ring = G(arrG, { o: shown.includes('sum') ? 1 : 0 }); ring.append(ringP.e);
+  const term = (k, n) => Math.abs(k - 1) < 1e-9 ? n : Math.abs(k + 1) < 1e-9 ? '−' + n : S3_fmt(k) + n;
+  const nice = n => !S3_fmt(n).includes(DECIMAL_SIGN);
+  const sumLabel = s => {
+    if (!nice(s.c) || !nice(s.d)) return '';
+    if (!s.c && !s.d) return '0';
+    if (!s.d) return term(s.c, 'u');
+    if (!s.c) return term(s.d, 'w');
+    return `${term(s.c, 'u')} ${s.d < 0 ? '−' : '+'} ${term(Math.abs(s.d), 'w')}`;
+  };
+
+  // tip handles for u and w
+  const tips = ['u', 'w'].map(n => {
+    const g = G(V.content, {});
+    mk('circle', { r: 22, fill: 'transparent' }, g);
+    const rg = mk('circle', { r: 13, fill: 'none', stroke: COLR[n], 'stroke-width': 3, 'stroke-dasharray': '4 4' }, g);
+    rg.style.opacity = 0; g.style.pointerEvents = 'none';
+    g.setAttribute('aria-label', 'tip of ' + n);
+    return { n, g, rg };
+  });
+  const planeHit = path(V.content, '', { stroke: 'transparent', 'stroke-width': 26, fill: 'none' });
+  planeHit.style.pointerEvents = 'none';
+  planeHit.setAttribute('aria-label', 'the plane');
+  V.on(proj => {
+    const d = planeIt.e.getAttribute('d');
+    if (planeHit.getAttribute('d') !== d) planeHit.setAttribute('d', d);
+    tips.forEach(t => { const q = proj(vec(t.n)); put(t.g, { x: Math.round(q[0] * 10) / 10, y: Math.round(q[1] * 10) / 10 }); });
+  });
+
+  function draw() {
+    slots.forEach(s => s.set());
+    planeIt.visible = K() === 'plane';
+    planeIt.set(...nrm(), v.k);
+    let la = null, lb = null;
+    if (K() === 'line' && eOK(v)) { const e = vec('e'), L = Math.hypot(...e), pt = vec('p'), f = 6 * R / L; [la, lb] = S3_clipSeg(pt.map((x, j) => x - f * e[j]), pt.map((x, j) => x + f * e[j]), R) || [null, null]; }
+    lineIt.set(la, lb);
+    zeroIt.set(K() === 'zero' ? [0, 0, 0] : null);
+    faces.forEach(f => { f.on = K() === 'all'; f.e.style.display = K() === 'all' ? '' : 'none'; });
+    const uu = vec('u');
+    const f = Math.hypot(...uu) > 1e-9 ? 6 * R / Math.hypot(...uu) : 0;
+    multL.set(...(f && S3_clipSeg(uu.map(x => -f * x), uu.map(x => f * x), R) || [null, null]));
+    const k = calc(), O = [0, 0, 0], ends = { u: [O, uu], w: [O, vec('w')], cv: [O, k.cu], dw: [k.cu, k.sum], sum: [O, k.sum] };
+    for (const id in A) {
+      const [a, b] = ends[id], L = Math.hypot(...b.map((x, j) => x - a[j]));
+      A[id].a.set(L > 1e-6 ? a : null, L > 1e-6 ? b : null);
+      A[id].lab.set(id === 'sum' || L > .3 ? b : null);
+      A[id].lab.label(id === 'sum' ? sumLabel(v) : id === 'cv' ? (nice(v.c) && Math.abs(v.c - 1) > 1e-9 ? term(v.c, 'u') : '') : id === 'dw' ? (nice(v.d) && Math.abs(v.d - 1) > 1e-9 ? term(v.d, 'w') : '') : id);
+    }
+    ringP.set(k.sum);
+    ringC.setAttribute('stroke', inSet(k.sum) ? COL.good : COL.bad);
+    listeners.forEach(f => f(v, k));
+    V.redraw();
+  }
+  function edit(to) {
+    const changed = Object.keys(to).filter(key => v[key] !== to[key]);
+    if (!changed.length) return;
+    changed.forEach(key => { v[key] = to[key]; });
+    fix(v, changed);
+    draw();
+  }
+
+  /* ---------- dragging in space ---------- */
+  // The point on the plane n·q = kk under the pointer: the screen point at depth t is affine in t, so one division finds it.
+  const onPlane = (sx, sy, n, kk) => {
+    const P0 = V.unproj(sx, sy, 0), P1 = V.unproj(sx, sy, 1).map((x, j) => x - P0[j]), den = S3_dot(n, P1);
+    if (Math.abs(den) < 1e-9) return null;
+    const t = (kk - S3_dot(n, P0)) / den;
+    return P0.map((x, j) => x + t * P1[j]);
+  };
+  const snapTo = x => Math.round(x / snap) * snap;
+  // Where a dragged tip lands in S, from the pointer's place on screen.
+  const landing = (n, [sx, sy]) => {
+    if (K() === 'zero') return null;
+    if (K() === 'line') {
+      if (!eOK(v)) return null;
+      const pt = vec('p'), e = vec('e'), A0 = V.proj(pt), B0 = V.proj(pt.map((x, j) => x + e[j])), dx = B0[0] - A0[0], dy = B0[1] - A0[1], L2 = dx * dx + dy * dy;
+      if (L2 < 1) return null;
+      const t = snapTo(((sx - A0[0]) * dx + (sy - A0[1]) * dy) / L2), q = pt.map((x, j) => x + t * e[j]);
+      return q.every(x => Math.abs(x) <= R + 1e-9) ? q : null;
+    }
+    const nn = K() === 'plane' ? nrm() : [0, 0, 1], kk = K() === 'plane' ? v.k : v[n + '2'];
+    if (K() === 'plane' && !nOK(v)) return null;
+    const q = onPlane(sx, sy, nn, kk);
+    if (!q) return null;
+    const j = I.reduce((a, i) => Math.abs(nn[i]) > Math.abs(nn[a]) ? i : a, 0);
+    I.forEach(i => { if (i !== j) q[i] = Math.max(-R, Math.min(R, snapTo(q[i]))); });
+    q[j] = (kk - I.filter(i => i !== j).reduce((t, i) => t + nn[i] * q[i], 0)) / nn[j];
+    return Math.abs(q[j]) <= R + 1e-9 ? q : null;
+  };
+  const tipOK = n => live && dragOn.includes(n) && K() !== 'zero' && I.every(j => ctx.can(n + j));
+  tips.forEach(({ n, g }) => {
+    let on = false;
+    g.addEventListener('pointerdown', e => { if (!tipOK(n)) return; e.preventDefault(); e.stopPropagation(); on = true; g.setPointerCapture(e.pointerId); });
+    g.addEventListener('pointermove', e => { if (!on) return; const q = landing(n, V.local(e)); if (q) edit(Object.fromEntries(I.map(j => [n + j, q[j]]))); });
+    const up = () => { on = false; };
+    g.addEventListener('pointerup', up);
+    g.addEventListener('lostpointercapture', up);
+    // keys: ←/→ and ↑/↓ step the two free coordinates on a plane (or t along a line); in 'all' ←/→ x, ↑/↓ z, Shift+↑/↓ y
+    g.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); g.blur(); P.keys?.(e); return; }
+      if (!tipOK(n)) return;
+      const lr = { ArrowLeft: -1, ArrowRight: 1 }[e.key], ud = { ArrowDown: -1, ArrowUp: 1 }[e.key];
+      if (!lr && !ud) return;
+      e.preventDefault(); e.stopPropagation();
+      const q = vec(n);
+      if (K() === 'line') { const pt = vec('p'), ee = vec('e'), t = snapTo(S3_dot(q.map((x, j) => x - pt[j]), ee) / S3_dot(ee, ee)) + (lr || ud) * snap; const r = pt.map((x, j) => x + t * ee[j]); if (r.every(x => Math.abs(x) <= R + 1e-9)) edit(Object.fromEntries(I.map(j => [n + j, r[j]]))); return; }
+      const free = K() === 'plane' ? I.filter(j => j !== dep(v, n, [])) : [0, e.shiftKey ? 1 : 2];
+      const j = lr ? free[0] : free[1];
+      edit({ [n + j]: ctx.clamp(n + j, snapTo(q[j]) + (lr || ud) * snap) });
+    });
+  });
+  // The plane slides along its normal: moving it by t·n raises k by t·|n|²; t from the pointer's motion along the normal
+  // as drawn on screen (as lin3's planes).
+  const slideOK = () => live && slideOn && K() === 'plane' && ctx.can('k');
+  let sl = null;
+  planeHit.addEventListener('pointerdown', e => {
+    if (!slideOK()) return;
+    e.preventDefault(); e.stopPropagation();
+    const n = nrm(), c0 = planeIt.pts ? I.map(j => planeIt.pts.reduce((s, q) => s + q[j], 0) / planeIt.pts.length) : [0, 0, 0];
+    const P0 = V.proj(c0), P1 = V.proj(c0.map((x, j) => x + n[j]));
+    sl = { at: V.local(e), k0: v.k, n2: S3_dot(n, n), ns: [P1[0] - P0[0], P1[1] - P0[1]] };
+    planeHit.setPointerCapture(e.pointerId);
+  });
+  planeHit.addEventListener('pointermove', e => {
+    if (!sl) return;
+    const [x, y] = V.local(e), t = ((x - sl.at[0]) * sl.ns[0] + (y - sl.at[1]) * sl.ns[1]) / Math.max(sl.ns[0] ** 2 + sl.ns[1] ** 2, 400);
+    edit({ k: ctx.clamp('k', Math.round(sl.k0 + t * sl.n2)) });
+  });
+  const slEnd = () => { sl = null; };
+  planeHit.addEventListener('pointerup', slEnd);
+  planeHit.addEventListener('lostpointercapture', slEnd);
+  planeHit.addEventListener('pointerenter', () => { if (slideOK()) planeIt.width(6); });
+  planeHit.addEventListener('pointerleave', () => planeIt.width(3));
+
+  /* ---------- the algebra on the left ---------- */
+  const testParts = (q, short = false) => {
+    if (K() === 'plane') {
+      const out = [];
+      I.forEach(j => {
+        const a = v['n' + j];
+        if (Math.abs(a) < 1e-9) return;
+        const neg = a < 0, m = Math.abs(a), t = Math.abs(m - 1) < 1e-9 ? S3_pp(q[j]) : [...S3_parts(m), '·', ...S3_pp(q[j])];
+        out.push(...(out.length ? [neg ? ' − ' : ' + '] : neg ? ['−'] : []), ...t);
+      });
+      return [...out, ' = ', ...S3_parts(S3_dot(nrm(), q))];
+    }
+    const col = q.map(S3_fmt).join(', ');
+    if (K() === 'line') {
+      const pt = vec('p'), e = vec('e'), r = q.map((x, j) => x - pt[j]), t = eOK(v) ? S3_dot(r, e) / S3_dot(e, e) : 0, off = Math.hypot(...pt) > 1e-9;
+      if (short) return inSet(q) ? ['t = ', ...S3_parts(t)] : ['not on the line'];   // one vector's check: which multiple it is
+      return inSet(q) ? [off ? `(${col}) = (${pt.map(S3_fmt).join(', ')}) + ` : `(${col}) = `, ...S3_parts(t), `·(${e.map(S3_fmt).join(', ')})`] : [`(${col})`];
+    }
+    return [`(${col})`];
+  };
+  const verdict = (q, ok) => K() === 'plane' ? (ok ? `${S3_fmt(v.k)}, as the plane needs: in the plane ✓` : `not ${S3_fmt(v.k)}: off the plane ✗`)
+    : K() === 'line' ? (ok ? 'on the line ✓' : 'not on the line ✗')
+    : K() === 'zero' ? (ok ? 'the zero vector: still inside ✓' : 'not the zero vector: outside ✗')
+    : 'a vector of space: inside ✓';
+  const live_ = (g, f) => { let key = ''; const upd = () => { const k = f(null); const s = JSON.stringify(k[0]); if (s === key) return; key = s; g.replaceChildren(); k[1](); }; listeners.push(upd); upd(); return g; };
+  const sb = {
+    V, space: V, v, calc: () => calc(), inSet: q => inSet(q), ok: () => inSet(calc().sum), kindNow: K, A, ring, setG, plane: planeIt, line: lineIt, mult: multG, faces,
+    to(next, at, dur = 1.2, ease = io) {
+      const from = { ...plan };
+      plan = { ...plan, ...next };
+      fix(plan, Object.keys(next));
+      const goal = { ...plan };
+      prog(q => edit(Object.fromEntries(Object.keys(goal).map(k => [k, from[k] + (goal[k] - from[k]) * q]))), at, dur, ease);
+    },
+    set: to => edit(to),
+    onChange(f) { listeners.push(f); f(v, calc()); },
+    num: key => slots.filter(s => s.key === key).map(s => s.ink),
+    flash(key, at) { slots.filter(s => s.key === key).forEach(s => { tw(s.ink, { c_color: COL.task }, at, .25); tw(s.ink, { c_color: s.fill }, at + 1.2, .6); }); },
+    show(ids, at, dur = .5) { [].concat(ids).forEach(id => { show(id === 'set' ? setG : A[id].g, at, dur); if (id === 'sum') show(ring, at, dur); if (id === 'set') planeIt.fade(1, at, dur); }); },
+    hide(ids, at, dur = .5) { [].concat(ids).forEach(id => { hide(id === 'set' ? setG : A[id].g, at, dur); if (id === 'sum') hide(ring, at, dur); if (id === 'set') planeIt.fade(0, at, dur); }); },
+    kind(name, at) {
+      const n = KINDS.indexOf(name);
+      if (at === undefined) { plan.kind = n; edit({ kind: n }); } else sb.to({ kind: n }, at, 0);
+    },
+    multiples(at, on = true, dur = .6) { tw(multG, { o: on ? 1 : 0 }, at, dur); },
+    eq({ x = 90, y = 200, size: sz = 44, o = 1 } = {}) {
+      const g = G(p, { o });
+      mk('rect', { x: x - 30, y: y - sz * .7, width: 8, height: sz * .8, rx: 4, fill: SET }, g);
+      const sp = sz * 2.7;
+      ['x', 'y', 'z'].forEach((L, j) => {
+        const sx = x + j * sp, key = 'n' + j;
+        if (j) S3_slot(g, null, sx - sz * .5, y, ctx, { size: sz, pf: s => [s[key] < -1e-9 ? '−' : '+'] });
+        S3_slot(g, key, sx + sz * 1.0, y, ctx, { size: sz, anchor: 'end', w: sz * 1.25, coef: true, abs: j > 0 });
+        const t = T(g, L, { x: sx + sz * 1.06, y, size: sz, fill: COL.chalk, font: MATH }); t.setAttribute('font-style', 'italic');
+      });
+      const ex = x + 3 * sp - sz * .6;
+      T(g, '=', { x: ex, y, size: sz, fill: COL.chalk, font: MATH, anchor: 'middle' });
+      S3_slot(g, 'k', ex + sz * .75, y, ctx, { size: sz, anchor: 'start', w: sz * 1.4 });
+      draw();
+      return g;
+    },
+    lineRow({ x = 90, y = 210, size: sz = 34, o = 1, at = true } = {}) {
+      const g = G(p, { o }), w = sz * 2, gp = G(g, {});
+      mk('rect', { x: x - 30, y: y - sz * .7, width: 8, height: sz * .8, rx: 4, fill: SET }, g);
+      let cx = x;
+      if (at) { S3_col(gp, ['p0', 'p1', 'p2'], cx + w / 2, y, ctx, { size: sz, w }); T(gp, '+', { x: cx + w + sz * .5, y: y + sz * .3, size: sz, fill: COL.chalk, font: MATH, anchor: 'middle' }); cx += w + sz; }
+      const t = T(g, 't', { x: cx + sz * .2, y: y + sz * .3, size: sz, fill: COL.chalk, font: MATH }); t.setAttribute('font-style', 'italic');
+      T(g, '·', { x: cx + sz * .7, y: y + sz * .3, size: sz, fill: COL.chalk, font: MATH });
+      S3_col(g, ['e0', 'e1', 'e2'], cx + sz * 1.2 + w / 2, y, ctx, { size: sz, w, fill: SET });
+      draw();
+      return { g, at: gp };
+    },
+    vec(n, { x = 90, y = 360, size: sz = 34, o = 1 } = {}) {
+      const g = G(p, { o }), w = sz * 2;
+      const t = T(g, n, { x, y: y + sz * .3, size: sz * 1.1, fill: COLR[n], font: MATH }); t.setAttribute('font-style', 'italic');
+      T(g, '=', { x: x + sz * 1.15, y: y + sz * .3, size: sz, fill: COL.chalk, font: MATH, anchor: 'middle' });
+      S3_col(g, [n + '0', n + '1', n + '2'], x + sz * 1.7 + w / 2, y, ctx, { size: sz, w, fill: COLR[n] });
+      draw();
+      return g;
+    },
+    combo({ x = 90, y = 560, size: sz = 34, o = 1 } = {}) {
+      const g = G(p, { o }), w = sz * 2;
+      let cx = x;
+      S3_slot(g, 'c', cx + sz * .9, y + sz * .3, ctx, { size: sz, anchor: 'end', w: sz * 1.2, coef: true });
+      const t1 = T(g, 'u', { x: cx + sz * .95, y: y + sz * .3, size: sz * 1.1, fill: COLR.u, font: MATH }); t1.setAttribute('font-style', 'italic');
+      cx += sz * 1.75;
+      S3_slot(g, null, cx + sz * .3, y + sz * .3, ctx, { size: sz, pf: s => [s.d < -1e-9 ? '−' : '+'] });
+      S3_slot(g, 'd', cx + sz * 1.75, y + sz * .3, ctx, { size: sz, anchor: 'end', w: sz * 1.2, coef: true, abs: true });
+      const t2 = T(g, 'w', { x: cx + sz * 1.8, y: y + sz * .3, size: sz * 1.1, fill: COLR.w, font: MATH }); t2.setAttribute('font-style', 'italic');
+      cx += sz * 2.8;
+      T(g, '=', { x: cx + sz * .3, y: y + sz * .3, size: sz, fill: COL.chalk, font: MATH, anchor: 'middle' });
+      S3_col(g, null, cx + sz * .8 + w / 2, y, ctx, { size: sz, w, pf: I.map(j => s => S3_parts(calc(s).sum[j])) });
+      draw();
+      return g;
+    },
+    check(id, { x = 90, y = 470, size: sz = 26, o = 1 } = {}) {
+      const g = G(p, { o });
+      return live_(g, () => {
+        const q = id === 'sum' ? calc().sum : vec(id), ok = inSet(q), tp = testParts(q, id !== 'sum');
+        return [[tp, ok, K()], () => { const e = M(g, tp, { x, y, size: sz, fill: COL.chalk, anchor: 'start' }); T(g, ok ? '  ✓' : '  ✗', { x: x + e._w, y, size: sz, fill: ok ? COL.good : COL.bad, weight: 700 }); }];
+      });
+    },
+    readout({ x = 90, y = 680, size: sz = 32, o = 1 } = {}) {
+      const g = G(p, { o });
+      return live_(g, () => {
+        const q = calc().sum, ok = inSet(q), tp = testParts(q), w = verdict(q, ok);
+        return [[tp, w], () => { M(g, tp, { x, y, size: sz, fill: COL.chalk, anchor: 'start' }); T(g, w, { x, y: y + sz * 1.35, size: sz * .82, fill: ok ? COL.good : COL.bad, weight: 600 }); }];
+      });
+    },
+    live(on, { only: keys = null, drag = ['u', 'w'], slide = true } = {}) {
+      live = on; only = keys; dragOn = drag; slideOn = slide;
+      V.live(on);
+      slots.forEach(s => s.paint(on));
+      tips.forEach(({ n, g, rg }) => {
+        const ok = tipOK(n) && st(A[n].g).o > .3;
+        g.style.pointerEvents = ok ? '' : 'none'; g.style.cursor = ok ? 'grab' : ''; rg.style.opacity = ok ? 1 : 0;
+        if (ok) g.setAttribute('tabindex', 0); else g.removeAttribute('tabindex');
+      });
+      planeHit.style.pointerEvents = slideOK() ? '' : 'none';
+      planeHit.style.cursor = slideOK() ? 'move' : '';
+    },
+    redraw: draw,
+  };
+  draw();
+  return sb;
+}
+
+// A question that is a task on the 3D subspace test: the reader changes it until test(v, sb) holds, then checks.
+const sub3Task = (sb, test, why, hint, reveal, opts) => (body, api) => {
+  sb.live(true, opts);
+  const say = f => typeof f === 'function' ? f(sb.v, sb) : f;
+  return {
+    check: () => { const ok = !!test(sb.v, sb); api.grade(ok, say(ok ? why : hint)); },
+    reveal: () => { reveal?.(); return say(why); },
+    lock: () => sb.live(false),
+    hint: [kbd('Tab'), ' pick a number ', kbd('↑'), kbd('↓'), ' change it; drag a tip, the plane by its edge, or empty space to turn'],
+  };
+};
+
+/* ---------- the column space of a 3 × 2 matrix ---------- */
+// Two columns in space, everything they can make, C(A), and a target b. One state, cs.v = { a00 a01 a10 a11 a20 a21
+// b0 b1 b2 x0 x1 } (x0, x1: the mix x, y). A changed mix (or A) moves b to A x, so b rides in C(A); a changed b solves
+// for the mix again when b is in C(A) and leaves it when b is off (then no mix reaches b).
+// Picture: column 1 green, column 2 violet, C(A) amber (where b can be: a plane, a line or the origin alone), b amber;
+// the mix drawn tip to tail (x·col 1, then y·col 2, dashed) when it reaches b; when b is off C(A), a red ring on b and
+// a dashed drop from b to C(A). b's tip and the columns' tips drag one axis at a time, as lin3's.
+//   const cs = colsp3(p, { A, b, space: { cx, cy, size, range, yaw, pitch }, rows2: { cx, cy, u, r } })
+//   cs.form({ x, y, size })      x·[col 1] + y·[col 2] = [b], every number scrubbable
+//   cs.eqs({ x, y, size })       the three equations a·x + b·y = bᵢ, with their row colours
+//   cs.readout({ x, y, size })   "x = 1,  y = 1" (amber), "many mixes …" or "no mix: b is not in C(A)"
+//   rows2: the row picture: each equation a line in the x y plane (blue, coral, yellow), the mix a dot where all three meet
+//   cs.solve() → { x, y } | { many: true, x, y (one of them) } | { none: true };  cs.inC(q);  cs.span() → 'plane' | 'line' | 'zero'
+//   cs.to / set / onChange / flash / num / live(on, { only: keys, drag: ['b', 0, 1] });  cs.cols, cs.bArrow, cs.CA, cs.R2
+//   csTask(cs, test, why, hint, reveal, opts): a hands-on question.
+function colsp3(p, { A = [[1, 3], [2, 3], [4, 1]], b = [4, 5, 5], space: so = {}, rows2 = null, t0 = .1 } = {}) {
+  const V = space3(p, { t0, ...so }), R = V.R, I = [0, 1, 2], J = [0, 1], listeners = [], slots = [], svg = $('stage');
+  let live = false, only = null, dragOn = ['b', 0, 1];
+  const v = { x0: 0, x1: 0 };
+  I.forEach(i => { J.forEach(j => { v[`a${i}${j}`] = A[i][j]; }); v['b' + i] = b[i]; });
+  const col = (j, s = v) => I.map(i => s[`a${i}${j}`]), bv = (s = v) => I.map(i => s['b' + i]);
+  const Ax = (s = v) => I.map(i => s[`a${i}0`] * s.x0 + s[`a${i}1`] * s.x1);
+  const nrm = (s = v) => S3_cross(col(0, s), col(1, s));
+  const spanOf = s => Math.hypot(...nrm(s)) > 1e-9 ? 'plane' : Math.hypot(...col(0, s)) + Math.hypot(...col(1, s)) > 1e-9 ? 'line' : 'zero';
+  const inC = (q, s = v) => {
+    const k = spanOf(s), L = Math.hypot(...q);
+    if (k === 'plane') return Math.abs(S3_dot(nrm(s), q)) < 1e-6 * (1 + Math.hypot(...nrm(s)) * L);
+    if (k === 'line') { const e = Math.hypot(...col(0, s)) > 1e-9 ? col(0, s) : col(1, s); return Math.hypot(...S3_cross(q, e)) < 1e-6 * (1 + L * Math.hypot(...e)); }
+    return L < 1e-6;
+  };
+  const solveOf = s => {
+    const q = bv(s);
+    if (!inC(q, s)) return { none: true };
+    if (spanOf(s) !== 'plane') {   // many mixes; one of them along the first column that is not zero
+      const j = Math.hypot(...col(0, s)) > 1e-9 ? 0 : 1, c = col(j, s), t = Math.hypot(...c) > 1e-9 ? S3_dot(c, q) / S3_dot(c, c) : 0;
+      return { many: true, x: j ? 0 : t, y: j ? t : 0, one: false };
+    }
+    const c0 = col(0, s), c1 = col(1, s), g00 = S3_dot(c0, c0), g01 = S3_dot(c0, c1), g11 = S3_dot(c1, c1), r0 = S3_dot(c0, q), r1 = S3_dot(c1, q), det = g00 * g11 - g01 * g01;
+    const fix = n => Math.abs(n - Math.round(n)) < 1e-9 ? Math.round(n) : n;
+    return { x: fix((r0 * g11 - g01 * r1) / det), y: fix((g00 * r1 - g01 * r0) / det) };
+  };
+  const derive = (s, changed) => {
+    if (changed.some(k => k[0] === 'x' || k[0] === 'a')) I.forEach(i => { s['b' + i] = s[`a${i}0`] * s.x0 + s[`a${i}1`] * s.x1; });
+    else if (changed.some(k => k[0] === 'b')) { const r = solveOf(s); if (r.x !== undefined) { s.x0 = r.x; s.x1 = r.y; } }
+  };
+  { const r = solveOf(v); if (r.x !== undefined) { v.x0 = r.x; v.x1 = r.y; } }
+  const unique = r => r.x !== undefined && !r.many;
+  let plan = { ...v };
+  const RANGE = key => key[0] === 'b' ? [-R, R] : key[0] === 'x' ? [-6, 6] : [-9, 9];
+  const ctx = {
+    v, slots, live: () => live,
+    can: key => key in v && (!only || only.includes(key)),
+    step: () => 1,
+    clamp: (key, n) => Math.max(RANGE(key)[0], Math.min(RANGE(key)[1], n)),
+    edit: to => edit(to),
+  };
+
+  /* ---------- space ---------- */
+  const CAg = G(V.content, {});
+  const CA = V.plane(0, 0, 0, 0, { color: S3_B, fo: .08, w: 2, into: V.polys });
+  const CAline = V.seg(null, null, { color: S3_B, w: 6, into: CAg });
+  CAline.e.setAttribute('stroke-opacity', .55);
+  const legs = J.map(j => V.arrow(null, null, { color: S3_COLS[j], w: 4, dash: '10 8' }));
+  const drop = V.seg(null, null, { color: COL.bad, w: 3, dash: '5 6' });
+  const bArrow = V.arrow(null, null, { color: S3_B, w: 9 });
+  const cols = J.map(j => V.arrow(null, null, { color: S3_COLS[j] }));
+  const badRing = V.point(null, { color: COL.bad, r: 17 });
+  Object.entries({ fill: 'none', stroke: COL.bad, 'stroke-width': 4 }).forEach(([k, x]) => badRing.e.firstChild.setAttribute(k, x));
+  const labs = ['col 1', 'col 2', 'b'].map((L, n) => V.point(null, { color: [...S3_COLS.slice(0, 2), S3_B][n], r: .1, label: L, size: 26, halo: true }));
+  const guide = V.seg(null, null, { color: COL.chalk, w: 2, dash: '3 7' });
+  const tipKeys = ['b', 0, 1], tipColor = [S3_B, ...S3_COLS.slice(0, 2)];
+  const tipOf = k => k === 'b' ? bv() : col(k);
+  const tips = tipKeys.map((k, n) => {
+    const g = G(V.content, {});
+    mk('circle', { r: 22, fill: 'transparent' }, g);
+    const rg = mk('circle', { r: 13, fill: 'none', stroke: tipColor[n], 'stroke-width': 3, 'stroke-dasharray': '4 4' }, g);
+    rg.style.opacity = 0; g.style.pointerEvents = 'none';
+    g.setAttribute('aria-label', k === 'b' ? 'tip of b' : `tip of column ${k + 1}`);
+    return { k, g, rg };
+  });
+  V.on(proj => tips.forEach(({ k, g }) => { const q = proj(tipOf(k)); put(g, { x: Math.round(q[0] * 10) / 10, y: Math.round(q[1] * 10) / 10 }); }));
+
+  /* ---------- the row picture: three lines in the x y plane ---------- */
+  let R2 = null;
+  if (rows2) {
+    const { cx, cy, u = 22, r = 6 } = rows2;
+    const P2 = plane(p, { cx, cy, u, x0: -r, x1: r, y0: -r, y1: r, t0, step: 2 });
+    const ls = I.map(i => path(P2.g, '', { stroke: S3_ROW[i], 'stroke-width': 4, 'stroke-linecap': 'round', fill: 'none' }));
+    const dot = mk('circle', { r: 9, fill: COL.chalk, stroke: COL.board, 'stroke-width': 3 }, P2.g);
+    R2 = { P: P2, lines: ls, dot, draw() {
+      I.forEach(i => {
+        const a = v[`a${i}0`], c = v[`a${i}1`], k = v['b' + i], pts = [];
+        if (Math.abs(c) > 1e-9) for (const X of [-r, r]) { const Y = (k - a * X) / c; if (Y >= -r - 1e-9 && Y <= r + 1e-9) pts.push([X, Y]); }
+        if (Math.abs(a) > 1e-9) for (const Y of [-r, r]) { const X = (k - c * Y) / a; if (X > -r + 1e-9 && X < r - 1e-9) pts.push([X, Y]); }
+        const d = pts.length >= 2 ? `M${P2.PX(pts[0][0]).toFixed(1)} ${P2.PY(pts[0][1]).toFixed(1)}L${P2.PX(pts[1][0]).toFixed(1)} ${P2.PY(pts[1][1]).toFixed(1)}` : '';
+        if (ls[i].getAttribute('d') !== d) ls[i].setAttribute('d', d);
+      });
+      const s = solveOf(v), on = unique(s) && Math.abs(s.x) <= r && Math.abs(s.y) <= r;
+      dot.style.opacity = on ? 1 : 0;
+      if (on) { dot.setAttribute('cx', P2.PX(s.x).toFixed(1)); dot.setAttribute('cy', P2.PY(s.y).toFixed(1)); }
+    } };
+  }
+
+  function draw() {
+    slots.forEach(s => s.set());
+    const span = spanOf(v), n = nrm(), O = [0, 0, 0], q = bv(), on = inC(q);
+    CA.visible = span === 'plane';
+    CA.set(...n, 0);
+    let la = null, lb = null;
+    if (span === 'line') { const e = Math.hypot(...col(0)) > 1e-9 ? col(0) : col(1), f = 6 * R / Math.hypot(...e); [la, lb] = S3_clipSeg(e.map(x => -f * x), e.map(x => f * x), R) || [null, null]; }
+    CAline.set(la, lb);
+    J.forEach(j => cols[j].set(O, col(j)));
+    bArrow.set(O, q);
+    // the mix tip to tail, when it reaches b
+    const m1 = col(0).map(x => x * v.x0), show_ = on && solveOf(v).x !== undefined;   // with many mixes, the one along a column
+    legs[0].set(show_ && Math.abs(v.x0) > 1e-9 ? O : null, m1);
+    legs[1].set(show_ && Math.abs(v.x1) > 1e-9 ? m1 : null, q);
+    // off C(A): a red ring on b and a dashed drop to the nearest point of C(A)
+    let foot = null;
+    if (!on) {
+      if (span === 'plane') { const t = S3_dot(n, q) / S3_dot(n, n); foot = q.map((x, j) => x - t * n[j]); }
+      else if (span === 'line') { const e = Math.hypot(...col(0)) > 1e-9 ? col(0) : col(1), t = S3_dot(q, e) / S3_dot(e, e); foot = e.map(x => t * x); }
+      else foot = O;
+    }
+    drop.set(foot ? q : null, foot);
+    badRing.set(on ? null : q);
+    [col(0), col(1), q].forEach((t, i) => labs[i].set(Math.hypot(...t) > .2 ? t : null));
+    R2?.draw();
+    listeners.forEach(f => f(v, solveOf(v)));
+    V.redraw();
+  }
+  function edit(to) {
+    const changed = Object.keys(to).filter(key => v[key] !== to[key]);
+    if (!changed.length) return;
+    changed.forEach(key => { v[key] = to[key]; });
+    derive(v, changed);
+    draw();
+  }
+
+  /* ---------- tips: one axis per drag (as lin3) ---------- */
+  const lattice = n => Math.max(-R, Math.min(R, Math.round(n))) || 0;
+  const keysOf = k => k === 'b' ? I.map(i => 'b' + i) : I.map(i => `a${i}${k}`);
+  const putTip = (k, q) => edit(Object.fromEntries(keysOf(k).map((key, i) => [key, q[i]])));
+  const tipOK = k => live && dragOn.includes(k) && keysOf(k).every(ctx.can);
+  tips.forEach(({ k, g }) => {
+    let s = null;
+    g.addEventListener('pointerdown', e => { if (!tipOK(k)) return; e.preventDefault(); e.stopPropagation(); s = { at: V.local(e), start: tipOf(k).map(lattice), axis: null }; g.setPointerCapture(e.pointerId); });
+    g.addEventListener('pointermove', e => {
+      if (!s) return;
+      const [x, y] = V.local(e), dx = x - s.at[0], dy = y - s.at[1];
+      if (s.axis === null) {
+        const L = Math.hypot(dx, dy);
+        if (L < 10) return;
+        const O = V.proj(s.start);
+        let best = -1;
+        I.forEach(j => {
+          const ee = [...s.start]; ee[j] += 1;
+          const P1 = V.proj(ee), ux = P1[0] - O[0], uy = P1[1] - O[1], Lu = Math.hypot(ux, uy);
+          if (Lu < 6) return;
+          const c = Math.abs(dx * ux + dy * uy) / Lu / L;
+          if (c > best) { best = c; s.axis = j; s.u = [ux / Lu, uy / Lu]; s.L = Lu; }
+        });
+        if (s.axis === null) return;
+        const a = [...s.start], bb = [...s.start]; a[s.axis] = -R; bb[s.axis] = R;
+        guide.e.setAttribute('stroke', S3_ROW[s.axis]);
+        guide.set(a, bb);
+      }
+      const q = [...s.start];
+      q[s.axis] = lattice(s.start[s.axis] + (dx * s.u[0] + dy * s.u[1]) / s.L);
+      putTip(k, q);
+    });
+    const up = () => { s = null; guide.set(null, null); };
+    g.addEventListener('pointerup', up);
+    g.addEventListener('lostpointercapture', up);
+    g.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); g.blur(); P.keys?.(e); return; }
+      if (!tipOK(k)) return;
+      const upk = e.key === 'ArrowUp' || e.key === 'PageUp' ? 1 : e.key === 'ArrowDown' || e.key === 'PageDown' ? -1 : 0;
+      const j = e.key === 'ArrowLeft' || e.key === 'ArrowRight' ? 0 : upk && (e.shiftKey || e.key.startsWith('Page')) ? 1 : upk ? 2 : -1;
+      if (j < 0) return;
+      e.preventDefault(); e.stopPropagation();
+      const q = tipOf(k).map(lattice);
+      q[j] = lattice(q[j] + (j === 0 ? (e.key === 'ArrowRight' ? 1 : -1) : upk));
+      putTip(k, q);
+    });
+  });
+
+  const live_ = (g, f) => { let key = ''; const upd = () => { const [k, paint] = f(); const s = JSON.stringify(k); if (s === key) return; key = s; g.replaceChildren(); paint(); }; listeners.push(upd); upd(); return g; };
+  const cs = {
+    V, space: V, v, cols, bArrow, legs, drop, badRing, CA, CAline, labels: labs, R2,
+    solve: () => solveOf(v), inC: q => inC(q), span: () => spanOf(v), Ax: () => Ax(),
+    to(next, at, dur = 1.2, ease = io) {
+      const from = { ...plan };
+      plan = { ...plan, ...next };
+      derive(plan, Object.keys(next));
+      const goal = { ...plan }, keys = Object.keys(goal);
+      prog(q => edit(Object.fromEntries(keys.map(k => [k, from[k] + (goal[k] - from[k]) * q]))), at, dur, ease);
+    },
+    set: to => edit(to),
+    onChange(f) { listeners.push(f); f(v, solveOf(v)); },
+    num: key => slots.filter(s => s.key === key).map(s => s.ink),
+    flash(key, at) { slots.filter(s => s.key === key).forEach(s => { tw(s.ink, { c_color: COL.task }, at, .25); tw(s.ink, { c_color: s.fill }, at + 1.2, .6); }); },
+    form({ x = 90, y = 230, size: sz = 32, o = 1 } = {}) {
+      const g = G(p, { o }), w = sz * 2.1, parts = {};
+      let cx = x;
+      parts.x = G(g, {}); S3_slot(parts.x, 'x0', cx + sz * .95, y + sz * .3, ctx, { size: sz, anchor: 'end', w: sz * 1.2 });
+      parts.c0 = G(g, {}); S3_col(parts.c0, I.map(i => `a${i}0`), cx + sz * 1.2 + w / 2, y, ctx, { size: sz, w, fill: S3_COLS[0] });
+      cx += sz * 1.2 + w;
+      parts.plus = G(g, {}); T(parts.plus, '+', { x: cx + sz * .45, y: y + sz * .3, size: sz, fill: COL.chalk, font: MATH, anchor: 'middle' });
+      cx += sz * .9;
+      parts.y = G(g, {}); S3_slot(parts.y, 'x1', cx + sz * .95, y + sz * .3, ctx, { size: sz, anchor: 'end', w: sz * 1.2 });
+      parts.c1 = G(g, {}); S3_col(parts.c1, I.map(i => `a${i}1`), cx + sz * 1.2 + w / 2, y, ctx, { size: sz, w, fill: S3_COLS[1] });
+      cx += sz * 1.2 + w;
+      parts.eq = G(g, {}); T(parts.eq, '=', { x: cx + sz * .5, y: y + sz * .3, size: sz, fill: COL.chalk, font: MATH, anchor: 'middle' });
+      cx += sz;
+      parts.b = G(g, {}); S3_col(parts.b, I.map(i => 'b' + i), cx + w / 2, y, ctx, { size: sz, w, fill: S3_B });
+      draw();
+      return { g, parts, w: cx + w - x };
+    },
+    eqs({ x = 90, y = 400, size: sz = 30, gap = sz * 1.45, o = 1 } = {}) {
+      const g = G(p, { o }), rowsG = [];
+      I.forEach(i => {
+        const r = G(g, {}), yy = y + i * gap;
+        rowsG.push(r);
+        mk('rect', { x: x - 26, y: yy - sz * .7, width: 7, height: sz * .8, rx: 3, fill: S3_ROW[i] }, r);
+        S3_slot(r, `a${i}0`, x + sz * .9, yy, ctx, { size: sz, anchor: 'end', w: sz * 1.1, coef: true });
+        T(r, 'x', { x: x + sz * .95, y: yy, size: sz, fill: COL.chalk, font: MATH }).setAttribute('font-style', 'italic');
+        S3_slot(r, null, x + sz * 2.15, yy, ctx, { size: sz, pf: s => [s[`a${i}1`] < -1e-9 ? '−' : '+'] });
+        S3_slot(r, `a${i}1`, x + sz * 3.35, yy, ctx, { size: sz, anchor: 'end', w: sz * 1.1, coef: true, abs: true });
+        T(r, 'y', { x: x + sz * 3.4, y: yy, size: sz, fill: COL.chalk, font: MATH }).setAttribute('font-style', 'italic');
+        T(r, '=', { x: x + sz * 4.55, y: yy, size: sz, fill: COL.chalk, font: MATH, anchor: 'middle' });
+        S3_slot(r, 'b' + i, x + sz * 5.1, yy, ctx, { size: sz, anchor: 'start', w: sz * 1.5, fill: S3_B });
+      });
+      draw();
+      return { g, rows: rowsG };
+    },
+    readout({ x = 90, y = 600, size: sz = 34, o = 1 } = {}) {
+      const g = G(p, { o });
+      return live_(g, () => {
+        const s = solveOf(v);
+        if (unique(s)) return [['m', s.x, s.y], () => M(g, ['x = ', ...S3_parts(s.x), ',   y = ', ...S3_parts(s.y)], { x, y, size: sz, fill: S3_B, anchor: 'start' })];
+        if (s.many) return [['many'], () => T(g, 'b is in C(A): many mixes reach it', { x, y: y - 4, size: sz * .8, fill: S3_B, weight: 600 })];
+        return [['none'], () => T(g, 'no mix: b is not in C(A)', { x, y: y - 4, size: sz * .8, fill: COL.bad, weight: 600 })];
+      });
+    },
+    live(on, { only: keys = null, drag = ['b', 0, 1] } = {}) {
+      live = on; only = keys; dragOn = drag;
+      V.live(on);
+      slots.forEach(s => s.paint(on));
+      tips.forEach(({ k, g, rg }) => { const ok = tipOK(k); g.style.pointerEvents = ok ? '' : 'none'; g.style.cursor = ok ? 'grab' : ''; rg.style.opacity = ok ? 1 : 0; if (ok) g.setAttribute('tabindex', 0); else g.removeAttribute('tabindex'); });
+    },
+    redraw: draw,
+  };
+  draw();
+  return cs;
+}
+const csTask = (cs, test, why, hint, reveal, opts) => (body, api) => {
+  cs.live(true, opts);
+  const say = f => typeof f === 'function' ? f(cs.v, cs) : f;
+  return {
+    check: () => { const ok = !!test(cs.v, cs); api.grade(ok, say(ok ? why : hint)); },
+    reveal: () => { reveal?.(); return say(why); },
+    lock: () => cs.live(false),
+    hint: [kbd('Tab'), ' pick a number ', kbd('↑'), kbd('↓'), ' change it; drag b’s tip along an axis, or empty space to turn'],
+  };
+};
