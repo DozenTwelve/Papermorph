@@ -282,7 +282,7 @@ function scene4(p, D) {
    taps the things in the picture to hear their names. The camera holds still, so the hit shapes for the things baked
    into the set (tree, sun, cloud, flowers) are placed by where they show on screen at this view. */
 const PRE4W = 1.2, CAM4W = { x: 3250, y: 480, z: 1.2 };
-let MEADOW_THINGS = [], meadowDraw = null;
+let MEADOW_THINGS = [];
 // A screen point of the fixed view, in the world of its k = 1 plane (where hit shapes and puppets go).
 const meadowAt = (sx, sy) => [CAM4W.x + (sx - 800) / CAM4W.z, CAM4W.y + (sy - 450) / CAM4W.z];
 function birdProp(parent) {
@@ -322,7 +322,7 @@ function scene4w(p, D) {
   const box = (x0, y0, x1, y1) => `M${at(x0, y0)} L${at(x1, y0)} L${at(x1, y1)} L${at(x0, y1)} Z`;
   const sun = spot('sun', circle(1200, 85, 88)), tree = spot('tree', box(905, 425, 1112, 690)), flower = spot('flower', box(885, 700, 1040, 795));
   const red = redPuppet(st), bird = birdProp(st), fly = butterflyProp(st);
-  MEADOW_THINGS = [sun, { g: sky, word: 'cloud' }, tree, flower, { g: red.g.querySelector('[data-p="basketF"]'), word: 'basket' },   // the basket in her right hand
+  MEADOW_THINGS = [sun, { g: sky, word: 'cloud' }, tree, flower, { g: red.g.querySelector('[data-p="basketF"]'), word: 'basket', side: 'right' },   // the basket in her hand; above it is her face
     { g: bird.g, word: 'bird' }, { g: fly.g, word: 'butterfly' }];
   const [RX] = meadowAt(640, 0), GY = 738, s = .6;
   const [BX, BY] = meadowAt(1478, 362);   // the bird on the crown of the round tree at the right
@@ -344,27 +344,9 @@ function scene4w(p, D) {
     tf(sky, `translate(${CX.toFixed(1)},${CY.toFixed(1)}) scale(1.2)`);
     fly.pose(FX, FY, 1.3, [1, .7, .35, .7][Math.floor(q * FPS / 2) % 4]);
   };
-  meadowDraw = draw;
-  stopClock(D, draw);
+  // on twos like stopClock, but a tail run: while the page waits, tapWords runs it on past D on wall time
+  clockRun(t => { const f = Math.floor(t * FPS + 1e-6); draw(f / FPS, f); }, D, { tail: true });
 }
-// While the page waits, the clock of the beat stands still: run the picture on wall time from where it stopped
-// (tapWords does that only for tail runs, and stopClock is not one).
-function meadowAsk(done) {
-  const i = P.i, gen = P.gen;
-  let from = null;
-  const tick = now => {
-    if (P.gen !== gen || P.i !== i) return;
-    if (P.waiting) {
-      from ??= now - P.t * 1000;
-      const q = (now - from) / 1000, f = Math.floor(q * FPS);
-      meadowDraw?.(f / FPS, f);
-    }
-    requestAnimationFrame(tick);
-  };
-  requestAnimationFrame(tick);
-  tapWords(MEADOW_THINGS, done);
-}
-
 /* ---------- scene 5: Grandma's door ---------- */
 const PRE5 = 4.0;
 [3.45, 3.62, 3.79].forEach(t => sfx('scene5', t, 'knock'));
@@ -693,7 +675,7 @@ const BEATS = [
   ['scene2', 'Into the woods', (m, D) => scene2(panel(0), D), { lead: false, pre: PRE2 }],
   ['scene3', 'Good morning', (m, D) => scene3(panel(0), D), { lead: false, pre: PRE3 }],
   ['scene4', 'Flowers', (m, D) => scene4(panel(0), D), { lead: false, pre: PRE4 }],
-  ['scene4w', 'In the meadow', (m, D) => scene4w(panel(0), D), { lead: false, pre: PRE4W, ask: meadowAsk }],
+  ['scene4w', 'In the meadow', (m, D) => scene4w(panel(0), D), { lead: false, pre: PRE4W, ask: done => tapWords(MEADOW_THINGS, done) }],
   ['scene5', 'Knock, knock', (m, D) => scene5(panel(0), D), { lead: false, pre: PRE5 }],
   ['scene6', 'The wardrobe', (m, D) => scene6(panel(0), D), { lead: false, pre: PRE6 }],
   ['scene7', 'The open door', (m, D) => scene7(panel(0), D), { lead: false, pre: PRE7 }],
