@@ -60,7 +60,7 @@ function playAsk(getSys, { pos = { x: 40, y: 430, w: 720, cls: 'side' }, tip = '
     const acts = h('div', 'acts', [bDraw, bInk, bClear, bReset, bOn]);
     acts.style.flexWrap = 'wrap';
     c.replaceChildren(h('div', 'head', [h('p', 'kicker', 'Playground · no score'), h('p', 'prompt', [rich([tip], 24)]),
-      h('p', 'keys', ['Drag numbers sideways or use ', kbd('Tab'), kbd('↑'), kbd('↓'), '; drag a line to slide it, its dots to turn it, arrows by their tips; ', kbd('D'), ' to draw on the board.'])]), acts);
+      h('p', 'keys', ['Drag numbers sideways or use ', kbd('Tab'), kbd('↑'), kbd('↓'), '; drag lines, their dots and arrow tips; ', kbd('D'), ' to draw on the board.'])]), acts);
     paint();
     P.keys = playKeys = e => {
       if (P.gen !== gen) return false;

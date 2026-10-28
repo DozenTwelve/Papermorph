@@ -402,10 +402,9 @@ const BEATS = [
     const p = panel(0);
     text(p, 'Playground', 60, 110, .2, { size: 40, weight: 600 });
     const t = three(p, LEC, '');
-    S.em = t.em;
-    t.em.work(0, .3);
+    S.em = t.em;   // no working rows here: PA itself shows the result, and the card sits where they were
     text(p, 'try: all six orders; a 2 instead of a 1; two 1s in one row', 64, 160, m('go'), { size: 24, fill: COL.dim });
-  }, { ask: playAsk(() => S.em, { pos: { x: 40, y: 600, w: 820, cls: 'side' }, tip: 'Your matrices. Change any number of P or of A | b, turn the space, or draw on the board. Nothing is marked.' }) }],
+  }, { ask: playAsk(() => S.em, { pos: { x: 40, y: 560, w: 820, cls: 'side' }, tip: 'Your matrices. Change any number of P or of A | b, turn the space, or draw on the board. Nothing is marked.' }) }],
   ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
 
