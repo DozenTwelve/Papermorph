@@ -227,7 +227,8 @@ function linsys(p, { A = [[2, -1], [-1, 2]], b = [0, 3], eq = [90, 250], mat = [
     combo[0].setAttribute('d', reach ? arrowD(0, 0, s.x * c0[0], s.x * c0[1]) : '');
     combo[1].setAttribute('d', reach ? arrowD(s.x * c0[0], s.x * c0[1], bb[0], bb[1]) : '');
     // The readout under the equations, rebuilt only when it changes.
-    const key = s.x !== undefined ? frac(s.x).join() + '|' + frac(s.y).join() : s.none ? 'none' : 'many';
+    const txt = parts => parts.map(q => typeof q === 'string' ? q : q.f.join('/')).join('');   // a fraction part is { f: [n, d] }, not text
+    const key = s.x !== undefined ? txt(frac(s.x)) + '|' + txt(frac(s.y)) : s.none ? 'none' : 'many';
     if (readout && key !== solKey) {
       solKey = key;
       sol.replaceChildren();

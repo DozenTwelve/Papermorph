@@ -1,0 +1,734 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Can We Solve for Every b?</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render"><!-- hold the first frame until the player exists, so the page transition can run -->
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/math.js"></script>
+<script src="../lib/linsys.js"></script>
+<script src="../lib/space3.js"></script>
+<script src="../lib/bars.js"></script>
+<script src="../lib/play.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 14, title: 'Can We Solve for Every b?', minutes: 14, language: 'en' };
+
+/* ---------- the systems of this chapter ---------- */
+const LA = [[2, -1], [-1, 2]];                          // the lecture's 2 × 2: columns (2, −1), (−1, 2)
+const PAR0 = [[1, -1], [2, 2]], PAR = [[1, 2], [2, 4]]; // column 2 swings from (−1, 2) to (2, 4) = 2·column 1
+const LEC3 = [[2, -1, 0], [-1, 2, -1], [0, -3, 4]];      // the lecture's 3 × 3
+const FLAT3 = [[2, -1, 1], [-1, 2, 1], [0, -3, -3]];     // column 3 = column 1 + column 2 = (1, 1, −3)
+const N3 = [1, 2, 1];                                    // col 1 × col 2 / 3: the sheet of col 1, col 2 is x + 2y + z = 0
+const VIEW = { yaw: 50, pitch: 20 };                     // chapter 13's view: the lecture columns land far apart
+const BID = [[1, 0, 0, 0], [1, 1, 0, 0], [0, 1, 1, 0], [0, 0, 1, 1]];   // x₁ = …, x₁ + x₂ = …, x₂ + x₃ = …, x₃ + x₄ = …
+const AXC = [COL.whole, COL.nat, COL.int];               // steps along x, y, z (chapter 11's walk)
+const SUB = BR_SUB;
+
+/* ---------- chapter drawing helpers ---------- */
+const CARD = { x: 40, y: 600, w: 720, cls: 'side' };     // under the column form, beside the plane
+const say = (p, parts, x, y, t0, { size = 40, fill = COL.chalk, anchor = 'start' } = {}) => { const e = M(p, [].concat(parts), { x, y, size, fill, anchor, o: 0 }); show(e, t0); return e; };
+const text = (p, str, x, y, t0, { size = 30, fill = COL.chalk, anchor = 'start', weight = 500 } = {}) => { const e = T(p, str, { x, y, size, fill, anchor, weight, o: 0 }); show(e, t0); return e; };
+const fmt1 = n => { const r = Math.round(n * 10) / 10; return num(Number.isInteger(r) ? r : +r.toFixed(1)); };
+const pairStr = (x, y) => `(${num(x)}, ${num(y)})`;
+const tri = q => `(${q.map(c => fmt1(c)).join(', ')})`;
+// A number changes: it lights amber and goes back to its own colour.
+const flash = (els, t0) => els.forEach(e => {
+  const base = e.getAttribute('fill');
+  tw(e, { c_fill: base === COL.task ? COL.chalk : COL.task }, t0, .25); tw(e, { c_fill: base }, t0 + .7, .4);   // over in 1.1 s: flashes 1.3 s apart never overlap
+});
+const thick = (e, t0, w = 5) => { tw(e, { 'a_stroke-width': w + 5 }, t0, .3); tw(e, { 'a_stroke-width': w }, t0 + .8, .5); };
+const box = (p, x, y, w, h, color, t, until) => {
+  const r = mk('rect', { x, y, width: w, height: h, rx: 12, fill: color, 'fill-opacity': .08, stroke: color, 'stroke-width': 2.5, 'stroke-dasharray': '6 6' }, p);
+  put(r, { o: 0 }); show(r, t, .3); if (until !== undefined) hide(r, until, .3);
+  return r;
+};
+
+/* ---------- 2D: equations, column form, mix and plane, one linsys ---------- */
+const sys2 = (p, A, b, { t0 = .1, view = 'col' } = {}) => {
+  const sys = linsys(p, { A, b, eq: [90, 200], size: 46, mat: null, sol: false, view, t0 });
+  sys.labels(['col 1', 'col 2', 'b']);
+  return sys;
+};
+// x·[col 1] + y·[col 2] = [b], its numbers read from the system as it moves.
+const colForm2 = (sys, p, t0, { x = 90, y = 420, size = 44 } = {}) => {
+  const g = G(p, { o: 0 }), rh = 58, top = y - size * .95, bot = y + rh + size * .35, texts = {};
+  const br = bx => path(g, `M${bx + 12} ${top}H${bx}V${bot}H${bx + 12}M${bx + 88} ${top}H${bx + 100}V${bot}H${bx + 88}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' });
+  const sign = (s, sx, it = false) => { const t = T(g, s, { x: sx, y: y + rh / 2 + 4, size, fill: COL.chalk, font: MATH, anchor: 'middle' }); if (it) t.setAttribute('font-style', 'italic'); };
+  sign('x', x + 14, true); br(x + 36); sign('+', x + 262); sign('y', x + 296, true); br(x + 318); sign('=', x + 455); br(x + 488);
+  [['a00', x + 86, 0], ['a10', x + 86, 1], ['a01', x + 368, 0], ['a11', x + 368, 1], ['b0', x + 538, 0], ['b1', x + 538, 1]].forEach(([k, cx, i]) => {
+    texts[k] = T(g, '', { x: cx, y: y + rh * i, size: size * .9, fill: k[0] === 'b' ? COL.task : LS_COLS[+k[2]], font: MATH, anchor: 'middle' });
+  });
+  const upd = v => { for (const k in texts) { const s = fmt1(v[k]); if (texts[k].textContent !== s) texts[k].textContent = s; } };
+  sys.onChange(upd); upd(sys.v);
+  show(g, t0);
+  return { g, num: k => [texts[k]] };
+};
+// The mix, exact: "x = 2/3,  y = 1/3", or why there is none, or that there are endlessly many.
+const exact2 = (n, v) => {   // whole numbers within 1e-9 count as whole: a tween's last step can land a hair off
+  const det = Math.round(v.a00 * v.a11 - v.a01 * v.a10);
+  if (!Object.values(v).every(z => Math.abs(z - Math.round(z)) < 1e-9) || !det) return [fmt1(n)];
+  const k = Math.round(n * det), g = gcd(Math.abs(k), Math.abs(det)) || 1, nn = k / g * Math.sign(det), dd = Math.abs(det) / g;
+  return dd === 1 ? [num(nn)] : [nn < 0 ? '−' : '', F(Math.abs(nn), dd)];
+};
+const mixOut = (sys, p, t0, { x = 90, y = 555 } = {}) => {
+  const g = G(p, { o: 0 });
+  let key = '';
+  const upd = (v, s) => {
+    const k = s.x !== undefined ? [...exact2(s.x, v), '|', ...exact2(s.y, v)].map(z => typeof z === 'string' ? z : z.f.join('/')).join() : s.none ? 'none' : 'many';
+    if (k === key) return;
+    key = k; g.replaceChildren();
+    if (s.x !== undefined) M(g, ['mix:   x = ', ...exact2(s.x, v), ',   y = ', ...exact2(s.y, v)], { x, y, size: 40, fill: COL.task, anchor: 'start' });
+    else T(g, s.none ? 'no mix reaches b' : 'endlessly many mixes reach b', { x, y: y - 4, size: 32, fill: s.none ? COL.bad : COL.task, weight: 600 });
+  };
+  sys.onChange(upd); upd(sys.v, sys.solve());
+  show(g, t0);
+  return g;
+};
+// The lattice of whole-number mixes on the plane (as chapter 6): dots at every x·col 1 + y·col 2 with whole x, y,
+// lines along each column, a shade when the columns fill the plane and an amber line when they lie on one line.
+const lattice2 = sys => {
+  const P2 = sys.P, { PX, PY } = P2, g = G(P2.g, {});
+  P2.g.insertBefore(g, sys.ROWV);   // under the lines and arrows
+  const shade = mk('rect', { x: PX(P2.x0), y: PY(P2.y1), width: PX(P2.x1) - PX(P2.x0), height: PY(P2.y0) - PY(P2.y1), fill: COL.task, 'fill-opacity': .1 }, g);
+  const L = [0, 1].map(i => path(g, '', { stroke: LS_COLS[i], 'stroke-width': 1.5, 'stroke-opacity': .5, fill: 'none' }));
+  const dots = path(g, '', { stroke: COL.chalk, 'stroke-width': 7, 'stroke-linecap': 'round', 'stroke-opacity': .55, fill: 'none' });
+  const span = path(g, '', { stroke: COL.task, 'stroke-width': 7, 'stroke-opacity': .6, 'stroke-linecap': 'round', fill: 'none' });
+  [shade, ...L, dots, span].forEach(e => put(e, { o: 0 }));
+  const inBox = (X, Y) => X >= P2.x0 - 1e-9 && X <= P2.x1 + 1e-9 && Y >= P2.y0 - 1e-9 && Y <= P2.y1 + 1e-9;
+  const clipDir = (q, e) => {   // the part of the line through q along e inside the grid
+    const ts = [], tryT = (t, val, lo, hi) => { if (val >= lo - 1e-9 && val <= hi + 1e-9) ts.push(t); };
+    if (Math.abs(e[0]) > 1e-9) for (const X of [P2.x0, P2.x1]) { const t = (X - q[0]) / e[0]; tryT(t, q[1] + t * e[1], P2.y0, P2.y1); }
+    if (Math.abs(e[1]) > 1e-9) for (const Y of [P2.y0, P2.y1]) { const t = (Y - q[1]) / e[1]; tryT(t, q[0] + t * e[0], P2.x0, P2.x1); }
+    if (ts.length < 2) return '';
+    const a = Math.min(...ts), b = Math.max(...ts);
+    return b - a < 1e-9 ? '' : `M${PX(q[0] + a * e[0]).toFixed(1)} ${PY(q[1] + a * e[1]).toFixed(1)}L${PX(q[0] + b * e[0]).toFixed(1)} ${PY(q[1] + b * e[1]).toFixed(1)}`;
+  };
+  const att = (e, d) => { if (e.getAttribute('d') !== d) e.setAttribute('d', d); };
+  const draw_ = v => {
+    const a = [v.a00, v.a10], b = [v.a01, v.a11], det = a[0] * b[1] - b[0] * a[1];
+    let d1 = '', d2 = '', dd = '', sp = '';
+    if (Math.abs(det) > 1e-6) {
+      const cs = [], ds = [];
+      for (const X of [P2.x0, P2.x1]) for (const Y of [P2.y0, P2.y1]) { cs.push((X * b[1] - b[0] * Y) / det); ds.push((a[0] * Y - X * a[1]) / det); }
+      const cr = [Math.ceil(Math.min(...cs)), Math.floor(Math.max(...cs))], dr = [Math.ceil(Math.min(...ds)), Math.floor(Math.max(...ds))];
+      // ponytail: nearly parallel columns need ever more lines; past 300 the grid is left out (a smear by then)
+      if (cr[1] - cr[0] < 300 && dr[1] - dr[0] < 300) {
+        for (let k = dr[0]; k <= dr[1]; k++) d1 += clipDir([k * b[0], k * b[1]], a);
+        for (let k = cr[0]; k <= cr[1]; k++) d2 += clipDir([k * a[0], k * a[1]], b);
+      }
+      if ((cr[1] - cr[0] + 1) * (dr[1] - dr[0] + 1) < 6000)
+        for (let i = cr[0]; i <= cr[1]; i++) for (let j = dr[0]; j <= dr[1]; j++) { const X = i * a[0] + j * b[0], Y = i * a[1] + j * b[1]; if (inBox(X, Y)) dd += `M${PX(X).toFixed(1)} ${PY(Y).toFixed(1)}h0`; }
+    } else {
+      const e = Math.hypot(...a) > 1e-9 ? a : b;
+      if (Math.hypot(...e) > 1e-9) sp = clipDir([0, 0], e);
+      for (let i = -12; i <= 12; i++) for (let j = -12; j <= 12; j++) { const X = i * a[0] + j * b[0], Y = i * a[1] + j * b[1]; if (inBox(X, Y)) dd += `M${PX(X).toFixed(1)} ${PY(Y).toFixed(1)}h0`; }
+    }
+    att(L[0], d1); att(L[1], d2); att(dots, dd); att(span, sp);
+  };
+  sys.onChange(draw_); draw_(sys.v);
+  return { g, shade, L, dots, span };
+};
+// A pointer that rides on b's tip while the beat moves b ("drag b anywhere").
+const hand = sys => {
+  const { PX, PY } = sys.P, g = G(sys.P.g, { o: 0 });
+  g.style.pointerEvents = 'none';
+  path(g, 'M0 0L0 30L8 23L14 36L20 33L14 21L24 21Z', { fill: COL.chalk, stroke: COL.board, 'stroke-width': 2.5, 'stroke-linejoin': 'round' });
+  const upd = v => put(g, { x: PX(v.b0) + 6, y: PY(v.b1) + 6 });
+  sys.onChange(upd); upd(sys.v);
+  return g;
+};
+// A dashed trip on the plane: x·col 1 from the origin, then y·col 2, nudged sideways by off px so trips along one line stay apart.
+const trip = (sys, into, A, x, y, t0, off = 0) => {
+  const { PX, PY } = sys.P, c1 = [A[0][0], A[1][0]], c2 = [A[0][1], A[1][1]];
+  const L = Math.hypot(...c1) || 1, nx = -c1[1] / L * off, ny = -c1[0] / L * off;   // screen normal (y is down)
+  const pt = (X, Y) => `${(PX(X) + nx).toFixed(1)} ${(PY(Y) + ny).toFixed(1)}`;
+  const m = [x * c1[0], x * c1[1]], e = [m[0] + y * c2[0], m[1] + y * c2[1]];
+  const legs = [];
+  if (x) legs.push(path(into, `M${pt(0, 0)}L${pt(...m)}`, { stroke: LS_COLS[0], 'stroke-width': 5, 'stroke-dasharray': '10 8', fill: 'none' }, { d: 0 }));
+  if (y) legs.push(path(into, `M${pt(...m)}L${pt(...e)}`, { stroke: LS_COLS[1], 'stroke-width': 5, 'stroke-dasharray': '10 8', fill: 'none' }, { d: 0 }));
+  legs.forEach((l, i) => draw(l, t0 + i * .7, .7));
+  return legs;
+};
+const hideCols = (sys, which, t0 = 0, dur = 0) => which.forEach(e => tw(e, { o: 0 }, t0, dur));
+
+/* ---------- 3D: the sheet of reachable points ---------- */
+const sheet = (V, d = 0, { fo = .13 } = {}) => {
+  const it = V.poly(S3_cut(...N3, d, V.R), { color: COL.task, fo, w: 2 });
+  it.at = dd => it.set(S3_cut(...N3, dd, V.R) || null);
+  return it;
+};
+const ring3 = (V, q, label, color = COL.task) => {
+  const d = V.point(q, { color, r: 15, label, size: 26 });
+  const c = d.e.firstChild; c.setAttribute('fill', 'none'); c.setAttribute('stroke', color); c.setAttribute('stroke-dasharray', '4 4'); c.setAttribute('stroke-width', 3);
+  return d;
+};
+const sys3 = (p, A, b, { t0 = .1, mixAt } = {}) => {
+  const sys = lin3(p, { A, b, eq: [90, 180], size: 44, mat: null, mix: [90, 450], mixAt, view: 'col', sol: false, space: { ...VIEW }, t0 });
+  sys.labels(['col 1', 'col 2', 'col 3', 'b']);
+  return sys;
+};
+
+/* ---------- bars: row labels beside a vector of bars ---------- */
+const rowNames = (p, bs, names, x, t0, colors = []) => names.map((n, i) => say(p, [n], x, bs.zeroY(i) + 12, t0 + i * .15, { size: 34, fill: colors[i] || COL.dim, anchor: 'end' }));
+// The equations of the 4 × 4 system written above the bars: each term over its own column of bars.
+const eqsAbove = (p, bs, A, b, y0, t0, { gap = 42, size = 32 } = {}) => A.map((row, i) => {
+  const g = G(p, { o: 0 }), y = y0 + i * gap;
+  row.forEach((a, j) => {
+    const x = bs.cols[j].bx, zero = a === 0;
+    if (j) T(g, '+', { x: st(bs.plusSigns[j - 1]).x, y, size, fill: COL.chalk, font: MATH, anchor: 'middle', o: zero ? .3 : 1 });
+    M(g, [(zero ? '0' : a === 1 ? '' : num(a)) + 'x' + SUB[j + 1]], { x, y, size, fill: COL.chalk, anchor: 'middle', o: zero ? .3 : 1 });
+  });
+  T(g, '=', { x: st(bs.eqs[0]).x, y, size, fill: COL.chalk, font: MATH, anchor: 'middle' });
+  T(g, num(b[i]), { x: bs.b.bx, y, size, fill: COL.task, font: MATH, anchor: 'middle' });
+  show(g, t0[i] ?? t0);
+  return g;
+});
+const barsFlash = (bs, keys, t0) => flash(keys.flatMap(k => bs.num(k)), t0);
+
+/* ---------- practice data ---------- */
+const FILLQ = [
+  { parts: [$m('[1, 0]'), ' and ', $m('[0, 1]')], ans: ['y'], why: 'Right and up: different directions. x·[1, 0] + y·[0, 1] = [x, y] is every point.' },
+  { parts: [$m('[2, 1]'), ' and ', $m('[4, 2]')], ans: ['n'], why: '[4, 2] is 2·[2, 1]: one line.' },
+  { parts: [$m('[1, 3]'), ' and ', $m('[3, 1]')], ans: ['y'], why: 'Neither is a multiple of the other: they point different ways.' },
+  { parts: [$m('[−1, 2]'), ' and ', $m('[2, −4]')], ans: ['n'], why: '[2, −4] is −2·[−1, 2]. A negative multiple still lies on the same line.' },
+  { parts: [$m('[0, 0]'), ' and ', $m('[1, 1]')], ans: ['n'], why: 'The zero column adds nothing: only the line of [1, 1].' },
+  { parts: [$m('[3, −1]'), ' and ', $m('[1, 2]')], ans: ['y'], why: 'Different directions: every b.' },
+];
+const FILL3Q = [
+  { parts: [$m('(1, 0, 0), (0, 1, 0), (0, 0, 1)')], ans: ['y'], why: 'Along x, along y, up z: x·… + y·… + z·… = (x, y, z) is every point.' },
+  { parts: [$m('(1, 0, 0), (0, 1, 0), (1, 1, 0)')], ans: ['n'], why: 'All three lie on the floor (bottom number 0). (1, 1, 0) is col 1 + col 2.' },
+  { parts: [$m('(1, 1, 0), (0, 1, 1), (1, 0, 1)')], ans: ['y'], why: 'No column is a mix of the other two; they fill space.' },
+  { parts: [$m('(1, 2, 3), (2, 4, 6), (0, 0, 1)')], ans: ['n'], why: 'Col 2 = 2·col 1. Two directions only: a plane.' },
+  { parts: [$m('(2, −1, 0), (−1, 2, −3), (1, 1, −3)')], ans: ['n'], why: 'Col 3 = col 1 + col 2: the flat sheet of this chapter.' },
+  { parts: [$m('(1, 0, 0), (1, 1, 0), (1, 1, 1)')], ans: ['y'], why: 'Only col 3 leaves the floor, and col 1, col 2 point different ways on it.' },
+];
+const REACH2Q = [
+  { parts: ['b = ', $m('[2, −2]')], ans: ['y'], why: '−2 = −2. b is 2·col 1.' },
+  { parts: ['b = ', $m('[−4, 4]')], ans: ['y'], why: '4 = −(−4). b is −4·col 1.' },
+  { parts: ['b = ', $m('[1, 1]')], ans: ['n'], why: 'The bottom must be minus the top: 1 is not −1.' },
+  { parts: ['b = ', $m('[0, 0]')], ans: ['y'], why: '0 = −0: the mix 0, 0 reaches it (and so do many others).' },
+  { parts: ['b = ', $m('[3, −2]')], ans: ['n'], why: '−2 is not −3.' },
+];
+const REACH3Q = [
+  { parts: ['floor columns, b = ', $m('(2, 3, 0)')], ans: ['y'], why: 'Bottom 0: on the floor. 2·col 1 + 3·col 2.' },
+  { parts: ['floor columns, b = ', $m('(0, 0, 1)')], ans: ['n'], why: 'Every mix has bottom 0; this b has bottom 1.' },
+  { parts: ['floor columns, b = ', $m('(−1, 4, 0)')], ans: ['y'], why: 'Bottom 0: −1·col 1 + 4·col 2.' },
+  { parts: ['sheet columns, b = ', $m('(3, 0, −3)')], ans: ['y'], why: '3 + 2·0 + (−3) = 0: on the sheet. 2·col 1 + col 2 reaches it.' },
+  { parts: ['sheet columns, b = ', $m('(0, −1, 4)')], ans: ['n'], why: '0 − 2 + 4 = 2, not 0: off the sheet.' },
+  { parts: ['sheet columns, b = ', $m('(1, 1, 1)')], ans: ['n'], why: '1 + 2 + 1 = 4, not 0.' },
+];
+const COMBQ = [
+  { parts: ['2·(1, 0, 3, −1) + (0, 2, −1, 4) = (', { box: '2' }, ', ', { box: '2' }, ', ', { box: '5' }, ', ', { box: '2' }, ')'], why: '(2, 0, 6, −2) + (0, 2, −1, 4) = (2, 2, 5, 2).', hint: 'Double the first: (2, 0, 6, −2). Then add number by number.' },
+  { parts: ['3·(1, −1, 0, 2) − (2, 0, 1, 1) = (', { box: '1' }, ', ', { box: '-3' }, ', ', { box: '-1' }, ', ', { box: '5' }, ')'], why: '(3, −3, 0, 6) − (2, 0, 1, 1) = (1, −3, −1, 5).', hint: 'Triple the first: (3, −3, 0, 6). Then take away (2, 0, 1, 1).' },
+  { parts: ['−(1, 2, 3, 4) + (4, 3, 2, 1) = (', { box: '3' }, ', ', { box: '1' }, ', ', { box: '-1' }, ', ', { box: '-3' }, ')'], why: '(−1, −2, −3, −4) + (4, 3, 2, 1) = (3, 1, −1, −3).', hint: 'The minus flips every sign: (−1, −2, −3, −4).' },
+];
+const MIX4Q = [
+  { parts: ['b = (2, 5, 4, 1):   x₁, x₂, x₃, x₄ = ', { box: '2' }, ', ', { box: '3' }, ', ', { box: '1' }, ', ', { box: '0' }], why: 'x₁ = 2; 2 + x₂ = 5, x₂ = 3; 3 + x₃ = 4, x₃ = 1; 1 + x₄ = 1, x₄ = 0.', hint: 'Go from the top: x₁ is the first number of b. Then x₁ + x₂ must be the second.' },
+  { parts: ['b = (−1, 0, 2, 2):   x₁, x₂, x₃, x₄ = ', { box: '-1' }, ', ', { box: '1' }, ', ', { box: '1' }, ', ', { box: '1' }], why: 'x₁ = −1; −1 + x₂ = 0, x₂ = 1; 1 + x₃ = 2, x₃ = 1; 1 + x₄ = 2, x₄ = 1.', hint: 'x₁ = −1. Then −1 + x₂ = 0.' },
+];
+const YN = [['y', 'Yes', COL.good, 'Y'], ['n', 'No', COL.bad, 'N']];
+
+/* ---------- beats: [id, title, run(m, D), { ask }?] ---------- */
+const BEATS = [
+  ['intro', 'Can we solve for every b?', (m, D) => {
+    const g = G(scene, { o: 0, y: 24 });
+    T(g, 'Unit 1, Chapter 14', { x: 800, y: 300, size: 28, fill: COL.dim, anchor: 'middle' });
+    T(g, 'Can We Solve for Every b?', { x: 800, y: 410, size: 84, weight: 600, anchor: 'middle' });
+    tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+    const r = text(scene, 'the big question of lecture 1: which targets can the columns reach?', 800, 530, m('sub'), { size: 34, fill: COL.dim, anchor: 'middle' });
+    // two columns at a point; the target b hops, and each time a dashed mix of the columns follows it there
+    const k = 34, c1 = [2, -1], c2 = [-1, 2], lg = G(scene, { x: 800, y: 700, o: 0 });
+    const P_ = (x, y) => `${x * k} ${-y * k}`;
+    path(lg, `M0 0L${P_(...c1)}`, { stroke: LS_COLS[0], 'stroke-width': 6, 'stroke-linecap': 'round' });
+    path(lg, `M0 0L${P_(...c2)}`, { stroke: LS_COLS[1], 'stroke-width': 6, 'stroke-linecap': 'round' });
+    show(lg, m('sub') + 1, .6);
+    const dot = G(lg, { x: 0, y: -3 * k, o: 0 });
+    mk('circle', { r: 11, fill: COL.task, stroke: COL.board, 'stroke-width': 3 }, dot);
+    [[1, 2], [2, 1], [-2, -2]].forEach(([x, y], i) => {
+      const t = m('move') + .6 + i * 1.9, mid = [x * c1[0], x * c1[1]], end = [mid[0] + y * c2[0], mid[1] + y * c2[1]];
+      const leg = G(lg, { o: 0 });
+      path(leg, `M0 0L${P_(...mid)}`, { stroke: LS_COLS[0], 'stroke-width': 4, 'stroke-dasharray': '8 7', fill: 'none' });
+      path(leg, `M${P_(...mid)}L${P_(...end)}`, { stroke: LS_COLS[1], 'stroke-width': 4, 'stroke-dasharray': '8 7', fill: 'none' });
+      tw(dot, { x: end[0] * k, y: -end[1] * k, o: 1 }, t, .7);
+      show(leg, t + .6, .4); hide(leg, t + 1.6, .3);
+    });
+    tw(g, { o: 0, y: -24 }, D - .9, .8); hide(r, D - .9, .8); hide(lg, D - .9, .8);
+  }],
+
+  ['ask', 'The big question', (m) => {
+    const p = S.p = panel(0);
+    text(p, 'Can we find a mix for every b?', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = sys2(p, LA, [0, 3], { t0: m('eq') - .3 });
+    put(sys.COLV, { o: 0 }); show(sys.COLV, m('cols') + 1.5, .6);
+    S.cf = colForm2(sys, p, m('cols'));
+    flash([...sys.num('a00'), ...sys.num('a10')], m('cols') + 1.2); flash([...sys.num('a01'), ...sys.num('a11')], m('cols') + 3.4);
+    box(p, 114, 366, 124, 140, LS_COLS[0], m('cols') + 1.2, m('cols') + 3.2); box(p, 396, 366, 124, 140, LS_COLS[1], m('cols') + 3.4, m('cols') + 5.4);
+    box(p, 566, 366, 124, 140, COL.task, m('cols') + 5.6, m('mix'));
+    S.out = mixOut(sys, p, m('mix'));
+    thick(sys.combo[0], m('mix') + 1.5, 4); thick(sys.combo[1], m('mix') + 2.3, 4);
+    // "until now": one b at a time; "now": every point of the plane
+    const one = text(p, 'until now:  one b  →  find its mix', 90, 650, m('flip'), { size: 30, fill: COL.dim });
+    const all = text(p, 'now:  every b  →  is there always a mix?', 90, 700, m('big'), { size: 32, fill: COL.task, weight: 600 });
+    const { PX, PY } = sys.P, qs = G(p, {});
+    [[-4, 3], [3, 4], [5, -2], [-2, -5], [1, -1], [-5, 0], [4, 1], [-1, 5], [2, -4]].forEach(([x, y], i) => {
+      const d = G(qs, { x: PX(x), y: PY(y), o: 0, s: .4 });
+      mk('circle', { r: 9, fill: 'none', stroke: COL.task, 'stroke-width': 3 }, d);
+      tw(d, { o: .9, s: 1 }, m('big') + 2.5 + i * .25, .4, back);
+    });
+    hide(qs, m('try') - .3, .4);
+    [['b1', 3, 0], ['b2', -2, -2], ['b3', 1, 0]].forEach(([k, b0, b1]) => {
+      sys.to({ b0, b1 }, m(k), 1.3);
+      flash([...sys.num('b0'), ...sys.num('b1'), ...S.cf.num('b0'), ...S.cf.num('b1')], m(k) + .2);
+    });
+    S.notes = [one, all];
+  }],
+
+  ['lattice', 'Why every b works', (m) => {
+    const p = S.p, sys = S.sys;
+    S.notes.forEach(e => hide(e, .1, .4));
+    const lat = lattice2(sys);
+    show(lat.dots, m('dots'), .8);
+    show(lat.L[0], m('grid') + .6, .6); show(lat.L[1], m('grid') + 2.2, .6);
+    show(lat.shade, m('fill'), 1.2);
+    text(p, 'whole mixes: a slanted grid;  fractions fill the gaps', 90, 650, m('grid'), { size: 28, fill: COL.dim });
+    const h = hand(sys);
+    show(h, m('drag'), .3); hide(h, m('ans') - .2, .3);
+    // b roams; the mix follows (colour form, readout and the dashed legs); in the row picture the crossing follows
+    const pts = [[4, 3], [-3, 4], [-5, -2], [2, -5], [5, 1], [-2, 2], [1, -3], [0, 3]];
+    const trails = [];
+    let t = m('drag') + .2, k = 0;
+    while (t + 1.4 < m('ans') - .2 && k < pts.length) {
+      const inRow = t >= m('rows') - .1;
+      const tr = sys.to({ b0: pts[k][0], b1: pts[k][1] }, t, 1.4, io, { trail: inRow });
+      if (tr) trails.push(tr);
+      t += 1.75; k++;
+    }
+    sys.view('row', m('rows')); sys.view('col', m('ans'));
+    hide(lat.g, m('rows'), .4); show(lat.g, m('ans'), .4);
+    trails.forEach(tr => hide(tr, m('ans'), .4));
+    text(p, 'every b: exactly one mix', 90, 710, m('ans') + .4, { size: 34, fill: COL.good, weight: 600 });
+  }],
+
+  ['q1', 'Your turn', () => {
+    const p = panel(0);
+    text(p, 'Your turn', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = sys2(p, LA, [0, 3]);
+    colForm2(sys, p, .3); mixOut(sys, p, .4);
+    const lat = lattice2(sys);
+    [...lat.L, lat.dots].forEach(e => show(e, .4, .5));
+  }, { ask: done => quiz(CARD, [{
+    id: 'c-mix', prompt: ['Move ', $m('b'), ' until the mix is ', $m('x = 1'), ',  ', $m('y = −1'), '.'],
+    build: lsTask(S.sys, (v, s) => s.x !== undefined && Math.abs(s.x - 1) < 1e-9 && Math.abs(s.y + 1) < 1e-9,
+      'b = 1·(2, −1) − 1·(−1, 2) = (3, −3). One step along column 1, one step back along column 2.',
+      'Start at the tip of column 1, (2, −1). Then take column 2 away: go back by (−1, 2).',
+      () => S.sys.set({ b0: 3, b1: -3 }), { only: ['b0', 'b1'] }),
+  }], done) }],
+
+  ['parallel', 'Columns on one line', (m) => {
+    const p = S.p = panel(0);
+    text(p, 'When the columns line up', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = sys2(p, PAR0, [0, 0]);
+    S.cf = colForm2(sys, p, .4);
+    const lat = S.lat = lattice2(sys);
+    [...lat.L, lat.dots].forEach(e => show(e, .5, .6)); show(lat.shade, m('c2') + 2.4, .8);
+    hide(lat.shade, m('squash'), 2.4);
+    show(lat.span, m('par') - .2, .5);
+    hideCols(sys, [sys.bArrow, sys.combo[0], sys.combo[1]]);
+    sys.labels(['col 1', 'col 2', '']); prog(() => sys.labels(['col 1', 'col 2', 'b']), m('b') + .4, 0);
+    thick(sys.cols[0], m('c1')); flash([...S.cf.num('a00'), ...S.cf.num('a10')], m('c1'));
+    thick(sys.cols[1], m('c2')); flash([...S.cf.num('a01'), ...S.cf.num('a11')], m('c2'));
+    sys.to({ a01: 2, a11: 4 }, m('turn') + .2, m('par') - m('turn'), io);
+    flash([...S.cf.num('a01'), ...S.cf.num('a11'), ...sys.num('a01'), ...sys.num('a11')], m('par'));
+    thick(lat.span, m('line'), 7);
+    // why: the bottom of any mix is twice its top
+    const why = G(p, {});
+    say(why, ['top:  x + 2y'], 90, 600, m('top'), { size: 36, fill: COL.chalk });
+    say(why, ['bottom:  2x + 4y  =  2·(x + 2y)'], 90, 655, m('bot'), { size: 36, fill: COL.chalk });
+    const rule = S.rule = text(p, 'bottom = 2 × top, whatever the mix', 90, 715, m('rule'), { size: 32, fill: COL.task, weight: 600 });
+    box(p, 114, 366, 124, 140, LS_COLS[0], m('why'), m('why') + 3); box(p, 396, 366, 124, 140, LS_COLS[1], m('why') + .4, m('why') + 3.4);
+    // b = (3, 5): off the line
+    show(sys.bArrow, m('b'), .3);
+    sys.to({ b0: 3, b1: 5 }, m('b'), 1.3);
+    S.out = mixOut(sys, p, m('b') + 1.4);
+    const { PX, PY } = sys.P, ring = G(sys.P.g, { x: PX(3), y: PY(5), o: 0 });
+    mk('circle', { r: 16, fill: 'none', stroke: COL.bad, 'stroke-width': 3.5 }, ring);
+    show(ring, m('off'), .3); pulse(ring, m('off') + .4, 1.5);
+    const offT = text(p, '5 ≠ 2 · 3:  b is off the line', 90, 775, m('off') + .4, { size: 30, fill: COL.bad, weight: 600 });
+    hide(why, m('rowp') - .3, .3);
+    sys.view('row', m('rowp')); hide(lat.g, m('rowp'), .4); hide(ring, m('rowp'), .3);
+    flash([...sys.num('b0'), ...sys.num('b1')], m('rowp') + 1.5);
+    sys.focus(0, m('rowp') + 1.6); sys.focus(1, m('rowp') + 4.4); sys.focus(null, m('parl'));
+    sys.lines.forEach((l, i) => thick(l.l, m('parl') + i * .5));
+    const parT = text(p, 'parallel lines: no solution', 90, 600, m('parl'), { size: 32, fill: COL.bad, weight: 600 });
+    S.drop = [offT, parT, ring];
+  }],
+
+  ['many', 'Endlessly many mixes', (m) => {
+    const p = S.p, sys = S.sys, lat = S.lat;
+    S.drop.forEach(e => hide(e, .1, .3));
+    sys.view('col', .1); show(lat.g, .1, .4);
+    // the second line is dashed when both equations make one line, so both colours show
+    sys.onChange((v, s) => sys.lines[1].l.setAttribute('stroke-dasharray', s.many ? '14 12' : ''));
+    sys.to({ b0: 2, b1: 4 }, m('b'), 1.3);
+    flash([...sys.num('b0'), ...sys.num('b1'), ...S.cf.num('b0'), ...S.cf.num('b1')], m('b') + .3);
+    const onT = text(p, '4 = 2 · 2:  b is on the line', 90, 775, m('b') + 1.6, { size: 30, fill: COL.good, weight: 600 });
+    const trips = G(sys.P.g, {});
+    const mixes = [['on', 2, 0, 12], ['m2', 0, 1, -12], ['m3', -2, 2, 0]];
+    mixes.forEach(([k, x, y, off], i) => {
+      trip(sys, trips, PAR, x, y, m(k) + .2, off);
+      say(p, [`x = ${num(x)},  y = ${num(y)}`], 90, 625 + i * 48, m(k), { size: 34, fill: COL.task });
+    });
+    hide(S.rule, .1, .3);
+    sys.view('row', m('rowp')); hide(lat.g, m('rowp'), .4); hide(trips, m('rowp'), .4);
+    const sameT = text(p, 'the same line: every point on it solves both', 760, 860, m('same'), { size: 26, fill: COL.task, weight: 600, anchor: 'middle' });
+    hide(onT, m('sum') - .3, .3);
+    const sum = G(p, { o: 0 });
+    T(sum, 'columns on one line:', { x: 90, y: 790, size: 28, fill: COL.dim });
+    T(sum, 'b off the line → no mix;  b on the line → endlessly many', { x: 90, y: 835, size: 28, fill: COL.task, weight: 600 });
+    show(sum, m('sum'), .5); hide(sameT, m('sum'), .3);
+    sys.view('col', m('sum')); show(lat.g, m('sum'), .4);
+    sys.to({ b0: 3, b1: 5 }, m('sum') + 1.4, 1.1); sys.to({ b0: 2, b1: 4 }, m('sum') + 5.4, 1.1);
+  }],
+
+  ['q2', 'Quick check', () => {
+    const p = panel(0);
+    text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = sys2(p, PAR, [0, 0]);
+    sys.E.style.display = 'none';
+    sys.labels(['col 1', 'col 2', '']);
+    hideCols(sys, [sys.bArrow, sys.combo[0], sys.combo[1], sys.ROWV]);
+    const lat = lattice2(sys);
+    [lat.span, lat.dots].forEach(e => show(e, .4, .5));
+  }, { ask: done => quiz({ x: 40, y: 150, w: 720, cls: 'side' }, [{
+    id: 'c-reach', prompt: ['Columns ', $m('(1, 2)'), ' and ', $m('(2, 4)'), '. Can a mix reach this b?'],
+    build: grid([['3, 6', true], ['1, 3', false], ['−2, −4', true], ['0, 0', true], ['4, 2', false]].map(([s, ok]) => ({
+      parts: ['b = ', $m(`(${s})`)], ans: [ok ? 'y' : 'n'],
+      why: ok ? `The bottom is twice the top: on the line.` : `The bottom is not twice the top: off the line.`,
+      fx: () => { const [x, y] = s.split(', ').map(z => +z.replace('−', '-')); S.sys.P.dot(x, y, ok ? COL.good : COL.bad, 0, { run: fx, into: qlayer(), label: `(${s})` }); },
+    })), YN, { multi: false, text: true }),
+  }], done) }],
+
+  ['sheet', 'Three columns fill space', (m) => {
+    const p = S.p = panel(0);
+    text(p, 'Three columns in space', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = sys3(p, LEC3, [0, -1, 4], { t0: m('sys') - .3, mixAt: false }), V = sys.space;
+    V.sway(5, 16);
+    const ask = text(p, 'every b in space?', 90, 680, m('ask'), { size: 32, fill: COL.task, weight: 600 });
+    hide(ask, m('s12') - .3, .3);
+    // b and column 3 wait; the sheet of col 1 and col 2 first
+    [sys.bArrow.e, sys.tipLabels[3], ...sys.combo.map(c => c.e)].forEach(e => put(e, { o: 0 }));
+    put(sys.cols[2].e, { o: .2 }); put(sys.tipLabels[2], { o: .2 });
+    const sh = S.sheet = sheet(V, 0);
+    put(sh.e, { o: 0 }); show(sh.e, m('s12'), .8);
+    thick(sys.cols[0].e, m('s12') + 1.5); thick(sys.cols[1].e, m('s12') + 2.3);
+    const n1 = text(p, 'mixes of col 1 and col 2: a flat sheet', 90, 680, m('s12') + 1, { size: 30, fill: COL.task, weight: 600 });
+    tw(sys.cols[2].e, { o: 1 }, m('c3'), .4); tw(sys.tipLabels[2], { o: 1 }, m('c3'), .4); thick(sys.cols[2].e, m('c3') + .3);
+    hide(n1, m('z1') - .2, .3);
+    // z lifts the sheet: it passes through b = z·col 3 (the mix 0, 0, z)
+    show(sys.CF, m('z1'), .5); show(sys.bArrow.e, m('z1') + .2, .4); show(sys.tipLabels[3], m('z1') + .4, .4);
+    prog(q => sh.at(2 * q), m('z1') + .2, 1.4);
+    const zT = T(p, '', { x: 90, y: 680, size: 32, fill: COL.task, font: MATH, weight: 600, o: 0 });
+    const zSet = z => { const s = `z = ${fmt1(z)}: the sheet moves to z·col 3`; if (zT.textContent !== s) zT.textContent = s; };
+    prog(q => zSet(q), m('z1') + .2, 1.4); show(zT, m('z1') + .2, .3);
+    sys.to({ x2: -1 }, m('zneg'), 1.4); prog(q => { sh.at(2 - 4 * q); zSet(1 - 2 * q); }, m('zneg'), 1.4);
+    // the sweep: b waits, the sheet runs from far below to far above
+    [sys.bArrow.e, sys.tipLabels[3], sys.CF, ...sys.combo.map(c => c.e)].forEach(e => hide(e, m('sweep') - .2, .3));
+    const sw = m('any') - m('sweep') - .4;
+    prog(q => { const z = -1 - 7 * Math.min(1, q * 4) + 16 * Math.max(0, q * 4 - 1) / 3; sh.at(2 * z); zSet(z); }, m('sweep'), sw, lin);
+    hide(zT, m('any') - .2, .3);
+    // every b sits on one sheet: b roams, the mix follows, the sheet through b follows
+    sys.onChange(v => { if (st(sys.CF).o > .01) sh.at(N3[0] * v.b0 + N3[1] * v.b1 + N3[2] * v.b2); });
+    sys.to({ b0: 1, b1: 0, b2: 1 }, m('any') - .1, .01); prog(() => sh.at(2), m('any'), 0);
+    tw(sh.e, { o: .25 }, m('any'), .4);
+    [sys.bArrow.e, sys.tipLabels[3], sys.CF, ...sys.combo.map(c => c.e)].forEach(e => show(e, m('any'), .4));
+    text(p, 'every b lies on one of the sheets: it has a mix', 90, 680, m('any') + .3, { size: 30, fill: COL.good, weight: 600 });
+    [[3, 0, -3], [-1, 1, 1], [2, 0, -4]].forEach((b, i) => {
+      sys.to({ b0: b[0], b1: b[1], b2: b[2] }, m('drag') + .1 + i * 1.3, 1.1);
+      flash(['x0', 'x1', 'x2'].flatMap(k => sys.num(k)), m('drag') + 1 + i * 1.3);
+    });
+  }],
+
+  ['flat', 'Three columns in one sheet', (m) => {
+    const p = panel(0);
+    text(p, 'When the three columns lie flat', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = sys3(p, LEC3, [0, -1, 4]), V = sys.space;   // mix 0, 0, 1: b is column 3, and rides with it
+    V.sway(5, 16);
+    const sh = sheet(V, 2);   // through column 3's tip; it comes down with column 3
+    sys.onChange(v => sh.at(N3[0] * v.b0 + N3[1] * v.b1 + N3[2] * v.b2));
+    sys.to({ a02: 1, a12: 1, a22: -3 }, m('fall'), 2.2);
+    flash(['a02', 'a12', 'a22'].flatMap(k => sys.num(k)), m('now'));
+    const sum = say(p, ['col 3 = (2, −1, 0) + (−1, 2, −3) = (1, 1, −3)'], 90, 660, m('sum'), { size: 32, fill: S3_COLS[2] });
+    const stuck = text(p, 'every mix stays in the sheet', 90, 710, m('stuck'), { size: 30, fill: COL.task, weight: 600 });
+    hide(sum, m('test') - .3, .3); hide(stuck, m('test') - .3, .3);
+    // the test: top + 2·middle + bottom of A x, live
+    const tg = G(p, { o: 0 });
+    T(tg, 'top + 2·middle + bottom:', { x: 90, y: 660, size: 28, fill: COL.dim });
+    const tv = T(tg, '', { x: 90, y: 712, size: 36, fill: COL.task, font: MATH, weight: 600 });
+    const tst = v => { const s = `${fmt1(v.b0)} + 2·(${fmt1(v.b1)}) + (${fmt1(v.b2)}) = ${fmt1(v.b0 + 2 * v.b1 + v.b2)}`; if (tv.textContent !== s) tv.textContent = s; };
+    sys.onChange(tst); tst(sys.v);
+    show(tg, m('test') + .5, .4);
+    prog(() => sys.labels(['col 1', 'col 2', 'col 3', 'A x']), m('scrub'), 0);
+    [[1, 1, 0], [2, 0, -1], [0, -1, 1], [1, 1, 0]].forEach(([a, b, c], i) => {
+      sys.to({ x0: a, x1: b, x2: c }, m('scrub') + .3 + i * 1.5, 1.2);
+      flash(['x0', 'x1', 'x2'].flatMap(k => sys.num(k)), m('scrub') + .3 + i * 1.5);
+    });
+    pulse(tv, m('zero'), 1.3);
+    // the old target: off the sheet
+    const ring = ring3(V, [0, -1, 4], 'b');
+    put(ring.e, { o: 0 }); show(ring.e, m('old'), .4);
+    const calc = say(p, ['0 + 2·(−1) + 4 = 2  ≠  0'], 90, 770, m('calc'), { size: 34, fill: COL.bad });
+    pulse(ring.e.firstChild, m('off'), 1.5);
+    const offT = text(p, 'b is off the sheet: no mix reaches it', 90, 820, m('off') + .3, { size: 30, fill: COL.bad, weight: 600 });
+    // the row picture of the same system with this b: three planes, no common point
+    [sys.CF, tg, calc, offT, ring.e, sh.e].forEach(e => hide(e, m('rows') - .2, .3));
+    sys.to({ b0: 0, b1: -1, b2: 4 }, m('rows'), .01);
+    sys.view('row', m('rows'));
+    text(p, 'three planes, no point in common', 90, 680, m('rows') + .6, { size: 32, fill: COL.bad, weight: 600 });
+  }],
+
+  ['q3', 'Your turn', () => {
+    const p = panel(0);
+    text(p, 'Your turn', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = lin3(p, { A: FLAT3, b: [2, -1, 0], eq: [90, 180], size: 44, mat: null, mix: [90, 450], view: 'col', sol: false, space: { ...VIEW } });
+    sys.labels(['col 1', 'col 2', 'col 3', 'A x']);
+    sys.set({ x0: 1, x1: 0, x2: 0 });
+    sheet(sys.space, 0);
+    ring3(sys.space, [3, 0, -3], '(3, 0, −3)');
+  }, { ask: done => quiz({ x: 40, y: 615, w: 720, cls: 'side' }, [{
+    id: 'c-flat', prompt: ['Change the mix until ', $m('A x'), ' lands on the ring ', $m('(3, 0, −3)'), '.'],
+    build: lin3Task(S.sys, v => [v.b0 - 3, v.b1, v.b2 + 3].every(d => Math.abs(d) < 1e-9),
+      'For example 2·col 1 + 1·col 2 = (4 − 1, −2 + 2, 0 − 3) = (3, 0, −3), or col 1 + col 3. Column 3 is col 1 + col 2, so many mixes land on the same point.',
+      'Try x = 2: that gives (4, −2, 0). What must you add to reach (3, 0, −3)? Look at column 2.',
+      () => S.sys.set({ x0: 2, x1: 1, x2: 0 }), ['x0', 'x1', 'x2']),
+  }], done) }],
+
+  ['bars', 'Numbers as bars', (m) => {
+    const p = panel(0);
+    text(p, 'More numbers than axes', 60, 110, .2, { size: 40, weight: 600 });
+    // 2D: b as an arrow (with its x and y steps) and as two bars, one state
+    const g2 = G(p, {}), P2 = plane(g2, { cx: 1160, cy: 450, u: 52, t0: m('two') - .3 });
+    const bs2 = bars(g2, { b: [3, 2], x0: 330, top: 250, band: 170, unit: 18, bw: 60, size: 40, t0: m('bars') });
+    rowNames(g2, bs2, ['x', 'y'], 300, m('bars') + .3, AXC);
+    const legX = path(g2, '', { stroke: AXC[0], 'stroke-width': 4, 'stroke-dasharray': '8 7', fill: 'none' });
+    const legY = path(g2, '', { stroke: AXC[1], 'stroke-width': 4, 'stroke-dasharray': '8 7', fill: 'none' });
+    const arr = path(g2, '', { stroke: COL.task, fill: COL.task, 'stroke-width': 6, 'stroke-linejoin': 'round' });
+    const tipT = T(g2, 'b', { size: 30, fill: COL.task, font: MATH, weight: 600 });
+    tipT.setAttribute('font-style', 'italic');
+    const hand2 = G(g2, { o: 0 });
+    path(hand2, 'M0 0L0 30L8 23L14 36L20 33L14 21L24 21Z', { fill: COL.chalk, stroke: COL.board, 'stroke-width': 2.5 });
+    const draw2 = v => {
+      const X = P2.PX(v.b0), Y = P2.PY(v.b1), O = [P2.PX(0), P2.PY(0)], L = Math.hypot(X - O[0], Y - O[1]) || 1, ux = (X - O[0]) / L, uy = (Y - O[1]) / L;
+      legX.setAttribute('d', `M${O[0]} ${O[1]}H${X.toFixed(1)}`); legY.setAttribute('d', `M${X.toFixed(1)} ${O[1]}V${Y.toFixed(1)}`);
+      arr.setAttribute('d', L < 2 ? '' : `M${O[0]} ${O[1]}L${(X - ux * 11).toFixed(1)} ${(Y - uy * 11).toFixed(1)}M${(X - 18 * ux - 9 * uy).toFixed(1)} ${(Y - 18 * uy + 9 * ux).toFixed(1)}L${X.toFixed(1)} ${Y.toFixed(1)}L${(X - 18 * ux + 9 * uy).toFixed(1)} ${(Y - 18 * uy - 9 * ux).toFixed(1)}Z`);
+      put(tipT, { x: X + ux * 22 - 8, y: Y + uy * 22 + 10 }); put(hand2, { x: X + 6, y: Y + 6 });
+    };
+    bs2.onChange(draw2); draw2(bs2.v);
+    [legX, legY, arr, tipT].forEach(e => { put(e, { o: 0 }); show(e, m('two') + .2, .5); });
+    show(hand2, m('drag'), .3); hide(hand2, m('three') - .6, .3);
+    bs2.to({ b0: -2 }, m('bars') + 2.6, 1); bs2.to({ b0: 3 }, m('bars') + 4.6, 1);
+    bs2.to({ b0: -2, b1: 4 }, m('drag') + .2, 1.3); bs2.to({ b0: 4, b1: -3 }, m('follow') + 1, 1.3); bs2.to({ b0: 3, b1: 2 }, m('follow') + 2.6, 1.1);
+    barsFlash(bs2, ['b0', 'b1'], m('follow'));
+    hide(g2, m('three') - .4, .4);
+    // 3D: three numbers, three steps, three bars
+    const g3 = G(p, { o: 0 });
+    show(g3, m('three') - .1, .4);
+    const V = space3(g3, { ...VIEW, t0: m('three') }), O3 = [0, 0, 0];
+    V.sway(5, 14);
+    const legs = AXC.map(c => { const l = V.line(null, null, { color: c, w: 4, dash: '8 7' }); return l; });
+    const arr3 = V.arrow(O3, [3, 2, 2], { color: COL.task, w: 6 });
+    const bs3 = bars(g3, { b: [3, 2, 2], x0: 330, top: 230, band: 140, unit: 15, bw: 60, size: 40, t0: m('three') + .3 });
+    rowNames(g3, bs3, ['x', 'y', 'z'], 300, m('three') + .5, AXC);
+    const draw3 = v => { const b = [v.b0, v.b1, v.b2]; legs[0].set(O3, [b[0], 0, 0]); legs[1].set([b[0], 0, 0], [b[0], b[1], 0]); legs[2].set([b[0], b[1], 0], b); arr3.set(O3, b); };
+    bs3.onChange(draw3); draw3(bs3.v);
+    bs3.to({ b0: -2, b1: 1, b2: 3 }, m('three') + 1.8, 1.4);
+    // a fourth axis has nowhere to go
+    const ax4 = V.line([0, 0, 0], [-3, -3, 3.5], { color: COL.chalk, w: 3, dash: '6 8' });
+    put(ax4.e, { o: 0 }); show(ax4.e, m('four') + .3, .4);
+    const q4 = text(g3, '4th axis?', 1150, 140, m('four') + .6, { size: 30, fill: COL.chalk, anchor: 'middle', weight: 600 });
+    const no = text(g3, 'no room: every direction here is already a mix of x, y and z', 1150, 860, m('no'), { size: 26, fill: COL.bad, anchor: 'middle', weight: 600 });
+    hide(g3, m('fourb') - .4, .4);
+    // four numbers: four bars
+    const g4 = G(p, { o: 0 });
+    show(g4, m('fourb'), .3);
+    const bs4 = bars(g4, { b: [3, -1, 2, 0], x0: 720, top: 220, band: 130, unit: 14, bw: 60, size: 40, t0: m('fourb') });
+    rowNames(g4, bs4, ['1st', '2nd', '3rd', '4th'], 690, m('fourb') + .2);
+    bs4.to({ b0: 1, b1: 2, b2: -2, b3: 3 }, m('fourb') + 1.4, 1.2);
+    S.keep = [q4, no];
+  }],
+
+  ['four', 'Four equations, four unknowns', (m) => {
+    const p = S.p = panel(0);
+    text(p, 'Four equations, four unknowns', 60, 110, .2, { size: 40, weight: 600 });
+    const bs = S.bs = bars(p, { A: BID, b: [1, 3, 4, 2], x0: 110, top: 360, band: 100, unit: 10, bw: 30, size: 30, t0: .1 });
+    // the parts appear on their words
+    [...bs.cols.map(c => c.g), ...bs.mixG, ...bs.plusSigns, bs.eqSign, bs.ax.g, ...bs.eqs, bs.b.g, bs.zeros].forEach(e => put(e, { o: 0 }));
+    [1, 2, 3, 4].forEach(j => hide(say(p, ['x' + SUB[j]], 500 + j * 120, 250, m('names') + .6 + j * .9, { size: 56, anchor: 'middle', fill: BR_COLS[j - 1] }), m('e1') - .3, .3));
+    eqsAbove(p, bs, BID, [1, 3, 4, 2], 175, ['e1', 'e2', 'e3', 'e4'].map(k => m(k)));
+    show(bs.zeros, m('cols'), .5);
+    box(p, bs.cols[0].bx - 52, 140, 104, 170, LS_COLS[0], m('c1'), m('call') + 1);
+    show(bs.cols[0].g, m('asbars'), .6);
+    [1, 2, 3].forEach(j => { show(bs.cols[j].g, m('call') + (j - 1) * .5, .5); show(bs.plusSigns[j - 1], m('call') + (j - 1) * .5, .4); });
+    box(p, bs.b.bx - 48, 140, 96, 170, COL.task, m('b'), m('b') + 2.5);
+    show(bs.b.g, m('b') + .3, .5);
+    bs.mixG.forEach((g, j) => show(g, m('mix') + j * .3, .4));
+    show(bs.eqSign, m('ax'), .4); show(bs.ax.g, m('ax'), .6); bs.eqs.forEach((e, i) => show(e, m('ax') + 2 + i * .2, .3));
+    flash(bs.b.rows.map(r => r.s.t), m('ax') + 3.2);
+  }],
+
+  ['match', 'Matching b, row by row', (m) => {
+    const p = S.p, bs = S.bs;
+    [['x1', 'x0', 1, 'x1b', ['a00', 'a10']], ['x2v', 'x1', 2, 'x2b', ['a11', 'a21']], ['x3v', 'x2', 2, 'x3b', ['a22', 'a32']]].forEach(([k, key, val, kb, cells]) => {
+      bs.to({ [key]: val }, m(k), 1);
+      barsFlash(bs, [key], m(k));
+      barsFlash(bs, cells, m(kb));
+    });
+    const glow = (rows, t, color = COL.task, dur = 1.6) => rows.forEach(i => {
+      const r = mk('rect', { x: 96, y: bs.zeroY(i) - 50, width: 1430, height: 100, rx: 10, fill: color, 'fill-opacity': .1, stroke: color, 'stroke-opacity': .5, 'stroke-width': 2 }, p);
+      put(r, { o: 0 }); show(r, t, .3); hide(r, t + dur, .4);
+    });
+    glow([0, 1, 2, 3], m('zero') + .4, COL.chalk, 2.4);
+    glow([0, 1], m('x1b')); glow([1], m('x2'), COL.nat, 2.6); glow([1, 2], m('x2b')); glow([2], m('x3'), COL.int, 2.4); glow([2, 3], m('x3b'));
+    glow([3], m('x4'), COL.chalk, 3); glow([0, 1, 2, 3], m('all'), COL.good, 3);
+    pulse(bs.eqs[0], m('top'), 1.6);
+    pulse(bs.eqs[1], m('two'), 1.6);
+    pulse(bs.eqs[2], m('x3b') + .6, 1.6); pulse(bs.eqs[3], m('x3b') + 1.2, 1.6);
+    barsFlash(bs, ['x3'], m('x4') + 2);
+    const all = G(p, { o: 0 });
+    M(all, ['A x = b,   mix (1, 2, 2, 0)'], { x: 800, y: 858, size: 38, fill: COL.good, anchor: 'middle' });
+    show(all, m('all'), .5); hide(all, m('row') - .3, .3);
+    const zy = bs.zeroY(1);
+    box(p, 96, zy - 50, 1430, 100, COL.nat, m('row'));
+    box(p, 96, 175 + 42 - 34, 1430, 46, COL.nat, m('row'));
+    say(p, ['row 2:   x₁ + x₂ = 1 + 2 = 3'], 800, 858, m('row') + .5, { size: 34, fill: COL.nat, anchor: 'middle' });
+  }],
+
+  ['q4', 'Your turn', () => {
+    const p = panel(0);
+    text(p, 'Your turn', 60, 110, .2, { size: 40, weight: 600 });
+    S.sys = bars(p, { A: BID, b: [2, 1, 2, 4], x0: 110, top: 190, band: 100, unit: 10, bw: 30, size: 30 });
+  }, { ask: done => quiz(BAND, [{
+    id: 'c-bars', prompt: ['Change the amounts ', $m('x₁'), ' to ', $m('x₄'), ' until every bar of ', $m('A x'), ' matches ', $m('b'), '.'],
+    build: barsTask(S.sys, (v, ax, ok) => ok, 'x₁ = 2, x₂ = −1, x₃ = 3, x₄ = 1: (2, 2 − 1, −1 + 3, 3 + 1) = (2, 1, 2, 4).',
+      (v, ax) => `Go row by row from the top. Row 1 is x₁ alone: it must be ${num(2)}. Then row 2 is x₁ + x₂.`,
+      () => S.sys.set({ x0: 2, x1: -1, x2: 3, x3: 1 }), { only: ['x0', 'x1', 'x2', 'x3'] }),
+  }], done) }],
+
+  ['nine', 'Nine equations', (m) => {
+    const p = panel(0);
+    text(p, 'Nine equations, nine unknowns', 60, 110, .2, { size: 40, weight: 600 });
+    const A9 = Array.from({ length: 9 }, (_, i) => Array.from({ length: 9 }, (_, j) => +(j === i || j === i - 1)));
+    const x9 = [1, 1, -1, 2, 0, -2, 1, 1, -1], b9 = A9.map(r => r.reduce((s, a, j) => s + a * x9[j], 0));
+    const names = Array(9).fill(''); names.push('A x', 'b');
+    const bs = bars(p, { A: A9, b: b9, x0: 50, top: 180, band: 62, unit: 8, bw: 18, size: 22, numbers: false, mw: 50, gap: 18, names, t0: m('nine') - .3 });
+    put(bs.ax.g, { o: 0 }); bs.eqs.forEach(e => put(e, { o: 0 }));
+    show(bs.ax.g, m('same'), .5); bs.eqs.forEach(e => show(e, m('same') + .3, .3));
+    const span = m('match') - m('move') + 1.2;
+    x9.forEach((x, j) => bs.to({ [`x${j}`]: x }, m('move') + j * span / 9, .55));
+    const cant = text(p, 'nine axes: we can’t draw them.  nine numbers: we can compute, and watch them move.', 800, 855, m('cant'), { size: 28, fill: COL.task, anchor: 'middle', weight: 600 });
+    hide(cant, m('q') - .3, .3);
+    text(p, 'every b?  yes, when each column brings a new direction', 800, 855, m('yes'), { size: 28, fill: COL.good, anchor: 'middle', weight: 600 });
+    // keep the bars alive while the voice talks: the amounts step back and land again
+    x9.forEach((x, j) => { bs.to({ [`x${j}`]: 0 }, m('cant') + 1.5 + j * .15, .5); bs.to({ [`x${j}`]: x }, m('q') + .4 + j * .35, .6); });
+    bs.eqs.forEach((e, i) => pulse(e, m('yes') + .3 + i * .12, 1.5));
+  }],
+
+  ['unit', 'Unit 1 in one picture', (m) => {
+    const p = panel(0);
+    text(p, 'Unit 1: one system, three views', 60, 110, .2, { size: 40, weight: 600 });
+    const row = linsys(p, { A: LA, b: [0, 3], eq: [610, 200], size: 44, mat: null, sol: false, view: 'row', plane: { cx: 300, cy: 560, u: 24, step: 2 }, t0: m('sys') - .3 });
+    const col = linsys(p, { A: LA, b: [0, 3], eq: [610, 200], size: 44, mat: null, sol: false, view: 'col', plane: { cx: 800, cy: 560, u: 24, step: 2 }, t0: m('col') });
+    col.E.style.display = 'none';
+    put(row.stage, { o: 0 }); show(row.stage, m('row'), .5);
+    col.labels(['col 1', 'col 2', 'b']);
+    const mat = linsys(p, { A: LA, b: [0, 3], eq: [610, 200], size: 44, mat: [1090, 500], sol: false, hidePlane: true, t0: m('ax') - .4 });
+    mat.E.style.display = 'none';
+    const head = (s, x, t) => text(p, s, x, 770, t, { size: 28, fill: COL.dim, anchor: 'middle', weight: 600 });
+    head('row picture: lines meet', 300, m('row') + .5); head('column picture: a mix makes b', 800, m('col') + .5); head('A x = b', 1330, m('ax'));
+    row.lines.forEach((l, i) => thick(l.l, m('row') + 1.5 + i * .8));
+    thick(col.combo[0], m('col') + 2.5, 4); thick(col.combo[1], m('col') + 3.3, 4); thick(col.bArrow, m('col') + 4.6, 6);
+    col.to({ a01: 4, a11: -2 }, m('no') + .8, 1.6);   // they lie flat: b = (0, 3) is out of reach
+    thick(col.bArrow, m('no') + 3.2, 6);
+    prog(() => col.labels(['', 'col 2', 'b']), m('no') + .8, 0); prog(() => col.labels(['col 1', 'col 2', 'b']), m('next') + 1.2, 0);
+    col.to({ b0: -4, b1: 2 }, m('no') + 5.6, 1.2);     // a b on their line: endlessly many mixes
+    col.to({ a01: -1, a11: 2, b0: 0, b1: 3 }, m('next'), 1.2);
+    const big = G(p, { o: 0 });
+    T(big, 'every b?', { x: 90, y: 830, size: 30, fill: COL.task, weight: 600 });
+    show(big, m('big'), .4);
+    text(p, 'yes: the columns fill the space', 270, 830, m('yes'), { size: 30, fill: COL.good, weight: 600 });
+    text(p, 'no: they lie flat (a line, a plane)', 810, 830, m('no'), { size: 30, fill: COL.bad, weight: 600 });
+    text(p, 'next: Unit 2, elimination', 1520, 110, m('next'), { size: 30, fill: COL.task, anchor: 'end', weight: 600 });
+  }],
+
+  ['wrap', 'Summary', (m) => {
+    const p = panel(0);
+    [['Every b? Ask whether the mixes of the columns fill the whole space.', 'w1'],
+     ['2 columns, different ways: the plane. Along one line: only that line.', 'w2'],
+     ['3 columns not in one plane: all of space. In one plane: only that plane.', 'w3'],
+     ['More numbers: no axes to draw, the same rules; bars show the numbers.', 'w4']].forEach(([str, mark], i) => {
+      const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
+      mk('circle', { cx: 150, cy: -12, r: 26, fill: COL.task }, g);
+      T(g, String(i + 1), { x: 150, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+      T(g, str, { x: 210, size: 34, weight: 600 });
+      tw(g, { o: 1, x: 0 }, m(mark), .6);
+    });
+  }],
+  ['final1', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-fill2', prompt: ['Can a mix of these two columns reach every b in the plane?'],
+    build: grid(FILLQ, YN, { multi: false, text: true }),
+  }, {
+    id: 'p-fill3', prompt: ['Can a mix of these three columns reach every b in space?'],
+    build: grid(FILL3Q, YN, { multi: false, text: true }),
+  }], done, 'Chapter practice · set 1 of 4') }],
+  ['final2', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
+    id: 'p-reach2', prompt: ['Columns ', $m('(1, −1)'), ' and ', $m('(−3, 3)'), '. Every mix has its bottom equal to minus its top. Can a mix reach b?'],
+    build: grid(REACH2Q, YN, { multi: false, text: true }),
+  }, {
+    id: 'p-reach3', prompt: ['Floor columns: ', $m('(1, 0, 0), (0, 1, 0), (1, 1, 0)'), '. Sheet columns: ', $m('(2, −1, 0), (−1, 2, −3), (1, 1, −3)'), ' (on the sheet, top + 2·middle + bottom = 0). Can a mix reach b?'],
+    build: grid(REACH3Q, YN, { multi: false, text: true }),
+  }], done, 'Chapter practice · set 2 of 4') }],
+  ['final3', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
+    id: 'p-comb4', prompt: ['Work out each mix, number by number.'],
+    build: blanks(COMBQ),
+  }, {
+    id: 'p-mix4', prompt: ['With the columns of this chapter, ', $m('A x = (x₁, x₁ + x₂, x₂ + x₃, x₃ + x₄)'), '. Find the mix for each b.'],
+    build: blanks(MIX4Q),
+  }], done, 'Chapter practice · set 3 of 4') }],
+  ['final4', 'Chapter practice', () => {
+    const p = panel(0);
+    text(p, 'Move b', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = sys2(p, PAR, [3, 5]);
+    S.cf = colForm2(sys, p, .3); mixOut(sys, p, .4);
+    const lat = S.lat = lattice2(sys);
+    [lat.span, lat.dots, ...lat.L].forEach(e => show(e, .4, .5));
+  }, { ask: done => quiz(CARD, [{
+    id: 'p-onto', prompt: ['Columns ', $m('(1, 2)'), ' and ', $m('(2, 4)'), '. Move ', $m('b'), ' to a point a mix can reach (not the origin).'],
+    build: lsTask(S.sys, (v, s) => !!s.many && (v.b0 !== 0 || v.b1 !== 0), 'On the amber line the bottom of b is twice its top, and endlessly many mixes reach it.',
+      'Every mix lands on the amber line: the bottom number twice the top. Put b on it.', () => S.sys.set({ b0: 1, b1: 2 }), { only: ['b0', 'b1'] }),
+  }, {
+    id: 'p-swing', prompt: ['Now move a column so that every b has a mix, with ', $m('b = (3, 5)'), '.'],
+    build: (body, api) => { S.sys.set({ b0: 3, b1: 5 }); return lsTask(S.sys, (v, s) => s.x !== undefined, 'The columns now point different ways: the grid fills the plane, and b has exactly one mix.',
+      'Drag the tip of column 1 or column 2 off the line, so the two point different ways.', () => S.sys.set({ a01: -1, a11: 2 }), { only: ['a00', 'a10', 'a01', 'a11'] })(body, api); },
+  }], done, 'Chapter practice · set 4 of 4') }],
+  ['play', 'Playground', (m) => {
+    const p = panel(0);
+    text(p, 'Playground', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = sys2(p, LA, [0, 3]);
+    colForm2(sys, p, .3); mixOut(sys, p, .4);
+    const lat = lattice2(sys);
+    [lat.span, lat.dots, ...lat.L].forEach(e => show(e, .4, .5));
+    const hint = text(p, 'try: lay column 2 along column 1;  then put b on their line, and off it', 330, 110, m('go'), { size: 24, fill: COL.dim });
+    hide(hint, m('go') + 8, .6);
+  }, { ask: playAsk(() => S.sys, { pos: { x: 40, y: 578, w: 720, cls: 'side' }, tip: 'Your two columns and b. Drag the tips, change any number, or draw on the board. Nothing is marked.' }) }],
+  ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+boot();
+</script>
+</body>
+</html>

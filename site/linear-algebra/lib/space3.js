@@ -720,7 +720,8 @@ function lin3(p, { A = [[2, -1, 0], [-1, 2, -1], [0, -3, 4]], b = [0, -1, 4], eq
     const reach = X && X.every(c => Math.abs(c) <= 12);
     let at = O;
     I.forEach(j => { const nxt = j === 2 && !mix ? bb : at.map((c, l) => c + X?.[j] * col(j)[l]); combo[j].set(reach ? at : null, reach ? nxt : null); at = reach ? nxt : O; });
-    const key = one ? [s.x, s.y, s.z].map(c => exact(c).join()).join('|') : s.none ? 'none' : 'many' + s.rank;
+    const txt = parts => parts.map(q => typeof q === 'string' ? q : q.f.join('/')).join('');   // a fraction part is { f: [n, d] }, not text
+    const key = one ? [s.x, s.y, s.z].map(c => txt(exact(c))).join('|') : s.none ? 'none' : 'many' + s.rank;
     if (readout && key !== solKey) {
       solKey = key;
       sol.replaceChildren();
