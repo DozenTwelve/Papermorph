@@ -1,9 +1,9 @@
 window.TIMINGS = {
  "intro": {
-  "dur": 14.592,
+  "dur": 12.936,
   "marks": {
-   "sub": 3.307,
-   "move": 8.06
+   "sub": 3.425,
+   "move": 6.068
   },
   "cues": [
    [
@@ -11,15 +11,15 @@ window.TIMINGS = {
     "Chapter fourteen."
    ],
    [
-    1.458,
+    1.523,
     "Can we solve for every b?"
    ],
    [
-    3.307,
-    "This is the big question of lecture one, and the last chapter of unit one."
+    3.425,
+    "This is the big question of lecture one."
    ],
    [
-    8.06,
+    6.068,
     "We keep the columns, move the target b anywhere we like, and ask: is there always a mix that reaches it?"
    ]
   ]
@@ -461,332 +461,14 @@ window.TIMINGS = {
    ]
   ]
  },
- "bars": {
-  "dur": 35.496,
-  "marks": {
-   "two": 1.849,
-   "bars": 5.586,
-   "drag": 12.734,
-   "follow": 13.997,
-   "three": 18.424,
-   "four": 23.346,
-   "no": 27.969,
-   "fourb": 31.849
-  },
-  "cues": [
-   [
-    0.104,
-    "What about four numbers?"
-   ],
-   [
-    1.849,
-    "Here's b in the plane: two numbers, and an arrow."
-   ],
-   [
-    5.586,
-    "Now draw each number as a bar instead: up for positive, down for negative, as long as the number is big."
-   ],
-   [
-    12.734,
-    "Move the arrow, and the bars move with it."
-   ],
-   [
-    15.755,
-    "Same two numbers, two pictures."
-   ],
-   [
-    18.424,
-    "In space, three numbers: three axes, or three bars."
-   ],
-   [
-    23.346,
-    "Four numbers would need a fourth axis, at right angles to all three."
-   ],
-   [
-    27.969,
-    "Our space has no room for it, so we can't draw that arrow."
-   ],
-   [
-    31.849,
-    "But the bars don't mind."
-   ],
-   [
-    33.372,
-    "Four numbers: four bars."
-   ]
-  ]
- },
- "four": {
-  "dur": 47.616,
-  "marks": {
-   "names": 4.167,
-   "e1": 11.328,
-   "e2": 13.021,
-   "e3": 16.068,
-   "e4": 19.206,
-   "cols": 22.331,
-   "c1": 24.648,
-   "asbars": 28.854,
-   "call": 30.339,
-   "b": 32.435,
-   "mix": 36.055,
-   "ax": 39.935
-  },
-  "cues": [
-   [
-    0.117,
-    "Here's a system with four equations and four unknowns."
-   ],
-   [
-    4.167,
-    "We've run out of letters, so we number the unknowns: x one, x two, x three, x four."
-   ],
-   [
-    11.328,
-    "x one equals one."
-   ],
-   [
-    13.021,
-    "x one plus x two equals three."
-   ],
-   [
-    16.068,
-    "x two plus x three equals four."
-   ],
-   [
-    19.206,
-    "And x three plus x four equals two."
-   ],
-   [
-    22.331,
-    "Read down the columns, as always."
-   ],
-   [
-    24.648,
-    "Column one is one, one, zero, zero, drawn as bars."
-   ],
-   [
-    30.339,
-    "And the other three columns."
-   ],
-   [
-    32.435,
-    "On the right, b: one, three, four, two."
-   ],
-   [
-    36.055,
-    "In front of each column, its amount: x one to x four."
-   ],
-   [
-    39.935,
-    "The bars in the middle are A x, the mix of the columns."
-   ],
-   [
-    43.971,
-    "The dashed outlines are b's bars: the targets."
-   ]
-  ]
- },
- "match": {
-  "dur": 51.168,
-  "marks": {
-   "zero": 1.419,
-   "x1": 6.68,
-   "x1b": 8.294,
-   "top": 12.8,
-   "x2": 14.544,
-   "x2v": 18.411,
-   "x2b": 20.065,
-   "two": 24.219,
-   "x3": 25.664,
-   "x3v": 28.464,
-   "x3b": 30.273,
-   "x4": 33.112,
-   "all": 38.594,
-   "row": 44.505
-  },
-  "cues": [
-   [
-    0.104,
-    "Let's find the mix."
-   ],
-   [
-    1.419,
-    "With every amount zero, A x is all zeros: no bars."
-   ],
-   [
-    6.68,
-    "Turn x one up to one."
-   ],
-   [
-    8.294,
-    "Column one adds one to the top row and one to the second row."
-   ],
-   [
-    12.8,
-    "The top bar matches b."
-   ],
-   [
-    14.544,
-    "The second row needs three and has one."
-   ],
-   [
-    17.461,
-    "Two more: so x two is two."
-   ],
-   [
-    20.065,
-    "Column two adds two to rows two and three."
-   ],
-   [
-    24.219,
-    "Row two matches."
-   ],
-   [
-    25.664,
-    "Row three needs four and has two: so x three is two."
-   ],
-   [
-    30.273,
-    "Now rows three and four both match."
-   ],
-   [
-    33.112,
-    "Row four needs two, and already has two, so x four stays zero."
-   ],
-   [
-    38.594,
-    "Every bar matches."
-   ],
-   [
-    40.104,
-    "A x equals b, with the mix one, two, two, zero."
-   ],
-   [
-    44.505,
-    "And reading across a row gives back its equation: row two says one plus two is three."
-   ]
-  ]
- },
- "q4": {
-  "dur": 5.352,
-  "marks": {},
-  "cues": [
-   [
-    0.104,
-    "Your turn."
-   ],
-   [
-    0.99,
-    "Change the amounts until every bar of A x matches b."
-   ]
-  ]
- },
- "nine": {
-  "dur": 33.0,
-  "marks": {
-   "nine": 1.576,
-   "same": 5.898,
-   "move": 10.404,
-   "match": 13.242,
-   "cant": 15.404,
-   "q": 21.693,
-   "yes": 26.12
-  },
-  "cues": [
-   [
-    0.104,
-    "And nine equations?"
-   ],
-   [
-    1.576,
-    "Nine unknowns, nine columns, nine numbers in each."
-   ],
-   [
-    5.898,
-    "The same rules: each amount times its column, added row by row."
-   ],
-   [
-    10.404,
-    "Change the amounts, and the bars move, until every row matches."
-   ],
-   [
-    15.404,
-    "We cannot draw nine axes."
-   ],
-   [
-    17.721,
-    "But we can still compute, and still see the numbers move."
-   ],
-   [
-    21.693,
-    "And the big question is the same: do the columns reach every b?"
-   ],
-   [
-    26.12,
-    "Yes, when each column points in a truly new direction, one that no mix of the others can make."
-   ]
-  ]
- },
- "unit": {
-  "dur": 44.28,
-  "marks": {
-   "sys": 1.849,
-   "row": 3.19,
-   "col": 10.599,
-   "ax": 17.669,
-   "big": 21.302,
-   "yes": 24.427,
-   "no": 29.805,
-   "next": 38.698
-  },
-  "cues": [
-   [
-    0.104,
-    "That closes unit one."
-   ],
-   [
-    1.849,
-    "One system, and the row picture: each equation is a line, or in space a plane, and the solution is where they all meet."
-   ],
-   [
-    10.599,
-    "The column picture: each column is an arrow, and the solution is the mix of the columns that lands on b."
-   ],
-   [
-    17.669,
-    "And one short name for both: A x equals b."
-   ],
-   [
-    21.302,
-    "The big question: can we solve it for every b?"
-   ],
-   [
-    24.427,
-    "Yes, when the columns point in different directions and fill the whole space."
-   ],
-   [
-    29.805,
-    "No, when they lie flat, on a line or in a plane."
-   ],
-   [
-    33.776,
-    "Then some b are out of reach, and the others have endlessly many mixes."
-   ],
-   [
-    38.698,
-    "In unit two, we learn how to find the mix for any system, step by step."
-   ]
-  ]
- },
  "wrap": {
-  "dur": 31.296,
+  "dur": 31.224,
   "marks": {
-   "w1": 0.99,
-   "w2": 9.31,
-   "w3": 16.094,
-   "w4": 22.786,
-   "end": 29.102
+   "w1": 1.016,
+   "w2": 9.206,
+   "w3": 15.898,
+   "w4": 22.656,
+   "end": 29.062
   },
   "cues": [
    [
@@ -794,35 +476,35 @@ window.TIMINGS = {
     "To sum up."
    ],
    [
-    0.99,
+    1.016,
     "Can we solve A x equals b for every b?"
    ],
    [
-    5.143,
+    5.221,
     "Ask whether the mixes of the columns fill the whole space."
    ],
    [
-    9.31,
+    9.206,
     "Two columns that point different ways fill the plane."
    ],
    [
-    12.682,
+    12.63,
     "Two along one line fill only that line."
    ],
    [
-    16.094,
+    15.898,
     "Three columns not in one plane fill space."
    ],
    [
-    19.635,
+    19.388,
     "Three in one plane fill only that plane."
    ],
    [
-    22.786,
-    "With more numbers we can't draw the axes, but the rules are the same, and the bars show the numbers move."
+    22.656,
+    "And when the columns lie flat, some b have no mix at all, and the others have endlessly many."
    ],
    [
-    29.102,
+    29.062,
     "Now try the chapter practice."
    ]
   ]
@@ -851,18 +533,8 @@ window.TIMINGS = {
    ]
   ]
  },
- "final3": {
-  "dur": 2.832,
-  "marks": {},
-  "cues": [
-   [
-    0.091,
-    "Work out these mixes, number by number."
-   ]
-  ]
- },
  "final4": {
-  "dur": 5.424,
+  "dur": 6.048,
   "marks": {},
   "cues": [
    [
@@ -870,8 +542,8 @@ window.TIMINGS = {
     "Last set."
    ],
    [
-    1.237,
-    "Move b, or the amounts, until A x equals b."
+    1.159,
+    "Move b, or a column, until the picture does what the question asks."
    ]
   ]
  },
@@ -900,7 +572,7 @@ window.TIMINGS = {
   ]
  },
  "finish": {
-  "dur": 13.104,
+  "dur": 10.416,
   "marks": {},
   "cues": [
    [
@@ -908,12 +580,12 @@ window.TIMINGS = {
     "Well done."
    ],
    [
-    1.12,
-    "That's the end of chapter fourteen, can we solve for every b, and the end of unit one."
+    1.133,
+    "That's the end of chapter fourteen, can we solve for every b."
    ],
    [
-    7.201,
-    "Next: elimination, a way to find the mix for any system, step by step."
+    5.586,
+    "Next: more numbers than axes, where b has four numbers, or nine."
    ]
   ]
  }
