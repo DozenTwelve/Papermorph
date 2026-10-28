@@ -13,6 +13,8 @@
 //   el.opNow(2, 1)                               // inside a question: open "row 3 − ℓ × row 2" at once
 //   el.swap(1, 2, at, dur, { label: [x, y] })    // rows 2 and 3 slide past each other (elSwap, below)
 //   elim(p, sys, { noB: true })                  // A alone: no divider, no b column (a matrix times a matrix)
+//   const L = elL(p, el, { at: [x, y] })        // (10-28) L beside the table: L.step(1, 0, 2, at) flies each multiplier into place
+//   el.onL(f)                                   // (10-28) f(i, j, l) whenever the reader scrubs the multiplier
 //
 // While elim is attached, move the system through el.to(next, at, dur) (or el.step, el.mult): elim keeps the plan
 // that the next step starts from. Hands on: el.scrub(true) makes the open operation's multiplier a number to drag
@@ -222,6 +224,7 @@ function elim(p, sys, { at: [x0, y0] = [130, 450], size = 46, cw = 96, rh = 70, 
     cur.base = rowOf(plan, cur.i); cur.l = cur.shown = 0; lNow = 0;
     if (scrubOn) base = { ...cur.base };
     cur.lab.lay(0);
+    lfs.forEach(f => f(cur.i, cur.j, 0));
   }
 
   /* ---------- hands on: the multiplier as a number to drag ---------- */
@@ -230,7 +233,8 @@ function elim(p, sys, { at: [x0, y0] = [130, 450], size = 46, cw = 96, rh = 70, 
   // The reader's state: the system's numbers and the multiplier. Row i of the open operation is always
   // base − l × row j; base follows whatever the reader changes in the system itself.
   let base = null, quiet = false;
-  const apply = () => { quiet = true; sys.set(minus(base, cur.i, cur.j, lNow, sys.v)); quiet = false; cur.lab.lay(lNow); };
+  const lfs = [];   // el.onL(f): f(i, j, l) whenever the reader's multiplier changes (elL follows it)
+  const apply = () => { quiet = true; sys.set(minus(base, cur.i, cur.j, lNow, sys.v)); quiet = false; cur.lab.lay(lNow); lfs.forEach(f => f(cur.i, cur.j, lNow)); };
   const bind = () => {
     if (bound || !cur) return;
     bound = true;
@@ -344,6 +348,7 @@ function elim(p, sys, { at: [x0, y0] = [130, 450], size = 46, cw = 96, rh = 70, 
       scrub(on);
     },
     solve: () => sys.solve(),
+    onL: f => lfs.push(f),
     swap: (i, j, at, dur, opts) => elSwap(api, sys, i, j, at, dur, opts),
   };
   return api;
@@ -387,6 +392,93 @@ function elSwap(el, sys, i, j, at, dur = 1.4, { label = null, now = false } = {}
   prog(frame, at, dur);
   el.to(next, at + dur, 0);
   return lab;
+}
+
+// L beside an elimination (added 10-28, chapter 30): the matrix L that keeps the multipliers. It starts as the identity
+// with an empty place under the diagonal for each step; L.step runs el.step and then flies the boxed multiplier into
+// its place in L (row i, column j: the row it changed, the row it used). Draw it in the same parent as el.
+//
+//   const L = elL(p, el, { at: [x, y] });   // size, cw, rh, name ('L'), dens
+//   L.step(1, 0, 2, at, dur)                 // row 2 − 2 × row 1 on the table; then the 2 lands in row 2, column 1 of L
+//   L.put(2, 0, 0, at)                       // a place filled at once (0: no step was needed there); null empties it
+//   L.tri(at); L.ring(i, j, at); L.flash(i, j, at)
+//   L.follow(true)                           // inside a question: the open operation's multiplier shows in its place
+//   L.clear()                                // every place under the diagonal empty again, at once
+function elL(p, el, { at: [x0, y0] = [100, 600], size = 38, cw = 60, rh = 56, name = 'L', t0 = .1, o = 0, dens = [1, 2, 3, 4, 5] } = {}) {
+  const n = el.n, I = [...Array(n).keys()];
+  const g = G(p, { o });
+  show(g, t0 + .2);
+  const cx = j => x0 + cw * (j + .5), ry = i => y0 + i * rh;
+  const top = y0 - size * .95, bot = y0 + (n - 1) * rh + size * .35, W = n * cw;
+  path(g, `M${x0 + 12} ${top}H${x0}V${bot}H${x0 + 12}M${x0 + W - 12} ${top}H${x0 + W}V${bot}H${x0 + W - 12}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' });
+  const nameG = M(g, [].concat(name), { x: x0 + W / 2, y: top - 16, size: 28, fill: COL.dim, anchor: 'middle' });
+  const parts = v => {
+    const r = Math.round(v);
+    if (Math.abs(v - r) < 1e-9) return [num(r)];
+    for (const d of dens) { const k = Math.round(v * d); if (d > 1 && Math.abs(v * d - k) < 1e-9) { const gg = gcd(Math.abs(k), d); return k < 0 ? ['−', F(Math.abs(k) / gg, d / gg)] : [F(k / gg, d / gg)]; } }
+    return [num(Math.round(v * 10) / 10)];
+  };
+  const cells = I.map(i => I.map(j => {
+    const c = G(g, { x: cx(j), y: ry(i) });
+    const glow = mk('rect', { x: -cw / 2 + 4, y: -size * .9, width: cw - 8, height: size * 1.2, rx: 10, fill: COL.chalk }, c);
+    put(glow, { o: 0 });
+    let slot = null;
+    if (i > j) { slot = mk('rect', { x: -cw / 2 + 8, y: -size * .82, width: cw - 16, height: size * 1.04, rx: 8, fill: 'none', stroke: COL.faint, 'stroke-width': 2, 'stroke-dasharray': '5 5' }, c); }
+    const holder = G(c, {});
+    if (i <= j) M(holder, [i === j ? '1' : '0'], { size, fill: i === j ? COL.chalk : COL.dim, anchor: 'middle' });
+    return { c, glow, slot, holder, v: i === j ? 1 : i < j ? 0 : null };
+  }));
+  const setCell = (i, j, v) => {
+    const cl = cells[i][j];
+    if (i <= j || cl.v === v) return;
+    cl.v = v;
+    cl.holder.replaceChildren();
+    cl.slot.setAttribute('stroke-opacity', v === null ? 1 : 0);
+    if (v !== null) M(cl.holder, parts(v), { size, fill: COL.chalk, anchor: 'middle' });
+  };
+  const flash = (i, j, at) => { tw(cells[i][j].glow, { o: .3 }, at, .25); tw(cells[i][j].glow, { o: 0 }, at + 1.1, .6); };
+  let following = false;
+  el.onL((i, j, l) => { if (following) setCell(i, j, l); });
+  const api = {
+    g, cells, cx, ry, nameG, W,
+    get v() { return cells.map(r => r.map(c => c.v)); },
+    put(i, j, v, at) { prog(q => { if (q > 0) setCell(i, j, v); }, at, 0, lin); if (v !== null) flash(i, j, at); },
+    // el.step, then the multiplier flies from its box into L: { fly } is the flight's length, { lag } its start after the step
+    step(i, j, l, at, dur = 1.8, { fly = 1, lag = .2, ...opts } = {}) {
+      const end = el.step(i, j, l, at, dur, opts), lab = el.op_.lab, f0 = end + lag;
+      const fg = G(g, { o: 0 });
+      M(fg, parts(l), { size: 36, fill: COL.chalk, anchor: 'middle' });
+      let from = null;
+      prog(q => {
+        if (!from) { const w = +lab.mbox.getAttribute('width') || 38; from = [st(lab.g).x + st(lab.mult).x + (w - 18) / 2, st(lab.g).y]; }
+        put(fg, { x: from[0] + (cx(j) - from[0]) * q, y: from[1] + (ry(i) - from[1]) * q, s: 1 + (size / 36 - 1) * q });
+      }, f0, fly, io);
+      tw(fg, { o: 1 }, f0, .15);
+      tw(fg, { o: 0 }, f0 + fly, 0);
+      api.put(i, j, l, f0 + fly);
+      return f0 + fly;
+    },
+    tri(at, { color = COL.chalk, dur = .6 } = {}) {
+      const L = j => cx(j) - cw / 2 + 2, R = j => cx(j) + cw / 2 - 2, mid = i => ry(i) - size * .32, T_ = i => mid(i) - rh / 2 + 3, B_ = i => mid(i) + rh / 2 - 3;
+      let d = `M${L(0)} ${T_(0)}H${R(0)}`;
+      for (let i = 0; i < n - 1; i++) d += `V${B_(i)}H${R(i + 1)}`;
+      d += `V${B_(n - 1)}H${L(0)}Z`;
+      const e = path(g, d, { fill: color, 'fill-opacity': .12, stroke: color, 'stroke-opacity': .75, 'stroke-width': 2.5, 'stroke-linejoin': 'round' }, { o: 0 });
+      g.insertBefore(e, g.firstChild);
+      show(e, at, dur);
+      return e;
+    },
+    ring(i, j, at, { color = COL.chalk, dash = false } = {}) {
+      const rg = G(g, { x: cx(j), y: ry(i) - size * .32, o: 0 });
+      mk('ellipse', { rx: cw * .46, ry: size * .62, fill: 'none', stroke: color, 'stroke-width': 3.5, ...(dash ? { 'stroke-dasharray': '7 6' } : {}) }, rg);
+      show(rg, at, .35);
+      return rg;
+    },
+    flash,
+    follow(on) { following = on; const c = el.op_; if (on && c) setCell(c.i, c.j, el.l); },
+    clear() { I.forEach(i => I.forEach(j => { if (i > j) setCell(i, j, null); })); },
+  };
+  return api;
 }
 
 // A question on the multiplier: the reader scrubs it (and, with only, some of the system's numbers) until test holds.

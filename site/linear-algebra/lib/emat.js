@@ -17,6 +17,8 @@ const EM_ROW = [COL.whole, COL.nat, COL.int], EM_COL = [COL.irr, COL.real, COL.r
 //   em.ringE(1, 0, at)                                   // a circle round E's entry in row 2, column 1
 //   em.live(true, { only: ['e10'] })                     // the reader scrubs E's entry (drag sideways, or Tab and ↑/↓)
 //
+//   em.carry(at, dur, { E, names })                     // (10-28) the answer flies back into [A | b]; E becomes I (or E): undo, or step again
+//   em.triE(at, { upper })                              // (10-28) the lower (or upper) staircase behind E's numbers: L
 // em.v and em.set work for playAsk; emTask is the question type. Keys: e<i><j> for E, a<i><j> and b<i> for A and b.
 function emat(p, sys, { A, b, E = null, at: [x0, y0] = [70, 270], size = 40, cw = 70, ecw = 60, rh = 62, gap = 70, t0 = .1, dens = [1, 2], side = 'left', name = 'E', names = null, noB = false, step: eStep = 1, o = 0 } = {}) {
   const n = A.length, I = [...Array(n).keys()], svg = $('stage');
@@ -121,7 +123,7 @@ function emat(p, sys, { A, b, E = null, at: [x0, y0] = [70, 270], size = 40, cw 
     if (workN <= n) return;
     path(W, `M${bx - 10} ${y(n - 1) + size * .45}H${bx + (noB ? n * cw : B.W)}`, { stroke: COL.chalk, 'stroke-width': 2.5 });
     sum.forEach((v, j) => (j < n || !noB) && M(W, parts(v), { x: B.cx(j), y: y(n) + 8, size: size * .85, fill: j === n ? COL.task : COL.chalk, anchor: 'middle' }));
-    T(W, `row ${i + 1} of ${nm[2]}`, { x: bx - 36, y: y(n) + 4, size: 24, fill: EM_ROW[i], weight: 700, anchor: 'end' });
+    T(W, `row ${i + 1} of ${nm[2] || 'the answer'}`, { x: bx - 36, y: y(n) + 4, size: 24, fill: EM_ROW[i], weight: 700, anchor: 'end' });
   }
   // Show the working for row i (null: hide it) at `at`; it stays live while the numbers move.
   // { times: [t1, …] } brings its lines in one at a time: the first row of A's share at t1, the next at t2, …, and
@@ -218,6 +220,37 @@ function emat(p, sys, { A, b, E = null, at: [x0, y0] = [70, 270], size = 40, cw 
     },
     // Dim all of E but row i (null: all rows back).
     focusE(i, at, dur = .4) { I.forEach(r => [Ebars[r], ...ecells[r].map(c => c.c)].forEach(e => tw(e, { o: i === null || i === r ? 1 : .3 }, at, dur))); },
+    // Carry the answer back in (added 10-28, chapters 29–31): the product's numbers fly into the place of [A | b], which
+    // takes them, and E becomes E2 (the identity by default), so the product and the picture stay where they are; the
+    // next em.to on E then acts on the answer (an undo step, or the next step). names: the four names after it.
+    carry(at, dur = 1.2, { E: E2 = null, names: nm2 = null } = {}) {
+      const pr = prod(plan), next = { ...pr }, cols = right || noB ? I : [...I, n];
+      I.forEach(i => I.forEach(j => { next[`e${i}${j}`] = E2 ? E2[i][j] : +(i === j); }));
+      if (right) I.forEach(i => { next[`b${i}`] = plan[`b${i}`]; });
+      const fly = G(g, { o: 0 });
+      I.forEach(i => cols.forEach(j => { const k = j < n ? `a${i}${j}` : `b${i}`; M(fly, parts(pr[k]), { x: Pt.cx(j), y: ry(i), size, fill: j === n ? COL.task : COL.chalk, anchor: 'middle' }); }));
+      put(fly, { x: 0, o: 0 });
+      const olds = B.cells.flat().map(cl => cl.c);
+      const dx = B.cx(0) - Pt.cx(0), dip = n * rh + size * .4;   // under the tables, so the numbers never pass through each other
+      tw(fly, { o: 1 }, at, .2); prog(q => put(fly, { x: dx * q, y: dip * Math.sin(Math.PI * q) }), at, dur, io);
+      olds.forEach(e => tw(e, { o: 0 }, at, Math.min(.4, dur / 2)));
+      api.to(next, at + dur, 0);
+      olds.forEach(e => tw(e, { o: 1 }, at + dur, 0));
+      tw(fly, { o: 0 }, at + dur, 0);
+      if (nm2) prog(q => { if (q > 0) relabel(nm2); }, at + dur, 0, lin);
+      return at + dur;
+    },
+    // A staircase behind E's numbers (added 10-28): the lower triangle (on and below the diagonal: L), or { upper: true }.
+    triE(at, { upper = false, color = COL.chalk, dur = .6 } = {}) {
+      const L = j => ecx(j) - ecw / 2 + 2, R = j => ecx(j) + ecw / 2 - 2, mid = i => ry(i) - size * .32, T_ = i => mid(i) - rh / 2 + 3, B_ = i => mid(i) + rh / 2 - 3;
+      let d;
+      if (upper) { d = `M${L(0)} ${T_(0)}H${R(n - 1)}V${B_(n - 1)}`; for (let i = n - 1; i > 0; i--) d += `H${L(i)}V${B_(i - 1)}`; d += `H${L(0)}Z`; }
+      else { d = `M${L(0)} ${T_(0)}H${R(0)}`; for (let i = 0; i < n - 1; i++) d += `V${B_(i)}H${R(i + 1)}`; d += `V${B_(n - 1)}H${L(0)}Z`; }
+      const e = path(Eg, d, { fill: color, 'fill-opacity': .12, stroke: color, 'stroke-opacity': .75, 'stroke-width': 2.5, 'stroke-linejoin': 'round' }, { o: 0 });
+      Eg.insertBefore(e, Eg.firstChild);
+      show(e, at, dur);
+      return e;
+    },
     get v() { return { ...s }; },
     set(vals) { edit(vals); },
     live(on, { only = null } = {}) {

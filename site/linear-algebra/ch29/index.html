@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Undoing Elimination</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render"><!-- hold the first frame until the player exists, so the page transition can run -->
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/math.js"></script>
+<script src="../lib/linsys.js"></script>
+<script src="../lib/space3.js"></script>
+<script src="../lib/elim.js"></script>
+<script src="../lib/emat.js"></script>
+<script src="../lib/play.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 29, title: 'Undoing Elimination', minutes: 10, language: 'en' };
+
+/* ---------- chapter drawing helpers ---------- */
+const BLUE = LS_ROW[0], CORAL = LS_ROW[1], YELLOW = S3_ROW[2];
+const CH16 = { A: [[1, 2], [3, 4]], b: [5, 11] };                         // chapter 16's system, meets at (1, 2)
+const CH17 = { A: [[1, 2], [-2, 1]], b: [3, 4] };                         // chapter 17's, meets at (−1, 2)
+const LEC = { A: [[1, 2, 1], [3, 8, 1], [0, 4, 1]], b: [2, 12, 2] };      // the lecture's system (OCW 18.06, lecture 2)
+const AFTER1 = { A: [[1, 2, 1], [0, 2, -2], [0, 4, 1]], b: [2, 6, 2] };   // after column 1
+const U_LEC = { A: [[1, 2, 1], [0, 2, -2], [0, 0, 5]], b: [2, 6, -10] };  // after both steps
+const OWN = { A: [[1, 1, 1], [2, 3, 1], [-1, 1, 2]], b: [3, 6, 2] }, OWN1 = { A: [[1, 1, 1], [0, 1, -1], [0, 2, 3]], b: [3, 0, 5] };
+const E21 = [[1, 0], [-3, 1]];
+const AT2 = [70, 290], AT3 = [64, 262];
+const CARD2 = { x: 40, y: 600, w: 760, cls: 'side' }, CARD3 = { x: 40, y: 640, w: 800, cls: 'side' };
+const say = (p, parts, x, y, t0, { size = 40, fill = COL.chalk, anchor = 'start' } = {}) => { const e = M(p, [].concat(parts), { x, y, size, fill, anchor, o: 0 }); show(e, t0); return e; };
+const text = (p, str, x, y, t0, { size = 30, fill = COL.chalk, anchor = 'start', weight = 500 } = {}) => { const e = T(p, str, { x, y, size, fill, anchor, weight, o: 0 }); show(e, t0); return e; };
+const thick = (sys, i, t0) => { tw(sys.lines[i].l, { 'a_stroke-width': 10 }, t0, .35); tw(sys.lines[i].l, { 'a_stroke-width': 5 }, t0 + .9, .6); };
+// 2D: the plane on the right, E · [A | b] = [EA | Eb] on the left (chapter 21's layout); the product is the system drawn
+// (with E given, the lines start as E's answer).
+const two = (p, { A, b }, caption, { t0 = .1, E = null } = {}) => {
+  const sys = linsys(p, { A, b, eq: [90, 200], mat: null, sol: false, plane: { cx: 1215, u: 50 }, t0 });
+  sys.E.style.visibility = 'hidden';   // hidden, yet measured (display: none measures as 0 and replays differ)
+  if (caption) say(p, [caption], 70, 175, t0 + .1, { size: 28, fill: COL.dim });
+  const em = emat(p, sys, { A, b, E, at: AT2, size: 38, cw: 64, ecw: 56, rh: 62, gap: 66, t0 });
+  return { sys, em };
+};
+// 3D: the space on the right, three 3 × 3 tables on the left.
+const three = (p, { A, b }, caption, { t0 = .1, E = null, view = { yaw: -40, pitch: 20 } } = {}) => {
+  const sys = lin3(p, { A, b, eq: [90, 190], mat: null, sol: false, space: { cx: 1262, size: 520, ...view }, t0 });
+  sys.E.style.visibility = 'hidden';   // hidden, yet measured (display: none measures as 0 and replays differ)
+  if (caption) say(p, [caption], 64, 160, t0 + .1, { size: 26, fill: COL.dim });
+  const em = emat(p, sys, { A, b, E, at: AT3, size: 32, cw: 52, ecw: 44, rh: 54, gap: 64, t0 });
+  return { sys, em, V: sys.space };
+};
+// A matrix times a matrix with no picture (E⁻¹E = I): emat on a bare system, the b columns hidden.
+const bare = A => {
+  const v = {}, fs = [];
+  A.forEach((r, i) => { r.forEach((x, j) => { v[`a${i}${j}`] = x; }); v[`b${i}`] = 0; });
+  return { v, set(to) { Object.assign(v, to); fs.forEach(f => f(v)); }, onChange: f => fs.push(f), solve: () => ({}), live() {}, to() {} };
+};
+const mm2 = (p, Ebig, Bm, names, nameE, t0) => emat(p, bare(Bm), { A: Bm, b: [0, 0], E: Ebig, at: AT2, size: 38, cw: 64, ecw: 56, rh: 62, gap: 66, t0, noB: true, names, name: nameE });
+// The old line of row 2 (dashed): a x + b y through (sx, sy); a ring round the point that never moves (chapter 16).
+const ghost = (sys, a, b, sx, sy, t0) => { const l = sys.P.line(sx, sy, sx + b, sy - a, CORAL, t0, { dash: '10 10', w: 3, into: sys.stage }); tw(l, { o: .45 }, t0 + .6, .4); return l; };
+const pin = (sys, x, y, t0) => { const g = G(sys.stage, { x: sys.P.PX(x), y: sys.P.PY(y), o: 0 }); mk('circle', { r: 20, fill: 'none', stroke: COL.chalk, 'stroke-width': 3.5, 'stroke-dasharray': '6 5' }, g); show(g, t0, .4); return g; };
+const hinge = (sys, n, t0, dur = 1.6) => prog(q => sys.lines[n].e.setAttribute('stroke-width', 2.5 + 5 * Math.sin(Math.PI * q)), t0, dur, lin);
+const nameAt = (em, nm, at) => prog(q => { if (q > 0) em.setName(nm); }, at, 0, lin);
+const namesAt = (em, nm, at) => prog(q => { if (q > 0) em.names(nm); }, at, 0, lin);
+// Three words of a row step: "row 2", "+ 3 ×", "row 1", coloured by row.
+const stepWords = (p, i, sign, j, x, y, t0, { size = 32 } = {}) => {
+  const g = G(p, { o: 0 }), RC = [BLUE, CORAL, YELLOW];
+  M(g, [`row ${i + 1}`], { x, y, size, fill: RC[i], anchor: 'start' });
+  M(g, [sign], { x: x + size * 3.3, y, size, fill: COL.chalk, anchor: 'start' });
+  M(g, [`row ${j + 1}`], { x: x + size * 3.3 + mathW([sign], size) + size * .4, y, size, fill: RC[j], anchor: 'start' });
+  show(g, t0, .4);
+  return g;
+};
+const keysOf = ({ A, b }, E = null) => {
+  const o = {}, n = A.length;
+  A.forEach((r, i) => { r.forEach((x, j) => { o[`a${i}${j}`] = x; o[`e${i}${j}`] = E ? E[i][j] : +(i === j); }); o[`b${i}`] = b[i]; });
+  return o;
+};
+// inside a question: the answer becomes the new [A | b] at once and E the identity (em.carry without the flight)
+const carryNow = em => { const o = { ...em.prod() }; for (let i = 0; i < em.n; i++) for (let j = 0; j < em.n; j++) o[`e${i}${j}`] = +(i === j); em.set(o); };
+const same = (pr, { A, b }) => A.every((r, i) => r.every((x, j) => Math.abs(pr[`a${i}${j}`] - x) < 1e-9) && Math.abs(pr[`b${i}`] - b[i]) < 1e-9);
+const r1 = x => num(Math.round(x * 10) / 10);
+const rowTxt = (pr, i, n) => `(${[...Array(n).keys()].map(j => r1(pr[`a${i}${j}`])).join(', ')} | ${r1(pr[`b${i}`])})`;
+
+/* ---------- practice data (every answer worked twice: by the sign rule, and by multiplying back) ---------- */
+const UNDOQ = [
+  { parts: ['2 × 2:   E₂₁ has −4.      E₂₁⁻¹ has  ', { box: '4' }, '  in row 2, column 1'], why: 'E took 4 × row 1 away; E⁻¹ adds 4 × row 1 back.', hint: 'Change the sign.' },
+  { parts: ['2 × 2:   E₂₁ has 2.      E₂₁⁻¹ has  ', { box: '-2' }], why: 'E added 2 × row 1; E⁻¹ takes it away again: −2.', hint: 'E added. To undo an addition, subtract.' },
+  { parts: ['3 × 3:   E₃₁ has −5 in row 3, column 1.      E₃₁⁻¹ has  ', { box: '5' }, '  in row ', { box: '3' }, ', column ', { box: '1' }], why: 'The same spot, the other sign: 5 in row 3, column 1.', hint: 'The inverse keeps the spot and changes the sign.' },
+  { parts: ['3 × 3:   E₃₂ has −½.      E₃₂⁻¹ has  ', { box: '1/2' }, '  in row 3, column 2'], why: '−½ becomes +½: add half of row 2 back.', hint: 'A fraction works the same way: change its sign.' },
+  { parts: ['The step row 2 − 6 × row 1 is undone by:   row 2 + ', { box: '6' }, ' × row 1'], why: 'Put back the 6 × row 1 that was taken away.', hint: 'Add back exactly what was taken away.' },
+  { parts: ['E⁻¹ has 7 in row 2, column 1.      So E has  ', { box: '-7' }, '  there'], why: 'E and E⁻¹ undo each other: each is the other with the sign changed.', hint: 'Undoing E⁻¹ gives E back.' },
+  { parts: ['x + y = 2,   4x + 3y = 9:   elimination takes row 2 − 4 × row 1.   E₂₁⁻¹ has  ', { box: '4' }], why: 'ℓ = 4 ÷ 1 = 4, E₂₁ has −4, and E₂₁⁻¹ has +4.', hint: 'First the multiplier ℓ = 4 ÷ 1. E has −ℓ; E⁻¹ has +ℓ.' },
+];
+const ROWQ = [
+  { parts: ['E⁻¹: (1, 0), (2, 1);   answer: (1, 3 | 4), (0, −1 | 1):    old row 2 = (', { box: '2' }, ', ', { box: '5' }, ' | ', { box: '9' }, ')'], why: '2 × (1, 3 | 4) + (0, −1 | 1) = (2, 6 − 1 | 8 + 1).', hint: 'Row 2 of E⁻¹ says: 2 of row 1, plus 1 of row 2.' },
+  { parts: ['E⁻¹: (1, 0), (−3, 1);   answer: (1, −1 | 2), (0, 1 | 7):    old row 2 = (', { box: '-3' }, ', ', { box: '4' }, ' | ', { box: '1' }, ')'], why: '−3 × (1, −1 | 2) = (−3, 3 | −6); add (0, 1 | 7).', hint: '−3 × row 1 is (−3, 3 | −6).' },
+  { parts: ['E⁻¹: (1, 0), (4, 1);   answer: (2, 1 | 3), (0, −2 | 2):    old row 2 = (', { box: '8' }, ', ', { box: '2' }, ' | ', { box: '14' }, ')'], why: '4 × (2, 1 | 3) = (8, 4 | 12); add (0, −2 | 2).', hint: '4 × row 1 is (8, 4 | 12).' },
+  { parts: ['row 3 of E⁻¹: (0, 2, 1);   rows 2, 3 of the answer: (0, 1, −1 | 0), (0, 0, 5 | 5):    old row 3 = (', { box: '0' }, ', ', { box: '2' }, ', ', { box: '3' }, ' | ', { box: '5' }, ')'], why: '2 × (0, 1, −1 | 0) + (0, 0, 5 | 5) = (0, 2, 3 | 5). Row 1 is not used (amount 0).', hint: 'Row 3 of E⁻¹: none of row 1, 2 of row 2, 1 of row 3.' },
+  { parts: ['row 2 of E⁻¹: (−1, 1, 0);   rows 1, 2 of the answer: (2, 1, 1 | 4), (0, 3, −1 | 2):    old row 2 = (', { box: '-2' }, ', ', { box: '2' }, ', ', { box: '-2' }, ' | ', { box: '-2' }, ')'], why: '−1 × (2, 1, 1 | 4) + (0, 3, −1 | 2) = (−2, 2, −2 | −2).', hint: '−1 × row 1 is (−2, −1, −1 | −4).' },
+];
+const TFQ = [
+  { parts: [$m('E⁻¹E = I')], ans: ['t'], why: 'Take away, then put back: nothing has changed.' },
+  { parts: [$m('EE⁻¹ = I')], ans: ['t'], why: 'Put back first, then take away: nothing has changed either.' },
+  { parts: ['E has rows (1, 0), (3, 1). Its inverse has rows (1, 0), (', $m(F(1, 3)), ', 1).'], ans: ['f'], why: 'Undoing an addition of 3 × row 1 is a subtraction: (1, 0), (−3, 1).' },
+  { parts: ['Undoing a step moves the meeting point.'], ans: ['f'], why: 'Every step and its undo keep the solution: the line turns about the meeting point.' },
+  { parts: ['The inverse of E⁻¹ is E.'], ans: ['t'], why: 'Each undoes the other.' },
+  { parts: ['E₂₁⁻¹ changes row 1.'], ans: ['f'], why: 'It adds a multiple of row 1 to row 2; row 1 stays as it is.' },
+];
+const PRODQ = [
+  { parts: ['E⁻¹ = (1, 0), (5, 1)   times   E = (1, 0), (−5, 1):      row 2 = (', { box: '0' }, ', ', { box: '1' }, ')'], why: '5 × (1, 0) + (−5, 1) = (0, 1): the identity’s row 2.', hint: 'Row 2 of E⁻¹: 5 of row 1 of E, plus row 2 of E.' },
+  { parts: ['3 × 3:  row 3 of E⁻¹ is (0, 2, 1);  rows 2, 3 of E are (0, 1, 0), (0, −2, 1):      row 3 of E⁻¹E = (', { box: '0' }, ', ', { box: '0' }, ', ', { box: '1' }, ')'], why: '2 × (0, 1, 0) + (0, −2, 1) = (0, 0, 1).', hint: '2 of row 2 of E, plus row 3 of E.' },
+];
+// Hands-on in 3D: each starts from the answer of a step; E⁻¹ (the identity at first) must bring the old system back.
+const HANDS = [
+  { from: AFTER1, to: LEC, only: ['e10'], ans: { e10: 3 }, prompt: 'The step was row 2 − 3 × row 1. Bring row 2 back to (3, 8, 1 | 12).',
+    why: '3 in row 2, column 1: row 2 + 3 × row 1 = (3, 8, 1 | 12). The coral plane is back.' },
+  { from: U_LEC, to: AFTER1, only: ['e21'], ans: { e21: 2 }, prompt: 'The step was row 3 − 2 × row 2. Bring row 3 back to (0, 4, 1 | 2).',
+    why: '2 in row 3, column 2: row 3 + 2 × row 2 = (0, 4, 1 | 2). The yellow plane stands up again.' },
+  { from: OWN1, to: OWN, only: ['e10', 'e20'], ans: { e10: 2, e20: -1 }, prompt: 'One E did row 2 − 2 × row 1 and row 3 + row 1. Undo both: rows 2 and 3 back to (2, 3, 1 | 6) and (−1, 1, 2 | 2).',
+    why: '2 and −1: row 2 + 2 × row 1 and row 3 − row 1. Each number changes sign.' },
+];
+const handHint = h => (v, pr) => {
+  const bad = [1, 2].filter(i => rowTxt(pr, i, 3) !== rowTxt(h.to, i, 3) && (i === 1 || h.to.A[i]));
+  const i = bad[0] ?? 1;
+  return `Row ${i + 1} is ${rowTxt(pr, i, 3)}, not ${rowTxt(h.to, i, 3)}. What did the step take away from it?`;
+};
+
+/* ---------- beats ---------- */
+const BEATS = [
+  ['intro', 'Undoing elimination', (m, D) => {
+    const g = G(scene, { o: 0, y: 24 });
+    T(g, 'Unit 4 · Factorization into A = LU', { x: 800, y: 205, size: 24, fill: COL.faint, anchor: 'middle' });
+    T(g, 'Unit 4, Chapter 29', { x: 800, y: 250, size: 28, fill: COL.dim, anchor: 'middle' });
+    T(g, 'Undoing Elimination', { x: 800, y: 360, size: 88, weight: 600, anchor: 'middle' });
+    tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+    const r = text(scene, 'every step can be undone: add back what it took away', 800, 460, m('sub'), { size: 34, fill: COL.dim, anchor: 'middle' });
+    const lg = G(scene, { o: 0 });
+    const s = bare([[1, 2], [3, 4]]); s.v.b0 = 5; s.v.b1 = 11;
+    const em = emat(lg, s, { A: [[1, 2], [3, 4]], b: [5, 11], at: [380, 640], size: 36, cw: 62, ecw: 54, rh: 56, t0: 0 });
+    show(lg, m('sub') + 1.2, .5);
+    em.ringE(1, 0, m('move'));
+    em.to({ e10: -3 }, m('move') + .2, 1.2);
+    em.to({ e10: 0 }, m('move') + 2.2, 1.2);   // and back: the answer is A again
+    tw(g, { o: 0, y: -24 }, D - .9, .8); hide(r, D - .9, .8); hide(lg, D - .9, .8);
+  }],
+
+  ['recall', 'One step, as a matrix', (m) => {
+    const p = panel(0);
+    text(p, 'One step, as a matrix', 60, 110, .2, { size: 40, weight: 600 });
+    const { sys, em } = two(p, CH16, 'x + 2y = 5,    3x + 4y = 11', { t0: .4 });
+    em.setName('E₂₁');
+    [0, 1].forEach(i => { em.B.flash(i, m('sys') + 2.3 + 2.5 * i); thick(sys, i, m('sys') + 2.3 + 2.5 * i); });
+    pin(sys, 1, 2, m('e') - 2.4); pulse(sys.meet, m('e') - 2.2);
+    stepWords(p, 1, '− 3 ×', 0, 70, 650, m('e') + .6);
+    em.flashE(0, m('e') + 5.4); em.flashE(1, m('e') + 5.9);
+    em.ringE(1, 0, m('e') + 7.4);
+    em.focusE(1, m('go')); em.Pt.focus(1, m('go'));
+    ghost(sys, 3, 4, 1, 2, m('go'));
+    em.to({ e10: -3 }, m('go') + .2, Math.max(1.6, m('res') - m('go')));
+    em.work(1, 0, { times: [m('w'), m('w') + 1.6, m('res')] });
+    em.Pt.flash(1, m('res') + .2);
+    thick(sys, 1, m('flat') + .4);
+    em.focusE(null, m('ask')); em.Pt.focus(null, m('ask'));
+    text(p, 'How do we get back?', 70, 730, m('ask') + .3, { size: 36, weight: 600 });
+    text(p, 'which matrix turns the flat line back?', 70, 780, m('ask') + 2.8, { size: 28, fill: COL.dim, weight: 600 });
+  }],
+
+  ['undo', 'Add it back', (m) => {
+    const p = panel(0);
+    text(p, 'Add it back', 60, 110, .2, { size: 40, weight: 600 });
+    const { sys, em } = two(p, CH16, 'x + 2y = 5,    3x + 4y = 11', { E: E21 });
+    em.setName('E₂₁');
+    ghost(sys, 3, 4, 1, 2, .4); pin(sys, 1, 2, .6);
+    em.flashE(1, m('took') + .3, 0);
+    stepWords(p, 1, '− 3 ×', 0, 70, 640, m('took'));
+    em.Pt.flash(0, m('kept') + .5); em.B.flash(0, m('kept') + 1.2);
+    text(p, 'row 1 is not touched:  (1, 2 | 5)', 70, 700, m('kept'), { size: 28, fill: COL.dim, weight: 600 });
+    stepWords(p, 1, '+ 3 ×', 0, 70, 770, m('back'));
+    em.carry(m('carry'), 1.3, { names: ['EA', 'Eb', '', ''] });
+    nameAt(em, '', m('carry') + 1.3);
+    em.ringE(1, 0, m('e'));
+    em.focusE(1, m('e')); em.Pt.focus(1, m('e'));
+    em.work(1, 0, { times: [m('w'), m('w') + 2.6, m('res')] });
+    em.to({ e10: 3 }, m('w') + .2, Math.max(1.8, m('res') - m('w')));
+    namesAt(em, ['EA', 'Eb', 'A', 'b'], m('res'));
+    em.Pt.flash(1, m('res') + .2);
+    thick(sys, 1, m('line') + .3);
+    pulse(sys.meet, m('pin') + .3);
+  }],
+
+  ['inverse', 'E inverse', (m) => {
+    const p = panel(0);
+    text(p, 'E inverse', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = linsys(p, { A: CH16.A, b: CH16.b, eq: [90, 200], mat: null, sol: false, plane: { cx: 1215, u: 50 } });
+    sys.E.style.visibility = 'hidden';   // hidden, yet measured (display: none measures as 0 and replays differ)
+    pin(sys, 1, 2, .6);
+    const part = G(p, { o: 0 }); show(part, m('name'), .5);
+    const em = mm2(part, [[1, 0], [3, 1]], E21, ['E', '', 'E⁻¹E', ''], 'E⁻¹', 0);
+    put(em.Pt.g, { o: 0 }); put(em.eqSign, { o: 0 }); show(em.Pt.g, m('calc'), .5); show(em.eqSign, m('calc'), .4);
+    const c26 = text(p, 'chapter 26: the inverse of a matrix undoes it', 70, 600, m('name') + 3.4, { size: 26, fill: COL.dim, weight: 600 });
+    hide(c26, m('why') - .3, .4);
+    em.ringE(1, 0, m('cmp') + 1.6); em.B.ring(1, 0, m('cmp') + .4);
+    stepWords(p, 1, '− 3 ×', 0, 150, 640, m('why')); say(p, ['E:'], 120, 640, m('why'), { size: 32, anchor: 'end' });
+    stepWords(p, 1, '+ 3 ×', 0, 150, 700, m('why') + 2.4); say(p, ['E⁻¹:'], 120, 700, m('why') + 2.4, { size: 32, anchor: 'end' });
+    // the round trip on the plane: E, then E⁻¹
+    const tag = G(p, { o: 0 }); M(tag, ['E'], { x: 1400, y: 215, size: 34, fill: COL.chalk, anchor: 'middle' });
+    const tag2 = G(p, { o: 0 }); M(tag2, ['then  E⁻¹'], { x: 1400, y: 215, size: 34, fill: COL.chalk, anchor: 'middle' });
+    show(tag, m('ii'), .3); hide(tag, m('ii') + 2, .3); show(tag2, m('ii') + 2.2, .3); hide(tag2, m('calc'), .4);
+    sys.to({ a10: 0, a11: -2, b1: -4 }, m('ii') + .3, 1.5);
+    sys.to({ a10: 3, a11: 4, b1: 11 }, m('ii') + 2.5, 1.5);
+    em.work(0, 0, { times: [m('calc') + 3.4, m('calc') + 4.2, m('r1')] }); em.Pt.flash(0, m('r1') + .2);
+    em.work(1, 0, { times: [m('r2') + 1.8, m('r2') + 4.4, m('res')] }); em.Pt.flash(1, m('res') + .2);
+    em.B.flash(0, m('r2') + 5.6); em.B.flash(1, m('r2') + 8.6);
+    em.Pt.diag(m('eye'), { color: COL.good });
+    say(p, ['E⁻¹E = I'], 70, 780, m('eye') + 2.6, { size: 40 });
+  }],
+
+  ['q1', 'Quick check', () => {
+    const p = panel(0);
+    text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
+    const t = two(p, { A: [[1, 1], [0, -2]], b: [2, -2] }, 'after row 2 − 5 × row 1:    x + y = 2,    −2y = −2');
+    t.em.setName('E⁻¹');
+    t.em.names(['EA', 'Eb', '', '']);
+    ghost(t.sys, 5, 3, 1, 1, .4);
+    S.em = t.em;
+  }, { ask: done => quiz({ x: 40, y: 518, w: 760, cls: 'side' }, [{
+    id: 'c-undo', prompt: ['The step was row 2 − 5 × row 1. Undo it.'],
+    build: blanks([
+      { parts: ['E₂₁⁻¹ has  ', { box: '5' }, '  in row 2, column 1'], why: 'E₂₁ had −5. The inverse has +5: add 5 × row 1 back.', hint: 'Change the sign of E₂₁’s number.',
+        fx: () => fxp(q => S.em.set({ e10: 5 * q }), 0, 1.6) },
+      { parts: ['the old row 2 comes back:   (', { box: '5' }, ', ', { box: '3' }, ' | ', { box: '8' }, ')'], why: '5 × (1, 1 | 2) + (0, −2 | −2) = (5, 3 | 8): 5x + 3y = 8, the dashed line.', hint: '5 × row 1 is (5, 5 | 10). Add the new row 2.' },
+    ]),
+  }], done) }],
+
+  ['ex2', 'A plus sign', (m) => {
+    const p = panel(0);
+    text(p, 'Undoing a plus sign', 60, 110, .2, { size: 40, weight: 600 });
+    const { sys, em } = two(p, CH17, 'x + 2y = 3,    −2x + y = 4', { t0: m('sys') - .3 });
+    em.setName('E₂₁');
+    pin(sys, -1, 2, m('sys') + 4); ghost(sys, -2, 1, -1, 2, m('go'));
+    em.ringE(1, 0, m('e') + 2);
+    em.focusE(1, m('go')); em.Pt.focus(1, m('go'));
+    em.work(1, m('go'));
+    em.to({ e10: 2 }, m('go') + .2, 1.8);
+    thick(sys, 1, m('go') + 2.2);
+    em.work(null, m('carry'), .3);
+    em.carry(m('carry') + .2, 1.2, { names: ['EA', 'Eb', '', ''] });
+    nameAt(em, 'E⁻¹', m('inv'));
+    em.ringE(1, 0, m('inv') + .3);
+    em.work(1, 0, { times: [m('w'), m('w') + 2.6, m('res')] });
+    em.to({ e10: -2 }, m('w') + .2, Math.max(1.8, m('res') - m('w')));
+    namesAt(em, ['EA', 'Eb', 'A', 'b'], m('res'));
+    em.Pt.flash(1, m('res') + .2);
+    thick(sys, 1, m('line') + .2);
+    em.focusE(null, m('rule')); em.Pt.focus(null, m('rule'));
+    text(p, 'to undo a step, change the sign of its one number:', 70, 680, m('rule') + .6, { size: 28, weight: 600 });
+    say(p, ['−ℓ   →   +ℓ'], 70, 740, m('rule') + 3.4, { size: 36 });
+  }],
+
+  ['twice', 'Either order', (m) => {
+    const p = panel(0);
+    text(p, 'The other order', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = linsys(p, { A: CH17.A, b: CH17.b, eq: [90, 200], mat: null, sol: false, plane: { cx: 1215, u: 50 } });
+    sys.E.style.visibility = 'hidden';   // hidden, yet measured (display: none measures as 0 and replays differ)
+    pin(sys, -1, 2, .6);
+    const em = mm2(p, [[1, 0], [2, 1]], [[1, 0], [-2, 1]], ['E⁻¹', '', 'EE⁻¹', ''], 'E', .3);
+    put(em.Pt.g, { o: 0 }); put(em.eqSign, { o: 0 }); show(em.Pt.g, m('calc'), .5); show(em.eqSign, m('calc'), .4);
+    em.B.ring(1, 0, m('first') + 1.6); em.ringE(1, 0, m('first') + 3.6);
+    const tag = G(p, { o: 0 }); M(tag, ['E⁻¹'], { x: 1400, y: 215, size: 34, fill: COL.chalk, anchor: 'middle' });
+    const tag2 = G(p, { o: 0 }); M(tag2, ['then  E'], { x: 1400, y: 215, size: 34, fill: COL.chalk, anchor: 'middle' });
+    show(tag, m('pic'), .3); hide(tag, m('pic') + 2, .3); show(tag2, m('pic') + 2.2, .3); hide(tag2, m('calc'), .4);
+    sys.to({ a10: -4, a11: -3, b1: -2 }, m('pic') + .2, 1.5);
+    sys.to({ a10: -2, a11: 1, b1: 4 }, m('pic') + 2.4, 1.5);
+    em.work(0, 0, { times: [m('calc') + 2.4, m('calc') + 2.8, m('r2') - .3] }); em.Pt.flash(0, m('r2') - .2);
+    em.work(1, 0, { times: [m('r2') + 2.4, m('r2') + 5.2, m('res')] }); em.Pt.flash(1, m('res') + .2);
+    em.Pt.diag(m('eye'), { color: COL.good });
+    say(p, ['E⁻¹E = I'], 70, 720, m('both') + .3, { size: 40 });
+    say(p, ['EE⁻¹ = I'], 400, 720, m('both') + 1.8, { size: 40 });
+    text(p, 'taking away and putting back undo each other, in either order', 70, 790, m('both') + 4, { size: 26, fill: COL.dim, weight: 600 });
+  }],
+
+  ['q2', 'Your turn', () => {
+    const p = panel(0);
+    text(p, 'Your turn', 60, 110, .2, { size: 40, weight: 600 });
+    const t = two(p, { A: [[2, 1], [0, 1]], b: [4, 2] }, 'after row 2 − 3 × row 1:    2x + y = 4,    y = 2');
+    t.em.setName('E⁻¹'); t.em.names(['EA', 'Eb', '', '']);
+    ghost(t.sys, 6, 4, 1, 2, .4); pin(t.sys, 1, 2, .5);
+    t.em.work(1, .3);
+    S.em = t.em;
+  }, { ask: done => quiz(CARD2, [{
+    id: 'c-back', prompt: ['Change the number in row 2, column 1 of E⁻¹ until the coral line lies on the dashed line, 6x + 4y = 14.'],
+    build: emTask(S.em, (v, pr) => Math.abs(pr.a10 - 6) < 1e-9, '3: row 2 + 3 × row 1 = (6, 4 | 14). The step took 3 × row 1 away; E⁻¹ puts it back.',
+      (v, pr) => `Row 2 is now ${rowTxt(pr, 1, 2)}. The step was row 2 − 3 × row 1: what puts it back?`, () => S.em.set({ e10: 3 }), { only: ['e10'] }),
+  }], done) }],
+
+  ['three', 'Three equations', (m) => {
+    const p = panel(0);
+    text(p, 'Undo in three dimensions', 60, 110, .2, { size: 40, weight: 600 });
+    const { sys, em, V } = three(p, LEC, 'x + 2y + z = 2,    3x + 8y + z = 12,    4y + z = 2', { t0: m('sys') - .3 });
+    em.setName('E₂₁');
+    [0, 1, 2].forEach(i => em.B.flash(i, m('sys') + .6 + 1.6 * i));
+    em.ringE(1, 0, m('e') + .6);
+    em.focusE(1, m('go')); em.Pt.focus(1, m('go'));
+    em.work(1, m('go') + 4);
+    em.to({ e10: -3 }, m('go') + .2, 2.6);
+    hinge(sys, 0, m('go') + 2, 2);
+    V.turn({ yaw: -15 }, m('go'), 6);
+    em.work(null, m('carry'), .3);
+    em.carry(m('carry') + .2, 1.2, { names: ['EA', 'Eb', '', ''] });
+    nameAt(em, 'E₂₁⁻¹', m('inv'));
+    em.ringE(1, 0, m('inv') + .4);
+    em.flashE(1, m('inv') + 3.2, 0); em.Pt.flash(1, m('inv') + 4.6);
+    V.turn({ yaw: -28, pitch: 26 }, m('inv'), 6);
+    em.work(1, 0, { times: [m('w') + 1.6, m('w') + 5.6, m('w') + 6.2, m('res')] });
+    em.to({ e10: 3 }, m('w') + 1.4, Math.max(2, m('res') - m('w') - 1.4));
+    namesAt(em, ['EA', 'Eb', 'A', 'b'], m('res'));
+    em.Pt.flash(1, m('res') + .2);
+    hinge(sys, 0, m('back') + .2, 2);
+    V.turn({ yaw: -45 }, m('back'), 5);
+    em.focusE(null, m('same')); em.Pt.focus(null, m('same'));
+    [0, 2].forEach((i, k) => { em.Pt.flash(i, m('same') + .5 + 1.4 * k); sys.focus(i, m('same') + .5 + 1.4 * k); });
+    sys.focus(null, m('same') + 3.6);
+  }],
+
+  ['e32', 'Undo E₃₂', (m, D) => {
+    const p = panel(0);
+    text(p, 'Undo the second step', 60, 110, .2, { size: 40, weight: 600 });
+    const { sys, em, V } = three(p, AFTER1, 'after column 1:   x + 2y + z = 2,    2y − 2z = 6,    4y + z = 2', { view: { yaw: -20, pitch: 20 } });
+    em.setName('E₃₂');
+    em.ringE(2, 1, m('e') + 1.4);
+    em.focusE(2, m('e')); em.Pt.focus(2, m('e'));
+    em.work(2, m('go'));
+    em.to({ e21: -2 }, m('go'), 2);
+    sys.focus(2, m('go') + 1);
+    V.turn({ yaw: 0, pitch: 34 }, m('go') - .5, 3);
+    em.work(null, m('inv') - .3, .3);
+    em.carry(m('inv'), 1.2, { names: ['EA', 'Eb', '', ''] });
+    nameAt(em, 'E₃₂⁻¹', m('inv') + 1.2);
+    em.ringE(2, 1, m('inv') + 1.4);
+    em.work(2, 0, { times: [m('w'), m('w') + .5, m('w') + 1, m('back')] });
+    em.to({ e21: 2 }, m('w') + .3, Math.max(1.8, m('back') - m('w')));
+    namesAt(em, ['EA', 'Eb', 'A', 'b'], m('back'));
+    em.Pt.flash(2, m('back') + .2);
+    V.turn({ yaw: -30, pitch: 20 }, m('back'), 3);
+    sys.focus(null, m('rule'));
+    em.focusE(null, m('rule')); em.Pt.focus(null, m('rule'));
+    text(p, 'E⁻¹ = E with the sign of its one number changed', 64, 690, m('rule') + 1, { size: 28, weight: 600 });
+    em.flashE(2, m('rule') + 3.4, 1); V.turn({ yaw: -45, pitch: 24 }, m('rule'), Math.max(2, D - m('rule')));
+  }],
+
+  ['q3', 'Quick check', () => {
+    const p = panel(0);
+    text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
+    const t = two(p, { A: [[1, 1], [-4, -2]], b: [3, -10] }, 'x + y = 3,    −4x − 2y = −10', { E: [[1, 0], [4, 1]] });
+    ghost(t.sys, -4, -2, 2, 1, .4);
+    S.em = t.em;
+  }, { ask: done => quiz({ x: 40, y: 560, w: 760, cls: 'side' }, [{
+    id: 'c-which', prompt: ['E has rows (1, 0) and (4, 1): it adds 4 × row 1 to row 2. Which matrix undoes it?'],
+    build: choice(['rows (1, 0) and (−4, 1)', ['rows (1, 0) and (', $m(F(1, 4)), ', 1)'], 'rows (1, 0) and (4, 1)', 'rows (−1, 0) and (−4, −1)'], 0,
+      'Take 4 × row 1 away again: −4. Row 2 of the product is −4 × (1, 0) + (4, 1) = (0, 1).',
+      [null, 'Undoing an addition is a subtraction, not a division: ¼ × row 1 would leave 4¼ of row 1 added.', 'That is E itself: it would add 4 × row 1 a second time.', 'Only the one number changes sign. A −1 on the diagonal would turn whole rows upside down.'],
+      () => { carryNow(S.em); fxp(q => S.em.set({ e10: -4 * q }), 0, 1.6); }),
+  }], done) }],
+
+  ['q4', 'Your turn', () => {
+    const p = panel(0);
+    text(p, 'Your turn', 60, 110, .2, { size: 40, weight: 600 });
+    const t = three(p, { A: [[1, 1, 1], [2, 3, 1], [0, 2, 3]], b: [3, 6, 5] }, 'after row 3 + row 1:   x + y + z = 3,   2x + 3y + z = 6,   2y + 3z = 5');
+    t.em.setName('E⁻¹'); t.em.names(['EA', 'Eb', '', '']);
+    t.em.work(2, .3);
+    S.em = t.em;
+  }, { ask: done => quiz(CARD3, [{
+    id: 'c-back3', prompt: ['The step was row 3 + row 1. Change E⁻¹’s number in row 3, column 1 until row 3 is (−1, 1, 2 | 2) again.'],
+    build: emTask(S.em, (v, pr) => Math.abs(pr.a20 + 1) < 1e-9, '−1: row 3 − row 1 = (−1, 1, 2 | 2). The step added row 1; its inverse takes it away.',
+      (v, pr) => `Row 3 is now ${rowTxt(pr, 2, 3)}. The step added 1 × row 1. Undo that.`, () => S.em.set({ e20: -1 }), { only: ['e20'] }),
+  }], done) }],
+
+  ['wrap', 'Summary', (m) => {
+    const p = panel(0);
+    [['Each step of elimination can be undone: add back what it took away.', 'w1'], ['E⁻¹ is E with the sign of its one number changed: −ℓ becomes +ℓ.', 'w2'],
+     ['E⁻¹E = I and EE⁻¹ = I: the line turns away and back, about the same point.', 'w3'], ['It works because a step never changes the row it uses.', 'w4']].forEach(([str, mark], i) => {
+      const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
+      mk('circle', { cx: 120, cy: -12, r: 26, fill: COL.chalk }, g);
+      T(g, String(i + 1), { x: 120, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+      T(g, str, { x: 170, size: 34, weight: 600 });
+      tw(g, { o: 1, x: 0 }, m(mark), .6);
+    });
+  }],
+  ['final1', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-undo', prompt: ['Find the number that undoes each step.'],
+    build: blanks(UNDOQ),
+  }], done, 'Chapter practice · set 1 of 4') }],
+  ['final2', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
+    id: 'p-row', prompt: ['E⁻¹ times the answer gives back the old rows. Rows are written (numbers of A | right side).'],
+    build: blanks(ROWQ.slice(0, 3)),
+  }, {
+    id: 'p-row3', prompt: ['Three equations now. Each row of E⁻¹ says how much of each row of the answer to take.'],
+    build: blanks(ROWQ.slice(3)),
+  }], done, 'Chapter practice · set 2 of 4') }],
+  ['final3', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
+    id: 'p-tf', prompt: ['True or false?'],
+    build: grid(TFQ, TF, { text: true }),
+  }, {
+    id: 'p-prod', prompt: ['Multiply E⁻¹ times E, one row. Each row of the left matrix mixes the rows of the right one.'],
+    build: blanks(PRODQ),
+  }], done, 'Chapter practice · set 3 of 4') }],
+  ['final4', 'Chapter practice', () => {
+    const p = panel(0);
+    text(p, 'Undo the steps with E⁻¹', 60, 110, .2, { size: 40, weight: 600 });
+    const t = three(p, AFTER1, '');
+    t.em.setName('E⁻¹'); t.em.names(['EA', 'Eb', '', '']);
+    S.em = t.em;
+  }, { ask: done => quiz(CARD3, HANDS.map((h, k) => ({
+    id: `p-hand${k + 1}`, prompt: [h.prompt],
+    build: (body, api) => { S.em.set(keysOf(h.from)); S.em.work(+h.only[h.only.length - 1][1], 0); return emTask(S.em, (v, pr) => same(pr, h.to), h.why, handHint(h), () => S.em.set(h.ans), { only: h.only })(body, api); },
+  })), done, 'Chapter practice · set 4 of 4') }],
+  ['play', 'Playground', (m) => {
+    const p = panel(0);
+    text(p, 'Playground', 60, 110, .2, { size: 40, weight: 600 });
+    const t = two(p, CH16, '');
+    ghost(t.sys, 3, 4, 1, 2, .3);
+    S.em = t.em;
+    t.em.work(1, .3);
+    text(p, 'try: −3 in E makes the line flat; type the flat row into A | b, then find the E that turns it back', 70, 175, m('go'), { size: 24, fill: COL.dim });
+  }, { ask: playAsk(() => S.em, { pos: { x: 40, y: 586, w: 760, cls: 'side' }, tip: 'Your matrices. Change any number of E or of A | b, drag a line, or draw on the board. Nothing is marked.' }) }],
+  ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+boot();
+</script>
+</body>
+</html>
