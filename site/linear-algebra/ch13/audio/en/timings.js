@@ -676,6 +676,30 @@ window.TIMINGS = {
    ]
   ]
  },
+ "play": {
+  "dur": 12.024,
+  "marks": {
+   "go": 3.763
+  },
+  "cues": [
+   [
+    0.091,
+    "Playground."
+   ],
+   [
+    1.12,
+    "Nothing here is marked right or wrong."
+   ],
+   [
+    3.763,
+    "Change the mix, change a column, drag an arrow tip, turn the space, and watch b move."
+   ],
+   [
+    10.391,
+    "Press continue when you're done."
+   ]
+  ]
+ },
  "finish": {
   "dur": 9.864,
   "marks": {},

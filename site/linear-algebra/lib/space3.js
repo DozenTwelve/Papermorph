@@ -86,6 +86,31 @@ function S3_clipSeg(a, b, R) {
   return hi - lo > 1e-9 ? [a.map((x, j) => x + (b[j] - x) * lo), a.map((x, j) => x + (b[j] - x) * hi)] : null;
 }
 
+// Labels that place themselves. S3_hitSeg: does the segment [[x0, y0], [x1, y1]] touch the box [x0, y0, x1, y1]?
+function S3_hitSeg(r, [[x0, y0], [x1, y1]]) {
+  let lo = 0, hi = 1;
+  const dx = x1 - x0, dy = y1 - y0;
+  for (const [p, q] of [[-dx, x0 - r[0]], [dx, r[2] - x0], [-dy, y0 - r[1]], [dy, r[3] - y0]]) {
+    if (p === 0) { if (q < 0) return false; continue; }
+    const t = q / p;
+    if (p < 0) { if (t > hi) return false; lo = Math.max(lo, t); } else { if (t < lo) return false; hi = Math.min(hi, t); }
+  }
+  return true;
+}
+// Of the candidate boxes, the index of the one that covers the obstacles least (boxes by overlapping area, segments
+// such as the axes by crossing), the earliest on a tie; bounds [x0, y0, x1, y1]: what falls outside counts too.
+function S3_pick(cands, boxes, segs = [], bounds = null) {
+  let best = 0, low = Infinity;
+  cands.forEach((r, k) => {
+    let s = k * 4;
+    for (const o of boxes) { const w = Math.min(r[2], o[2]) - Math.max(r[0], o[0]), h = Math.min(r[3], o[3]) - Math.max(r[1], o[1]); if (w > 0 && h > 0) s += w * h; }
+    for (const g of segs) if (S3_hitSeg(r, g)) s += 160;
+    if (bounds) s += 40 * (Math.max(0, bounds[0] - r[0]) + Math.max(0, r[2] - bounds[2]) + Math.max(0, bounds[1] - r[1]) + Math.max(0, r[3] - bounds[3]));
+    if (s < low) { low = s; best = k; }
+  });
+  return best;
+}
+
 function space3(p, { cx = 1150, cy = 450, size = 640, range: R = 4, yaw = -30, pitch = 22, t0 = .1 } = {}) {
   const g = G(p, { o: 0 }), svg = $('stage'), k = size / (3.4 * R), dist = S3_DIST * R;
   const cam = { yaw, pitch }, user = { yaw: 0, pitch: 0 }, drifts = [], items = [], sorted = [], hooks = [], avoids = [], planeItems = [];
@@ -160,7 +185,10 @@ function space3(p, { cx = 1150, cy = 450, size = 640, range: R = 4, yaw = -30, p
       const q = A.at(R + 1.1), L = Math.hypot(...[0, 1].map(j => A.at(R)[j] - A.at(-R)[j])) / (2 * R);
       return { x: q[0], y: q[1], o: L < 9 ? 0 : 1 };   // an axis pointing straight at the reader has no room for its name
     });
-    const keep = [...lab.filter(l => l.o).map(l => [l.x, l.y - 11]), ...avoids.flatMap(f => f(proj) || [])];
+    const avoidPts = avoids.flatMap(f => f(proj) || []);
+    const placed = placeLabels(proj, lab, avoidPts);
+    const keep = [...lab.filter(l => l.o).map(l => [l.x, l.y - 11]), ...avoidPts,
+      ...placed.flatMap(b => { const ks = [], y = (b[1] + b[3]) / 2; for (let x = b[0] + 10; x < b[2]; x += 28) ks.push([x, y]); return ks; })];
     axes.forEach((A, i) => {
       const P = A.at(-R), B = A.at(R + .7), L = Math.hypot(B[0] - P[0], B[1] - P[1]) || 1;
       let nx = (P[1] - B[1]) / L, ny = (B[0] - P[0]) / L;   // the side of the axis below it, or left of an upright one
@@ -177,8 +205,35 @@ function space3(p, { cx = 1150, cy = 450, size = 640, range: R = 4, yaw = -30, p
     });
   });
 
+  // Point labels without dx/dy place themselves each redraw: of six spots round the dot (above right first), the one
+  // that covers least of the axes, their names, the other dots and labels and the arrow-tip labels (avoid), and stays
+  // inside the view. Returns every visible label's box, so tick numbers can step aside.
+  const pts = [];
+  const seen = e => { for (let n = e; n && n !== g; n = n.parentNode) if (n._st && n._st.o < .05) return false; return true; };
+  function placeLabels(proj, lab, avoidPts) {
+    // a dot just given a position is still hidden until its own redraw below: it counts as shown
+    const vis = pts.filter(it => it.pos && (it.hid || st(it.e).o >= .05) && seen(it.e.parentNode)), out = [];
+    const named = it => it.t.textContent.trim() && st(it.t).o >= .05;
+    const segs = axes.filter(A => seen(A.g)).map(A => [A.at(-R), A.at(R + .7)]);
+    const boxes = [...lab.filter(l => l.o).map(l => [l.x - 13, l.y - 15, l.x + 13, l.y + 14]),
+      ...avoidPts.map(([x, y]) => [x - 30, y - 12, x + 30, y + 10]),
+      ...vis.map(it => { const q = proj(it.pos); return [q[0] - it.r - 2, q[1] - it.r - 2, q[0] + it.r + 2, q[1] + it.r + 2]; })];
+    const bounds = [cx - size / 2 - 60, cy - 420, cx + size / 2 + 60, cy + 420];
+    const boxAt = (it, q, [ox, oy]) => { const w = it.t.textContent.length * it.ls * .5; return [q[0] + ox, q[1] + oy - it.ls * .78, q[0] + ox + w, q[1] + oy + it.ls * .22]; };
+    vis.filter(it => !it.auto && named(it)).forEach(it => { const b = boxAt(it, proj(it.pos), it.off); boxes.push(b); out.push(b); });
+    vis.filter(it => it.auto && named(it)).forEach(it => {
+      const q = proj(it.pos), r = it.r, ls = it.ls, w = it.t.textContent.length * ls * .5;
+      const offs = [[r + 6, -r - 4], [r + 6, r + ls * .8], [-r - 6 - w, -r - 4], [-r - 6 - w, r + ls * .8], [-w / 2, -r - 8], [-w / 2, r + ls * .85 + 2]];
+      const cands = offs.map(o => boxAt(it, q, o)), k = S3_pick(cands, boxes, segs, bounds);
+      it.off = offs[k];
+      boxes.push(cands[k]); out.push(cands[k]);
+    });
+    return out;
+  }
+
   /* ---------- things in space: they re-project with the camera; set() moves them ---------- */
   // A dot with a label; stem: true adds its shadow on the floor and a dashed line down to it, so its height reads.
+  // Without dx/dy the label finds a free spot round the dot by itself.
   function point(pos, { color = COL.chalk, r = 10, label = '', size: ls = 28, into = content, stem = false, dx, dy } = {}) {
     const e = G(into, {});
     const st_ = stem ? path(into, '', { stroke: color, 'stroke-width': 2, 'stroke-dasharray': '5 6', 'stroke-opacity': .7, fill: 'none' }) : null;
@@ -186,8 +241,11 @@ function space3(p, { cx = 1150, cy = 450, size = 640, range: R = 4, yaw = -30, p
     if (st_) into.insertBefore(st_, e), into.insertBefore(sh, e);
     mk('circle', { r, fill: color, stroke: COL.board, 'stroke-width': 3 }, e);
     const t = T(e, label, { x: dx ?? r + 8, y: dy ?? -r - 6, size: ls, fill: color, font: MATH, weight: 600 });
-    const it = { e, pos, t, stemEl: st_, set(q) { it.pos = q; dirty(); }, label(s) { if (t.textContent !== s) t.textContent = s; } };
+    const it = { e, pos, t, stemEl: st_, set(q) { it.pos = q; dirty(); }, label(s) { if (t.textContent !== s) { t.textContent = s; dirty(); } } };
+    Object.assign(it, { r, ls, auto: dx === undefined && dy === undefined, off: [dx ?? r + 8, dy ?? -r - 6] });
+    pts.push(it);
     items.push(() => {
+      if (it.auto) { const s = st(t), ox = n1(it.off[0]), oy = n1(it.off[1]); if (s.x !== ox || s.y !== oy) put(t, { x: ox, y: oy }); }
       // hidden while pos is null; otherwise its opacity is the beat's to tween
       const q = it.pos && proj(it.pos);
       if (!q) { if (!it.hid) { it.hid = 1; put(e, { o: 0 }); } } else { put(e, { x: n1(q[0]), y: n1(q[1]), ...(it.hid ? { o: 1 } : {}) }); it.hid = 0; }
@@ -317,6 +375,7 @@ function space3(p, { cx = 1150, cy = 450, size = 640, range: R = 4, yaw = -30, p
   orbit.addEventListener('pointerup', end);
   orbit.addEventListener('lostpointercapture', end);
   orbit.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); e.currentTarget.blur(); P.keys?.(e); return; }   // Enter checks (or goes on), as in an answer box
     if (!live) return;
     const d = { ArrowLeft: [-10, 0], ArrowRight: [10, 0], ArrowUp: [0, 8], ArrowDown: [0, -8] }[e.key];
     if (!d) return;
@@ -436,6 +495,7 @@ function lin3(p, { A = [[2, -1, 0], [-1, 2, -1], [0, -3, 4]], b = [0, -1, 4], eq
     box.addEventListener('pointerup', end);
     box.addEventListener('lostpointercapture', end);
     box.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); e.currentTarget.blur(); P.keys?.(e); return; }   // Enter checks (or goes on), as in an answer box
       if (!live || s.locked) return;
       const d = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 }[e.key];
       if (!d) return;
@@ -496,7 +556,7 @@ function lin3(p, { A = [[2, -1, 0], [-1, 2, -1], [0, -3, 4]], b = [0, -1, 4], eq
     const bracket = (g, x, w) => path(g, `M${x + 12} ${top}H${x}V${bot}H${x + 12}M${x + w - 12} ${top}H${x + w}V${bot}H${x + w - 12}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' });
     let x = fx_;
     I.forEach(j => {
-      if (j) { T(CF, '+', { x: x + 16, y: fy + rh + 12, size: ms, fill: COL.chalk, font: MATH, anchor: 'middle' }); x += 38; }
+      if (j) { T(CF, '+', { x: x + 26, y: fy + rh + 12, size: ms, fill: COL.chalk, font: MATH, anchor: 'middle' }); x += 38; }
       mixG[j] = G(CF, {});
       slot(mixG[j], `x${j}`, x + 56, fy + rh + 12, { anchor: 'end', fill: COL.chalk, w: 62, fs: ms });
       colG[j] = G(CF, {});
@@ -504,9 +564,9 @@ function lin3(p, { A = [[2, -1, 0], [-1, 2, -1], [0, -3, 4]], b = [0, -1, 4], eq
       I.forEach(i => slot(colG[j], `a${i}${j}`, x + 64 + cw / 2, fy + rh * i, { anchor: 'middle', fill: S3_COLS[j], w: 56, fs: ms }));
       x += 64 + cw + 6;
     });
-    T(CF, '=', { x: x + 18, y: fy + rh + 12, size: ms, fill: COL.chalk, font: MATH, anchor: 'middle' });
-    bracket(cfB, x + 42, 84);
-    I.forEach(i => slot(cfB, `b${i}`, x + 84, fy + rh * i, { anchor: 'middle', fill: S3_B, w: 72, fs: ms }));
+    T(CF, '=', { x: x + 23, y: fy + rh + 12, size: ms, fill: COL.chalk, font: MATH, anchor: 'middle' });
+    bracket(cfB, x + 52, 84);
+    I.forEach(i => slot(cfB, `b${i}`, x + 94, fy + rh * i, { anchor: 'middle', fill: S3_B, w: 72, fs: ms }));
   }
 
   /* ---------- the space: rows as planes, columns as arrows ---------- */
@@ -542,20 +602,33 @@ function lin3(p, { A = [[2, -1, 0], [-1, 2, -1], [0, -3, 4]], b = [0, -1, 4], eq
     return { g, ring, k };
   });
   const tipLabels = tipKeys.map((k, n) => T(COLV, '', { size: 28, fill: tipColor[n], font: MATH, weight: 600 }));
-  // beside the tip, a column's on the arrow's right-hand side and b's on its left (b often lies along a column);
+  // beside the tip, a column's on the arrow's right-hand side and b's on its left (b often lies along a column), unless
+  // that side covers an axis, an axis name, another arrow or an earlier label and the other side does not;
   // past the tip is where a dashed mix often runs on
-  const labelAt = (n, proj) => {
-    const O = proj([0, 0, 0]), q = proj(tipOf(tipKeys[n])), L = Math.hypot(q[0] - O[0], q[1] - O[1]) || 1, ux = (q[0] - O[0]) / L, uy = (q[1] - O[1]) / L;
-    const side = tipKeys[n] === 'b' ? -1 : 1, nx = -uy * side, ny = ux * side;
-    return { q, x: Math.round(q[0] + ux * 14 + nx * 20), y: Math.round(q[1] + uy * 14 + ny * 24 + 9), anchor: nx > .35 ? 'start' : nx < -.35 ? 'end' : 'middle' };
+  const tipPlace = proj => {
+    const O = proj([0, 0, 0]), ends = tipKeys.map(k => proj(tipOf(k)));
+    const segs = I.map(j => { const a = [0, 0, 0], b = [0, 0, 0]; a[j] = -R; b[j] = R + .7; return [proj(a), proj(b)]; });
+    const boxes = I.map(j => { const q = [0, 0, 0]; q[j] = R + 1.1; const s = proj(q); return [s[0] - 13, s[1] - 15, s[0] + 13, s[1] + 14]; });
+    return tipKeys.map((k, n) => {
+      const q = ends[n], L = Math.hypot(q[0] - O[0], q[1] - O[1]) || 1, ux = (q[0] - O[0]) / L, uy = (q[1] - O[1]) / L, w = tipLabels[n].textContent.length * 14;
+      const cand = [k === 'b' ? -1 : 1, k === 'b' ? 1 : -1].map(side => {
+        const nx = -uy * side, ny = ux * side, x = Math.round(q[0] + ux * 14 + nx * 20), y = Math.round(q[1] + uy * 14 + ny * 24 + 9);
+        const anchor = nx > .35 ? 'start' : nx < -.35 ? 'end' : 'middle', x0 = anchor === 'start' ? x : anchor === 'end' ? x - w : x - w / 2;
+        return { q, x, y, anchor, box: [x0, y - 22, x0 + w, y + 6] };
+      });
+      const c = cand[S3_pick(cand.map(c => c.box), boxes, [...segs, ...ends.filter((_, m) => m !== n).map(e => [O, e])])];
+      if (tipLabels[n].textContent) boxes.push(c.box);
+      return c;
+    });
   };
-  V.avoid(proj => st(COLV).o > .05 ? tipLabels.flatMap((t, n) => t.textContent ? [[labelAt(n, proj).x, labelAt(n, proj).y - 9]] : []) : []);
+  V.avoid(proj => { if (st(COLV).o <= .05) return []; const P = tipPlace(proj); return tipLabels.flatMap((t, n) => t.textContent ? [[P[n].x, P[n].y - 9]] : []); });
   V.on(proj => {
     planes.forEach((pl, i) => { const d = pl.e.getAttribute('d'); if (hits[i].getAttribute('d') !== d) hits[i].setAttribute('d', d); });
     // a meeting line is as bright as the dimmer of its two planes
     [[0, 1], [0, 2], [1, 2]].forEach(([i, j], n) => { const o = String(Math.round(.75 * Math.min(planes[i].k, planes[j].k) * 100) / 100); if (lines[n].e.getAttribute('stroke-opacity') !== o) lines[n].e.setAttribute('stroke-opacity', o); });
+    const P = tipPlace(proj);
     tips.forEach(({ g }, n) => {
-      const L = labelAt(n, proj), t = tipLabels[n];
+      const L = P[n], t = tipLabels[n];
       put(g, { x: Math.round(L.q[0] * 10) / 10, y: Math.round(L.q[1] * 10) / 10 });
       if (t.getAttribute('text-anchor') !== L.anchor) t.setAttribute('text-anchor', L.anchor);
       put(t, { x: L.x, y: L.y });
@@ -611,6 +684,7 @@ function lin3(p, { A = [[2, -1, 0], [-1, 2, -1], [0, -3, 4]], b = [0, -1, 4], eq
     putTip(k, q);
   }, () => guide.set(null, null)));
   tips.forEach(({ g, k }) => g.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); e.currentTarget.blur(); P.keys?.(e); return; }   // Enter checks (or goes on), as in an answer box
     if (!live || !free(tipKeysOf(k))) return;
     const up = e.key === 'ArrowUp' || e.key === 'PageUp' ? 1 : e.key === 'ArrowDown' || e.key === 'PageDown' ? -1 : 0;
     const j = e.key === 'ArrowLeft' || e.key === 'ArrowRight' ? 0 : up && (e.shiftKey || e.key.startsWith('Page')) ? 1 : up ? 2 : -1;

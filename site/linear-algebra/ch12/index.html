@@ -12,6 +12,7 @@
 <script src="../lib/math.js"></script>
 <script src="../lib/linsys.js"></script>
 <script src="../lib/space3.js"></script>
+<script src="../lib/play.js"></script>
 <script src="audio/en/timings.js"></script>
 <script>
 'use strict';
@@ -104,9 +105,9 @@ const BEATS = [
     tw(g, { o: 1, y: 0 }, .2, 1.1, out);
     const r = text(scene, 'three equations in x, y, z: three planes, and the point they share', 800, 560, m('sub'), { size: 34, fill: COL.dim, anchor: 'middle' });
     // three strokes that swing in and cross at one dot
-    const lg = G(scene, { x: 800, y: 700 });
+    const lg = G(scene, { x: 800, y: 730 });
     S3_ROW.forEach((c, i) => {
-      const l = path(lg, 'M-150 0H150', { stroke: c, 'stroke-width': 6, 'stroke-linecap': 'round' });
+      const l = path(lg, 'M-115 0H115', { stroke: c, 'stroke-width': 6, 'stroke-linecap': 'round' });
       put(l, { o: 0, r: 0 }); tw(l, { o: 1 }, m('sub') + 1 + i * .5, .4); tw(l, { r: [-35, 30, 85][i] }, m('sub') + 1 + i * .5, 1.6, soft);
     });
     tw(lg, { r: 25 }, m('sub') + 1, D - m('sub') - 1, soft);
@@ -133,7 +134,7 @@ const BEATS = [
     const V = sys.space;
     V.sway(6, 14);
     // two tries, side by side
-    const P1 = V.point(null, { color: COL.chalk, label: '(0, 0, 1)', size: 26 }), P2 = V.point(null, { color: COL.chalk, label: '(1, 2, 4)', size: 26 });
+    const P1 = V.point(null, { color: COL.chalk, label: '(0, 0, 1)', size: 26 }), P2 = V.point(null, { color: COL.chalk, label: '(1, 2, 4)', size: 26, stem: true });
     prog(() => P1.set([0, 0, 1]), m('try'), 0, lin); pulse(P1.e, m('try'));
     prog(() => P2.set([1, 2, 4]), m('try2'), 0, lin); pulse(P2.e, m('try2'));
     S.P1 = P1; S.P2 = P2;
@@ -174,7 +175,7 @@ const BEATS = [
     hide(S.w, .1, .4);
     lit(sys, 1, m('eq2') - .3);
     const w = S.w = G(p, {});
-    const cr = tickCross(V, [[[1, 0, 0], '', 12, 30], [[0, -.5, 0], '(0, −½, 0)', -120, 4], [[0, 0, 1], '', -100, -14]], [m('cx') + 2.5, m('cy') + 2.8, m('cz') + 2.4], COL.task, w);
+    const cr = tickCross(V, [[[1, 0, 0], '', 12, 30], [[0, -.5, 0], '(0, −½, 0)', -120, 4], [[0, 0, 1], ' ', -100, -14]], [m('cx') + 2.5, m('cy') + 2.8, m('cz') + 2.4], COL.task, w);
     say(w, ['x-axis:  −x = −1,   x = 1'], 90, 460, m('cx') + 1, { size: 30 });
     say(w, ['y-axis:  2y = −1,   y = −', F(1, 2)], 90, 510, m('cy') + 1, { size: 30 });
     say(w, ['z-axis:  −z = −1,   z = 1'], 90, 560, m('cz') + 1, { size: 30 });
@@ -192,7 +193,7 @@ const BEATS = [
     pulse(S.P1.e, m('both') + .5); pulse(S.P2.e, m('both') + 1.2);
     text(w2, 'two equations: a whole line of solutions', 90, 520, m('many'), { size: 30, fill: COL.task, weight: 600 });
     S.w = w2;
-    V.turn({ yaw: VIEW.yaw + 30 }, m('meet'), 3); V.turn({ yaw: VIEW.yaw }, m('many'), 2.5);
+    V.turn({ yaw: VIEW.yaw + 20 }, m('meet'), 3);   // not past −15: y would run up the z axis V.turn({ yaw: VIEW.yaw }, m('many'), 2.5);
   }],
 
   ['p3', 'The third plane', (m) => {
@@ -204,13 +205,17 @@ const BEATS = [
     text(w, 'x is missing: it runs along x', 90, 460, m('nox'), { size: 30, fill: COL.task, weight: 600 });
     say(w, ['z-axis:  4z = 4,   z = 1'], 90, 515, m('cz'), { size: 30 });
     say(w, ['y-axis:  −3y = 4,   y = −', F(4, 3)], 90, 570, m('cy'), { size: 30 });
-    const cr = tickCross(V, [[[0, 0, 1], '', -100, -14], [[0, -4 / 3, 0], '(0, −4/3, 0)', -150, 4]], [m('cz') + .4, m('cy') + .6], COL.task, w);
+    const cr = tickCross(V, [[[0, 0, 1], ' ', -100, -14], [[0, -4 / 3, 0], '(0, −4/3, 0)', -150, 4]], [m('cz') + .4, m('cy') + .6], COL.task, w);
     reveal(sys, 2, m('show'), 1);
     cr.forEach(d => hide(d.e, m('cut'), .4));
     lit(sys, [0, 1], m('cut') - .2);   // the line of the first two, bright; the third plane dim while we look at the line
     prog(q => sys.lines[0].e.setAttribute('stroke-width', 2.5 + 4 * Math.sin(Math.PI * q)), m('cut'), 1.4, lin);
     lit(sys, null, m('cut') + 2.4);
-    show(sys.meet.e, m('pt'), .3); pulse(sys.meet.e, m('pt')); pulse(sys.meet.e, m('pt') + 1);
+    show(sys.meet.e, m('pt'), .3); pulse(sys.meet.e, m('pt')); pulse(sys.meet.e, m('pt') + 1); hide(S.P1.e, m('pt'), .3);
+    // (1, 2, 4) is on the line of planes 1 and 2 but off plane 3: plane 3 alone, the line through it
+    const ln = V.line(null, null, { color: COL.chalk, w: 4, dash: '10 8', clip: true });
+    prog(() => ln.set([-2, -4, -5], [2, 4, 7]), m('miss'), 0, lin); tw(ln.e, { o: 0 }, 0, 0); show(ln.e, m('miss'), .4); hide(ln.e, m('only') + .4, .4);
+    lit(sys, 2, m('miss')); lit(sys, null, m('only') + .4);
     show(sys.sol, m('pt') + .4, .5);
     hide(w, m('miss') - .3, .3);
     tw(S.P2.e, { o: 1 }, m('miss'), 0); tw(S.P2.e.firstChild, { c_fill: COL.bad }, m('miss'), .3); tw(S.P2.t, { c_fill: COL.bad }, m('miss'), .3);
@@ -222,7 +227,10 @@ const BEATS = [
   ['check', 'From all sides', (m) => {
     const sys = S.sys, V = sys.space;
     hide(S.P2.e, .1, .5); hide(S.P1.e, .1, .3);
-    V.turn({ yaw: VIEW.yaw - 25 + 340, pitch: 26 }, .3, m('ans') - .3, lin);   // once round, slowly
+    V.turn({ yaw: -95, pitch: 24 }, .3, m('f1') + .4);          // the wall 2x − y = 0 nearly face-on
+    V.turn({ yaw: -25, pitch: 24 }, m('f2'), 1.4);              // plane 2 face-on
+    V.turn({ yaw: 5, pitch: 36 }, m('f3'), 1.3);                // plane 3 face-on
+    V.turn({ yaw: -50, pitch: 28 }, m('lines'), 3);             // all three well apart
     sys.focus(0, m('f1')); sys.focus(1, m('f2')); sys.focus(2, m('f3')); sys.focus(null, m('lines'));
     [m('f1'), m('f2'), m('f3')].forEach(t => pulse(sys.meet.e, t + .4));
     [0, 1, 2].forEach(i => prog(q => sys.lines[i].e.setAttribute('stroke-width', 2.5 + 3.5 * Math.sin(Math.PI * q)), m('lines') + i * .5, 1.2, lin));
@@ -238,6 +246,7 @@ const BEATS = [
     const p = panel(0);
     text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
     S.sys = three(p, LEC.A, LEC.b, { sol: false });
+    put(S.sys.meet.t, { o: 0 });   // the meeting point unnamed: the reader checks (0, 0, 1) by putting it in
     S.sys.space.sway(6, 14);
   }, { ask: done => quiz(CARD, [{
     id: 'c-all', prompt: ['Does the point solve all three equations?'],
@@ -307,7 +316,7 @@ const BEATS = [
     const old = V.point([0, 0, 1], { color: COL.dim, r: 7 });
     put(old.e, { o: 0 }); show(old.e, m('slide'), .3);
     pulse(sys.meet.e, m('new'));
-    say(p, ['−3·2 + 4·4 = −6 + 16 = 10  ✓'], 90, 480, m('old') + 4, { size: 30, fill: COL.good });
+    const c10 = say(p, ['−3·2 + 4·4 = −6 + 16 = 10  ✓'], 90, 480, m('old') + 4, { size: 30, fill: COL.good }); hide(c10, m('back'), .3);
     sys.to({ b2: 4 }, m('back'), 2.2, io); flash(sys, 'b2', m('back'));
     V.turn({ yaw: VIEW.yaw + 20, pitch: 28 }, m('slide'), 4);
   }],
@@ -337,7 +346,7 @@ const BEATS = [
     const a = text(p, 'z = 1 and z = 3 at once? Never.', 90, 470, m('two') + 2, { size: 30, fill: COL.bad, weight: 600 });
     sys.focus(null, m('nosol'));
     tw(sys.sol, { s: 1.06 }, m('nosol'), .3); tw(sys.sol, { s: 1 }, m('nosol') + .5, .4);
-    hide(a, m('eq2') - .4, .3);
+    hide(a, m('eq2') - .4, .3); hide(sys.sol, m('eq2') - .4, .3); show(sys.sol, m('none'), .4);
     // switch to the tent: hide the planes, change the numbers, bring them back
     sys.planes.forEach(pl => { pl.fade(0, m('eq2') - .4, .3); pl.fade(1, m('eq2') + .5, .8); });
     sys.to({ a00: 1, a01: 0, a02: 1, a10: -1, a11: 0, a12: 1, a20: 0, a21: 0, a22: 1, b0: 2, b1: 2, b2: 0 }, m('eq2') - .1, .1, lin);
@@ -354,14 +363,14 @@ const BEATS = [
   ['line', 'A whole line', (m) => {
     const p = panel(0);
     text(p, 'When the planes share a line', 60, 110, .2, { size: 40, weight: 600 });
-    const sys = S.sys = three(p, [[1, -1, 0], [0, 1, -1], [1, 0, -1]], [0, 0, 0], { t0: m('eq') - .3, view: { yaw: -20, pitch: 22 } });
+    const sys = S.sys = three(p, [[1, -1, 0], [0, 1, -1], [1, 0, -1]], [0, 0, 0], { t0: m('eq') - .3, view: { yaw: -60, pitch: 15 } });
     const V = sys.space;
     tw(sys.sol, { o: 0 }, 0, 0); show(sys.sol, m('many'), .4);
     V.sway(6, 12);
     const sp = V.line(null, null, { color: COL.task, w: 6, into: V.content });
     prog(q => sp.set([-4, -4, -4], [-4 + 8 * q, -4 + 8 * q, -4 + 8 * q]), m('spine'), 1.4, io);
     // look down the spine, like looking at a book from its end
-    V.turn({ yaw: -135, pitch: 35.3 }, m('spine') + 1.2, 3); V.turn({ yaw: -60, pitch: 24 }, m('pts') - .2, 2.6);
+    V.turn({ yaw: -135, pitch: 35.3 }, m('spine') + 1.2, 3); V.turn({ yaw: -60, pitch: 15 }, m('pts') - .2, 2.6);
     [[1, 1, 1], [2, 2, 2], [-1, -1, -1]].forEach((q, i) => {
       const d = V.point(null, { color: COL.chalk, label: tri(q), size: 24 });
       const t = m('pts') + [0, 1.6, 3.2][i];
@@ -435,6 +444,14 @@ const BEATS = [
       'Make the third plane parallel to the first: copy the first equation’s numbers in front of x, y and z. Then both say 2x − y equals something, but different somethings.',
       () => S.sys.set({ a20: 2, a21: -1, a22: 0 }), ['a20', 'a21', 'a22']),
   }], done, 'Chapter practice · set 4 of 4') }],
+  ['play', 'Playground', (m) => {
+    const p = panel(0);
+    text(p, 'Playground', 60, 110, .2, { size: 40, weight: 600 });
+    S.sys = three(p, LEC.A, LEC.b);
+    S.sys.space.sway(5, 16);
+    const hint = text(p, 'try: move the meeting point to (1, 1, 1), make two planes parallel, make all three share a line', 90, 870, m('go'), { size: 26, fill: COL.dim });
+    hide(hint, m('go') + 8, .6);
+  }, { ask: playAsk(() => S.sys, { tip: 'Your three planes. Change any number, drag a plane by its edge, turn the space, or draw on the board. Nothing is marked.' }) }],
   ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
 

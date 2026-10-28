@@ -521,18 +521,18 @@ window.TIMINGS = {
   ]
  },
  "tilt": {
-  "dur": 57.696,
+  "dur": 58.776,
   "marks": {
-   "three": 4.128,
-   "tilt": 10.729,
-   "why": 12.148,
-   "xa": 16.576,
-   "same": 23.685,
-   "zc": 32.826,
-   "zt": 38.685,
-   "minus": 44.206,
-   "neg": 48.177,
-   "sum": 52.07
+   "three": 4.505,
+   "tilt": 11.081,
+   "why": 12.591,
+   "xa": 17.031,
+   "same": 24.232,
+   "zc": 33.073,
+   "zt": 39.206,
+   "minus": 44.727,
+   "neg": 48.503,
+   "sum": 52.878
   },
   "cues": [
    [
@@ -540,51 +540,51 @@ window.TIMINGS = {
     "The numbers in front of x, y and z do something else."
    ],
    [
-    4.128,
+    4.505,
     "Change x plus y plus z equals three into three x plus y plus z equals three."
    ],
    [
-    10.729,
+    11.081,
     "The plane tilts."
    ],
    [
-    12.148,
+    12.591,
     "Here is why."
    ],
    [
-    13.125,
+    13.555,
     "On the x axis, y and z are zero, so three x equals three, and x is one."
    ],
    [
-    20.182,
+    20.716,
     "The plane used to cross at three."
    ],
    [
-    22.188,
+    22.747,
     "Now it crosses at one."
    ],
    [
-    23.685,
+    24.232,
     "On the y axis and the z axis, nothing changed: they still cross at three."
    ],
    [
-    29.896,
+    30.273,
     "So the plane swings, like a door on a hinge."
    ],
    [
-    32.826,
+    33.073,
     "Now put the three in front of z instead: x plus y plus three z equals three."
    ],
    [
-    38.685,
+    39.206,
     "This time the z crossing moves down to one, and the plane leans the other way."
    ],
    [
-    44.206,
-    "And with negative x plus y plus z equals three, the x crossing jumps to negative three, behind the origin."
+    44.727,
+    "And with negative x plus y plus z equals three, the x crossing jumps to negative three, on the other side of the origin."
    ],
    [
-    52.07,
+    52.878,
     "So the right side slides the plane, and the numbers in front of x, y and z tilt it."
    ]
   ]
@@ -767,6 +767,30 @@ window.TIMINGS = {
    [
     1.185,
     "Make the plane with your hands."
+   ]
+  ]
+ },
+ "play": {
+  "dur": 11.016,
+  "marks": {
+   "go": 4.036
+  },
+  "cues": [
+   [
+    0.091,
+    "Playground."
+   ],
+   [
+    1.055,
+    "Nothing here is marked right or wrong."
+   ],
+   [
+    4.036,
+    "Change the numbers, drag the plane, turn the space, and see what moves with what."
+   ],
+   [
+    9.362,
+    "Press continue when you're done."
    ]
   ]
  },

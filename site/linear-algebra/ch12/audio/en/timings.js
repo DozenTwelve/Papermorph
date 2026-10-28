@@ -728,6 +728,30 @@ window.TIMINGS = {
    ]
   ]
  },
+ "play": {
+  "dur": 12.384,
+  "marks": {
+   "go": 4.089
+  },
+  "cues": [
+   [
+    0.104,
+    "Playground."
+   ],
+   [
+    1.081,
+    "Nothing here is marked right or wrong."
+   ],
+   [
+    4.089,
+    "Change any number, drag a plane by its edge, turn the space, and watch where the planes meet."
+   ],
+   [
+    10.703,
+    "Press continue when you're done."
+   ]
+  ]
+ },
  "finish": {
   "dur": 12.528,
   "marks": {},
