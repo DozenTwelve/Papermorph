@@ -60,8 +60,8 @@ const colForm2 = (sys, p, t0, { x = 90, y = 420, size = 44 } = {}) => {
   const g = G(p, { o: 0 }), rh = 58, top = y - size * .95, bot = y + rh + size * .35, texts = {};
   const br = bx => path(g, `M${bx + 12} ${top}H${bx}V${bot}H${bx + 12}M${bx + 88} ${top}H${bx + 100}V${bot}H${bx + 88}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' });
   const sign = (s, sx, it = false) => { const t = T(g, s, { x: sx, y: y + rh / 2 + 4, size, fill: COL.chalk, font: MATH, anchor: 'middle' }); if (it) t.setAttribute('font-style', 'italic'); };
-  sign('x', x + 14, true); br(x + 36); sign('+', x + 262); sign('y', x + 296, true); br(x + 318); sign('=', x + 455); br(x + 488);
-  [['a00', x + 86, 0], ['a10', x + 86, 1], ['a01', x + 368, 0], ['a11', x + 368, 1], ['b0', x + 538, 0], ['b1', x + 538, 1]].forEach(([k, cx, i]) => {
+  sign('x', x + 14, true); br(x + 36); sign('+', x + 172); sign('y', x + 206, true); br(x + 228); sign('=', x + 365); br(x + 398);
+  [['a00', x + 86, 0], ['a10', x + 86, 1], ['a01', x + 278, 0], ['a11', x + 278, 1], ['b0', x + 448, 0], ['b1', x + 448, 1]].forEach(([k, cx, i]) => {
     texts[k] = T(g, '', { x: cx, y: y + rh * i, size: size * .9, fill: k[0] === 'b' ? COL.task : LS_COLS[+k[2]], font: MATH, anchor: 'middle' });
   });
   const upd = v => { for (const k in texts) { const s = fmt1(v[k]); if (texts[k].textContent !== s) texts[k].textContent = s; } };
@@ -121,7 +121,7 @@ const lattice2 = sys => {
       if (cr[1] - cr[0] < 300 && dr[1] - dr[0] < 300) {
         for (let k = dr[0]; k <= dr[1]; k++) d1 += clipDir([k * b[0], k * b[1]], a);
         for (let k = cr[0]; k <= cr[1]; k++) d2 += clipDir([k * a[0], k * a[1]], b);
-      }
+      } else sp = clipDir([0, 0], a);   // too dense to draw: it is already all but the line
       if ((cr[1] - cr[0] + 1) * (dr[1] - dr[0] + 1) < 6000)
         for (let i = cr[0]; i <= cr[1]; i++) for (let j = dr[0]; j <= dr[1]; j++) { const X = i * a[0] + j * b[0], Y = i * a[1] + j * b[1]; if (inBox(X, Y)) dd += `M${PX(X).toFixed(1)} ${PY(Y).toFixed(1)}h0`; }
     } else {
@@ -268,8 +268,8 @@ const BEATS = [
     put(sys.COLV, { o: 0 }); show(sys.COLV, m('cols') + 1.5, .6);
     S.cf = colForm2(sys, p, m('cols'));
     flash([...sys.num('a00'), ...sys.num('a10')], m('cols') + 1.2); flash([...sys.num('a01'), ...sys.num('a11')], m('cols') + 3.4);
-    box(p, 114, 366, 124, 140, LS_COLS[0], m('cols') + 1.2, m('cols') + 3.2); box(p, 396, 366, 124, 140, LS_COLS[1], m('cols') + 3.4, m('cols') + 5.4);
-    box(p, 566, 366, 124, 140, COL.task, m('cols') + 5.6, m('mix'));
+    box(p, 114, 366, 124, 140, LS_COLS[0], m('cols') + 1.2, m('cols') + 3.2); box(p, 306, 366, 124, 140, LS_COLS[1], m('cols') + 3.4, m('cols') + 5.4);
+    box(p, 476, 366, 124, 140, COL.task, m('cols') + 5.6, m('mix'));
     S.out = mixOut(sys, p, m('mix'));
     thick(sys.combo[0], m('mix') + 1.5, 4); thick(sys.combo[1], m('mix') + 2.3, 4);
     // "until now": one b at a time; "now": every point of the plane
@@ -298,9 +298,9 @@ const BEATS = [
     show(lat.shade, m('fill'), 1.2);
     text(p, 'whole mixes: a slanted grid;  fractions fill the gaps', 90, 650, m('grid'), { size: 28, fill: COL.dim });
     const h = hand(sys);
-    show(h, m('drag'), .3); hide(h, m('ans') - .2, .3);
+    show(h, m('drag'), .3); hide(h, m('rows') - .2, .3);   // the row view draws no b to point at
     // b roams; the mix follows (colour form, readout and the dashed legs); in the row picture the crossing follows
-    const pts = [[4, 3], [-3, 4], [-5, -2], [2, -5], [5, 1], [-2, 2], [1, -3], [0, 3]];
+    const pts = [[3, 3], [-3, 4], [-4, -1], [2, -5], [4, -1], [-2, 2], [1, -3], [0, 3]];   // |2·b0 + b1| ≤ 9: the leg x·col 1 stays inside the grid
     const trails = [];
     let t = m('drag') + .2, k = 0;
     while (t + 1.4 < m('ans') - .2 && k < pts.length) {
@@ -338,7 +338,7 @@ const BEATS = [
     const lat = S.lat = lattice2(sys);
     [...lat.L, lat.dots].forEach(e => show(e, .5, .6)); show(lat.shade, m('c2') + 2.4, .8);
     hide(lat.shade, m('squash'), 2.4);
-    show(lat.span, m('par') - .2, .5);
+    show(lat.span, m('squash'), .5);   // drawn once the grid is too dense to draw, so the plane never goes blank
     hideCols(sys, [sys.bArrow, sys.combo[0], sys.combo[1]]);
     sys.labels(['col 1', 'col 2', '']); prog(() => sys.labels(['col 1', 'col 2', 'b']), m('b') + .4, 0);
     thick(sys.cols[0], m('c1')); flash([...S.cf.num('a00'), ...S.cf.num('a10')], m('c1'));
@@ -348,24 +348,24 @@ const BEATS = [
     thick(lat.span, m('line'), 7);
     // why: the bottom of any mix is twice its top
     const why = G(p, {});
-    say(why, ['top:  x + 2y'], 90, 600, m('top'), { size: 36, fill: COL.chalk });
-    say(why, ['bottom:  2x + 4y  =  2·(x + 2y)'], 90, 655, m('bot'), { size: 36, fill: COL.chalk });
-    const rule = S.rule = text(p, 'bottom = 2 × top, whatever the mix', 90, 715, m('rule'), { size: 32, fill: COL.task, weight: 600 });
-    box(p, 114, 366, 124, 140, LS_COLS[0], m('why'), m('why') + 3); box(p, 396, 366, 124, 140, LS_COLS[1], m('why') + .4, m('why') + 3.4);
+    say(why, ['top:  x + 2y'], 90, 615, m('top'), { size: 36, fill: COL.chalk });
+    say(why, ['bottom:  2x + 4y  =  2·(x + 2y)'], 90, 665, m('bot'), { size: 36, fill: COL.chalk });
+    const rule = S.rule = text(p, 'bottom = 2 × top, whatever the mix', 90, 720, m('rule'), { size: 32, fill: COL.task, weight: 600 });
+    box(p, 114, 366, 124, 140, LS_COLS[0], m('why'), m('why') + 3); box(p, 306, 366, 124, 140, LS_COLS[1], m('why') + .4, m('why') + 3.4);
     // b = (3, 5): off the line
     show(sys.bArrow, m('b'), .3);
-    sys.to({ b0: 3, b1: 5 }, m('b'), 1.3);
+    sys.to({ b0: 3, b1: 1 }, m('b'), 1.3);
     S.out = mixOut(sys, p, m('b') + 1.4);
-    const { PX, PY } = sys.P, ring = G(sys.P.g, { x: PX(3), y: PY(5), o: 0 });
+    const { PX, PY } = sys.P, ring = G(sys.P.g, { x: PX(3), y: PY(1), o: 0 });
     mk('circle', { r: 16, fill: 'none', stroke: COL.bad, 'stroke-width': 3.5 }, ring);
     show(ring, m('off'), .3); pulse(ring, m('off') + .4, 1.5);
-    const offT = text(p, '5 ≠ 2 · 3:  b is off the line', 90, 775, m('off') + .4, { size: 30, fill: COL.bad, weight: 600 });
+    const offT = text(p, '1 ≠ 2 · 3:  b is off the line', 90, 775, m('off') + .4, { size: 30, fill: COL.bad, weight: 600 });
     hide(why, m('rowp') - .3, .3);
     sys.view('row', m('rowp')); hide(lat.g, m('rowp'), .4); hide(ring, m('rowp'), .3);
     flash([...sys.num('b0'), ...sys.num('b1')], m('rowp') + 1.5);
     sys.focus(0, m('rowp') + 1.6); sys.focus(1, m('rowp') + 4.4); sys.focus(null, m('parl'));
     sys.lines.forEach((l, i) => thick(l.l, m('parl') + i * .5));
-    const parT = text(p, 'parallel lines: no solution', 90, 600, m('parl'), { size: 32, fill: COL.bad, weight: 600 });
+    const parT = text(p, 'parallel lines: no solution', 90, 615, m('parl'), { size: 32, fill: COL.bad, weight: 600 });
     S.drop = [offT, parT, ring];
   }],
 
@@ -380,8 +380,10 @@ const BEATS = [
     const onT = text(p, '4 = 2 · 2:  b is on the line', 90, 775, m('b') + 1.6, { size: 30, fill: COL.good, weight: 600 });
     const trips = G(sys.P.g, {});
     const mixes = [['on', 2, 0, 12], ['m2', 0, 1, -12], ['m3', -2, 2, 0]];
+    let prev = null;
     mixes.forEach(([k, x, y, off], i) => {
-      trip(sys, trips, PAR, x, y, m(k) + .2, off);
+      prev?.forEach(l => hide(l, m(k), .3));   // one trip at a time: on one line they would hide each other
+      prev = trip(sys, trips, PAR, x, y, m(k) + .2, off);
       say(p, [`x = ${num(x)},  y = ${num(y)}`], 90, 625 + i * 48, m(k), { size: 34, fill: COL.task });
     });
     hide(S.rule, .1, .3);
@@ -393,7 +395,7 @@ const BEATS = [
     T(sum, 'b off the line → no mix;  b on the line → endlessly many', { x: 90, y: 835, size: 28, fill: COL.task, weight: 600 });
     show(sum, m('sum'), .5); hide(sameT, m('sum'), .3);
     sys.view('col', m('sum')); show(lat.g, m('sum'), .4);
-    sys.to({ b0: 3, b1: 5 }, m('sum') + 1.4, 1.1); sys.to({ b0: 2, b1: 4 }, m('sum') + 5.4, 1.1);
+    sys.to({ b0: 3, b1: 1 }, m('sum') + 1.4, 1.1); sys.to({ b0: 2, b1: 4 }, m('sum') + 5.4, 1.1);
   }],
 
   ['q2', 'Quick check', () => {
@@ -474,7 +476,7 @@ const BEATS = [
     sys.onChange(tst); tst(sys.v);
     show(tg, m('test') + .5, .4);
     prog(() => sys.labels(['col 1', 'col 2', 'col 3', 'A x']), m('scrub'), 0);
-    [[1, 1, 0], [2, 0, -1], [0, -1, 1], [1, 1, 0]].forEach(([a, b, c], i) => {
+    [[0, 2, -1], [1, -1, 1], [-1, 0, -1]].forEach(([a, b, c], i) => {   // A x = (−3, 3, −3), (4, −2, 0), (−3, 0, 3): never on a column
       sys.to({ x0: a, x1: b, x2: c }, m('scrub') + .3 + i * 1.5, 1.2);
       flash(['x0', 'x1', 'x2'].flatMap(k => sys.num(k)), m('scrub') + .3 + i * 1.5);
     });
@@ -485,11 +487,17 @@ const BEATS = [
     const calc = say(p, ['0 + 2·(−1) + 4 = 2  ≠  0'], 90, 770, m('calc'), { size: 34, fill: COL.bad });
     pulse(ring.e.firstChild, m('off'), 1.5);
     const offT = text(p, 'b is off the sheet: no mix reaches it', 90, 820, m('off') + .3, { size: 30, fill: COL.bad, weight: 600 });
+    // look along the sheet (view direction in x + 2y + z = 0: tan pitch = sin yaw + 2 cos yaw): it shrinks to a line, b stays off it
+    V.turn({ yaw: 45, pitch: 65 }, m('calc') + 1.5, 2.5);
+    const edge = text(p, 'seen edge-on, the sheet is a line, and b is not on it', 90, 862, m('calc') + 3.5, { size: 26, fill: COL.dim });
+    // then along (1, 1, −1), the direction of the lines where the planes cross: the three planes show as a triangle
+    V.turn({ yaw: 45, pitch: 35 }, m('rows'), 1.5);
     // the row picture of the same system with this b: three planes, no common point
-    [sys.CF, tg, calc, offT, ring.e, sh.e].forEach(e => hide(e, m('rows') - .2, .3));
+    [sys.CF, tg, calc, offT, edge, ring.e, sh.e].forEach(e => hide(e, m('rows') - .2, .3));
     sys.to({ b0: 0, b1: -1, b2: 4 }, m('rows'), .01);
     sys.view('row', m('rows'));
     text(p, 'three planes, no point in common', 90, 680, m('rows') + .6, { size: 32, fill: COL.bad, weight: 600 });
+    text(p, 'seen along the lines where they cross: a triangle, no corner shared by all three', 90, 730, m('rows') + 1.6, { size: 26, fill: COL.dim });
   }],
 
   ['q3', 'Your turn', () => {
@@ -548,9 +556,9 @@ const BEATS = [
     bs3.onChange(draw3); draw3(bs3.v);
     bs3.to({ b0: -2, b1: 1, b2: 3 }, m('three') + 1.8, 1.4);
     // a fourth axis has nowhere to go
-    const ax4 = V.line([0, 0, 0], [-3, -3, 3.5], { color: COL.chalk, w: 3, dash: '6 8' });
+    const ax4 = V.line([0, 0, 0], [3, -3, 3], { color: COL.chalk, w: 3, dash: '6 8' });   // (−3, −3, 3.5) lay over the z axis in this view
     put(ax4.e, { o: 0 }); show(ax4.e, m('four') + .3, .4);
-    const q4 = text(g3, '4th axis?', 1150, 140, m('four') + .6, { size: 30, fill: COL.chalk, anchor: 'middle', weight: 600 });
+    const q4 = text(g3, '4th axis?', 1420, 290, m('four') + .6, { size: 30, fill: COL.chalk, anchor: 'middle', weight: 600 });
     const no = text(g3, 'no room: every direction here is already a mix of x, y and z', 1150, 860, m('no'), { size: 26, fill: COL.bad, anchor: 'middle', weight: 600 });
     hide(g3, m('fourb') - .4, .4);
     // four numbers: four bars
@@ -589,7 +597,7 @@ const BEATS = [
       barsFlash(bs, cells, m(kb));
     });
     const glow = (rows, t, color = COL.task, dur = 1.6) => rows.forEach(i => {
-      const r = mk('rect', { x: 96, y: bs.zeroY(i) - 50, width: 1430, height: 100, rx: 10, fill: color, 'fill-opacity': .1, stroke: color, 'stroke-opacity': .5, 'stroke-width': 2 }, p);
+      const r = mk('rect', { x: 96, y: bs.zeroY(i) - 35, width: 1430, height: 70, rx: 10, fill: color, 'fill-opacity': .1, stroke: color, 'stroke-opacity': .5, 'stroke-width': 2 }, p);
       put(r, { o: 0 }); show(r, t, .3); hide(r, t + dur, .4);
     });
     glow([0, 1, 2, 3], m('zero') + .4, COL.chalk, 2.4);
@@ -603,7 +611,7 @@ const BEATS = [
     M(all, ['A x = b,   mix (1, 2, 2, 0)'], { x: 800, y: 858, size: 38, fill: COL.good, anchor: 'middle' });
     show(all, m('all'), .5); hide(all, m('row') - .3, .3);
     const zy = bs.zeroY(1);
-    box(p, 96, zy - 50, 1430, 100, COL.nat, m('row'));
+    box(p, 96, zy - 35, 1430, 70, COL.nat, m('row'));
     box(p, 96, 175 + 42 - 34, 1430, 46, COL.nat, m('row'));
     say(p, ['row 2:   x₁ + x₂ = 1 + 2 = 3'], 800, 858, m('row') + .5, { size: 34, fill: COL.nat, anchor: 'middle' });
   }],
@@ -611,11 +619,16 @@ const BEATS = [
   ['q4', 'Your turn', () => {
     const p = panel(0);
     text(p, 'Your turn', 60, 110, .2, { size: 40, weight: 600 });
-    S.sys = bars(p, { A: BID, b: [2, 1, 2, 4], x0: 110, top: 190, band: 100, unit: 10, bw: 30, size: 30 });
+    S.sys = bars(p, { A: BID, b: [2, 1, 2, 4], x0: 110, top: 175, band: 90, unit: 9, bw: 30, size: 30 });   // the column names clear the card
   }, { ask: done => quiz(BAND, [{
     id: 'c-bars', prompt: ['Change the amounts ', $m('x₁'), ' to ', $m('x₄'), ' until every bar of ', $m('A x'), ' matches ', $m('b'), '.'],
     build: barsTask(S.sys, (v, ax, ok) => ok, 'x₁ = 2, x₂ = −1, x₃ = 3, x₄ = 1: (2, 2 − 1, −1 + 3, 3 + 1) = (2, 1, 2, 4).',
-      (v, ax) => `Go row by row from the top. Row 1 is x₁ alone: it must be ${num(2)}. Then row 2 is x₁ + x₂.`,
+      (v, ax) => {   // aimed at the first row that does not match yet
+        const b = [2, 1, 2, 4], i = ax.findIndex((t, k) => Math.abs(t - b[k]) > 1e-9);
+        if (i <= 0) return 'Go row by row from the top. Row 1 is x₁ alone: it must be 2.';
+        const have = v[`x${i - 1}`], need = b[i] - have;
+        return `${i > 1 ? `Rows 1 to ${i} match` : 'Row 1 matches'}. Row ${i + 1} is x${SUB[i]} + x${SUB[i + 1]} = ${num(b[i])}, and x${SUB[i]} is ${num(have)}: so x${SUB[i + 1]} = ${num(b[i])} − ${num(have) === num(Math.abs(have)) ? num(have) : '(' + num(have) + ')'} = ${num(need)}.`;
+      },
       () => S.sys.set({ x0: 2, x1: -1, x2: 3, x3: 1 }), { only: ['x0', 'x1', 'x2', 'x3'] }),
   }], done) }],
 
@@ -625,7 +638,7 @@ const BEATS = [
     const A9 = Array.from({ length: 9 }, (_, i) => Array.from({ length: 9 }, (_, j) => +(j === i || j === i - 1)));
     const x9 = [1, 1, -1, 2, 0, -2, 1, 1, -1], b9 = A9.map(r => r.reduce((s, a, j) => s + a * x9[j], 0));
     const names = Array(9).fill(''); names.push('A x', 'b');
-    const bs = bars(p, { A: A9, b: b9, x0: 50, top: 180, band: 62, unit: 8, bw: 18, size: 22, numbers: false, mw: 50, gap: 18, names, t0: m('nine') - .3 });
+    const bs = bars(p, { A: A9, b: b9, x0: 50, top: 180, band: 62, unit: 11, bw: 22, size: 22, numbers: false, mw: 50, gap: 18, names, t0: m('nine') - .3 });
     put(bs.ax.g, { o: 0 }); bs.eqs.forEach(e => put(e, { o: 0 }));
     show(bs.ax.g, m('same'), .5); bs.eqs.forEach(e => show(e, m('same') + .3, .3));
     const span = m('match') - m('move') + 1.2;
@@ -652,11 +665,13 @@ const BEATS = [
     head('row picture: lines meet', 300, m('row') + .5); head('column picture: a mix makes b', 800, m('col') + .5); head('A x = b', 1330, m('ax'));
     row.lines.forEach((l, i) => thick(l.l, m('row') + 1.5 + i * .8));
     thick(col.combo[0], m('col') + 2.5, 4); thick(col.combo[1], m('col') + 3.3, 4); thick(col.bArrow, m('col') + 4.6, 6);
-    col.to({ a01: 4, a11: -2 }, m('no') + .8, 1.6);   // they lie flat: b = (0, 3) is out of reach
+    // the three views stay one system: column 2 lies down on column 1 in all of them (rows: parallel lines)
+    const all3 = (v, t, d) => [row, col, mat].forEach(s => s.to(v, t, d));
+    all3({ a01: 4, a11: -2 }, m('no') + .8, 1.6);   // they lie flat: b = (0, 3) is out of reach
     thick(col.bArrow, m('no') + 3.2, 6);
     prog(() => col.labels(['', 'col 2', 'b']), m('no') + .8, 0); prog(() => col.labels(['col 1', 'col 2', 'b']), m('next') + 1.2, 0);
-    col.to({ b0: -4, b1: 2 }, m('no') + 5.6, 1.2);     // a b on their line: endlessly many mixes
-    col.to({ a01: -1, a11: 2, b0: 0, b1: 3 }, m('next'), 1.2);
+    all3({ b0: -4, b1: 2 }, m('no') + 5.6, 1.2);     // a b on their line: endlessly many mixes (rows: one line)
+    all3({ a01: -1, a11: 2, b0: 0, b1: 3 }, m('next'), 1.2);
     const big = G(p, { o: 0 });
     T(big, 'every b?', { x: 90, y: 830, size: 30, fill: COL.task, weight: 600 });
     show(big, m('big'), .4);

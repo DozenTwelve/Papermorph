@@ -162,22 +162,22 @@ window.TIMINGS = {
   ]
  },
  "parallel": {
-  "dur": 60.192,
+  "dur": 60.144,
   "marks": {
-   "c1": 1.862,
-   "c2": 3.698,
-   "turn": 10.456,
-   "squash": 12.422,
-   "par": 15.469,
-   "line": 20.716,
-   "why": 24.922,
-   "top": 29.714,
-   "bot": 32.135,
-   "rule": 36.224,
-   "b": 39.896,
-   "off": 42.565,
-   "rowp": 47.708,
-   "parl": 55.391
+   "c1": 1.992,
+   "c2": 3.724,
+   "turn": 10.312,
+   "squash": 12.24,
+   "par": 15.573,
+   "line": 20.273,
+   "why": 24.609,
+   "top": 29.505,
+   "bot": 31.862,
+   "rule": 36.198,
+   "b": 40.234,
+   "off": 42.682,
+   "rowp": 47.539,
+   "parl": 55.3
   },
   "cues": [
    [
@@ -185,67 +185,67 @@ window.TIMINGS = {
     "Now a different pair of columns."
    ],
    [
-    1.862,
+    1.992,
     "Column one is one, two."
    ],
    [
-    3.698,
+    3.724,
     "Column two is minus one, two."
    ],
    [
-    6.406,
+    6.289,
     "They point different ways, so the grid covers the plane."
    ],
    [
-    10.456,
+    10.312,
     "Now swing column two around, and watch the grid squash, flatter and flatter, until column two is two, four: exactly twice column one."
    ],
    [
-    20.716,
+    20.273,
     "Now every mix lands on one line, the line through one, two."
    ],
    [
-    24.922,
+    24.609,
     "Here's why."
    ],
    [
-    25.872,
+    25.586,
     "Take x times one, two, plus y times two, four."
    ],
    [
-    29.714,
+    29.505,
     "The top is x plus two y."
    ],
    [
-    32.135,
+    31.862,
     "The bottom is two x plus four y, and that's twice the top."
    ],
    [
-    36.224,
+    36.198,
     "Whatever the mix, the bottom number comes out twice the top number."
    ],
    [
-    39.896,
-    "Now take b equals three, five."
+    40.234,
+    "Now take b equals three, one."
    ],
    [
-    42.565,
-    "Five is not twice three."
+    42.682,
+    "One is not twice three."
    ],
    [
-    44.349,
+    44.297,
     "So b is off the line, and no mix can reach it."
    ],
    [
-    47.708,
+    47.539,
     "The row picture says the same."
    ],
    [
-    49.792,
-    "x plus two y equals three, and two x plus four y equals five: two parallel lines that never meet."
+    49.648,
+    "x plus two y equals three, and two x plus four y equals one: two parallel lines that never meet."
    ],
    [
-    57.721,
+    57.669,
     "No solution, seen two ways."
    ]
   ]
