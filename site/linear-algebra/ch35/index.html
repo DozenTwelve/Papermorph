@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Transpose</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render"><!-- hold the first frame until the player exists, so the page transition can run -->
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/math.js"></script>
+<script src="../lib/mm.js"></script>
+<script src="../lib/play.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 35, title: 'The Transpose', minutes: 11, language: 'en', next: '../ch36/' };
+
+/* ---------- chapter helpers ---------- */
+const A1 = [[1, 2, 3], [4, 5, 6]];                                  // the first example: 2 × 3, Aᵀ = [1 4; 2 5; 3 6]
+const SQ = [[1, 2, 7], [3, 4, 5], [6, 8, 9]];                       // square: the mirror across the diagonal
+const PA = [[2, 1], [-1, 3]];                                       // the plane: columns (2, −1), (1, 3); rows (2, 1), (−1, 3)
+const OA = [[1, 2], [0, 1]], OB = [[1, 0], [3, 1]];                 // (AB)ᵀ: AB = [7 2; 3 1], BᵀAᵀ = [7 3; 2 1], AᵀBᵀ = [1 3; 2 7]
+const ZA = [[1, 0, 2], [0, 1, 1]], ZB = [[1, 1], [2, 0], [0, 3]];  // sizes: AB = [1 7; 2 3], BᵀAᵀ = [1 2; 7 3]
+const tr = M_ => M_[0].map((_, j) => M_.map(r => r[j]));
+const mul = (X, Y) => X.map(r => Y[0].map((_, j) => r.reduce((t, v, k) => t + v * Y[k][j], 0)));
+const AT = [140, 300];                                              // A and Aᵀ, large, on the left; notes on the right from x 900
+const CARD = { x: 40, y: 450, w: 740, cls: 'side' };
+const say = (p, parts, x, y, t0, { size = 40, fill = COL.chalk, anchor = 'start' } = {}) => { const e = M(p, [].concat(parts), { x, y, size, fill, anchor, o: 0 }); show(e, t0); return e; };
+const text = (p, str, x, y, t0, { size = 30, fill = COL.chalk, anchor = 'start', weight = 500 } = {}) => { const e = T(p, str, { x, y, size, fill, anchor, weight, o: 0 }); show(e, t0); return e; };
+const title = (p, str) => text(p, str, 60, 110, .2, { size: 40, weight: 600 });
+// A chalk ring around a box, drawn on at t0.
+const ring = (p, x, y, w, h, t0, color = COL.chalk) => { const r = path(p, `M${x + 14} ${y}H${x + w - 14}Q${x + w} ${y} ${x + w} ${y + 14}V${y + h - 14}Q${x + w} ${y + h} ${x + w - 14} ${y + h}H${x + 14}Q${x} ${y + h} ${x} ${y + h - 14}V${y + 14}Q${x} ${y} ${x + 14} ${y}Z`, { stroke: color, 'stroke-width': 3, fill: 'none' }, { d: 0 }); draw(r, t0, .6); return r; };
+// A curved arrow from (x1, y1) to (x2, y2), bulging by `bend`, drawn on at t0.
+const bow = (p, x1, y1, x2, y2, t0, { bend = -60, color = COL.chalk, w = 3 } = {}) => {
+  const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, L = Math.hypot(x2 - x1, y2 - y1), nx = -(y2 - y1) / L, ny = (x2 - x1) / L;
+  const cx = mx + nx * bend, cy = my + ny * bend, tx = x2 - cx, ty = y2 - cy, tl = Math.hypot(tx, ty), ux = tx / tl, uy = ty / tl;
+  const g = G(p, {});
+  draw(path(g, `M${x1} ${y1}Q${cx} ${cy} ${x2} ${y2}`, { stroke: color, 'stroke-width': w, fill: 'none' }, { d: 0 }), t0, .6);
+  const hd = path(g, `M${x2 - 14 * ux - 8 * uy} ${y2 - 14 * uy + 8 * ux}L${x2} ${y2}L${x2 - 14 * ux + 8 * uy} ${y2 - 14 * uy - 8 * ux}`, { stroke: color, 'stroke-width': w, fill: 'none', o: 0 });
+  show(hd, t0 + .5, .2);
+  return g;
+};
+// The size label under a matrix of mmT / mm: a ring around "m × n".
+const sizeRing = (p, Mx, y, t0) => ring(p, Mx.x + Mx.W / 2 - 58, y - 32, 116, 44, t0);
+// Thicken an arrow of mmT's plane for a moment.
+const thick = (tp, t0) => { const w = tp.dash ? 4 : 6; tw(tp.shaft, { 'a_stroke-width': w + 5 }, t0, .3); tw(tp.shaft, { 'a_stroke-width': w }, t0 + 1.2, .6); };
+// mmT's plane arrows hidden, to be shown on their words
+const hideArrows = T_ => [...T_.arrows.cols, ...T_.arrows.rows].forEach(tp => put(tp.ag, { o: 0 }));
+// The transpose of a product shown beside it: a hidden mmT whose A sits exactly on P_'s product, its Aᵀ beside.
+const flipOf = (p, P_, { size, rh, names = ['AB', '(AB)ᵀ'], gap = 90, hideT = true, t0 = .1 } = {}) => {
+  const L = P_.L;
+  const TT = mmT(p, { A: P_.C(), at: [L.c.x, L.c.ry(0)], size, cw: L.c.c, rh, gap, names, tint: null, sizes: false, hideT, t0 });
+  put(TT.L.a.g, { o: 0 });
+  P_.onChange(() => { const c = P_.C(); if (c) TT.set(Object.fromEntries(c.flatMap((r, i) => r.map((v, j) => [`a${i}${j}`, v])))); });
+  return TT;
+};
+const target = (P2, [x, y], into, t0 = .3) => {
+  const g = G(into, { x: P2.PX(x), y: P2.PY(y), o: 0 });
+  mk('circle', { r: 18, fill: 'none', stroke: COL.task, 'stroke-width': 3, 'stroke-dasharray': '5 5' }, g);
+  T(g, `target (${num(x)}, ${num(y)})`, { x: 24, y: 40, size: 22, fill: COL.task, font: MATH });
+  show(g, t0, .4);
+  return g;
+};
+const matEl = rows => mmEl(rows, { size: 22 });
+
+/* ---------- practice data (every answer read off twice: by rows of A and by columns of Aᵀ) ---------- */
+const TRQ = [
+  { parts: [matEl([[2, -1], [0, 5]]), '   Aᵀ:  row 1 = (', { box: '2' }, ', ', { box: '0' }, '),   row 2 = (', { box: '-1' }, ', ', { box: '5' }, ')'],
+    why: 'Column 1 of A is (2, 0): that is row 1 of Aᵀ. Column 2 is (−1, 5).', hint: 'Row 1 of Aᵀ is column 1 of A: read down the first column.' },
+  { parts: [matEl([[1, 4, -3]]), '   Aᵀ is one column:  (', { box: '1' }, ', ', { box: '4' }, ', ', { box: '-3' }, ') standing up'],
+    why: 'A row of three numbers stands up as a column of three: 1, 4, −3 from the top.', hint: 'The one row of A becomes the one column of Aᵀ, in the same order.' },
+  { parts: [matEl([[3, 1], [0, 2], [-4, 6]]), '   Aᵀ:  row 1 = (', { box: '3' }, ', ', { box: '0' }, ', ', { box: '-4' }, '),   row 2 = (', { box: '1' }, ', ', { box: '2' }, ', ', { box: '6' }, ')'],
+    why: 'A is 3 × 2, so Aᵀ is 2 × 3. Its rows are A’s columns: (3, 0, −4) and (1, 2, 6).', hint: 'Aᵀ has two rows: the two columns of A, read from the top down.' },
+  { parts: [matEl([[0, 7, 1], [2, 0, 0], [5, 3, 0]]), '   Aᵀ:  row 2 = (', { box: '7' }, ', ', { box: '0' }, ', ', { box: '3' }, '),   row 3 = (', { box: '1' }, ', ', { box: '0' }, ', ', { box: '0' }, ')'],
+    why: 'Row 2 of Aᵀ is column 2 of A: (7, 0, 3). Row 3 is column 3: (1, 0, 0).', hint: 'Row 2 of Aᵀ is column 2 of A, row 3 is column 3.' },
+];
+const SIZEQ = [
+  { parts: ['A is 4 × 2.   Aᵀ is ', { box: '2' }, ' × ', { box: '4' }], why: 'Rows and columns trade: 4 rows of 2 become 2 rows of 4.', hint: 'The two numbers of the size swap places.' },
+  { parts: ['A is 1 × 5 (one row).   Aᵀ is ', { box: '5' }, ' × ', { box: '1' }], why: 'One row of five numbers stands up as one column of five.', hint: 'The two numbers of the size swap places: a row becomes a column.' },
+  { parts: ['Row 3, column 1 of Aᵀ is the number in row ', { box: '1' }, ', column ', { box: '3' }, ' of A'], why: 'Swap the address: row 3, column 1 of Aᵀ is row 1, column 3 of A.', hint: 'Swap the two numbers of the address.' },
+  { parts: [matEl([[6, 2, 9], [1, 8, 4]]), '   row 3, column 2 of Aᵀ = ', { box: '4' }], why: 'It is row 2, column 3 of A: the 4.', hint: 'Swap the address: look in row 2, column 3 of A.' },
+  { parts: [matEl([[1, 2], [3, 4]]), '   (Aᵀ)ᵀ:  row 1 = (', { box: '1' }, ', ', { box: '2' }, ')'], why: 'Two flips undo each other: (Aᵀ)ᵀ = A, so row 1 is (1, 2) again.', hint: 'Flip once: (1, 3) is row 1. Flip again: back to A.' },
+];
+const TFQ = [
+  { parts: ['The transpose of a 2 × 3 matrix is 3 × 2.'], ans: ['t'], why: 'Rows and columns trade, so the size numbers swap.' },
+  { parts: ['On a square matrix, the numbers on the main diagonal stay in place.'], ans: ['t'], why: 'Their address is row k, column k: swapping it changes nothing.' },
+  { parts: ['(AB)ᵀ = AᵀBᵀ for every A and B.'], ans: ['f'], why: 'The order turns around: (AB)ᵀ = BᵀAᵀ. Chapter example: AᵀBᵀ gave (1, 3), (2, 7), not (7, 3), (2, 1).' },
+  { parts: ['The transpose of a column is a row.'], ans: ['t'], why: 'n × 1 becomes 1 × n: the same numbers lying down.' },
+  { parts: ['(Aᵀ)ᵀ = A.'], ans: ['t'], why: 'Flip twice and every number is back in its place.' },
+  { parts: ['Iᵀ = I (the identity).'], ans: ['t'], why: 'Its 1s are on the diagonal and stay; every other number is 0, and a 0 lands on a 0.' },
+];
+const PRODQ = [
+  { parts: ['A = ', matEl([[1, 1], [0, 2]]), ',  B = ', matEl([[3, 0], [1, 1]]), '.   BᵀAᵀ:  row 1 = (', { box: '4' }, ', ', { box: '2' }, '),  row 2 = (', { box: '1' }, ', ', { box: '2' }, ')'],
+    why: 'AB = (4, 1), (2, 2). BᵀAᵀ = (AB)ᵀ = (4, 2), (1, 2). Check one: row 1 of Bᵀ (3, 1) times column 1 of Aᵀ (1, 1) = 3 + 1 = 4.', hint: 'Easiest: find AB first, then flip it. BᵀAᵀ is (AB)ᵀ.' },
+  { parts: ['A = ', matEl([[2, 0], [1, 3]]), ',  x = (1, 2) as a column.   xᵀAᵀ = (', { box: '2' }, ', ', { box: '7' }, ')'],
+    why: 'Ax = (2, 7) as a column. xᵀAᵀ = (Ax)ᵀ: the same numbers as a row.', hint: 'xᵀAᵀ is the transpose of Ax. Work out Ax, then lay it down as a row.' },
+  { parts: ['A is 2 × 3,  B is 3 × 5.   (AB)ᵀ is ', { box: '5' }, ' × ', { box: '2' }, ',   Bᵀ is ', { box: '5' }, ' × ', { box: '3' }],
+    why: 'AB is 2 × 5, so (AB)ᵀ is 5 × 2. Bᵀ is 5 × 3, and BᵀAᵀ = (5 × 3)(3 × 2) = 5 × 2 agrees.', hint: 'Find the size of AB first (outside numbers), then swap. For Bᵀ, swap B’s size.' },
+];
+const HANDQ = [
+  { id: 'p-hand1', start: { mA: 2, nA: 2, a00: 0, a01: 0, a10: 0, a11: 0 }, prompt: ['Change A until Aᵀ = ', matEl([[1, 4], [-2, 0]]), '.'],
+    test: (v, T_) => v.mA === 2 && v.nA === 2 && T_.T(0, 0) === 1 && T_.T(0, 1) === 4 && T_.T(1, 0) === -2 && T_.T(1, 1) === 0,
+    why: 'A = (1, −2), (4, 0): its columns (1, 4) and (−2, 0) are the rows of Aᵀ.', hint: 'Row 1 of Aᵀ, (1, 4), must be column 1 of A. You can also type straight into Aᵀ.',
+    ans: { a00: 1, a01: -2, a10: 4, a11: 0 } },
+  { id: 'p-hand2', start: { mA: 2, nA: 2, a00: 1, a01: 0, a10: 0, a11: 1 }, prompt: ['Make column 2 of Aᵀ (the coral dashed arrow) end at (−3, 2). Drag it, or change numbers.'],
+    test: v => v.mA === 2 && v.nA === 2 && v.a10 === -3 && v.a11 === 2,
+    why: 'Column 2 of Aᵀ is row 2 of A: (−3, 2) across the bottom of A.', hint: v => v.a01 === -3 && v.a11 === 2 ? 'That moved the violet arrow, column 2 of A. The coral dashed one is row 2 of A: the bottom row.' : 'The coral dashed arrow is row 2 of A. Its numbers are the bottom row of A.',
+    ans: { a10: -3, a11: 2 } },
+  { id: 'p-hand3', start: { mA: 2, nA: 2, a00: 0, a01: 0, a10: 0, a11: 0 }, prompt: ['Change the size and the numbers of A so that Aᵀ is the row (1, 2, 3).'],
+    test: v => v.mA === 3 && v.nA === 1 && v.a00 === 1 && v.a10 === 2 && v.a20 === 3,
+    why: 'A must be the column (1, 2, 3): 3 × 1. Its transpose lies down as a row.', hint: v => v.mA === 1 && v.nA === 3 ? 'A is a row now, so Aᵀ is a column. Make A the column: 3 rows, 1 column.' : 'Aᵀ is 1 × 3, so A must be 3 × 1: three rows, one column. Change the size numbers under A.',
+    ans: { mA: 3, nA: 1, a00: 1, a10: 2, a20: 3 } },
+];
+
+/* ---------- beats ---------- */
+const BEATS = [
+  ['intro', 'The transpose', (m, D) => {
+    const g = G(scene, { o: 0, y: 24 });
+    T(g, 'Unit 5 · Transposes, permutations, spaces', { x: 800, y: 205, size: 24, fill: COL.faint, anchor: 'middle' });
+    T(g, 'Unit 5, Chapter 35', { x: 800, y: 250, size: 28, fill: COL.dim, anchor: 'middle' });
+    T(g, 'The Transpose', { x: 800, y: 360, size: 88, weight: 600, anchor: 'middle' });
+    tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+    const r = text(scene, 'rows become columns', 800, 460, m('sub'), { size: 34, fill: COL.dim, anchor: 'middle' });
+    const lg = G(scene, { o: 0 });
+    const T0 = mmT(lg, { A: A1, at: [586, 640], size: 36, cw: 56, rh: 52, gap: 100, hideT: true, sizes: false, t0: 0 });
+    show(lg, m('sub') + .6, .5);
+    T0.show('row', 0, m('move')); T0.show('row', 1, m('move') + 1.4); T0.show(null, null, m('move') + 3.2);
+    T0.fly(m('move') + .2, { by: 'rows', step: 1.4, dur: .9 });
+    tw(g, { o: 0, y: -24 }, D - .9, .8); hide(r, D - .9, .8); hide(lg, D - .9, .8);
+  }],
+
+  ['recall', 'Rows and columns', (m) => {
+    const p = S.p = panel(0);
+    title(p, 'Rows and columns, again');
+    const T_ = S.T = mmT(p, { A: A1, at: AT, size: 54, cw: 86, rh: 76, gap: 200, hideT: true, t0: m('A') - .4 });
+    put(T_.L.t.g, { o: 0 });
+    const a = T_.L.a;
+    [0, 1].forEach(i => text(p, `row ${i + 1}`, a.x - 16, a.ry(i) - 8, m(`r${i + 1}`), { size: 26, fill: MMT_ROW[i], anchor: 'end', weight: 600 }));
+    T_.show('row', 0, m('r1'), { side: 'a' }); T_.show('row', 1, m('r2'), { side: 'a' });
+    [0, 1, 2].forEach(j => { T_.show('col', j, m(`c${j + 1}`), { side: 'a' }); text(p, `col ${j + 1}`, a.cx(j), T_.L.bottom + 44, m(`c${j + 1}`), { size: 24, fill: COL.dim, anchor: 'middle', weight: 600 }); });
+    T_.show(null, null, m('size'));
+    const n = S.note = G(p, {});
+    hide(sizeRing(p, a, T_.L.bottom - 12, m('size')), m('last') - .3, .3);
+    const s1 = G(n, { o: 0 });
+    M(s1, ['2 × 3'], { x: 900, y: 300, size: 44, fill: COL.chalk });
+    T(s1, '2 rows, 3 columns: rows first', { x: 900, y: 350, size: 28, fill: COL.dim, weight: 600 });
+    show(s1, m('size') + .3, .4); hide(s1, m('last') - .3, .3);
+    // chapter 34: the permutation P and its flip
+    const P3 = [[0, 0, 1], [1, 0, 0], [0, 1, 0]], s2 = G(n, { o: 0 });
+    T(s2, 'chapter 34', { x: 900, y: 270, size: 26, fill: COL.dim, weight: 600 });
+    const TP = mmT(s2, { A: P3, at: [900, 350], size: 32, cw: 48, rh: 44, gap: 90, names: ['P', 'Pᵀ'], tint: null, sizes: false, hideT: true, t0: 0 });
+    TP.diag(m('last') + 2.2);
+    TP.fly(m('last') + 3, { by: 'rows', step: 1.2, dur: 1 });
+    TP.show('diag', null, m('last') + 7.4); TP.show(null, null, m('last') + 9);
+    T(s2, 'flipped across its diagonal', { x: 900, y: 520, size: 28, fill: COL.chalk, weight: 600 });
+    show(s2, m('last') + .2, .5);
+  }],
+
+  ['flip', 'Rows stand up as columns', (m) => {
+    const p = S.p, T_ = S.T, { a, t } = T_.L;
+    hide(S.note, .1, .4);
+    show(t.g, m('r1') + .3, .4);
+    T_.show('row', 0, m('r1')); T_.show('row', 1, m('r2'));
+    T_.fly(m('c1'), { by: (i, j) => (i ? m('c2') - m('c1') : 0) + j * .2, dur: 1.1 });
+    bow(p, a.x + a.W + 24, T_.L.midY + 10, t.x - 24, T_.L.midY + 10, m('c1') - .4, { bend: -50 });
+    T_.show(null, null, m('name'));
+    const n = S.note = G(p, {});
+    const nm = G(n, { o: 0 });
+    M(nm, ['Aᵀ'], { x: 900, y: 320, size: 54 });
+    T(nm, 'say: “A transpose”', { x: 900, y: 372, size: 28, fill: COL.dim, weight: 600 });
+    show(nm, m('name') + .2, .4);
+    sizeRing(p, a, T_.L.bottom - 12, m('size')); sizeRing(p, t, T_.L.bottom - 12, m('size') + .5);
+    const sz = G(n, { o: 0 });
+    M(sz, ['2 × 3  →  3 × 2'], { x: 900, y: 560, size: 40 });
+    T(sz, 'the size numbers swap too', { x: 900, y: 606, size: 28, fill: COL.dim, weight: 600 });
+    show(sz, m('size') + 1, .4);
+  }],
+
+  ['cols', 'Columns lie down as rows', (m) => {
+    const p = S.p, T_ = S.T, { t } = T_.L;
+    hide(S.note, .1, .4);
+    [0, 1, 2].forEach(j => {
+      T_.show('col', j, m(`col${j + 1}`), { side: 'a' });
+      T_.show('col', j, m(`row${j + 1}`));
+      text(p, `row ${j + 1}`, t.x + t.W + 16, t.ry(j) - 8, m(`row${j + 1}`), { size: 24, fill: COL.dim, weight: 600 });
+    });
+    T_.show(null, null, m('same') + 1.5);
+    const n = S.note = G(p, { o: 0 });
+    T(n, 'rows of A  →  columns of Aᵀ', { x: 960, y: 330, size: 32, weight: 600 });
+    T(n, 'columns of A  →  rows of Aᵀ', { x: 960, y: 384, size: 32, weight: 600 });
+    show(n, m('same'), .5);
+  }],
+
+  ['entry', 'One number at a time', (m) => {
+    const p = S.p, T_ = S.T, { a, t } = T_.L;
+    hide(S.note, .1, .4);
+    const n = S.note = G(p, {});
+    T_.show('cell', [1, 0], m('pick'), { side: 't' }); T_.show('cell', [1, 0], m('from'));
+    say(n, ['row 1, column 2 of Aᵀ:  4'], 960, 300, m('pick') + .3, { size: 32 });
+    say(n, ['=  row 2, column 1 of A'], 960, 350, m('from') + .3, { size: 32 });
+    bow(n, a.cx(0) + 20, a.ry(1) + 20, t.cx(1) - 10, t.ry(0) + 22, m('from'), { bend: 90 });
+    T_.show('cell', [0, 2], m('two'), { side: 't' }); T_.show('cell', [0, 2], m('from2'));
+    say(n, ['row 3, column 1 of Aᵀ:  3'], 960, 440, m('two') + .3, { size: 32 });
+    say(n, ['=  row 1, column 3 of A'], 960, 490, m('from2') + .3, { size: 32 });
+    bow(n, a.cx(2), a.ry(0) - 50, t.cx(0) - 20, t.ry(2) - 40, m('from2'), { bend: -70 });
+    T_.show(null, null, m('rule'));
+    const r = G(n, { o: 0 });
+    M(r, ['row i, column j of Aᵀ'], { x: 960, y: 610, size: 34, fill: COL.chalk });
+    M(r, ['=  row j, column i of A'], { x: 960, y: 660, size: 34, fill: COL.chalk });
+    show(r, m('rule') + .2, .5);
+    text(n, 'swap the address', 960, 730, m('swap'), { size: 30, weight: 600 });
+    [[0, 1], [2, 1], [1, 1], [0, 0]].forEach(([i, j], k) => T_.show('cell', [i, j], m('rule') + 1 + k * 1.4));
+    T_.show(null, null, m('rule') + 6.6);
+  }],
+
+  ['diag', 'A square matrix: the mirror', (m) => {
+    const p = S.p = panel(0);
+    title(p, 'A square matrix: a mirror');
+    const T_ = S.T = mmT(p, { A: SQ, at: [140, 290], size: 54, cw: 86, rh: 76, gap: 200, hideT: true, t0: m('sq') - .5 });
+    put(T_.L.t.g, { o: 0 }); show(T_.L.t.g, m('diag') - .2, .4);
+    T_.diag(m('diag'));
+    const t0 = m('stay');
+    const when = (i, j) => i === j ? .5 + i * .35 : ({ '01': m('pair1'), '02': m('pair2'), '12': m('pair3') }[`${Math.min(i, j)}${Math.max(i, j)}`] - t0 + .4 + (i > j ? .25 : 0));
+    T_.fly(t0, { by: when, dur: 1.2, lift: 70 });
+    T_.show('diag', null, m('stay'));
+    [0, 1, 2].forEach(k => { T_.flash('a', [[k, k]], m('stay') + 3.2 + k * .9); T_.flash('t', [[k, k]], m('stay') + 6.4 + k * .5); });
+    [['pair1', [[0, 1], [1, 0]]], ['pair2', [[0, 2], [2, 0]]], ['pair3', [[1, 2], [2, 1]]]].forEach(([k, cs]) => { T_.flash('a', cs, m(k)); T_.flash('t', cs, m(k) + 1.4); });
+    T_.show(null, null, m('pair1'));
+    text(p, 'main diagonal', T_.L.a.x + T_.L.a.W + 14, T_.L.a.ry(2) + 40, m('diag') + .5, { size: 24, fill: COL.dim, weight: 600 });
+    const n = G(p, { o: 0 });
+    T(n, 'the diagonal stays;', { x: 1000, y: 360, size: 32, weight: 600 });
+    T(n, 'every other number', { x: 1000, y: 410, size: 32, weight: 600 });
+    T(n, 'jumps to its mirror spot', { x: 1000, y: 460, size: 32, weight: 600 });
+    show(n, m('mirror'), .5);
+  }],
+
+  ['q1', 'Quick check', () => {
+    const p = panel(0);
+    title(p, 'Quick check');
+    S.T = mmT(p, { A: [[1, 0, -2], [3, 4, 5]], at: [90, 235], size: 44, cw: 72, rh: 62, gap: 130, hideT: true });
+  }, { ask: done => quiz({ x: 40, y: 405, w: 740, cls: 'side' }, [{
+    id: 'c-rows', prompt: ['Write Aᵀ one row at a time.'],
+    build: blanks([
+      { parts: ['row 1 of Aᵀ = (', { box: '1' }, ', ', { box: '3' }, ')'], why: 'Row 1 of Aᵀ is column 1 of A: 1 and 3.', hint: 'Row 1 of Aᵀ is column 1 of A. Read down the first column of A.', fx: () => S.T.uncover([[0, 0], [0, 1]]) },
+      { parts: ['row 2 of Aᵀ = (', { box: '0' }, ', ', { box: '4' }, ')'], why: 'Column 2 of A: 0 and 4.', hint: 'Row 2 of Aᵀ is column 2 of A, read from the top.', fx: () => S.T.uncover([[1, 0], [1, 1]]) },
+      { parts: ['row 3 of Aᵀ = (', { box: '-2' }, ', ', { box: '5' }, ')'], why: 'Column 3 of A: −2 and 5. The minus sign travels with its number.', hint: 'Row 3 of Aᵀ is column 3 of A. Keep the sign of −2.', fx: () => S.T.uncover([[2, 0], [2, 1]]) },
+    ]),
+  }], done) }],
+
+  ['twice', 'Twice, and a row', (m) => {
+    const p = panel(0);
+    title(p, 'Transpose twice; a column lies down');
+    const T1 = mmT(p, { A: A1, at: [90, 270], size: 44, cw: 72, rh: 62, gap: 110, hideT: true, t0: .1 });
+    put(T1.L.t.g, { o: 0 }); show(T1.L.t.g, m('again') + 1.2, .3);
+    T1.fly(m('again') + 1.4, { by: 'rows', step: .8, dur: .9 });
+    const T2 = mmT(p, { A: tr(A1), at: [T1.L.t.x, 270], size: 44, cw: 72, rh: 62, gap: 110, names: ['Aᵀ', '(Aᵀ)ᵀ'], tint: 'cols', hideT: true, t0: .1 });
+    put(T2.L.a.g, { o: 0 }); put(T2.L.t.g, { o: 0 }); show(T2.L.t.g, m('back') - .2, .3);
+    T2.fly(m('back'), { by: 'rows', step: .6, dur: .9 });
+    bow(p, T1.L.a.x + T1.L.a.W + 14, T1.L.midY, T1.L.t.x - 14, T1.L.midY, m('again') + 1, { bend: -40 });
+    bow(p, T2.L.a.x + T2.L.a.W + 14, T2.L.midY, T2.L.t.x - 14, T2.L.midY, m('back') - .3, { bend: -40 });
+    const r = G(p, { o: 0 });
+    M(r, ['(Aᵀ)ᵀ = A'], { x: 1100, y: 330, size: 54 });
+    T(r, 'two flips undo each other', { x: 1100, y: 380, size: 28, fill: COL.dim, weight: 600 });
+    show(r, m('rule'), .5);
+    T1.flash('a', 'all', m('rule') + .3); T2.flash('t', 'all', m('rule') + .9);
+    const xg = G(p, { o: 0 }); show(xg, m('vec'), .4);
+    const X = mmT(xg, { A: [[1], [2], [3]], at: [90, 600], size: 40, cw: 64, rh: 54, gap: 110, names: ['x', 'xᵀ'], tint: null, hideT: true, t0: 0 });
+    put(X.L.t.g, { o: 0 }); show(X.L.t.g, m('row') - .2, .3);
+    X.fly(m('row'), { by: 'cells', step: .3, dur: .9 });
+    X.show('col', 0, m('col'), { side: 'a' }); X.show(null, null, m('row'));
+    const nm = G(p, { o: 0 });
+    M(nm, ['xᵀ = a row'], { x: 1100, y: 640, size: 44 });
+    T(nm, 'a column (3 × 1) lies down: 1 × 3', { x: 1100, y: 690, size: 28, fill: COL.dim, weight: 600 });
+    show(nm, m('name'), .5);
+  }],
+
+  ['plane', 'Rows as arrows', (m) => {
+    const p = panel(0);
+    title(p, 'The columns of Aᵀ are the rows of A');
+    const T_ = S.T = mmT(p, { A: PA, at: [90, 300], size: 50, cw: 80, rh: 72, gap: 150, plane: { cx: 1190, cy: 470, u: 44 }, t0: m('A') - .4 });
+    hideArrows(T_);
+    const { cols, rows } = T_.arrows;
+    cols.forEach((tp, j) => show(tp.ag, m('cols') + 1 + j * 2.6, .5));
+    rows.forEach((tp, i) => show(tp.ag, m('rows') + 1.4 + i * 2.6, .5));
+    T_.show('col', 0, m('cols') + 1, { side: 'a' }); T_.show('col', 1, m('cols') + 3.6, { side: 'a' });
+    T_.show('row', 0, m('rows') + 1.4, { side: 'a' }); T_.show('row', 1, m('rows') + 4, { side: 'a' });
+    cols.forEach((tp, j) => { thick(tp, m('cols') + 1.4 + j * 2.6); T_.flash('a', [[0, j], [1, j]], m('cols') + 1.4 + j * 2.6); });
+    rows.forEach((tp, i) => { thick(tp, m('rows') + 1.8 + i * 2.6); T_.flash('a', [[i, 0], [i, 1]], m('rows') + 1.8 + i * 2.6); });
+    T_.show('row', 0, m('these')); T_.show('row', 1, m('these') + 1.6); T_.show(null, null, m('change'));
+    rows.forEach((tp, i) => thick(tp, m('these') + i * 1.6));
+    const n = G(p, { o: 0 });
+    T(n, 'solid: columns of A', { x: 90, y: 520, size: 28, weight: 600 });
+    T(n, 'dashed: rows of A = columns of Aᵀ', { x: 90, y: 566, size: 28, weight: 600 });
+    show(n, m('these'), .5);
+    T_.to({ a01: 3 }, m('change') + 1.6, 1.4); T_.flash('a', [[0, 1]], m('change') + 1.6); T_.flash('t', [[1, 0]], m('change') + 1.6);
+    thick(cols[1], m('both') + 2.8); thick(rows[0], m('both') + 3.6);
+    T_.to({ a00: 4 }, m('diag') + .6, 1.4); T_.flash('a', [[0, 0]], m('diag') + .6); T_.flash('t', [[0, 0]], m('diag') + .6);
+    thick(cols[0], m('d2') + 1.6); thick(rows[0], m('d2') + 2.2);
+    text(p, 'one set of numbers, two sets of arrows', 90, 650, m('same'), { size: 28, weight: 600 });
+    T_.flash('a', 'all', m('same') + .8); [...cols, ...rows].forEach((tp, k) => thick(tp, m('same') + 2 + k * .5));
+  }],
+
+  ['q2', 'Your turn', () => {
+    const p = panel(0);
+    title(p, 'Your turn');
+    const T_ = S.T = mmT(p, { A: [[-2, 1], [2, 3]], at: [90, 290], size: 50, cw: 80, rh: 72, gap: 150, plane: { cx: 1190, cy: 470, u: 44 } });
+    target(T_.P, [3, -2], p);
+  }, { ask: done => quiz({ x: 40, y: 470, w: 740, cls: 'side' }, [{
+    id: 'c-arrow', prompt: ['Make the blue dashed arrow, column 1 of Aᵀ, end on the target (3, −2).'],
+    build: mmTTask(S.T, v => v.a00 === 3 && v.a01 === -2, 'Column 1 of Aᵀ is row 1 of A: A’s top row is now (3, −2).',
+      v => v.a00 === 3 && v.a10 === -2 ? 'That moved the green arrow, column 1 of A. The blue dashed arrow is row 1 of A: change the top row.' : 'The blue dashed arrow is row 1 of A. Its two numbers are the top row of A.',
+      () => S.T.set({ a00: 3, a01: -2 })),
+  }], done) }],
+
+  ['order', 'The transpose of a product', (m) => {
+    const p = S.p = panel(0);
+    title(p, 'The transpose of a product');
+    const o = { size: 36, cw: 56, rh: 54, sizes: false, hideC: true, fillC: COL.chalk };
+    const P1 = S.P1 = mm(p, { A: OA, B: OB, at: [70, 250], ...o, t0: .3 });
+    put(P1.W, { o: 0 });
+    const da = P1.L.b.x - P1.L.a.x;
+    put(P1.L.a.g, { x: 0 }); put(P1.L.b.g, { x: 0 });
+    tw(P1.L.a.g, { x: da }, 3.4, 1.1); tw(P1.L.b.g, { x: -da }, 3.4, 1.1);
+    tw(P1.L.a.g, { x: 0 }, 6.4, 1.1); tw(P1.L.b.g, { x: 0 }, 6.4, 1.1);
+    const ne = text(p, 'AB ≠ BA', 860, 270, 3.6, { size: 36, fill: COL.dim, weight: 600 }); hide(ne, m('ab') - .3, .3);
+    put(P1.L.c.g, { o: 0 }); show(P1.L.c.g, m('ab') + 5, .4);
+    P1.flash('a', 'all', m('ab') + .4); P1.flash('b', 'all', m('ab') + 2.6);
+    [[0, 0], [0, 1], [1, 0], [1, 1]].forEach((ij, k) => { P1.show('entry', ij, m('abc') + k * .7); P1.reveal({ cell: ij }, m('abc') + k * .7 + .2); });
+    P1.show(null, null, m('flip'));
+    const TT = S.TT = flipOf(p, P1, { size: 36, rh: 54, t0: m('flip') - .3 });
+    put(TT.L.t.g, { o: 0 }); show(TT.L.t.g, m('flip') - .1, .3);
+    TT.fly(m('flip') + .2, { by: 'cells', step: .3, dur: .9 });
+    const P3 = S.P3 = mm(p, { A: tr(OA), B: tr(OB), at: [70, 480], names: ['Aᵀ', 'Bᵀ', 'AᵀBᵀ'], ...o, t0: m('guess') - .2 });
+    P3.reveal('all', m('wrong'));
+    put(P3.g, { x: -40 }); tw(P3.g, { x: 0 }, m('guess') - .2, .8, out);
+    P3.flash('a', 'all', m('guess') + 2.2); P3.flash('b', 'all', m('guess') + 3.6);
+    const P2 = S.P2 = mm(p, { A: tr(OB), B: tr(OA), at: [70, 710], names: ['Bᵀ', 'Aᵀ', 'BᵀAᵀ'], ...o, t0: m('swap') - .2 });
+    P2.reveal('all', m('right'));
+    P2.flash('a', 'all', m('swap') + 1.2); P2.flash('b', 'all', m('swap') + 2.4);
+    // the verdicts beside the two guesses, live: they follow every change of A and B
+    const vx = P3.L.right + 40;
+    const v3 = G(p, { o: 0 }), v2 = G(p, { o: 0 });
+    const t3 = T(v3, '', { x: vx, y: 480 + 40, size: 34, weight: 700 }), t2 = T(v2, '', { x: vx, y: 710 + 40, size: 34, weight: 700 });
+    const same = (X, Y) => !!X && !!Y && X.every((r, i) => r.every((v, j) => Math.abs(v - Y[i][j]) < 1e-9));
+    const verdict = () => {
+      const C = P1.C(), CT = C && tr(C);
+      [[P3, t3], [P2, t2]].forEach(([Q, te]) => { const ok = same(Q.C(), CT); te.textContent = ok ? '= (AB)ᵀ  ✓' : '≠ (AB)ᵀ'; te.setAttribute('fill', ok ? COL.good : COL.bad); });
+    };
+    P1.onChange(v => {
+      P3.set({ a00: v.a00, a01: v.a10, a10: v.a01, a11: v.a11, b00: v.b00, b01: v.b10, b10: v.b01, b11: v.b11 });
+      P2.set({ a00: v.b00, a01: v.b10, a10: v.b01, a11: v.b11, b00: v.a00, b01: v.a10, b10: v.a01, b11: v.a11 });
+      verdict();
+    });
+    verdict();
+    show(v3, m('wrong') + 1.5, .4); show(v2, m('match'), .4);
+    const r = S.rule = G(p, { o: 0 });
+    M(r, ['(AB)ᵀ = BᵀAᵀ'], { x: 1080, y: 300, size: 54 });
+    T(r, 'flip each one, and reverse the order', { x: 1080, y: 350, size: 28, fill: COL.dim, weight: 600 });
+    show(r, m('rule'), .5);
+    P2.flash('a', 'all', m('rule') + 2.6); P2.flash('b', 'all', m('rule') + 3.2); TT.flash('t', 'all', m('rule') + 4.2); P2.flash('c', 'all', m('rule') + 4.2);
+  }],
+
+  ['live', 'The rule at work', (m) => {
+    const P1 = S.P1;
+    P1.to({ a01: -1 }, m('go') + .3, 1.4); P1.flash('a', { cell: [0, 1] }, m('go') + .3);
+    S.TT.flash('t', 'all', m('go') + 2.2); S.P2.flash('c', 'all', m('go') + 2.6);
+    P1.to({ b10: 2 }, m('again') + .3, 1.4); P1.flash('b', { cell: [1, 0] }, m('again') + .3);
+    S.TT.flash('t', 'all', m('again') + 2); S.P2.flash('c', 'all', m('again') + 2.3);
+    S.P3.flash('c', 'all', m('wrong') + .5, { color: COL.bad });
+  }],
+
+  ['why', 'Why the order turns', (m) => {
+    const p = panel(0);
+    title(p, 'Why the order turns around');
+    const o = { size: 36, cw: 56, rh: 54, sizes: false, fillC: COL.chalk };
+    const P1 = mm(p, { A: OA, B: OB, at: [70, 230], work: [90, 410], wsize: 32, ...o });
+    const TT = flipOf(p, P1, { size: 36, rh: 54, hideT: false });
+    const P2 = mm(p, { A: tr(OB), B: tr(OA), at: [70, 590], names: ['Bᵀ', 'Aᵀ', 'BᵀAᵀ'], work: [90, 770], wsize: 32, ...o });
+    TT.show('cell', [1, 0], m('ent'));
+    P1.show('entry', [1, 0], m('ab'), { times: [m('ab') + .4, m('ab') + 3.4, m('ab') + 5.4] });
+    P2.show('entry', [0, 1], m('ba'), { times: [m('ba') + .4, m('sum'), m('sum') + 2.4] });
+    P2.flash('a', { row: 0 }, m('ba') + 2.6); P2.flash('b', { col: 1 }, m('ba') + 4.6); TT.flash('t', [[0, 1]], m('ba') + 6.4);
+    const n = G(p, {});
+    say(n, ['row 1 of Bᵀ  =  column 1 of B'], 980, 560, m('same') + .2, { size: 30 });
+    say(n, ['column 2 of Aᵀ  =  row 2 of A'], 980, 610, m('same') + 3.2, { size: 30 });
+    P2.flash('a', { row: 0 }, m('same') + .2); P1.flash('b', { col: 0 }, m('same') + .8);
+    P2.flash('b', { col: 1 }, m('same') + 3.2); P1.flash('a', { row: 1 }, m('same') + 3.8);
+    text(n, 'the same pairs, the same sum', 980, 700, m('sum') + 1, { size: 30, weight: 600 });
+    text(n, 'every spot:  (AB)ᵀ = BᵀAᵀ', 980, 300, m('every'), { size: 34, weight: 600 });
+  }],
+
+  ['sizes', 'The sizes agree', (m) => {
+    const p = panel(0);
+    title(p, 'The sizes tell the same story');
+    const o = { size: 32, cw: 50, rh: 48, hideC: true, fillC: COL.chalk };
+    const P1 = mm(p, { A: ZA, B: ZB, at: [70, 230], ...o, t0: m('ex') - .3 });
+    P1.inner(m('ab') + .3); P1.outer(m('ab') + 2.6);
+    P1.reveal('all', m('abt'));
+    const TT = flipOf(p, P1, { size: 32, rh: 48, gap: 70, t0: m('abt') });
+    put(TT.L.t.g, { o: 0 }); show(TT.L.t.g, m('abt') + 1.6, .3);
+    TT.fly(m('abt') + 1.8, { by: 'cells', step: .25, dur: .8 });
+    const P3 = mm(p, { A: tr(ZA), B: tr(ZB), at: [900, 560], names: ['Aᵀ', 'Bᵀ', 'AᵀBᵀ'], ...o, t0: m('t') - .2 });
+    put(P3.L.c.g, { o: 0 }); show(P3.L.c.g, m('wrongs') + .2, .4);
+    P3.outer(m('wrongs') + 1.4);
+    const bad = G(p, { o: 0 });
+    T(bad, '3 × 3: too big to be (AB)ᵀ', { x: 1560, y: 470, size: 26, fill: COL.bad, weight: 700, anchor: 'end' });
+    show(bad, m('wrongs') + 2.4, .4);
+    const P2 = mm(p, { A: tr(ZB), B: tr(ZA), at: [70, 560], names: ['Bᵀ', 'Aᵀ', 'BᵀAᵀ'], ...o, t0: m('rights') - .2 });
+    P2.inner(m('rights') + 1.4); P2.outer(m('rights') + 3.4);
+    P2.reveal('all', m('nums') + .3);
+    text(p, '(AB)ᵀ = BᵀAᵀ  ✓', 1100, 300, m('match'), { size: 34, fill: COL.good, weight: 700 });
+    P2.flash('c', 'all', m('match')); TT.flash('t', 'all', m('match'));
+  }],
+
+  ['q3', 'Quick check', () => {
+    const p = panel(0);
+    title(p, 'Quick check');
+    say(p, ['A:  2 × 3'], 90, 230, .3, { size: 40 });
+    say(p, ['B:  3 × 4'], 90, 300, .5, { size: 40 });
+    say(p, ['AB:  2 × 4'], 400, 265, .7, { size: 40, fill: COL.dim });
+  }, { ask: done => quiz({ x: 40, y: 380, w: 740, cls: 'side' }, [{
+    id: 'c-order', prompt: ['Which one is (AB)ᵀ?'],
+    build: choice(['AᵀBᵀ', 'BᵀAᵀ', 'BA', 'AB again'], 1,
+      'Flip each one and reverse the order: BᵀAᵀ = (4 × 3)(3 × 2) = 4 × 2, the flip of 2 × 4.',
+      ['Aᵀ is 3 × 2 and Bᵀ is 4 × 3: the inside numbers 2 and 4 do not even match. The order must turn around.', null,
+        'B A has no flips in it, and (3 × 4)(2 × 3) does not even fit.', 'AB is 2 × 4; its transpose is 4 × 2, a different shape.']),
+  }], done) }],
+
+  ['wrap', 'Summary', (m) => {
+    const p = panel(0);
+    [['The rows of A become the columns of Aᵀ: m × n becomes n × m.', 'w1'], ['Row i, column j of Aᵀ is row j, column i of A: a mirror across the diagonal.', 'w2'],
+     ['Transpose twice and you are back: (Aᵀ)ᵀ = A.', 'w3'], ['(AB)ᵀ = BᵀAᵀ: flip each one, reverse the order.', 'w4']].forEach(([str, mark], i) => {
+      const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
+      mk('circle', { cx: 120, cy: -12, r: 26, fill: COL.chalk }, g);
+      T(g, String(i + 1), { x: 120, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+      T(g, str, { x: 170, size: 34, weight: 600 });
+      tw(g, { o: 1, x: 0 }, m(mark), .6);
+    });
+  }],
+  ['final1', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-tr', prompt: ['Write the rows of Aᵀ. (Row k of Aᵀ is column k of A.)'],
+    build: blanks(TRQ),
+  }], done, 'Chapter practice · set 1 of 4') }],
+  ['final2', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
+    id: 'p-size', prompt: ['Sizes and addresses.'],
+    build: blanks(SIZEQ),
+  }, {
+    id: 'p-tf', prompt: ['True or false?'],
+    build: grid(TFQ, [['t', 'True', COL.good, 'T'], ['f', 'False', COL.bad, 'F']], { multi: false, text: true }),
+  }], done, 'Chapter practice · set 2 of 4') }],
+  ['final3', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
+    id: 'p-prod', prompt: ['Transposes of products.'],
+    build: blanks(PRODQ),
+  }, {
+    id: 'p-abc', prompt: ['Three matrices: (ABC)ᵀ = (AB · C)ᵀ. Use the rule twice. Which is it?'],
+    build: choice(['AᵀBᵀCᵀ', 'CᵀBᵀAᵀ', 'CᵀAᵀBᵀ', 'CBA'], 1,
+      '(AB · C)ᵀ = Cᵀ(AB)ᵀ = CᵀBᵀAᵀ: flip each, and the whole order turns around.',
+      ['That keeps the order. Every flip of a product reverses it.', null, '(AB)ᵀ is BᵀAᵀ, not AᵀBᵀ: the inside pair turns around too.', 'Those are not flipped: each factor needs its own ᵀ.']),
+  }], done, 'Chapter practice · set 3 of 4') }],
+  ['final4', 'Chapter practice', () => {
+    const p = panel(0);
+    title(p, 'Build it');
+    S.T = mmT(p, { A: [[0, 0], [0, 0]], at: [90, 270], size: 44, cw: 70, rh: 62, gap: 130, plane: { cx: 1190, cy: 470, u: 44 } });
+  }, { ask: done => quiz({ x: 40, y: 500, w: 740, cls: 'side' }, HANDQ.map(q => ({
+    id: q.id, prompt: q.prompt,
+    build: (body, api) => { S.T.set(q.start); return mmTTask(S.T, q.test, q.why, q.hint, () => S.T.set(q.ans), { sizes: q.id === 'p-hand3' })(body, api); },
+  })), done, 'Chapter practice · set 4 of 4') }],
+  ['play', 'Playground', (m) => {
+    const p = panel(0);
+    title(p, 'Playground');
+    S.T = mmT(p, { A: PA, at: [90, 250], size: 40, cw: 64, rh: 56, gap: 120, plane: { cx: 1190, cy: 470, u: 44 } });
+    const hint = G(p, { o: 0 });
+    T(hint, 'try: put each dashed arrow on a solid one', { x: 1190, y: 790, size: 24, fill: COL.dim, anchor: 'middle' });
+    T(hint, 'make A 3 × 1 · type into Aᵀ and watch A', { x: 1190, y: 824, size: 24, fill: COL.dim, anchor: 'middle' });
+    show(hint, m('go'), .5);
+  }, { ask: playAsk(() => S.T, { pos: { x: 40, y: 470, w: 740, cls: 'side' }, live: { sizes: true, drag: true },
+    tip: 'Your A and its transpose. Change any number of either, change the size under A, or drag an arrow by its tip. Nothing is marked.' }) }],
+  ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+boot();
+</script>
+</body>
+</html>

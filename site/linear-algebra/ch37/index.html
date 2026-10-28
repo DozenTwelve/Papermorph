@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What Is a Vector Space?</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render"><!-- hold the first frame until the player exists, so the page transition can run -->
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/math.js"></script>
+<script src="../lib/vecs.js"></script>
+<script src="../lib/bars.js"></script>
+<script src="../lib/space3.js"></script>
+<script src="../lib/play.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 37, title: 'What Is a Vector Space?', minutes: 11, language: 'en', next: '../ch38/' };
+
+/* ---------- chapter helpers ---------- */
+const GREEN = VS_COL[0], VIOLET = VS_COL[1];
+const V2 = { v: [2, 1], w: [-1, 2] };                               // the plane's pair: v + w = (1, 3)
+const Q2 = { v: [2, 1], w: [1, 3] };                                // the quarter: v + w = (3, 4)
+const RV = [1, -2, 0, 3, 1], RW = [2, 1, -1, 0, 2];                 // R⁵: v + w = (3, −1, −1, 3, 3), 2v = (2, −4, 0, 6, 2)
+const CARD = { x: 40, y: 450, w: 740, cls: 'side' };
+const say = (p, parts, x, y, t0, { size = 40, fill = COL.chalk, anchor = 'start' } = {}) => { const e = M(p, [].concat(parts), { x, y, size, fill, anchor, o: 0 }); show(e, t0); return e; };
+const text = (p, str, x, y, t0, { size = 30, fill = COL.chalk, anchor = 'start', weight = 500 } = {}) => { const e = T(p, str, { x, y, size, fill, anchor, weight, o: 0 }); show(e, t0); return e; };
+const title = (p, str) => text(p, str, 60, 110, .2, { size: 40, weight: 600 });
+const showRow = (r, t0, dur = .4) => r.parts.forEach(e => show(e, t0, dur));
+const thick = (vs, id, t0, w = 5) => { tw(vs.A[id].path, { 'a_stroke-width': w + 5 }, t0, .3); tw(vs.A[id].path, { 'a_stroke-width': w }, t0 + 1.2, .6); };
+const pair = (x, y) => `(${num(Math.round(x * 10) / 10)}, ${num(Math.round(y * 10) / 10)})`;
+// "2v − w", "½v", "−v + 3w": the combination's name, as it is written (no 1s, no + −, no 0 terms)
+const comboLabel = (vs, c, d) => {
+  const term = (k, n) => Math.abs(k) === 1 ? [n] : [...vs.parts(Math.abs(k)), n];
+  const out = [];
+  if (Math.abs(c) > 1e-9) out.push(...(c < 0 ? ['−'] : []), ...term(c, 'v'));
+  if (Math.abs(d) > 1e-9) out.push(out.length ? (d < 0 ? ' − ' : ' + ') : (d < 0 ? '−' : ''), ...term(d, 'w'));
+  return vs.nice(c) && vs.nice(d) ? out : [];
+};
+// The plane's vectors: v and w, c·v + d·w drawn tip to tail, the combination as the amber arrow.
+const plane2 = (p, { v, w }, { c = 1, d = 1, show: sh = ['v', 'w'], t0 = .1, steps } = {}) => {
+  const vs = vecs(p, { vecs: { v, w }, c, d, show: sh, plane: { cx: 1160, cy: 460, u: 50 }, t0, steps });
+  vs.label('sum', v_ => comboLabel(vs, v_.c, v_.d));
+  vs.label('cv', ['']); vs.label('dw', ['']);
+  return vs;
+};
+// A region of the plane drawn under the arrows: 'quarter' (x, y ≥ 0), 'half' (y ≥ 0), 'dots' (whole-number points).
+const region = (vs, kind, t0 = .3) => {
+  const { PX, PY, x0, x1, y0, y1 } = vs.P, g = G(vs.P.g, { o: 0 });
+  vs.P.g.insertBefore(g, vs.layer);
+  if (kind === 'dots') { for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) mk('circle', { cx: PX(x), cy: PY(y), r: 5, fill: COL.chalk, 'fill-opacity': .55 }, g); }
+  else {
+    const yb = kind === 'half' ? y0 : 0;
+    mk('rect', { x: PX(kind === 'half' ? x0 : 0), y: PY(y1), width: PX(x1) - PX(kind === 'half' ? x0 : 0), height: PY(yb) - PY(y1), fill: COL.chalk, 'fill-opacity': .1 }, g);
+    path(g, kind === 'half' ? `M${PX(x0)} ${PY(0)}H${PX(x1)}` : `M${PX(0)} ${PY(y1)}V${PY(0)}H${PX(x1)}`, { stroke: COL.chalk, 'stroke-width': 4, 'stroke-opacity': .6, fill: 'none' });
+  }
+  if (t0 != null) show(g, t0, .5);
+  return g;
+};
+const IN = {
+  quarter: ([x, y]) => x > -1e-9 && y > -1e-9,
+  half: ([x, y]) => y > -1e-9,
+  dots: ([x, y]) => Math.abs(x - Math.round(x)) < 1e-9 && Math.abs(y - Math.round(y)) < 1e-9,
+};
+// A live line under the algebra: the combination's numbers and whether it is inside the region.
+const verdict = (p, vs, kind, x, y, t0, { name = 'the arrow' } = {}) => {
+  const g = G(p, { o: 0 }), t = T(g, '', { x, y, size: 30, weight: 700 });
+  const up = () => {
+    const s = vs.calc().sum, ok = IN[kind](s), str = `${name} = ${pair(s[0], s[1])}:  ${ok ? 'inside  ✓' : 'outside  ✗'}`;
+    if (t.textContent !== str) t.textContent = str;
+    t.setAttribute('fill', ok ? COL.good : COL.bad);
+  };
+  vs.onChange(up); up();
+  if (t0 != null) show(g, t0, .4);
+  return g;
+};
+// R⁵ (or any n) as bars: v and w, and x₁v + x₂w; b is not part of this chapter, so it is hidden.
+const barsVW = (p, v, w, mix, { t0 = .1, top = 240, band = 86 } = {}) => {
+  const bs = bars(p, { A: v.map((a, i) => [a, w[i]]), b: v.map(() => 99), mix, names: ['v', 'w', 'x₁v + x₂w'], top, band, unit: 9, t0 });
+  put(bs.b.g, { o: 0 }); bs.eqs.forEach(e => put(e, { o: 0 })); bs.ax.goal.forEach(r => { r.style.display = 'none'; });
+  return bs;
+};
+const col = xs => h('span', 'vcol', xs.map(x => h('span', '', [num(x)])));
+
+/* ---------- practice data (every sum and multiple worked twice, number by number) ---------- */
+const INR2 = [
+  { parts: [hcol(3, -1)], ans: ['y'], why: 'Two real numbers: a pair, so it is in R².' },
+  { parts: [hcol('1.5', 0)], ans: ['y'], why: 'Fractions and decimals are real numbers too: in R².' },
+  { parts: [col([2, 4, 1])], ans: ['n'], why: 'Three numbers: that is a vector of R³, not R².' },
+  { parts: [hcol(0, 0)], ans: ['y'], why: 'The zero vector of the plane: in R² (in every vector space).' },
+];
+const YN = [['y', 'In R²', COL.good, 'Y'], ['n', 'Not in R²', COL.bad, 'N']];
+const WHICH = [
+  { parts: [hcol(1, 2)], ans: ['2'] }, { parts: [col([0, 0, 0])], ans: ['3'] }, { parts: [col([3, -1, 4, 1, 5])], ans: ['5'] },
+  { parts: [col([2, 2, 2, 2])], ans: ['4'] }, { parts: [hcol(-1, '0.5')], ans: ['2'] }, { parts: [col([7, 0, 0, 0, 0])], ans: ['5'] },
+].map(r => ({ ...r, why: `It has ${r.ans[0]} numbers: in R${'⁰¹²³⁴⁵'[+r.ans[0]]}. Zeros count as numbers too.` }));
+const SPACES = [['2', 'R²', null, '2'], ['3', 'R³', null, '3'], ['4', 'R⁴', null, '4'], ['5', 'R⁵', null, '5']];
+const ADDQ = [
+  { parts: ['(1, 2, 3) + (4, 0, −1) = (', { box: '5' }, ', ', { box: '2' }, ', ', { box: '2' }, ')'], why: '1 + 4 = 5, 2 + 0 = 2, 3 + (−1) = 2.', hint: 'Add number by number: first with first, second with second, third with third.' },
+  { parts: ['3 · (2, −1, 0) = (', { box: '6' }, ', ', { box: '-3' }, ', ', { box: '0' }, ')'], why: 'Every number times 3: 6, −3, 0.', hint: 'Multiply every number by 3, the sign included.' },
+  { parts: ['(1, 1, 0, 2) + (−1, 3, 1, 0) = (', { box: '0' }, ', ', { box: '4' }, ', ', { box: '1' }, ', ', { box: '2' }, ')'], why: '1 − 1 = 0, 1 + 3 = 4, 0 + 1 = 1, 2 + 0 = 2: four numbers, in R⁴.', hint: 'Four numbers each: add them in pairs, in order.' },
+  { parts: ['2 · (1, 0, −1, 3, 1) − (0, 1, 1, 2, 2) = (', { box: '2' }, ', ', { box: '-1' }, ', ', { box: '-3' }, ', ', { box: '4' }, ', ', { box: '0' }, ')'], why: '2·(1, 0, −1, 3, 1) = (2, 0, −2, 6, 2); minus (0, 1, 1, 2, 2) gives (2, −1, −3, 4, 0).', hint: 'Double the first list, then subtract the second number by number.' },
+  { parts: ['0 · (5, −2, 7) = (', { box: '0' }, ', ', { box: '0' }, ', ', { box: '0' }, ')'], why: 'Zero times anything is zero: the zero vector of R³.', hint: 'Every number times 0.' },
+];
+const ISQ = [
+  { parts: ['All of R³ (every list of three numbers)'], ans: ['y'], why: 'Adding or stretching lists of three numbers gives lists of three numbers.' },
+  { parts: ['The top right quarter: x ≥ 0 and y ≥ 0'], ans: ['n'], why: '−1 times (2, 1) is (−2, −1): outside.' },
+  { parts: ['The upper half: y ≥ 0'], ans: ['n'], why: '−1 times (0, 1) is (0, −1): below, outside.' },
+  { parts: ['The points with whole-number coordinates'], ans: ['n'], why: '½ times (1, 1) is (½, ½): between the dots.' },
+  { parts: ['All of R⁵'], ans: ['y'], why: 'Five numbers in, five numbers out, whatever you add or multiply.' },
+  { parts: ['Every pair (x, y) except (0, 0)'], ans: ['n'], why: '0 times any v is (0, 0), which was left out. Every vector space holds the zero vector.' },
+  { parts: ['The single vector (1, 1), alone'], ans: ['n'], why: '(1, 1) + (1, 1) = (2, 2) is not in the collection.' },
+];
+const YN2 = [['y', 'A vector space', COL.good, 'Y'], ['n', 'Not one', COL.bad, 'N']];
+const HANDQ = [
+  { id: 'p-half', kind: 'half', start: { v0: 1, v1: 2, w0: 0, w1: 0, c: 1, d: 0 }, prompt: ['The shaded half is every arrow with y ≥ 0. Find v in it and a c that throws c·v out.'],
+    why: (v, k) => `v = ${pair(v.v0, v.v1)} is in the half, but c·v = ${pair(k.sum[0], k.sum[1])} is below the x-axis: the half is not a vector space.`,
+    hint: (v, k) => !IN.half([v.v0, v.v1]) ? 'Start with v inside: its second number must be 0 or more.' : v.v1 === 0 ? 'v lies on the x-axis: any multiple stays there. Give v a second number above 0.' : 'Try a negative c: it turns the arrow round.',
+    ans: { c: -1 } },
+  { id: 'p-dots', kind: 'dots', start: { v0: 1, v1: 1, w0: 0, w1: 0, c: 1, d: 0 }, prompt: ['The dots are the whole-number points. Find a c (in halves) that throws c·v off the dots.'],
+    why: (v, k) => `c·v = ${pair(k.sum[0], k.sum[1])} is not a dot: the dots are not a vector space.`,
+    hint: () => 'A whole c keeps whole numbers. Try c = ½ (scrub c by halves).', ans: { c: .5 } },
+];
+const testOut = kind => (v, k) => IN[kind]([v.v0, v.v1]) && !(v.v0 === 0 && v.v1 === 0) && !IN[kind](k.sum);
+
+/* ---------- beats ---------- */
+const BEATS = [
+  ['intro', 'What is a vector space?', (m, D) => {
+    const g = G(scene, { o: 0, y: 24 });
+    T(g, 'Unit 5, Chapter 37', { x: 800, y: 250, size: 28, fill: COL.dim, anchor: 'middle' });
+    T(g, 'What Is a Vector Space?', { x: 800, y: 360, size: 84, weight: 600, anchor: 'middle' });
+    tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+    const r = text(scene, 'add, stretch, and stay inside', 800, 460, m('sub'), { size: 34, fill: COL.dim, anchor: 'middle' });
+    // a small sheet with two arrows that add and stretch inside it
+    const lg = G(scene, { x: 800, y: 680, o: 0 });
+    mk('rect', { x: -230, y: -110, width: 460, height: 200, rx: 18, fill: COL.chalk, 'fill-opacity': .07, stroke: COL.faint, 'stroke-width': 2 }, lg);
+    const arr = (c, w) => { const e = path(lg, '', { stroke: c, 'stroke-width': w, 'stroke-linecap': 'round', fill: 'none' }); return e; };
+    const a1 = arr(GREEN, 6), a2 = arr(VIOLET, 6), s = arr(COL.task, 7);
+    show(lg, m('move') - .2, .5);
+    prog(q => {
+      const k = 1 + .8 * Math.sin(Math.PI * Math.min(1, q * 1.4));
+      a1.setAttribute('d', `M-60 40l${70 * k} -40`); a2.setAttribute('d', `M-60 40l${-20} -70`);
+      s.setAttribute('d', q > .2 ? `M-60 40l${70 * k - 20} -110` : '');
+    }, m('move'), 4, lin);
+    tw(g, { o: 0, y: -24 }, D - .9, .8); hide(r, D - .9, .8); hide(lg, D - .9, .8);
+  }],
+
+  ['recall', 'Vectors so far', (m) => {
+    const p = panel(0);
+    title(p, 'Vectors so far: arrows you add and stretch');
+    const vs = plane2(p, V2, { show: [], t0: m('v') - .4, c: 1, d: 1 });
+    vs.label('cv', v_ => comboLabel(vs, v_.c, 0)); vs.label('dw', ['w']);
+    vs.row([{ t: 'v', fill: GREEN }, '=', { col: 'v', fixed: true }], { x: 90, y: 250 });
+    vs.show('v', m('v') + .3);
+    thick(vs, 'v', m('v') + 2); vs.flash('v0', m('v') + 3.6); vs.flash('v1', m('v') + 3.6);
+    const rw = vs.row([{ t: 'w', fill: VIOLET }, '=', { col: 'w', fixed: true }], { x: 380, y: 250, o: 0 }); showRow(rw, m('w'), .4);
+    vs.show('w', m('w') + .3);
+    vs.show(['dw'], m('add') + .6); vs.dim('w', m('add') + .6, .25);
+    vs.show('sum', m('sum') + .2);
+    const rs = vs.row(['v + w', '=', { fn: () => ['2 + (−1)', '1 + 2'], w: 200 }, '=', { fn: () => ['1', '3'], w: 70, fill: COL.task }], { x: 90, y: 450, o: 0 }); showRow(rs, m('sum'), .4);
+    vs.hide(['dw', 'sum'], m('stretch') - .2); vs.dim('w', m('stretch') - .2, 1);
+    vs.to({ c: 2, d: 0 }, m('stretch'), .1);
+    vs.show('cv', m('stretch') + .3); vs.dim('v', m('stretch') + .3, .3);
+    const r2 = vs.row(['2v', '=', { fn: () => ['2 · 2', '2 · 1'], w: 140 }, '=', { fn: () => ['4', '2'], w: 70, fill: GREEN }], { x: 90, y: 640, o: 0 }); showRow(r2, m('stretch') + .6, .4);
+    vs.hide('cv', m('mix') - .2); vs.dim('v', m('mix') - .2, 1);
+    vs.to({ c: 1, d: 1 }, m('mix'), .1);
+    vs.show(['cv', 'dw', 'sum'], m('mix') + .3);
+    vs.to({ c: 2, d: 1 }, m('mix') + 2.5, 1.2); vs.to({ c: -1, d: 1.5 }, m('mix') + 4.2, 1.4); vs.to({ c: .5, d: -1 }, m('mix') + 6, 1.4);
+  }],
+
+  ['space', 'Two rules', (m) => {
+    const p = panel(0);
+    title(p, 'A vector space: two rules');
+    const vs = S.vs = plane2(p, V2, { show: [], c: 1, d: 1 });
+    const rules = G(p, {});
+    text(rules, 'A vector space is a collection of vectors where', 90, 200, m('word'), { size: 28, fill: COL.dim, weight: 600 });
+    text(rules, '1.  v + w is inside, for any two inside', 90, 260, m('rule1'), { size: 32, weight: 700 });
+    text(rules, '2.  c·v is inside, for any one and any number c', 90, 310, m('rule2'), { size: 32, weight: 700 });
+    // each rule underlined as it is read
+    [['rule1', 260, 560], ['rule2', 310, 690]].forEach(([k, y, w]) => draw(path(rules, `M90 ${y + 12}h${w}`, { stroke: COL.chalk, 'stroke-width': 3, 'stroke-opacity': .6 }, { d: 0 }), m(k) + .4, 4.2, lin));
+    const whole = G(p, { o: 0 }), { PX, PY } = vs.P;
+    mk('rect', { x: PX(-6), y: PY(6), width: PX(6) - PX(-6), height: PY(-6) - PY(6), fill: COL.chalk, 'fill-opacity': .08 }, whole);
+    vs.P.g.insertBefore(whole, vs.layer);
+    tw(whole, { o: 1 }, m('plane'), .8);
+    say(p, ['R² = every pair (x, y)'], 90, 410, m('plane') + 3, { size: 34 });
+    // "every pair": pairs land all over the plane
+    const dotsG = G(p, {}), { PX: px, PY: py } = vs.P;
+    [[3, 4], [-5, 2], [1.5, -3], [-2, -4.5], [5, -1], [-.5, 3.5], [4, 2.5], [-4, -1.5], [2, -5], [0, 1], [-3, 5], [5.5, 4.5]].forEach(([x, y], k) => {
+      const d_ = mk('circle', { cx: px(x), cy: py(y), r: 7, fill: COL.chalk }, dotsG); put(d_, { o: 0 }); show(d_, m('plane') + 1 + k * .45, .2);
+    });
+    hide(dotsG, m('add') - .3, .4);
+    vs.show(['v', 'w'], m('plane') + 1.5);
+    vs.show(['cv', 'dw', 'sum'], m('add')); vs.dim(['v', 'w'], m('add'), .25);
+    const row = vs.row([{ col: 'sum', fixed: true }], { x: 90, y: 560, o: 0 }); showRow(row, m('add') + .4, .4);
+    const ok = (t0, t1) => { const e = text(p, 'two numbers: in R²  ✓', 260, 572, t0, { size: 30, fill: COL.good, weight: 700 }); hide(e, t1, .3); };
+    ok(m('in1'), m('scale') - .2);
+    vs.to({ c: 3, d: 0 }, m('scale'), 1.2); vs.hide('dw', m('scale'), .4); vs.flash('sum0', m('scale') + 1.2); vs.flash('sum1', m('scale') + 1.2);
+    ok(m('in2'), m('neg') - .2);
+    vs.to({ c: -1, d: 0 }, m('neg'), 1.4);
+    ok(m('neg') + 2, m('so') + 3);
+    vs.to({ c: 1.5, d: -1 }, m('so') + .3, 1.4); vs.show('dw', m('so') + .3); vs.to({ c: -.5, d: 1.5 }, m('so') + 2, 1.4);
+    text(p, 'R² is a vector space', 90, 680, m('so') + 4.2, { size: 36, weight: 700 });
+  }],
+
+  ['zero', 'The zero vector', (m) => {
+    const p = panel(0);
+    title(p, 'Every vector space holds the zero vector');
+    const vs = plane2(p, { v: V2.v, w: [-2, -1] }, { show: ['cv'], c: 1, d: 0 });
+    vs.label('dw', ['−v']); vs.label('sum', ['']);
+    vs.row([{ key: 'c' }, { t: 'v', fill: GREEN }, '=', { col: 'cv', fixed: true }], { x: 90, y: 280 });
+    vs.to({ c: 0 }, m('zero') + .3, 2.4, io); vs.flash('c', m('zero') + .3);
+    const o = G(p, { o: 0 }); vs.P.dot(0, 0, COL.chalk, 0, { into: o, label: '(0, 0)', dx: 16, dy: 36 }); show(o, m('shrink') + .4, .4);
+    text(p, 'rule 2 with c = 0:  0·v = (0, 0)', 90, 470, m('must'), { size: 32, weight: 600 });
+    vs.flash('c', m('must') + .3); vs.flash('cv0', m('must') + 1.6); vs.flash('cv1', m('must') + 1.6);
+    text(p, 'so (0, 0) is in every vector space', 90, 520, m('must') + 2.4, { size: 32, weight: 700 });
+    // v, then −v from its tip: back to the origin
+    vs.to({ c: 1 }, m('also'), 1);
+    vs.show('dw', m('also') + 1.2);
+    vs.to({ d: 1 }, m('also') + 1.2, 1.4);
+    text(p, 'v + (−v) = (0, 0)', 90, 620, m('also') + 1.4, { size: 36, weight: 600 });
+  }],
+
+  ['combos', 'Every combination stays in', (m) => {
+    const p = panel(0);
+    title(p, 'Both rules together: every combination');
+    const vs = plane2(p, V2, { show: ['v', 'w'], c: 2, d: 1 });
+    vs.row([{ key: 'c' }, { t: 'v', fill: GREEN }, { key: 'd', signed: true }, { t: 'w', fill: VIOLET }, '=', { col: 'sum', fixed: true }], { x: 90, y: 300 });
+    vs.show('cv', m('cv')); vs.flash('c', m('cv'));
+    vs.show('dw', m('dw')); vs.flash('d', m('dw'));
+    vs.show('sum', m('both'));
+    text(p, 'c·v: rule 2     d·w: rule 2     sum: rule 1', 90, 440, m('both') + .4, { size: 28, weight: 600 });
+    // the combination runs through many c and d, and leaves a dot wherever it lands
+    const trail = G(p, {}), { PX, PY } = vs.P;
+    const path_ = [[2, 1], [1, 2], [-1, 2], [-2, 0], [-1, -2], [1, -1], [2.5, -.5], [0, 1.5], [-1.5, 1], [.5, -2]];
+    path_.forEach(([c, d], k) => {
+      const t0 = m('all') + 2 + k * .9;
+      vs.to({ c, d }, t0, .7);
+      const s = [c * 2 - d, c + 2 * d];
+      const dt = mk('circle', { cx: PX(s[0]), cy: PY(s[1]), r: 7, fill: COL.task, 'fill-opacity': .7 }, trail);
+      put(dt, { o: 0 }); show(dt, t0 + .7, .2);
+    });
+    text(p, 'every combination stays in R²', 90, 520, m('all') + .3, { size: 32, weight: 700 });
+  }],
+
+  ['q1', 'Quick check', () => {
+    const p = panel(0);
+    title(p, 'Quick check');
+    plane2(p, V2, { show: [] });
+  }, { ask: done => quiz({ x: 40, y: 200, w: 760, cls: 'side' }, [{
+    id: 'c-in', prompt: ['Is it in R², the plane of all pairs?'],
+    build: grid(INR2, YN, { multi: false, text: true }),
+  }], done) }],
+
+  ['r3', 'R³', (m) => {
+    const p = panel(0);
+    title(p, 'R³: every list of three numbers');
+    const V = space3(p, { cx: 1150, cy: 480, size: 600, range: 4, yaw: -35, pitch: 20, t0: m('three') - .3 });
+    V.sway(8, 16);
+    const O = [0, 0, 0], v = [1, 2, 0], w = [0, 1, 2], s = [1, 3, 2];
+    const av = V.arrow(O, v, { color: GREEN }), aw = V.arrow(O, w, { color: VIOLET }), aw2 = V.arrow(v, v, { color: VIOLET, dash: '8 6' }), as = V.arrow(O, O, { color: COL.task, w: 6 });
+    [av, aw, aw2, as].forEach(a => put(a.e, { o: 0 }));
+    show(av.e, m('v') + .2, .4); show(aw.e, m('w') + .2, .4);
+    const pv = V.point(v, { color: GREEN, r: 6, label: 'v' }), pw = V.point(w, { color: VIOLET, r: 6, label: 'w' });
+    put(pv.e, { o: 0 }); put(pw.e, { o: 0 }); show(pv.e, m('v') + .4, .4); show(pw.e, m('w') + .4, .4);
+    show(aw2.e, m('add'), .3);
+    prog(q => aw2.set(v, [v[0] + w[0] * q, v[1] + w[1] * q, v[2] + w[2] * q]), m('add'), 1.2);
+    show(as.e, m('add') + 1.3, .3);
+    prog(q => as.set(O, s.map(x => x * q)), m('add') + 1.3, .9);
+    hide(aw2.e, m('scale') - .2, .3);
+    prog(q => { const k = 1 + q; as.set(O, w.map(x => x * k)); }, m('scale') + .3, 1.4);
+    prog(q => { if (q > 0) as.set(O, w.map(x => x * 2)); }, m('scale') + 1.7, 0);
+    const L = G(p, {});
+    say(L, ['v = (1, 2, 0)'], 90, 260, m('v'), { size: 38, fill: GREEN });
+    say(L, ['w = (0, 1, 2)'], 90, 330, m('w'), { size: 38, fill: VIOLET });
+    say(L, ['v + w = (1 + 0, 2 + 1, 0 + 2) = (1, 3, 2)'], 90, 430, m('add') + .4, { size: 34 });
+    text(L, 'three numbers: in R³  ✓', 90, 480, m('in'), { size: 30, fill: COL.good, weight: 700 });
+    say(L, ['2w = (0, 2, 4)'], 90, 580, m('scale') + .4, { size: 34 });
+    text(L, 'three numbers: in R³  ✓', 90, 630, m('in2'), { size: 30, fill: COL.good, weight: 700 });
+    text(L, 'R³ is a vector space', 90, 730, m('so'), { size: 36, weight: 700 });
+  }],
+
+  ['rn', 'Rⁿ as bars', (m) => {
+    const p = panel(0);
+    title(p, 'More numbers than axes: bars');
+    const bs = S.bs = barsVW(p, RV, RW, [0, 0], { t0: m('four') - .3 });
+    const [cv, cw] = bs.cols;
+    put(cv.g, { o: 0 }); put(cw.g, { o: 0 }); bs.mixG.forEach(e => put(e, { o: 0 })); bs.plusSigns.forEach(e => put(e, { o: 0 })); put(bs.eqSign, { o: 0 }); put(bs.ax.g, { o: 0 });
+    show(cv.g, m('v') + .2, .4); show(bs.mixG[0], m('add'), .4);
+    show(cw.g, m('w') + .2, .4); show(bs.mixG[1], m('add'), .4); show(bs.plusSigns[0], m('add'), .4);
+    // a ring that reads down the bars as the voice reads the numbers
+    [[cv, 'v'], [cw, 'w']].forEach(([c_, k]) => {
+      const rr = mk('rect', { x: c_.x - 6, y: 0, width: 150, height: bs.zeroY(1) - bs.zeroY(0) - 6, rx: 10, fill: 'none', stroke: COL.chalk, 'stroke-width': 3 }, p);
+      put(rr, { o: 0, y: bs.zeroY(0) - 40 });
+      show(rr, m(k) + 1.6, .2);
+      [1, 2, 3, 4].forEach(i => tw(rr, { y: bs.zeroY(i) - 40 }, m(k) + 1.6 + i * .75, .3));
+      hide(rr, m(k) + 1.6 + 5 * .75, .3);
+    });
+    show(bs.eqSign, m('add') + .4, .4); show(bs.ax.g, m('add') + .4, .4);
+    bs.to({ x0: 1, x1: 1 }, m('add') + .8, 1.6);
+    bs.to({ x0: 2, x1: 0 }, m('scale') + .3, 1.6);
+    bs.to({ x0: 1, x1: -1 }, m('n') + 4, 1.4); bs.to({ x0: -1, x1: 2 }, m('n') + 6, 1.4);
+    const R = G(p, {});
+    text(R, 'one bar for each number', 1120, 270, m('four') + 1, { size: 28, fill: COL.dim, weight: 600 });
+    text(R, 'five numbers: in R⁵  ✓', 1120, 380, m('sum') + 3, { size: 30, fill: COL.good, weight: 700 });
+    text(R, 'still five numbers  ✓', 1120, 440, m('scale') + 4, { size: 30, fill: COL.good, weight: 700 });
+    const n = G(R, { o: 0 });
+    T(n, 'Rⁿ = every list of n numbers', { x: 1120, y: 560, size: 32, weight: 700 });
+    T(n, 'a vector space, for every n', { x: 1120, y: 606, size: 28, fill: COL.dim, weight: 600 });
+    show(n, m('n') + .3, .5);
+  }],
+
+  ['q2', 'Quick check', () => {
+    const p = panel(0);
+    title(p, 'Quick check');
+    const bs = S.bs = barsVW(p, [1, 0, -2, 3], [2, 5, 1, -1], [1, 1], { top: 220, band: 90 });
+    put(bs.ax.g, { o: 0 });
+  }, { ask: done => quiz({ x: 860, y: 230, w: 700, cls: 'side' }, [{
+    id: 'c-r4', prompt: ['v = (1, 0, −2, 3) and w = (2, 5, 1, −1) are in R⁴.'],
+    build: blanks([
+      { parts: ['v + w = (', { box: '3' }, ', ', { box: '5' }, ', ', { box: '-1' }, ', ', { box: '2' }, ')'], why: '1 + 2, 0 + 5, −2 + 1, 3 − 1: four numbers, in R⁴.', hint: 'Add number by number: 1 + 2, then 0 + 5, …',
+        fx: () => { fx(S.bs.ax.g, { o: 1 }, 0, .4); S.bs.set({ x0: 1, x1: 1 }); } },
+      { parts: ['2w = (', { box: '4' }, ', ', { box: '10' }, ', ', { box: '2' }, ', ', { box: '-2' }, ')'], why: 'Every number of w doubled: 4, 10, 2, −2.', hint: 'Double every number of w, sign included.',
+        fx: () => { fx(S.bs.ax.g, { o: 1 }, 0, .4); S.bs.set({ x0: 0, x1: 2 }); } },
+    ]),
+  }], done) }],
+
+  ['quad', 'The quarter fails', (m) => {
+    const p = panel(0);
+    title(p, 'A collection that fails: the quarter');
+    const vs = S.vs = plane2(p, Q2, { show: [], c: 1, d: 1, t0: .1 });
+    region(vs, 'quarter', m('quarter'));
+    text(p, 'only arrows with x ≥ 0 and y ≥ 0', 90, 220, m('quarter') + .5, { size: 30, weight: 600 });
+    vs.show('v', m('v')); vs.show('w', m('w'));
+    vs.show(['cv', 'dw', 'sum'], m('add')); vs.dim(['v', 'w'], m('add'), .25);
+    const vd = verdict(p, vs, 'quarter', 90, 400, m('add') + .8, { name: 'c·v + d·w' });
+    vs.row([{ key: 'c' }, { t: 'v', fill: GREEN }, { key: 'd', signed: true }, { t: 'w', fill: VIOLET }], { x: 90, y: 320 });
+    vs.flash('sum0', m('ok')); vs.flash('sum1', m('ok'));
+    vs.to({ v0: 4, v1: .5, w0: .5, w1: 2 }, m('ok') + 2.2, 1.4); vs.to({ v0: 1, v1: 0, w0: 0, w1: 4 }, m('ok') + 3.8, 1.4); vs.to({ v0: 2, v1: 1, w0: 1, w1: 3 }, m('ok') + 5.4, 1.2);
+    vs.hide('dw', m('scale') - .2); vs.dim(['v', 'w'], m('scale') - .2, 1); vs.hide('w', m('scale') - .2);
+    vs.to({ c: 2, d: 0 }, m('scale'), 1.2); vs.flash('c', m('scale'));
+    vs.to({ c: -1 }, m('neg') + .3, 1.8); vs.flash('c', m('neg') + .3);
+    thick(vs, 'sum', m('out') + .4, 6);
+    const no = G(p, { o: 0 });
+    T(no, 'rule 2 broken: not a vector space', { x: 90, y: 520, size: 32, fill: COL.bad, weight: 700 });
+    show(no, m('fail') + 1, .5);
+    void vd;
+  }],
+
+  ['dots', 'The dots fail', (m) => {
+    const p = panel(0);
+    title(p, 'Another that fails: the grid dots');
+    const vs = plane2(p, { v: [1, 2], w: [2, 1] }, { show: [], c: 1, d: 1 });
+    region(vs, 'dots', m('dots'));
+    text(p, 'only points with whole-number coordinates', 90, 220, m('dots') + .5, { size: 30, weight: 600 });
+    vs.show(['cv', 'dw', 'sum'], m('add'));
+    vs.to({ v0: 2, v1: 1, w0: 1, w1: 3 }, m('add') + 2.6, 1.2); vs.to({ v0: 1, v1: 2, w0: 2, w1: 1 }, m('add') + 4.2, 1.2);
+    verdict(p, vs, 'dots', 90, 400, m('add') + .8, { name: 'the tip' });
+    vs.row([{ key: 'c' }, { t: 'v', fill: GREEN }, { key: 'd', signed: true }, { t: 'w', fill: VIOLET }], { x: 90, y: 320 });
+    vs.hide(['dw'], m('scale') - .3);
+    vs.to({ v0: 1, v1: 1, d: 0 }, m('scale'), 1.2);
+    vs.to({ c: .5 }, m('half'), 1.4); vs.flash('c', m('half'));
+    thick(vs, 'sum', m('half') + 1.6, 6);
+    text(p, 'between the dots: not a vector space', 90, 520, m('fail'), { size: 32, fill: COL.bad, weight: 700 });
+  }],
+
+  ['q3', 'Your turn', () => {
+    const p = panel(0);
+    title(p, 'Your turn');
+    const vs = S.vs = plane2(p, Q2, { show: ['sum'], c: 1, d: 0 });
+    vs.label('sum', v_ => comboLabel(vs, v_.c, 0));
+    region(vs, 'quarter', .2);
+    vs.row([{ key: 'c' }, { col: 'v' }, '=', { col: 'sum', fixed: true }], { x: 90, y: 260 });
+    verdict(p, vs, 'quarter', 90, 400, .4, { name: 'c·v' });
+  }, { ask: done => quiz({ x: 40, y: 470, w: 740, cls: 'side' }, [{
+    id: 'c-break', prompt: ['Keep v in the quarter. Change c (or v) until c·v is outside it.'],
+    build: vsTask(S.vs, testOut('quarter'), (v, k) => `c·v = ${pair(k.sum[0], k.sum[1])} left the quarter, while v was inside: rule 2 fails.`,
+      v => !IN.quarter([v.v0, v.v1]) ? 'v itself must be in the quarter: both its numbers 0 or more.' : 'A positive c keeps the arrow in the quarter. Try a negative c.',
+      () => S.vs.set({ c: -1 }), { only: ['c', 'v0', 'v1'], drag: [] }),
+  }], done) }],
+
+  ['wrap', 'Summary', (m) => {
+    const p = panel(0);
+    [['A vector space: adding any two, or multiplying one by any number, stays inside.', 'w1'], ['So every combination stays inside, and the zero vector is always there.', 'w2'],
+     ['R², R³ and Rⁿ (every list of n numbers) are vector spaces.', 'w3'], ['The quarter and the grid dots are not: a stretch throws a vector out.', 'w4']].forEach(([str, mark], i) => {
+      const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
+      mk('circle', { cx: 120, cy: -12, r: 26, fill: COL.chalk }, g);
+      T(g, String(i + 1), { x: 120, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+      T(g, str, { x: 170, size: 34, weight: 600 });
+      tw(g, { o: 1, x: 0 }, m(mark), .6);
+    });
+  }],
+  ['final1', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-which', prompt: ['Which space is each vector in? Count its numbers.'],
+    build: grid(WHICH, SPACES, { multi: false, text: true }),
+  }], done, 'Chapter practice · set 1 of 4') }],
+  ['final2', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
+    id: 'p-add', prompt: ['Add and stretch, number by number.'],
+    build: blanks(ADDQ),
+  }], done, 'Chapter practice · set 2 of 4') }],
+  ['final3', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
+    id: 'p-is', prompt: ['Is it a vector space? (Add any two, multiply any one by any number: does it stay inside?)'],
+    build: grid(ISQ, YN2, { multi: false, text: true }),
+  }], done, 'Chapter practice · set 3 of 4') }],
+  ['final4', 'Chapter practice', () => {
+    const p = panel(0);
+    title(p, 'Break the rules');
+    const vs = S.vs = plane2(p, Q2, { show: ['sum'], c: 1, d: 0, steps: { c: .5 } });
+    vs.label('sum', v_ => comboLabel(vs, v_.c, 0));
+    S.reg = { half: region(vs, 'half', null), dots: region(vs, 'dots', null) };
+    vs.row([{ key: 'c' }, { col: 'v' }, '=', { col: 'sum', fixed: true }], { x: 90, y: 260 });
+    S.vd = { half: verdict(p, vs, 'half', 90, 400, null, { name: 'c·v' }), dots: verdict(p, vs, 'dots', 90, 400, null, { name: 'c·v' }) };
+  }, { ask: done => quiz({ x: 40, y: 470, w: 740, cls: 'side' }, HANDQ.map(q => ({
+    id: q.id, prompt: q.prompt,
+    build: (body, api) => {
+      Object.entries(S.reg).forEach(([k, g]) => put(g, { o: k === q.kind ? 1 : 0 }));
+      Object.entries(S.vd).forEach(([k, g]) => put(g, { o: k === q.kind ? 1 : 0 }));
+      S.vs.set(q.start);
+      return vsTask(S.vs, testOut(q.kind), q.why, q.hint, () => S.vs.set(q.ans), { only: q.kind === 'dots' ? ['c'] : ['c', 'v0', 'v1'], drag: [] })(body, api);
+    },
+  })), done, 'Chapter practice · set 4 of 4') }],
+  ['play', 'Playground', (m) => {
+    const p = panel(0);
+    title(p, 'Playground');
+    const vs = S.vs = plane2(p, Q2, { show: ['v', 'w', 'cv', 'dw', 'sum'], c: 1, d: 1 });
+    region(vs, 'quarter', .2);
+    vs.row([{ key: 'c' }, { col: 'v' }, { key: 'd', signed: true }, { col: 'w' }, '=', { col: 'sum', fixed: true }], { x: 90, y: 260 });
+    verdict(p, vs, 'quarter', 90, 400, .4, { name: 'c·v + d·w' });
+    const hint = G(p, { o: 0 });
+    T(hint, 'try: a negative c · a w outside the quarter · c = d = 0', { x: 1160, y: 820, size: 24, fill: COL.dim, anchor: 'middle' });
+    show(hint, m('go'), .5);
+  }, { ask: playAsk(() => S.vs, { pos: { x: 40, y: 470, w: 740, cls: 'side' },
+    tip: 'Your two vectors and their combination. Change any number or drag a tip; the line under the algebra says whether it stays in the quarter. Nothing is marked.' }) }],
+  ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+boot();
+</script>
+</body>
+</html>

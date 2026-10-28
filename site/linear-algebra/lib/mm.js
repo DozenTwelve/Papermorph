@@ -429,3 +429,317 @@ const mmTask = (P_, test, why, hint, reveal, { only = null, sizes = false } = {}
     hint: [kbd('Tab'), ' to a number, ', kbd('↑'), kbd('↓'), ' to change it, or drag it sideways'],
   };
 };
+
+/* ---------- the transpose: A and Aᵀ side by side (chapters 35–36) ---------- */
+// mmT draws A (m × n) and its transpose Aᵀ (n × m) from one state: row i of A is column i of Aᵀ, entry (i, j) of A is
+// entry (j, i) of Aᵀ. Every number of either matrix is scrubbable (the twin in the other follows), and the sizes too.
+// With tint 'rows' each number keeps the colour of A's row it came from, so A's blue row is Aᵀ's blue column ('cols':
+// coloured by A's column, for a matrix that is itself a transpose; null: chalk).
+// With plane: { cx, cy, u } a 2 × 2 A is also drawn in the plane: its columns as solid green and violet arrows (chapter
+// 9), its rows as dashed blue and coral arrows, which are the columns of Aᵀ; drag a tip and the numbers follow.
+//
+//   const T = mmT(p, { A: [[1, 2, 3], [4, 5, 6]], at: [70, 300], hideT: true, plane: null });
+//   T.fly(at, { by: 'rows' | 'cols' | 'cells' | 'all' | (i, j) => offset, step, dur })   // A's numbers fly into Aᵀ; returns the end
+//   T.reveal(at, 'all' | [[r, c], …])    // with hideT: Aᵀ's numbers appear at once (T.uncover(which): now)
+//   T.show('row' | 'col' | 'cell' | 'diag', i | [i, j], at, { side: 'a' | 't' })   // light row i of A with column i of Aᵀ
+//                                        (and so on; side: only in A or only in Aᵀ); show(null, null, at) clears
+//   T.diag(at, on)                       // the dashed main diagonal through both (square or not, from the top-left corner)
+//   T.pairs(at, on)                      // square A: each pair across the diagonal joined, green when equal, red when not
+//   T.flash('a' | 't', [[i, j], …] | 'all', at)
+//   T.to({ a01: 3, mA: 3 }, at, dur) · T.set(v) · T.v · T.sym() · T.onChange(f) · T.arrows.cols / .rows (groups)
+//   T.live(true, { only: ['a01', 't10', 'mA'], sizes: false, drag: true })   // mmTTask is its question type; playAsk works
+// Keys: a<i><j> (A's numbers), t<j><i> (the same number, touched in Aᵀ), mA, nA (A's size, 1 … 3).
+const MMT_ROW = [COL.whole, COL.nat, COL.int], MMT_COL = [COL.irr, COL.real];
+
+function mmT(p, { A, at: [x0, y0] = [70, 300], size = 40, cw = 62, rh = 60, gap = 120, names = ['A', 'Aᵀ'], hideT = false,
+  tint = 'rows', sizes = true, plane: po = null, t0 = .1, o = 0, range = 9 } = {}) {
+  const svg = $('stage'), K3 = [0, 1, 2];
+  const s = { mA: A.length, nA: A[0].length };
+  K3.forEach(i => K3.forEach(j => { s[`a${i}${j}`] = A[i]?.[j] ?? 0; }));
+  let plan = { ...s };
+  const known = K3.map(() => K3.map(() => !hideT));   // known[r][c]: Aᵀ's entry (r, c) shown
+  const g = G(p, { o });
+  show(g, t0 + .2);
+  const D = () => ({ m: Math.round(s.mA), n: Math.round(s.nA) });
+  const keyOf = k => k[0] === 't' ? `a${k[2]}${k[1]}` : k;   // t<j><i> is a<i><j>
+  // A's entry (i, j) in the colour of its row ('rows') or column ('cols'); it keeps that colour in Aᵀ
+  const fillA = (i, j) => tint === 'rows' ? MMT_ROW[i] : tint === 'cols' ? MMT_ROW[j] : COL.chalk;
+
+  /* ---------- hands on ---------- */
+  const cells = [];
+  let live = false, allowed = null, sizesLive = false, dragOn = false;
+  const can = k => live && (k.length === 2 ? sizesLive : (!allowed || allowed.has(k) || allowed.has(keyOf(k))));
+  const step = (k, v) => edit({ [keyOf(k)]: k.length === 2 ? Math.round(v) : Math.max(-range, Math.min(range, Math.round(v))) });
+  function wire(box, k) {
+    box.setAttribute('aria-label', k);
+    cells.push({ k, box });
+    let drag = null;
+    box.addEventListener('pointerdown', e => {
+      if (!can(k)) return;
+      e.preventDefault(); drag = { x: e.clientX, from: Math.round(s[keyOf(k)]) }; box.setPointerCapture(e.pointerId);
+    });
+    box.addEventListener('pointermove', e => { if (!drag) return; const kx = svg.getScreenCTM().a; step(k, drag.from + Math.round((e.clientX - drag.x) / kx / (k.length === 2 ? 40 : 24))); });
+    const end = () => { drag = null; };
+    box.addEventListener('pointerup', end); box.addEventListener('lostpointercapture', end);
+    box.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); box.blur(); P.keys?.(e); return; }
+      if (!can(k)) return;
+      const dd = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 }[e.key];
+      if (!dd) return;
+      e.preventDefault(); e.stopPropagation();
+      step(k, Math.round(s[keyOf(k)]) + dd);
+      if (!box.isConnected) g.querySelector(`[aria-label="${k}"][tabindex]`)?.focus();   // a size change rebuilt the boxes
+    });
+  }
+  function boxesLive() {
+    cells.forEach(c => {
+      const ok = can(c.k);
+      c.box.style.cursor = ok ? 'ew-resize' : '';
+      c.box.setAttribute('stroke', ok ? COL.faint : 'none');
+      if (ok) c.box.setAttribute('tabindex', 0); else c.box.removeAttribute('tabindex');
+    });
+    tips.forEach(tp => { tp.hit.style.cursor = live && dragOn && tp.keys.every(k => can(k)) ? 'move' : ''; });
+  }
+
+  /* ---------- the two matrices (rebuilt when a size changes) ---------- */
+  const back = G(g, {}), body = G(g, {}), front = G(g, {});
+  let L = null, shape = '';
+  function mat(key, rows, cols, x, name) {
+    const mg = G(body, {});
+    const top = y0 - size * .95, bot = y0 + (rows - 1) * rh + size * .35, W = cols * cw + 24;
+    path(mg, `M${x + 13} ${top}H${x}V${bot}H${x + 13}M${x + W - 13} ${top}H${x + W}V${bot}H${x + W - 13}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' });
+    const cx = j => x + 12 + cw * (j + .5), ry = i => y0 + i * rh;
+    const cs = [...Array(rows).keys()].map(i => [...Array(cols).keys()].map(j => {
+      const cg = G(mg, { x: cx(j), y: ry(i) });
+      const glow = mk('rect', { x: -cw / 2 + 3, y: -size * .9, width: cw - 6, height: size * 1.2, rx: 10, fill: COL.chalk }, cg);
+      put(glow, { o: 0 });
+      const holder = G(cg, {});
+      holder.style.pointerEvents = 'none';
+      wire(mk('rect', { x: -cw / 2 + 3, y: -size * .92, width: cw - 6, height: size * 1.24, rx: 9, fill: 'transparent', 'stroke-dasharray': '4 6' }, cg), `${key}${i}${j}`);
+      return { glow, holder, txt: null, fill: key === 'a' ? fillA(i, j) : fillA(j, i) };
+    }));
+    M(mg, [name], { x: x + W / 2, y: top - 16, size: 30, fill: COL.dim, anchor: 'middle' });
+    return { g: mg, x, W, top, bot, cx, ry, cs, rows, cols };
+  }
+  function sizeLab(m, rows, cols, yS, keys) {
+    const mid = m.x + m.W / 2, sg = G(m.g, {});
+    if (!sizes) put(sg, { o: 0 });
+    [[rows, -30, keys?.[0]], [cols, 30, keys?.[1]]].forEach(([v, dx, k]) => {
+      T(sg, String(v), { x: mid + dx, y: yS, size: 28, fill: COL.dim, font: MATH, anchor: 'middle', weight: 600 }).style.pointerEvents = 'none';
+      if (k) wire(mk('rect', { x: mid + dx - 20, y: yS - 26, width: 40, height: 34, rx: 8, fill: 'transparent', 'stroke-dasharray': '4 5' }, sg), k);
+    });
+    T(sg, '×', { x: mid, y: yS, size: 26, fill: COL.dim, font: MATH, anchor: 'middle' });
+    return sg;
+  }
+  function layout() {
+    const d = D(), sh = `${d.m},${d.n}`;
+    if (sh === shape) return;
+    shape = sh;
+    body.replaceChildren(); back.replaceChildren(); cells.length = 0;
+    const a = mat('a', d.m, d.n, x0, names[0]);
+    const t = mat('t', d.n, d.m, a.x + a.W + gap, names[1]);
+    const yS = y0 + (Math.max(d.m, d.n) - 1) * rh + size * .35 + 42;
+    sizeLab(a, d.m, d.n, yS, ['mA', 'nA']); sizeLab(t, d.n, d.m, yS, null);
+    // each diagonal lives in its own matrix's group (under the numbers), so a hidden Aᵀ hides its diagonal too
+    const dg = [a, t].map(M_ => {
+      const dd = G(M_.g, { o: diagOn ? 1 : 0 });
+      M_.g.insertBefore(dd, M_.g.firstChild);
+      const k = Math.min(M_.rows, M_.cols) - 1;
+      path(dd, `M${M_.cx(0) - cw * .45} ${M_.ry(0) - size * .78}L${M_.cx(k) + cw * .45} ${M_.ry(k) + size * .3}`, { stroke: COL.chalk, 'stroke-width': 2.5, 'stroke-dasharray': '8 7', 'stroke-opacity': .7, fill: 'none' });
+      return dd;
+    });
+    L = { a, t, dg, bottom: yS + 12, right: t.x + t.W, mid: a.x + a.W + gap / 2, midY: y0 + (Math.max(d.m, d.n) - 1) * rh / 2 - size * .3 };
+    rebands();
+    boxesLive();
+  }
+
+  /* ---------- lit rows and columns ---------- */
+  let lit = [], bandStamp = -1, diagOn = false, pairsOn = false;
+  const bandRect = (M_, kind, i, j) => {
+    if (!M_ || (kind !== 'col' && i >= M_.rows) || (kind !== 'row' && j >= M_.cols)) return null;
+    const h0 = size * 1.24;
+    let x, y, w, hh;
+    if (kind === 'row') { x = M_.x + 4; y = M_.ry(i) - size * .95; w = M_.W - 8; hh = h0; }
+    else if (kind === 'col') { x = M_.cx(j) - cw / 2 + 2; y = M_.top + 2; w = cw - 4; hh = M_.bot - M_.top - 4; }
+    else { x = M_.cx(j) - cw / 2 + 2; y = M_.ry(i) - size * .95; w = cw - 4; hh = h0; }
+    return mk('rect', { x: x - 3, y, width: w + 6, height: hh, rx: 12, fill: COL.chalk, 'fill-opacity': .13, stroke: COL.chalk, 'stroke-opacity': .6, 'stroke-width': 2.5 }, back);
+  };
+  function rebands() { lit.forEach(b => { b.e = bandRect(L[b.m], b.kind, b.i, b.j); }); }
+  const partsOf = (kind, idx) => kind === 'row' ? [['a', 'row', idx, 0], ['t', 'col', 0, idx]]
+    : kind === 'col' ? [['a', 'col', 0, idx], ['t', 'row', idx, 0]]
+    : kind === 'cell' ? [['a', 'cell', idx[0], idx[1]], ['t', 'cell', idx[1], idx[0]]]
+    : kind === 'diag' ? K3.flatMap(k => [['a', 'cell', k, k], ['t', 'cell', k, k]]) : [];
+  function showWay(kind, idx, at, { dur = .35, side = null } = {}) {
+    prog(q => { if (q > 0 && at >= bandStamp) { bandStamp = at; lit.forEach(b => b.e?.remove()); lit = partsOf(kind, idx).filter(([m]) => !side || m === side).map(([m, k, i, j]) => ({ m, kind: k, i, j })); rebands(); lit.forEach(b => b.e && put(b.e, { o: 0 })); } }, at, 0, lin);
+    prog(q => { if (bandStamp === at) lit.forEach(b => b.e && put(b.e, { o: q })); }, at, dur, lin);
+  }
+
+  /* ---------- pairs across the diagonal (square A) ---------- */
+  const pairG = G(front, {});
+  function drawPairs() {
+    pairG.replaceChildren();
+    const d = D();
+    if (!pairsOn || d.m !== d.n) return;
+    const a = L.a;
+    for (let i = 0; i < d.m; i++) for (let j = i + 1; j < d.m; j++) {
+      const ok = Math.abs(s[`a${i}${j}`] - s[`a${j}${i}`]) < 1e-9, c = ok ? COL.good : COL.bad;
+      const P1 = [a.cx(j), a.ry(i) - size * .3], P2 = [a.cx(i), a.ry(j) - size * .3];
+      [P1, P2].forEach(([x, y]) => mk('circle', { cx: x, cy: y, r: size * .62, fill: 'none', stroke: c, 'stroke-width': 3 }, pairG));
+      const bend = 18 + 10 * (j - i);
+      path(pairG, `M${P1[0] - size * .5} ${P1[1] + size * .4}Q${(P1[0] + P2[0]) / 2 + bend} ${(P1[1] + P2[1]) / 2 + bend} ${P2[0] + size * .5} ${P2[1] - size * .4}`, { stroke: c, 'stroke-width': 2.5, 'stroke-dasharray': ok ? 'none' : '6 6', fill: 'none', 'stroke-opacity': .8 });
+    }
+  }
+
+  /* ---------- the plane: A's columns and rows as arrows (2 × 2 only) ---------- */
+  let PL = null;
+  const tips = [];
+  const arrows = { cols: [], rows: [] };
+  if (po) {
+    PL = plane(g, { x0: -5, x1: 5, y0: -5, y1: 5, u: 44, cx: 1190, cy: 470, t0, ...po });
+    const AG = G(PL.g, {});
+    const mkArrow = (color, dash, label, keys) => {
+      const ag = G(AG, {});
+      const shaft = path(ag, '', { stroke: color, 'stroke-width': dash ? 4 : 6, 'stroke-linecap': 'round', ...(dash ? { 'stroke-dasharray': '10 8' } : {}), fill: 'none' });
+      const head = path(ag, '', { fill: color, stroke: 'none' });
+      const lab = T(ag, label, { size: 24, fill: color, weight: 600, anchor: 'middle' });
+      lab.style.pointerEvents = 'none';
+      const hit = mk('circle', { r: 22, fill: 'transparent' }, ag);
+      const tp = { ag, shaft, head, lab, hit, keys, color, dash };
+      tips.push(tp);
+      let on = false;
+      const to = e => {
+        const q = svg.createSVGPoint(); q.x = e.clientX; q.y = e.clientY;
+        const w = q.matrixTransform(PL.g.getScreenCTM().inverse());
+        const cl = v => Math.max(PL.x0, Math.min(PL.x1, Math.round(v)));
+        edit({ [keys[0]]: cl((w.x - PL.cx) / PL.u), [keys[1]]: cl((PL.cy - w.y) / PL.u) });
+      };
+      hit.addEventListener('pointerdown', e => { if (!(live && dragOn && keys.every(k => can(k)))) return; e.preventDefault(); ag.parentNode.append(ag); on = true; hit.setPointerCapture(e.pointerId); });
+      hit.addEventListener('pointermove', e => { if (on) to(e); });
+      hit.addEventListener('pointerup', () => { on = false; });
+      hit.addEventListener('lostpointercapture', () => { on = false; });
+      return tp;
+    };
+    // columns of A: (a0j, a1j); rows of A = columns of Aᵀ: (ai0, ai1)
+    arrows.cols = [0, 1].map(j => mkArrow(MMT_COL[j], false, `col ${j + 1}`, [`a0${j}`, `a1${j}`]));
+    arrows.rows = [0, 1].map(i => mkArrow(MMT_ROW[i], true, `row ${i + 1}`, [`a${i}0`, `a${i}1`]));
+  }
+  function drawPlane() {
+    if (!PL) return;
+    const d = D(), two = d.m === 2 && d.n === 2, { PX, PY } = PL, placed = [];
+    tips.forEach((tp, k) => {
+      tp.ag.style.display = two ? '' : 'none';
+      if (!two) return;
+      const x = s[tp.keys[0]], y = s[tp.keys[1]], X2 = PX(x), Y2 = PY(y), X1 = PX(0), Y1 = PY(0);
+      const Ln = Math.hypot(X2 - X1, Y2 - Y1), ux = Ln ? (X2 - X1) / Ln : 1, uy = Ln ? (Y2 - Y1) / Ln : 0, h = Math.min(20, Ln * .45);
+      tp.shaft.setAttribute('d', Ln < 1 ? '' : `M${X1} ${Y1}L${X2 - ux * h * .7} ${Y2 - uy * h * .7}`);
+      tp.head.setAttribute('d', Ln < 1 ? '' : `M${X2} ${Y2}L${X2 - h * ux - h * .55 * uy} ${Y2 - h * uy + h * .55 * ux}L${X2 - h * ux + h * .55 * uy} ${Y2 - h * uy - h * .55 * ux}Z`);
+      // the name just past the tip, along the arrow; a name that would sit on an earlier one (two tips close together)
+      // steps to the side that clears it
+      const rx = Ln ? ux : 1, ry = Ln ? uy : 0, bx = X2 + rx * 40, by = Y2 + ry * 34 + 8;
+      const cands = [[bx, by], [bx - ry * 40, by + rx * 30], [bx + ry * 40, by - rx * 30], [bx, by + 30], [bx, by - 30], [bx + 70 * (rx >= 0 ? 1 : -1), by]];
+      const hits = ([cx_, cy_]) => placed.some(([px, py]) => Math.abs(px - cx_) < 66 && Math.abs(py - cy_) < 26);
+      const at_ = cands.find(c => !hits(c)) || cands[0];
+      placed.push(at_);
+      put(tp.lab, { x: at_[0], y: at_[1] });
+      tp.hit.setAttribute('cx', X2); tp.hit.setAttribute('cy', Y2);
+    });
+  }
+
+  /* ---------- numbers ---------- */
+  const listeners = [];
+  function draw() {
+    layout();
+    const d = D();
+    L.a.cs.forEach((r, i) => r.forEach((cl, j) => {
+      const ps = mmParts(s[`a${i}${j}`]), kk = mmKey(ps);
+      if (kk === cl.txt) return;
+      cl.txt = kk; cl.holder.replaceChildren();
+      M(cl.holder, ps, { size, fill: cl.fill, anchor: 'middle' });
+    }));
+    L.t.cs.forEach((r, i) => r.forEach((cl, j) => {
+      const ps = known[i][j] ? mmParts(s[`a${j}${i}`]) : [''], kk = mmKey(ps);
+      if (kk === cl.txt) return;
+      cl.txt = kk; cl.holder.replaceChildren();
+      if (known[i][j]) M(cl.holder, ps, { size, fill: cl.fill, anchor: 'middle' });
+    }));
+    drawPairs();
+    drawPlane();
+    listeners.forEach(f => f(s, d));
+  }
+  function edit(to) {
+    let ch = false;
+    for (const k in to) {
+      const v = k.length === 2 ? Math.max(1, Math.min(3, to[k])) : to[k];
+      if (s[k] !== v) { s[k] = v; ch = true; }
+    }
+    if (ch) draw();
+  }
+  draw();
+
+  const hitOf = which => which === 'all' ? () => true : (i, j) => which.some(([a, b]) => a === i && b === j);
+  const api = {
+    g, front, get L() { return L; }, get v() { return { ...s }; }, get plan() { return plan; }, P: PL, arrows, known,
+    T: (i, j) => s[`a${j}${i}`],
+    sym() { const d = D(); if (d.m !== d.n) return false; for (let i = 0; i < d.m; i++) for (let j = 0; j < d.m; j++) if (Math.abs(s[`a${i}${j}`] - s[`a${j}${i}`]) > 1e-9) return false; return true; },
+    set(vals) { const o_ = {}; for (const k in vals) o_[keyOf(k)] = vals[k]; plan = { ...plan, ...o_ }; edit(o_); },
+    to(next, at, dur = 1.4, ease = io) {
+      const n2 = {}; for (const k in next) n2[keyOf(k)] = next[k];
+      const from = { ...plan };
+      plan = { ...plan, ...n2 };
+      const goal = { ...plan }, ks = Object.keys(n2);
+      prog(q => edit(Object.fromEntries(ks.map(k => [k, k.length === 2 ? (q < 1 ? from[k] : goal[k]) : from[k] + (goal[k] - from[k]) * q]))), at, dur, ease);
+      return at + dur;
+    },
+    show: showWay,
+    diag(at, on = true) { prog(q => { if (q > 0) { diagOn = on; } L.dg.forEach(d => put(d, { o: on ? q : 1 - q })); }, at, .5, lin); },
+    pairs(at, on = true) { prog(q => { if (q > 0 && pairsOn !== on) { pairsOn = on; drawPairs(); } }, at, 0, lin); },
+    flash(m, which, at, { color = COL.chalk } = {}) {
+      const hit = hitOf(which), env = t => t < .25 ? t / .25 : t < 1.1 ? 1 : t < 1.7 ? 1 - (t - 1.1) / .6 : 0;
+      prog(q => L[m]?.cs.forEach((r, i) => r.forEach((cl, j) => {
+        if (!hit(i, j)) return;
+        cl.glow.setAttribute('fill', color);
+        put(cl.glow, { o: .32 * env(q * 1.7) });
+      })), at, 1.7, lin);
+    },
+    // Aᵀ's numbers appear at once, at `at`
+    reveal(at, which = 'all') { prog(q => { if (q > 0) api.uncover(which); }, at, 0, lin); },
+    // Aᵀ's entries (r, c) shown: 'all' or a list [[r, c], …]
+    uncover(which = 'all') { const hit = hitOf(which); K3.forEach(i => K3.forEach(j => { if (hit(i, j)) known[i][j] = true; })); L.t.cs.flat().forEach(cl => { cl.txt = null; }); draw(); },
+    // A's numbers (as planned at this point of the beat) fly across into Aᵀ: entry (i, j) lands on (j, i), arcing over.
+    fly(at, { by = 'rows', step = 1.2, dur = 1, lift = 50 } = {}) {
+      const { m, n } = { m: Math.round(plan.mA), n: Math.round(plan.nA) };
+      let end = at;
+      for (let i = 0; i < m; i++) for (let j = 0; j < n; j++) {
+        const t1 = at + (typeof by === 'function' ? by(i, j) : by === 'rows' ? i * step + j * .12 : by === 'cols' ? j * step + i * .12 : by === 'cells' ? (i * n + j) * step : 0);
+        const c = G(front, { o: 0 });
+        M(c, mmParts(plan[`a${i}${j}`]), { size, fill: fillA(i, j), anchor: 'middle' });
+        prog(q => {
+          const a = L.a, t = L.t;
+          if (!a || !t || i >= t.cols || j >= t.rows) return;
+          const xa = a.cx(j), ya = a.ry(i), xb = t.cx(i), yb = t.ry(j);
+          put(c, { x: xa + (xb - xa) * q, y: ya + (yb - ya) * q - lift * Math.sin(Math.PI * q), o: q > 0 && q < 1 ? 1 : 0 });
+        }, t1, dur, io);
+        prog(q => { if (q > 0 && !known[j][i]) { known[j][i] = true; if (L.t.cs[j]?.[i]) L.t.cs[j][i].txt = null; draw(); } }, t1 + dur, 0, lin);
+        end = Math.max(end, t1 + dur);
+      }
+      return end;
+    },
+    live(on, { only = null, sizes: sz = false, drag = true } = {}) {
+      live = on; allowed = on && only ? new Set(only.map(keyOf)) : null; sizesLive = on && sz; dragOn = on && drag;
+      boxesLive();
+    },
+    onChange(f) { listeners.push(f); },
+  };
+  return api;
+}
+
+// A question on A and Aᵀ: the reader changes the allowed numbers (or drags the arrows) until test(v, T) holds.
+const mmTTask = (T_, test, why, hint, reveal, { only = null, sizes = false, drag = true } = {}) => (body, api) => {
+  T_.live(true, { only, sizes, drag });
+  return {
+    check: () => { const v = T_.v, ok = test(v, T_); api.grade(ok, ok ? why : typeof hint === 'function' ? hint(v, T_) : hint); },
+    reveal: () => { reveal?.(); return why; },
+    lock: () => T_.live(false),
+    hint: [kbd('Tab'), ' to a number, ', kbd('↑'), kbd('↓'), ' to change it, or drag it sideways', ...(T_.P && drag ? ['; drag an arrow by its tip'] : [])],
+  };
+};
