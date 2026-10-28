@@ -196,7 +196,7 @@ const BEATS = [
     pulseAll(['a00', 'a01', 'a10', 'a11'].map(k => g.num(k)[0]), m('A') + .6, .9);
     pulseAll(['x0', 'x1'].map(k => g.num(k)[0]), m('x') + .4, .8);
     q.forEach((e, i) => { show(e, m('q') + .3 + i * .3, .3); pulse(e, m('q') + 1.6 + i * .3); });
-    text(p, 'two numbers to find', g.lay.r, 430, m('q') + 1, { size: 26, fill: COL.task, anchor: 'middle', weight: 600 });
+    text(p, 'two numbers to find', g.lay.r, 430, m('q') + 1, { size: 26, fill: COL.chalk, anchor: 'middle', weight: 600 });
     const plan = G(p, { o: 0 });
     T(plan, '1.  by columns', { x: 90, y: 560, size: 34, weight: 600, fill: COLC[0] });
     T(plan, '2.  by rows', { x: 90, y: 615, size: 34, weight: 600, fill: ROWC[0] });
@@ -295,7 +295,7 @@ const BEATS = [
     [g.axArrow, g.axDot, g.axLab].forEach(e => show(e, m('same') + .4, .5));
     pulse(g.axDot, m('same') + 1);
     const dot = G(p, { o: 0 });
-    T(dot, 'dot product', { x: 90, y: 700, size: 32, weight: 600, fill: COL.task });
+    T(dot, 'dot product', { x: 90, y: 700, size: 32, weight: 600, fill: COL.chalk });
     T(dot, 'a row times a column: multiply, then add', { x: 90, y: 745, size: 28, fill: COL.dim });
     show(dot, m('dot') + 1);
     say(p, ['[2, 5] · [1, 2] = 12'], 90, 800, m('dot') + 5, { size: 34, fill: ROWC[0] });
@@ -343,6 +343,14 @@ const BEATS = [
     frame(p, cx[1] - 130, cy[0] - 58, 260, 190, COLC[1], m('colway') + 1.5, m('rowway'));
     const cw = lineUp(p, [{ v: [2, 1], fill: COLC[0] }, '+', { v: [10, 6], fill: COLC[1] }, '=', { v: [12, 7], fill: COL.task }], 820, 610, { size: 42 });
     cw.forEach((r, k) => show(r.e, m('colway') + 3 + k * .5, .4));
+    // each product's result flies to where it is used: into its column's stack, then into its row's sum
+    const PR = [[2, 10], [1, 6]], resAt = (i, j) => [cx[j] + cells[i * 2 + j]._w / 2 - 13 * String(PR[i][j]).length, cy[i]];
+    const feed = (i, j, to, t) => {
+      const [x, y] = resAt(i, j), f = M(p, [String(PR[i][j])], { x, y, size: 46, anchor: 'middle', fill: COLC[j], o: 0 });
+      show(f, t, .15); tw(f, { x: to[0], y: to[1], s: .9 }, t + .15, .7, io); hide(f, t + .8, .2);
+    };
+    [0, 1].forEach(j => [0, 1].forEach(i => feed(i, j, cw[j * 2].m.at(i, 0), m('colway') + 2.3 + j + i * .2)));
+    [0, 1].forEach(i => [0, 1].forEach(j => feed(i, j, [1342 + j * 66 + (i && j ? -12 : 0), cy[i]], m('rowway') + .1 + i * 1.6 + j * .2)));
     text(p, 'columns, then add', 1420, 600, m('colway') + 5, { size: 26, fill: COLC[0], weight: 600, anchor: 'middle' });
     [0, 1].forEach(i => {
       frame(p, cx[0] - 130, cy[i] - 50, 520, 70, ROWC[i], m('rowway') + i * 1.6, m('same') + 2);
@@ -377,8 +385,8 @@ const BEATS = [
     lineRow(0, [2, -1], 470, m('r1') + .2, '2x − y');
     lineRow(1, [-1, 2], 545, m('r2') + .2, '−x + 2y');
     // the rows: our two lines (linsys draws the equations and the row picture), then the columns
-    const sys = S.sys = linsys(p, { eq: [90, 636], mat: null, size: 44, sol: false, t0: m('A') + .5 });   // the plane from the start
-    const eg = G(p, { o: 0 }); eg.append(sys.E); show(eg, m('b') + 1, .5);   // the equations wait for their words (linsys shows E at t0)
+    const sys = S.sys = linsys(p, { eq: [90, 636], mat: null, size: 44, sol: false, hideEq: true, t0: m('A') + .5 });   // the plane from the start
+    sys.eqRows.forEach(r => show(r.g, m('b') + 1, .5));   // the equations wait for their words
     sys.lines.forEach((l, i) => { tw(l.l, { 'a_stroke-width': 9 }, m('b') + 1.4 + i * 3.4, .3); tw(l.l, { 'a_stroke-width': 5 }, m('b') + 2.8 + i * 3.4, .5); });
     sys.view('both', m('c') + .5, .8);
     sys.labels(['col 1', 'col 2', 'b']);
@@ -406,8 +414,8 @@ const BEATS = [
     [0, 1].forEach(i => band(p, 96, A.at(i, 0)[1] - 50, 196, 68, ROWC[i], m('r') + .3 + i * 3, m('r') + 3 + i * 3));
     say(p, ['row 1:  x + y = 5'], 70, 470, m('r') + .6, { size: 38, fill: ROWC[0] });
     say(p, ['row 2:  x − y = 1'], 70, 530, m('r') + 3.6, { size: 38, fill: ROWC[1] });
-    const sys = S.sys = linsys(p, { A: [[1, 1], [1, -1]], b: [5, 1], eq: [90, 636], mat: null, size: 44, sol: false, t0: m('A') + .5 });
-    const eg = G(p, { o: 0 }); eg.append(sys.E); show(eg, m('r') + 6, .5);
+    const sys = S.sys = linsys(p, { A: [[1, 1], [1, -1]], b: [5, 1], eq: [90, 636], mat: null, size: 44, sol: false, hideEq: true, t0: m('A') + .5 });
+    sys.eqRows.forEach(r => show(r.g, m('r') + 6, .5));
     pulse(sys.meet, m('lines') + .6); pulse(sys.meet, m('lines') + 1.8);
     text(p, 'they meet at (3, 2)', 560, 670, m('lines') + .6, { size: 26, fill: ROWC[0], weight: 600 });
     // by columns: 3 of column 1, 2 of column 2
@@ -582,7 +590,7 @@ const BEATS = [
     [['By columns: Ax = (first number of x)·column 1 + (second)·column 2 + …', 'w1'], ['By rows: each number of Ax is a row of A times x (a dot product).', 'w2'],
      ['Both ways use the same products, so they always agree.', 'w3'], ['x: one number per column of A.   Ax: one number per row.', 'w4']].forEach(([str, mark], i) => {
       const g = G(p, { x: -16, y: 160 + i * 105, o: 0 });
-      mk('circle', { cx: 150, cy: -12, r: 26, fill: COL.task }, g);
+      mk('circle', { cx: 150, cy: -12, r: 26, fill: COL.chalk }, g);
       T(g, String(i + 1), { x: 150, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
       T(g, str, { x: 210, size: 34, weight: 600 });
       tw(g, { o: 1, x: 0 }, m(mark), .6);
@@ -597,7 +605,7 @@ const BEATS = [
     [0, 1].forEach(i => band(p, 306, 660 + 56 * i - 38, 136, 52, ROWC[i], m('w2') + .6 + i * .7, m('w3')));
     say(p, ['1·[2, 1] + 2·[5, 3] = [12, 7]'], 800, 680, m('w1') + 2.5, { size: 34, fill: COLC[0] });
     say(p, ['2·1 + 5·2 = 12,   1·1 + 3·2 = 7'], 800, 740, m('w2') + 1.5, { size: 34, fill: ROWC[0] });
-    frame(p, 780, 630, 560, 140, COL.task, m('w3') + .5, m('w4'));
+    frame(p, 780, 630, 560, 140, COL.chalk, m('w3') + .5, m('w4'));
     [0, 1].forEach(j => band(p, 300 + 10 + 66 * j + 3, 616, 60, 112, COLC[j], m('w4') + .5, m('w4') + 2.5)); band(p, 462, 616, 72, 112, COLC[0], m('w4') + 1, m('w4') + 2.5, .15);
     [0, 1].forEach(i => band(p, 306, 660 + 56 * i - 38, 136, 52, ROWC[i], m('w4') + 2.8 + i * .3, m('end'))); band(p, 610, 616, 80, 112, ROWC[0], m('w4') + 3.4, m('end'), .15);
   }],

@@ -244,7 +244,7 @@ const BEATS = [
     thick(sys.combo[0], m('mix') + 1.5, 4); thick(sys.combo[1], m('mix') + 2.3, 4);
     // "until now": one b at a time; "now": every point of the plane
     const one = text(p, 'until now:  one b  →  find its mix', 90, 650, m('flip'), { size: 30, fill: COL.dim });
-    const all = text(p, 'now:  every b  →  is there always a mix?', 90, 700, m('big'), { size: 32, fill: COL.task, weight: 600 });
+    const all = text(p, 'now:  every b  →  is there always a mix?', 90, 700, m('big'), { size: 32, fill: COL.chalk, weight: 600 });
     const { PX, PY } = sys.P, qs = G(p, {});
     [[-4, 3], [3, 4], [5, -2], [-2, -5], [1, -1], [-5, 0], [4, 1], [-1, 5], [2, -4]].forEach(([x, y], i) => {
       const d = G(qs, { x: PX(x), y: PY(y), o: 0, s: .4 });
@@ -320,7 +320,7 @@ const BEATS = [
     const why = G(p, {});
     say(why, ['top:  x + 2y'], 90, 615, m('top'), { size: 36, fill: COL.chalk });
     say(why, ['bottom:  2x + 4y  =  2·(x + 2y)'], 90, 665, m('bot'), { size: 36, fill: COL.chalk });
-    const rule = S.rule = text(p, 'bottom = 2 × top, whatever the mix', 90, 720, m('rule'), { size: 32, fill: COL.task, weight: 600 });
+    const rule = S.rule = text(p, 'bottom = 2 × top, whatever the mix', 90, 720, m('rule'), { size: 32, fill: COL.chalk, weight: 600 });
     box(p, 114, 366, 124, 140, LS_COLS[0], m('why'), m('why') + 3); box(p, 306, 366, 124, 140, LS_COLS[1], m('why') + .4, m('why') + 3.4);
     // b = (3, 5): off the line
     show(sys.bArrow, m('b'), .3);
@@ -358,11 +358,11 @@ const BEATS = [
     });
     hide(S.rule, .1, .3);
     sys.view('row', m('rowp')); hide(lat.g, m('rowp'), .4); hide(trips, m('rowp'), .4);
-    const sameT = text(p, 'the same line: every point on it solves both', 90, 830, m('same'), { size: 28, fill: COL.task, weight: 600 });
+    const sameT = text(p, 'the same line: every point on it solves both', 90, 830, m('same'), { size: 28, fill: COL.chalk, weight: 600 });
     hide(onT, m('sum') - .3, .3);
     const sum = G(p, { o: 0 });
     T(sum, 'columns on one line:', { x: 90, y: 790, size: 28, fill: COL.dim });
-    T(sum, 'b off the line → no mix;  b on the line → endlessly many', { x: 90, y: 835, size: 28, fill: COL.task, weight: 600 });
+    T(sum, 'b off the line → no mix;  b on the line → endlessly many', { x: 90, y: 835, size: 28, fill: COL.chalk, weight: 600 });
     show(sum, m('sum'), .5); hide(sameT, m('sum'), .3);
     sys.view('col', m('sum')); show(lat.g, m('sum'), .4);
     sys.to({ b0: 3, b1: 1 }, m('sum') + 1.4, 1.1); sys.to({ b0: 2, b1: 4 }, m('sum') + 5.4, 1.1);
@@ -391,7 +391,7 @@ const BEATS = [
     text(p, 'Three columns in space', 60, 110, .2, { size: 40, weight: 600 });
     const sys = S.sys = sys3(p, LEC3, [0, -1, 4], { t0: m('sys') - .3, mixAt: false }), V = sys.space;
     V.sway(5, 16);
-    const ask = text(p, 'every b in space?', 90, 680, m('ask'), { size: 32, fill: COL.task, weight: 600 });
+    const ask = text(p, 'every b in space?', 90, 680, m('ask'), { size: 32, fill: COL.chalk, weight: 600 });
     hide(ask, m('s12') - .3, .3);
     // b and column 3 wait; the sheet of col 1 and col 2 first
     [sys.bArrow.e, sys.tipLabels[3], ...sys.combo.map(c => c.e)].forEach(e => put(e, { o: 0 }));
@@ -399,13 +399,13 @@ const BEATS = [
     const sh = S.sheet = sheet(V, 0);
     put(sh.e, { o: 0 }); show(sh.e, m('s12'), .8);
     thick(sys.cols[0].e, m('s12') + 1.5); thick(sys.cols[1].e, m('s12') + 2.3);
-    const n1 = text(p, 'mixes of col 1 and col 2: a flat sheet', 90, 680, m('s12') + 1, { size: 30, fill: COL.task, weight: 600 });
+    const n1 = text(p, 'mixes of col 1 and col 2: a flat sheet', 90, 680, m('s12') + 1, { size: 30, fill: COL.chalk, weight: 600 });
     tw(sys.cols[2].e, { o: 1 }, m('c3'), .4); tw(sys.tipLabels[2], { o: 1 }, m('c3'), .4); thick(sys.cols[2].e, m('c3') + .3);
     hide(n1, m('z1') - .2, .3);
     // z lifts the sheet: it passes through b = z·col 3 (the mix 0, 0, z)
     show(sys.CF, m('z1'), .5); show(sys.bArrow.e, m('z1') + .2, .4); show(sys.tipLabels[3], m('z1') + .4, .4);
     prog(q => sh.at(2 * q), m('z1') + .2, 1.4);
-    const zT = T(p, '', { x: 90, y: 680, size: 32, fill: COL.task, font: MATH, weight: 600, o: 0 });
+    const zT = T(p, '', { x: 90, y: 680, size: 32, fill: COL.chalk, font: MATH, weight: 600, o: 0 });
     const zSet = z => { const s = `z = ${fmt1(z)}: the sheet moves to z·col 3`; if (zT.textContent !== s) zT.textContent = s; };
     prog(q => zSet(q), m('z1') + .2, 1.4); show(zT, m('z1') + .2, .3);
     sys.to({ x2: -1 }, m('zneg'), 1.4); prog(q => { sh.at(2 - 4 * q); zSet(1 - 2 * q); }, m('zneg'), 1.4);
@@ -436,7 +436,7 @@ const BEATS = [
     sys.to({ a02: 1, a12: 1, a22: -3 }, m('fall'), 2.2);
     flash(['a02', 'a12', 'a22'].flatMap(k => sys.num(k)), m('now'));
     const sum = say(p, ['col 3 = (2, −1, 0) + (−1, 2, −3) = (1, 1, −3)'], 90, 660, m('sum'), { size: 32, fill: S3_COLS[2] });
-    const stuck = text(p, 'every mix stays in the sheet', 90, 710, m('stuck'), { size: 30, fill: COL.task, weight: 600 });
+    const stuck = text(p, 'every mix stays in the sheet', 90, 710, m('stuck'), { size: 30, fill: COL.chalk, weight: 600 });
     hide(sum, m('test') - .3, .3); hide(stuck, m('test') - .3, .3);
     // the test: top + 2·middle + bottom of A x, live
     const tg = G(p, { o: 0 });
@@ -493,7 +493,7 @@ const BEATS = [
      ['3 columns not in one plane: all of space. In one plane: only that plane.', 'w3'],
      ['Columns that lie flat: some b have no mix, the others endlessly many.', 'w4']].forEach(([str, mark], i) => {
       const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
-      mk('circle', { cx: 150, cy: -12, r: 26, fill: COL.task }, g);
+      mk('circle', { cx: 150, cy: -12, r: 26, fill: COL.chalk }, g);
       T(g, String(i + 1), { x: 150, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
       T(g, str, { x: 210, size: 34, weight: 600 });
       tw(g, { o: 1, x: 0 }, m(mark), .6);

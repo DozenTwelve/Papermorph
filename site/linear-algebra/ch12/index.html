@@ -57,7 +57,7 @@ const rise = (sys, i, a, b, t, dur = 1.6) => {
   prog(q => { const h = R * q; wl.set(q ? [[a[0], a[1], -h], [b[0], b[1], -h], [b[0], b[1], h], [a[0], a[1], h]] : null); }, t, dur, io);
   reveal(sys, i, t + dur, .3); hide(wl.e, t + dur + .2, .3);
 };
-const tickCross = (V, pts, t, color = COL.task, into) => pts.map(([q, lab, dx, dy], k) => {
+const tickCross = (V, pts, t, color = COL.chalk, into) => pts.map(([q, lab, dx, dy], k) => {
   const d = V.point(null, { color, r: 8, label: lab || tri(q), size: 24, dx, dy, into });
   prog(() => d.set(q), t[k], 0, lin); pulse(d.e, t[k]);
   return d;
@@ -130,7 +130,7 @@ const BEATS = [
     put(sys.E, { o: 0 });
     sys.rows.forEach((g, i) => { put(g, { o: 0 }); show(g, m('eq') + [0, 3.2, 8.4][i], .5); });
     flash(sys, 'a02', m('zero')); flash(sys, 'a20', m('zero') + 2.2);
-    text(p, 'all three true at once', 90, 420, m('all'), { size: 30, fill: COL.task, weight: 600 });
+    text(p, 'all three true at once', 90, 420, m('all'), { size: 30, fill: COL.chalk, weight: 600 });
     const V = sys.space;
     V.sway(6, 14);
     // two tries, side by side
@@ -138,12 +138,12 @@ const BEATS = [
     prog(() => P1.set([0, 0, 1]), m('try'), 0, lin); pulse(P1.e, m('try'));
     prog(() => P2.set([1, 2, 4]), m('try2'), 0, lin); pulse(P2.e, m('try2'));
     S.P1 = P1; S.P2 = P2;
-    say(p, ['(0, 0, 1)'], 90, 490, m('try'), { size: 34, fill: COL.task });
+    say(p, ['(0, 0, 1)'], 90, 490, m('try'), { size: 34, fill: COL.chalk });
     chk(p, '2·0 − 0 = 0', true, 90, 545, m('c1'));
     chk(p, '−0 + 2·0 − 1 = −1', true, 90, 595, m('c2'));
     chk(p, '−3·0 + 4·1 = 4', true, 90, 645, m('c3'));
     text(p, 'a solution', 90, 705, m('yes'), { size: 30, fill: COL.good, weight: 600 });
-    say(p, ['(1, 2, 4)'], 450, 490, m('try2'), { size: 34, fill: COL.task });
+    say(p, ['(1, 2, 4)'], 450, 490, m('try2'), { size: 34, fill: COL.chalk });
     chk(p, '2 − 2 = 0', true, 450, 545, m('d1'));
     chk(p, '−1 + 4 − 4 = −1', true, 450, 595, m('d2'));
     chk(p, '−6 + 16 = 10', false, 450, 645, m('d3'));
@@ -157,7 +157,7 @@ const BEATS = [
     [...p.children].filter(e => e !== sys.E && e !== V.g && !e.textContent.startsWith('Three equations')).forEach(e => hide(e, .1, .4));
     lit(sys, 0, .2);
     const w = G(p, {});
-    text(w, 'z is missing: z is free', 90, 460, m('free'), { size: 30, fill: COL.task, weight: 600 });
+    text(w, 'z is missing: z is free', 90, 460, m('free'), { size: 30, fill: COL.chalk, weight: 600 });
     text(w, 'on the floor: the line 2x − y = 0', 90, 510, m('floor'), { size: 30, fill: S3_ROW[0], weight: 600 });
     text(w, 'stood up: a wall', 90, 560, m('rise'), { size: 30, fill: S3_ROW[0], weight: 600 });
     S.w = w;
@@ -175,7 +175,7 @@ const BEATS = [
     hide(S.w, .1, .4);
     lit(sys, 1, m('eq2') - .3);
     const w = S.w = G(p, {});
-    const cr = tickCross(V, [[[1, 0, 0], '', 12, 30], [[0, -.5, 0], '(0, −½, 0)', -120, 4], [[0, 0, 1], ' ', -100, -14]], [m('cx') + 2.5, m('cy') + 2.8, m('cz') + 2.4], COL.task, w);
+    const cr = tickCross(V, [[[1, 0, 0], '', 12, 30], [[0, -.5, 0], '(0, −½, 0)', -120, 4], [[0, 0, 1], ' ', -100, -14]], [m('cx') + 2.5, m('cy') + 2.8, m('cz') + 2.4], COL.chalk, w);
     say(w, ['x-axis:  −x = −1,   x = 1'], 90, 460, m('cx') + 1, { size: 30 });
     say(w, ['y-axis:  2y = −1,   y = −', F(1, 2)], 90, 510, m('cy') + 1, { size: 30 });
     say(w, ['z-axis:  −z = −1,   z = 1'], 90, 560, m('cz') + 1, { size: 30 });
@@ -187,11 +187,11 @@ const BEATS = [
     const w2 = G(p, {});
     text(w2, 'on the dashed line: both equations true', 90, 460, m('line'), { size: 30, fill: COL.chalk, weight: 600 });
     // a probe runs along the meeting line (t, 2t, 1 + 3t)
-    const pr = V.point(null, { color: COL.task, r: 9 });
+    const pr = V.point(null, { color: COL.chalk, r: 9 });
     prog(q => { const t = -1 + 1.8 * (1 - Math.cos(2 * Math.PI * q)) / 2; pr.set([t, 2 * t, 1 + 3 * t]); }, m('line') + .3, m('both') - m('line') - .4, lin);
     hide(pr.e, m('both'), .3);
     pulse(S.P1.e, m('both') + .5); pulse(S.P2.e, m('both') + 1.2);
-    text(w2, 'two equations: a whole line of solutions', 90, 520, m('many'), { size: 30, fill: COL.task, weight: 600 });
+    text(w2, 'two equations: a whole line of solutions', 90, 520, m('many'), { size: 30, fill: COL.chalk, weight: 600 });
     S.w = w2;
     V.turn({ yaw: VIEW.yaw + 20 }, m('meet'), 3);   // not past −15: y would run up the z axis V.turn({ yaw: VIEW.yaw }, m('many'), 2.5);
   }],
@@ -202,10 +202,10 @@ const BEATS = [
     hide(S.w, .1, .4);
     lit(sys, 2, m('eq3') - .3);
     const w = S.w = G(p, {});
-    text(w, 'x is missing: it runs along x', 90, 460, m('nox'), { size: 30, fill: COL.task, weight: 600 });
+    text(w, 'x is missing: it runs along x', 90, 460, m('nox'), { size: 30, fill: COL.chalk, weight: 600 });
     say(w, ['z-axis:  4z = 4,   z = 1'], 90, 515, m('cz'), { size: 30 });
     say(w, ['y-axis:  −3y = 4,   y = −', F(4, 3)], 90, 570, m('cy'), { size: 30 });
-    const cr = tickCross(V, [[[0, 0, 1], ' ', -100, -14], [[0, -4 / 3, 0], '(0, −4/3, 0)', -150, 4]], [m('cz') + .4, m('cy') + .6], COL.task, w);
+    const cr = tickCross(V, [[[0, 0, 1], ' ', -100, -14], [[0, -4 / 3, 0], '(0, −4/3, 0)', -150, 4]], [m('cz') + .4, m('cy') + .6], COL.chalk, w);
     reveal(sys, 2, m('show'), 1);
     cr.forEach(d => hide(d.e, m('cut'), .4));
     lit(sys, [0, 1], m('cut') - .2);   // the line of the first two, bright; the third plane dim while we look at the line
@@ -231,13 +231,14 @@ const BEATS = [
     V.turn({ yaw: -25, pitch: 24 }, m('f2'), 1.4);              // plane 2 face-on
     V.turn({ yaw: 5, pitch: 36 }, m('f3'), 1.3);                // plane 3 face-on
     V.turn({ yaw: -50, pitch: 28 }, m('lines'), 3);             // all three well apart
+    V.turn({ yaw: 310, pitch: 28 }, m('ans') + .4, 9.5);        // then once all the way round: from all sides
     sys.focus(0, m('f1')); sys.focus(1, m('f2')); sys.focus(2, m('f3')); sys.focus(null, m('lines'));
     [m('f1'), m('f2'), m('f3')].forEach(t => pulse(sys.meet.e, t + .4));
     [0, 1, 2].forEach(i => prog(q => sys.lines[i].e.setAttribute('stroke-width', 2.5 + 3.5 * Math.sin(Math.PI * q)), m('lines') + i * .5, 1.2, lin));
     pulse(sys.meet.e, m('thru') + .5);
     tw(sys.sol, { s: 1.08 }, m('ans'), .3); tw(sys.sol, { s: 1 }, m('ans') + .5, .4);
     const n = G(S.p, { o: 0 });
-    T(n, 'three planes meet  →  the solution', { x: 90, y: 610, size: 34, weight: 600, fill: COL.task });
+    T(n, 'three planes meet  →  the solution', { x: 90, y: 610, size: 34, weight: 600, fill: COL.chalk });
     show(n, m('name'));
     V.sway(5, 12, m('ans'));
   }],
@@ -273,7 +274,7 @@ const BEATS = [
     // the corner's three edges, from the point, along the three axes' directions
     const e = [0, 1, 2].map(j => V.line(null, null, { color: COL.chalk, w: 3, dash: '2 6', into: V.content }));
     prog(() => { e[0].set([1, 2, 3], [-4, 2, 3]); e[1].set([1, 2, 3], [1, -4, 3]); e[2].set([1, 2, 3], [1, 2, -4]); }, m('pt') + .6, 0, lin);
-    text(p, 'one letter per equation: read it off', 90, 480, m('read'), { size: 30, fill: COL.task, weight: 600 });
+    text(p, 'one letter per equation: read it off', 90, 480, m('read'), { size: 30, fill: COL.chalk, weight: 600 });
   }],
 
   ['solve', 'A little more work', (m) => {
@@ -289,10 +290,12 @@ const BEATS = [
     say(w, ['x + x + 1 = 3'], 90, 580, m('s1'), { size: 34, fill: S3_ROW[0] });
     say(w, ['2x = 2,   x = 1'], 90, 635, m('s1b'), { size: 34 });
     say(w, ['y = x = 1'], 90, 690, m('sy'), { size: 34 });
-    lit(sys, 2, m('s3') - .2); lit(sys, 1, m('s2') - .2); lit(sys, 0, m('s1') - .2); lit(sys, null, m('pt') - .2);
+    lit(sys, 2, m('s3') - .2); lit(sys, 1, m('s2') - .2); lit(sys, 0, m('s1') - .2); lit(sys, null, m('pt') - .2);   // before the reveals: rows only
     show(sys.sol, m('pt') + .4);
-    reveal(sys, 0, m('see')); reveal(sys, 1, m('w')); reveal(sys, 2, m('f'));
-    show(sys.meet.e, m('f') + .6, .3); pulse(sys.meet.e, m('f') + .8);
+    // each plane comes in as its equation is used, so the picture keeps pace with the algebra; named again on see / w / f
+    reveal(sys, 2, m('s3') + .3); reveal(sys, 1, m('s2') + .3); reveal(sys, 0, m('s1') + .3);
+    glowPl(sys.planes[0], m('see')); glowPl(sys.planes[1], m('w')); glowPl(sys.planes[2], m('f'));
+    show(sys.meet.e, m('pt') + .4, .3); pulse(sys.meet.e, m('pt') + .6); pulse(sys.meet.e, m('f') + .8);
     tw(w, { o: .25 }, m('see'), .4);
     V.turn({ yaw: 60, pitch: 26 }, m('see'), 4);
     const c = G(p, {});
@@ -367,7 +370,7 @@ const BEATS = [
     const V = sys.space;
     tw(sys.sol, { o: 0 }, 0, 0); show(sys.sol, m('many'), .4);
     V.sway(6, 12);
-    const sp = V.line(null, null, { color: COL.task, w: 6, into: V.content });
+    const sp = V.line(null, null, { color: COL.chalk, w: 6, into: V.content });
     prog(q => sp.set([-4, -4, -4], [-4 + 8 * q, -4 + 8 * q, -4 + 8 * q]), m('spine'), 1.4, io);
     // look down the spine, like looking at a book from its end
     V.turn({ yaw: -135, pitch: 35.3 }, m('spine') + 1.2, 3); V.turn({ yaw: -60, pitch: 15 }, m('pts') - .2, 2.6);
@@ -379,7 +382,7 @@ const BEATS = [
     say(p, ['1 − 1 = 0,   1 − 1 = 0,   1 − 1 = 0  ✓'], 90, 480, m('pts') + .4, { size: 28, fill: COL.good });
     tw(sys.sol, { s: 1.06 }, m('many'), .3); tw(sys.sol, { s: 1 }, m('many') + .5, .4);
     const n = G(p, { o: 0 });
-    T(n, 'one point  ·  no point  ·  a whole line', { x: 90, y: 600, size: 34, weight: 600, fill: COL.task });
+    T(n, 'one point  ·  no point  ·  a whole line', { x: 90, y: 600, size: 34, weight: 600, fill: COL.chalk });
     show(n, m('sum'));
   }],
 
@@ -404,7 +407,7 @@ const BEATS = [
     [['Three equations, three unknowns: one triple must make all three true.', 'w1'], ['Each equation is a plane; two planes usually meet in a line.', 'w2'],
      ['The third plane cuts that line at one point: the solution. Check it in each.', 'w3'], ['Three planes can also meet nowhere, or along a whole line.', 'w4']].forEach(([str, mark], i) => {
       const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
-      mk('circle', { cx: 150, cy: -12, r: 26, fill: COL.task }, g);
+      mk('circle', { cx: 150, cy: -12, r: 26, fill: COL.chalk }, g);
       T(g, String(i + 1), { x: 150, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
       T(g, str, { x: 210, size: 34, weight: 600 });
       tw(g, { o: 1, x: 0 }, m(mark), .6);

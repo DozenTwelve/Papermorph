@@ -73,15 +73,18 @@ function vecs(p, { vecs: list = { v: [3, 2] }, c = 1, d = 1, plane: po = {}, sna
   /* ---------- numbers you can scrub ---------- */
   // A slot shows one value; its ink is redrawn when the value's text changes and keeps its colour in `color`,
   // so a flash (c_color) survives the redraw. The box under it takes the drag; the text never does.
-  function slot(g, key, x, y, { w = size * 1.7, sz = size, fill = COL.chalk, anchor = 'middle', scrub = true, pf } = {}) {
+  // coef: a number written in front of a letter or a column; a 1 there is not written (−1 is "−") unless the reader can scrub it.
+  function slot(g, key, x, y, { w = size * 1.7, sz = size, fill = COL.chalk, anchor = 'middle', scrub = true, pf, coef = false } = {}) {
     const bx = anchor === 'middle' ? x - w / 2 : anchor === 'end' ? x - w : x;
     const box = scrub ? mk('rect', { x: bx, y: y - sz * .95, width: w, height: sz * 1.3, rx: 10, fill: 'transparent' }, g) : null;
     const ink = G(g, {}); ink.setAttribute('color', fill); ink.style.pointerEvents = 'none';
     let shownKey = '';
     const s = {
-      key, box, ink, fill,
+      key, box, ink, fill, coef, held: false,
       set() {
-        const pp = pf ? pf(v) : parts(get(key)), k = JSON.stringify(pp);
+        let pp = pf ? pf(v) : parts(get(key));
+        if (coef && !s.held && pp.length === 1 && /^−?1$/.test(pp[0])) pp = [pp[0].slice(0, -1)];
+        const k = JSON.stringify(pp);
         if (k === shownKey) return;
         shownKey = k; ink.replaceChildren();
         const long = pp.some(q => typeof q === 'string' && q.includes(DECIMAL_SIGN));   // a value passing between whole numbers
@@ -128,6 +131,8 @@ function vecs(p, { vecs: list = { v: [3, 2] }, c = 1, d = 1, plane: po = {}, sna
   //   { fn: v => [top, bottom], w, fill }   a column of computed math parts, e.g. ['3 + 1'] (see vs.paren)
   //   { key: 'c' }        one scrubbable number (a scalar), chalk
   //   { key: 'd', signed: true }   the same, with its sign drawn as the + or − before it (for a second term: c v − 2w)
+  //   A scalar in front of a letter or a column is a coefficient: a 1 is not written (−1 shows as −) unless the reader
+  //   can scrub it; { key: 'c', one: true } writes it anyway (a beat whose voice reads "one times v").
   // Each item is its own group in .parts, so a beat can reveal them one by one; o: 0 starts them all hidden.
   function row(items, { x = 90, y = 250, size: sz = size, o = 1, gap = sz * .28 } = {}) {
     const g = G(p, {}), out = [], mid = y - sz * .32, rh = sz * 1.3;
@@ -156,9 +161,9 @@ function vecs(p, { vecs: list = { v: [3, 2] }, c = 1, d = 1, plane: po = {}, sna
           slot(part, 'sign', cx + sz * .3, y, { sz, scrub: false, pf: vv => [vv[it.key] < -1e-9 ? '−' : '+'] });
           cx += sz * .45 + gap * .5;
         }
-        const w = sz * 1.15, k = it.key;
-        slot(part, k, cx + w, y, { sz, fill: it.fill ?? COL.chalk, w, anchor: 'end', pf: it.signed ? vv => parts(Math.abs(vv[k])) : undefined });
-        cx += w + gap * .5;   // clear of a bracket after it
+        const w = sz * 1.15, k = it.key, nx = items[items.indexOf(it) + 1], coef = !it.one && !!nx && typeof nx === 'object' && (nx.t !== undefined || !!nx.col || !!nx.fn);
+        slot(part, k, cx + w, y, { sz, fill: it.fill ?? COL.chalk, w, anchor: 'end', coef, pf: it.signed ? vv => parts(Math.abs(vv[k])) : undefined });
+        cx += w + gap * .5 + (nx?.col || nx?.fn ? sz * .14 : 0);   // clear of a bracket after it: "1[" must not touch
       }
       out.push(part);
     }
@@ -363,6 +368,7 @@ function vecs(p, { vecs: list = { v: [3, 2] }, c = 1, d = 1, plane: po = {}, sna
         s.box.setAttribute('stroke', ok ? COL.faint : 'none');
         s.box.setAttribute('stroke-dasharray', '4 6');
         if (ok) s.box.setAttribute('tabindex', 0); else s.box.removeAttribute('tabindex');
+        if (s.coef && s.held !== ok) { s.held = ok; s.set(); }   // a 1 the reader can grab is written
       }
       for (const id of ids) {
         const a = A[id], can = on && (id === 'sum' ? solving : id in onDrag) && (dragSet ? dragSet.includes(id) : st(a.g).o > .3);

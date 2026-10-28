@@ -33,6 +33,16 @@ const tri = q => `(${q.map(c => num(r1(c))).join(', ')})`;
 const colSys = (p, { b = LEC.b, A = LEC.A, t0 = .1, view = 'col', eq = [90, 180], mat = null, mix = [90, CF_Y], mixAt, space = VIEW } = {}) => {
   const sys = lin3(p, { A, b, eq, mat, mix, mixAt, view, sol: false, space: { ...space }, t0 });
   sys.labels(['col 1', 'col 2', 'col 3', 'b']);
+  // b on column 3 (the lecture's b is column 3): one label, "col 3 = b", instead of two crowding the one tip
+  const [l3, lb] = [sys.tipLabels[2], sys.tipLabels[3]];
+  sys.space.on(() => {
+    const v = sys.v, same = lb.textContent === 'b' && l3.textContent.startsWith('col 3') && st(lb).o > .5 && [0, 1, 2].every(i => Math.abs(v[`a${i}2`] - v[`b${i}`]) < 1e-6);
+    if (l3.textContent !== (same ? 'col 3 = b' : 'col 3')) {
+      l3.replaceChildren('col 3');
+      if (same) [' = ', 'b'].forEach(str => { const ts = document.createElementNS(NS, 'tspan'); ts.setAttribute('fill', COL.task); if (str === 'b') ts.setAttribute('font-style', 'italic'); ts.textContent = str; l3.append(ts); });
+    }
+    lb.style.visibility = same ? 'hidden' : '';
+  });
   return sys;
 };
 const inCF = (sys, e) => sys.CF.contains(e);
@@ -202,7 +212,7 @@ const BEATS = [
     V.turn({ yaw: VIEW.yaw - 25 }, m('w2'), 2.5); V.turn({ yaw: VIEW.yaw - 10, pitch: 26 }, m('w3'), 2.5);
     showArrow(sys, 3, m('bb'));
     prog(q => sys.bArrow.e.setAttribute('stroke-width', 9 + 5 * Math.sin(Math.PI * q)), m('same'), 1.2, lin);
-    S.bcol = text(S.p, 'b is column 3!', 90, 680, m('same') + .3, { size: 34, fill: COL.task, weight: 600 });
+    S.bcol = text(S.p, 'b is column 3!', 90, 680, m('same') + .3, { size: 34, fill: COL.chalk, weight: 600 });
   }],
 
   ['mix', 'The mix that reaches b', (m) => {
@@ -220,7 +230,7 @@ const BEATS = [
     const s = text(p, 'the planes meet at (0, 0, 1): the same answer', 90, 680, m('same') + .3, { size: 30, fill: COL.chalk, weight: 600 });
     sys.view('col', m('easy') + 4, .6);
     hide(s, m('easy') + 4, .4);
-    text(p, 'b is a column: the answer at a glance', 90, 730, m('easy') + 4.3, { size: 30, fill: COL.task, weight: 600 });
+    text(p, 'b is a column: the answer at a glance', 90, 730, m('easy') + 4.3, { size: 30, fill: COL.chalk, weight: 600 });
   }],
 
   ['combo', 'Adding arrows tip to tail', (m) => {
@@ -336,7 +346,7 @@ const BEATS = [
     const lg = G(V.content, {}); legs(sys, [1, 1, 0], [m('path'), m('path') + .7, m('path') + 1.4], lg); hide(lg, m('back'), .4);
     sys.view('row', m('back'), .6);
     show(sys.meet.e, m('back') + .3, .3); pulse(sys.meet.e, m('back') + .8);
-    text(p, 'planes meet at (1, 1, 0)  ·  mix 1, 1, 0', 90, 750, m('agree'), { size: 30, fill: COL.task, weight: 600 });
+    text(p, 'planes meet at (1, 1, 0)  ·  mix 1, 1, 0', 90, 750, m('agree'), { size: 30, fill: COL.chalk, weight: 600 });
     V.turn(ROWV3, m('newb'), 2); V.turn(VIEW, m('col'), 2); V.turn(ROWV3, m('back'), 1.6);
   }],
 
@@ -354,7 +364,7 @@ const BEATS = [
       box(p, 90 + 174 * j - 8, 560 - 44, 148, 162, S3_COLS[j], m(k), until);
       prog(q => sys.cols[j].e.setAttribute('stroke-width', 5 + 5 * Math.sin(Math.PI * q)), m(k), 1.2, lin);
     });
-    say(p, ['A x  =  x·col 1 + y·col 2 + z·col 3'], 90, 740, m('same'), { size: 36, fill: COL.task });
+    say(p, ['A x  =  x·col 1 + y·col 2 + z·col 3'], 90, 740, m('same'), { size: 36, fill: COL.chalk });
     box(p, 360, 180, 76, 172, COL.chalk, m('x'), m('x') + 3);
     text(p, 'the x in A x: the mix', 90, 800, m('x') + .3, { size: 30, fill: COL.chalk, weight: 600 });
   }],
@@ -392,7 +402,7 @@ const BEATS = [
     [['Read down the columns: x·col 1 + y·col 2 + z·col 3 = b.', 'w1'], ['Each column is an arrow in space; b is the target.', 'w2'],
      ['Add arrows tip to tail: tops, middles, bottoms.', 'w3'], ['The solution is the mix that lands on b: where the planes meet.', 'w4']].forEach(([str, mark], i) => {
       const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
-      mk('circle', { cx: 150, cy: -12, r: 26, fill: COL.task }, g);
+      mk('circle', { cx: 150, cy: -12, r: 26, fill: COL.chalk }, g);
       T(g, String(i + 1), { x: 150, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
       T(g, str, { x: 210, size: 36, weight: 600 });
       tw(g, { o: 1, x: 0 }, m(mark), .6);

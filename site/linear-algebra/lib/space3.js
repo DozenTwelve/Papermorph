@@ -234,13 +234,15 @@ function space3(p, { cx = 1150, cy = 450, size = 640, range: R = 4, yaw = -30, p
   /* ---------- things in space: they re-project with the camera; set() moves them ---------- */
   // A dot with a label; stem: true adds its shadow on the floor and a dashed line down to it, so its height reads.
   // Without dx/dy the label finds a free spot round the dot by itself.
-  function point(pos, { color = COL.chalk, r = 10, label = '', size: ls = 28, into = content, stem = false, dx, dy } = {}) {
+  // halo: a dark rim round the label's letters, so it stays readable over a plane's edge or an axis.
+  function point(pos, { color = COL.chalk, r = 10, label = '', size: ls = 28, into = content, stem = false, dx, dy, halo = false } = {}) {
     const e = G(into, {});
     const st_ = stem ? path(into, '', { stroke: color, 'stroke-width': 2, 'stroke-dasharray': '5 6', 'stroke-opacity': .7, fill: 'none' }) : null;
     const sh = stem ? mk('ellipse', { rx: 7, ry: 3.5, fill: color, 'fill-opacity': .45 }, into) : null;
     if (st_) into.insertBefore(st_, e), into.insertBefore(sh, e);
     mk('circle', { r, fill: color, stroke: COL.board, 'stroke-width': 3 }, e);
     const t = T(e, label, { x: dx ?? r + 8, y: dy ?? -r - 6, size: ls, fill: color, font: MATH, weight: 600 });
+    if (halo) for (const [k, v] of Object.entries({ stroke: COL.board, 'stroke-width': 6, 'stroke-linejoin': 'round', 'paint-order': 'stroke' })) t.setAttribute(k, v);
     const it = { e, pos, t, stemEl: st_, set(q) { it.pos = q; dirty(); }, label(s) { if (t.textContent !== s) { t.textContent = s; dirty(); } } };
     Object.assign(it, { r, ls, auto: dx === undefined && dy === undefined, off: [dx ?? r + 8, dy ?? -r - 6] });
     pts.push(it);
@@ -436,7 +438,7 @@ function space3(p, { cx = 1150, cy = 450, size = 640, range: R = 4, yaw = -30, p
 // x·[col 1] + y·[col 2] + z·[col 3] = [b] there, with x, y, z (keys x0, x1, x2) scrubbable: changing them (or A) moves
 // b to A times the mix; changing b solves for the mix again. mixAt: when the column form fades in (false: never by
 // itself).
-function lin3(p, { A = [[2, -1, 0], [-1, 2, -1], [0, -3, 4]], b = [0, -1, 4], eq = [90, 180], mat = [100, 490], size = 46, space: so = {}, view = 'row', sol: readout = true, rows = 3, mix = null, mixAt, t0 = .1 } = {}) {
+function lin3(p, { A = [[2, -1, 0], [-1, 2, -1], [0, -3, 4]], b = [0, -1, 4], eq = [90, 180], mat = [100, 490], size = 46, space: so = {}, view = 'row', sol: readout = true, rows = 3, mix = null, mixAt, focusDim = .18, t0 = .1 } = {}) {
   const I = [0, 1, 2], RI = I.slice(0, rows), v = {}, RANGE = {};
   I.forEach(i => { I.forEach(j => { v[`a${i}${j}`] = A[i][j]; RANGE[`a${i}${j}`] = 9; }); v[`b${i}`] = b[i]; RANGE[`b${i}`] = 30; });
   if (rows < 3) { mat = null; readout = false; }
@@ -448,6 +450,13 @@ function lin3(p, { A = [[2, -1, 0], [-1, 2, -1], [0, -3, 4]], b = [0, -1, 4], eq
     return (r < 0 ? '−' : '') + (one && Math.abs(r) === 1 ? '' : s);
   };
   const setText = (e, s) => { if (e.textContent !== s) e.textContent = s; };
+  let moving = false;
+  // A value at rest that is a fraction with a small denominator, as [numerator, denominator], else null: 2.5 is 5/2.
+  const niceFrac = (n, maxQ = 12) => {
+    if (moving || Math.abs(n - Math.round(n)) < 5e-6) return null;   // a whole number, or as good as
+    for (let q = 2; q <= maxQ; q++) { const k = Math.round(n * q); if (Math.abs(n * q - k) < 5e-6) return [k, q]; }
+    return null;
+  };
   const clamp = (key, n) => Math.max(-RANGE[key], Math.min(RANGE[key], n));
   const Am = (s = v) => I.map(i => I.map(j => s[`a${i}${j}`]));
   const col = j => [v[`a0${j}`], v[`a1${j}`], v[`a2${j}`]], bv = () => [v.b0, v.b1, v.b2];
@@ -477,7 +486,17 @@ function lin3(p, { A = [[2, -1, 0], [-1, 2, -1], [0, -3, 4]], b = [0, -1, 4], eq
     l?.setAttribute('font-style', 'italic');
     t.style.pointerEvents = 'none';   // Firefox hit-tests the text over the box: the box must get the pointer
     if (l) l.style.pointerEvents = 'none';
-    const s = { key, t, l, box, one, set: () => setText(t, fmt(v[key], one) || (one ? '' : '0')) };
+    // A fraction at rest is drawn stacked in its own group beside the (then empty) text; a value moving shows one decimal.
+    const fg = G(g, {}); fg.style.pointerEvents = 'none'; fg.classList.add('ls-frac');
+    let fkey = '';
+    const show = (n, one1) => {
+      const q = niceFrac(n), k = q ? q.join('/') + (t.getAttribute('font-size') || fs) : '';
+      setText(t, q ? '' : fmt(n, one1) || (one1 ? '' : '0'));
+      if (k === fkey) return;
+      fkey = k; fg.replaceChildren();
+      if (q) M(fg, [q[0] < 0 ? '−' : '', F(Math.abs(q[0]), q[1])], { x, y, size: +(t.getAttribute('font-size') || fs), fill, anchor });
+    };
+    const s = { key, t, l, box, one, show, frac: fg, set: () => show(v[key], one) };
     box.setAttribute('aria-label', key);
     let drag = null;
     box.addEventListener('pointerdown', e => {
@@ -518,9 +537,10 @@ function lin3(p, { A = [[2, -1, 0], [-1, 2, -1], [0, -3, 4]], b = [0, -1, 4], eq
     terms.forEach(({ s, sign }, j) => {
       const key = `a${i}${j}`;
       s.set = () => {
-        const n = Math.round(v[key]), zero = n === 0, o = zero ? '.35' : '';   // whole numbers only: a passing 2.5 would run into the sign
+        // whole numbers while moving (a passing 2.3 would run into the sign); a fraction at rest exactly (5/2)
+        const n = niceFrac(v[key]) ? v[key] : Math.round(v[key]), zero = n === 0, o = zero ? '.35' : '';
         if (sign) { setText(sign, n < 0 ? '−' : '+'); sign.style.opacity = o; }
-        setText(s.t, zero ? '0' : fmt(sign ? Math.abs(n) : n, true));
+        s.show(sign ? Math.abs(n) : n, true);
         s.t.style.opacity = o; s.l.style.opacity = o;
       };
     });
@@ -578,7 +598,7 @@ function lin3(p, { A = [[2, -1, 0], [-1, 2, -1], [0, -3, 4]], b = [0, -1, 4], eq
   planes.forEach((pl, i) => { pl.visible = i < rows; });
   const lines = I.map(() => V.seg(null, null, { color: COL.chalk, w: 2.5, dash: '7 7', into: ROWV }));
   lines.forEach(l => l.e.setAttribute('stroke-opacity', .75));
-  const meet = V.point(null, { color: COL.chalk, r: 11, into: ROWV });
+  const meet = V.point(null, { color: COL.chalk, r: 11, into: ROWV, halo: true });
   // A plane is dragged by its edge: a wide, invisible copy of its outline.
   const hits = planes.map(pl => {
     const h = path(ROWV, '', { stroke: 'transparent', 'stroke-width': 26, fill: 'none' });
@@ -699,7 +719,7 @@ function lin3(p, { A = [[2, -1, 0], [-1, 2, -1], [0, -3, 4]], b = [0, -1, 4], eq
   const solve = () => solveOf(v);
   const exact = n => {   // a fraction in lowest terms when the numbers are whole, else one decimal
     const det = Math.round(S3_det(Am())), num = Math.round(n * det);
-    if (!Object.values(v).every(Number.isInteger) || !det) return [fmt(n)];
+    if (!Object.values(v).every(Number.isInteger) || !det) { const q = niceFrac(n, 99); return q ? [q[0] < 0 ? '−' : '', F(Math.abs(q[0]), q[1])] : [fmt(n)]; }   // numbers at rest like 5/2: still exact
     const g = gcd(Math.abs(num), Math.abs(det)) || 1, nn = num / g * Math.sign(det), dd = Math.abs(det) / g;
     return dd === 1 ? [fmt(nn)] : [nn < 0 ? '−' : '', F(Math.abs(nn), dd)];
   };
@@ -713,14 +733,14 @@ function lin3(p, { A = [[2, -1, 0], [-1, 2, -1], [0, -3, 4]], b = [0, -1, 4], eq
     const s = solve(), one = s.x !== undefined, X = mix ? [v.x0, v.x1, v.x2] : one ? [s.x, s.y, s.z] : null;
     const inCube = rows === 3 && one && [s.x, s.y, s.z].every(c => Math.abs(c) <= R + 1e-9);
     meet.set(inCube ? [s.x, s.y, s.z] : null);
-    if (inCube) meet.label(`(${[s.x, s.y, s.z].map(c => fmt(c)).join(', ')})`);
+    const txt = parts => parts.map(q => typeof q === 'string' ? q : q.f.join('/')).join('');   // a fraction part is { f: [n, d] }, not text
+    if (inCube) meet.label(`(${[s.x, s.y, s.z].map(c => txt(exact(c))).join(', ')})`);   // exact, as the readout: (4/3, 1, 0)
     const O = [0, 0, 0], bb = bv();
     I.forEach(j => cols[j].set(O, col(j)));
     bArrow.set(O, bb);
     const reach = X && X.every(c => Math.abs(c) <= 12);
     let at = O;
     I.forEach(j => { const nxt = j === 2 && !mix ? bb : at.map((c, l) => c + X?.[j] * col(j)[l]); combo[j].set(reach ? at : null, reach ? nxt : null); at = reach ? nxt : O; });
-    const txt = parts => parts.map(q => typeof q === 'string' ? q : q.f.join('/')).join('');   // a fraction part is { f: [n, d] }, not text
     const key = one ? [s.x, s.y, s.z].map(c => txt(exact(c))).join('|') : s.none ? 'none' : 'many' + s.rank;
     if (readout && key !== solKey) {
       solKey = key;
@@ -750,7 +770,7 @@ function lin3(p, { A = [[2, -1, 0], [-1, 2, -1], [0, -3, 4]], b = [0, -1, 4], eq
       plan = { ...plan, ...next };
       derive(plan, Object.keys(next));
       const goal = { ...plan }, keys = Object.keys(next);
-      prog(q => edit(Object.fromEntries(keys.map(key => [key, from[key] + (goal[key] - from[key]) * q]))), at, dur, ease);
+      prog(q => { moving = q < 1; edit(Object.fromEntries(keys.map(key => [key, from[key] + (goal[key] - from[key]) * q]))); moving = false; }, at, dur, ease);   // numbers on the way: whole or one decimal
     },
     // Show the row picture, the column picture, or both; only what shows can be dragged.
     view(which, at, dur = .6) {
@@ -759,10 +779,11 @@ function lin3(p, { A = [[2, -1, 0], [-1, 2, -1], [0, -3, 4]], b = [0, -1, 4], eq
       prog(() => { usable(ROWV, which !== 'col'); usable(COLV, which !== 'row'); V.redraw(); }, at, 0, lin);
     },
     // Light some planes (an index, a list, or null for all) and dim the rest, with their equations.
-    focus(which, at, dur = .6) {
+    // { dim } is how much of the other planes is left (default lin3's focusDim, .18); steep planes that crowd want .06.
+    focus(which, at, dur = .6, { dim = focusDim } = {}) {
       const on = which === null || which === undefined ? I : [].concat(which);
       I.forEach(i => {
-        planes[i].fade(on.includes(i) ? 1 : .18, at, dur);
+        planes[i].fade(on.includes(i) ? 1 : dim, at, dur);
         if (rowG[i]) tw(rowG[i], { o: on.includes(i) ? 1 : .35 }, at, dur);
       });
     },

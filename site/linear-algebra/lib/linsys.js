@@ -2,10 +2,12 @@
 // Every number on screen is the same value: scrub one (drag sideways, or focus it and press ↑/↓) and the lines,
 // the columns and the other copy follow; drag a line or an arrow tip in the plane and the numbers follow.
 // The beat moves it with sys.to(); a question turns the reader's hands on with sys.live(true).
+// hidePlane / hideEq keep the plane / the equation rows hidden until the beat shows sys.stage / sys.eqRows[i].g.
+// The meeting point's label places itself clear of both lines and the axes on every change.
 // Loads after engine.js and math.js (it uses plane()).
 const LS_ROW = [COL.whole, COL.nat], LS_COLS = [COL.irr, COL.real], LS_B = COL.task;
 
-function linsys(p, { A = [[2, -1], [-1, 2]], b = [0, 3], eq = [90, 250], mat = [90, 560], size = 54, plane: po = {}, view = 'row', rows = 2, hidePlane = false, sol: readout = rows === 2, t0 = .1 } = {}) {
+function linsys(p, { A = [[2, -1], [-1, 2]], b = [0, 3], eq = [90, 250], mat = [90, 560], size = 54, plane: po = {}, view = 'row', rows = 2, hidePlane = false, hideEq = false, exact = true, sol: readout = rows === 2, t0 = .1 } = {}) {
   const RI = rows === 2 ? [0, 1] : [0];
   if (rows === 1) mat = null;
   const v = { a00: A[0][0], a01: A[0][1], a10: A[1][0], a11: A[1][1], b0: b[0], b1: b[1] };
@@ -24,6 +26,14 @@ function linsys(p, { A = [[2, -1], [-1, 2]], b = [0, 3], eq = [90, 250], mat = [
     return (r < 0 ? '−' : '') + (one && Math.abs(r) === 1 ? '' : s);
   };
   const setText = (e, s) => { if (e.textContent !== s) e.textContent = s; };
+  // A value at rest that is a fraction with a small denominator, as [numerator, denominator], else null: 2.5 is 5/2.
+  // A value passing between them while it moves is not one, and shows one decimal. exact: false keeps decimals (1.5).
+  let moving = false;
+  const niceFrac = (n, maxQ = 12) => {
+    if (!exact || moving || Math.abs(n - Math.round(n)) < 5e-6) return null;   // a whole number, or as good as
+    for (let q = 2; q <= maxQ; q++) { const k = Math.round(n * q); if (Math.abs(n * q - k) < 5e-6) return [k, q]; }
+    return null;
+  };
   const pt = e => { const q = svg.createSVGPoint(); q.x = e.clientX; q.y = e.clientY; const w = q.matrixTransform(P2.g.getScreenCTM().inverse()); return [(w.x - P2.cx) / P2.u, (P2.cy - w.y) / P2.u]; };
   const clamp = (k, n) => Math.max(-RANGE[k], Math.min(RANGE[k], n));
 
@@ -36,12 +46,23 @@ function linsys(p, { A = [[2, -1], [-1, 2]], b = [0, 3], eq = [90, 250], mat = [
     l?.setAttribute('font-style', 'italic');
     t.style.pointerEvents = 'none'; if (l) l.style.pointerEvents = 'none';   // the box under them takes the drag
     // A number with a letter after it keeps its hit box tight around what shows: a hidden 1 leaves just the letter.
+    // A fraction at rest is drawn stacked in its own group beside the (then empty) text.
+    const fg = G(g, {}); fg.style.pointerEvents = 'none'; fg.classList.add('ls-frac');
+    let fkey = '';
+    const width = () => fkey ? fg._fw : t.textContent ? t.getComputedTextLength() : 0;
+    const show = (n, one1) => {
+      const q = niceFrac(n), k = q ? q.join('/') + (t.getAttribute('font-size') || size) : '';
+      if (!q) setText(t, fmt(n, one1) || (one1 ? '' : '0')); else setText(t, '');
+      if (k === fkey) return;
+      fkey = k; fg.replaceChildren();
+      if (q) fg._fw = M(fg, [q[0] < 0 ? '−' : '', F(Math.abs(q[0]), q[1])], { x, y, size: +(t.getAttribute('font-size') || size), fill, anchor })._w;   // its own colour, not a flash passing over the text
+    };
     const fit = () => {
       if (!letter || anchor !== 'end') return;
-      const tw0 = t.textContent ? t.getComputedTextLength() : 0, lw = l.getComputedTextLength() || size * .5, bx0 = x - tw0 - 10;
+      const tw0 = width(), lw = l.getComputedTextLength() || size * .5, bx0 = x - tw0 - 10;
       if (+box.getAttribute('x') !== bx0) { box.setAttribute('x', bx0); box.setAttribute('width', tw0 + lw + 23); }
     };
-    const s = { key, t, l, box, one, fit, set: () => { setText(t, fmt(v[key], one) || (one ? '' : '0')); fit(); } };
+    const s = { key, t, l, box, one, fit, show, width, frac: fg, set: () => { show(v[key], one); fit(); } };
     box.setAttribute('aria-label', key);
     let drag = null;
     box.addEventListener('pointerdown', e => {
@@ -81,6 +102,7 @@ function linsys(p, { A = [[2, -1], [-1, 2]], b = [0, 3], eq = [90, 250], mat = [
     T(g, '=', { x: x + 338, y, size, fill: COL.chalk, font: MATH, anchor: 'middle' });
     const c = slot(g, `b${i}`, x + 376, y, { anchor: 'start' });
     eqRows.push({ g, bar, a, sign, bb, c });
+    if (hideEq) put(g, { o: 0 });   // hideEq: each row waits for its words; the beat shows sys.eqRows[i].g
   });
   // The second term shows its size; the sign between carries its sign and sits halfway between the two terms,
   // so "x + y", "2x + 3y" and "2.5x − 2.5y" are evenly spaced.
@@ -88,9 +110,9 @@ function linsys(p, { A = [[2, -1], [-1, 2]], b = [0, 3], eq = [90, 250], mat = [
     const right = eq[0] + 270, xEnd = eq[0] + 113 + (r.a.l.getComputedTextLength() || size * .5);
     r.bb.set = () => {
       setText(r.sign, v[`a${i}1`] < 0 ? '−' : '+');
-      setText(r.bb.t, fmt(Math.abs(v[`a${i}1`]), true));
+      r.bb.show(Math.abs(v[`a${i}1`]), true);
       r.bb.fit();
-      const x = Math.round((xEnd + right - (r.bb.t.textContent ? r.bb.t.getComputedTextLength() : 0)) / 2);
+      const x = Math.round((xEnd + right - r.bb.width()) / 2);
       if (st(r.sign).x !== x) put(r.sign, { x });
     };
   });
@@ -151,6 +173,34 @@ function linsys(p, { A = [[2, -1], [-1, 2]], b = [0, 3], eq = [90, 250], mat = [
   meetBox.style.pointerEvents = trailG.style.pointerEvents = 'none';   // a drag at the crossing reaches the lines under it
   mk('circle', { r: 11, fill: COL.chalk, stroke: COL.board, 'stroke-width': 3 }, meet);
   const meetT = T(meet, '', { x: 18, y: -16, size: 30, fill: COL.chalk, font: MATH, weight: 600 });
+  // The meeting point's label goes where the two lines and the axes leave it most room (up and right, the old fixed
+  // spot, has a rising line through it). Each spot's text box is tested against both lines and both axes.
+  const SPOTS = [[18, -16, 1], [18, 40, 1], [-18, -16, -1], [-18, 40, -1], [24, -4, 1], [-24, -4, -1], [24, 30, 1], [-24, 30, -1], [0, 72, 0], [0, -50, 0],
+    [0, -96, 0], [0, 118, 0], [64, 44, 1], [-64, 44, -1], [64, -30, 1], [-64, -30, -1]];   // x, baseline, side (0: centred under or over the point); the last six, farther out, for two lines crossing near the point
+  const placeMeet = s => {
+    if (!s) { if (st(meetT).x !== 18 || st(meetT).y !== -16) put(meetT, { x: 18, y: -16 }); if (meetT.getAttribute('text-anchor') !== 'start') meetT.setAttribute('text-anchor', 'start'); return; }
+    const w = meetT.textContent.length * 14 + 4, ox = PX(0) - PX(s.x), oy = PY(0) - PY(s.y);
+    const ds = RI.map(i => [v[`a${i}1`], v[`a${i}0`]]).filter(([a, b2]) => a || b2).map(([a, b2]) => [a / Math.hypot(a, b2), b2 / Math.hypot(a, b2)]);   // each line's direction on screen
+    const gap = (a0, a1, b0, b1) => Math.max(0, b0 - a1, a0 - b1);   // between two ranges, 0 when they overlap
+    let best = SPOTS[0], far = -Infinity;
+    SPOTS.forEach((sp, k) => {
+      let d = Infinity;
+      const x0 = sp[2] ? Math.min(sp[0], sp[0] + sp[2] * w) : -w / 2, x1 = sp[2] ? Math.max(sp[0], sp[0] + sp[2] * w) : w / 2, y0 = sp[1] - 22, y1 = sp[1];
+      ds.forEach(([ux, uy]) => {   // a line through the point: 0 if it cuts the text box, else its distance from the nearest corner
+        const c = [[x0, y0], [x1, y0], [x0, y1], [x1, y1]].map(([x, y]) => x * uy - y * ux);
+        d = Math.min(d, Math.min(...c) < 0 && Math.max(...c) > 0 ? 0 : Math.min(...c.map(Math.abs)));
+      });
+      // an axis under the text is less bad than a line through it, but still to be avoided
+      const ax = Math.min(gap(x0, x1, ox - 34, ox + 4), gap(y0, y1, oy - 4, oy + 30));   // each axis with its numbers (left of y, under x)
+      // 14 px of room is room enough: the nearer spot (earlier in the list) wins; between equals, the one farther from the axes
+      d = Math.min(d, 14, ax + 8) + Math.min(ax, 100) / 100;
+      if (k >= 10) d -= 12;   // a far spot only when every near one touches a line
+      if (d > far + 1e-6) { best = sp; far = d; }
+    });
+    if (st(meetT).x !== best[0] || st(meetT).y !== best[1]) put(meetT, { x: best[0], y: best[1] });
+    const anchor = best[2] > 0 ? 'start' : best[2] < 0 ? 'end' : 'middle';
+    if (meetT.getAttribute('text-anchor') !== anchor) meetT.setAttribute('text-anchor', anchor);
+  };
 
   const arrowD = (xa, ya, xb, yb) => {
     const a = [PX(xa), PY(ya)], c = [PX(xb), PY(yb)], L = Math.hypot(c[0] - a[0], c[1] - a[1]);
@@ -198,7 +248,7 @@ function linsys(p, { A = [[2, -1], [-1, 2]], b = [0, 3], eq = [90, 250], mat = [
   };
   const frac = n => {   // exact when the numbers are whole: a fraction in lowest terms, else one decimal
     const det = Math.round(v.a00 * v.a11 - v.a01 * v.a10), num = Math.round(n * det);
-    if (!Object.values(v).every(Number.isInteger) || !det) return [fmt(n)];
+    if (!Object.values(v).every(Number.isInteger) || !det) { const q = niceFrac(n, 99); return q ? [q[0] < 0 ? '−' : '', F(Math.abs(q[0]), q[1])] : [fmt(n)]; }   // numbers at rest like 5/2: still exact
     const g = gcd(Math.abs(num), Math.abs(det)) || 1, nn = num / g * Math.sign(det), dd = Math.abs(det) / g;
     return dd === 1 ? [fmt(nn)] : [nn < 0 ? '−' : '', F(Math.abs(nn), dd)];
   };
@@ -216,6 +266,7 @@ function linsys(p, { A = [[2, -1], [-1, 2]], b = [0, 3], eq = [90, 250], mat = [
     const s = solve(), inGrid = s.x !== undefined && s.x >= bx[0] && s.x <= bx[1] && s.y >= by[0] && s.y <= by[1];
     put(meet, { x: inGrid ? PX(s.x) : 0, y: inGrid ? PY(s.y) : 0, o: inGrid ? 1 : 0 });
     setText(meetT, inGrid ? `(${fracText(s.x)}, ${fracText(s.y)})` : '');   // cleared off the grid, so a seek and a play leave the same page
+    placeMeet(inGrid ? s : null);   // off the grid it goes back to the first spot, so a seek and a play leave the same page
     const c0 = [v.a00, v.a10], c1 = [v.a01, v.a11], bb = [v.b0, v.b1];
     [[cols[0], c0], [cols[1], c1], [bArrow, bb]].forEach(([e, [x, y]], i) => {
       e.setAttribute('d', arrowD(0, 0, x, y));
@@ -270,7 +321,7 @@ function linsys(p, { A = [[2, -1], [-1, 2]], b = [0, 3], eq = [90, 250], mat = [
       const goal = { ...plan };
       const tr = trail ? path(trailG, '', { ...trailAttrs }) : null;
       prog(q => {
-        edit(lsMix(from, goal, q));
+        moving = q < 1; edit(lsMix(from, goal, q)); moving = false;   // numbers on the way show one decimal
         if (!tr) return;
         const pts = [], n = Math.ceil(60 * q);
         for (let i = 0; i <= n; i++) { const p = meetOf(lsMix(from, goal, n ? q * i / n : 0)); if (p) pts.push(p); }

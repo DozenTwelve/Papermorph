@@ -141,7 +141,7 @@ const BEATS = [
     const w = sz * 1.9, x0 = 300 - w / 2, t = mid - sz * 1.32, b = mid + sz * 1.32;
     const br = path(p, `M${x0 + 16} ${t}H${x0}V${b}H${x0 + 16}M${x0 + w - 16} ${t}H${x0 + w}V${b}H${x0 + w - 16}`, { stroke: COL.chalk, 'stroke-width': 3.5, fill: 'none' }, { d: 0 });
     draw(br, m('br'), .8);
-    text(p, 'a vector', 300, b + 52, m('name'), { size: 32, fill: COL.task, anchor: 'middle', weight: 600 });
+    text(p, 'a vector', 300, b + 52, m('name'), { size: 32, fill: COL.chalk, anchor: 'middle', weight: 600 });
     say(p, ['v'], 170, y, m('v'), { size: sz, fill: GREEN, anchor: 'end' });
     say(p, ['='], 232, y, m('v') + .1, { size: sz, anchor: 'end' });
     [three, two].forEach(e => tw(e, { c_color: GREEN }, m('v') + .3, .6));
@@ -210,12 +210,12 @@ const BEATS = [
     countWalk(vs.P, [0, 0], [3, 0], GREEN, m('right') + .8, 2.4, wv);
     countWalk(vs.P, [3, 0], [3, 2], GREEN, m('up') + .8, 1.6, wv);
     const trav = G(p, { o: 0 });
-    mk('circle', { r: 9, fill: COL.task }, trav);
+    mk('circle', { r: 9, fill: COL.chalk }, trav);
     show(trav, m('tip') + 1.2, .3);
     prog(q => put(trav, { x: vs.P.PX(3 * q), y: vs.P.PY(2 * q) }), m('tip') + 1.6, 3.2, io);
     hide(trav, m('same') - .2, .3);
     vs.flash('v0', m('right')); vs.flash('v1', m('up') - .4);
-    vs.P.dot(0, 0, COL.task, m('tip'), { r: 8, label: '(0, 0)', dx: -84, dy: -14 });
+    vs.P.dot(0, 0, COL.chalk, m('tip'), { r: 8, label: '(0, 0)', dx: -84, dy: -14 });
     vs.show('v', m('tip') + 4.4, .6);
     const pd = G(p, {}); vs.P.dot(3, 2, COL.chalk, m('same'), { r: 8, label: '(3, 2)', dx: 16, dy: 36, into: pd });
     const note = G(p, { o: 0 });
@@ -274,8 +274,8 @@ const BEATS = [
     text(p, '−2: 2 down', 330, 632, m('ld') + 1.2, { size: 28, fill: COL.dim });
     hide(wu, m('sum') - .2, .4);
     const s = G(p, { o: 0 });
-    T(s, 'top number:     −  left,    +  right', { x: 90, y: 740, size: 30, weight: 600, fill: COL.task });
-    T(s, 'bottom number:  −  down,   +  up', { x: 90, y: 790, size: 30, weight: 600, fill: COL.task });
+    T(s, 'top number:     −  left,    +  right', { x: 90, y: 740, size: 30, weight: 600, fill: COL.chalk });
+    T(s, 'bottom number:  −  down,   +  up', { x: 90, y: 790, size: 30, weight: 600, fill: COL.chalk });
     show(s, m('sum'));
     ['v0', 'w0', 'u0'].forEach((k, i) => vs.flash(k, m('sum') + 2.2 + i * .35));
     ['v1', 'w1', 'u1'].forEach((k, i) => vs.flash(k, m('sum') + 4.8 + i * .35));
@@ -318,11 +318,11 @@ const BEATS = [
     const vs = vecs(p, { vecs: { v: [-5, 2] }, show: [] });
     vs.label('v', []);
     const P2 = vs.P;
-    P2.dot(-5, 2, COL.task, m('pts'), { r: 10, label: '(−5, 2)', dx: -40, dy: -24 });
+    P2.dot(-5, 2, COL.chalk, m('pts'), { r: 10, label: '(−5, 2)', dx: -40, dy: -24 });
     vs.show('v', m('vec'), .6);
     const ex = G(p, { o: 0 });
-    M(ex, ['(−5, 2)'], { x: 90, y: 330, size: 44, anchor: 'start', fill: COL.task });
-    M(ex, ['↔'], { x: 290, y: 330, size: 44, fill: COL.task, anchor: 'middle' });
+    M(ex, ['(−5, 2)'], { x: 90, y: 330, size: 44, anchor: 'start', fill: COL.chalk });
+    M(ex, ['↔'], { x: 290, y: 330, size: 44, fill: COL.chalk, anchor: 'middle' });
     colm(ex, -5, 2, 400, 330, { fill: GREEN });
     show(ex, m('vec') + .6, .6); hide(ex, m('so') - .3, .4);
     // "same numbers": the trip to (−5, 2) counted, 5 left and 2 up
@@ -338,11 +338,11 @@ const BEATS = [
       P2.arrow(0, 0, x, y, COL.dim, t + .1, { into: fan });
     });
     const tips = G(p, { o: 0 });
-    fanPts.forEach(([x, y]) => mk('circle', { cx: P2.PX(x), cy: P2.PY(y), r: 9, fill: COL.task }, tips));
+    fanPts.forEach(([x, y]) => mk('circle', { cx: P2.PX(x), cy: P2.PY(y), r: 9, fill: COL.chalk }, tips));
     show(tips, m('back'), .4); hide(tips, m('so'), .6);
     const eq = G(p, { o: 0 });
     M(eq, ['point  (x, y)'], { x: 90, y: 330, size: 44, anchor: 'start' });
-    M(eq, ['↔'], { x: 400, y: 330, size: 44, fill: COL.task, anchor: 'middle' });
+    M(eq, ['↔'], { x: 400, y: 330, size: 44, fill: COL.chalk, anchor: 'middle' });
     M(eq, ['vector'], { x: 460, y: 330, size: 44, anchor: 'start' });
     colm(eq, 'x', 'y', 660, 330, { fill: GREEN });
     show(eq, m('so'), .6);
@@ -351,7 +351,7 @@ const BEATS = [
     T(d2, 'a vector: the trip from the origin to that place', { x: 90, y: 575, size: 32, weight: 600, fill: GREEN });
     show(d2, m('diff'), .6);
     const trav = G(p, { o: 0 });
-    mk('circle', { r: 10, fill: COL.task }, trav);
+    mk('circle', { r: 10, fill: COL.chalk }, trav);
     show(trav, m('diff') + 2.4, .3);
     prog(q => put(trav, { x: P2.PX(-5 * q), y: P2.PY(2 * q) }), m('diff') + 2.6, 3, io);
   }],
@@ -370,7 +370,7 @@ const BEATS = [
     text(p, '4 steps left  →  −4', 260, 300, m('top1') + .4, { size: 28, fill: COL.dim });
     show(c1.bot, m('bot1')); lightUp(c1.bot, m('bot1') + .2, GREEN);
     text(p, '1 step up  →  1', 260, 380, m('bot1'), { size: 28, fill: COL.dim });
-    const b1 = G(p, {}); mk('rect', { x: 94, y: 244, width: 112, height: 144, rx: 12, fill: 'none', stroke: COL.task, 'stroke-width': 3 }, b1);
+    const b1 = G(p, {}); mk('rect', { x: 94, y: 244, width: 112, height: 144, rx: 12, fill: 'none', stroke: COL.chalk, 'stroke-width': 3 }, b1);
     put(b1, { o: 0 }); show(b1, m('col1'), .4); hide(b1, m('a2'), .4);
     hide(w1, m('a2'), .4);
     vs.to({ v0: 2, v1: -5 }, m('a2') + .2, 1.4);
@@ -383,7 +383,7 @@ const BEATS = [
     text(p, '2 steps right  →  2', 260, 590, m('count3') + 1, { size: 28, fill: COL.dim });
     show(c2.bot, m('bot2')); lightUp(c2.bot, m('bot2') + .2, GREEN);
     text(p, '5 steps down  →  −5', 260, 670, m('bot2'), { size: 28, fill: COL.dim });
-    const b2 = G(p, {}); mk('rect', { x: 94, y: 534, width: 112, height: 144, rx: 12, fill: 'none', stroke: COL.task, 'stroke-width': 3 }, b2);
+    const b2 = G(p, {}); mk('rect', { x: 94, y: 534, width: 112, height: 144, rx: 12, fill: 'none', stroke: COL.chalk, 'stroke-width': 3 }, b2);
     put(b2, { o: 0 }); show(b2, m('col2'), .4);
     tw(vs.A.v.path, { 'a_stroke-width': 9 }, m('col2'), .3); tw(vs.A.v.path, { 'a_stroke-width': 5 }, m('col2') + .8, .5);
   }],
@@ -413,7 +413,7 @@ const BEATS = [
     stepTo(vs, 'v', [5, 2], [5, -1], m('minus') + .9, .5); vs.flash('v1', m('minus') + .9);
     // a hand takes the tip and pulls it; the tip jumps from grid point to grid point, as it does for the reader
     const hand = G(p, { o: 0 }), { PX, PY } = vs.P;
-    mk('circle', { r: 20, fill: COL.task, 'fill-opacity': .25, stroke: COL.task, 'stroke-width': 3 }, hand);
+    mk('circle', { r: 20, fill: COL.chalk, 'fill-opacity': .25, stroke: COL.chalk, 'stroke-width': 3 }, hand);
     put(hand, { x: PX(5), y: PY(-1) });
     show(hand, m('drag') + 1, .4);
     const t0 = m('pull'), dur = 2.4;
@@ -433,7 +433,7 @@ const BEATS = [
     hide(hand, m('again') + 2.8, .4);
     vs.flash('v0', m('again2')); vs.flash('v1', m('again2'));
     const n = G(p, { o: 0 });
-    T(n, 'change a number  →  the arrow moves', { x: 90, y: 450, size: 32, weight: 600, fill: COL.task });
+    T(n, 'change a number  →  the arrow moves', { x: 90, y: 450, size: 32, weight: 600, fill: COL.chalk });
     T(n, 'move the arrow  →  the numbers change', { x: 90, y: 505, size: 32, weight: 600, fill: GREEN });
     show(n, m('always'));
   }],
@@ -460,7 +460,7 @@ const BEATS = [
       showRow(r, m(n)); vs.show(n, m(n) + .3, .6);
     });
     const e = G(p, { o: 0 });
-    T(e, 'equal:  top = top  and  bottom = bottom', { x: 90, y: 760, size: 30, weight: 600, fill: COL.task });
+    T(e, 'equal:  top = top  and  bottom = bottom', { x: 90, y: 760, size: 30, weight: 600, fill: COL.chalk });
     show(e, m('eq'));
     ['v', 'w', 'u'].forEach((id, i) => [2, 3.6].forEach(dt => { tw(vs.A[id].path, { 'a_stroke-width': 9 }, m('eq') + dt + i * .15, .3); tw(vs.A[id].path, { 'a_stroke-width': 5 }, m('eq') + dt + i * .15 + .6, .4); }));
     ['v0', 'w0', 'u0'].forEach(k => vs.flash(k, m('eq') + 2));
@@ -491,7 +491,7 @@ const BEATS = [
      ['Negative numbers point left or down; zero on top and below is the zero vector, a dot.', 'w3'], ['Change the numbers, the arrow moves; move the arrow, the numbers change.', 'w4']].forEach(([str, mark], i) => {
       const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
       const dg = G(g, { x: 150, y: -12 });
-      mk('circle', { r: 26, fill: COL.task }, dg);
+      mk('circle', { r: 26, fill: COL.chalk }, dg);
       T(dg, String(i + 1), { x: 0, y: 11, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
       T(g, str, { x: 210, size: 34, weight: 600 });
       tw(g, { o: 1, x: 0 }, m(mark), .6);

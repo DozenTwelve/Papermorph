@@ -35,8 +35,8 @@ const eqStr = (a, bb, c) => {
 };
 // Two equations in the top left, the plane on the right. When the two lines are one line, the coral one is drawn
 // dashed so the blue one shows through it. When the lines meet off the picture, an arrow at the edge points there.
-const twoLines = (p, A, b, { t0 = .1, lines = true, meet = true, readout = true, hidePlane = false, offMark = false } = {}) => {
-  const sys = linsys(p, { A, b, eq: [90, 200], mat: null, t0, hidePlane });
+const twoLines = (p, A, b, { t0 = .1, lines = true, meet = true, readout = true, hidePlane = false, offMark = false, exact = true } = {}) => {
+  const sys = linsys(p, { A, b, eq: [90, 200], mat: null, t0, hidePlane, exact });
   if (!lines) sys.lines.forEach(({ l }) => put(l, { o: 0 }));
   if (!meet) put(sys.meetBox, { o: 0 });
   if (!readout) put(sys.readout, { o: 0 });
@@ -64,41 +64,13 @@ const twoLines = (p, A, b, { t0 = .1, lines = true, meet = true, readout = true,
     const ux = (s.x - ex) / best, uy = (s.y - ey) / best;
     const a = [PX(ex - ux * 1.1), PY(ey - uy * 1.1)], c = [PX(ex), PY(ey)];
     arr.setAttribute('d', `M${a[0]} ${a[1]}L${c[0]} ${c[1]}M${c[0] - 16 * ux - 9 * uy} ${c[1] + 16 * uy - 9 * ux}L${c[0]} ${c[1]}L${c[0] - 16 * ux + 9 * uy} ${c[1] + 16 * uy + 9 * ux}Z`);
-    lab.textContent = `meets at (${fmt1(s.x)}, ${fmt1(s.y)})`;
+    lab.textContent = Math.max(Math.abs(s.x), Math.abs(s.y)) > 99 ? 'meets very far away' : `meets at (${fmt1(s.x)}, ${fmt1(s.y)})`;   // no five-digit numbers flashing by on the way to parallel
     put(lab, { x: c[0] + (ux > 0 ? -30 : 30), y: c[1] + (uy < 0 ? 44 : -26) });   // beside the arrow's tip, outside the grid's numbers
     lab.setAttribute('text-anchor', ux > 0 ? 'end' : 'start');
   };
   sys.onChange(onChange);
   onChange(sys.v, sys.solve());
-  placeMeet(sys);
   return sys;
-};
-// The meeting point's label goes where the two lines and the axes leave it most room (the library always puts it up
-// and right, where a rising line runs through it). Each spot's text box is tested against both lines and both axes.
-const placeMeet = sys => {
-  const lab = sys.meet.lastChild, { PX, PY } = sys.P;
-  const spots = [[18, -16, 1], [18, 40, 1], [-18, -16, -1], [-18, 40, -1], [24, -4, 1], [-24, -4, -1], [24, 30, 1], [-24, 30, -1], [0, 72, 0], [0, -50, 0]];   // x, baseline, side (0: centred under or over the point)
-  const f = (v, s) => {
-    if (s.x === undefined) return;
-    const w = lab.textContent.length * 14 + 4, ox = PX(0) - PX(s.x), oy = PY(0) - PY(s.y);
-    const ds = [0, 1].map(i => [v[`a${i}1`], v[`a${i}0`]]).filter(([a, b]) => a || b).map(([a, b]) => [a / Math.hypot(a, b), b / Math.hypot(a, b)]);   // each line's direction on screen
-    let best = spots[0], far = -1;
-    for (const sp of spots) {
-      let d = Infinity;
-      const x0 = sp[2] ? Math.min(sp[0], sp[0] + sp[2] * w) : -w / 2, x1 = sp[2] ? Math.max(sp[0], sp[0] + sp[2] * w) : w / 2, y0 = sp[1] - 22, y1 = sp[1];
-      ds.forEach(([ux, uy]) => {   // a line through the point: 0 if it cuts the text box, else its distance from the nearest corner
-        const c = [[x0, y0], [x1, y0], [x0, y1], [x1, y1]].map(([x, y]) => x * uy - y * ux);
-        d = Math.min(d, Math.min(...c) < 0 && Math.max(...c) > 0 ? 0 : Math.min(...c.map(Math.abs)));
-      });
-      // an axis under the text is less bad than a line through it, but still to be avoided
-      const gap = (a0, a1, b0, b1) => Math.max(0, b0 - a1, a0 - b1);   // between two ranges, 0 when they overlap
-      const ax = Math.min(gap(x0, x1, ox - 34, ox + 4), gap(y0, y1, oy - 4, oy + 30));   // each axis with its numbers (left of y, under x)
-      d = Math.min(d, ax + 8) + ax / 100;   // between equals, the spot farther from the axes
-      if (d > far + 1e-6) { best = sp; far = d; }
-    }
-    put(lab, { x: best[0], y: best[1] }); lab.setAttribute('text-anchor', best[2] > 0 ? 'start' : best[2] < 0 ? 'end' : 'middle');
-  };
-  sys.onChange(f); f(sys.v, sys.solve());
 };
 // A small framed picture of two lines, for comparing the three cases side by side.
 const mini = (p, cx, cy, l1, l2, t0, caption, sub, tPlane = t0) => {
@@ -106,7 +78,7 @@ const mini = (p, cx, cy, l1, l2, t0, caption, sub, tPlane = t0) => {
   P.line(...l1, BLUE, t0 + .4, { w: 5 });
   P.line(...l2, CORAL, t0 + .8, { w: 5, dash: l2.dash });
   text(p, caption, cx, cy + 225, t0 + .6, { size: 32, weight: 600, anchor: 'middle' });
-  return { P, sub: sub ? T(p, sub, { x: cx, y: cy + 270, size: 28, fill: COL.task, weight: 600, anchor: 'middle', o: 0 }) : null };
+  return { P, sub: sub ? T(p, sub, { x: cx, y: cy + 270, size: 28, fill: COL.chalk, weight: 600, anchor: 'middle', o: 0 }) : null };
 };
 
 /* ---------- practice data ---------- */
@@ -198,7 +170,7 @@ const BEATS = [
     const gap = G(p, {}), { PX, PY } = b.P;
     path(gap, `M${PX(0)} ${PY(-1)}V${PY(2)}`, { stroke: COL.dim, 'stroke-width': 2.5, 'stroke-dasharray': '5 6' }, { o: 0 });
     show(gap.firstChild, m('par') + 1.6, .4);
-    [-3, 0, 3].forEach((x, i) => c.P.dot(x, -x, COL.task, m('same') + 1.5 + i * .3, { r: 8 }));
+    [-3, 0, 3].forEach((x, i) => c.P.dot(x, -x, COL.chalk, m('same') + 1.5 + i * .3, { r: 8 }));
   }],
 
   ['parallel', 'Lines that never meet', (m) => {
@@ -208,7 +180,7 @@ const BEATS = [
     say(p, ['x + y = 2   and   x + y = 5 ?'], 90, 470, m('ask'), { size: 38 });
     say(p, ['1 + 1 = 2'], 90, 545, m('try'), { size: 36, fill: BLUE });
     say(p, ['1 + 1 ≠ 5'], 90, 600, m('sum'), { size: 36, fill: CORAL });
-    text(p, 'x + y is one number: it cannot be 2 and 5 at once', 90, 670, m('never'), { size: 28, fill: COL.task, weight: 600 });
+    text(p, 'x + y is one number: it cannot be 2 and 5 at once', 90, 670, m('never'), { size: 28, fill: COL.chalk, weight: 600 });
     const { PX, PY } = sys.P;
     show(sys.lines[0].l, m('l1'), .9); show(sys.lines[1].l, m('l2'), .9);
     // a probe walks along each line: its sum never changes
@@ -235,7 +207,7 @@ const BEATS = [
     put(gaps, { o: 1 });
     [[-2.5, 4.5, -1, 6], [-1, 3, .5, 4.5], [.5, 1.5, 2, 3], [2, 0, 3.5, 1.5], [3.5, -1.5, 5, 0]].forEach(([x1, y1, x2, y2], i) =>
       draw(path(gaps, `M${PX(x1)} ${PY(y1)}L${PX(x2)} ${PY(y2)}`, { stroke: COL.dim, 'stroke-width': 3 }, { d: 0 }), m('tilt') + .5 + i * .5, .4));
-    text(p, 'always the same gap', PX(-5.6), PY(-3), m('gap'), { size: 26, fill: COL.dim });
+    text(p, 'always the same gap', PX(-5.8), PY(-4.4), m('gap'), { size: 26, fill: COL.dim });
     show(sys.readout, m('none'));
   }],
 
@@ -283,13 +255,13 @@ const BEATS = [
     show(sys.lines[0].l, m('draw') - .6, .6); show(sys.lines[1].l, m('draw') + .4, .9);
     hide(w, m('p1') - .3, .3);
     sys.to({ a10: 2, a11: 4, b1: 6 }, m('p1') + .3, 1.2); ['a10', 'a11', 'b1'].forEach(k => flash(sys, k, m('p1') + .3));   // check in the equations as first written
-    drop(sys, 3, 0, m('p1a'), COL.task, '(3, 0)', 12, -18);
+    drop(sys, 3, 0, m('p1a'), COL.chalk, '(3, 0)', 12, -18);
     say(p, ['3 + 2·0 = 3'], 90, 470, m('p1a') + .4, { size: 34, fill: BLUE }); okMark(p, true, 310, 470, m('p1a') + 1.6);
     say(p, ['2·3 + 4·0 = 6'], 370, 470, m('p1b'), { size: 34, fill: CORAL }); okMark(p, true, 620, 470, m('p1b') + 2.5);
-    drop(sys, 1, 1, m('p2'), COL.task, '(1, 1)');
+    drop(sys, 1, 1, m('p2'), COL.chalk, '(1, 1)');
     say(p, ['1 + 2·1 = 3'], 90, 535, m('p2') + .6, { size: 34, fill: BLUE }); okMark(p, true, 310, 535, m('p2') + 2);
     say(p, ['2·1 + 4·1 = 6'], 370, 535, m('p2b'), { size: 34, fill: CORAL }); okMark(p, true, 620, 535, m('p2b') + 1);
-    [-5, -3, 5].forEach((x, i) => drop(sys, x, (3 - x) / 2, m('all') + i * .4, COL.task, ''));
+    [-5, -3, 5].forEach((x, i) => drop(sys, x, (3 - x) / 2, m('all') + i * .4, COL.chalk, ''));
     show(sys.readout, m('inf'));
   }],
 
@@ -308,8 +280,8 @@ const BEATS = [
     okMark(p, true, 450, 540, m('match') + .5);
     show(sys.readout, m('inf'));
     const n = G(p, { o: 0 });
-    T(n, 'both sides times the same number (not 0):', { x: 90, y: 720, size: 30, weight: 600, fill: COL.task });
-    T(n, 'the line does not move', { x: 90, y: 762, size: 30, weight: 600, fill: COL.task });
+    T(n, 'both sides times the same number (not 0):', { x: 90, y: 720, size: 30, weight: 600, fill: COL.chalk });
+    T(n, 'the line does not move', { x: 90, y: 762, size: 30, weight: 600, fill: COL.chalk });
     show(n, m('say'));
     sys.focus(0, m('say') + 2);
     sys.to({ a00: 3, a01: -3, b0: 3 }, m('say') + 2.5, 2.5); ['a00', 'a01', 'b0'].forEach(k => flash(sys, k, m('say') + 2.5));
@@ -345,7 +317,7 @@ const BEATS = [
     const ex1 = say(p, ['2x + 3y   →   ×2   →   4x + 6y'], 150, 620, m('s1') + 5, { size: 34, fill: COL.dim });
     hide(ex1, m('s2') - .3, .3);
     tw(F0, { y: 250 }, m('ex') - .2, .8);   // the steps move down under the equations
-    const hl = (e, t, t2) => { tw(e, { c_fill: COL.task }, t, .3); tw(e, { c_fill: COL.dim }, t2, .3); };
+    const hl = (e, t, t2) => { tw(e, { c_fill: COL.chalk }, t, .3); tw(e, { c_fill: COL.dim }, t2, .3); };
     // example 1: times 3 on both sides
     const l1 = say(p, ['left:   1·3 = 3,   2·3 = 6:   times 3'], 90, 395, m('e1a'), { size: 30, fill: CORAL });
     [['a00', 'a10', 1.2], ['a01', 'a11', 3.4]].forEach(([k1, k2, d]) => { flash(sys, k1, m('e1a') + d); flash(sys, k2, m('e1a') + d + .6); });
@@ -363,7 +335,7 @@ const BEATS = [
     say(p, ['left:   1·3 = 3,  but  2·3 = 6,  not 5'], 90, 395, m('e3a'), { size: 30, fill: COL.bad });
     flash(sys, 'a01', m('e3a') + 2); flash(sys, 'a11', m('e3a') + 3.6);
     tw(sys.lines[1].l, { 'a_stroke-width': 9 }, m('e3a') + 4, .3); tw(sys.lines[1].l, { 'a_stroke-width': 5 }, m('e3b'), .5);
-    tw(no1, { c_fill: COL.task }, m('e3c'), .3);
+    tw(no1, { c_fill: COL.chalk }, m('e3c'), .3);
     pulse(sys.meet, m('e3c') + .6); pulse(sys.meet, m('e3c') + 1.8);
     void q1; void q2;
   }],
@@ -371,13 +343,15 @@ const BEATS = [
   ['runaway', 'On the way to parallel', (m) => {
     const p = panel(0);
     text(p, 'Turning toward parallel', 60, 110, .2, { size: 40, weight: 600 });
-    const sys = S.sys = twoLines(p, [[1, 1], [2, 1]], [2, 5], { t0: m('eq') - .3, offMark: true });
+    const sys = S.sys = twoLines(p, [[1, 1], [2, 1]], [2, 5], { t0: m('eq') - .3, offMark: true, exact: false });   // the voice and the table say 1.5, 1.2, 1.1
     pulse(sys.meet, m('meet'));
     sys.focus(1, m('turn'));
     const steps = [['six', 1.5], ['off', 1.2], ['far', 1.1], ['gone', 1]];
     const trails = [sys.to({ a10: 1.5 }, m('six') - 1.2, 1.4, io, { trail: true })];
     steps.slice(1).forEach(([mk_, a]) => sys.to({ a10: a }, m(mk_) - .6, 1.2));
     steps.forEach(([mk_]) => flash(sys, 'a10', m(mk_) - .6));
+    tw(sys.readout, { o: 0 }, m('gone') - .7, .2); tw(sys.readout, { o: 1 }, m('gone') + .7, .3);
+    tw(sys.readout, { o: 0 }, m('back') - .2, .15); tw(sys.readout, { o: 1 }, m('back') + .6, .3);   // the readout's runaway numbers stay out of sight
     sys.focus(null, m('run') - .5);
     // where they meet, step by step, under the readout
     text(p, 'x number', 90, 470, m('meet'), { size: 26, fill: COL.dim }); text(p, 'they meet at', 260, 470, m('meet'), { size: 26, fill: COL.dim });
@@ -418,7 +392,7 @@ const BEATS = [
      ['Multiples: compare the right sides. Same multiple: one line. Not: parallel.', 'w3'],
      ['Both sides times the same number (not 0): the line stays put.', 'w4']].forEach(([str, mark], i) => {
       const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
-      mk('circle', { cx: 150, cy: -12, r: 26, fill: COL.task }, g);
+      mk('circle', { cx: 150, cy: -12, r: 26, fill: COL.chalk }, g);
       T(g, String(i + 1), { x: 150, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
       T(g, str, { x: 210, size: 32, weight: 600 });
       tw(g, { o: 1, x: 0 }, m(mark), .6);

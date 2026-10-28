@@ -3,6 +3,14 @@
 // Use it as a beat's ask:  ['play', 'Playground', m => { … build S.sys … }, { ask: playAsk(() => S.sys, { tip }) }]
 // Works with any component that has .live(on), .v and .set(values) (linsys, lin3, vecs, grid2).
 const PLAY_INK = [COL.chalk, COL.task, COL.whole, COL.nat];
+let playKeys = null;
+// A beat opened with ?beat=N is not started until the reader plays, and until then the engine keeps every key but Space
+// and Enter for the cover. The playground's keys work at once, as its buttons do: the first one starts the lesson.
+document.addEventListener('keydown', e => {
+  if (P.started || !playKeys || P.keys !== playKeys || e.altKey || e.metaKey || e.ctrlKey || e.shiftKey) return;
+  if (e.target.matches?.('input') || e.target.closest?.('button') || !$('help').hidden) return;
+  if (playKeys(e)) { e.preventDefault(); e.stopImmediatePropagation(); hideCover(); }
+}, true);
 
 function playAsk(getSys, { pos = { x: 40, y: 430, w: 720, cls: 'side' }, tip = 'Change anything you like and watch what moves with it.', live } = {}) {
   return done => {
@@ -54,7 +62,7 @@ function playAsk(getSys, { pos = { x: 40, y: 430, w: 720, cls: 'side' }, tip = '
     c.replaceChildren(h('div', 'head', [h('p', 'kicker', 'Playground · no score'), h('p', 'prompt', [rich([tip], 24)]),
       h('p', 'keys', ['Drag numbers sideways or use ', kbd('Tab'), kbd('↑'), kbd('↓'), '; drag lines and arrows; ', kbd('D'), ' to draw on the board.'])]), acts);
     paint();
-    P.keys = e => {
+    P.keys = playKeys = e => {
       if (P.gen !== gen) return false;
       if (e.key === 'Enter') { bOn.click(); return true; }
       if (isShortcut(e, 'd')) { bDraw.click(); return true; }

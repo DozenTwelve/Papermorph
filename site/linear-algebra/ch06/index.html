@@ -29,14 +29,14 @@ const thick = (vs, id, t0, w = 5) => { tw(vs.A[id].path, { 'a_stroke-width': w +
 const pairStr = (x, y) => `(${num(x)}, ${num(y)})`;
 // A curved arrow from one number to another, arched over (up) or under the row: "this one goes there".
 const centre = e => { const b = e.getBBox(); return [b.x + b.width / 2, b.y + b.height / 2, b.height]; };
-const curve = (p, a, b, t0, { color = COL.task, up = true, dur = .7 } = {}) => {
+const curve = (p, a, b, t0, { color = COL.chalk, up = true, dur = .7 } = {}) => {
   const [ax, ay, ah] = centre(a), [bx, by, bh] = centre(b), sy = up ? -1 : 1;
   const y0 = ay + sy * ah * .6, y1 = by + sy * bh * .6, top = (up ? Math.min(y0, y1) : Math.max(y0, y1)) + sy * 36;
   const e = path(p, `M${ax} ${y0}C${ax} ${top} ${bx} ${top} ${bx} ${y1}`, { stroke: color, 'stroke-width': 3, fill: 'none', 'stroke-linecap': 'round' }, { d: 0 });
   draw(e, t0, dur);
   return e;
 };
-const boxAround = (p, els, t0, color = COL.task) => {
+const boxAround = (p, els, t0, color = COL.chalk) => {
   const bs = els.map(e => e.getBBox()), x = Math.min(...bs.map(b => b.x)) - 10, y = Math.min(...bs.map(b => b.y)) - 6;
   const w = Math.max(...bs.map(b => b.x + b.width)) + 10 - x, hh = Math.max(...bs.map(b => b.y + b.height)) + 6 - y;
   const r = path(p, `M${x + 10} ${y}H${x + w - 10}Q${x + w} ${y} ${x + w} ${y + 10}V${y + hh - 10}Q${x + w} ${y + hh} ${x + w - 10} ${y + hh}H${x + 10}Q${x} ${y + hh} ${x} ${y + hh - 10}V${y + 10}Q${x} ${y} ${x + 10} ${y}Z`, { stroke: color, 'stroke-width': 3, fill: 'none' }, { d: 0 });
@@ -61,7 +61,8 @@ const comboLabel = vs => v => {
   return [`${term(v.c, 'v')} ${v.d < 0 ? '−' : '+'} ${term(Math.abs(v.d), 'w')}`];
 };
 // c v + d w = c [v] + d [w]  (first line), and  = [c v] + [d w] = [sum]  or  = [c·v0 + d·w0, …] = [sum]  (second line).
-const line1 = (vs, y, o = 0, size = 42) => vs.row([{ key: 'c' }, { t: 'v', fill: GREEN }, { key: 'd', signed: true }, { t: 'w', fill: VIOLET }, '=', { key: 'c' }, { col: 'v', fixed: true }, { key: 'd', signed: true }, { col: 'w', fixed: true }], { x: 70, y, size, o });
+// c and d are what this chapter looks for: a 1 is written ("one v plus two w"), except where one = false (special: "v + w")
+const line1 = (vs, y, o = 0, size = 42, one = true) => vs.row([{ key: 'c', one }, { t: 'v', fill: GREEN }, { key: 'd', signed: true, one }, { t: 'w', fill: VIOLET }, '=', { key: 'c', one }, { col: 'v', fixed: true }, { key: 'd', signed: true, one }, { col: 'w', fixed: true }], { x: 70, y, size, o });
 const line2 = (vs, y, o = 0, size = 42) => vs.row(['=', { col: 'cv', fixed: true }, '+', { col: 'dw', fixed: true }, '=', { col: 'sum', fixed: true }], { x: 160, y, size, o });
 const line2x = (vs, y, o = 0, size = 42) => vs.row(['=', { fn: v => [`${vs.fmt(v.c)}·${vs.paren(v.v0)} + ${vs.fmt(v.d)}·${vs.paren(v.w0)}`, `${vs.fmt(v.c)}·${vs.paren(v.v1)} + ${vs.fmt(v.d)}·${vs.paren(v.w1)}`], w: 360 }, '=', { col: 'sum', fixed: true }], { x: 160, y, size, o });
 const lecture = (p, o = {}) => { const vs = vecs(p, { vecs: { v: LV, w: LW }, ...o }); vs.label('sum', comboLabel(vs)); return vs; };
@@ -83,7 +84,7 @@ const ringAt = (P, x, y, t0, into, color = COL.task, left = false) => {   // lef
 // c and d are found at each one, as they are for the reader.
 const handPath = (p, vs, pts, t0, leg = 1.6) => {
   const { PX, PY } = vs.P, hand = G(p, { o: 0 });
-  mk('circle', { r: 20, fill: COL.task, 'fill-opacity': .25, stroke: COL.task, 'stroke-width': 3 }, hand);
+  mk('circle', { r: 20, fill: COL.chalk, 'fill-opacity': .25, stroke: COL.chalk, 'stroke-width': 3 }, hand);
   put(hand, { x: PX(pts[0][0]), y: PY(pts[0][1]) });
   show(hand, t0 - .4, .3);
   pts.slice(1).forEach((b, i) => {
@@ -133,8 +134,12 @@ const BEATS = [
     tw(g, { o: 1, y: 0 }, .2, 1.1, out);
     const r = text(scene, 'c v + d w: stretch two vectors, then add', 800, 510, m('sub'), { size: 36, fill: COL.dim, anchor: 'middle' });
     const pic = G(scene, { o: 0 }), o = [740, 790];
-    const ar = (d, c, t0) => draw(path(pic, d, { stroke: c, 'stroke-width': 6, 'stroke-linecap': 'round', fill: 'none' }, { d: 0 }), t0, .7);
-    ar(`M${o[0]} ${o[1]}l80 40`, GREEN, m('sub') + 1.2); ar(`M${o[0] + 80} ${o[1] + 40}l-80 -160`, VIOLET, m('sub') + 1.9); ar(`M${o[0]} ${o[1]}l0 -120`, COL.task, m('sub') + 2.6);
+    const ar = (x, y, dx, dy, c, t0) => {   // a line from (x, y) by (dx, dy), then its head
+      const L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L, tx = x + dx, ty = y + dy;
+      const d = `M${x} ${y}L${tx} ${ty}M${tx - 16 * ux + 9 * uy} ${ty - 16 * uy - 9 * ux}L${tx} ${ty}L${tx - 16 * ux - 9 * uy} ${ty - 16 * uy + 9 * ux}`;
+      draw(path(pic, d, { stroke: c, 'stroke-width': 6, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', fill: 'none' }, { d: 0 }), t0, .7);
+    };
+    ar(o[0], o[1], 80, 40, GREEN, m('sub') + 1.2); ar(o[0] + 80, o[1] + 40, -80, -160, VIOLET, m('sub') + 1.9); ar(o[0], o[1], 0, -120, COL.task, m('sub') + 2.6);
     show(pic, m('sub') + 1, .3);
     tw(g, { o: 0, y: -24 }, D - .9, .8); hide(r, D - .9, .8); hide(pic, D - .9, .8);
   }],
@@ -169,7 +174,7 @@ const BEATS = [
     vs.dim(['v', 'w'], m('pic'), .25); hide(vs.A.v.lab, m('pic'), .3); hide(vs.A.w.lab, m('pic'), .3);
     thick(vs, 'cv', m('pic') + .3);
     // a traveller makes the trip: along 1v, then along 2w, and stops at (0, 3)
-    const trip = G(vs.P.g, { o: 0 }); mk('circle', { r: 10, fill: COL.task, stroke: COL.board, 'stroke-width': 2 }, trip);
+    const trip = G(vs.P.g, { o: 0 }); mk('circle', { r: 10, fill: COL.chalk, stroke: COL.board, 'stroke-width': 2 }, trip);
     put(trip, { x: vs.P.PX(0), y: vs.P.PY(0) }); show(trip, m('pic') + .3, .3);
     prog(q => put(trip, { x: vs.P.PX(2 * q), y: vs.P.PY(-q) }), m('pic') + .6, 1.4);
     prog(q => put(trip, { x: vs.P.PX(2 - 2 * q), y: vs.P.PY(-1 + 4 * q) }), m('end') - .5, 1.2);
@@ -180,7 +185,7 @@ const BEATS = [
     vs.show('sum', m('end') + .7, .6);
     vs.P.dot(0, 3, COL.task, m('end') + .7, { r: 9, label: '(0, 3)', dx: -80, dy: 8 });
     const nm = G(p, { o: 0 });
-    T(nm, 'c v + d w:  a linear combination of v and w', { x: 70, y: 600, size: 32, weight: 600, fill: COL.task });
+    T(nm, 'c v + d w:  a linear combination of v and w', { x: 70, y: 600, size: 32, weight: 600, fill: COL.chalk });
     show(nm, m('name'));
     text(p, 'keep in mind:  v = [2, −1],  w = [−1, 2],  1v + 2w = [0, 3]', 70, 660, m('keep'), { size: 26, fill: COL.dim });
     void s0;
@@ -219,8 +224,8 @@ const BEATS = [
     const p = panel(0);
     text(p, 'Old friends are combinations too', 60, 110, .2, { size: 40, weight: 600 });
     const vs = lecture(p, { c: -1, d: 1, show: ['cv', 'dw', 'sum'] });
-    line1(vs, 240, 1);
-    const note = (str, y, t0) => text(p, str, 70, y, t0, { size: 32, fill: COL.task, weight: 600 });
+    line1(vs, 240, 1, 42, false);   // c = 1, d = 1 reads v + w
+    const note = (str, y, t0) => text(p, str, 70, y, t0, { size: 32, fill: COL.chalk, weight: 600 });
     vs.to({ c: 1, d: 1 }, m('sum'), 1.2); note('c = 1, d = 1:   v + w', 400, m('sum') + .6);
     vs.to({ c: 1, d: -1 }, m('diff'), 1.2); note('c = 1, d = −1:   v − w', 460, m('diff') + .6);
     vs.to({ c: 2, d: 0 }, m('onlyv'), 1.2); note('d = 0:   just c v', 520, m('onlyv') + .6);
@@ -259,7 +264,7 @@ const BEATS = [
     text(p, 'd changes:  the tip slides along w', 70, 475, m('dpath'), { size: 30, fill: VIOLET, weight: 600 });
     hide(tr, m('both') + .2, .4);
     vs.to({ c: 2, d: -1 }, m('both') + .4, 1.4); vs.to({ c: 0, d: 1 }, m('both') + 1.9, 1.4);   // a wander first
-    text(p, 'both:  anywhere you steer', 70, 530, m('both') + .3, { size: 30, fill: COL.task, weight: 600 });
+    text(p, 'both:  anywhere you steer', 70, 530, m('both') + .3, { size: 30, fill: COL.chalk, weight: 600 });
     // two worked steers, each written out and its landing point marked
     const sumRow = vs.row([{ key: 'c' }, { t: 'v', fill: GREEN }, { key: 'd', signed: true }, { t: 'w', fill: VIOLET }, '=', { col: 'sum', fixed: true }], { x: 70, y: 680, size: 42, o: 0 });
     [['s1', 2, 3, 1, 4], ['s2', -1, -2, 0, -3]].forEach(([k, c, d, x, y]) => {
@@ -281,7 +286,7 @@ const BEATS = [
     const ring = ringAt(vs.P, 0, 3, m('target'), p, COL.task, true);
     pulse(ring, m('ask') + .3, 1.6); pulse(ring, m('ask') + 1.4, 1.6);
     ['c', 'd'].forEach(k => vs.flash(k, m('ask') + .8));
-    const o = vs.P.dot(0, 0, COL.task, m('start'), { r: 8 }); pulse(o, m('start') + .6, 1.8);
+    const o = vs.P.dot(0, 0, COL.chalk, m('start'), { r: 8 }); pulse(o, m('start') + .6, 1.8);
     vs.to({ c: .5 }, m('start') + 1.6, .8); vs.to({ c: 0 }, m('start') + 2.6, .8);   // a first nudge: c moves the tip along v
     vs.to({ c: 1 }, m('up'), 1.2); vs.flash('c', m('up'));
     vs.to({ d: 1 }, m('d1'), 1); vs.flash('d', m('d1'));
@@ -299,7 +304,7 @@ const BEATS = [
     vs.flash('c', m('p11') + .6); vs.flash('d', m('p11') + .6);
     handPath(p, vs, [[1, 1], [1, 0]], m('p10') - .4, 1.2);
     vs.flash('c', m('p10') + 2); vs.flash('d', m('p10') + 3.6);
-    text(p, 'c and d can be fractions', 70, 600, m('frac'), { size: 30, fill: COL.task, weight: 600 });
+    text(p, 'c and d can be fractions', 70, 600, m('frac'), { size: 30, fill: COL.chalk, weight: 600 });
   }],
 
   ['q2', 'Your turn', () => {
@@ -327,7 +332,7 @@ const BEATS = [
     // values in passing are thirds here: only whole c and d get names on the arrows
     const whole = v => Number.isInteger(v.c) && Number.isInteger(v.d), lab = comboLabel(vs);
     vs.label('cv', v => whole(v) ? (v.c === 1 ? ['v'] : [vs.fmt(v.c) + 'v']) : []); vs.label('dw', v => whole(v) ? (v.d === 1 ? ['w'] : [vs.fmt(v.d) + 'w']) : []);
-    vs.label('sum', v => whole(v) ? lab(v) : []);
+    vs.label('sum', []);   // the hand sits on its tip: the row above names the combination
     const ax = G(p, {});
     vs.P.line(0, 0, 2, -1, GREEN, m('grid') + .3, { w: 4, into: ax });
     vs.P.line(0, 0, -1, 2, VIOLET, m('grid') + 1.3, { w: 4, into: ax });
@@ -348,7 +353,7 @@ const BEATS = [
     const all = path(p, `M${vs.P.PX(-6)} ${vs.P.PY(6)}H${vs.P.PX(6)}V${vs.P.PY(-6)}H${vs.P.PX(-6)}Z`, { fill: COL.task, stroke: 'none' }, { o: 0 });
     vs.P.g.insertBefore(all, vs.P.g.lastChild);
     tw(all, { o: .12 }, m('plane'), 1);
-    text(p, 'c v + d w reaches every point of the plane', 70, 420, m('plane'), { size: 30, fill: COL.task, weight: 600 });
+    text(p, 'c v + d w reaches every point of the plane', 70, 420, m('plane'), { size: 30, fill: COL.chalk, weight: 600 });
   }],
 
   ['count', 'Reading c and d off the grid', (m) => {
@@ -384,10 +389,16 @@ const BEATS = [
     const vs = lecture(p, { c: 1, d: 1, show: ['v', 'w'] });
     vs.row([{ t: 'v', fill: GREEN }, '=', { col: 'v', fixed: true }, '     ', { t: 'w', fill: VIOLET }, '=', { col: 'w', fixed: true }], { x: 70, y: 240, size: 42 });
     vs.lattice(.3, true, .6);
+    // lines closer than a few px shimmer (moiré): the grid fades out as it squashes, leaving the line (span)
+    vs.onChange(v => {
+      const det = Math.abs(v.v0 * v.w1 - v.v1 * v.w0), gap = det / Math.max(Math.hypot(v.v0, v.v1), Math.hypot(v.w0, v.w1), 1e-9) * vs.P.u;
+      const o = String(Math.max(0, Math.min(1, (gap - 12) / 20)));
+      [...vs.latticeG.children].slice(0, 3).forEach(e => { if (e.style.opacity !== o) e.style.opacity = o; });
+    });
     vs.to({ w0: 4, w1: -2 }, m('turn') + .3, m('par') - m('turn') - .3, lin);
     const w2 = say(p, ['w = 2v'], 70, 420, m('par'), { size: 44, fill: VIOLET }); hide(w2, m('ex2'), .3);
     const n1 = text(p, 'the grid squashes flat', 70, 480, m('squash'), { size: 28, fill: COL.dim });
-    const n2 = text(p, 'every combination: on one line', 70, 530, m('line'), { size: 30, fill: COL.task, weight: 600 });
+    const n2 = text(p, 'every combination: on one line', 70, 530, m('line'), { size: 30, fill: COL.chalk, weight: 600 });
     // steering on the line: whatever c and d are, the tip stays on it
     vs.show('sum', m('try'), .4);   // only the combination: its two parts lie on the same line and would hide each other
     vs.to({ c: 2, d: -1 }, m('try') + .5, 1.2); vs.to({ c: -1, d: -1 }, m('try') + 1.9, 1.4); vs.to({ c: 1, d: -1 }, m('try') + 3.5, 1.4);
@@ -399,11 +410,12 @@ const BEATS = [
     // a second pair on one line
     vs.hide('sum', m('ex2') - .2, .3);
     [n1, n2].forEach(e => hide(e, m('ex2'), .3));
+    tw(vs.latticeG, { o: 0 }, m('ex2'), .2); tw(vs.latticeG, { o: 1 }, m('ex2') + 1.9, .4);   // no grid flashing up between the two pairs
     vs.to({ v0: 1, v1: 1, w0: -2, w1: -2, c: 1, d: 1 }, m('ex2') + .2, 1.6);
     vs.flash('v0', m('ex2') + 1.6); vs.flash('v1', m('ex2') + 1.6); vs.flash('w0', m('ex2') + 3.6); vs.flash('w1', m('ex2') + 3.6);
     hide(say(p, ['w = −2v'], 70, 420, m('x2'), { size: 44, fill: VIOLET }), m('rule'), .3);
     thick(vs, 'v', m('x2') + .4); thick(vs, 'w', m('x2') + 1.4); thick(vs, 'v', m('x2') + 2.8); thick(vs, 'w', m('x2') + 3.8);
-    hide(text(p, 'every combination: on the line through (1, 1)', 70, 530, m('line2'), { size: 30, fill: COL.task, weight: 600 }), m('rule'), .3);
+    hide(text(p, 'every combination: on the line through (1, 1)', 70, 530, m('line2'), { size: 30, fill: COL.chalk, weight: 600 }), m('rule'), .3);
     vs.show('sum', m('line2') + .2, .4);
     vs.to({ c: 3, d: 2 }, m('line2') + .4, 1); vs.to({ c: -2, d: -2 }, m('line2') + 1.5, 1);   // the tip runs along the line y = x
     vs.hide('sum', m('rule') - .2, .3);
@@ -432,12 +444,12 @@ const BEATS = [
      ['Two vectors in different directions reach every point.', 'w3'], ['Two vectors on one line reach only that line.', 'w4']].forEach(([str, mark], i) => {
       const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
       const dg = G(g, { x: 150, y: -12 });
-      mk('circle', { r: 26, fill: COL.task }, dg);
+      mk('circle', { r: 26, fill: COL.chalk }, dg);
       T(dg, String(i + 1), { x: 0, y: 11, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
       const tl = T(g, str, { x: 210, size: 36, weight: 600 });
       tw(g, { o: 1, x: 0 }, m(mark), .6);
       pulse(dg, m('end') + i * .3, 1.25);
-      const next = ['w2', 'w3', 'w4', 'end'][i], ul = path(g, `M210 16H${210 + tl.getComputedTextLength()}`, { stroke: COL.task, 'stroke-width': 3, 'stroke-opacity': .6 }, { d: 0 });
+      const next = ['w2', 'w3', 'w4', 'end'][i], ul = path(g, `M210 16H${210 + tl.getComputedTextLength()}`, { stroke: COL.chalk, 'stroke-width': 3, 'stroke-opacity': .6 }, { d: 0 });
       draw(ul, m(mark) + .5, Math.max(1, m(next) - m(mark) - 1), lin);
     });
   }],

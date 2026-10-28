@@ -34,35 +34,7 @@ const twoLines = (p, A, b, { t0 = .1, lines = true, meet = true, readout = true,
   if (!lines) sys.lines.forEach(({ l }) => put(l, { o: 0 }));
   if (!meet) put(sys.meetBox, { o: 0 });
   if (!readout) put(sys.readout, { o: 0 });
-  placeMeet(sys);
   return sys;
-};
-// The meeting point's label goes where the two lines and the axes leave it most room (the library always puts it up
-// and right, where a rising line runs through it). Each spot's text box is tested against both lines and both axes.
-const placeMeet = sys => {
-  const lab = sys.meet.lastChild, { PX, PY } = sys.P;
-  const spots = [[18, -16, 1], [18, 40, 1], [-18, -16, -1], [-18, 40, -1], [24, -4, 1], [-24, -4, -1], [24, 30, 1], [-24, 30, -1], [0, 72, 0], [0, -50, 0]];   // x, baseline, side (0: centred under or over the point)
-  const f = (v, s) => {
-    if (s.x === undefined) return;
-    const w = lab.textContent.length * 14 + 4, ox = PX(0) - PX(s.x), oy = PY(0) - PY(s.y);
-    const ds = [0, 1].map(i => [v[`a${i}1`], v[`a${i}0`]]).filter(([a, b]) => a || b).map(([a, b]) => [a / Math.hypot(a, b), b / Math.hypot(a, b)]);   // each line's direction on screen
-    let best = spots[0], far = -1;
-    for (const sp of spots) {
-      let d = Infinity;
-      const x0 = sp[2] ? Math.min(sp[0], sp[0] + sp[2] * w) : -w / 2, x1 = sp[2] ? Math.max(sp[0], sp[0] + sp[2] * w) : w / 2, y0 = sp[1] - 22, y1 = sp[1];
-      ds.forEach(([ux, uy]) => {   // a line through the point: 0 if it cuts the text box, else its distance from the nearest corner
-        const c = [[x0, y0], [x1, y0], [x0, y1], [x1, y1]].map(([x, y]) => x * uy - y * ux);
-        d = Math.min(d, Math.min(...c) < 0 && Math.max(...c) > 0 ? 0 : Math.min(...c.map(Math.abs)));
-      });
-      // an axis under the text is less bad than a line through it, but still to be avoided
-      const gap = (a0, a1, b0, b1) => Math.max(0, b0 - a1, a0 - b1);   // between two ranges, 0 when they overlap
-      const ax = Math.min(gap(x0, x1, ox - 34, ox + 4), gap(y0, y1, oy - 4, oy + 30));   // each axis with its numbers (left of y, under x)
-      d = Math.min(d, ax + 8) + ax / 100;   // between equals, the spot farther from the axes
-      if (d > far + 1e-6) { best = sp; far = d; }
-    }
-    put(lab, { x: best[0], y: best[1] }); lab.setAttribute('text-anchor', best[2] > 0 ? 'start' : best[2] < 0 ? 'end' : 'middle');
-  };
-  sys.onChange(f); f(sys.v, sys.solve());
 };
 // A dashed guide from a point straight down (or across) to an axis.
 const guide = (sys, x, y, toAxis, t0, into) => {
@@ -159,11 +131,11 @@ const BEATS = [
     const sys = twoLines(p, [[1, 1], [1, -1]], [5, 1], { t0: m('name') - .3, readout: false, hidePlane: true });
     put(sys.eqRows[1].g, { o: 0 }); show(sys.eqRows[1].g, m('and'));
     // the brace: one system, both rows
-    const br = path(p, 'M48 140Q30 140 30 160V205Q30 222 16 222Q30 222 30 239V284Q30 304 48 304', { stroke: COL.task, 'stroke-width': 3.5, fill: 'none' }, { d: 0 });
+    const br = path(p, 'M48 140Q30 140 30 160V205Q30 222 16 222Q30 222 30 239V284Q30 304 48 304', { stroke: COL.chalk, 'stroke-width': 3.5, fill: 'none' }, { d: 0 });
     draw(br, m('both'), .6);
     hide(r1, m('both'), .4); hide(r2, m('both'), .4);
-    text(p, 'a system of equations:', 90, 470, m('both') + .5, { size: 32, fill: COL.task, weight: 600 });
-    text(p, 'both must be true at once', 90, 520, m('both') + .9, { size: 32, fill: COL.task, weight: 600 });
+    text(p, 'a system of equations:', 90, 470, m('both') + .5, { size: 32, fill: COL.chalk, weight: 600 });
+    text(p, 'both must be true at once', 90, 520, m('both') + .9, { size: 32, fill: COL.chalk, weight: 600 });
     // the hunt: pairs that add to 5, each tested in the second equation
     const cx = [890, 1110, 1390], hy = 220, rh = 82;
     const head = G(p, { o: 0 });
@@ -229,7 +201,7 @@ const BEATS = [
     const n2 = text(p, 'not 0', cx[1] + 165, hy + 80 + rh + 40, m('b1') + 1.6, { size: 22, fill: COL.bad, anchor: 'middle' });
     S.chk = [n1, n2];
     const rule = G(p, { o: 0 });
-    T(rule, 'a solution of the system passes every equation', { x: 90, y: 790, size: 32, weight: 600, fill: COL.task });
+    T(rule, 'a solution of the system passes every equation', { x: 90, y: 790, size: 32, weight: 600, fill: COL.chalk });
     show(rule, m('cok') + 1.4);
   }],
 
@@ -287,7 +259,7 @@ const BEATS = [
     text(p, 'the same pair as in the table', 330, 396, m('same') + .2, { size: 26, fill: COL.dim });
     sys.focus(0, m('name') + 2.5); sys.focus(1, m('name') + 4.5); sys.focus(null, m('name') + 6.5);
     const n = G(p, { o: 0 });
-    T(n, 'the crossing is on both lines: it solves both equations', { x: 90, y: 760, size: 30, weight: 600, fill: COL.task });
+    T(n, 'the crossing is on both lines: it solves both equations', { x: 90, y: 760, size: 30, weight: 600, fill: COL.chalk });
     show(n, m('on') + .3);
   }],
 
@@ -314,7 +286,7 @@ const BEATS = [
     tw(sys.lines[1].l, { 'a_stroke-width': 9 }, m('off'), .3); tw(sys.lines[1].l, { 'a_stroke-width': 5 }, m('off') + 1, .5);
     say(p, ['(1, 4):  1 − 4 = −3,   (2, 3):  −1,   (4, 1):  3'], 90, 680, m('off') + .3, { size: 28, fill: COL.dim });
     text(p, 'none of them is 1: off the coral line', 90, 725, m('off') + 1.4, { size: 28, fill: CORAL, weight: 600 });
-    text(p, 'only the crossing (3, 2) is on both', 90, 790, m('sum'), { size: 32, fill: COL.task, weight: 600 });
+    text(p, 'only the crossing (3, 2) is on both', 90, 790, m('sum'), { size: 32, fill: COL.chalk, weight: 600 });
   }],
 
   ['q2', 'Quick check', () => {
@@ -352,8 +324,8 @@ const BEATS = [
     okMark(p, true, 470, 670, m('c2') + 3);
     show(sys.readout, m('ok'));
     const n = G(p, { o: 0 });
-    T(n, 'the picture says where to look;', { x: 90, y: 760, size: 30, weight: 600, fill: COL.task });
-    T(n, 'putting the numbers back in proves it', { x: 90, y: 802, size: 30, weight: 600, fill: COL.task });
+    T(n, 'the picture says where to look;', { x: 90, y: 760, size: 30, weight: 600, fill: COL.chalk });
+    T(n, 'putting the numbers back in proves it', { x: 90, y: 802, size: 30, weight: 600, fill: COL.chalk });
     show(n, m('lesson'));
   }],
 
@@ -427,8 +399,8 @@ const BEATS = [
     say(p, ['−3 + 2·3 = 3  ✓'], 90, 525, m('chk') + 2, { size: 34, fill: CORAL });
     sys.focus(null, m('rule'));
     const n = G(p, { o: 0 });
-    T(n, 'one right side changes: that line slides,', { x: 90, y: 720, size: 30, weight: 600, fill: COL.task });
-    T(n, 'and the meeting point slides along the other line', { x: 90, y: 762, size: 30, weight: 600, fill: COL.task });
+    T(n, 'one right side changes: that line slides,', { x: 90, y: 720, size: 30, weight: 600, fill: COL.chalk });
+    T(n, 'and the meeting point slides along the other line', { x: 90, y: 762, size: 30, weight: 600, fill: COL.chalk });
     show(n, m('rule'));
     S.g2 = g2;
   }],
@@ -460,8 +432,8 @@ const BEATS = [
     say(p, ['2 + 3 = 5  ✓,      2·2 − 3 = 1  ✓'], 90, 470, m('chk2'), { size: 32 });
     sys.focus(null, m('rule'));
     const n = G(p, { o: 0 });
-    T(n, 'a line moves: the meeting point', { x: 90, y: 720, size: 30, weight: 600, fill: COL.task });
-    T(n, 'stays on the line that does not', { x: 90, y: 762, size: 30, weight: 600, fill: COL.task });
+    T(n, 'a line moves: the meeting point', { x: 90, y: 720, size: 30, weight: 600, fill: COL.chalk });
+    T(n, 'stays on the line that does not', { x: 90, y: 762, size: 30, weight: 600, fill: COL.chalk });
     show(n, m('rule'));
     S.t2 = t2;
   }],
@@ -484,7 +456,7 @@ const BEATS = [
     [['A system: equations that must all be true at once.', 'w1'], ['A pair solves the system only if it passes every equation.', 'w2'],
      ['Row picture: each equation is a line; the solution is where they cross.', 'w3'], ['The picture shows where to look; putting the numbers back in proves it.', 'w4']].forEach(([str, mark], i) => {
       const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
-      mk('circle', { cx: 150, cy: -12, r: 26, fill: COL.task }, g);
+      mk('circle', { cx: 150, cy: -12, r: 26, fill: COL.chalk }, g);
       T(g, String(i + 1), { x: 150, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
       T(g, str, { x: 210, size: 36, weight: 600 });
       tw(g, { o: 1, x: 0 }, m(mark), .6);

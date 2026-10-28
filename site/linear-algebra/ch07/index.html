@@ -43,7 +43,7 @@ const colPic = (p, A, opts = {}) => {
 };
 // x [col 1] + y [col 2] = [b], and below it the amounts:  1 [col 1] + 2 [col 2] = [b]
 const colEq = (vs, x, y, size = 40, o = 1) => vs.row([{ t: 'x' }, { col: 'v', fixed: true }, '+', { t: 'y' }, { col: 'w', fixed: true }, '=', { col: 'sum', fixed: true }], { x, y, size, o });
-const colAmt = (vs, x, y, size = 40, o = 1) => vs.row([{ key: 'c' }, { col: 'v', fixed: true }, { key: 'd', signed: true }, { col: 'w', fixed: true }, '=', { col: 'sum', fixed: true }], { x, y, size, o });
+const colAmt = (vs, x, y, size = 40, o = 1) => vs.row([{ key: 'c', one: true }, { col: 'v', fixed: true }, { key: 'd', signed: true, one: true }, { col: 'w', fixed: true }, '=', { col: 'sum', fixed: true }], { x, y, size, o });
 // Row picture (linsys, left) and column picture (vecs, right) of one system, linked both ways:
 // change the system or b on the left and the mix follows on the right; drag b on the right and the lines follow.
 let twinN = 0;
@@ -186,7 +186,7 @@ const BEATS = [
     show(sys.meetBox, m('meet'), .5); pulse(sys.meet, m('meet') + .5, 1.6);
     show(sys.readout, m('ans'), .5);
     const n = G(p, { o: 0 });
-    T(n, 'row picture: the solution is where the lines meet', { x: 90, y: 560, size: 30, weight: 600, fill: COL.task });
+    T(n, 'row picture: the solution is where the lines meet', { x: 90, y: 560, size: 30, weight: 600, fill: COL.chalk });
     show(n, m('name'));
     sys.lines.forEach((l, i) => { tw(l.l, { 'a_stroke-width': 9 }, m('name') + .4 + i * .5, .3); tw(l.l, { 'a_stroke-width': 5 }, m('name') + 1.1 + i * .5, .4); });
   }],
@@ -224,13 +224,13 @@ const BEATS = [
     const eq = vs.row([{ t: 'x' }, { col: 'v', fixed: true }, '+', { t: 'y' }, { col: 'w', fixed: true }, '=', { col: 'sum', fixed: true }], { x: 120, y: 540, size: 54, o: 0 });
     showRow(eq, m('eq'), 0, 2); showRow(eq, m('eq') + 2.4, 2, 5); showRow(eq, m('eq') + 4.6, 5, 7);
     const top = [vs.num('v0').pop(), vs.num('w0').pop(), vs.num('sum0').pop()], bot = [vs.num('v1').pop(), vs.num('w1').pop(), vs.num('sum1').pop()];
-    const hl = (els, t0, dur) => els.forEach(e => { tw(e, { c_color: COL.task }, t0, .3); tw(e, { c_color: e.getAttribute('color') }, t0 + dur, .5); });
-    hl(top, m('top') + .4, m('bot') - m('top') - .8);
-    hide(rbox(p, 150, 460, 510, 60, COL.task, m('top') + .3), m('bot') - .2, .4);   // read across the top
-    hide(rbox(p, 150, 530, 510, 60, COL.task, m('bot') + .3), m('same'), .4);         // then across the bottom
+    const hl = (els, t0, dur, c) => els.forEach(e => { tw(e, { c_color: c }, t0, .3); tw(e, { c_color: e.getAttribute('color') }, t0 + dur, .5); });   // in the row's colour
+    hl(top, m('top') + .4, m('bot') - m('top') - .8, BLUE);
+    hide(rbox(p, 150, 460, 510, 60, BLUE, m('top') + .3), m('bot') - .2, .4);   // read across the top
+    hide(rbox(p, 150, 530, 510, 60, CORAL, m('bot') + .3), m('same'), .4);         // then across the bottom
     say(p, ['x·2 + y·(−1) = 0'], 120, 720, m('top') + .6, { size: 40 });
     say(p, ['→  2x − y = 0'], 520, 720, m('top') + 4.2, { size: 40, fill: BLUE });
-    hl(bot, m('bot') + .4, m('same') - m('bot') - .6);
+    hl(bot, m('bot') + .4, m('same') - m('bot') - .6, CORAL);
     say(p, ['x·(−1) + y·2 = 3'], 120, 790, m('bot') + .6, { size: 40 });
     say(p, ['→  −x + 2y = 3'], 520, 790, m('bot') + 4.4, { size: 40, fill: CORAL });
     rbox(p, 100, 670, 820, 150, COL.good, m('same') + .3);
@@ -254,7 +254,7 @@ const BEATS = [
     [0, 2, 3, 5].forEach(i => show(rb.parts[i], m('ch6') + 5)); show(rb.parts[6], m('ch6') + 6.2);
     say(p, ['c = 1,   d = 2'], 70, 570, m('found'), { size: 40, fill: COL.task });
     // the same equation: dashed links, partner to partner, as the narration pairs them
-    [[1, .3], [4, 1.1], [0, 2.8], [3, 3.5], [6, 5.6]].forEach(([i, dt]) => draw(path(p, `M${ctr(i)} 296V350`, { stroke: COL.task, 'stroke-width': 3, 'stroke-dasharray': '5 6', fill: 'none' }, { d: 0 }), m('here') + dt, .4));
+    [[1, .3], [4, 1.1], [0, 2.8], [3, 3.5], [6, 5.6]].forEach(([i, dt]) => draw(path(p, `M${ctr(i)} 296V350`, { stroke: COL.chalk, 'stroke-width': 3, 'stroke-dasharray': '5 6', fill: 'none' }, { d: 0 }), m('here') + dt, .4));
     const amt = colAmt(vs, 70, 680, 42, 0);
     vs.show(['v', 'w'], m('seen'), .6);
     thick(vs, 'v', m('ch6') + 1.6); thick(vs, 'w', m('ch6') + 3.4);
@@ -273,7 +273,7 @@ const BEATS = [
     tw(vs.A.dw.g, { o: 1 }, m('plus'), .3); tw(vs.A.dw.g, { x: 0, y: 0 }, m('plus') + .4, 1.4);
     vs.show('sum', m('lands'), .6); thick(vs, 'sum', m('lands') + .6, 6);
     const nm = G(p, { o: 0 });
-    T(nm, 'column picture: the solution is the mix that makes b', { x: 70, y: 780, size: 28, weight: 600, fill: COL.task });
+    T(nm, 'column picture: the solution is the mix that makes b', { x: 70, y: 780, size: 28, weight: 600, fill: COL.chalk });
     show(nm, m('name'));
   }],
 
@@ -303,15 +303,15 @@ const BEATS = [
     const ea = va.row([{ t: 'x' }, { col: 'v', fixed: true }, '+', { t: 'y' }, { col: 'w', fixed: true }, '=', { col: 'sum', fixed: true }], { x: 560, y: 250, size: 42, o: 0 });
     showRow(ea, m('ax') + 1, 0, 2); showRow(ea, m('ay') + 1, 2, 5); showRow(ea, m('ab') + .8, 5, 7);
     // 1·[1, 3] + 2·[4, −1] = [1, 3] + [8, −2] = [1 + 8, 3 − 2] = [9, 1]: every step on the board
-    const ca = va.row([{ key: 'c' }, { col: 'v', fixed: true }, { key: 'd', signed: true }, { col: 'w', fixed: true }, '=', { fn: () => ['1', '3'], w: 56, fill: GREEN }, '+', { fn: () => ['8', '−2'], w: 66, fill: VIOLET },
+    const ca = va.row([{ key: 'c', one: true }, { col: 'v', fixed: true }, { key: 'd', signed: true, one: true }, { col: 'w', fixed: true }, '=', { fn: () => ['1', '3'], w: 56, fill: GREEN }, '+', { fn: () => ['8', '−2'], w: 66, fill: VIOLET },
       '=', { fn: () => ['1 + 8', '3 − 2'], w: 130 }, '=', { col: 'sum', fixed: true }], { x: 560, y: 400, size: 38, o: 0 });
     showRow(ca, m('acheck'), 0, 4); showRow(ca, m('acheck') + 3.4, 4, 6); showRow(ca, m('acheck') + 4.8, 6, 8);
     const fns = va.num('fn'), [ft, fb] = fns.slice(4); put(fb, { o: 0 }); showRow(ca, m('acheck') + 6.4, 8, 10); show(fb, m('acheck2'));
     showRow(ca, m('acheck2') + 1.6, 10, 12); [ft, fb].forEach(e => lightUp(e, m('acheck2') + 1.8));
     const sb = sysText(p, [['', '', 'y', '2'], ['x', '−', '3y', '0']], 120, 600, { size: 46, gap: 70, o: 0 });
     show(sb, m('b'));
-    say(p, ['0x'], 120 + 100 * .92, 600, m('bx') + .6, { size: 46, fill: COL.task, anchor: 'end' });
-    say(p, ['+'], 120 + 162 * .92, 600, m('bx') + .6, { size: 46, fill: COL.task, anchor: 'middle' });
+    say(p, ['0x'], 120 + 100 * .92, 600, m('bx') + .6, { size: 46, fill: COL.chalk, anchor: 'end' });
+    say(p, ['+'], 120 + 162 * .92, 600, m('bx') + .6, { size: 46, fill: COL.chalk, anchor: 'middle' });
     boxCol(p, sb, 0, GREEN, m('bx') + 1.2); boxCol(p, sb, 1, VIOLET, m('by')); boxCol(p, sb, 2, COL.task, m('bb'));
     const vb = colPic(p, [[0, 1], [1, -3]], { c: 6, d: 2, hidePlane: true, show: [] });
     const eb = vb.row([{ t: 'x' }, { col: 'v', fixed: true }, '+', { t: 'y' }, { col: 'w', fixed: true }, '=', { col: 'sum', fixed: true }], { x: 560, y: 640, size: 42, o: 0 });
@@ -336,6 +336,11 @@ const BEATS = [
     const p = panel(0);
     text(p, 'Change b: both pictures follow', 60, 110, .2, { size: 40, weight: 600 });
     const { sys, vs } = twin(p, LA, LB);
+    // with b up and left (−3, 3), col 2's label would sit on b's arrow: it goes right of the y-axis, level with its tip
+    vs.onChange((v, k) => {
+      const n = k.sum[0] < -1.5 && k.sum[1] > 1.5 ? [92, 14] : [-14, 0];
+      if (vs.A.w.nudge?.[0] !== n[0]) { vs.A.w.nudge = n; vs.redraw(); }
+    });
     flashLs(sys, 'b0', m('change')); flashLs(sys, 'b1', m('change')); vs.flash('sum0', m('change')); vs.flash('sum1', m('change'));
     sys.to({ b0: 3, b1: 0 }, m('to30') + .2, 1.8);
     pulse(sys.meet, m('rows') + 1.6, 1.6);
@@ -345,7 +350,7 @@ const BEATS = [
     pulse(sys.meet, m('ag2') + .4, 1.6); vs.flash('c', m('ag2') + 1.6); vs.flash('d', m('ag2') + 1.6);
     // a hand drags b in the column picture; the tip snaps to grid points, x and y are found at each
     const { PX, PY } = vs.P, hand = G(p, { o: 0 });
-    mk('circle', { r: 18, fill: COL.task, 'fill-opacity': .25, stroke: COL.task, 'stroke-width': 3 }, hand);
+    mk('circle', { r: 18, fill: COL.chalk, 'fill-opacity': .25, stroke: COL.chalk, 'stroke-width': 3 }, hand);
     put(hand, { x: PX(1), y: PY(1) });
     show(hand, m('drag') + .4, .3);
     prog(q => {
@@ -426,7 +431,7 @@ const BEATS = [
     show(ring, m('miss') + 1, .3); pulse(ring, m('miss') + 1.4, 1.6);
     text(p, 'no mix of the columns reaches b', 860, 318, m('miss') + 1.6, { size: 26, fill: COL.bad, weight: 600 });
     sys.lines.forEach((l, i) => { tw(l.l, { 'a_stroke-width': 9 }, m('rowp') + .8 + i * .5, .3); tw(l.l, { 'a_stroke-width': 5 }, m('rowp') + 1.5 + i * .5, .4); });
-    text(p, 'no solution, seen two ways', 800, 886, m('both'), { size: 30, fill: COL.task, weight: 600, anchor: 'middle' });
+    text(p, 'no solution, seen two ways', 800, 886, m('both'), { size: 30, fill: COL.chalk, weight: 600, anchor: 'middle' });
   }],
 
   ['q3', 'Quick check', () => {
@@ -439,7 +444,7 @@ const BEATS = [
   }, { ask: done => quiz(CARD, [{
     id: 'c-mix', prompt: ['How much of each column makes ', $m('b'), '?'],
     build: blanks([{ parts: ['x = ', { box: '2' }, '      y = ', { box: '1' }], why: '2·[2, 1] + 1·[1, 3] = [4 + 1, 2 + 3] = [5, 5].',
-      hint: 'Top: 2x + y must be 5. Bottom: x + 3y must be 5. Try small whole numbers.',
+      hint: 'Top: 2x + y = 5. Bottom: x + 3y = 5. Try y = 1: the top needs 2x = 4.',
       fx: () => ['cv', 'dw'].forEach((id, i) => fx(S.vs.A[id].g, { o: 1 }, i * .5, .5)) }]),
   }], done) }],
 
@@ -449,12 +454,12 @@ const BEATS = [
      ['Column picture: the solution is the mix of columns that makes b.', 'w3'], ['Both pictures always give the same answer.', 'w4']].forEach(([str, mark], i) => {
       const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
       const dg = G(g, { x: 150, y: -12 });
-      mk('circle', { r: 26, fill: COL.task }, dg);
+      mk('circle', { r: 26, fill: COL.chalk }, dg);
       T(dg, String(i + 1), { x: 0, y: 11, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
       const tl = T(g, str, { x: 210, size: 34, weight: 600 });
       tw(g, { o: 1, x: 0 }, m(mark), .6);
       pulse(dg, m('end') + i * .3, 1.25);
-      const next = ['w2', 'w3', 'w4', 'end'][i], ul = path(g, `M210 16H${210 + tl.getComputedTextLength()}`, { stroke: COL.task, 'stroke-width': 3, 'stroke-opacity': .6 }, { d: 0 });
+      const next = ['w2', 'w3', 'w4', 'end'][i], ul = path(g, `M210 16H${210 + tl.getComputedTextLength()}`, { stroke: COL.chalk, 'stroke-width': 3, 'stroke-opacity': .6 }, { d: 0 });
       draw(ul, m(mark) + .5, Math.max(1, m(next) - m(mark) - 1), lin);
     });
   }],
@@ -488,10 +493,10 @@ const BEATS = [
   ['play', 'Playground', (m) => {
     const p = panel(0);
     text(p, 'Playground', 60, 110, .2, { size: 40, weight: 600 });
-    S.T2 = twin(p, LA, LB, { rows: false });
+    S.T2 = twin(p, LA, LB, { eqAt: null, amtAt: m('go') });   // the amounts row under the card: it follows b, and scrubbing it moves b
     text(p, 'try: make the two lines parallel', 420, 846, m('go'), { size: 24, fill: COL.dim, anchor: 'middle' });
     text(p, 'try: line the columns up, or put b on col 1', 1180, 846, m('go') + .6, { size: 24, fill: COL.dim, anchor: 'middle' });
-  }, { ask: playAsk(() => twinPlay(S.T2), { pos: { x: 640, y: 24, w: 930, cls: 'side' }, tip: 'Change any number on the left; drag col 1, col 2 or b on the right. Nothing is marked.' }) }],
+  }, { ask: playAsk(() => twinPlay(S.T2), { pos: { x: 640, y: 24, w: 930, cls: 'side' }, tip: 'Change any number on the left, or drag col 1, col 2 or b on the right.' }) }],
   ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
 

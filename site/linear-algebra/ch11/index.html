@@ -31,10 +31,10 @@ const tri = q => `(${q.map(c => num(r1(c))).join(', ')})`;
 const onePlane = (p, a, b, c, d, { t0 = .1, view = VIEW } = {}) => lin3(p, { rows: 1, A: [[a, b, c], [0, 0, 0], [0, 0, 0]], b: [d, 0, 0], eq: [90, 200], size: 50, space: { ...view }, t0 });
 const flash = (sys, key, t0) => sys.num(key).forEach(e => { tw(e, { c_fill: COL.task }, t0, .25); tw(e, { c_fill: COL.chalk }, t0 + 1.2, .6); });
 const glowPl = (pl, t0) => { prog(q => pl.width(3 + 5 * Math.sin(Math.PI * q)), t0, 1.2, lin); };
-// Amber dots where the plane crosses the three axes, following the numbers; labels keep tick numbers away.
+// Chalk dots where the plane crosses the three axes, following the numbers; labels keep tick numbers away.
 const crossings = (sys, t0 = 0, { labels = true } = {}) => {
   const V = sys.space, g = G(V.content, { o: 0 });
-  const dots = [0, 1, 2].map(() => V.point(null, { color: COL.task, r: 8, size: 24, into: g }));
+  const dots = [0, 1, 2].map(() => V.point(null, { color: COL.chalk, r: 8, size: 24, into: g }));
   sys.onChange(v => [0, 1, 2].forEach(j => {
     const a = v[`a0${j}`], c = Math.abs(a) > 1e-6 ? v.b0 / a : null, ok = c !== null && Math.abs(c) <= V.R + 1e-6, q = [0, 0, 0];
     if (ok) q[j] = c;
@@ -140,6 +140,12 @@ const BEATS = [
       if (!i) { const w = say(p, ['1 + 1 + z = 3'], tx[3], yy, m('x1') + 3.2, { size: 32, anchor: 'middle', fill: COL.dim }); hide(w, at[0][3] - .2, .2); }
       text(p, '✓', 640, yy, at[i][3] + .3, { size: 34, fill: COL.good, anchor: 'middle', weight: 700 });
     });
+    // while the first row is worked out, its triple builds large on the right: x, then y, then the z it forces
+    const big = G(p, {}), bigX = [1035, 1085, 1120, 1170, 1205, 1255, 1295];
+    ['(', '1', ',', '1', ',', '', ')'].forEach((c, k) => { if (c) say(big, [c], bigX[k], 420, k === 1 ? m('x1') : k === 3 ? m('x1') + .8 : m('x1'), { size: 72, fill: k % 2 ? AXC[(k - 1) / 2] : COL.chalk, anchor: 'middle' }); });
+    const zq = say(big, ['?'], bigX[5], 420, m('x1') + 1.2, { size: 72, fill: COL.dim, anchor: 'middle' }); hide(zq, m('z1') + .2, .3);
+    say(big, ['1'], bigX[5], 420, m('z1') + .3, { size: 72, fill: AXC[2], anchor: 'middle' });
+    hide(big, m('tri') - .4, .4);
     text(p, 'solutions: triples', 1160, 250, m('tri') - .3, { size: 30, fill: COL.dim, anchor: 'middle' });
     // each row's numbers fly into its chip as the row is checked
     rows.forEach((r, i) => r.forEach((c, j) => {
@@ -153,13 +159,13 @@ const BEATS = [
       tw(c, { o: 1, s: 1 }, (i ? at[i][3] + .2 : m('tri')) + 1.1, .5, back);
     });
     text(p, 'x first, then y, then z', 1160, 486, m('tri') + 3, { size: 24, fill: COL.dim, anchor: 'middle' });
-    const tl = text(p, 'a triple', 1030, 400, m('r2') - 2.2, { size: 26, fill: COL.task, anchor: 'middle', weight: 600 });
+    const tl = text(p, 'a triple', 1030, 400, m('r2') - 2.2, { size: 26, fill: COL.chalk, anchor: 'middle', weight: 600 });
     hide(tl, m('r2') + 1.5, .4);
     [[0, 0, 1], [1, 0, 2], [3, 1, -1], [5, -1, -1], [-1, 2, 2], [4, -2, 1]].forEach((r, i) => {
       const c = chip(p, [tri(r)], COL.dim, { x: 990 + (i % 3) * 190, y: 580 + Math.floor(i / 3) * 66, size: 26 });
       put(c, { o: 0, s: .5 }); tw(c, { o: .8, s: 1 }, m('many') + .6 + i * .45, .4, back);
     });
-    text(p, '… and endlessly many more', 1180, 730, m('many') + 3.6, { size: 30, fill: COL.task, anchor: 'middle', weight: 600 });
+    text(p, '… and endlessly many more', 1180, 730, m('many') + 3.6, { size: 30, fill: COL.chalk, anchor: 'middle', weight: 600 });
     text(p, 'a pair is a point on a flat plane. A triple?', 1180, 805, m('many') + 7, { size: 30, fill: COL.chalk, anchor: 'middle', weight: 600 });
   }],
 
@@ -169,11 +175,11 @@ const BEATS = [
     const V = S.V = space3(p, { yaw: 0, pitch: 90, t0: .1 });
     put(V.axes[2], { o: 0 }); put(V.cube, { o: 0 });
     V.poly([[-4, -4, 0], [4, -4, 0], [4, 4, 0], [-4, 4, 0]], { color: COL.chalk, fo: .06, w: 0 });   // the sheet of paper that is laid down
-    const pt = V.point([2, 1, 0], { color: COL.task, label: '(2, 1)' });
+    const pt = V.point([2, 1, 0], { color: COL.chalk, label: '(2, 1)' });
     // the walk of chapter 1, on the flat plane seen from above
     V.walk([2, 1, 0], m('pt'), { dur: 1.4, dot: false, w: 4 });
-    const p2 = say(p, ['(2, 1)'], 90, 210, m('pt') + .6, { size: 46, fill: COL.task });
-    hide(p2, m('floor') + .3, .3); say(p, ['(2, 1, 0)'], 90, 210, m('floor') + .5, { size: 46, fill: COL.task });
+    const p2 = say(p, ['(2, 1)'], 90, 210, m('pt') + .6, { size: 46, fill: COL.chalk });
+    hide(p2, m('floor') + .3, .3); say(p, ['(2, 1, 0)'], 90, 210, m('floor') + .5, { size: 46, fill: COL.chalk });
     put(pt.e, { o: 0 }); show(pt.e, m('pt') + 1.3, .3);
     [[0, 'xr'], [1, 'yu']].forEach(([j, mk_]) => {
       const a = V.line(null, null, { color: AXC[j], w: 7, into: V.content, head: true }), e = [0, 0, 0];
@@ -205,10 +211,10 @@ const BEATS = [
     text(p, 'A point in space: three numbers', 60, 110, .2, { size: 40, weight: 600 });
     const V = space3(p, { ...VIEW, t0: .1 });
     V.sway(5, 11);
-    say(p, ['(2, 1, 3)'], 90, 210, .4, { size: 54, fill: COL.task });
+    const c1 = say(p, ['(2, 1, 3)'], 90, 210, .4, { size: 54, fill: COL.chalk });
     const O = V.point(null, { color: COL.chalk, r: 7 });
     prog(() => O.set([0, 0, 0]), m('o'), 0, lin); pulse(O.e, m('o'));
-    const w1 = V.walk([2, 1, 3], 0, { at: [m('x'), m('y'), m('z')], dur: 3, label: '(2, 1, 3)', w: 8 });
+    const w1 = V.walk([2, 1, 3], 0, { at: [m('x'), m('y'), m('z')], dur: 3, label: '(2, 1, 3)', color: COL.chalk, w: 8 });
     const steps = [['2', 'steps along x'], ['1', 'step along y, away'], ['3', 'steps up']];
     const st1 = G(p, {});
     steps.forEach(([n, s], j) => { say(st1, [n], 110, 300 + j * 56, m(['x', 'y', 'z'][j]), { size: 40, fill: AXC[j], anchor: 'middle' }); text(st1, s, 150, 300 + j * 56, m(['x', 'y', 'z'][j]) + .2, { size: 28, fill: COL.dim }); });
@@ -219,13 +225,13 @@ const BEATS = [
     V.turn({ yaw: VIEW.yaw + 55, pitch: 12 }, m('turn'), 3);
     V.turn({ yaw: VIEW.yaw - 10, pitch: VIEW.pitch }, m('ex2') - .2, 2.2);
     [st1, sn].forEach(e => hide(e, m('ex2') - .4, .4));
-    tw(w1.dot.e, { o: .5 }, m('ex2'), .4);
-    say(p, ['(−1, 2, −2)'], 360, 210, m('ex2'), { size: 54, fill: COL.int });
-    const w2 = V.walk([-1, 2, -2], 0, { at: [m('x2'), m('y2'), m('z2')], dur: 3, label: '(−1, 2, −2)', color: COL.int, w: 8 });
+    tw(w1.dot.e, { o: .5 }, m('ex2'), .4); tw(c1, { o: .5 }, m('ex2'), .4);   // the first point steps back for the second
+    say(p, ['(−1, 2, −2)'], 360, 210, m('ex2'), { size: 54, fill: COL.chalk });
+    const w2 = V.walk([-1, 2, -2], 0, { at: [m('x2'), m('y2'), m('z2')], dur: 3, label: '(−1, 2, −2)', color: COL.chalk, w: 8 });
     const steps2 = [['−1', 'step along x: to the left'], ['2', 'steps along y, away'], ['−2', 'steps: down, below the floor']];
     steps2.forEach(([n, s], j) => { say(p, [n], 110, 300 + j * 56, m(['x2', 'y2', 'z2'][j]), { size: 40, fill: AXC[j], anchor: 'middle' }); text(p, s, 150, 300 + j * 56, m(['x2', 'y2', 'z2'][j]) + .2, { size: 28, fill: COL.dim }); });
     pulse(w2.dot.e, m('here2'));
-    text(p, 'one triple  =  one point in space', 90, 560, m('here2'), { size: 34, weight: 600, fill: COL.task });
+    text(p, 'one triple  =  one point in space', 90, 560, m('here2'), { size: 34, weight: 600, fill: COL.chalk });
     V.sway(8, 12, m('here2'));
   }],
 
@@ -238,15 +244,15 @@ const BEATS = [
     pl.fade(0, 0, 0); pl.fade(1, m('plane') + .3, 1.2);
     const cl = G(V.content, {});
     const sols = [[1, 1, 1, 'p1'], [3, 0, 0, 'p2'], [0, 2, 1, 'p3'], [2, 2, -1, 'p4']];
-    sols.forEach(([x, y, z, mk_]) => { const d = V.point(null, { color: COL.task, label: tri([x, y, z]), size: 24, into: cl }); prog(() => d.set([x, y, z]), m(mk_), 0, lin); pulse(d.e, m(mk_)); hide(d.t, m('more'), .5); });
+    sols.forEach(([x, y, z, mk_]) => { const d = V.point(null, { color: COL.chalk, label: tri([x, y, z]), size: 24, into: cl }); prog(() => d.set([x, y, z]), m(mk_), 0, lin); pulse(d.e, m(mk_)); hide(d.t, m('more'), .5); });
     [[0, 3, 0], [0, 0, 3], [2, 1, 0], [1, 0, 2], [0, 1, 2], [2, 0, 1], [1, 2, 0], [-1, 2, 2], [3, 1, -1], [1, -1, 3], [2, -1, 2], [-1, 1, 3], [4, 0, -1], [0, 4, -1]].forEach((q, i) => {
-      const d = V.point(null, { color: COL.task, r: 7, into: cl });
+      const d = V.point(null, { color: COL.chalk, r: 7, into: cl });
       prog(() => d.set(q), m('more') + i * .12, 0, lin);
     });
     // edge-on: the view direction (sin yaw, cos yaw, −tan pitch) lies in the plane when tan pitch = sin yaw + cos yaw
     const edge = Math.atan(Math.sin(VIEW.yaw * Math.PI / 180) + Math.cos(VIEW.yaw * Math.PI / 180)) * 180 / Math.PI;
     V.turn({ pitch: edge }, m('edge'), 2.4);
-    const ln = text(p, 'all in one line: a flat sheet seen edge-on', 90, 330, m('line'), { size: 30, fill: COL.task, weight: 600 });
+    const ln = text(p, 'all in one line: a flat sheet seen edge-on', 90, 330, m('line'), { size: 30, fill: COL.chalk, weight: 600 });
     hide(ln, m('plane'), .4);
     V.turn({ pitch: VIEW.pitch }, m('plane'), 2.4);
     tw(cl, { o: .55 }, m('rule') - .5, .5);
@@ -319,15 +325,15 @@ const BEATS = [
     const cr = (lab, res, y, t, q, mk_) => {
       say(steps, [lab], 90, y, t, { size: 30, fill: COL.dim });
       say(steps, [res], 470, y, t + 1.2, { size: 36 });
-      const d = V.point(null, { color: COL.task, label: tri(q), size: 24, into: steps });
+      const d = V.point(null, { color: COL.chalk, label: tri(q), size: 24, into: steps });
       prog(() => d.set(q), m(mk_), 0, lin); pulse(d.e, m(mk_));
     };
     cr('on the x-axis, y = z = 0:', 'x = 3', 330, m('xa'), [3, 0, 0], 'px');
     cr('on the y-axis, x = z = 0:', 'y = 3', 390, m('ya'), [0, 3, 0], 'py');
     cr('on the z-axis, x = y = 0:', 'z = 3', 450, m('za'), [0, 0, 3], 'pz');
-    const t1 = V.poly([[3, 0, 0], [0, 3, 0], [0, 0, 3]], { color: COL.task, fo: .28, w: 4, into: steps });
+    const t1 = V.poly([[3, 0, 0], [0, 3, 0], [0, 0, 3]], { color: COL.chalk, fo: .28, w: 4, into: steps });
     tw(t1.e, { o: 0 }, 0, 0); show(t1.e, m('tri'), .8);
-    text(steps, 'the corner where x, y, z are all positive', 90, 520, m('tri') + 1.5, { size: 26, fill: COL.task });
+    text(steps, 'the corner where x, y, z are all positive', 90, 520, m('tri') + 1.5, { size: 26, fill: COL.chalk });
     pl.fade(.9, m('tri') + 3, 1.2);
     hide(steps, m('ex2') - .5, .4);
     pl.fade(.25, m('ex2') - .5, .4);
@@ -354,7 +360,7 @@ const BEATS = [
     const sys = S.sys = onePlane(p, 1, 1, 1, 3);
     const V = sys.space;
     crossings(sys, m('three'), { labels: false });
-    const rd = G(p, { o: 0 }), rdT = T(rd, '', { x: 90, y: 400, size: 34, fill: COL.task, font: MATH });
+    const rd = G(p, { o: 0 }), rdT = T(rd, '', { x: 90, y: 400, size: 34, fill: COL.chalk, font: MATH });
     T(rd, 'where it crosses the axes:', { x: 90, y: 350, size: 28, fill: COL.dim });
     sys.onChange(v => { const c = r1(v.b0); const s = `(${num(c)}, 0, 0),   (0, ${num(c)}, 0),   (0, 0, ${num(c)})`; if (rdT.textContent !== s) rdT.textContent = s; });
     show(rd, m('three'));
@@ -365,12 +371,12 @@ const BEATS = [
     sys.to({ b0: 1 }, m('one'), 1.6); flash(sys, 'b0', m('one'));
     keep(1, m('zero'));
     sys.to({ b0: 0 }, m('zero'), 1.4); flash(sys, 'b0', m('zero'));
-    const zz = say(p, ['0 + 0 + 0 = 0'], 90, 460, m('origin'), { size: 38, fill: COL.task }); hide(zz, m('neg'), .3);
+    const zz = say(p, ['0 + 0 + 0 = 0'], 90, 460, m('origin'), { size: 38, fill: COL.chalk }); hide(zz, m('neg'), .3);
     keep(0, m('neg'));
     sys.to({ b0: -2 }, m('neg'), 1.4); flash(sys, 'b0', m('neg'));
     const n = G(p, { o: 0 });
     T(n, 'right side changes:', { x: 90, y: 500, size: 32, fill: COL.dim });
-    T(n, 'the plane slides, never tilts', { x: 90, y: 550, size: 36, weight: 600, fill: COL.task });
+    T(n, 'the plane slides, never tilts', { x: 90, y: 550, size: 36, weight: 600, fill: COL.chalk });
     show(n, m('par'));
     V.sway(10, 14, 0);
   }],
@@ -387,9 +393,9 @@ const BEATS = [
     const w = G(p, {});
     say(w, ['on the x-axis,  y = z = 0:'], 90, 330, m('why'), { size: 30, fill: COL.dim });
     say(w, ['3x = 3,   x = 1'], 90, 385, m('xa'), { size: 40 });
-    const hinge = V.line(null, null, { color: COL.task, w: 5, into: V.content });
+    const hinge = V.line(null, null, { color: COL.chalk, w: 5, into: V.content });
     prog(() => hinge.set([0, 3, 0], [0, 0, 3]), m('same'), 0, lin);
-    text(w, 'y and z crossings stay: the hinge', 90, 450, m('same') + .5, { size: 28, fill: COL.task, weight: 600 });
+    text(w, 'y and z crossings stay: the hinge', 90, 450, m('same') + .5, { size: 28, fill: COL.chalk, weight: 600 });
     hide(w, m('zc') - .3, .3); hide(hinge.e, m('zc') - .3, .3);
     sys.to({ a00: 1, a02: 3 }, m('zc'), 1.8); flash(sys, 'a00', m('zc')); flash(sys, 'a02', m('zc'));
     const w2 = say(p, ['on the z-axis:   3z = 3,   z = 1'], 90, 385, m('zt'), { size: 36 });
@@ -397,7 +403,7 @@ const BEATS = [
     sys.to({ a00: -1, a02: 1 }, m('minus'), 1.8); flash(sys, 'a00', m('minus')); flash(sys, 'a02', m('minus'));
     say(p, ['on the x-axis:   −x = 3,   x = −3'], 90, 385, m('neg'), { size: 36 });
     const n = G(p, { o: 0 });
-    T(n, 'right side: slides the plane', { x: 90, y: 630, size: 34, weight: 600, fill: COL.task });
+    T(n, 'right side: slides the plane', { x: 90, y: 630, size: 34, weight: 600, fill: COL.chalk });
     T(n, 'numbers in front of x, y, z: tilt it', { x: 90, y: 682, size: 34, weight: 600, fill: BLUE });
     show(n, m('sum'));
     V.turn({ pitch: 50 }, m('zc'), 2);                    // x + y + 3z = 3 is edge-on at pitch 24
@@ -431,14 +437,14 @@ const BEATS = [
     V.sway(6, 13);
     pl.fade(0, 0, 0); pl.fade(1, m('floor'), 1);
     ['a00', 'a01'].forEach(k => flash(sys, k, m('zero') + .4));
-    const f1 = text(p, 'x and y free,  z must be 2', 90, 300, m('zero') + 1.5, { size: 32, fill: COL.task, weight: 600 });
+    const f1 = text(p, 'x and y free,  z must be 2', 90, 300, m('zero') + 1.5, { size: 32, fill: COL.chalk, weight: 600 });
     const fl = G(V.content, {});
-    [[-3, -2], [0, 0], [3, 1], [-1, 3]].forEach(([x, y], i) => { const d = V.point(null, { color: COL.task, r: 7, into: fl, stem: true }); prog(() => d.set([x, y, 2]), m('floor') + .5 + i * .25, 0, lin); });
+    [[-3, -2], [0, 0], [3, 1], [-1, 3]].forEach(([x, y], i) => { const d = V.point(null, { color: COL.chalk, r: 7, into: fl, stem: true }); prog(() => d.set([x, y, 2]), m('floor') + .5 + i * .25, 0, lin); });
     V.turn({ pitch: 8 }, m('floor') + .4, 2); V.turn({ pitch: VIEW.pitch }, m('eq2') - .5, 1.5);
     [f1, fl].forEach(e => hide(e, m('eq2') - .4, .3));
     sys.to({ a00: 1, a02: 0, b0: 1 }, m('eq2'), 1.8);
     ['a00', 'a02', 'b0'].forEach(k => flash(sys, k, m('eq2') + .8));
-    const f2 = text(p, 'y and z free,  x must be 1', 90, 300, m('wall') - .4, { size: 32, fill: COL.task, weight: 600 });
+    const f2 = text(p, 'y and z free,  x must be 1', 90, 300, m('wall') - .4, { size: 32, fill: COL.chalk, weight: 600 });
     V.turn({ yaw: VIEW.yaw + 40 }, m('wall'), 2.4);   // nearer face-on to the wall x = 1
     hide(f2, m('eq3') - .4, .3);
     // x + y = 2: first the line on the floor, then the wall that rises from it
@@ -449,10 +455,10 @@ const BEATS = [
     const ln = V.line(null, null, { color: BLUE, w: 6, into: V.content });
     prog(q => ln.set([4, -2, 0], [4 - 6 * q, -2 + 6 * q, 0]), m('line'), 1.2, io);
     text(p, 'on the floor: the line x + y = 2', 90, 300, m('line'), { size: 30, fill: BLUE, weight: 600 });
-    text(p, 'z is free: up and down', 90, 350, m('free'), { size: 30, fill: COL.task, weight: 600 });
+    text(p, 'z is free: up and down', 90, 350, m('free'), { size: 30, fill: COL.chalk, weight: 600 });
     const wl = V.poly(null, { color: BLUE, fo: .22, w: 3, into: V.polys });
     prog(q => { const h = V.R * q; wl.set(q ? [[4, -2, -h], [-2, 4, -h], [-2, 4, h], [4, -2, h]] : null); }, m('rise'), 2.2, io);
-    [-1, 1, 3].forEach((x, i) => { const d = V.point(null, { color: COL.task, r: 7, into: V.content }); prog(() => d.set([x, 2 - x, [3, -2, 1.5][i]]), m('free') + 1 + i * .3, 0, lin); });
+    [-1, 1, 3].forEach((x, i) => { const d = V.point(null, { color: COL.chalk, r: 7, into: V.content }); prog(() => d.set([x, 2 - x, [3, -2, 1.5][i]]), m('free') + 1 + i * .3, 0, lin); });
     V.turn({ yaw: -15, pitch: 18 }, m('rise'), 3);   // the wall x + y = 2 from 60° off face-on: it reads as standing
     text(p, 'a missing letter  =  a free letter', 90, 690, m('sum'), { size: 32, weight: 600 });
   }],
@@ -477,7 +483,7 @@ const BEATS = [
     [['A point in space is a triple (x, y, z): along x, back along y, up z.', 'w1'], ['The solutions of one equation in x, y, z make a flat plane.', 'w2'],
      ['Where it crosses the three axes: three points pin it down.', 'w3'], ['Right side slides it; the numbers tilt it; a missing letter is free.', 'w4']].forEach(([str, mark], i) => {
       const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
-      mk('circle', { cx: 150, cy: -12, r: 26, fill: COL.task }, g);
+      mk('circle', { cx: 150, cy: -12, r: 26, fill: COL.chalk }, g);
       T(g, String(i + 1), { x: 150, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
       T(g, str, { x: 210, size: 34, weight: 600 });
       tw(g, { o: 1, x: 0 }, m(mark), .6);
