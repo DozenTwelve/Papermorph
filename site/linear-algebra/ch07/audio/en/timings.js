@@ -430,46 +430,46 @@ window.TIMINGS = {
   ]
  },
  "which": {
-  "dur": 27.072,
+  "dur": 26.568,
   "marks": {
-   "e": 2.721,
-   "cols": 8.073,
-   "colp": 13.672,
-   "miss": 15.677,
-   "rowp": 19.74,
-   "both": 24.648
+   "e": 2.63,
+   "cols": 7.917,
+   "colp": 13.633,
+   "miss": 15.521,
+   "rowp": 19.128,
+   "both": 24.115
   },
   "cues": [
    [
-    0.104,
+    0.091,
     "What if the two columns point the same way?"
    ],
    [
-    2.721,
-    "Take x plus two y equals three, and two x plus four y equals five."
+    2.63,
+    "Take x plus two y equals three, and two x plus four y equals one."
    ],
    [
-    8.073,
+    7.917,
     "The columns are one, two, and two, four."
    ],
    [
-    11.237,
+    11.302,
     "The second is twice the first."
    ],
    [
-    13.672,
-    "All their mixes lie on one line, and b, three, five, is off that line."
+    13.633,
+    "All their mixes lie on one line, and b, three, one, is off that line."
    ],
    [
-    18.372,
+    17.773,
     "No mix reaches it."
    ],
    [
-    19.74,
+    19.128,
     "The row picture says the same: the two lines are parallel, and never meet."
    ],
    [
-    24.648,
+    24.115,
     "No solution, seen two ways."
    ]
   ]
@@ -569,6 +569,30 @@ window.TIMINGS = {
    [
     1.302,
     "Move b until the solution is the one asked for."
+   ]
+  ]
+ },
+ "play": {
+  "dur": 12.48,
+  "marks": {
+   "go": 3.906
+  },
+  "cues": [
+   [
+    0.104,
+    "Playground."
+   ],
+   [
+    1.068,
+    "Nothing here is marked right or wrong."
+   ],
+   [
+    3.906,
+    "Change any number on the left, or drag the columns and b on the right, and watch both pictures move together."
+   ],
+   [
+    10.872,
+    "Press continue when you're done."
    ]
   ]
  },

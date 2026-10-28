@@ -34,6 +34,8 @@ window.TIMINGS = {
    "top": 16.224,
    "bot": 18.984,
    "apples": 21.172,
+   "east": 25.0,
+   "north": 26.771,
    "more": 28.737,
    "more2": 33.125,
    "order": 35.69,
@@ -274,37 +276,46 @@ window.TIMINGS = {
   ]
  },
  "every": {
-  "dur": 22.896,
+  "dur": 31.992,
   "marks": {
-   "pts": 1.51,
-   "fan": 3.086,
-   "back": 8.685,
-   "so": 12.018,
-   "diff": 14.883
+   "pts": 1.484,
+   "vec": 4.635,
+   "fan": 12.331,
+   "back": 17.747,
+   "so": 20.99,
+   "diff": 23.802
   },
   "cues": [
    [
-    0.104,
+    0.117,
     "Here's a neat fact."
    ],
    [
-    1.51,
-    "Pick any point of the plane."
+    1.484,
+    "Pick any point of the plane, say minus five, two."
    ],
    [
-    3.086,
-    "There's exactly one arrow from the origin to it, so exactly one vector."
+    4.635,
+    "There's exactly one arrow from the origin to it: the vector minus five, two."
    ],
    [
-    8.685,
+    10.365,
+    "Same numbers, standing up."
+   ],
+   [
+    12.331,
+    "The same goes for every other point: one point, one arrow, one vector."
+   ],
+   [
+    17.747,
     "And every vector ends at exactly one point."
    ],
    [
-    12.018,
+    20.99,
     "Points and vectors match up, one to one."
    ],
    [
-    14.883,
+    23.802,
     "The difference is only how we think of them: a point is a place, and a vector is the trip from the origin to that place."
    ]
   ]
@@ -462,17 +473,19 @@ window.TIMINGS = {
   ]
  },
  "same": {
-  "dur": 33.24,
+  "dur": 45.84,
   "marks": {
-   "v": 2.383,
-   "w": 6.784,
-   "u": 8.19,
-   "eq": 9.362,
-   "ex1": 15.312,
-   "ex2": 17.161,
-   "one": 22.096,
-   "ex3": 26.458,
-   "mirror": 29.609
+   "v": 2.422,
+   "w": 6.641,
+   "u": 7.956,
+   "eq": 9.167,
+   "ex1": 15.013,
+   "ex2": 16.576,
+   "one": 21.367,
+   "ex3": 25.898,
+   "mirror": 29.049,
+   "half": 32.773,
+   "half2": 40.547
   },
   "cues": [
    [
@@ -480,36 +493,52 @@ window.TIMINGS = {
     "We can have several vectors at once."
    ],
    [
-    2.383,
+    2.422,
     "Each one gets its own letter and its own colour: v in green, w in violet, u in pink."
    ],
    [
-    9.362,
+    9.167,
     "When are two vectors equal?"
    ],
    [
-    11.12,
+    10.872,
     "When the top numbers match, and the bottom numbers match."
    ],
    [
-    14.44,
+    14.193,
     "Both."
    ],
    [
-    15.312,
+    15.013,
     "Say v is two, one."
    ],
    [
-    17.161,
+    16.576,
     "If w is also two, one, then w equals v: the same two numbers, the same arrow, one exactly on top of the other."
    ],
    [
-    26.458,
+    25.898,
     "But one, two is not equal to v."
    ],
    [
-    29.609,
+    29.049,
     "The numbers are swapped, and the arrow is a different arrow."
+   ],
+   [
+    32.773,
+    "And two, minus one?"
+   ],
+   [
+    34.818,
+    "The tops match, but the bottoms do not: one is one, the other is minus one."
+   ],
+   [
+    40.547,
+    "So it is not equal either."
+   ],
+   [
+    42.331,
+    "One matching number is not enough; both must match."
    ]
   ]
  },
@@ -616,6 +645,30 @@ window.TIMINGS = {
    [
     1.25,
     "Make each vector with your hands."
+   ]
+  ]
+ },
+ "play": {
+  "dur": 11.712,
+  "marks": {
+   "go": 3.698
+  },
+  "cues": [
+   [
+    0.104,
+    "Playground."
+   ],
+   [
+    1.042,
+    "Nothing here is marked right or wrong."
+   ],
+   [
+    3.698,
+    "Change the numbers, drag the tips of the arrows, draw on the board if you like, and see what moves."
+   ],
+   [
+    10.026,
+    "Press continue when you're done."
    ]
   ]
  },

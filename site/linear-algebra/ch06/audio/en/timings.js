@@ -220,13 +220,15 @@ window.TIMINGS = {
   ]
  },
  "scrub": {
-  "dur": 19.176,
+  "dur": 28.608,
   "marks": {
-   "c": 2.409,
-   "cpath": 6.458,
-   "d": 9.922,
-   "dpath": 12.93,
-   "both": 15.651
+   "c": 2.448,
+   "cpath": 6.419,
+   "d": 9.818,
+   "dpath": 12.786,
+   "both": 15.482,
+   "s1": 19.128,
+   "s2": 23.099
   },
   "cues": [
    [
@@ -234,24 +236,32 @@ window.TIMINGS = {
     "Now let's move c and d, and watch."
    ],
    [
-    2.409,
+    2.448,
     "Change c, and only the first arrow stretches."
    ],
    [
-    6.458,
+    6.419,
     "The tip slides along the direction of v."
    ],
    [
-    9.922,
+    9.818,
     "Change d, and the second arrow stretches."
    ],
    [
-    12.93,
+    12.786,
     "The tip slides along the direction of w."
    ],
    [
-    15.651,
+    15.482,
     "Change both, and you can steer the tip wherever you like."
+   ],
+   [
+    19.128,
+    "c two and d three: the tip lands on one, four."
+   ],
+   [
+    23.099,
+    "c minus one and d minus two: it lands on zero, minus three."
    ]
   ]
  },
@@ -447,14 +457,20 @@ window.TIMINGS = {
   ]
  },
  "parallel": {
-  "dur": 29.736,
+  "dur": 51.24,
   "marks": {
-   "turn": 1.458,
-   "squash": 6.719,
-   "par": 10.43,
-   "line": 12.773,
-   "miss": 15.521,
-   "rule": 22.109
+   "turn": 1.419,
+   "squash": 6.732,
+   "par": 10.456,
+   "line": 13.047,
+   "try": 15.755,
+   "miss": 21.133,
+   "ex2": 26.263,
+   "x2": 33.216,
+   "line2": 38.581,
+   "rule": 41.042,
+   "rule2": 44.701,
+   "rule3": 47.708
   },
   "cues": [
    [
@@ -462,27 +478,39 @@ window.TIMINGS = {
     "But not always."
    ],
    [
-    1.458,
+    1.419,
     "Let w turn, slowly, until it points along v."
    ],
    [
-    6.719,
+    6.732,
     "Watch the grid: it squashes flatter and flatter."
    ],
    [
-    10.43,
+    10.456,
     "Now w is two times v, and all the combinations lie on one line."
    ],
    [
-    15.521,
-    "A target off that line, like zero, three, can never be reached, whatever c and d you choose."
+    15.755,
+    "Steer c and d however you like: the tip only slides along that line."
    ],
    [
-    22.109,
-    "Two vectors that point along different lines fill the plane."
+    21.133,
+    "So a target off the line, like zero, three, can never be reached."
    ],
    [
-    26.107,
+    26.263,
+    "Another pair: v is one, one, and w is minus two, minus two."
+   ],
+   [
+    33.216,
+    "w is minus two times v, so again they point along one line, and every combination lands on that line."
+   ],
+   [
+    41.042,
+    "Two vectors that point along different lines fill the plane, like one, zero and one, one."
+   ],
+   [
+    47.708,
     "Two that point along the same line only fill a line."
    ]
   ]
@@ -586,6 +614,30 @@ window.TIMINGS = {
    [
     1.263,
     "Steer the combination onto each target."
+   ]
+  ]
+ },
+ "play": {
+  "dur": 13.944,
+  "marks": {
+   "go": 4.154
+  },
+  "cues": [
+   [
+    0.104,
+    "Playground."
+   ],
+   [
+    1.094,
+    "Nothing here is marked right or wrong."
+   ],
+   [
+    4.154,
+    "Change c and d, drag the tips, or move v and w themselves, and watch the grid of combinations follow."
+   ],
+   [
+    12.279,
+    "Press continue when you're done."
    ]
   ]
  },

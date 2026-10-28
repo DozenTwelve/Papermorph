@@ -29,11 +29,13 @@ function vecs(p, { vecs: list = { v: [3, 2] }, c = 1, d = 1, plane: po = {}, sna
 
   /* ---------- numbers ---------- */
   const isInt = n => Math.abs(n - Math.round(n)) < 1e-9;
-  // A value as math parts: whole numbers, fractions in lowest terms (denominators up to 12), else one decimal.
+  // A value as math parts: whole numbers, fractions in lowest terms (denominators up to 12; a value rounded to 6 places,
+  // like 0.666667, still reads 2/3), else one decimal.
   const parts = n => {
     if (isInt(n)) return [num(Math.round(n) || 0)];
-    for (let q = 2; q <= 12; q++) { const k = Math.round(n * q); if (Math.abs(n * q - k) < 1e-6) return [k < 0 ? '−' : '', F(Math.abs(k), q)]; }
-    return [num(Math.round(n * 10) / 10)];
+    for (let q = 2; q <= 12; q++) { const k = Math.round(n * q); if (Math.abs(n * q - k) < 5e-6) return [k < 0 ? '−' : '', F(Math.abs(k), q)]; }
+    const r = Math.round(n * 10) / 10;   // a value in passing: always with its decimal sign (−0.97 is "−1.0", not a whole −1)
+    return [num(r) + (Number.isInteger(r) ? DECIMAL_SIGN + '0' : '')];
   };
   const fmt = n => parts(n).map(x => typeof x === 'string' ? x : x.f.join('/')).join('');
   const vec = n => [v[n + '0'], v[n + '1']];
@@ -152,11 +154,11 @@ function vecs(p, { vecs: list = { v: [3, 2] }, c = 1, d = 1, plane: po = {}, sna
       } else if (it.key) {
         if (it.signed) {
           slot(part, 'sign', cx + sz * .3, y, { sz, scrub: false, pf: vv => [vv[it.key] < -1e-9 ? '−' : '+'] });
-          cx += sz * .6 + gap;
+          cx += sz * .45 + gap * .5;
         }
         const w = sz * 1.15, k = it.key;
         slot(part, k, cx + w, y, { sz, fill: it.fill ?? COL.chalk, w, anchor: 'end', pf: it.signed ? vv => parts(Math.abs(vv[k])) : undefined });
-        cx += w + gap * .25;
+        cx += w + gap * .5;   // clear of a bracket after it
       }
       out.push(part);
     }
@@ -280,10 +282,10 @@ function vecs(p, { vecs: list = { v: [3, 2] }, c = 1, d = 1, plane: po = {}, sna
       const lk = fmt(xb - xa) + '|' + fmt(yb - ya) + '|' + [xa, ya, xb, yb].join();
       if (lk !== a.legKey) {
         a.legKey = lk; a.legX.replaceChildren(); a.legY.replaceChildren();
-        // The across number sits inside the corner (between the leg and the arrow) when the rise leaves room,
-        // else on the far side, clear of the axis numbers; the up number sits beside its leg, away from the tail.
+        // Going up, the across number sits inside the corner (between the leg and the arrow) when the rise leaves room,
+        // else under the leg; going down, always above it (clear of the x-axis numbers). The up number sits beside its leg, away from the tail.
         const rise = yb - ya, inside = Math.abs(rise) >= 1.5;
-        const hy = rise >= 0 ? (inside ? -12 : 50) : (inside ? 34 : -14);
+        const hy = rise >= 0 ? (inside ? -12 : 50) : -14;   // pointing down: above the leg, clear of the x-axis numbers
         if (Math.abs(xb - xa) > 1e-9) M(a.legX, parts(xb - xa), { x: (PX(xa) + PX(xb)) / 2, y: PY(ya) + hy, size: 28, fill: colorOf[id], anchor: 'middle' });
         const run = xb - xa, toTail = Math.abs(run) >= 1.5, right = (run >= 0) !== toTail;
         if (Math.abs(rise) > 1e-9) M(a.legY, parts(rise), { x: PX(xb) + (right ? 14 : -14), y: (PY(ya) + PY(yb)) / 2 + 10, size: 28, fill: colorOf[id], anchor: right ? 'start' : 'end' });
@@ -328,7 +330,7 @@ function vecs(p, { vecs: list = { v: [3, 2] }, c = 1, d = 1, plane: po = {}, sna
   draw();
 
   const vs = {
-    v, P: P2, stage: holder, A, names, calc, solveFor, parts, fmt, row, lattice: latG,
+    v, P: P2, stage: holder, A, names, calc, solveFor, parts, fmt, row, latticeG: latG,   // vs.lattice() shows it; vs.latticeG is the group
     paren: n => n < 0 ? `(${fmt(n)})` : fmt(n),   // a number inside a sum: 1 + (−4)
     nice: n => !fmt(n).includes(DECIMAL_SIGN),   // whole, or a simple fraction (not a value in passing)
     // Move the numbers to new values over dur seconds, on the beat clock (deterministic, so seeking replays it).
@@ -357,6 +359,7 @@ function vecs(p, { vecs: list = { v: [3, 2] }, c = 1, d = 1, plane: po = {}, sna
         const ok = on && s.box && canScrub(s.key) && st(s.box.parentNode).o > .3;
         if (!s.box) continue;
         s.box.style.cursor = ok ? 'ew-resize' : '';
+        s.box.style.touchAction = ok ? 'none' : '';   // a finger scrubs the number instead of scrolling the page
         s.box.setAttribute('stroke', ok ? COL.faint : 'none');
         s.box.setAttribute('stroke-dasharray', '4 6');
         if (ok) s.box.setAttribute('tabindex', 0); else s.box.removeAttribute('tabindex');
@@ -365,6 +368,7 @@ function vecs(p, { vecs: list = { v: [3, 2] }, c = 1, d = 1, plane: po = {}, sna
         const a = A[id], can = on && (id === 'sum' ? solving : id in onDrag) && (dragSet ? dragSet.includes(id) : st(a.g).o > .3);
         a.h.style.pointerEvents = can ? '' : 'none';
         a.h.style.cursor = can ? 'grab' : '';
+        a.h.style.touchAction = can ? 'none' : '';
         a.ring.style.opacity = can ? 1 : 0;
       }
     },
@@ -385,7 +389,7 @@ const vsTask = (vs, test, why, hint, reveal, opts) => (body, api) => {
     check: () => { const ok = !!test(vs.v, vs.calc()); api.grade(ok, typeof (ok ? why : hint) === 'function' ? (ok ? why : hint)(vs.v, vs.calc()) : ok ? why : hint); },
     reveal: () => { reveal?.(); return typeof why === 'function' ? why(vs.v, vs.calc()) : why; },
     lock: () => vs.live(false),
-    hint: [kbd('Tab'), 'pick a number', kbd('↑'), kbd('↓'), 'change it, or drag a tip'],
+    hint: [kbd('Tab'), ' pick a number ', kbd('↑'), kbd('↓'), ' change it, or drag a tip'],
   };
 };
 

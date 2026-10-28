@@ -12,6 +12,7 @@
 <script src="../lib/math.js"></script>
 <script src="../lib/linsys.js"></script>
 <script src="../lib/vecs.js"></script>
+<script src="../lib/play.js"></script>
 <script src="audio/en/timings.js"></script>
 <script>
 'use strict';
@@ -46,14 +47,22 @@ const travel = (p, P, pts, t0, leg = 1.4, color = COL.task) => {
 // v + w written out: v + w = [v] + [w] = [v0 + w0, v1 + w1] = [sum]; sign − for a difference.
 const sumRow = (vs, x, y, { sign = '+', size = 46, fixed = false, o = 0 } = {}) => vs.row(
   [{ t: 'v', fill: GREEN }, sign, { t: 'w', fill: VIOLET }, '=', { col: 'v', fixed }, sign, { col: 'w', fixed }, '=',
-    { fn: v => sign === '+' ? [`${vs.fmt(v.v0)} + ${vs.paren(v.w0)}`, `${vs.fmt(v.v1)} + ${vs.paren(v.w1)}`] : [`${vs.fmt(v.v0)} − ${vs.paren(v.w0)}`, `${vs.fmt(v.v1)} − ${vs.paren(v.w1)}`], w: size * 4.2 },
+    { fn: v => sign === '+' ? [`${vs.fmt(v.v0)} + ${vs.paren(v.w0)}`, `${vs.fmt(v.v1)} + ${vs.paren(v.w1)}`] : [`${vs.fmt(v.v0)} − ${vs.paren(v.w0)}`, `${vs.fmt(v.v1)} − ${vs.paren(v.w1)}`], w: size * 4.9 },
     '=', { col: 'sum', fixed: true }], { x, y, size, o });
+// Closer planes for beats whose arrows stay small (the plane is the default −6…6 elsewhere and in every question).
+const ZOOM = {
+  tiptail: { cx: 1060, cy: 570, u: 72, x0: -5, x1: 5, y0: -2, y1: 5 },
+  order: { cx: 900, cy: 650, u: 96, x0: -1, x1: 5, y0: -1, y1: 4 },
+  live: { cx: 880, cy: 580, u: 88, x0: -1, x1: 6, y0: -2, y1: 4 },
+  minus: { cx: 1000, cy: 520, u: 90, x0: -2, x1: 4, y0: -3, y1: 3 },
+  minus2: { cx: 1060, cy: 600, u: 84, x0: -3, x1: 5, y0: -1, y1: 4 },
+};
 const vRow = (vs, n, fill, y, o = 0) => vs.row([{ t: n, fill }, '=', { col: n }], { x: 90, y, o });
 const ringAt = (P, x, y, t0, into) => {   // the amber target of a task
   const g = G(into, { x: P.PX(x), y: P.PY(y), o: 0 });
   mk('circle', { r: 16, fill: 'none', stroke: COL.task, 'stroke-width': 4 }, g);
   mk('circle', { r: 4, fill: COL.task }, g);
-  M(g, [`(${num(x)}, ${num(y)})`], { x: 22, y: -16, size: 26, fill: COL.task, anchor: 'start' });
+  M(g, [`(${num(x)}, ${num(y)})`], { x: 26, y: -20, size: 26, fill: COL.task, anchor: 'start' });
   show(g, t0, .4);
   return g;
 };
@@ -155,7 +164,7 @@ const BEATS = [
   ['tiptail', 'Adding with arrows', (m) => {
     const p = panel(0);
     text(p, 'Adding with arrows: tip to tail', 60, 110, .2, { size: 40, weight: 600 });
-    const vs = S.vs = vecs(p, { vecs: { v: [3, 1], w: [1, 2] }, show: [] });
+    const vs = S.vs = vecs(p, { vecs: { v: [3, 1], w: [1, 2] }, show: [], plane: ZOOM.tiptail });
     vs.label('sum', ['v + w']); vs.label('v', ['v'], 'tip', [-24, 34]);
     S.r1 = vs.row([{ t: 'v', fill: GREEN }, '+', { t: 'w', fill: VIOLET }, '=', { fn: v => [`${vs.fmt(v.v0)} + ${vs.paren(v.w0)}`, `${vs.fmt(v.v1)} + ${vs.paren(v.w1)}`], w: 46 * 4.2 }, '=', { col: 'sum' }], { x: 90, y: 610, o: 0 });
     vs.row([{ t: 'v', fill: GREEN }, '=', { col: 'v' }], { x: 90, y: 250 }); vs.row([{ t: 'w', fill: VIOLET }, '=', { col: 'w' }], { x: 90, y: 430 });
@@ -172,7 +181,7 @@ const BEATS = [
     showRow(S.r1, m('sum') + .4);
     vs.legs('v', m('count') + .3); vs.legs('dw', m('count') + 2); vs.flash('sum0', m('count') + 1.5); vs.flash('sum1', m('count') + 4);
     vs.legs(['v', 'dw'], m('match') - .2, false); vs.legs('sum', m('match'));
-    vs.legs('sum', m('ex2') - .3, false); hide(end, m('ex2') - .3, .3);
+    vs.legs('sum', m('ex2') - .3, false); hide(end, m('ex2') - .3, .3); hide(vs.A.w.g, m('ex2') - .3, .3);   // the faded first w would ride along as a stray arrow
     vs.flash('sum0', m('match')); vs.flash('sum1', m('match'));
     vs.to({ v0: 2, v1: -1, w0: -4, w1: 3 }, m('ex2') + .9, 2.4);
     thick(vs, 'dw', m('follow') + .3); thick(vs, 'sum', m('follow') + 1.3, 6);
@@ -182,7 +191,7 @@ const BEATS = [
   ['order', 'The order does not matter', (m) => {
     const p = panel(0);
     text(p, 'v + w = w + v', 60, 110, .2, { size: 40, weight: 600 });
-    const vs = vecs(p, { vecs: { v: [3, 1], w: [1, 2] }, show: ['v', 'dw', 'sum'] });
+    const vs = vecs(p, { vecs: { v: [3, 1], w: [1, 2] }, show: ['v', 'dw', 'sum'], plane: ZOOM.order });
     vs.label('sum', ['v + w']);
     const { PX, PY } = vs.P;
     const par = path(p, `M${PX(0)} ${PY(0)}L${PX(3)} ${PY(1)}L${PX(4)} ${PY(3)}L${PX(1)} ${PY(2)}Z`, { fill: COL.task, stroke: 'none' }, { o: 0 });
@@ -218,7 +227,7 @@ const BEATS = [
   ['live', 'Still linked', (m) => {
     const p = panel(0);
     text(p, 'The sum follows', 60, 110, .2, { size: 40, weight: 600 });
-    const vs = vecs(p, { vecs: { v: [3, 1], w: [1, 2] }, show: ['v', 'dw', 'sum'] });
+    const vs = vecs(p, { vecs: { v: [3, 1], w: [1, 2] }, show: ['v', 'dw', 'sum'], plane: ZOOM.live });
     vs.label('sum', ['v + w']);
     vRow(vs, 'v', GREEN, 250, 1); vRow(vs, 'w', VIOLET, 430, 1);
     vs.row([{ t: 'v', fill: GREEN }, '+', { t: 'w', fill: VIOLET }, '=', { fn: v => [`${vs.fmt(v.v0)} + ${vs.paren(v.w0)}`, `${vs.fmt(v.v1)} + ${vs.paren(v.w1)}`], w: 46 * 4.2 }, '=', { col: 'sum' }], { x: 90, y: 610 });
@@ -267,17 +276,17 @@ const BEATS = [
     showRow(vv, m('vv'), 0, 2); showRow(vv, m('tt'), 2, 5);
     const copy = G(p, {});
     vs.P.arrow(2, 1, 4, 2, GREEN, m('pic') + .8, { into: copy });
-    travel(p, vs.P, [[0, 0], [2, 1], [4, 2]], m('pic') + .4, 1.2, GREEN);
+    hide(travel(p, vs.P, [[0, 0], [2, 1], [4, 2]], m('pic') + .4, 1.2, GREEN), m('long') + .6, .3);
     hide(copy, m('two') + .4, .4);
     vs.show('cv', m('two'), .6); thick(vs, 'cv', m('two') + .6);
     const cr = vs.row([{ key: 'c' }, { t: 'v', fill: GREEN }, '=', { key: 'c' }, { col: 'v', fixed: true }, '=', { fn: v => [`${vs.fmt(v.c)}·${vs.paren(v.v0)}`, `${vs.fmt(v.c)}·${vs.paren(v.v1)}`], w: 150 }, '=', { col: 'cv' }], { x: 90, y: 430, o: 0 });
     hide(vv.g, m('rule') - .4, .4);
     showRow(cr, m('rule'));
     vs.flash('c', m('name') + .2); vs.flash('c', m('name') + 3.5);
-    const cin = G(p, {}), cInk = vs.num('c')[1];
-    curve(cin, cInk, vs.num('v0')[1], m('rule') + 2, { color: COL.task }); curve(cin, cInk, vs.num('v1')[1], m('rule') + 3.8, { color: COL.task, up: false });
+    vs.flash('v0', m('rule') + 2); vs.flash('cv0', m('rule') + 2.6); vs.flash('v1', m('rule') + 3.8); vs.flash('cv1', m('rule') + 4.4);   // "two times two is four, two times one is two"
     vs.legs('cv', m('t3') + .4); vs.legs('cv', m('long3') + 2, false);
-    text(p, 'c: a scalar (it scales v)', 90, 570, m('name') + .4, { size: 30, fill: COL.task, weight: 600 });
+    const cr2 = vs.row([{ t: 'c' }, '=', { key: 'c' }], { x: 90, y: 600, size: 40, o: 0 }); showRow(cr2, m('name') + .4);   // the number's name, live
+    text(p, 'the number in front: a scalar (it scales v)', 290, 590, m('name') + .4, { size: 30, fill: COL.task, weight: 600 });
     vs.to({ c: 3 }, m('three') + .2, 1.4); vs.flash('c', m('three') + .2);
     vs.flash('cv0', m('t3') + .2); vs.flash('cv1', m('t3') + 1.8);
     thick(vs, 'cv', m('long3'));
@@ -321,7 +330,10 @@ const BEATS = [
     showRow(r, m('a'), 0, 5); vs.show('v', m('a') + .3, .5); vs.dim('v', m('at'), .4);
     showRow(r, m('at'), 5, 9); vs.flash('cv0', m('at') + .4); vs.flash('cv1', m('at') + 2.6);
     vs.show('cv', m('ar') - .4, .6); thick(vs, 'cv', m('ar') + 1.2);
-    vs.to({ v0: 3, v1: -1, c: -2 }, m('b') + .2, 1.6); vs.flash('c', m('b') + .2); vs.flash('v0', m('b') + 1); vs.flash('v1', m('b') + 1);
+    // the second example: 3v goes, the new v comes in bright, then −2 times it is drawn (no collapse through zero on screen)
+    vs.hide(['cv', 'v'], m('b') - .1, .3); vs.to({ v0: 3, v1: -1, c: -2 }, m('b') + .25, .05);
+    tw(vs.A.v.g, { o: 1 }, m('b') + .4, .4); show(vs.A.v.lab, m('b') + .4, .4); vs.flash('c', m('b') + .3); vs.flash('v0', m('b') + 1); vs.flash('v1', m('b') + 1);
+    vs.dim('v', m('bt'), .4); vs.show('cv', m('bt') + .1, .6);
     vs.flash('cv0', m('bt') + .6); vs.flash('cv1', m('bt') + 2.8);
     vs.legs('cv', m('bt') + .4); vs.legs('cv', m('br') + 3, false);
     text(p, '(−) × (−) = (+)', 90, 520, m('sign'), { size: 34, fill: COL.task, weight: 600 });
@@ -345,20 +357,21 @@ const BEATS = [
   ['minus', 'Subtracting', (m) => {
     const p = panel(0);
     text(p, 'Subtracting: v − w = v + (−w)', 60, 110, .2, { size: 40, weight: 600 });
-    const vs = vecs(p, { vecs: { v: [3, 1], w: [1, 2] }, d: 1, show: [] });
-    vs.label('sum', ['v − w']); vs.label('dw', v => [v.d === 1 ? 'w' : '−w'], 'mid', [-60, -36]);
+    const vs = vecs(p, { vecs: { v: [3, 1], w: [1, 2] }, d: 1, show: [], plane: ZOOM.minus });
+    vs.label('sum', ['v − w']); vs.label('dw', v => [v.d === 1 ? 'w' : '−w'], 'mid', [22, 26]);
+    vs.label('dw0', v => v.d === 1 ? ['w'] : v.d === -1 ? ['−w'] : []);   // no "−1w" while d passes −0.97
     const r = vs.row([{ t: 'v', fill: GREEN }, '−', { t: 'w', fill: VIOLET }, '=', { col: 'v', fixed: true }, '−', { col: 'w', fixed: true }, '=', { fn: () => ['3 − 1', '1 − 2'], w: 150 }, '=', { fn: () => ['2', '−1'], w: 40 * 1.9, fill: COL.task }], { x: 90, y: 250, size: 40, o: 0 });
     showRow(r, m('ex'), 0, 7);
     const [ft, fb] = r.parts[8].querySelectorAll('g[color]'), [rt, rb] = r.parts[10].querySelectorAll('g[color]');
     put(fb, { o: 0 }); put(rb, { o: 0 });
     showRow(r, m('tops'), 7, 11); show(fb, m('bots')); show(rb, m('bots') + 2.2);
-    lightUp(rt, m('res') + .3); lightUp(rb, m('res') + .3);
+    lightUp(rt, m('res') + .3, COL.task); lightUp(rb, m('res') + .3, COL.task);
     const lk = G(p, {});
     curve(lk, vs.num('v0')[0], ft, m('tops') + .3, { color: GREEN }); curve(lk, vs.num('w0')[0], ft, m('tops') + 1.2, { color: VIOLET });
     curve(lk, vs.num('v1')[0], fb, m('bots') + .3, { color: GREEN, up: false }); curve(lk, vs.num('w1')[0], fb, m('bots') + 1.2, { color: VIOLET, up: false });
     boxAround(lk, [rt, rb], m('res') + .2);
     hide(lk, m('how') + .5, .4);
-    vs.show(['v', 'w'], m('how'), .6);
+    vs.show(['v', 'w'], m('ex') + .6, .6); thick(vs, 'v', m('how') + .2); thick(vs, 'w', m('how') + .8);
     say(p, ['v − w = v + (−w)'], 90, 440, m('same'), { size: 44 });
     vs.show('dw0', m('flip') - .2, .3);
     vs.to({ d: -1 }, m('flip') + .2, 1.6);
@@ -371,6 +384,42 @@ const BEATS = [
     text(p, 'from the tip of w to the tip of v', 90, 600, m('gap') + .6, { size: 28, fill: COL.task, weight: 600 });
     travel(p, vs.P, [[0, 0], [1, 2], [3, 1]], m('why') + .4, 1.3);
     say(p, ['w + (v − w) = v'], 90, 680, m('why') + 1, { size: 40 });
+  }],
+
+  ['minus2', 'One more subtraction', (m) => {
+    const p = panel(0);
+    text(p, 'One more: v − w', 60, 110, .2, { size: 40, weight: 600 });
+    const vs = vecs(p, { vecs: { v: [2, 3], w: [4, 1] }, d: -1, show: [], plane: ZOOM.minus2 });
+    vs.label('sum', ['v − w']);
+    const r = vs.row([{ t: 'v', fill: GREEN }, '−', { t: 'w', fill: VIOLET }, '=', { col: 'v', fixed: true }, '−', { col: 'w', fixed: true }, '=', { fn: () => ['2 − 4', '3 − 1'], w: 150 }, '=', { fn: () => ['−2', '2'], w: 40 * 1.9, fill: COL.task }], { x: 90, y: 250, size: 40, o: 0 });
+    showRow(r, m('ex'), 0, 7); vs.show(['v', 'w'], m('ex') + .6, .6);
+    const [ft, fb] = r.parts[8].querySelectorAll('g[color]'), [rt, rb] = r.parts[10].querySelectorAll('g[color]');
+    put(fb, { o: 0 }); put(rb, { o: 0 });
+    showRow(r, m('tops'), 7, 11); show(fb, m('bots')); show(rb, m('bots') + 2.2);
+    lightUp(rt, m('res') + .3, COL.task); lightUp(rb, m('res') + .3, COL.task);
+    const lk = G(p, {});
+    curve(lk, vs.num('v0')[0], ft, m('tops') + .3, { color: GREEN }); curve(lk, vs.num('w0')[0], ft, m('tops') + 1.2, { color: VIOLET });
+    curve(lk, vs.num('v1')[0], fb, m('bots') + .3, { color: GREEN, up: false }); curve(lk, vs.num('w1')[0], fb, m('bots') + 1.2, { color: VIOLET, up: false });
+    boxAround(lk, [rt, rb], m('res') + .2);
+    hide(lk, m('pic') - .2, .4);
+    // the arrow from the tip of w to the tip of v, its steps, then slid to the origin
+    const { PX, PY, u } = vs.P, gap = G(p, {});
+    vs.P.arrow(4, 1, 2, 3, COL.task, m('pic') + 1.4, { into: gap });
+    const legs = G(p, { o: 0 });
+    path(legs, `M${PX(4)} ${PY(1)}H${PX(2)}V${PY(3)}`, { stroke: COL.task, 'stroke-width': 3, 'stroke-dasharray': '7 7', fill: 'none' });
+    M(legs, ['−2'], { x: (PX(4) + PX(2)) / 2, y: PY(1) - 14, size: 28, fill: COL.task, anchor: 'middle' });
+    M(legs, ['2'], { x: PX(2) - 14, y: PY(2) + 10, size: 28, fill: COL.task, anchor: 'end' });
+    show(legs, m('steps') + .2, .5); hide(legs, m('slide') - .2, .3);
+    tw(gap, { x: -4 * u, y: 1 * u }, m('slide') + .4, 2);
+    vs.show('sum', m('same'), .4); hide(gap, m('same') + .4, .3); thick(vs, 'sum', m('same') + .5, 6);
+    text(p, 'moved without turning: still the same vector', 90, 440, m('same') + .3, { size: 28, fill: COL.task, weight: 600 });
+    // check: w, then v − w placed at its tip, ends on v
+    const back = G(p, { o: 0 });
+    vs.P.arrow(4, 1, 2, 3, COL.task, 0, { into: back });
+    show(back, m('check'), .4);
+    travel(p, vs.P, [[0, 0], [4, 1], [2, 3]], m('check') + .6, 1.4);
+    say(p, ['w + (v − w) = v'], 90, 540, m('check') + .4, { size: 40 });
+    say(p, ['4 + (−2) = 2,   1 + 2 = 3'], 90, 610, m('check') + 3, { size: 34, fill: COL.dim });
   }],
 
   ['q4', 'Quick check', () => {
@@ -403,7 +452,7 @@ const BEATS = [
     id: 'p-add', prompt: ['Add. Top plus top, bottom plus bottom.'], build: vcolBlanks(ADDQ),
   }], done, 'Chapter practice · set 1 of 4') }],
   ['final2', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
-    id: 'p-mul', prompt: ['Multiply each number by c.'], build: vcolBlanks(MULQ),
+    id: 'p-mul', prompt: ['Multiply both numbers by the number in front.'], build: vcolBlanks(MULQ),
   }, {
     id: 'p-sub', prompt: ['Subtract. Top minus top, bottom minus bottom.'], build: vcolBlanks(SUBQ),
   }], done, 'Chapter practice · set 2 of 4') }],
@@ -418,6 +467,18 @@ const BEATS = [
     S.vs.label('sum', ['v + w']);
     S.row = S.vs.row([{ t: 'v', fill: GREEN }, '+', { t: 'w', fill: VIOLET }, '=', { col: 'v', fixed: true }, '+', { col: 'w' }, '=', { col: 'sum', fixed: true }], { x: 90, y: 230 });
   }, { ask: done => quiz(CARD, MAKE5.map(q => ({ id: q.id, prompt: q.prompt, build: (body, api) => { q.setup(); return vsTask(S.vs, q.test, q.why, q.hint, q.show, q.opts)(body, api); } })), done, 'Chapter practice · set 4 of 4') }],
+  ['play', 'Playground', (m) => {
+    const p = panel(0);
+    text(p, 'Playground', 60, 110, .2, { size: 40, weight: 600 });
+    const vs = S.vs = vecs(p, { vecs: { v: [3, 1], w: [1, 2] }, show: ['cv', 'dw', 'sum'] });
+    vs.label('sum', v => v.c === 1 ? ['v + w'] : v.c === -1 ? ['−v + w'] : vs.nice(v.c) ? [vs.fmt(v.c) + 'v + w'] : []);
+    vs.row([{ key: 'c' }, { t: 'v', fill: GREEN }, '+', { t: 'w', fill: VIOLET }, '=', { key: 'c' }, { col: 'v' }, '+', { col: 'w' }, '=', { col: 'sum', fixed: true }], { x: 90, y: 230 });
+    const hint = G(p, { o: 0 });
+    ['try:  make the sum land on the origin', 'make c = −1, then c = 0', 'drag the tip of w around the tip of v'].forEach((str, i) =>
+      T(hint, str, { x: i ? 156 : 90, y: 336 + i * 34, size: 26, fill: COL.dim }));
+    show(hint, m('go'), .5); hide(hint, m('go') + 7, .6);
+  }, { ask: playAsk(() => ({ v: S.vs.v, set: S.vs.set, live: on => S.vs.live(on, { move: true }) }),   // tips carry v and w (not c)
+    { tip: 'c v + w, yours. Change any number, drag either arrow tip, or draw on the board. Nothing is marked.' }) }],
   ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
 

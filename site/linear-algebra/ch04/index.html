@@ -12,6 +12,7 @@
 <script src="../lib/math.js"></script>
 <script src="../lib/linsys.js"></script>
 <script src="../lib/vecs.js"></script>
+<script src="../lib/play.js"></script>
 <script src="audio/en/timings.js"></script>
 <script>
 'use strict';
@@ -47,19 +48,25 @@ const walk = (vs, x, y, color, t0, into) => {
   return g;
 };
 // A step-by-step walk along one axis direction: the line grows and each step's count pops up as it passes.
-const countWalk = (P, [xa, ya], [xb, yb], color, t0, dur, into, below = false) => {
+// Up/down counts sit inside the corner (towards the y-axis) unless out: then beyond the leg, clear of a steep arrow.
+const countWalk = (P, [xa, ya], [xb, yb], color, t0, dur, into, below = false, out = false) => {
   const g = G(into, {}); g.below = below;
   const n = Math.abs(xb - xa) + Math.abs(yb - ya), ln = path(g, '', { stroke: color, 'stroke-width': 5, 'stroke-linecap': 'round' });
   const vert = xa === xb;
   const marks = Array.from({ length: n }, (_, k) => {
     const q = (k + 1) / n, x = xa + (xb - xa) * q, y = ya + (yb - ya) * q;
-    const t = T(g, String(k + 1), { x: P.PX(x) + (vert ? (xb < 0 ? 22 : -22) : 0), y: P.PY(y) + (vert ? 8 : (g.below ? 48 : -16)), size: 24, fill: color, anchor: 'middle', weight: 700, o: 0 });
+    const t = T(g, String(k + 1), { x: P.PX(x) + (vert ? ((xb < 0) === out ? -22 : 22) : 0), y: P.PY(y) + (vert ? 8 : (g.below ? 48 : -16)), size: 24, fill: color, anchor: 'middle', weight: 700, o: 0 });
     tw(t, { o: 1 }, t0 + dur * q - .1, .2);
     return t;
   });
   prog(q => ln.setAttribute('d', `M${P.PX(xa)} ${P.PY(ya)}L${P.PX(xa + (xb - xa) * q)} ${P.PY(ya + (yb - ya) * q)}`), t0, dur, lin);
   g.marks = marks;
   return g;
+};
+// Move vector n to (x, y) on the beat clock in whole steps, one grid point per `gap` seconds, like a reader's drag.
+const stepTo = (vs, n, [x0, y0], [x1, y1], t0, gap = .3) => {
+  const k = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+  for (let i = 1; i <= k; i++) vs.to({ [n + '0']: Math.round(x0 + (x1 - x0) * i / k), [n + '1']: Math.round(y0 + (y1 - y0) * i / k) }, t0 + (i - 1) * gap, .01);
 };
 const across = (x, y) => [x ? `${Math.abs(x)} ${x > 0 ? 'right' : 'left'}` : '', y ? `${Math.abs(y)} ${y > 0 ? 'up' : 'down'}` : ''].filter(Boolean).join(' and ') || 'nowhere';
 
@@ -121,11 +128,11 @@ const BEATS = [
     // the point (3, 2): its two numbers stand up into a column
     const y = 330, sz = 54, mid = y - sz * .32;
     const paren = G(p, { o: 0 });
-    M(paren, ['(            )'], { x: 300, y, size: sz, anchor: 'middle' });
-    M(paren, [','], { x: 298, y, size: sz, anchor: 'middle' });
+    M(paren, ['(          )'], { x: 300, y, size: sz, anchor: 'middle' });
+    M(paren, [','], { x: 300, y, size: sz, anchor: 'middle' });
     show(paren, .4);
     const three = inkM(p, ['3'], { x: 0, y: 0, size: sz, o: 0 }), two = inkM(p, ['2'], { x: 0, y: 0, size: sz, o: 0 });
-    put(three, { x: 262, y }); put(two, { x: 336, y });
+    put(three, { x: 268, y }); put(two, { x: 332, y });
     show(three, .4); show(two, .4);
     const pt = text(p, 'a point', 300, y + 60, .6, { size: 28, fill: COL.dim, anchor: 'middle' });
     hide(paren, m('stand'), .4); hide(pt, m('stand'), .4);
@@ -142,14 +149,24 @@ const BEATS = [
     lightUp(three, m('top'), GREEN);
     text(p, '←  bottom: the second number', 400, mid + sz * .99 - 8, m('bot'), { size: 28, fill: COL.dim });
     lightUp(two, m('bot'), GREEN);
-    text(p, 'like 3 steps east and 2 steps north on a map', 90, 505, m('apples'), { size: 28, fill: COL.dim });
-    const mp = G(p, {}), mx = 640, my = 470;   // a little map walk: 3 east, then 2 north
-    const e1 = path(mp, `M${mx} ${my}H${mx + 90}`, { stroke: GREEN, 'stroke-width': 4, 'stroke-linecap': 'round' }, { d: 0 });
-    const e2 = path(mp, `M${mx + 90} ${my}V${my - 60}M${mx + 82} ${my - 48}L${mx + 90} ${my - 62}L${mx + 98} ${my - 48}`, { stroke: GREEN, 'stroke-width': 4, 'stroke-linecap': 'round', fill: 'none' }, { d: 0 });
-    draw(e1, m('apples') + 2.4, 1.4, lin); draw(e2, m('apples') + 4.4, 1, lin);
-    text(mp, 'E', mx + 104, my + 8, m('apples') + 3.6, { size: 22, fill: COL.dim });
-    text(mp, 'N', mx + 82, my - 74, m('apples') + 5.2, { size: 22, fill: COL.dim });
-    hide(mp, m('more') - .3, .4);
+    // a map on the right: 3 steps east, then 2 steps north, each step counted as it is said
+    const cap = text(p, 'like 3 steps east and 2 steps north on a map', 90, 505, m('apples'), { size: 28, fill: COL.dim });
+    const mp = G(p, { o: 0 }), MP = { PX: x => 1000 + 80 * x, PY: y => 600 - 80 * y };
+    let gd = '';
+    for (let i = 0; i <= 4; i++) gd += `M${MP.PX(i)} ${MP.PY(0)}V${MP.PY(3)}`;
+    for (let j = 0; j <= 3; j++) gd += `M${MP.PX(0)} ${MP.PY(j)}H${MP.PX(4)}`;
+    path(mp, gd, { stroke: COL.faint, 'stroke-width': 1.5, fill: 'none' });
+    mk('circle', { cx: MP.PX(0), cy: MP.PY(0), r: 9, fill: COL.chalk }, mp);
+    T(mp, 'start', { x: MP.PX(0), y: MP.PY(0) + 40, size: 24, fill: COL.dim, anchor: 'middle' });
+    const rose = G(mp, { x: 1400, y: 420 });   // the compass: north up, east right
+    path(rose, 'M0 30V-30M-8 -18L0 -32L8 -18M-30 0H30M18 -8L32 0L18 8', { stroke: COL.dim, 'stroke-width': 3, fill: 'none', 'stroke-linecap': 'round' });
+    T(rose, 'N', { x: 0, y: -42, size: 24, fill: COL.dim, anchor: 'middle', weight: 600 });
+    T(rose, 'E', { x: 46, y: 8, size: 24, fill: COL.dim, anchor: 'middle', weight: 600 });
+    show(mp, m('apples') + .4, .5);
+    countWalk(MP, [0, 0], [3, 0], GREEN, m('east') + .2, 1.5, mp, true);
+    countWalk(MP, [3, 0], [3, 2], GREEN, m('north') + .2, 1.1, mp, false, true);
+    lightUp(three, m('east'), GREEN); lightUp(two, m('north'), GREEN);
+    hide(mp, m('more') - .3, .4); hide(cap, m('more') - .3, .4);
     // more vectors, and the order
     const r2 = 610;
     show(colm(p, -1, 5, 150, r2, { o: 0 }), m('more'));
@@ -170,7 +187,7 @@ const BEATS = [
       M(pv, [r], { x: px + 250, y: yy, size: 46, anchor: 'start' });
     });
     mk('rect', { x: px + 22, y: 290, width: 82, height: 150, rx: 12, fill: 'none', stroke: GREEN, 'stroke-width': 3 }, pv);
-    mk('rect', { x: px + 160, y: 290, width: 84, height: 150, rx: 12, fill: 'none', stroke: VIOLET, 'stroke-width': 3 }, pv);
+    mk('rect', { x: px + 112, y: 290, width: 132, height: 150, rx: 12, fill: 'none', stroke: VIOLET, 'stroke-width': 3 }, pv);
     colm(pv, 2, -1, px + 63, 620, { fill: GREEN });
     colm(pv, -1, 2, px + 202, 620, { fill: VIOLET });
     path(pv, `M${px + 63} 450V520M${px + 55} 508L${px + 63} 522L${px + 71} 508M${px + 202} 450V520M${px + 194} 508L${px + 202} 522L${px + 210} 508`, { stroke: COL.dim, 'stroke-width': 3, fill: 'none' });
@@ -190,8 +207,8 @@ const BEATS = [
     showRow(r1, .4);
     show(vs.stage, m('axes') - .3, .6);
     const wv = G(p, {});
-    countWalk(vs.P, [0, 0], [3, 0], GREEN, m('right') + 1.4, 2.4, wv);
-    countWalk(vs.P, [3, 0], [3, 2], GREEN, m('up') + 1.4, 1.6, wv);
+    countWalk(vs.P, [0, 0], [3, 0], GREEN, m('right') + .8, 2.4, wv);
+    countWalk(vs.P, [3, 0], [3, 2], GREEN, m('up') + .8, 1.6, wv);
     const trav = G(p, { o: 0 });
     mk('circle', { r: 9, fill: COL.task }, trav);
     show(trav, m('tip') + 1.2, .3);
@@ -200,19 +217,20 @@ const BEATS = [
     vs.flash('v0', m('right')); vs.flash('v1', m('up') - .4);
     vs.P.dot(0, 0, COL.task, m('tip'), { r: 8, label: '(0, 0)', dx: -84, dy: -14 });
     vs.show('v', m('tip') + 4.4, .6);
-    const pd = vs.P.dot(3, 2, COL.chalk, m('same'), { r: 8, label: '(3, 2)', dx: 16, dy: 36 });
+    const pd = G(p, {}); vs.P.dot(3, 2, COL.chalk, m('same'), { r: 8, label: '(3, 2)', dx: 16, dy: 36, into: pd });
     const note = G(p, { o: 0 });
     T(note, 'the point (3, 2) is where the arrow ends', { x: 90, y: 720, size: 28, fill: COL.dim });
     show(note, m('same') + .4);
     hide(wv, m('w') - .3, .4); hide(note, m('w') - .3, .4);
     const r2 = vs.row([{ t: 'w', fill: VIOLET }, '=', { col: 'w' }], { x: 90, y: 430, o: 0 });
     showRow(r2, m('w'));
-    const ww = walk(vs, 1, 0, VIOLET, m('w1'), p), ww2 = G(p, {});
-    vs.P.arrow(1, 0, 1, 4, VIOLET, m('w4'), { label: '4', into: ww2 });
+    const ww = G(p, {}), ww2 = G(p, {});
+    countWalk(vs.P, [0, 0], [1, 0], VIOLET, m('w1'), .5, ww, true);
+    countWalk(vs.P, [1, 0], [1, 4], VIOLET, m('w4'), 1.2, ww2);
     vs.flash('w0', m('w1')); vs.flash('w1', m('w4'));
     vs.show('w', m('wtip'), .6);
-    vs.P.dot(1, 4, COL.chalk, m('wtip') + .3, { r: 7, label: '(1, 4)', dx: 16, dy: 14 });
-    hide(ww, m('swap') - .3, .4); hide(ww2, m('swap') - .3, .4); hide(pd, m('swap') - .3, .4);
+    const pw = G(p, {}); vs.P.dot(1, 4, COL.chalk, m('wtip') + .3, { r: 7, label: '(1, 4)', dx: 16, dy: 14, into: pw });
+    hide(ww, m('swap') - .3, .4); hide(ww2, m('swap') - .3, .4); hide(pd, m('swap') - .3, .4); hide(pw, m('swap') - .3, .4);
     const r3 = vs.row([{ t: 'u', fill: PINK }, '=', { col: 'u' }], { x: 90, y: 610, o: 0 });
     showRow(r3, m('swap'));
     vs.show('u', m('swap') + 1, .6);
@@ -236,21 +254,24 @@ const BEATS = [
     countWalk(vs.P, [-2, 0], [-2, 3], GREEN, m('up') + .2, 1.4, wv);
     vs.flash('v0', m('left')); vs.flash('v1', m('up'));
     vs.show('v', m('up') + .9, .6);
-    text(p, '−2: two steps left', 330, 230, m('left') + .3, { size: 28, fill: COL.dim });
+    text(p, '−2: 2 left', 330, 230, m('left') + .3, { size: 28, fill: COL.dim });
+    text(p, '3: 3 up', 330, 272, m('up') + .2, { size: 28, fill: COL.dim });
     hide(wv, m('n2'), .4);
     const ww = G(p, {});
     countWalk(vs.P, [0, 0], [4, 0], VIOLET, m('four'), 1.2, ww);
     countWalk(vs.P, [4, 0], [4, -1], VIOLET, m('down') + .2, .6, ww);
     vs.flash('w0', m('four')); vs.flash('w1', m('down'));
     vs.show('w', m('down') + .8, .6);
-    text(p, '−1: one step down', 330, 450, m('down') + .3, { size: 28, fill: COL.dim });
+    text(p, '4: 4 right', 330, 410, m('four'), { size: 28, fill: COL.dim });
+    text(p, '−1: 1 down', 330, 452, m('down') + .3, { size: 28, fill: COL.dim });
     hide(ww, m('n3'), .4);
     const wu = G(p, {});
     countWalk(vs.P, [0, 0], [-3, 0], PINK, m('ld'), 1.2, wu);
     countWalk(vs.P, [-3, 0], [-3, -2], PINK, m('ld') + 1.3, 1, wu);
     vs.flash('u0', m('ld')); vs.flash('u1', m('ld') + 1.2);
     vs.show('u', m('ld') + 2.2, .6);
-    text(p, 'left and down', 330, 630, m('ld') + 2, { size: 28, fill: COL.dim });
+    text(p, '−3: 3 left', 330, 590, m('ld'), { size: 28, fill: COL.dim });
+    text(p, '−2: 2 down', 330, 632, m('ld') + 1.2, { size: 28, fill: COL.dim });
     hide(wu, m('sum') - .2, .4);
     const s = G(p, { o: 0 });
     T(s, 'top number:     −  left,    +  right', { x: 90, y: 740, size: 30, weight: 600, fill: COL.task });
@@ -281,11 +302,13 @@ const BEATS = [
     vs.label('w', ['w']);
     const r2 = vs.row([{ t: 'w', fill: VIOLET }, '=', { col: 'w' }], { x: 90, y: 450, o: 0 });
     showRow(r2, m('one'));
-    vs.show('w', m('one') + 1.5, .6);
+    const zw = G(p, {}); countWalk(vs.P, [0, 0], [0, 3], VIOLET, m('one') + 1.8, 1.4, zw, false, true); hide(zw, m('flat'), .4);
+    vs.show('w', m('one') + 3.4, .6);
     text(p, 'straight up, on the y-axis', 330, 450, m('yaxis'), { size: 28, fill: VIOLET, weight: 600 });
     const r3 = vs.row([{ t: 'u', fill: PINK }, '=', { col: 'u' }], { x: 90, y: 640, o: 0 });
     showRow(r3, m('flat'));
-    vs.show('u', m('flat') + .8, .6);
+    const zu = G(p, {}); countWalk(vs.P, [0, 0], [4, 0], PINK, m('flat') + .4, 1.4, zu, true); hide(zu, m('flat') + 3, .4);
+    vs.show('u', m('flat') + 1.9, .6);
     text(p, 'flat, on the x-axis', 330, 640, m('flat') + 1.2, { size: 28, fill: PINK, weight: 600 });
   }],
 
@@ -296,7 +319,17 @@ const BEATS = [
     vs.label('v', []);
     const P2 = vs.P;
     P2.dot(-5, 2, COL.task, m('pts'), { r: 10, label: '(−5, 2)', dx: -40, dy: -24 });
-    vs.show('v', m('fan'), .6);
+    vs.show('v', m('vec'), .6);
+    const ex = G(p, { o: 0 });
+    M(ex, ['(−5, 2)'], { x: 90, y: 330, size: 44, anchor: 'start', fill: COL.task });
+    M(ex, ['↔'], { x: 290, y: 330, size: 44, fill: COL.task, anchor: 'middle' });
+    colm(ex, -5, 2, 400, 330, { fill: GREEN });
+    show(ex, m('vec') + .6, .6); hide(ex, m('so') - .3, .4);
+    // "same numbers": the trip to (−5, 2) counted, 5 left and 2 up
+    const ew = G(p, {});
+    countWalk(P2, [0, 0], [-5, 0], GREEN, m('vec') + 2.4, 2, ew, true);
+    countWalk(P2, [-5, 0], [-5, 2], GREEN, m('vec') + 4.6, 1, ew, false, true);
+    hide(ew, m('fan') - .3, .4);
     const fanPts = [[4, 1], [2, -3], [-3, -4], [-1, 5], [5, 4], [-6, -1], [3, 6], [-4, 3], [0, -5], [6, -2], [-2, -2], [1, 3]];
     const fan = G(p, {});
     fanPts.forEach(([x, y], i) => {
@@ -337,17 +370,21 @@ const BEATS = [
     text(p, '4 steps left  →  −4', 260, 300, m('top1') + .4, { size: 28, fill: COL.dim });
     show(c1.bot, m('bot1')); lightUp(c1.bot, m('bot1') + .2, GREEN);
     text(p, '1 step up  →  1', 260, 380, m('bot1'), { size: 28, fill: COL.dim });
+    const b1 = G(p, {}); mk('rect', { x: 94, y: 244, width: 112, height: 144, rx: 12, fill: 'none', stroke: COL.task, 'stroke-width': 3 }, b1);
+    put(b1, { o: 0 }); show(b1, m('col1'), .4); hide(b1, m('a2'), .4);
     hide(w1, m('a2'), .4);
     vs.to({ v0: 2, v1: -5 }, m('a2') + .2, 1.4);
     const w2 = G(p, {});
     countWalk(vs.P, [0, 0], [2, 0], GREEN, m('count3'), 1, w2);
-    countWalk(vs.P, [2, 0], [2, -5], GREEN, m('count4') + .2, 1.8, w2);
+    countWalk(vs.P, [2, 0], [2, -5], GREEN, m('count4') + .2, 1.8, w2, false, true);
     const c2 = colm(p, 2, -5, 150, 620, { fill: GREEN, o: 0 });
     put(c2.bot, { o: 0 });
     show(c2, m('count3') + .8); lightUp(c2.top, m('count3') + 1, GREEN);
     text(p, '2 steps right  →  2', 260, 590, m('count3') + 1, { size: 28, fill: COL.dim });
     show(c2.bot, m('bot2')); lightUp(c2.bot, m('bot2') + .2, GREEN);
     text(p, '5 steps down  →  −5', 260, 670, m('bot2'), { size: 28, fill: COL.dim });
+    const b2 = G(p, {}); mk('rect', { x: 94, y: 534, width: 112, height: 144, rx: 12, fill: 'none', stroke: COL.task, 'stroke-width': 3 }, b2);
+    put(b2, { o: 0 }); show(b2, m('col2'), .4);
     tw(vs.A.v.path, { 'a_stroke-width': 9 }, m('col2'), .3); tw(vs.A.v.path, { 'a_stroke-width': 5 }, m('col2') + .8, .5);
   }],
 
@@ -358,9 +395,9 @@ const BEATS = [
   }, { ask: done => quiz(CARD, [{
     id: 'c-read', prompt: ['Write the arrow ', $m('v'), ' as a column of two numbers.'],
     build: blanks([
-      { parts: ['top number (how far right):   ', { box: '-3' }], why: 'The tip is 3 steps left of the origin: −3.', hint: 'Count across from the origin to the tip. Steps to the left count as negative.',
+      { parts: ['top number (right +, left −):   ', { box: '-3' }], why: 'The tip is 3 steps left of the origin: −3.', hint: 'Count across from the origin to the tip. Steps to the left count as negative.',
         fx: () => fx(S.vs.A.v.leg, { o: 1 }, 0, .6) },
-      { parts: ['bottom number (how far up):   ', { box: '2' }], why: 'The tip is 2 steps above the x-axis: 2. So v = [−3, 2] as a column.', hint: 'Count up from the x-axis to the tip.' },
+      { parts: ['bottom number (up +, down −):   ', { box: '2' }], why: 'The tip is 2 steps above the x-axis: 2. So v = [−3, 2] as a column.', hint: 'Count up from the x-axis to the tip.' },
     ]),
   }], done) }],
 
@@ -372,8 +409,8 @@ const BEATS = [
     vs.legs('v', .6);
     tw(vs.A.v.path, { 'a_stroke-width': 8 }, m('nums'), .3); tw(vs.A.v.path, { 'a_stroke-width': 5 }, m('nums') + .8, .5);
     vs.flash('v0', m('nums')); vs.flash('v1', m('nums'));
-    vs.to({ v0: 5 }, m('five') + .4, 1.4); vs.flash('v0', m('five') + .4);
-    vs.to({ v1: -1 }, m('minus') + .9, 1.4); vs.flash('v1', m('minus') + .9);
+    stepTo(vs, 'v', [3, 2], [5, 2], m('five') + .6, .5); vs.flash('v0', m('five') + .6);
+    stepTo(vs, 'v', [5, 2], [5, -1], m('minus') + .9, .5); vs.flash('v1', m('minus') + .9);
     // a hand takes the tip and pulls it; the tip jumps from grid point to grid point, as it does for the reader
     const hand = G(p, { o: 0 }), { PX, PY } = vs.P;
     mk('circle', { r: 20, fill: COL.task, 'fill-opacity': .25, stroke: COL.task, 'stroke-width': 3 }, hand);
@@ -429,11 +466,16 @@ const BEATS = [
     ['v0', 'w0', 'u0'].forEach(k => vs.flash(k, m('eq') + 2));
     ['v1', 'w1', 'u1'].forEach(k => vs.flash(k, m('eq') + 3.6));
     vs.flash('v0', m('ex1')); vs.flash('v1', m('ex1'));
-    vs.to({ w0: 2, w1: 1 }, m('ex2') + .4, 1.6); vs.flash('w0', m('ex2') + .4); vs.flash('w1', m('ex2') + .4);
+    stepTo(vs, 'w', [-3, 2], [2, 1], m('ex2') + .4, .3); vs.flash('w0', m('ex2') + .4); vs.flash('w1', m('ex2') + .4);
     say(p, ['w = v'], 330, 430, m('one'), { size: 40, fill: COL.good });
-    vs.to({ u0: 1, u1: 2 }, m('ex3') + .3, 1.6); vs.flash('u0', m('ex3') + .3); vs.flash('u1', m('ex3') + .3);
-    say(p, ['u ≠ v'], 330, 610, m('mirror'), { size: 40, fill: COL.bad });
-    text(p, 'swapped: 1 right, 2 up', 330, 660, m('mirror') + .5, { size: 26, fill: COL.dim });
+    stepTo(vs, 'u', [1, -3], [1, 2], m('ex3') + .3, .3); vs.flash('u0', m('ex3') + .3); vs.flash('u1', m('ex3') + .3);
+    const ne = say(p, ['u ≠ v'], 330, 610, m('mirror'), { size: 40, fill: COL.bad });
+    const sw = text(p, 'swapped: 1 right, 2 up', 330, 660, m('mirror') + .5, { size: 26, fill: COL.dim });
+    hide(sw, m('half'), .3);
+    stepTo(vs, 'u', [1, 2], [2, -1], m('half') + .2, .3); vs.flash('u0', m('half') + 1.6); vs.flash('v0', m('half') + 1.6);
+    vs.flash('u1', m('half') + 3.6); vs.flash('v1', m('half') + 3.6);
+    text(p, 'top 2 = 2, but bottom −1 ≠ 1', 330, 660, m('half') + 1.4, { size: 26, fill: COL.dim });
+    pulse(ne, m('half2'), 1.3);
   }],
 
   ['q3', 'Quick check', () => {
@@ -446,7 +488,7 @@ const BEATS = [
   ['wrap', 'Summary', (m) => {
     const p = panel(0);
     [['A vector is two numbers in a column, named by one letter.', 'w1'], ['Its arrow starts at the origin: top number right, bottom number up.', 'w2'],
-     ['Negative numbers point left or down; [0, 0] is the zero vector, a dot.', 'w3'], ['Change the numbers, the arrow moves; move the arrow, the numbers change.', 'w4']].forEach(([str, mark], i) => {
+     ['Negative numbers point left or down; zero on top and below is the zero vector, a dot.', 'w3'], ['Change the numbers, the arrow moves; move the arrow, the numbers change.', 'w4']].forEach(([str, mark], i) => {
       const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
       const dg = G(g, { x: 150, y: -12 });
       mk('circle', { r: 26, fill: COL.task }, dg);
@@ -488,6 +530,16 @@ const BEATS = [
     id: `p-make${i + 1}`, prompt: q.prompt,
     build: (body, api) => { S.vs.set({ v0: 1, v1: 1 }); return vsTask(S.vs, v => v.v0 === q.goal[0] && v.v1 === q.goal[1], `${across(...q.goal)}.`, makeHint(...q.goal), () => S.vs.set({ v0: q.goal[0], v1: q.goal[1] }))(body, api); },
   })), done, 'Chapter practice · set 4 of 4') }],
+  ['play', 'Playground', (m) => {
+    const p = panel(0);
+    text(p, 'Playground', 60, 110, .2, { size: 40, weight: 600 });
+    S.vs = vecs(p, { vecs: { v: [3, 2], w: [-2, 1] } });
+    S.vs.row([{ t: 'v', fill: GREEN }, '=', { col: 'v' }], { x: 90, y: 230 });
+    S.vs.row([{ t: 'w', fill: VIOLET }, '=', { col: 'w' }], { x: 330, y: 230 });
+    const hint = G(p, { o: 0 });
+    ['try: make v point down and to the left', 'try: make w equal to v', 'try: make v the zero vector'].forEach((str, i) => T(hint, str, { x: 90, y: 336 + i * 36, size: 26, fill: COL.dim }));
+    show(hint, m('go'), .6);
+  }, { ask: playAsk(() => S.vs, { tip: 'Your two vectors. Change any number, drag either tip, or draw on the board. Nothing is marked.' }) }],
   ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
 

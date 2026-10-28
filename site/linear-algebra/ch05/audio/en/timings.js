@@ -559,6 +559,70 @@ window.TIMINGS = {
    ]
   ]
  },
+ "minus2": {
+  "dur": 40.896,
+  "marks": {
+   "ex": 1.562,
+   "tops": 5.586,
+   "bots": 9.089,
+   "res": 12.617,
+   "pic": 15.938,
+   "steps": 20.521,
+   "slide": 25.091,
+   "same": 30.26,
+   "check": 32.747
+  },
+  "cues": [
+   [
+    0.104,
+    "One more subtraction."
+   ],
+   [
+    1.562,
+    "v is two, three, and w is four, one."
+   ],
+   [
+    5.586,
+    "Top minus top: two minus four is minus two."
+   ],
+   [
+    9.089,
+    "Bottom minus bottom: three minus one is two."
+   ],
+   [
+    12.617,
+    "So v minus w is minus two, two."
+   ],
+   [
+    15.938,
+    "Now the picture."
+   ],
+   [
+    17.057,
+    "Draw the arrow from the tip of w to the tip of v."
+   ],
+   [
+    20.521,
+    "It goes two steps left, then two steps up: minus two, two."
+   ],
+   [
+    25.091,
+    "Slide that arrow, without turning it, until its tail sits on the origin."
+   ],
+   [
+    30.26,
+    "It is exactly v minus w."
+   ],
+   [
+    32.747,
+    "And w, plus that arrow, gets you to v."
+   ],
+   [
+    36.51,
+    "Four plus minus two is two, and one plus two is three."
+   ]
+  ]
+ },
  "q4": {
   "dur": 2.16,
   "marks": {},
@@ -662,6 +726,30 @@ window.TIMINGS = {
    [
     1.185,
     "Make it happen with your hands."
+   ]
+  ]
+ },
+ "play": {
+  "dur": 12.024,
+  "marks": {
+   "go": 4.076
+  },
+  "cues": [
+   [
+    0.117,
+    "Playground."
+   ],
+   [
+    1.094,
+    "Nothing here is marked right or wrong."
+   ],
+   [
+    4.076,
+    "Change the numbers, drag the arrow tips, or draw on the board, and watch the sum follow."
+   ],
+   [
+    10.378,
+    "Press continue when you're done."
    ]
   ]
  },
