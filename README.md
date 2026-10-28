@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <strong>A Claude Code Skill that turns textbooks into narrated, interactive web lessons,<br>stories into paper-puppet films, and books into narrated documentaries.</strong>
+  <strong>An agent skill that turns textbooks into narrated, interactive web lessons,<br>stories into paper-puppet films, and books into narrated documentaries.</strong>
 </p>
 
 <p align="center">
@@ -42,16 +42,27 @@ Everything is a static web page: no server, no database, no account. A book is a
 
 Install the Skill in your project:
 
+For Claude Code:
+
 ```bash
 npx skills add DozenTwelve/Papermorph --skill papermorph --agent claude-code
 ```
 
-Then, in Claude Code:
+For OpenCode:
+
+```bash
+npx skills add DozenTwelve/Papermorph --skill papermorph --agent opencode
+```
+
+Then, in Claude Code or OpenCode:
 
 ```text
 /papermorph
 ```
 
+When you clone this repository, the `/papermorph` command is already available to OpenCode through `.opencode/commands/papermorph.md`. If you installed the skill globally instead, create the same command in `~/.config/opencode/commands/papermorph.md` (see [OpenCode commands](https://opencode.ai/v2/docs/commands)).
+
+OpenCode discovers the skill in this repository's `.claude/skills/papermorph` directory as well, so no copy is needed when working from a clone.
 It finds the PDF in your project (or asks for your story), tells you what kind of book it is, suggests a chapter to try first and how much animation it needs, and offers a recommended option at every step. Your choices are saved in `style.json`, so every later chapter is made to the same style.
 
 You need [uv](https://docs.astral.sh/uv/), ffmpeg, and Playwright's browsers (`uv run --with playwright playwright install chromium firefox`). Narration uses Edge TTS (online) or Kokoro (local), free. A few steps are paid, optional and need an API key: painted sets for picture books (OpenRouter or OpenAI), and ElevenLabs narration and clips made from a still for documentaries ([OpenRouter](https://openrouter.ai/)). Everything else runs without one.
