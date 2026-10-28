@@ -20,6 +20,8 @@
       chapterBase: 'math-notebook/', chapters: 23 },
     { id: 'science', key: 'animebook:progress:' + new URL('science/', location.href).pathname,
       chapterBase: 'science/', chapters: 19 },
+    { id: 'linear-algebra', key: 'animebook:progress:' + new URL('linear-algebra/', location.href).pathname,
+      chapterBase: 'linear-algebra/', chapters: 40 },
   ];
   for (const book of books) {
     const cover = document.querySelector(`[data-book="${book.id}"]`);
