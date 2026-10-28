@@ -382,7 +382,7 @@ const BEATS = [
     const sys = S.sys = oneLine(p, 1, 2, 2);
     drop(sys, 0, 3, .5, COL.task); drop(sys, 3, 0, .7, COL.task, '(3, 0)', -14, 56, undefined, 'end');
   }, { ask: done => quiz(CARD, [{
-    id: 'c-make', prompt: ['Make the line pass through ', $m('(0, 3)'), ' and ', $m('(3, 0)'), '. Drag a number sideways, or drag the line.'],
+    id: 'c-make', prompt: ['Make the line pass through ', $m('(0, 3)'), ' and ', $m('(3, 0)'), '. Drag a number sideways, drag the line to slide it, or drag one of its dots to turn it.'],
     build: lsTask(S.sys, v => (v.a00 || v.a01) && v.a01 * 3 === v.b0 && v.a00 * 3 === v.b0,
       'x + y = 3 (or any multiple, like 2x + 2y = 6): both points add up to 3.',
       'Put each point into your equation. Both must give the right side exactly. Try equal numbers in front of x and y.',
@@ -438,7 +438,7 @@ const BEATS = [
     S.sys = oneLine(p, 2, -1, 0);
     const hint = text(p, 'try: make it flat, make it pass through (0, 0), make it steep', 90, 330, m('go'), { size: 28, fill: COL.dim });
     hide(hint, m('go') + 6, .6);
-  }, { ask: playAsk(() => S.sys, { tip: 'Your line. Change any number, drag the line, or draw on the board. Nothing is marked.' }) }],
+  }, { ask: playAsk(() => S.sys, { tip: 'Your line. Change any number, slide the line, turn it by its dots, or draw on the board. Nothing is marked.' }) }],
   ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
 

@@ -220,7 +220,7 @@ function linsys(p, { A = [[2, -1], [-1, 2]], b = [0, 3], eq = [90, 250], mat = [
   });
   const tipLabels = [0, 1, 2].map(() => G(COLV, {}));
 
-  // Drag in the plane: a line slides to pass through the pointer (its right side changes);
+  // Drag in the plane: a line slides to pass through the pointer (its right side changes; its handles turn it, below);
   // an arrow tip goes to the nearest grid point (a column of A, or b).
   const dragIn = (el, onPoint) => {
     let on = false;
@@ -231,6 +231,53 @@ function linsys(p, { A = [[2, -1], [-1, 2]], b = [0, 3], eq = [90, 250], mat = [
   };
   lines.forEach(({ hit }, i) => dragIn(hit, ([X, Y]) => can(`b${i}`) && edit({ [`b${i}`]: clamp(`b${i}`, Math.round(v[`a${i}0`] * X + v[`a${i}1`] * Y)) })));
   const grid = (n, lo, hi) => Math.max(lo, Math.min(hi, Math.round(n)));
+  // Two handles on each line while the reader may change its whole equation: drag one and the line turns about the
+  // other. Both sit on whole-number points, so the new equation has whole numbers (in lowest terms).
+  const rowKeys = i => [`a${i}0`, `a${i}1`, `b${i}`], rowFree = i => rowKeys(i).every(can);
+  const knobPos = RI.map(() => [[0, 0], [0, 0]]);
+  let turning = null;   // { i, k, pivot, at } while a handle is dragged; the handles then stay where the hand put them
+  const knobs = lines.map(({ g }, i) => [0, 1].map(k => {
+    const h = G(g, { o: 0 });
+    mk('circle', { r: 24, fill: 'transparent' }, h);
+    mk('circle', { r: 10, fill: COL.board, stroke: LS_ROW[i], 'stroke-width': 4 }, h);
+    h.style.pointerEvents = 'none';
+    h.style.touchAction = 'none';
+    h.addEventListener('pointerdown', e => {
+      if (!rowFree(i)) return;
+      e.preventDefault();
+      turning = { i, k, pivot: knobPos[i][1 - k], at: knobPos[i][k] };
+      h.setPointerCapture(e.pointerId);
+    });
+    h.addEventListener('pointermove', e => {
+      if (!turning) return;
+      const [X, Y] = pt(e), q = [grid(X, bx[0], bx[1]), grid(Y, by[0], by[1])], p0 = turning.pivot;
+      if (q[0] === p0[0] && q[1] === p0[1]) return;
+      let a = q[1] - p0[1], b2 = p0[0] - q[0], c = a * p0[0] + b2 * p0[1];
+      const g2 = gcd(gcd(a, b2), c) || 1;
+      a /= g2; b2 /= g2; c /= g2;
+      if (a * v[`a${i}0`] + b2 * v[`a${i}1`] < 0) { a = -a; b2 = -b2; c = -c; }   // keep the signs the reader had, where the turn allows
+      if (Math.abs(a) > RANGE[`a${i}0`] || Math.abs(b2) > RANGE[`a${i}1`] || Math.abs(c) > RANGE[`b${i}`]) return;
+      turning.at = q;
+      edit({ [`a${i}0`]: a, [`a${i}1`]: b2, [`b${i}`]: c });
+      draw();   // the handles follow the hand even when the equation did not change
+    });
+    const end = () => { if (turning) { turning = null; draw(); } };
+    h.addEventListener('pointerup', end);
+    h.addEventListener('lostpointercapture', end);
+    return h;
+  }));
+  // Where the handles sit: two whole-number points of the line, a quarter and three quarters along those in the grid
+  // (or a quarter and three quarters along the drawn line, when it has fewer than two).
+  const knobsFor = i => {
+    const a = v[`a${i}0`], b2 = v[`a${i}1`], c = v[`b${i}`], pts = [];
+    if ([a, b2, c].every(Number.isInteger)) {
+      if (b2) { for (let X = bx[0]; X <= bx[1]; X++) if ((c - a * X) % b2 === 0) { const Y = (c - a * X) / b2; if (Y >= by[0] && Y <= by[1]) pts.push([X, Y]); } }
+      else if (a && c % a === 0) for (let Y = by[0]; Y <= by[1]; Y++) pts.push([c / a, Y]);
+    }
+    if (pts.length >= 2) { const m = pts.length, j = Math.floor((m - 1) / 4), k = Math.max(j + 1, Math.ceil(3 * (m - 1) / 4)); return [pts[j], pts[k]]; }
+    const cl = clipLine(a, b2, c);
+    return cl ? [[cl[0] + (cl[2] - cl[0]) / 4, cl[1] + (cl[3] - cl[1]) / 4], [cl[0] + 3 * (cl[2] - cl[0]) / 4, cl[1] + 3 * (cl[3] - cl[1]) / 4]] : null;
+  };
   const tipKeys = { b: ['b0', 'b1'], col0: ['a00', 'a10'], col1: ['a01', 'a11'] };
   tips.forEach(({ g, k }) => dragIn(g, ([X, Y]) => {
     if (!tipKeys[k].every(can)) return;
@@ -262,6 +309,8 @@ function linsys(p, { A = [[2, -1], [-1, 2]], b = [0, 3], eq = [90, 250], mat = [
     lines.forEach(({ hit, l }, i) => {
       const c = clipLine(v[`a${i}0`], v[`a${i}1`], v[`b${i}`]), d = c ? `M${PX(c[0])} ${PY(c[1])}L${PX(c[2])} ${PY(c[3])}` : '';
       if (l.getAttribute('d') !== d) { l.setAttribute('d', d); hit.setAttribute('d', d); }
+      const kp = turning && turning.i === i ? (turning.k ? [turning.pivot, turning.at] : [turning.at, turning.pivot]) : knobsFor(i);
+      if (kp) { knobPos[i] = kp; kp.forEach(([x, y], k) => put(knobs[i][k], { x: PX(x), y: PY(y) })); }
     });
     const s = solve(), inGrid = s.x !== undefined && s.x >= bx[0] && s.x <= bx[1] && s.y >= by[0] && s.y <= by[1];
     put(meet, { x: inGrid ? PX(s.x) : 0, y: inGrid ? PY(s.y) : 0, o: inGrid ? 1 : 0 });
@@ -361,9 +410,11 @@ function linsys(p, { A = [[2, -1], [-1, 2]], b = [0, 3], eq = [90, 250], mat = [
         if (ok) s.box.setAttribute('tabindex', 0); else s.box.removeAttribute('tabindex');
       }
       lines.forEach(({ hit }, i) => { hit.style.cursor = can(`b${i}`) ? 'move' : ''; });
+      knobs.forEach((ks, i) => ks.forEach(h => { const ok = rowFree(i); put(h, { o: ok ? 1 : 0 }); h.style.pointerEvents = ok ? '' : 'none'; h.style.cursor = ok ? 'grab' : ''; }));
       tips.forEach(({ g, ring, k }) => { const ok = tipKeys[k].every(can); g.style.cursor = ok ? 'grab' : ''; ring.style.opacity = ok ? 1 : 0; });
     },
     set: edit,   // at once, for a reader's action or an answer shown
+    knobs, knobPos,   // the turning handles of each line and their grid points (for tests)
     num: key => slots.filter(s => s.key === key).map(s => s.t),   // every text that shows this value (to flash it)
     eqRows,
     onChange(f) { listeners.push(f); },
@@ -380,6 +431,6 @@ const lsTask = (sys, test, why, hint, reveal, { only, trail = false } = {}) => (
     check: () => { const v = sys.v, s = sys.solve(), ok = test(v, s); api.grade(ok, ok ? why : typeof hint === 'function' ? hint(v, s) : hint); },   // a hint may say where the reader is now
     reveal: () => { reveal?.(); return why; },
     lock: () => sys.live(false),
-    hint: [kbd('Tab'), ' pick a number ', kbd('↑'), kbd('↓'), ' change it, or drag in the picture'],
+    hint: [kbd('Tab'), ' pick a number ', kbd('↑'), kbd('↓'), ' change it; drag a line to slide it, its dots to turn it'],
   };
 };

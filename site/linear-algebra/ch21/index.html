@@ -33,7 +33,7 @@ const thick = (sys, i, t0) => { tw(sys.lines[i].l, { 'a_stroke-width': 10 }, t0,
 // 2D: the plane on the right (moved over a little to leave room for three matrices), no equations (the product is them).
 const two = (p, { A, b }, caption, { t0 = .1, E = null } = {}) => {
   const sys = linsys(p, { A, b, eq: [90, 200], mat: null, sol: false, plane: { cx: 1215, u: 50 }, t0 });
-  sys.E.style.display = 'none';
+  sys.E.style.visibility = 'hidden';   // hidden, not display: none: hidden text still measures, so a seek replays the same frame
   if (caption) say(p, [caption], 70, 175, t0 + .1, { size: 28, fill: COL.dim });
   const em = emat(p, sys, { A, b, E, at: AT2, size: 38, cw: 64, ecw: 56, rh: 62, gap: 66, t0 });
   return { sys, em };
@@ -41,7 +41,7 @@ const two = (p, { A, b }, caption, { t0 = .1, E = null } = {}) => {
 // 3D: the space on the right, smaller and further out, three 3 × 3 tables on the left.
 const three = (p, { A, b }, caption, { t0 = .1, E = null, view = { yaw: -40, pitch: 20 } } = {}) => {
   const sys = lin3(p, { A, b, eq: [90, 190], mat: null, sol: false, space: { cx: 1262, size: 520, ...view }, t0 });
-  sys.E.style.display = 'none';
+  sys.E.style.visibility = 'hidden';   // hidden, not display: none: hidden text still measures, so a seek replays the same frame
   if (caption) say(p, [caption], 64, 160, t0 + .1, { size: 26, fill: COL.dim });
   const em = emat(p, sys, { A, b, E, at: AT3, size: 32, cw: 52, ecw: 44, rh: 54, gap: 64, t0 });
   return { sys, em, V: sys.space };
@@ -274,7 +274,7 @@ const BEATS = [
     const p = panel(0);
     text(p, 'Both steps in one matrix', 60, 110, .2, { size: 40, weight: 600 });
     const sys = lin3(p, { A: LEC.A, b: LEC.b, eq: [90, 190], mat: null, sol: false, space: { cx: 1262, size: 520, yaw: -30, pitch: 22 } });
-    sys.E.style.display = 'none';
+    sys.E.style.visibility = 'hidden';   // hidden, not display: none: hidden text still measures, so a seek replays the same frame
     const V = sys.space;
     V.sway(5, 13);
     const sym = G(p, { o: 0 }); show(sym, m('write'), .4);
