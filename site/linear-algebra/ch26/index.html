@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Inverse: Undoing a Matrix</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render"><!-- hold the first frame until the player exists, so the page transition can run -->
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/math.js"></script>
+<script src="../lib/grid2.js"></script>
+<script src="../lib/inv.js"></script>
+<script src="../lib/play.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 26, title: 'The Inverse: Undoing a Matrix', minutes: 11, language: 'en', next: '../ch27/' };
+
+/* ---------- layout and colours ---------- */
+const COLC = [COL.irr, COL.real];                              // column 1 green, column 2 violet
+const LEFT = { x: 40, y: 430, w: 720, cls: 'side' };          // question card under the matrices; the plane stays on the right
+const TOPL = { x: 40, y: 200, w: 720, cls: 'side' };
+const I2 = [[1, 0], [0, 1]];
+const ZOOM = { u: 64, x0: -5, x1: 5, y0: -5, y1: 5 };          // a closer plane for the named moves: the flag reads
+const INV = ['A', E('−1')];                                    // "A⁻¹" as math parts
+
+/* ---------- chapter drawing helpers (chapter 10's) ---------- */
+const say = (p, parts, x, y, t0, { size = 40, fill = COL.chalk, anchor = 'start' } = {}) => { const e = M(p, [].concat(parts), { x, y, size, fill, anchor, o: 0 }); show(e, t0); return e; };
+const text = (p, str, x, y, t0, { size = 30, fill = COL.chalk, anchor = 'start', weight = 500 } = {}) => { const e = T(p, str, { x, y, size, fill, anchor, weight, o: 0 }); show(e, t0); return e; };
+const title = (p, str) => text(p, str, 60, 110, .2, { size: 40, weight: 600 });
+const keysOf = (A, k = 'a') => ({ [k + '00']: A[0][0], [k + '01']: A[0][1], [k + '10']: A[1][0], [k + '11']: A[1][1] });
+const colFill = (i, j) => COLC[j];
+const mat = (p, A, x, y, t0, { size = 50, name = 'A', fill = colFill } = {}) => { const m = ivMat(p, A, { x, y, size, name, fill, o: 0 }); show(m.g, t0, .4); return m; };
+const fl = (cell, t0) => { const e = cell.g.parentNode; tw(e, { s: 1.25 }, t0, .25); tw(e, { s: 1 }, t0 + .5, .4); };
+const ringAt = (P2, [x, y], color, into, t0, label, { dx = 20, dy = -18, anchor = 'start' } = {}) => {
+  const g = G(into, { x: P2.PX(x), y: P2.PY(y), o: 0 });
+  mk('circle', { r: 17, fill: 'none', stroke: color, 'stroke-width': 3, 'stroke-dasharray': '5 5' }, g);
+  if (label) T(g, label, { x: dx, y: dy, size: 22, fill: color, font: MATH, anchor });
+  if (t0 !== undefined) show(g, t0, .4); else put(g, { o: 1 });
+  return g;
+};
+const dotAt = (P2, [x, y], into, t0, { r = 9, color = COL.chalk } = {}) => { const d = G(into, { x: P2.PX(x), y: P2.PY(y), o: 0 }); mk('circle', { r, fill: color, stroke: COL.board, 'stroke-width': 2 }, d); show(d, t0, .3); return d; };
+// A pointer that drags a handle from a to b (stage px) over [tm, tm + dur]; shown t0 … t1. A function of time alone.
+function pointer(p, steps, t0, t1) {
+  const g = G(p, { o: 0 });
+  path(g, 'M0 0L0 30L8 22L14 36L20 33L14 20L25 20Z', { fill: COL.chalk, stroke: COL.board, 'stroke-width': 2 });
+  prog(q => { const t = t0 + q * (t1 - t0); let [x, y] = steps[0][1]; for (const [tm, to, dur = .35] of steps) { const k = io(Math.max(0, Math.min(1, (t - tm) / dur))); x += (to[0] - x) * k; y += (to[1] - y) * k; } put(g, { x: x + 4, y: y + 4 }); }, t0, t1 - t0, lin);
+  show(g, t0, .3); hide(g, t1, .3);
+  return g;
+}
+// Rings round entries of a grid2's matrix while a·d − b·c is read: a and d first, then b and c.
+const adbc = (p, g, t1, t2, t3) => [[[0, 0], [1, 1], t1, t2, COL.chalk], [[0, 1], [1, 0], t2, t3, COL.chalk]].forEach(([e1, e2, a, b, c]) => [e1, e2].forEach(([i, j]) => {
+  const r = mk('circle', { cx: g.lay.A[0][j], cy: g.lay.A[1][i] - 18, r: 36, fill: 'none', stroke: c, 'stroke-width': 3, 'stroke-dasharray': i === j ? '' : '6 5' }, p);
+  put(r, { o: 0 }); show(r, a, .3); hide(r, b, .3);
+}));
+// Inline matrix for a card.
+function matEl(rows, { size = 28 } = {}) {
+  const n = rows[0].length, cw = size * 1.8, rh = size * 1.3, w = cw * n + 16, hh = rh * rows.length + size * .3;
+  const svg = mk('svg', { class: 'm', viewBox: `0 0 ${w} ${hh}`, width: w, height: hh });
+  svg.style.verticalAlign = 'middle';
+  path(svg, `M12 2H3V${hh - 2}H12M${w - 12} 2H${w - 3}V${hh - 2}H${w - 12}`, { stroke: 'currentColor', 'stroke-width': 2.5 });
+  rows.forEach((r, i) => r.forEach((v, j) => T(svg, num(v), { x: 8 + cw * (j + .5), y: rh * (i + .5) + size * .5, size, fill: COLC[j], font: MATH, anchor: 'middle' })));
+  return svg;
+}
+const isI = T2 => Math.abs(T2[0][0] - 1) < 1e-9 && Math.abs(T2[0][1]) < 1e-9 && Math.abs(T2[1][0]) < 1e-9 && Math.abs(T2[1][1] - 1) < 1e-9;
+const mtxt = A => `[${A[0].map(num).join(' ')}; ${A[1].map(num).join(' ')}]`;
+const fracTxt = x => { const f = g2frac(x); return !f || f[1] === 1 ? num(x) : `${f[0] < 0 ? '−' : ''}${Math.abs(f[0])}/${f[1]}`; };
+const ansTxt = x => fracTxt(x).replace('−', '-');   // a box's expected answer
+const inv2 = A => { const d = A[0][0] * A[1][1] - A[0][1] * A[1][0]; return [[A[1][1] / d, -A[0][1] / d], [-A[1][0] / d, A[0][0] / d]]; };
+
+/* ---------- practice data ---------- */
+const UNDOQ = [   // named moves and their inverses
+  { A: [[3, 0], [0, 1]], why: '3 times as wide is undone by a third as wide.' },
+  { A: [[2, 0], [0, 4]], why: 'Twice as wide and 4 times as tall: undo with half as wide and a quarter as tall.' },
+  { A: [[1, -2], [0, 1]], why: 'A shear 2 to the left is undone by a shear 2 to the right.' },
+  { A: [[0, 1], [1, 0]], why: 'Swapping x and y twice puts them back: this matrix is its own inverse.' },
+  { A: [[-1, 0], [0, -1]], why: 'A half turn, done twice, is a whole turn: its own inverse.' },
+  { A: [[1, 0], [3, 1]], why: 'A shear that lifts by 3x is undone by one that lowers by 3x.' },
+];
+const FORMQ = [[[3, 2], [1, 1]], [[4, 3], [1, 1]], [[2, 1], [4, 3]], [[5, 2], [2, 1]], [[1, 2], [3, 4]]];
+const YESNO = [['y', 'Has an inverse', COL.good, 'Y'], ['n', 'No inverse', COL.bad, 'N']];
+const INVQ = [
+  { A: [[1, 2], [3, 6]], ans: ['n'], why: 'ad − bc = 6 − 6 = 0: column 2 is twice column 1.' },
+  { A: [[1, 2], [3, 5]], ans: ['y'], why: 'ad − bc = 5 − 6 = −1, not zero.' },
+  { A: [[4, 2], [2, 1]], ans: ['n'], why: 'ad − bc = 4 − 4 = 0.' },
+  { A: [[0, 0], [0, 1]], ans: ['n'], why: 'ad − bc = 0 − 0 = 0: (1, 0) is sent to (0, 0).' },
+  { A: [[0, 3], [2, 0]], ans: ['y'], why: 'ad − bc = 0 − 6 = −6, not zero.' },
+  { A: [[-1, 2], [2, -4]], ans: ['n'], why: 'ad − bc = 4 − 4 = 0: column 2 is −2 times column 1.' },
+];
+const SOLVEQ = [{ A: [[3, 1], [2, 1]], b: [4, 3] }, { A: [[2, 1], [1, 1]], b: [1, 0] }];
+const HANDQ = [
+  { pre: [[0, -1], [1, 0]], what: 'a quarter turn counterclockwise', hint: 'Turn back: a quarter turn clockwise. (1, 0) must end up at (0, −1).' },
+  { pre: [[1, 0], [0, -1]], what: 'a flip upside down', hint: 'Flip it again: (0, 1) goes down to (0, −1).' },
+  { pre: [[2, 1], [1, 1]], what: 'A = [2 1; 1 1]', hint: 'Use the formula: ad − bc = 1, so A⁻¹ = [1 −1; −1 2].' },
+  { pre: [[1, -1], [0, 1]], what: 'a shear to the left', hint: 'Shear back to the right: (0, 1) goes to (1, 1).' },
+];
+
+/* ---------- beats: [id, title, run(m, D), { ask }?] ---------- */
+const BEATS = [
+  ['intro', 'The inverse: undoing a matrix', (m, D) => {
+    const g = G(scene, { o: 0, y: 24 });
+    T(g, 'Unit 3, Chapter 26', { x: 800, y: 250, size: 28, fill: COL.dim, anchor: 'middle' });
+    T(g, 'The Inverse: Undoing a Matrix', { x: 800, y: 360, size: 80, weight: 600, anchor: 'middle' });
+    tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+    const r = text(scene, 'the matrix that moves the plane back', 800, 450, m('sub'), { size: 36, fill: COL.dim, anchor: 'middle' });
+    const sm = G(scene, { o: 0 });
+    const k = grid2(sm, { A: I2, pre: I2, mat: null, shape: true, units: false, plane: { cx: 800, cy: 690, u: 30, x0: -5, x1: 5, y0: -3, y1: 3, labels: false } });
+    put(k.parts.cols, { o: 0 });
+    show(sm, m('sub') + .5, .6);
+    k.to({ p01: 1 }, m('move') + .3, 1.4); k.to({ a01: -1 }, m('move') + 2.6, 1.4);
+    tw(g, { o: 0, y: -24 }, D - .9, .8); hide(r, D - .9, .8); hide(sm, D - .9, .8);
+  }],
+
+  ['undo', 'Undo a stretch', (m) => {
+    const p = panel(0);
+    title(p, 'Which matrix moves it back?');
+    const g = S.g = grid2(p, { A: I2, pre: I2, mat: null, shape: true, plane: ZOOM });
+    put(g.parts.cols, { o: 0 });
+    const Am = mat(p, [[2, 0], [0, 1]], 90, 290, m('A'));
+    g.to({ p00: 2 }, m('go') + .2, 2.2);
+    text(p, 'A: twice as wide', 90, 520, m('go') + .8, { size: 30, weight: 600 });
+    text(p, 'which matrix moves it back?', 90, 580, m('ask') + .3, { size: 30, fill: COL.dim });
+    const Bm = mat(p, [[.5, 0], [0, 1]], 430, 290, m('half') + 2.4, { name: INV });
+    g.to({ a00: .5 }, m('back') + .6, 2.6);
+    text(p, 'half as wide: every line back home', 90, 640, m('back') + 3, { size: 30, weight: 600 });
+    say(p, [...INV, '   “A inverse”'], 90, 720, m('name') + 1.5, { size: 40 });
+    say(p, ['3 · ', F(1, 3), ' = 1:   ', F(1, 3), ' undoes 3'], 90, 815, m('num') + .4, { size: 34, fill: COL.dim });
+    fl(Am.cells[0][0], m('half') + 1); fl(Bm.cells[0][0], m('half') + 3);
+    pulse(Bm.g, m('name') + 3.5, 1.2);
+    // "A inverse undoes A": once more, from home (pre and A reset together, so the plane does not jump)
+    g.to({ p00: 1, a00: 1 }, m('num') + .3, .05);
+    g.to({ p00: 2 }, m('num') + 4.6, 1.2); g.to({ a00: .5 }, m('num') + 6.8, 1.2);
+    fl(Am.cells[0][0], m('num') + 4.6); fl(Bm.cells[0][0], m('num') + 6.8);
+  }],
+
+  ['idef', 'A⁻¹ A = I', (m) => {
+    const p = panel(0);
+    title(p, 'A, then A⁻¹: every point comes home');
+    const g = S.g = grid2(p, { A: I2, pre: I2, mat: null, shape: true, units: false, pts: [{ p: [3, 1] }] });
+    put(g.parts.cols, { o: 0 }); put(g.parts.pts, { o: 0 }); show(g.parts.pts, m('pt'), .3);
+    const { PX, PY } = g.P;
+    const lab = (s, x, y, t0, t1) => { const e = T(p, s, { x: PX(x), y: PY(y) - 22, size: 24, fill: COL.chalk, font: MATH, anchor: 'middle', o: 0 }); show(e, t0, .3); if (t1) hide(e, t1, .3); return e; };
+    lab('(3, 1)', 3, 1, m('pt') + .3, m('a1') + .2);
+    g.to({ p00: 2 }, m('a1') + .3, 1.6);
+    lab('(6, 1)', 5.6, 1, m('a1') + 1.9, m('a2') + .2);
+    g.to({ a00: .5 }, m('a2') + .3, 1.6);
+    lab('(3, 1) again', 3, 1, m('a2') + 1.9);
+    say(p, ['first A, then ', ...INV, ':   ', ...INV, 'A'], 90, 210, m('mult') + .2, { size: 34 });
+    text(p, 'A acts first, so it stands on the right, next to x', 90, 260, m('mult') + 3, { size: 24, fill: COL.dim });
+    const pr = ivProd(p, [[.5, 0], [0, 1]], [[2, 0], [0, 1]], { at: [90, 380], size: 42, names: [INV, 'A', 'I'], work: [90, 560], o: 0 });
+    show(pr.g, m('mult') + .3, .5);
+    pr.entry(0, 0, m('rc'), m('rc2') - m('rc') - .2); pr.entry(0, 1, m('rc2'), m('rc3') - m('rc2') - .2);
+    pr.entry(1, 0, m('rc3'), m('rc4') - m('rc3') - .1); pr.entry(1, 1, m('rc4'), 1.4);
+    text(p, 'I, the identity: every point stays where it is', 90, 640, m('I') + .3, { size: 28, weight: 600 });
+    pulse(pr.C.g, m('I') + 1.5, 1.2);
+    const still = G(p, {}); [[-3, 2], [1, -2], [-2, -3], [4, -1], [-4, -1]].forEach((q, k) => ringAt(g.P, q, COL.chalk, still, m('I') + 2.5 + k * .6)); hide(still, m('other') - .2, .3);
+    say(p, ['other order:   A', ...INV, ' = I   too'], 90, 720, m('other') + 3.4, { size: 34 });
+    // the other order on the plane: squeeze first, then stretch (pre and A swap roles; the plane does not jump)
+    g.to({ a00: 1, p00: 1 }, m('other') + .2, .05);
+    g.to({ p00: .5 }, m('other') + .6, 1.4); g.to({ a00: 2 }, m('other') + 2.3, 1.4);
+    const sq = text(p, 'squeeze …', 1160, 820, m('other') + .6, { size: 26, fill: COL.dim, anchor: 'middle' }); hide(sq, m('other') + 2.2, .2);
+    text(p, '… then stretch: home', 1160, 820, m('other') + 2.3, { size: 26, fill: COL.dim, anchor: 'middle' });
+  }],
+
+  ['turn', 'Undo a turn', (m) => {
+    const p = panel(0);
+    title(p, 'Undo a turn: turn back');
+    const g = S.g = grid2(p, { A: I2, pre: I2, mat: null, shape: true, plane: ZOOM });
+    put(g.parts.cols, { o: 0 });
+    mat(p, [[0, -1], [1, 0]], 90, 260, m('A'));
+    g.turn(0, 90, m('go'), 1.6, io, 'p');
+    text(p, 'a quarter turn, counterclockwise', 90, 450, m('A') + 3, { size: 28, fill: COL.dim });
+    text(p, 'undo: turn back, clockwise', 90, 500, m('ask') + 1, { size: 28, weight: 600 });
+    const Bt = mat(p, [[0, 1], [-1, 0]], 420, 260, m('inv') + .3, { name: INV });
+    [[0, 0], [0, 1], [1, 0], [1, 1]].forEach(([i, j], k) => fl(Bt.cells[i][j], m('inv') + 3.2 + k * 1.1));
+    g.turn(0, -90, m('back') + .2, 1.8);
+    const pr = ivProd(p, [[0, 1], [-1, 0]], [[0, -1], [1, 0]], { at: [90, 620], size: 40, names: [INV, 'A', 'I'], work: [90, 820], o: 0 });
+    show(pr.g, m('check'), .5);
+    pr.entry(0, 0, m('check') + 1.6, m('c2') - m('check') - 1.8); pr.entry(0, 1, m('c2'), m('c3') - m('c2') - .2);
+    pr.entry(1, 0, m('c3'), m('c4') - m('c3') - .2); pr.entry(1, 1, m('c4'), 1.6);
+  }],
+
+  ['shear', 'Undo a shear, undo a flip', (m) => {
+    const p = panel(0);
+    title(p, 'Undo a shear: slide back');
+    const g = S.g = grid2(p, { A: I2, pre: I2, mat: null, shape: true, plane: ZOOM });
+    put(g.parts.cols, { o: 0 });
+    const a = mat(p, [[1, 1], [0, 1]], 90, 260, m('A'));
+    g.to({ p01: 1 }, m('go'), 2);
+    const b = mat(p, [[1, -1], [0, 1]], 420, 260, m('inv') + .3, { name: INV });
+    const sl = G(p, {});
+    [1, 2, 3].forEach((k, i) => { g.P.arrow(k + .6, k, .6, k, COL.chalk, m('inv') + 1.5 + i * .6, { into: sl }); });   // each line slides back by its height
+    text(sl, 'back by 1, 2, 3', 1160, 830, m('inv') + 3.4, { size: 24, fill: COL.dim, anchor: 'middle' });
+    hide(sl, m('back') + .6, .4);
+    g.to({ a01: -1 }, m('back') + .1, 2);
+    const t1 = text(p, 'slide right, then slide left', 90, 480, m('minus') + 1.2, { size: 28, weight: 600 });
+    const r1 = mk('circle', { cx: a.cx(1), cy: a.ry(0) - 16, r: 34, fill: 'none', stroke: COL.chalk, 'stroke-width': 3 }, p); put(r1, { o: 0 }); show(r1, m('minus') + .4, .3);
+    const r2 = mk('circle', { cx: b.cx(1), cy: b.ry(0) - 16, r: 38, fill: 'none', stroke: COL.chalk, 'stroke-width': 3 }, p); put(r2, { o: 0 }); show(r2, m('minus') + .8, .3);
+    [a.g, b.g, t1, r1, r2].forEach(e => hide(e, m('flip') - .1, .4));
+    // reset to home without a jump (pre and A cancel throughout), then the flip
+    g.to({ p01: 0, a01: 0 }, m('flip') - .2, .05);
+    mat(p, [[-1, 0], [0, 1]], 90, 600, m('flip') + .2);
+    text(p, 'a flip', 90, 520, m('flip') + .2, { size: 30, weight: 600 });
+    g.to({ p00: -1 }, m('flip') + .6, 1.8);
+    mat(p, [[-1, 0], [0, 1]], 420, 600, m('flip2') + .2, { name: INV });
+    g.to({ a00: -1 }, m('flip2') + .6, 1.8);
+    say(p, [...INV, ' = A:  its own inverse'], 90, 830, m('flip2') + 2.6, { size: 32 });
+  }],
+
+  ['q1', 'Quick check', () => {
+    const p = panel(0);
+    title(p, 'Quick check');
+    mat(p, [[1, 0], [2, 1]], 90, 250, .3, { size: 44 });
+    text(p, 'A sheared the plane up', 90, 370, .4, { size: 26, fill: COL.dim });
+    const g = S.g = grid2(p, { A: I2, pre: [[1, 0], [2, 1]], mat: [420, 250], size: 44, shape: true, name: 'B' });
+    g.labels(['col 1', 'col 2']);
+  }, { ask: done => quiz(LEFT, [{
+    id: 'c-home', prompt: ['Drag the tips of ', $m('B'), ' until the whole grid is back home, on the faint one.'],
+    build: g2Task(S.g, () => isI(S.g.total()), 'B = [1 0; −2 1]: it lowers every point by 2 times its x, which undoes the upward shear. B = A⁻¹.',
+      'A lifted every point by 2 times its x: (1, 0) went up to (1, 2). To bring it back, B must send (1, 0) down to (1, −2), and keep (0, 1) where it is.',
+      () => S.g.set(keysOf([[1, 0], [-2, 1]])), ['A', 'cols']),
+  }], done) }],
+
+  ['formula', 'A formula for 2 × 2', (m) => {
+    const p = panel(0);
+    title(p, 'The inverse of any 2 × 2 matrix');
+    const s = 56, gg = G(p, {});
+    say(gg, ['A  ='], 90, 290, m('gen') - .4, { size: s });
+    const br = (x0, y0, w, t0) => { const e = path(gg, `M${x0 + 14} ${y0 - s}H${x0}V${y0 + 80 + s * .45}H${x0 + 14}M${x0 + w - 14} ${y0 - s}H${x0 + w}V${y0 + 80 + s * .45}H${x0 + w - 14}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' }, { o: 0 }); show(e, t0); return e; };
+    br(200, 260, 230, m('gen') - .4);
+    const L = { a: [260, 260, COLC[0]], b: [370, 260, COLC[1]], c: [260, 340, COLC[0]], d: [370, 340, COLC[1]] };
+    const letter = (k, t0) => { const g = G(gg, { x: L[k][0], y: L[k][1], o: 0 }); M(g, [k], { size: s, fill: L[k][2], anchor: 'middle' }); show(g, t0, .3); return g; };
+    ['a', 'b', 'c', 'd'].forEach((k, i) => letter(k, m('gen') + .3 + i * .5));
+    // the inverse: a and d swap (copies fly), b and c move across with a minus sign, then the fraction
+    say(gg, [...INV, '  ='], 90, 560, m('swap') - .2, { size: s });
+    br(470, 530, 300, m('swap') - .2);
+    const N = { a: [710, 610], d: [550, 530], b: [710, 530], c: [550, 610] };
+    const fly = (k, t0) => { const g = letter(k, t0); tw(g, { x: N[k][0], y: N[k][1] }, t0 + .2, 1.4); return g; };
+    fly('d', m('swap') + .3); fly('a', m('swap') + .7);
+    fly('b', m('sign') + .3); fly('c', m('sign') + .6);
+    say(gg, ['−'], 662, 530, m('sign') + 1.6, { size: s, fill: COLC[1] }); say(gg, ['−'], 502, 610, m('sign') + 1.9, { size: s, fill: COLC[0] });
+    const fr = say(gg, [F('1', 'ad − bc')], 330, 590, m('div') + .4, { size: s * .8 });
+    // the recipe on the right, one step at a time
+    const step = (n, words, t0) => { const g = G(p, { o: 0, x: 20 }); mk('circle', { cx: 900, cy: -12, r: 24, fill: COL.chalk }, g); T(g, String(n), { x: 900, y: -2, size: 28, fill: COL.board, weight: 700, anchor: 'middle' }); M(g, words, { x: 945, size: 34, anchor: 'start' }); tw(g, { o: 1, x: 0 }, t0, .5); put(g, { y: 280 + n * 100 }); return g; };
+    const s1 = step(1, ['swap a and d'], m('swap') + .2), s2 = step(2, ['minus signs on b and c'], m('sign') + .2), s3 = step(3, ['divide by ad − bc'], m('div') + .2);
+    const hl = mk('rect', { x: 860, y: 340, width: 600, height: 64, rx: 14, fill: COL.chalk }, p); put(hl, { o: 0 });   // the recipe read once more, step by step
+    tw(hl, { o: .12 }, m('all'), .3); [1, 2].forEach(k => tw(hl, { a_y: 340 + k * 100 }, m('all') + k * 1.1, .4)); tw(hl, { o: 0 }, m('all') + 3.6, .4);
+    [s1, s2, s3].forEach((e, i) => pulse(e, m('all') + .2 + i * 1, 1));
+    pulse(fr, m('all') + 2.2, 1);
+  }],
+
+  ['fex1', 'Example: the formula', (m) => {
+    const p = panel(0);
+    title(p, 'Use it: A = [2 1; 1 1]');
+    text(p, 'swap a and d · minus signs on b and c · divide by ad − bc', 60, 165, .3, { size: 24, fill: COL.dim });
+    const g = S.g = grid2(p, { A: [[2, 1], [1, 1]], mat: [90, 290], size: 50, shape: true, t0: m('A') - .5 });
+    g.labels(['col 1', 'col 2']);
+    const iv = g.inverse({ at: [90, 475], size: 40 });
+    ['det', 'lhs', 'scale', 'adj', 'eq', 'res'].forEach(k => put(iv[k], { o: 0 }));
+    show(iv.det, m('det') + .3, .4); adbc(p, g, m('det') + .8, m('det') + 3.4, m('sw') - .3);
+    show(iv.lhs, m('sw'), .3); show(iv.adj, m('sw'), .3);
+    [1, 2].forEach(k => { put(iv.adjCells[k].g, { o: 0 }); show(iv.adjCells[k].g, m('sg') + .3 + (k - 1) * .5, .3); });
+    [0, 3].forEach(k => pulse(iv.adjCells[k].g, m('sw') + .5, 1.2));
+    show(iv.scale, m('res'), .3);
+    [0, 1, 2, 3].forEach(k => pulse(iv.resCells[k].g, m('res') + 3.6 + k * 1.1, 1)); show(iv.eq, m('res') + 1, .3); show(iv.res, m('res') + 1.4, .4);
+    hide(iv.root, m('check') - .2, .4);
+    const pr = ivProd(p, [[1, -1], [-1, 2]], [[2, 1], [1, 1]], { at: [90, 490], size: 40, names: [INV, 'A', 'I'], work: [90, 660], o: 0 });
+    show(pr.g, m('check'), .5);
+    pr.entry(0, 0, m('check') + 1.2, m('c2') - m('check') - 1.4); pr.entry(0, 1, m('c2'), m('c3') - m('c2') - .2);
+    pr.entry(1, 0, m('c3'), m('c4') - m('c3') - .2); pr.entry(1, 1, m('c4'), 2);
+    hide(g.M, m('grid') + .1, .3);
+    g.to(keysOf(I2), m('grid') + 2.2, 2.4);
+    text(p, 'A⁻¹ brings the plane home', 90, 770, m('grid') + 2.2, { size: 30, weight: 600 });
+  }],
+
+  ['fex2', 'Example with fractions', (m) => {
+    const p = panel(0);
+    title(p, 'A second one: A = [3 1; 4 2]');
+    text(p, 'swap a and d · minus signs on b and c · divide by ad − bc', 60, 165, .3, { size: 24, fill: COL.dim });
+    const g = S.g = grid2(p, { A: [[3, 1], [4, 2]], mat: [90, 290], size: 50, shape: true, t0: m('A') - .5 });
+    g.labels(['col 1', 'col 2']);
+    const iv = g.inverse({ at: [90, 475], size: 40 });
+    ['det', 'lhs', 'scale', 'adj', 'eq', 'res'].forEach(k => put(iv[k], { o: 0 }));
+    show(iv.det, m('det') + .3, .4); adbc(p, g, m('det') + .8, m('det') + 3.6, m('sw') - .3);
+    show(iv.lhs, m('sw'), .3); show(iv.adj, m('sw'), .3);
+    [1, 2].forEach(k => { put(iv.adjCells[k].g, { o: 0 }); show(iv.adjCells[k].g, m('sg') + .3 + (k - 1) * .5, .3); });
+    [0, 3].forEach(k => pulse(iv.adjCells[k].g, m('sw') + .5, 1.2));
+    show(iv.scale, m('div') + .3, .3); show(iv.eq, m('res'), .3); show(iv.res, m('res') + .3, .4);
+    hide(iv.root, m('check') - .2, .4);
+    const pr = ivProd(p, [[3, 1], [4, 2]], [[1, -.5], [-2, 1.5]], { at: [90, 490], size: 40, names: ['A', INV, 'I'], work: [90, 680], o: 0 });
+    show(pr.g, m('check'), .5);
+    pr.entry(0, 0, m('check') + 2.4, m('c2') - m('check') - 2.6); pr.entry(0, 1, m('c2'), m('c3') - m('c2') - .2);
+    pr.entry(1, 0, m('c3'), m('c4') - m('c3') - .2); pr.entry(1, 1, m('c4'), m('I') - m('c4') + 1);
+    hide(g.M, m('home') - .1, .3);
+    g.to(keysOf(I2), m('home') + .3, 2.4);
+    text(p, 'A⁻¹ brings the plane home', 90, 800, m('home') + .3, { size: 30, weight: 600 });
+  }],
+
+  ['why', 'Why the formula works', (m) => {
+    const p = panel(0);
+    title(p, 'Why divide by ad − bc?');
+    const L = [['d', ['−', 'b']], [['−', 'c'], 'a']], R = [['a', 'b'], ['c', 'd']];
+    const fill = (i, j) => COLC[j];
+    const C = [['ad − bc', '0'], ['0', 'ad − bc']];
+    const works = [
+      [['d·a + (−b)·c  =  ad − bc'], ['d·b + (−b)·d  =  0']],
+      [['(−c)·a + a·c  =  0'], ['(−c)·b + a·d  =  ad − bc']],
+    ];
+    const pr = ivProd(p, L, R, { at: [150, 320], size: 48, names: ['swapped', 'A', ''], C, works: (i, j) => works[i][j], work: [150, 560], workSize: 38, cwC: 48 * 3.4, o: 0 });
+    show(pr.g, m('mul'), .5);
+    pr.entry(0, 0, m('e1'), m('e2') - m('e1') - .2); pr.entry(0, 1, m('e2'), m('e3') - m('e2') - .2);
+    pr.entry(1, 0, m('e3'), m('e4') - m('e3') - .2); pr.entry(1, 1, m('e4'), m('out') - m('e4') - .2);
+    say(p, ['= (ad − bc) · I'], 150, 680, m('out') + .3, { size: 44 });
+    say(p, ['divide by ad − bc:   ', F('1', 'ad − bc'), ' · swapped · A  =  I'], 150, 800, m('div') + .4, { size: 40 });
+  }],
+
+  ['live', 'Change A, watch A⁻¹', (m) => {
+    const p = panel(0);
+    title(p, 'Change A, and A⁻¹ follows');
+    const g = S.g = grid2(p, { A: I2, mat: [90, 270], size: 50, shape: true });
+    g.labels(['col 1', 'col 2']);
+    const iv = g.inverse({ at: [90, 440], size: 40 });
+    put(iv.root, { o: 0 }); show(iv.root, m('set') + .5, .5);
+    g.to({ a00: 2, a01: 1, a10: 1, a11: 3 }, m('set') + .6, 2.6);   // A forms, and its inverse follows on the way
+    adbc(p, g, m('set') + 5.6, m('set') + 7.6, m('set') + 9.4);
+    const fifth = mk('rect', { x: iv.xs.xR - 6, y: iv.mid - 75, width: 230, height: 140, rx: 14, fill: COL.chalk }, p); put(fifth, { o: 0 }); tw(fifth, { o: .1 }, m('set') + 10, .4); tw(fifth, { o: 0 }, m('b'), .4);
+    [0, 1].forEach(j => { tw(g.cols[j], { 'a_stroke-width': 10 }, m('zero') + 3 + j * .6, .3); tw(g.cols[j], { 'a_stroke-width': 5 }, m('zero') + 4.4, .5); });
+    pulse(iv.none, m('zero') + 6, 1.2);
+    const sx = g.lay.A[0][1], sy = 250;
+    const steps = [[0, [sx + 60, sy + 70]], [m('b') + 1.4, [sx, sy]]];
+    [['s4', 2], ['s3', 3], ['s2', 4], ['s1', 5], ['zero', 6]].forEach(([k, b]) => { g.to({ a01: b }, m(k), .35); steps.push([m(k), [sx + (b - 1) * 22, sy]]); });
+    pointer(p, steps, m('b') + .8, m('zero') + 1.4);
+    text(p, 'thinner plane, bigger undo', 90, 760, m('big') + .5, { size: 28, weight: 600 });
+    text(p, 'flat: no inverse', 90, 820, m('zero') + 1, { size: 30, weight: 600, fill: COL.bad });
+  }],
+
+  ['q2', 'Quick check', () => {
+    const p = panel(0);
+    title(p, 'Quick check');
+    const g = S.g = grid2(p, { A: [[1, 3], [2, 7]], mat: [90, 260], size: 50, shape: true, plane: { u: 40, x0: -8, x1: 8, y0: -8, y1: 8 } });
+    g.labels(['col 1', 'col 2']);
+  }, { ask: done => quiz(LEFT, [{
+    id: 'c-lecture', prompt: ['Find the inverse of ', $m('A'), ' with the formula.'],
+    build: blanks([
+      { parts: ['ad − bc  =  ', { box: '1' }], why: '1 · 7 − 3 · 2 = 7 − 6 = 1.', hint: 'a·d − b·c: 1 times 7, minus 3 times 2.' },
+      { parts: ['first row of A⁻¹:  (', { box: '7' }, ', ', { box: '-3' }, ')'], why: 'Swap 1 and 7; −3 for b.', hint: 'Swap a and d: 7 goes top left. Then b = 3 gets a minus sign. Divide by 1.' },
+      { parts: ['second row of A⁻¹:  (', { box: '-2' }, ', ', { box: '1' }, ')'], why: 'A⁻¹ = [7 −3; −2 1]. Check: 1·7 + 3·(−2) = 1.', hint: 'c = 2 gets a minus sign; a = 1 goes bottom right.' },
+    ]),
+  }], done) }],
+
+  ['collapse', 'When ad − bc = 0', (m) => {
+    const p = panel(0);
+    title(p, 'ad − bc = 0: the plane goes flat');
+    const g = S.g = grid2(p, { A: I2, mat: null, shape: true, lost: true });
+    g.labels(['col 1', 'col 2']);
+    put(g.parts.lost, { o: 0 });
+    mat(p, [[1, 2], [2, 4]], 90, 260, m('A'));
+    say(p, ['ad − bc  =  1·4 − 2·2  =  0'], 90, 470, m('det') + .3, { size: 36 });
+    g.to(keysOf([[1, 2], [2, 4]]), m('go') + .2, 2.4);
+    const { PX, PY } = g.P;
+    const d0 = dotAt(g.P, [0, 0], p, m('pts') + .3), d1 = dotAt(g.P, [2, -1], p, m('pts') + 1.2);
+    const l1 = T(p, '(2, −1)', { x: PX(2) + 14, y: PY(-1) + 30, size: 22, fill: COL.chalk, font: MATH, o: 0 }); show(l1, m('pts') + 1.2, .3); hide(l1, m('land') + 2.4, .3);
+    tw(d1, { x: PX(0), y: PY(0) }, m('land') + 2.6, 1.4); pulse(d0, m('land') + 6, 1.2);
+    const same = text(p, 'one spot, two points', PX(0) + 24, PY(0) + 44, m('land') + 4.4, { size: 24, fill: COL.chalk }); hide(same, m('undo') + 2, .3);
+    say(p, ['(2, −1) → (2 − 2, 4 − 4) = (0, 0)'], 90, 540, m('land') + .4, { size: 30 });
+    // the undo cannot choose: two dashed arrows back from (0, 0)
+    const q = G(p, {});
+    draw(path(q, `M${PX(0)} ${PY(0)}Q${PX(-1.2)} ${PY(1.2)} ${PX(-.2)} ${PY(.3)}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' }, { d: 0 }), m('undo') + 5, .8);
+    draw(path(q, `M${PX(0)} ${PY(0)}Q${PX(1.6)} ${PY(1.4)} ${PX(2)} ${PY(-.7)}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' }, { d: 0 }), m('undo') + 6.4, .8);
+    const qm = T(q, '?', { x: PX(-1.3), y: PY(1.6), size: 44, fill: COL.chalk, weight: 700, o: 0 }); show(qm, m('undo') + 2.5, .3);
+    const ghost = dotAt(g.P, [2, -1], q, m('undo') + 6.4, { r: 8, color: COL.dim });
+    hide(q, m('line') + .2, .4);
+    text(p, 'back to (0, 0) or to (2, −1)?', 90, 610, m('undo') + 2.5, { size: 28, weight: 600 });
+    show(g.parts.lost, m('line') + .2, .5);
+    const dots = G(p, { o: 0 });
+    [-4, -2, 2, 4].forEach(a => { const d = G(dots, { x: PX(a), y: PY(-a / 2) }); mk('circle', { r: 7, fill: COL.bad, stroke: COL.board, 'stroke-width': 2 }, d); tw(d, { x: PX(0), y: PY(0) }, m('line') + 1.6, 1.6); });
+    show(dots, m('line') + .6, .3); hide(dots, m('never'), .3);
+    text(p, 'the red line all lands on (0, 0)', 90, 670, m('line') + .8, { size: 28, fill: COL.bad, weight: 600 });
+    text(p, 'flat for good: no matrix undoes A', 90, 750, m('never') + .4, { size: 32, weight: 600 });
+    text(p, 'more in chapter 28', 90, 805, m('never') + 6, { size: 26, fill: COL.dim });
+  }],
+
+  ['q3', 'Quick check', () => {
+    const p = panel(0);
+    title(p, 'Quick check');
+    text(p, 'ad − bc = 0  →  flat plane, no inverse', 60, 170, .3, { size: 28, fill: COL.dim });
+  }, { ask: done => quiz(TOPL, [{
+    id: 'c-which', prompt: ['Which of these have an inverse? Work out ad − bc.'],
+    build: grid([
+      { parts: [matEl([[2, 4], [1, 2]], { size: 24 })], ans: ['n'], why: '4 − 4 = 0: column 2 is twice column 1.' },
+      { parts: [matEl([[3, 1], [1, 2]], { size: 24 })], ans: ['y'], why: '6 − 1 = 5.' },
+      { parts: [matEl([[0, 1], [1, 0]], { size: 24 })], ans: ['y'], why: '0 − 1 = −1: a minus is fine, only 0 is not.' },
+      { parts: [matEl([[2, 6], [1, 3]], { size: 24 })], ans: ['n'], why: '6 − 6 = 0.' },
+    ], YESNO, { multi: false, text: true }),
+  }], done) }],
+
+  ['solve', 'Solving with the inverse', (m) => {
+    const p = panel(0);
+    title(p, 'Ax = b, so x = A⁻¹b');
+    const s = 38;
+    say(p, ['A x = b'], 90, 200, .4, { size: s });
+    say(p, [...INV, ' A x = ', ...INV, ' b'], 90, 260, m('eq') + .4, { size: s });
+    say(p, ['x = ', ...INV, ' b'], 90, 320, m('x') + 3, { size: s, fill: COL.chalk });
+    text(p, 'A⁻¹A = I, and I x = x', 400, 260, m('x') + .3, { size: 24, fill: COL.dim });
+    const g = S.g = grid2(p, { A: [[2, 1], [1, 1]], x: [0, 0], mat: [90, 460], size: 44, shape: false, units: false, brackets: true, t0: m('ex') - .4 });
+    g.labels(['col 1', 'col 2']);
+    g.combo.forEach(e => put(e, { o: 0 }));
+    put(g.parts.x, { o: 0 }); show(g.parts.x, m('x2') - .2, .4);   // x and Ax join the plane when x is found
+    const { PX, PY } = g.P;
+    const bl = ringAt(g.P, [5, 3], COL.task, p, m('ex') + 1.5, 'b = (5, 3)', { dx: -20, dy: 34, anchor: 'end' });
+    hide(bl.lastChild, m('x2') + .2, .3);
+    const ml = say(p, [...INV, 'b = [1 −1; −1 2]·(5, 3)'], 90, 660, m('mul') + .4, { size: 30 });
+    say(p, ['= (5 − 3, −5 + 6) = (2, 1)'], 90 + ml._w + 12, 660, m('mul') + 5.4, { size: 30 });
+    g.to({ x0: 2, x1: 1 }, m('x2') + .2, 1.6);
+    text(p, 'check: A·(2, 1) = (4 + 1, 2 + 1) = (5, 3) = b', 90, 720, m('chk') + .3, { size: 28, fill: COL.good, weight: 600 });
+    pulse(g.axDot, m('chk') + 5.5, 1.2); pulse(g.xRing, m('chk') + 2, 1.2);
+    show(g.combo[0], m('chk') + 1.2, .4); show(g.combo[1], m('chk') + 3.4, .4); hide(g.combo[0], m('pic'), .3); hide(g.combo[1], m('pic'), .3);
+    const back = G(p, { o: 0 });
+    path(back, `M${PX(5) - 10} ${PY(3) + 6}Q${PX(3.2)} ${PY(3.8)} ${PX(2.2)} ${PY(1.25)}`, { stroke: COL.chalk, 'stroke-width': 3, 'stroke-dasharray': '8 7', fill: 'none' });
+    M(back, INV, { x: PX(3.1), y: PY(3.75), size: 28, anchor: 'middle' });
+    show(back, m('pic') + 2, .5);
+    text(p, 'one matrix answers every b', 90, 790, m('any') + .3, { size: 28, weight: 600 });
+  }],
+
+  ['wrap', 'Summary', (m) => {
+    const p = panel(0);
+    [['A⁻¹ undoes A: it moves the plane back.', 'w1'], ['A⁻¹A = I and AA⁻¹ = I.', 'w2'],
+     ['2 × 2: swap a and d, minus signs on b and c, divide by ad − bc.', 'w3'], ['ad − bc = 0: the plane goes flat, no inverse.', 'w4']].forEach(([str, mark], i) => {
+      const g = G(p, { x: -16, y: 150 + i * 95, o: 0 });
+      mk('circle', { cx: 150, cy: -12, r: 26, fill: COL.chalk }, g);
+      T(g, String(i + 1), { x: 150, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+      T(g, str, { x: 210, size: 32, weight: 600 });
+      tw(g, { o: 1, x: 0 }, m(mark), .6);
+    });
+    const sm = G(p, { o: 0 });
+    const k = grid2(sm, { A: I2, pre: I2, mat: null, shape: true, units: false, plane: { cx: 1180, cy: 680, u: 30, x0: -5, x1: 5, y0: -5, y1: 5, labels: false } });
+    put(k.parts.cols, { o: 0 });
+    show(sm, .3, .6);
+    k.to({ p01: 1 }, m('w1') + .4, 1.2); k.to({ a01: -1 }, m('w1') + 2, 1.2);
+    const home = { p00: 1, p01: 0, p10: 0, p11: 1, a00: 1, a01: 0, a10: 0, a11: 1 };   // pre and A back to I together: the plane does not jump
+    k.to(home, m('w2') - .3, .05);
+    k.turn(0, 90, m('w2'), 1, io, 'p'); k.turn(0, -90, m('w2') + 1.4, 1);
+    k.to(home, m('w3') - .3, .05);
+    k.to({ p00: 2, p01: 1, p10: 1 }, m('w3') + 1, 1.4); k.to({ a01: -1, a10: -1, a11: 2 }, m('w3') + 4, 1.6);
+    k.to(home, m('w4') - .3, .05);
+    k.to({ p01: 2, p10: 2, p11: 4 }, m('w4') + .3, 1.6);
+  }],
+
+  ['final1', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, UNDOQ.map((q, k) => {
+    const B = inv2(q.A);
+    return {
+      id: `p-undo${k + 1}`, prompt: ['Find the matrix that undoes ', $m('A'), ' = ', matEl(q.A), '.'],
+      build: blanks([
+        { parts: [$m('A', E('−1')), '  first row:  (', { box: ansTxt(B[0][0]) }, ', ', { box: ansTxt(B[0][1]) }, ')'], why: q.why, hint: 'Ask what A does to (1, 0) and (0, 1), and do the opposite. Or use the formula.' },
+        { parts: [$m('A', E('−1')), '  second row:  (', { box: ansTxt(B[1][0]) }, ', ', { box: ansTxt(B[1][1]) }, ')'], why: `A⁻¹ = [${B[0].map(fracTxt).join(' ')}; ${B[1].map(fracTxt).join(' ')}].`, hint: 'Check by multiplying: A⁻¹ times A must give I.' },
+      ]),
+    };
+  }), done, 'Chapter practice · set 1 of 4') }],
+  ['final2', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, FORMQ.map((A, k) => {
+    const d = A[0][0] * A[1][1] - A[0][1] * A[1][0], B = inv2(A);
+    return {
+      id: `p-form${k + 1}`, prompt: ['Use the formula on ', $m('A'), ' = ', matEl(A), '.'],
+      build: blanks([
+        { parts: ['ad − bc  =  ', { box: String(d) }], why: `${A[0][0]}·${A[1][1]} − ${A[0][1]}·${A[1][0]} = ${num(d)}.`, hint: 'a times d, minus b times c.' },
+        { parts: [$m('A', E('−1')), '  first row:  (', { box: ansTxt(B[0][0]) }, ', ', { box: ansTxt(B[0][1]) }, ')'], why: `d and −b, divided by ${num(d)}.`, hint: `Top row of the swapped matrix: (${num(A[1][1])}, ${num(-A[0][1])}). Divide each by ${num(d)}.` },
+        { parts: [$m('A', E('−1')), '  second row:  (', { box: ansTxt(B[1][0]) }, ', ', { box: ansTxt(B[1][1]) }, ')'], why: `A⁻¹ = [${B[0].map(fracTxt).join(' ')}; ${B[1].map(fracTxt).join(' ')}].`, hint: `Bottom row of the swapped matrix: (${num(-A[1][0])}, ${num(A[0][0])}). Divide each by ${num(d)}.` },
+      ]),
+    };
+  }), done, 'Chapter practice · set 2 of 4') }],
+  ['final3', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-which', prompt: ['Which matrices have an inverse?'],
+    build: grid(INVQ.map(q => ({ parts: [matEl(q.A, { size: 24 })], ans: q.ans, why: q.why })), YESNO, { multi: false, text: true }),
+  }, ...SOLVEQ.map((q, k) => {
+    const B = inv2(q.A), x = [B[0][0] * q.b[0] + B[0][1] * q.b[1], B[1][0] * q.b[0] + B[1][1] * q.b[1]];
+    return {
+      id: `p-solve${k + 1}`, prompt: ['Solve ', $m('A x = b'), ' with ', $m('A'), ' = ', matEl(q.A), ' and ', $m('b'), ` = (${q.b.map(num).join(', ')}): first find `, $m('A', E('−1')), ', then ', $m('x = A', E('−1'), 'b'), '.'],
+      build: blanks([
+        { parts: [$m('A', E('−1')), ' = [ (', { box: String(B[0][0]) }, ', ', { box: String(B[0][1]) }, ');  (', { box: String(B[1][0]) }, ', ', { box: String(B[1][1]) }, ') ]'], why: `ad − bc = 1, so A⁻¹ is the swapped matrix: [${B[0].map(num).join(' ')}; ${B[1].map(num).join(' ')}].`, hint: 'ad − bc is 1 here, so A⁻¹ is just the swapped matrix: swap a and d, minus signs on b and c.' },
+        { parts: ['x  =  (', { box: String(x[0]) }, ', ', { box: String(x[1]) }, ')'], why: `Check: A·(${x.map(num).join(', ')}) = (${q.b.map(num).join(', ')}).`, hint: `Row times column: (${B[0].map(num).join(', ')})·(${q.b.map(num).join(', ')}) for the first number.` },
+      ]),
+    };
+  })], done, 'Chapter practice · set 3 of 4') }],
+  ['final4', 'Chapter practice', () => {
+    const p = panel(0);
+    title(p, 'Bring the plane home');
+    S.g = grid2(p, { A: I2, pre: HANDQ[0].pre, mat: [90, 260], size: 46, shape: true, name: 'B' });
+    S.g.labels(['col 1', 'col 2']);
+  }, { ask: done => quiz(LEFT, HANDQ.map((q, k) => ({
+    id: `p-home${k + 1}`, prompt: ['The plane was moved by ', q.what.startsWith('A =') ? matEl(q.pre) : q.what, '. Drag the tips of ', $m('B'), ' until the grid is home.'],
+    build: (body, api) => { S.g.set({ ...keysOf(I2), ...keysOf(q.pre, 'p') }); return g2Task(S.g, () => isI(S.g.total()), `B = ${mtxt(inv2(q.pre))} = A⁻¹: the grid is back on the faint one.`, q.hint, () => S.g.set(keysOf(inv2(q.pre))), ['A', 'cols'])(body, api); },
+  })), done, 'Chapter practice · set 4 of 4') }],
+  ['play', 'Playground', (m, D) => {
+    const p = panel(0);
+    title(p, 'Playground');
+    S.sys = grid2(p, { A: [[2, 1], [1, 1]], mat: [90, 225], size: 42, shape: true, lost: true });
+    S.sys.labels(['col 1', 'col 2']);
+    S.sys.inverse({ at: [90, 365], size: 34 });
+    const hint = text(p, 'try: make ad − bc zero · a turn · a matrix that is its own inverse', 1160, 870, m('go'), { size: 24, fill: COL.dim, anchor: 'middle' });
+    hide(hint, Math.min(m('go') + 9, D - .7), .6);
+  }, { ask: playAsk(() => S.sys, { pos: { x: 40, y: 560, w: 720, cls: 'side' }, tip: 'A, its inverse and the plane, live. Drag a column tip or change a number, or draw on the board. Nothing is marked.' }) }],
+  ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+boot();
+</script>
+</body>
+</html>

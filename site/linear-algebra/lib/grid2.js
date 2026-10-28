@@ -4,26 +4,61 @@
 // where [1, 0] and [0, 1] land. Drag a tip and the grid and the numbers follow; scrub a number and the grid follows.
 // The beat moves it with g.to(); a question turns the reader's hands on with g.live(true). Same shape as linsys.js.
 // Loads after engine.js and math.js (it uses plane()).
+//
+// Inverses (chapters 26–28), all optional, so chapter 10's uses are unchanged:
+//   pre: M        the plane was moved by M first: the grid, square, flag and points show A·M (keys p00 p01 p10 p11 in g.v,
+//                 tweenable like A's), while the arrows and tips stay A's columns. With pre = A0 and A going from I to
+//                 A0⁻¹ the moved plane comes home: that is "A⁻¹ undoes A0". The moved axes are chalk in this mode.
+//   fracs: true   A's numbers show exact fractions (1/2) at rest instead of 0.5.
+//   name: 'B'     the letter under the matrix (and in the inverse panel).
+//   lost: true    when ad − bc = 0 (and A is not all zeros), the line of points A sends to (0, 0) is drawn dashed red on
+//                 the plane: the lost direction (g.parts.lost; fade it in on a word, live it simply shows).
+//   g.inverse({ at: [x, y], size }) builds a live panel:  ad − bc = 2·1 − 1·1 = 1  over  A⁻¹ = 1/1 · [d −b; −c a] = [ … ];
+//                 its parts (each a group to show on a word) are in g.inv: det, lhs, scale, adj, eq, res, none,
+//                 plus adjCells and resCells (the four entries of each matrix, row by row, as g2val), xs and mid (layout);
+//                 ("no inverse: ad − bc = 0", shown in place of scale … res when ad − bc = 0). The adjusted matrix keeps
+//                 each number's column colour, so the swap of a and d and the sign change of b and c are visible.
+//   g.det(), g.inverseOf() (null when ad − bc = 0), g.total() (the plane's matrix A·pre), g.turn(d0, d1, at, dur, ease, 'p')
+//                 turns pre instead of A.
+// Exact fractions: g2frac(v) → [n, d] or null; g2parts(v) → math parts (whole, F(n, d), or one decimal while moving).
 const G2_COLS = [COL.irr, COL.real], G2_AX = COL.task;
 // A small flag: a pole and a pennant pointing right, so a flip or a turn shows at once.
 // It stands beside the unit square (x 1.4 … 2.3), not on it, so the square and the flag never hide each other.
 const G2_FLAG = [[1.4, .25], [1.55, .25], [1.55, 1.05], [2.3, 1.3], [1.55, 1.55], [1.55, 1.75], [1.4, 1.75]];
 
+const g2frac = v => { if (!isFinite(v)) return null; for (let d = 1; d <= 200; d++) { const n = Math.round(v * d); if (Math.abs(v * d - n) < 1e-7) return [n, d]; } return null; };
+const g2fmt = n => { const r = Math.round(n * 10) / 10; return (r < 0 ? '−' : '') + (Number.isInteger(r) ? String(Math.abs(r)) : Math.abs(r).toFixed(1)); };
+const g2parts = v => {
+  const f = g2frac(v);
+  if (!f) return [Math.abs(v) >= 1000 ? (v < 0 ? '−' : '') + '999+' : g2fmt(v)];
+  const [n, d] = f;
+  return d === 1 ? [num(n)] : n < 0 ? ['−', F(-n, d)] : [F(n, d)];
+};
+const g2key = ps => ps.map(q => typeof q === 'string' ? q : q.f.join('/')).join('');
+// A number drawn as math parts, rebuilt only when what it shows changes.
+function g2val(parent, { x = 0, y = 0, size = 40, fill = COL.chalk, anchor = 'middle' } = {}) {
+  const g = G(parent, {});
+  let key = null;
+  return { g, set(v, color = fill, parts = g2parts(v)) { const k = g2key(parts) + color; if (k === key) return; key = k; g.replaceChildren(); M(g, parts, { x, y, size, fill: color, anchor }); } };
+}
+
 function grid2(p, { A = [[1, 0], [0, 1]], x = null, mat = [90, 300], size = 54, plane: po = {}, grid = true, square = true, shape = false,
-  units = true, pts = [], t0 = .1, hidePlane = false, result = true, showMat = true, brackets = false } = {}) {
-  const v = { a00: A[0][0], a01: A[0][1], a10: A[1][0], a11: A[1][1], x0: x ? x[0] : 0, x1: x ? x[1] : 0 };
+  units = true, pts = [], t0 = .1, hidePlane = false, result = true, showMat = true, brackets = false, pre = null, fracs = false, name = 'A', lost = false } = {}) {
+  const Pm = pre || [[1, 0], [0, 1]];
+  const v = { a00: A[0][0], a01: A[0][1], a10: A[1][0], a11: A[1][1], x0: x ? x[0] : 0, x1: x ? x[1] : 0, p00: Pm[0][0], p01: Pm[0][1], p10: Pm[1][0], p11: Pm[1][1] };
   const RANGE = { a00: 9, a01: 9, a10: 9, a11: 9, x0: 9, x1: 9 }, K = 14;   // grid lines k = −K … K
   const holder = G(p, { o: hidePlane ? 0 : 1 });
   const P2 = plane(holder, { cx: 1160, cy: 450, u: 52, x0: -6, x1: 6, y0: -6, y1: 6, t0, ...po });
   const { PX, PY } = P2, box = [P2.x0 - .4, P2.x1 + .4, P2.y0 - .4, P2.y1 + .4];
   const svg = $('stage'), listeners = [], slots = [], drags = [];
   let live = false, plan = { ...v };
-  const fmt = n => { const r = Math.round(n * 10) / 10; return (r < 0 ? '−' : '') + (Number.isInteger(r) ? String(Math.abs(r)) : Math.abs(r).toFixed(1)); };
+  const fmt = g2fmt;
   const setText = (e, s) => { if (e.textContent !== s) e.textContent = s; };
   const setD = (e, d) => { if (e.getAttribute('d') !== d) e.setAttribute('d', d); };
   const clamp = (k, n) => Math.max(-RANGE[k], Math.min(RANGE[k], n));
   const pt = e => { const q = svg.createSVGPoint(); q.x = e.clientX; q.y = e.clientY; const w = q.matrixTransform(P2.g.getScreenCTM().inverse()); return [(w.x - P2.cx) / P2.u, (P2.cy - w.y) / P2.u]; };
   const map = ([a, b]) => [v.a00 * a + v.a01 * b, v.a10 * a + v.a11 * b];
+  const tmap = ([a, b]) => map([v.p00 * a + v.p01 * b, v.p10 * a + v.p11 * b]);   // the plane: pre first, then A
   const XY = ([a, b]) => `${PX(a).toFixed(1)} ${PY(b).toFixed(1)}`;
 
   /* ---------- numbers you can scrub ---------- */
@@ -32,7 +67,13 @@ function grid2(p, { A = [[1, 0], [0, 1]], x = null, mat = [90, 300], size = 54, 
     const t = T(g, '', { x, y, size, fill, font: MATH, anchor: 'middle' });
     t.style.pointerEvents = 'none';
     bx.setAttribute('aria-label', key);
-    const s = { key, t, box: bx, set: () => { const str = fmt(v[key]); setText(t, str); const fs = String(str.length > 2 ? Math.round(size * .74) : size); if (t.getAttribute('font-size') !== fs) t.setAttribute('font-size', fs); } };
+    const fv = fracs ? g2val(g, { x, y, size: size * .8, fill }) : null;
+    if (fv) fv.g.style.pointerEvents = 'none';
+    const s = { key, t, box: bx, set: () => {
+      const fr = fv && g2frac(v[key]);
+      if (fr && fr[1] > 1) { t.style.display = 'none'; fv.g.style.display = ''; fv.set(v[key], t.getAttribute('fill')); return; }
+      if (fv) { fv.g.style.display = 'none'; t.style.display = ''; }
+      const str = fmt(v[key]); setText(t, str); const fs = String(str.length > 2 ? Math.round(size * .74) : size); if (t.getAttribute('font-size') !== fs) t.setAttribute('font-size', fs); } };
     let drag = null;
     bx.addEventListener('pointerdown', e => { if (!live || !s.on) return; e.preventDefault(); drag = { x: e.clientX, from: Math.round(v[key]) }; bx.setPointerCapture(e.pointerId); });
     bx.addEventListener('pointermove', e => { if (!drag) return; const k = svg.getScreenCTM().a; edit({ [key]: clamp(key, drag.from + Math.round((e.clientX - drag.x) / k / 22)) }); });
@@ -61,7 +102,7 @@ function grid2(p, { A = [[1, 0], [0, 1]], x = null, mat = [90, 300], size = 54, 
     bracket(mx, cw * 2 + 20);
     lay.A = [[0, 1].map(j => mx + 10 + cw * (j + .5)), [my, my + rh]];
     [0, 1].forEach(i => [0, 1].forEach(j => slot(Mx, `a${i}${j}`, lay.A[0][j], my + rh * i, G2_COLS[j])));
-    T(Mx, 'A', { x: mx + cw + 10, y: my + rh + size * 1.25, size: 34, fill: COL.dim, font: MATH, anchor: 'middle', weight: 700 });
+    T(Mx, name, { x: mx + cw + 10, y: my + rh + size * 1.25, size: 34, fill: COL.dim, font: MATH, anchor: 'middle', weight: 700 });
     if (x) {
       const xa = mx + cw * 2 + 44, wx = cw * .95;
       bracket(xa, wx);
@@ -83,9 +124,10 @@ function grid2(p, { A = [[1, 0], [0, 1]], x = null, mat = [90, 300], size = 54, 
   /* ---------- the plane: the moved grid, square, shape, points; the columns; x and Ax ---------- */
   const layer = (o = 1) => G(P2.g, { o });
   const gridG = layer(grid ? 1 : 0), sqG = layer(square ? 1 : 0), shG = layer(shape ? 1 : 0), unG = layer(units ? 1 : 0);
-  const ptG = layer(), colG = layer(), xG = layer(x ? 1 : 0);
+  const lostG = layer(lost ? 1 : 0), ptG = layer(), colG = layer(), xG = layer(x ? 1 : 0);
   const gl = path(gridG, '', { stroke: COL.chalk, 'stroke-opacity': .32, 'stroke-width': 1.6, fill: 'none' });
-  const axs = G2_COLS.map(c => path(gridG, '', { stroke: c, 'stroke-opacity': .75, 'stroke-width': 3, fill: 'none' }));
+  const axs = G2_COLS.map(c => path(gridG, '', { stroke: pre ? COL.chalk : c, 'stroke-opacity': pre ? .55 : .75, 'stroke-width': 3, fill: 'none' }));
+  const lostL = path(lostG, '', { stroke: COL.bad, 'stroke-width': 4, 'stroke-dasharray': '12 9', fill: 'none' });
   const sq = path(sqG, '', { fill: COL.chalk, 'fill-opacity': .12, stroke: COL.chalk, 'stroke-opacity': .7, 'stroke-width': 2.5 });
   const sh = path(shG, '', { fill: COL.chalk, 'fill-opacity': .45, stroke: COL.chalk, 'stroke-width': 2, 'stroke-linejoin': 'round' });
   path(unG, `M${PX(0)} ${PY(0)}H${PX(1)}M${PX(0)} ${PY(0)}V${PY(1)}`, { stroke: COL.chalk, 'stroke-opacity': .45, 'stroke-width': 3, 'stroke-dasharray': '5 6' });
@@ -176,7 +218,7 @@ function grid2(p, { A = [[1, 0], [0, 1]], x = null, mat = [90, 300], size = 54, 
     seg([P2.x0, 0], [P2.x1, 0], .5); seg([0, P2.y0], [0, P2.y1], .5);
     seg([0, 0], c0); seg([0, 0], c1);
     if (x) { const m1 = [v.x0 * c0[0], v.x0 * c0[1]]; seg([0, 0], m1); seg(m1, ax); seg([0, 0], ax); }
-    if (shape) { const F = G2_FLAG.map(map); F.forEach((q, i) => seg(q, F[(i + 1) % F.length], 1.5)); seg(F[1], F[3], 1.5); seg(F[0], F[5], 1.5); }   // the flag, outline and body
+    if (shape) { const F = G2_FLAG.map(tmap); F.forEach((q, i) => seg(q, F[(i + 1) % F.length], 1.5)); seg(F[1], F[3], 1.5); seg(F[0], F[5], 1.5); }   // the flag, outline and body
     // the dots and handles themselves weigh most
     for (const q of x ? [c0, c1, ax, [v.x0, v.x1]] : [c0, c1]) for (const [ox, oy] of [[0, 0], [-12, 0], [12, 0], [0, -12], [0, 12]]) pts.push([PX(q[0]) + ox, PY(q[1]) + oy, 4]);
     const placed = [...unitBoxes.map(b => [...b, 120]), ...tickBoxes.map(b => [...b, 120])];
@@ -203,25 +245,66 @@ function grid2(p, { A = [[1, 0], [0, 1]], x = null, mat = [90, 300], size = 54, 
       place(xLab, [v.x0, v.x1], [v.x0, v.x1], widthOf(xLab, xLab.textContent.length, 24), 28, 21);
     }
   }
+  /* ---------- the inverse, live: ad − bc and A⁻¹ = 1/(ad − bc) · [d −b; −c a] ---------- */
+  let inv = null;
+  function inverse({ at: [ix, iy] = [90, 520], size: s = 40 } = {}) {
+    const root = G(p, {}), part = () => G(root, {});
+    const det = part(), lhs = part(), scale = part(), adj = part(), eq = part(), res = part(), none = part();
+    const rh = s * 1.6, mid = iy + s * 2.4 + rh / 2;   // matrices: rows at mid ± rh/2
+    const xL = ix, xS = xL + s * 3.1, xA = xS + s * 1.9, cwA = s * 2, xE = xA + cwA * 2 + 36, xR = xE + s * 1.3, cwR = s * 2.1;
+    const brk = (g, x0, w) => { const top = mid - rh / 2 - s * .95, bot = mid + rh / 2 + s * .45; path(g, `M${x0 + 12} ${top}H${x0}V${bot}H${x0 + 12}M${x0 + w - 12} ${top}H${x0 + w}V${bot}H${x0 + w - 12}`, { stroke: COL.chalk, 'stroke-width': 2.5, fill: 'none' }); };
+    M(lhs, [name, E('−1'), '  ='], { x: xL, y: mid + s * .3, size: s, anchor: 'start' });
+    brk(adj, xA, cwA * 2 + 20); brk(res, xR, cwR * 2 + 20);
+    M(eq, ['='], { x: xE + s * .45, y: mid + s * .3, size: s, anchor: 'middle' });
+    const ax = j => xA + 10 + cwA * (j + .5), rx = j => xR + 10 + cwR * (j + .5), ry = i => mid - rh / 2 + i * rh + s * .3;
+    const A_ = [[0, 0], [0, 1], [1, 0], [1, 1]].map(([i, j]) => g2val(adj, { x: ax(j), y: ry(i), size: s * .9 }));
+    const R_ = [[0, 0], [0, 1], [1, 0], [1, 1]].map(([i, j]) => g2val(res, { x: rx(j), y: ry(i), size: s * .9 }));
+    const S_ = g2val(scale, { x: xS + s * .6, y: mid + s * .3, size: s * .9 });
+    const D_ = g2val(det, { x: ix, y: iy, size: s * .9, anchor: 'start' });
+    const N_ = T(none, 'no inverse:  ad − bc = 0', { x: xS, y: mid + s * .3, size: s * .8, fill: COL.bad, weight: 600 });
+    const inner = [scale, adj, eq, res].map(g => { const k = G(g, {}); while (g.firstChild !== k) k.append(g.firstChild); return k; });
+    const draw = () => {
+      const a = v.a00, b = v.a01, c = v.a10, d = v.a11, dt = a * d - b * c, zero = Math.abs(dt) < 1e-9;
+      const pp = x => { const q = g2parts(x); return x < 0 ? ['(', ...q, ')'] : q; };
+      const dk = [...g2parts(a), '·', ...pp(d), ' − ', ...pp(b), '·', ...pp(c), '  =  ', ...g2parts(dt)];
+      D_.set(0, COL.chalk, ['ad − bc  =  ', ...dk]);
+      inner.forEach(k => { k.style.display = zero ? 'none' : ''; });
+      N_.style.display = zero ? '' : 'none';
+      if (zero) { [...A_, ...R_, S_].forEach(c => c.set(0, COL.chalk, [''])); return; }   // hidden, and blank: what shows never depends on the path taken
+      const fd = g2frac(dt);
+      S_.set(0, COL.chalk, fd && fd[1] === 1 ? [...(dt < 0 ? ['−'] : []), F(1, Math.abs(fd[0]))] : g2parts(1 / dt));
+      [[d, G2_COLS[1]], [-b, G2_COLS[1]], [-c, G2_COLS[0]], [a, G2_COLS[0]]].forEach(([x, col], k) => A_[k].set(x, col));
+      [d / dt, -b / dt, -c / dt, a / dt].forEach((x, k) => R_[k].set(x));
+    };
+    inv = { root, det, lhs, scale, adj, eq, res, none, draw, mid, adjCells: A_, resCells: R_, xs: { xL, xS, xA, xE, xR } };
+    draw();
+    return inv;
+  }
   function draw() {
     slots.forEach(s => s.set());
     const c0 = [v.a00, v.a10], c1 = [v.a01, v.a11], ax = map([v.x0, v.x1]);
+    const t0c = tmap([1, 0]), t1c = tmap([0, 1]);   // the plane's own columns (A's, unless pre is set)
     if (lay.res) lay.res.forEach((t, i) => setText(t, fmt(ax[i])));
     if (grid) {
       let d = '';
       for (let k = -K; k <= K; k++) {
         if (!k) continue;
-        d += seg([k * c0[0], k * c0[1]], c1, -K, K);   // the image of the line x = k
-        d += seg([k * c1[0], k * c1[1]], c0, -K, K);   // the image of the line y = k
+        d += seg([k * t0c[0], k * t0c[1]], t1c, -K, K);   // the image of the line x = k
+        d += seg([k * t1c[0], k * t1c[1]], t0c, -K, K);   // the image of the line y = k
       }
       setD(gl, d);
-      setD(axs[0], seg([0, 0], c0, -K, K));   // the x-axis lands along column 1
-      setD(axs[1], seg([0, 0], c1, -K, K));   // the y-axis along column 2
+      setD(axs[0], seg([0, 0], t0c, -K, K));   // the x-axis lands along column 1
+      setD(axs[1], seg([0, 0], t1c, -K, K));   // the y-axis along column 2
     }
-    if (square) setD(sq, poly([[0, 0], c0, [c0[0] + c1[0], c0[1] + c1[1]], c1]));
-    if (shape) setD(sh, poly(G2_FLAG.map(map)));
+    if (square) setD(sq, poly([[0, 0], t0c, [t0c[0] + t1c[0], t0c[1] + t1c[1]], t1c]));
+    if (shape) setD(sh, poly(G2_FLAG.map(tmap)));
+    if (lost) {   // the points A sends to (0, 0): a line when ad − bc = 0 and A is not all zeros
+      const dt = v.a00 * v.a11 - v.a01 * v.a10, r = Math.hypot(v.a00, v.a01) > 1e-9 ? [v.a00, v.a01] : [v.a10, v.a11];
+      setD(lostL, Math.abs(dt) < 1e-9 && Math.hypot(...r) > 1e-9 ? seg([0, 0], [-r[1], r[0]], -40, 40) : '');
+    }
+    if (inv) inv.draw();
     ptDots.forEach(({ g, lab }, i) => {
-      const [a, b] = map(ptDots[i].q.p);
+      const [a, b] = tmap(ptDots[i].q.p);
       put(g, { x: PX(a), y: PY(b) });
     });
     [c0, c1].forEach((c, j) => {
@@ -252,7 +335,12 @@ function grid2(p, { A = [[1, 0], [0, 1]], x = null, mat = [90, 300], size = 54, 
 
   const api = {
     v, P: P2, stage: holder, M: Mx, lay, cols, tips, combo, axArrow, axDot, xRing, xLab, axLab,
-    parts: { grid: gridG, square: sqG, shape: shG, units: unG, pts: ptG, cols: colG, x: xG },
+    parts: { grid: gridG, square: sqG, shape: shG, units: unG, pts: ptG, cols: colG, x: xG, lost: lostG },
+    get inv() { return inv; },
+    inverse,
+    det: () => v.a00 * v.a11 - v.a01 * v.a10,
+    inverseOf() { const dt = v.a00 * v.a11 - v.a01 * v.a10; return Math.abs(dt) < 1e-9 ? null : [[v.a11 / dt, -v.a01 / dt], [-v.a10 / dt, v.a00 / dt]]; },
+    total: () => { const c0 = tmap([1, 0]), c1 = tmap([0, 1]); return [[c0[0], c1[0]], [c0[1], c1[1]]]; },
     // Move the numbers to new values over dur seconds, on the beat clock (deterministic, so seeking replays it).
     to(next, at, dur = 1.2, ease = io) {
       const from = { ...plan };
@@ -262,8 +350,8 @@ function grid2(p, { A = [[1, 0], [0, 1]], x = null, mat = [90, 300], size = 54, 
     },
     // Turn the plane from deg0 to deg1 degrees (counterclockwise) on the beat clock: a true turn, where a straight blend
     // of the numbers would shrink the plane halfway. Later g.to() calls start from where the turn ends.
-    turn(deg0, deg1, at, dur = 1.6, ease = io) {
-      const rot = d => { const a = d * Math.PI / 180, k = n => Math.round(n * 1e6) / 1e6; return { a00: k(Math.cos(a)), a01: k(-Math.sin(a)), a10: k(Math.sin(a)), a11: k(Math.cos(a)) }; };
+    turn(deg0, deg1, at, dur = 1.6, ease = io, key = 'a') {
+      const rot = d => { const a = d * Math.PI / 180, k = n => Math.round(n * 1e6) / 1e6; return { [key + '00']: k(Math.cos(a)), [key + '01']: k(-Math.sin(a)), [key + '10']: k(Math.sin(a)), [key + '11']: k(Math.cos(a)) }; };
       plan = { ...plan, ...rot(deg1) };
       prog(q => edit(rot(deg0 + (deg1 - deg0) * q)), at, dur, ease);
     },
