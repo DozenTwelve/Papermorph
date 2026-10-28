@@ -34,9 +34,13 @@ function picture(p, D) {
   const ball = mk('circle', { cx: 300, cy: 500, r: 60, fill: '#c94a3c' }, p);
   const tree = mk('rect', { x: 700, y: 150, width: 200, height: 600, fill: '#3e7f4c' }, p);
   const bee = mk('circle', { cx: 800, cy: 400, r: 12, fill: '#f0b45a' }, p);   // small, in front of the tree
-  const cup = mk('rect', { x: 1300, y: 40, width: 80, height: 60, fill: '#86c9e8' }, p);   // at the top: its word goes below
+  // a prop at the top (its word goes below) that the scene moves every frame through its own transform, as a puppet's is
+  const cup = mk('g', {}, p);
+  mk('rect', { width: 80, height: 60, fill: '#86c9e8' }, cup);
+  clockRun(t => cup.setAttribute('transform', `translate(${(1300 + t * 20).toFixed(1)} 40)`), D, { tail: true });
+  const box = mk('rect', { x: 1380, y: 795, width: 40, height: 20, fill: '#9aaba3' }, p);   // under the counter's card
   THINGS = [{ g: ball, word: 'ball' }, { g: tree, word: 'tree' }, { g: bee, word: 'bee', clip: 'w-bee-2' }, { g: cup, word: 'Ice cream' },
-            { g: tree, word: '' }, { g: document.createElementNS(NS, 'g'), word: 'ghost' }];
+            { g: box, word: 'box' }, { g: tree, word: '' }, { g: document.createElementNS(NS, 'g'), word: 'ghost' }];
 }
 music('audio/bgm/m.mp3', ['q', 'after', 'end'], .5);
 const BEATS = [
@@ -94,23 +98,26 @@ async def main():
         await page.wait_for_timeout(200)
         assert await js("P.playing && !P.waiting"), "the film did not start"
         assert await js(f"{hits}.length") == 0 and await js(count) is None, "things were tappable during the narration"
-        await page.wait_for_function(f"P.waiting && {hits}.length === 4", timeout=5000)
-        assert sorted(await js(f"{hits}.map(g => g.getAttribute('aria-label'))")) == ["Ice cream", "ball", "bee", "tree"]
+        await page.wait_for_function(f"P.waiting && {hits}.length === 5", timeout=5000)
+        assert sorted(await js(f"{hits}.map(g => g.getAttribute('aria-label'))")) == ["Ice cream", "ball", "bee", "box", "tree"]
         assert await js(f"{hits}.every(g => g.getAttribute('role') === 'button' && g.tabIndex === 0)")
         assert await js("document.getElementById('stage').getAttribute('role')") == "group", "the things are hidden from screen readers"
         assert await js(f"{hits}.every(g => {{ const r = g.getBBox(); return r.width >= 120 && r.height >= 120; }})"), "a hit box under 120 px"
         assert {"w-ball.mp3", "w-tree.mp3", "w-bee-2.mp3", "w-ice-cream.mp3"} <= set(asked), f"word clips not requested: {asked}"
-        assert await js(count) == "0 / 4"
+        assert await js(count) == "0 / 5"
         assert "Continue" in await js("document.querySelector('.card.words button').textContent")
         assert await js("document.querySelector('.card.words button').className") == "btn quiet"
-        print("PASS waiting: four things tappable after the narration, labelled, 120 px boxes, clips requested, 0 / 4, Continue")
+        print("PASS waiting: five things tappable after the narration, labelled, 120 px boxes, clips requested, 0 / 5, Continue")
 
         cx = await js("+document.querySelector('#scene circle').getAttribute('cx')")
+        ring = "+document.querySelector('#stage .tapw [aria-label=\"Ice cream\"] rect').getAttribute('x')"
+        rx = await js(ring)
         await page.wait_for_timeout(500)
+        assert await js(ring) > rx + 5, "the hit box did not follow a moving thing"
         assert await js("SND.duck") > .6, "the music did not come up while waiting"
         assert await js("+document.querySelector('#scene circle').getAttribute('cx')") > cx + 3, "the scene's motion stopped while waiting"
         await tap_at("THINGS[0].g")
-        assert await js(word) == "ball" and await js(count) == "1 / 4"
+        assert await js(word) == "ball" and await js(count) == "1 / 5"
         assert "w-ball.mp3" in await js("PLAYED"), "the word was not said"
         assert await js("THINGS[0].g.getAnimations().length") > 0, "the thing did not hop"
         assert await js("""(() => { const a = document.querySelector('#ui .card.word').getBoundingClientRect(), b = THINGS[0].g.getBoundingClientRect();
@@ -118,33 +125,43 @@ async def main():
         await page.wait_for_timeout(250)
         assert await js("SND.duck") < .5, "the music did not duck under the word"
         await tap_at("THINGS[2].g")   # the bee, in front of the tree: the smaller box is on top
-        assert await js(word) == "bee" and await js(count) == "2 / 4"
+        assert await js(word) == "bee" and await js(count) == "2 / 5"
         assert await js("PLAYED.at(-1)") == "w-bee-2.mp3"
+        await tap_at("THINGS[3].g")   # at the top: its word goes below
+        assert await js("""(() => { const a = document.querySelector('#ui .card.word').getBoundingClientRect(), b = THINGS[3].g.getBoundingClientRect();
+          return a.top >= b.bottom; })()"""), "a thing at the top did not get its word below"
         await tap_at("THINGS[0].g")   # again: says it again, counts once
-        assert await js("PLAYED.at(-1)") == "w-ball.mp3" and await js(count) == "2 / 4"
-        print("PASS taps: motion runs on while waiting, word beside the thing, clip played, music ducked, hop, smaller thing on top, a second tap says it again")
+        assert await js("PLAYED.at(-1)") == "w-ball.mp3" and await js(count) == "3 / 5"
+        print("PASS taps: motion runs on while waiting, hit boxes follow, word beside the thing, clip played, music ducked, hop, smaller thing on top, a second tap says it again")
 
-        await page.keyboard.press("ArrowRight")   # left to right: ball, tree, bee, ice cream
+        await page.keyboard.press("ArrowRight")   # left to right: ball, tree, bee, ice cream, box
         await page.keyboard.press("ArrowRight")
         assert await js("document.activeElement.getAttribute('aria-label')") == "tree"
         await page.keyboard.press("Enter")
         await page.wait_for_timeout(80)
-        assert await js(word) == "tree" and await js(count) == "3 / 4"
+        assert await js(word) == "tree" and await js(count) == "4 / 5"
         await page.keyboard.press("ArrowRight")
         await page.keyboard.press("ArrowRight")
         await page.keyboard.press("Space")
-        await page.wait_for_timeout(80)
+        await page.wait_for_timeout(120)   # mid-hop: the scene's transform is kept, the hop adds to it
+        hop = await js("""[THINGS[3].g.getAttribute('transform'), THINGS[3].g.getBoundingClientRect().top]""")
         assert await js(word) == "Ice cream" and await js("P.i === 0 && P.waiting"), "Space did not tap"
-        assert await js(count) == "You found them all!"
+        assert await js(count) == "4 / 5"
+        await page.wait_for_timeout(500)
+        rest = await js("""[THINGS[3].g.getAttribute('transform'), THINGS[3].g.getBoundingClientRect().top]""")
+        assert hop[0].startswith("translate(13") and rest[0].startswith("translate(13") and hop[1] < rest[1] - 4, f"the hop lost the scene's transform: {hop} {rest}"
+        await page.keyboard.press("ArrowRight")
+        await page.keyboard.press("Enter")
+        await page.wait_for_timeout(80)
+        assert await js(word) == "box" and await js(count) == "You found them all!"
         assert await js("document.querySelector('.card.words button').className") == "btn go"
-        assert await js("""(() => { const a = document.querySelector('#ui .card.word').getBoundingClientRect(), b = THINGS[3].g.getBoundingClientRect();
-          return a.top >= b.bottom; })()"""), "a thing at the top did not get its word below"
-        print("PASS keys: arrows move left to right, Enter and Space tap; all heard: praise and Continue lit")
+        print("PASS keys: arrows move left to right, Enter and Space tap; a hop keeps the scene's own transform; all heard: praise and Continue lit")
 
         await page.wait_for_timeout(300)
-        for w in ('a thing has no word', '"ghost" is not an element on the stage', '"Ice cream" has no clip at audio/en/w-ice-cream.mp3'):
+        for w in ('a thing has no word', '"ghost" is not an element on the stage', '"Ice cream" has no clip at audio/en/w-ice-cream.mp3',
+                  '"box" cannot be tapped: <'):
             assert any(w in x for x in warnings), f"no warning: {w}\n{warnings}"
-        print("PASS warnings: no word, not on the stage, missing clip")
+        print("PASS warnings: no word, not on the stage, missing clip, covered by the counter")
 
         await js("seek(1, false)")
         await page.wait_for_timeout(100)
@@ -154,8 +171,8 @@ async def main():
         for _ in range(2):   # a replay, twice: one set of things, nothing counted from before
             await js("seek(0, true)")
             await page.wait_for_timeout(50)
-        await page.wait_for_function(f"P.waiting && {hits}.length === 4", timeout=5000)
-        assert await js("document.querySelectorAll('#stage .tapw').length") == 1 and await js(count) == "0 / 4"
+        await page.wait_for_function(f"P.waiting && {hits}.length === 5", timeout=5000)
+        assert await js("document.querySelectorAll('#stage .tapw').length") == 1 and await js(count) == "0 / 5"
         print("PASS cleanup: a seek away clears hit boxes, cards, keys and the word; a replay starts afresh")
 
         await js("document.activeElement.blur()")
@@ -168,14 +185,14 @@ async def main():
         await js("seek(0, false)")
         await page.wait_for_timeout(50)
         demo = await js("P.tapDemo && [P.tapDemo.clips, P.tapDemo.step]")
-        assert demo == [["w-ball", "w-tree", "w-bee-2", "w-ice-cream"], 2], demo
+        assert demo == [["w-ball", "w-tree", "w-bee-2", "w-ice-cream", "w-box"], 2], demo
         said = await js("PLAYED.length")
         await js("P.tapDemo.at(0)")
         assert await js(word) == "ball"
         await js("P.tapDemo.at(2.1)")
-        assert await js(word) == "tree" and await js(count) == "2 / 4"
+        assert await js(word) == "tree" and await js(count) == "2 / 5"
         await js("P.tapDemo.at(99)")
-        assert await js(word) == "Ice cream" and await js(count) == "You found them all!"
+        assert await js(word) == "box" and await js(count) == "You found them all!"
         assert await js("PLAYED.length") == said, "the video's words played sound"
         print("PASS video: P.tapDemo lists the clips and shows the words in turn, silently")
         missing = await js("['en', 'ru', 'zh', 'ja'].flatMap(l => ['wordsHeard', 'allWordsHeard'].filter(k => !TRANSLATIONS[l][k]).map(k => l + '.' + k))")

@@ -1081,8 +1081,9 @@ function tapWords(things, done) {
     word = h('div', 'card word', t.word);
     word.setAttribute('aria-hidden', 'true');   // the thing's own label already says the word
     $('ui').append(word);
-    const b = box(t), w = word.offsetWidth, hh = word.offsetHeight, m = 16, cx = b.x + (b.w - w) / 2, cy = b.y + (b.h - hh) / 2;
-    const spots = [[cx, b.y - hh - m], [cx, b.y + b.h + m], [b.x + b.w + m, cy], [b.x - w - m, cy]];
+    // gap: clear of the thing's hop; m: the stage's margin
+    const b = box(t), w = word.offsetWidth, hh = word.offsetHeight, gap = 30, m = 16, cx = b.x + (b.w - w) / 2, cy = b.y + (b.h - hh) / 2;
+    const spots = [[cx, b.y - hh - gap], [cx, b.y + b.h + gap], [b.x + b.w + gap, cy], [b.x - w - gap, cy]];
     const [x, y] = spots.find(([x, y], k) => k < 2 ? y >= m && y + hh <= SH - m : x >= m && x + w <= SW - m) || spots[0];
     Object.assign(word.style, { left: Math.max(m, Math.min(SW - m - w, x)) + 'px', top: Math.max(m, Math.min(SH - m - hh, y)) + 'px' });
     if (quiet) { word.style.animation = go.style.animation = 'none'; return; }   // a video's frame shows it at rest
@@ -1091,6 +1092,7 @@ function tapWords(things, done) {
     t.a.volume = +($('volume')?.value ?? 1);
     t.a.play().catch(() => {});
     SND.word = t.a;   // soundTick ducks the music under it
+    // the hop is the CSS translate property, which adds to the transform the scene sets (a prop posed every frame keeps its place)
     t.g.animate([{ translate: '0 0' }, { translate: '0 -18px', offset: .3 }, { translate: '0 0' }], { duration: 450, easing: 'ease-out' });
     t.ring.animate([{ strokeOpacity: 1 }, { strokeOpacity: 0 }], { duration: 700, easing: 'ease-out' });
   };
@@ -1114,6 +1116,18 @@ function tapWords(things, done) {
     go = h('button', 'btn quiet', [translate('continue'), kbd('Enter')]);
     go.onclick = finish;
     bar.append(h('div', 'acts', [count, go]));
+    // a thing whose box is covered where a finger lands (a card, a layer over the stage) cannot be tapped: once the
+    // counter's card has come in, try each box's middle and four points around it, and name what covers it
+    setTimeout(() => { if (alive) for (const t of list) {
+      const r = t.ring.getBoundingClientRect(), pts = [[.5, .5], [.3, .3], [.7, .3], [.3, .7], [.7, .7]];
+      const tops = pts.map(([u, v]) => document.elementFromPoint(r.left + u * r.width, r.top + v * r.height));
+      if (!tops.some(e => t.hit.contains(e))) {
+        const e = tops[0], cls = e?.getAttribute('class')?.split(' ')[0];
+        const what = !e ? 'it is off screen' : e.closest('.hit') ? `"${e.closest('.hit').getAttribute('aria-label')}" covers it`
+          : `<${e.tagName.toLowerCase()}${e.id ? '#' + e.id : cls ? '.' + cls : ''}> covers it`;
+        console.warn(`tapWords: "${t.word}" cannot be tapped: ${what}`);
+      }
+    } }, 600);
   };
   const cleanup = () => {
     alive = false;
