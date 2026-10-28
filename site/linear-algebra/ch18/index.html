@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Elimination: Three Equations</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render"><!-- hold the first frame until the player exists, so the page transition can run -->
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/math.js"></script>
+<script src="../lib/linsys.js"></script>
+<script src="../lib/space3.js"></script>
+<script src="../lib/elim.js"></script>
+<script src="../lib/play.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 18, title: 'Elimination: Three Equations', minutes: 11, language: 'en', next: '../ch19/' };
+
+/* ---------- chapter drawing helpers ---------- */
+const LEC = { A: [[1, 2, 1], [3, 8, 1], [0, 4, 1]], b: [2, 12, 2] };    // the lecture's system (OCW 18.06, lecture 2)
+const AFTER1 = { A: [[1, 2, 1], [0, 2, -2], [0, 4, 1]], b: [2, 6, 2] };  // after column 1
+const U_ = { A: [[1, 2, 1], [0, 2, -2], [0, 0, 5]], b: [2, 6, -10] };   // the triangle U and c
+const VIEW = { yaw: -40, pitch: 20 };
+const TBL = [120, 240];                                                  // [A | b]: rows at 240, 306, 372
+const CARD = { x: 40, y: 420, w: 720, cls: 'side' };                    // under the table, beside the space
+const BLUE = S3_ROW[0], CORAL = S3_ROW[1], YELLOW = S3_ROW[2];
+const say = (p, parts, x, y, t0, { size = 40, fill = COL.chalk, anchor = 'start' } = {}) => { const e = M(p, [].concat(parts), { x, y, size, fill, anchor, o: 0 }); show(e, t0); return e; };
+const text = (p, str, x, y, t0, { size = 30, fill = COL.chalk, anchor = 'start', weight = 500 } = {}) => { const e = T(p, str, { x, y, size, fill, anchor, weight, o: 0 }); show(e, t0); return e; };
+// The system as planes on the right and [A | b] top left, the equations written once above the table.
+// eqs: true shows lin3's own equations instead (the first beat, before the table).
+const three = (p, { A, b }, caption, { t0 = .1, view = VIEW, eqs = false, table = true } = {}) => {
+  const sys = lin3(p, { A, b, eq: [90, 190], mat: null, sol: false, space: { cx: 1185, size: 600, ...view }, t0 });
+  if (!eqs) sys.E.style.display = 'none';
+  const cap = caption ? say(p, [caption], 90, 160, t0 + .1, { size: 28, fill: COL.dim }) : null;
+  const el = table ? elim(p, sys, { at: TBL, size: 44, cw: 84, rh: 66, t0, labelX: 530 }) : null;
+  return { sys, el, cap, V: sys.space };
+};
+const CAP_LEC = 'x + 2y + z = 2,    3x + 8y + z = 12,    4y + z = 2';
+// The hinge: a meeting line of two planes (0: planes 1 and 2, 1: planes 1 and 3, 2: planes 2 and 3), thickened.
+const hinge = (sys, n, t0, dur = 1.6) => prog(q => sys.lines[n].e.setAttribute('stroke-width', 2.5 + 5 * Math.sin(Math.PI * q)), t0, dur, lin);
+const lightRow = (el, i, ts) => ts.forEach((t, j) => el.flash(i, t, j));
+// A light triangle over the entries on and above the diagonal of a 3 × 3 table.
+const triangle = (p, el, t0) => {
+  const e = path(p, `M${el.cx(0) - 40} ${el.ry(0) - 48}L${el.cx(2) + 42} ${el.ry(0) - 48}L${el.cx(2) + 42} ${el.ry(2) + 20}Z`, { fill: COL.task, stroke: COL.task, 'stroke-width': 2, 'fill-opacity': .13 }, { o: 0 });
+  show(e, t0, .6);
+  return e;
+};
+// A small 3 × 3 system with no picture, for the title card: the same .v, .to, .set, .onChange elim uses.
+const bare = (A, b) => {
+  const v = {}, fs = [];
+  A.forEach((r, i) => { r.forEach((x, j) => { v[`a${i}${j}`] = x; }); v[`b${i}`] = b[i]; });
+  let plan = { ...v };
+  const set = to => { Object.assign(v, to); fs.forEach(f => f(v)); };
+  return { v, set, onChange: f => fs.push(f), solve: () => ({}), live() {},
+    to(next, at, dur = 1.2, ease = io) { const from = { ...plan }; plan = { ...plan, ...next }; const goal = { ...plan };
+      prog(q => set(Object.fromEntries(Object.keys(next).map(k => [k, from[k] + (goal[k] - from[k]) * q]))), at, dur, ease); } };
+};
+const keys3 = ({ A, b }) => Object.fromEntries([...A.flatMap((r, i) => r.map((x, j) => [`a${i}${j}`, x])), ...b.map((x, i) => [`b${i}`, x])]);
+
+/* ---------- practice data (every answer worked twice) ---------- */
+const COL1Q = [
+  { parts: ['2x + y − z = 1,   6x + 2y + z = 3,   −4x + y + 2z = 0:      row 2: ℓ = ', { box: '3' }, ',   row 3: ℓ = ', { box: '-2' }], why: '6 ÷ 2 = 3 and −4 ÷ 2 = −2.', hint: 'Divide each first number by the pivot, 2.' },
+  { parts: ['x + 2y + 3z = 4,   5x + y = 2,   2x − y + z = 1:      row 2: ℓ = ', { box: '5' }, ',   row 3: ℓ = ', { box: '2' }], why: '5 ÷ 1 = 5 and 2 ÷ 1 = 2.', hint: 'The pivot is 1: the multipliers are the first numbers of rows 2 and 3.' },
+  { parts: ['3x − y + z = 2,   x + y + z = 3,   9x + 2z = 1:      row 2: ℓ = ', { box: '1/3' }, ',   row 3: ℓ = ', { box: '3' }], why: '1 ÷ 3 = 1/3 and 9 ÷ 3 = 3.', hint: 'The pivot is 3. Row 2 starts with 1: 1 ÷ 3.' },
+  { parts: ['−x + y + z = 0,   2x + y = 5,   4y − z = 3:      row 2: ℓ = ', { box: '-2' }, ',   row 3: ℓ = ', { box: '0' }], why: '2 ÷ (−1) = −2; row 3 has no x, so 0.', hint: 'The pivot is −1. Row 3 has no x at all.' },
+];
+const ROWQ = [
+  { parts: ['(2, 1, −1 | 1),   (6, 2, 1 | 3):      row 2 − 3 × row 1  =  (0, ', { box: '-1' }, ', ', { box: '4' }, ' | ', { box: '0' }, ')'], why: '2 − 3 = −1,  1 + 3 = 4,  3 − 3 = 0.', hint: '3 × row 1 is (6, 3, −3 | 3). Subtract it number by number.' },
+  { parts: ['(1, 2, 3 | 4),   (2, −1, 1 | 1):      row 3 − 2 × row 1  =  (0, ', { box: '-5' }, ', ', { box: '-5' }, ' | ', { box: '-7' }, ')'], why: '−1 − 4 = −5,  1 − 6 = −5,  1 − 8 = −7.', hint: '2 × row 1 is (2, 4, 6 | 8).' },
+  { parts: ['(2, 1, −1 | 1),   (−4, 1, 2 | 0):      row 3 + 2 × row 1  =  (0, ', { box: '3' }, ', ', { box: '0' }, ' | ', { box: '2' }, ')'], why: 'ℓ = −2, so add: 1 + 2 = 3,  2 − 2 = 0,  0 + 2 = 2.', hint: '2 × row 1 is (4, 2, −2 | 2). Add it this time.' },
+  { parts: ['(0, 1, −1 | 2),   (0, 2, 3 | 9):      row 3 − 2 × row 2  =  (0, 0, ', { box: '5' }, ' | ', { box: '5' }, ')'], why: '3 − (−2) = 5 and 9 − 4 = 5.', hint: '2 × row 2 is (0, 2, −2 | 4). Then 3 − (−2).' },
+];
+const PIVQ = [
+  { parts: ['(1, 2, 1),   (2, 6, 4),   (1, 4, 5):      pivots ', { box: '1' }, ', ', { box: '2' }, ', ', { box: '2' }], why: 'ℓ = 2 and 1 give (0, 2, 2) and (0, 2, 4); then ℓ = 1 gives (0, 0, 2).', hint: 'Column 1: take 2 × row 1 from row 2 and 1 × row 1 from row 3. Then column 2.' },
+  { parts: ['(2, 1, 1),   (4, 3, 3),   (8, 7, 9):      pivots ', { box: '2' }, ', ', { box: '1' }, ', ', { box: '2' }], why: 'ℓ = 2 and 4 give (0, 1, 1) and (0, 3, 5); then ℓ = 3 gives (0, 0, 2).', hint: 'The multipliers for column 1 are 4 ÷ 2 and 8 ÷ 2.' },
+  { parts: ['(1, −1, 2),   (−2, 3, −1),   (3, −1, 9):      pivots ', { box: '1' }, ', ', { box: '1' }, ', ', { box: '-3' }], why: 'ℓ = −2 and 3 give (0, 1, 3) and (0, 2, 3); then ℓ = 2 gives (0, 0, −3).', hint: 'Row 2: ℓ = −2, so add 2 × row 1. Row 3: ℓ = 3.' },
+  { parts: ['(3, 0, 1),   (6, 2, 4),   (−3, 4, 5):      pivots ', { box: '3' }, ', ', { box: '2' }, ', ', { box: '2' }], why: 'ℓ = 2 and −1 give (0, 2, 2) and (0, 4, 6); then ℓ = 2 gives (0, 0, 2).', hint: 'Row 3: ℓ = −3 ÷ 3 = −1, so add row 1.' },
+];
+// The hands-on walk: one system, three steps in turn (the system keeps what the reader did).
+const WALK = { A: [[1, 1, 2], [2, 3, 5], [-1, 1, 1]], b: [2, 4, -1] };
+const WALK_STEPS = [[1, 0, 2, 'a10'], [2, 0, -1, 'a20'], [2, 1, 2, 'a21']];
+const stepTask = ([i, j, l, k]) => (body, api) => {
+  S.el.opNow(i, j);
+  return elTask(S.el, v => Math.abs(v[k]) < 1e-9, `ℓ = ${num(l)}: the ${k === 'a21' ? 'y' : 'x'} of row ${i + 1} is gone.`,
+    (v, L) => `Row ${i + 1} still has ${num(Math.round(v[k] * 10) / 10)} there. Divide that number (before the step) by the pivot of row ${j + 1}.`,
+    () => S.el.set({ l }))(body, api);
+};
+
+/* ---------- beats ---------- */
+const BEATS = [
+  ['intro', 'Elimination: three equations', (m, D) => {
+    const g = G(scene, { o: 0, y: 24 });
+    T(g, 'Unit 2, Chapter 18', { x: 800, y: 280, size: 28, fill: COL.dim, anchor: 'middle' });
+    T(g, 'Elimination: Three Equations', { x: 800, y: 390, size: 88, weight: 600, anchor: 'middle' });
+    tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+    const r = text(scene, 'two columns of steps, and the numbers make a triangle', 800, 500, m('sub'), { size: 36, fill: COL.dim, anchor: 'middle' });
+    const lg = G(scene, { o: 0 });
+    const s = bare(LEC.A, LEC.b), el = elim(lg, s, { at: [620, 620], size: 36, cw: 70, rh: 56, t0: 0 });
+    show(lg, m('sub') + 1.5, .5);
+    el.ring(0, 0, m('sub') + 3); el.ring(1, 1, m('sub') + 3.6); el.ring(2, 2, m('sub') + 4.2);
+    el.step(1, 0, 3, m('move') + .6, 1.2, { lead: .2, place: [980, 676] });
+    el.step(2, 1, 2, m('move') + 2.4, 1.2, { lead: .2, place: [980, 732] });
+    tw(g, { o: 0, y: -24 }, D - .9, .8); hide(r, D - .9, .8); hide(lg, D - .9, .8);
+  }],
+
+  ['system', 'Three planes', (m) => {
+    const p = panel(0);
+    text(p, 'The lecture’s system', 60, 110, .2, { size: 40, weight: 600 });
+    const { sys, V } = three(p, LEC, '', { eqs: true, table: false, t0: m('eq1') - .3 });
+    V.sway(5, 13);
+    sys.planes.forEach(pl => pl.fade(0, 0, 0)); tw(sys.meet.e, { o: 0 }, 0, 0);
+    [0, 1, 2].forEach(i => { tw(sys.rows[i], { o: 0 }, 0, 0); show(sys.rows[i], m(`eq${i + 1}`), .4); sys.planes[i].fade(1, m(`eq${i + 1}`) + .3, .8); });
+    show(sys.meet.e, m('planes') + 1, .4); pulse(sys.meet.e, m('planes') + 1.4);
+    V.turn({ yaw: VIEW.yaw + 25 }, m('planes'), 4);
+    // the table takes the equations' place
+    tw(sys.E, { o: 0 }, m('table') - .2, .4);
+    say(p, [CAP_LEC], 90, 160, m('table'), { size: 28, fill: COL.dim });
+    const el = elim(p, sys, { at: TBL, size: 44, cw: 84, rh: 66, t0: m('table'), labelX: 530 });
+    const d = path(p, `M${el.cx(0) - 40} ${el.ry(0) - 50}L${el.cx(2) + 40} ${el.ry(2) + 20}`, { stroke: COL.task, 'stroke-width': 3, 'stroke-dasharray': '10 8', fill: 'none' }, { o: 0 });
+    show(d, m('goal'), .5);
+    text(p, 'goal: zeros below the pivots', 90, 470, m('goal') + .5, { size: 30, fill: COL.task, weight: 600 });
+    el.ring(1, 0, m('z1'), { dash: true, color: COL.task }); el.ring(2, 0, m('z1') + .5, { dash: true, color: COL.task });
+    el.ring(2, 1, m('z2'), { dash: true, color: COL.task });
+    text(p, 'column 1 first, then column 2', 90, 530, m('order'), { size: 30, fill: COL.chalk, weight: 600 });
+    text(p, 'a row above cleans a row below', 90, 585, m('order') + 3.5, { size: 28, fill: COL.dim, weight: 600 });
+    V.turn({ yaw: VIEW.yaw }, m('order'), 3);
+  }],
+
+  ['step1', 'Column one: row 2', (m) => {
+    const p = panel(0);
+    text(p, 'Column 1:  row 2 − 3 × row 1', 60, 110, .2, { size: 40, weight: 600 });
+    const { sys, el, V } = three(p, LEC, CAP_LEC);
+    el.ring(0, 0, m('piv'));
+    el.ring(1, 0, m('rem'), { dash: true });
+    say(p, ['ℓ = 3 ÷ 1 = 3'], 90, 500, m('l'), { size: 34, fill: COL.task });
+    el.op(1, 0, 3, m('l') + 1.4);
+    el.line([3, 6, 3, 6], 3, m('three'), { label: '3 × row 1', color: BLUE });
+    sys.focus(1, m('go'));
+    el.mult(3, m('go') + .6, 4, { count: false });
+    V.turn({ yaw: VIEW.yaw + 30 }, m('go'), 11);
+    hinge(sys, 0, m('hinge'), 2); hinge(sys, 0, m('hinge') + 2.4, 2);
+    sys.focus(null, m('nums'));
+    lightRow(el, 1, [m('e1'), m('e2'), m('e3'), m('e4')]);
+    text(p, 'row 2 has no x: its plane runs along x', 90, 570, m('nox'), { size: 30, fill: CORAL, weight: 600 });
+    V.turn({ yaw: VIEW.yaw + 75, pitch: 14 }, m('nox') + .3, 3);   // look along x: the coral plane stands edge-on
+  }],
+
+  ['step1b', 'Column one: row 3', (m) => {
+    const p = panel(0);
+    text(p, 'Column 1:  row 3', 60, 110, .2, { size: 40, weight: 600 });
+    const { sys, el, V } = three(p, AFTER1, CAP_LEC);
+    V.sway(5, 13);
+    el.ring(2, 0, m('rem'), { dash: true });
+    say(p, ['ℓ = 0 ÷ 1 = 0'], 90, 500, m('l'), { size: 34, fill: COL.task });
+    el.op(2, 0, 0, m('l') + 1.4);
+    sys.focus(2, m('nothing')); sys.focus(null, m('done'));
+    text(p, 'nothing to remove: nothing moves', 90, 560, m('nothing') + 1, { size: 30, fill: YELLOW, weight: 600 });
+    el.ring(1, 0, m('done'), { color: COL.good }); el.ring(2, 0, m('done') + .3, { color: COL.good });
+    text(p, 'column 1 done', 90, 620, m('done') + .8, { size: 30, fill: COL.good, weight: 600 });
+  }],
+
+  ['q1', 'Quick check', () => {
+    const p = panel(0);
+    text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
+    const t = three(p, AFTER1, CAP_LEC);
+    S.sys = t.sys; S.el = t.el;
+  }, { ask: done => quiz(CARD, [{
+    id: 'c-col2', prompt: ['Column 2: remove the y from row 3, using row 2.'],
+    build: blanks([
+      { parts: ['second pivot:   ', { box: '2' }], why: 'Row 2 is (0, 2, −2 | 6): its first number that is not 0 is 2.', hint: 'Look at row 2 now. Its x is gone: which number comes first?' },
+      { parts: ['number to remove:   ', { box: '4' }], why: 'Row 3 has 4 under the 2.', hint: 'Which number of row 3 sits under the second pivot?' },
+      { parts: ['ℓ = ', { box: '2' }], why: '4 ÷ 2 = 2.', hint: 'Divide the number to remove by the pivot.' },
+    ]),
+  }], done) }],
+
+  ['step2', 'Column two', (m) => {
+    const p = panel(0);
+    text(p, 'Column 2:  row 3 − 2 × row 2', 60, 110, .2, { size: 40, weight: 600 });
+    const { sys, el, V } = three(p, AFTER1, CAP_LEC);
+    el.ring(1, 1, m('piv'));
+    el.ring(2, 1, m('rem'), { dash: true });
+    say(p, ['ℓ = 4 ÷ 2 = 2'], 90, 500, m('l'), { size: 34, fill: COL.task });
+    el.op(2, 1, 2, m('l') + 1.2);
+    el.line([0, 4, -4, 12], 3, m('two'), { label: '2 × row 2', color: CORAL });
+    sys.focus(2, m('go'));
+    el.mult(2, m('go') + .6, 4, { count: false });
+    V.turn({ yaw: VIEW.yaw - 25 }, m('go'), 6);
+    hinge(sys, 2, m('turn') + .3, 2); hinge(sys, 2, m('turn') + 2.6, 2);
+    sys.focus(null, m('nums'));
+    lightRow(el, 2, [m('e1'), m('e2'), m('e3'), m('e4')]);
+    say(p, ['5z = −10,   z = −2'], 90, 570, m('flat'), { size: 34, fill: YELLOW });
+    text(p, 'no x, no y: a flat plane at height −2', 90, 630, m('flat') + 2.5, { size: 30, fill: YELLOW, weight: 600 });
+    V.turn({ yaw: VIEW.yaw - 10, pitch: 34 }, m('flat') + 1, 3);
+  }],
+
+  ['result', 'The triangle', (m) => {
+    const p = panel(0);
+    text(p, 'The triangle U, and c', 60, 110, .2, { size: 40, weight: 600 });
+    const { sys, el, V } = three(p, U_, 'x + 2y + z = 2,    2y − 2z = 6,    5z = −10', { view: { yaw: VIEW.yaw - 10, pitch: 30 } });
+    V.sway(5, 13);
+    triangle(p, el, m('tri'));
+    say(p, ['U'], el.cx(1), el.ry(2) + 78, m('tri') + .6, { size: 48, fill: COL.task, anchor: 'middle' });
+    [0, 1, 2].forEach(i => el.ring(i, i, m('pivots') + .7 * i));
+    [0, 1, 2].forEach(i => el.flash(i, m('c') + .5, 3));
+    say(p, ['c'], el.cx(3), el.ry(2) + 78, m('c') + .5, { size: 48, fill: COL.task, anchor: 'middle' });
+    show(sys.meet.e, 0, 0); pulse(sys.meet.e, m('same') + .3); pulse(sys.meet.e, m('same') + 1.5);
+    V.turn({ yaw: VIEW.yaw + 20 }, m('same'), 4);
+    el.focus(2, m('z')); el.focus(null, m('z') + 6);
+    say(p, ['5z = −10,   z = −2'], 90, 560, m('z') + 1.2, { size: 36, fill: COL.task });
+    text(p, 'y and x: next chapter', 90, 620, m('z') + 4.5, { size: 28, fill: COL.dim, weight: 600 });
+  }],
+
+  ['ex2', 'A system of our own', (m) => {
+    const p = panel(0);
+    text(p, 'A system of our own', 60, 110, .2, { size: 40, weight: 600 });
+    const { sys, el, V } = three(p, { A: [[2, 1, 1], [4, 1, 3], [-2, 2, 1]], b: [3, 3, 1] }, '2x + y + z = 3,    4x + y + 3z = 3,    −2x + 2y + z = 1', { t0: m('eq') - .3, view: { yaw: -20, pitch: 22 } });
+    el.ring(0, 0, m('c1'));
+    say(p, ['row 2:  ℓ = 4 ÷ 2 = 2'], 90, 470, m('l21'), { size: 32, fill: COL.task });
+    el.op(1, 0, 2, m('l21') + 1.5);
+    el.mult(2, m('s21'), 1.8, { count: false });
+    say(p, ['row 3:  ℓ = −2 ÷ 2 = −1'], 90, 525, m('l31'), { size: 32, fill: COL.task });
+    el.op(2, 0, -1, m('l31') + 1.5);
+    el.mult(-1, m('s31') + 1.2, 1.8, { count: false });
+    el.ring(1, 1, m('c2'));
+    say(p, ['row 3:  ℓ = 3 ÷ (−1) = −3'], 90, 580, m('l32'), { size: 32, fill: COL.task });
+    el.op(2, 1, -3, m('l32') + 1.5);
+    el.mult(-3, m('s32') + .8, 1.8, { count: false });
+    V.turn({ yaw: -45, pitch: 24 }, m('eq'), 9);
+    V.turn({ yaw: 25, pitch: 26 }, m('s21'), 14);
+    triangle(p, el, m('u'));
+    [0, 1, 2].forEach(i => el.ring(i, i, m('u') + 1.5 + .5 * i, { color: COL.task }));
+    say(p, ['5z = −5,   z = −1'], 90, 650, m('z'), { size: 34, fill: COL.task });
+  }],
+
+  ['q2', 'Your turn', () => {
+    const p = panel(0);
+    text(p, 'Your turn', 60, 110, .2, { size: 40, weight: 600 });
+    const t = three(p, { A: [[1, 1, 1], [0, 1, 2], [0, 3, 1]], b: [1, -1, 2] }, 'x + y + z = 1,    y + 2z = −1,    3y + z = 2');
+    S.sys = t.sys; S.el = t.el;
+    S.el.op(2, 1, 0, .3);
+  }, { ask: done => quiz(CARD, [{
+    id: 'c-flat3', prompt: ['Drag the multiplier until the yellow plane lies flat (row 3 loses its y).'],
+    build: elTask(S.el, v => v.a21 === 0, 'ℓ = 3 ÷ 1 = 3: row 3 becomes (0, 0, −5 | 5), so z = −1, a flat plane.',
+      (v, l) => `Row 3 still has ${num(v.a21)}y. The pivot of row 2 is 1; the number to remove is 3.`, () => S.el.set({ l: 3 })),
+  }], done) }],
+
+  ['q3', 'Quick check', () => {
+    const p = panel(0);
+    text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
+    const t = three(p, { A: [[1, 1, 1], [2, 3, 1], [1, 3, 4]], b: [6, 11, 19] }, 'x + y + z = 6,    2x + 3y + z = 11,    x + 3y + 4z = 19');
+    S.sys = t.sys; S.el = t.el;
+  }, { ask: done => quiz({ x: 40, y: 400, w: 720, cls: 'side' }, [{
+    id: 'c-three', prompt: ['Find the three multipliers, in order, and the last pivot.'],
+    build: blanks([
+      { parts: ['row 2 − ', { box: '2' }, ' × row 1,      row 3 − ', { box: '1' }, ' × row 1'], why: '2 ÷ 1 = 2 and 1 ÷ 1 = 1: rows 2 and 3 become (0, 1, −1 | −1) and (0, 2, 3 | 13).', hint: 'The pivot is 1, so each multiplier is the row’s first number.' },
+      { parts: ['row 3 − ', { box: '2' }, ' × row 2,      third pivot ', { box: '5' }], why: 'Row 2 is now (0, 1, −1), row 3 (0, 2, 3): ℓ = 2 ÷ 1 = 2, and 3 − 2·(−1) = 5.', hint: 'After column 1, row 2 is (0, 1, −1) and row 3 is (0, 2, 3).' },
+    ]),
+  }], done) }],
+
+  ['wrap', 'Summary', (m) => {
+    const p = panel(0);
+    [['Column 1: row 1 removes x from rows 2 and 3.', 'w1'], ['Column 2: row 2 removes y from row 3.', 'w2'],
+     ['ℓ = (number to remove) ÷ (pivot); each step turns one plane on a hinge.', 'w3'], ['The result: a triangle U with the pivots on its diagonal, and new right sides c.', 'w4']].forEach(([str, mark], i) => {
+      const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
+      mk('circle', { cx: 120, cy: -12, r: 26, fill: COL.task }, g);
+      T(g, String(i + 1), { x: 120, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+      T(g, str, { x: 170, size: 34, weight: 600 });
+      tw(g, { o: 1, x: 0 }, m(mark), .6);
+    });
+  }],
+  ['final1', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-col1', prompt: ['Find the multipliers that clear column 1 (rows 2 and 3).'],
+    build: blanks(COL1Q),
+  }], done, 'Chapter practice · set 1 of 4') }],
+  ['final2', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
+    id: 'p-row', prompt: ['Rows are written as (numbers in A | right side). Work out the new row.'],
+    build: blanks(ROWQ),
+  }], done, 'Chapter practice · set 2 of 4') }],
+  ['final3', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
+    id: 'p-piv', prompt: ['Eliminate down to the triangle (rows of A only) and give the three pivots.'],
+    build: blanks(PIVQ),
+  }], done, 'Chapter practice · set 3 of 4') }],
+  ['final4', 'Chapter practice', () => {
+    const p = panel(0);
+    text(p, 'Three steps', 60, 110, .2, { size: 40, weight: 600 });
+    const t = three(p, WALK, 'x + y + 2z = 2,    2x + 3y + 5z = 4,    −x + y + z = −1');
+    S.sys = t.sys; S.el = t.el;
+  }, { ask: done => quiz(CARD, WALK_STEPS.map((st, k) => ({
+    id: `p-walk${k + 1}`, prompt: [['Column 1, row 2.', 'Column 1, row 3.', 'Column 2, row 3.'][k], ' Drag the multiplier until the number under the pivot is 0.'],
+    build: stepTask(st),
+  })), done, 'Chapter practice · set 4 of 4') }],
+  ['play', 'Playground', (m) => {
+    const p = panel(0);
+    text(p, 'Playground', 60, 110, .2, { size: 40, weight: 600 });
+    const t = three(p, LEC, CAP_LEC);
+    S.sys = t.sys; S.el = t.el;
+    S.el.op(1, 0, 0, .3);
+    const hint = text(p, 'try: make row 2 lose its x; drag the space to look along the hinge', 90, 470, m('go'), { size: 24, fill: COL.dim });
+    hide(hint, m('go') + 8, .6);
+  }, { ask: playAsk(() => S.el, { pos: CARD, tip: 'Your system. Drag the multiplier or any number in the table, turn the space, or draw on the board. Nothing is marked.' }) }],
+  ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+boot();
+</script>
+</body>
+</html>

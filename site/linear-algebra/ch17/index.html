@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pivots and Multipliers</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render"><!-- hold the first frame until the player exists, so the page transition can run -->
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/math.js"></script>
+<script src="../lib/linsys.js"></script>
+<script src="../lib/elim.js"></script>
+<script src="../lib/play.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 17, title: 'Pivots and Multipliers', minutes: 10, language: 'en', next: '../ch18/' };
+
+/* ---------- chapter drawing helpers ---------- */
+// This chapter works on [A | b] alone: the table sits where the equations were (linsys shows fractions as decimals,
+// and here the multipliers are fractions), with the system written once above it.
+const BLUE = LS_ROW[0], CORAL = LS_ROW[1];
+const TOP = [120, 280];                                         // [A | b]: rows at 280 and 358
+const CARD = { x: 40, y: 410, w: 720, cls: 'side' };           // under the table, beside the plane
+const say = (p, parts, x, y, t0, { size = 40, fill = COL.chalk, anchor = 'start' } = {}) => { const e = M(p, [].concat(parts), { x, y, size, fill, anchor, o: 0 }); show(e, t0); return e; };
+const text = (p, str, x, y, t0, { size = 30, fill = COL.chalk, anchor = 'start', weight = 500 } = {}) => { const e = T(p, str, { x, y, size, fill, anchor, weight, o: 0 }); show(e, t0); return e; };
+const okMark = (p, x, y, t0, size = 34) => text(p, '✓', x, y, t0, { size, fill: COL.good, weight: 700 });
+// The system as a table with its plane: the equations written once (dim) above [A | b]; the meeting point labelled.
+const table = (p, A, b, caption, { t0 = .1, meet = true, dens = [1, 2], step = 1 } = {}) => {
+  const sys = linsys(p, { A, b, eq: [90, 200], mat: null, sol: false, t0 });
+  sys.E.style.display = 'none';
+  if (!meet) put(sys.meetBox, { o: 0 });
+  const cap = say(p, [caption], 90, 182, t0 + .1, { size: 32, fill: COL.dim });
+  const el = elim(p, sys, { at: TOP, size: 50, cw: 92, rh: 78, t0, dens, step, labelX: 494 });
+  return { sys, el, cap };
+};
+// The old line of row 2, dashed, through the meeting point (sx, sy).
+const ghost = (sys, a, b, sx, sy, t0) => {
+  const l = sys.P.line(sx, sy, sx + b, sy - a, CORAL, t0, { dash: '10 10', w: 3, into: sys.stage });
+  tw(l, { o: .45 }, t0 + .6, .4);
+  return l;
+};
+const pin = (sys, x, y, t0) => {
+  const g = G(sys.stage, { x: sys.P.PX(x), y: sys.P.PY(y), o: 0 });
+  mk('circle', { r: 20, fill: 'none', stroke: COL.task, 'stroke-width': 3.5, 'stroke-dasharray': '6 5' }, g);
+  show(g, t0, .4);
+  return g;
+};
+const thick = (sys, i, t0) => { tw(sys.lines[i].l, { 'a_stroke-width': 10 }, t0, .35); tw(sys.lines[i].l, { 'a_stroke-width': 5 }, t0 + .9, .6); };
+const lightCells = (el, ts) => ts.forEach((t, j) => el.flash(1, t, j));
+// A small ring or dashed ring beside a legend line, the same marks as in the table.
+const legend = (p, dash, parts, y, t0, fill = COL.chalk) => {
+  const g = G(p, { o: 0 });
+  mk('ellipse', { cx: 108, cy: y - 12, rx: 18, ry: 16, fill: 'none', stroke: COL.chalk, 'stroke-width': 3, ...(dash ? { 'stroke-dasharray': '6 5' } : {}) }, g);
+  M(g, [].concat(parts), { x: 140, y, size: 34, fill, anchor: 'start' });
+  show(g, t0);
+  return g;
+};
+// A system with no picture behind it, for the small tables of the drill and the 3 × 3 preview: the same .v, .to,
+// .set and .onChange that elim uses.
+const bare = (A, b) => {
+  const v = {}, fs = [];
+  A.forEach((r, i) => { r.forEach((x, j) => { v[`a${i}${j}`] = x; }); v[`b${i}`] = b[i]; });
+  let plan = { ...v };
+  const set = to => { Object.assign(v, to); fs.forEach(f => f(v)); };
+  return { v, set, onChange: f => fs.push(f), solve: () => ({}), live() {},
+    to(next, at, dur = 1.2, ease = io) { const from = { ...plan }; plan = { ...plan, ...next }; const goal = { ...plan };
+      prog(q => set(Object.fromEntries(Object.keys(next).map(k => [k, from[k] + (goal[k] - from[k]) * q]))), at, dur, ease); } };
+};
+const keysOf2 = (A, b) => ({ a00: A[0][0], a01: A[0][1], a10: A[1][0], a11: A[1][1], b0: b[0], b1: b[1] });
+
+/* ---------- practice data (every answer worked twice) ---------- */
+const MULTQ = [
+  { parts: ['2x + y = 3', ',   ', '8x + 5y = 1', ':      ℓ = ', { box: '4' }], why: '8 ÷ 2 = 4.', hint: 'The number to remove is 8, the pivot is 2.' },
+  { parts: ['3x − y = 2', ',   ', '−9x + 4y = 1', ':      ℓ = ', { box: '-3' }], why: '−9 ÷ 3 = −3.', hint: 'The number to remove is −9: the multiplier is negative.' },
+  { parts: ['−x + 2y = 5', ',   ', '4x + y = 0', ':      ℓ = ', { box: '-4' }], why: '4 ÷ (−1) = −4.', hint: 'The pivot is −1. Dividing by −1 changes the sign.' },
+  { parts: ['4x + y = 1', ',   ', '2x − 3y = 5', ':      ℓ = ', { box: '1/2' }], why: '2 ÷ 4 = 1/2.', hint: 'The number to remove, 2, is smaller than the pivot, 4: a fraction.' },
+  { parts: ['2x + 5y = 1', ',   ', '3x + y = 4', ':      ℓ = ', { box: '3/2' }], why: '3 ÷ 2 = 3/2.', hint: '3 divided by 2. A fraction is fine.' },
+  { parts: ['−2x + y = 3', ',   ', '−6x + 2y = 1', ':      ℓ = ', { box: '3' }], why: '−6 ÷ (−2) = 3: two minus signs make a plus.', hint: 'Both numbers are negative.' },
+  { parts: ['6x − y = 2', ',   ', '4x + 3y = 0', ':      ℓ = ', { box: '2/3' }], why: '4 ÷ 6 = 2/3.', hint: '4 divided by 6, in lowest terms or not.' },
+  { parts: ['5x + 2y = 1', ',   ', '3y = 6', ':      ℓ = ', { box: '0' }], why: 'Row 2 has no x: 0 ÷ 5 = 0, nothing to remove.', hint: 'How many x does row 2 have?' },
+];
+const PIVQ = [
+  { parts: ['x + 2y = 5', ',   ', '3x + 4y = 11', ':      pivots ', { box: '1' }, ' and ', { box: '-2' }], why: 'ℓ = 3: 4 − 3·2 = −2.', hint: 'The first pivot starts row 1. For the second, take 3 × row 1 away and read the new row 2.' },
+  { parts: ['2x + y = 3', ',   ', '4x + 5y = 9', ':      pivots ', { box: '2' }, ' and ', { box: '3' }], why: 'ℓ = 2: 5 − 2·1 = 3.', hint: 'ℓ = 4 ÷ 2. Then 5 − ℓ·1.' },
+  { parts: ['3x + 2y = 1', ',   ', '6x + y = 4', ':      pivots ', { box: '3' }, ' and ', { box: '-3' }], why: 'ℓ = 2: 1 − 2·2 = −3.', hint: 'ℓ = 6 ÷ 3. Then 1 − ℓ·2.' },
+  { parts: ['−x + y = 2', ',   ', '3x + 2y = 1', ':      pivots ', { box: '-1' }, ' and ', { box: '5' }], why: 'ℓ = −3: 2 − (−3)·1 = 5.', hint: 'ℓ = 3 ÷ (−1) = −3. Taking away −3 rows adds 3 rows.' },
+  { parts: ['2x + 3y = 1', ',   ', 'x + 4y = 2', ':      pivots ', { box: '2' }, ' and ', { box: '5/2' }], why: 'ℓ = 1/2: 4 − ½·3 = 5/2.', hint: 'ℓ = 1 ÷ 2 = ½. Then 4 − ½·3.' },
+  { parts: ['4x − 2y = 0', ',   ', '2x + y = 3', ':      pivots ', { box: '4' }, ' and ', { box: '2' }], why: 'ℓ = 1/2: 1 − ½·(−2) = 2.', hint: 'ℓ = 2 ÷ 4 = ½. Then 1 − ½·(−2).' },
+];
+const NEWQ = [
+  { parts: ['x − y = 2', ',   ', '−3x + 5y = 0', ':      new row 2:  ', { box: '2' }, 'y = ', { box: '6' }], why: 'ℓ = −3: add 3 × row 1. 5 − 3 = 2, 0 + 6 = 6.', hint: 'ℓ = −3, so add 3x − 3y = 6 to row 2.' },
+  { parts: ['2x + y = 4', ',   ', '3x + 2y = 7', ':      new row 2:  ', { box: '1/2' }, 'y = ', { box: '1' }], why: 'ℓ = 3/2: 2 − 3/2 = 1/2, 7 − 6 = 1.', hint: 'ℓ = 3/2. 3/2 × row 1 is 3x + 3/2 y = 6.' },
+  { parts: ['−2x + 3y = 1', ',   ', '4x − y = 3', ':      new row 2:  ', { box: '5' }, 'y = ', { box: '5' }], why: 'ℓ = −2: add 2 × row 1. −1 + 6 = 5, 3 + 2 = 5.', hint: 'ℓ = 4 ÷ (−2) = −2, so add −4x + 6y = 2.' },
+  { parts: ['4x + 2y = 6', ',   ', '3x + 5y = 1', ':      new row 2:  ', { box: '7/2' }, 'y = ', { box: '-7/2' }], why: 'ℓ = 3/4: 5 − 3/2 = 7/2, 1 − 9/2 = −7/2.', hint: 'ℓ = 3/4. 3/4 × row 1 is 3x + 3/2 y = 9/2.' },
+  { parts: ['3x − 3y = 3', ',   ', 'x + y = 5', ':      new row 2:  ', { box: '2' }, 'y = ', { box: '4' }], why: 'ℓ = 1/3: 1 + 1 = 2, 5 − 1 = 4.', hint: 'ℓ = 1/3. 1/3 × row 1 is x − y = 1.' },
+];
+const HANDS = [
+  { A: [[2, -1], [-4, 3]], b: [1, 1], l: -2, sol: [2, 3] },
+  { A: [[2, 1], [1, 2]], b: [4, 5], l: .5, sol: [1, 2] },
+  { A: [[-2, 1], [3, 1]], b: [-1, 4], l: -1.5, sol: [1, 1] },
+];
+const lStr = l => Number.isInteger(l) ? num(l) : `${l < 0 ? '−' : ''}${Math.abs(l * 2)}/2`;
+const handTask = (el, h) => elTask(el, v => v.a10 === 0,
+  `ℓ = ${num(h.A[1][0])} ÷ ${num(h.A[0][0])} = ${lStr(h.l)}: row 2 is now flat, and the lines meet at (${num(h.sol[0])}, ${num(h.sol[1])}).`,
+  (v, l) => `Row 2 still starts with ${num(Math.round(v.a10 * 10) / 10)}. The multiplier is the number to remove, ${num(h.A[1][0])}, divided by the pivot, ${num(h.A[0][0])}.`,
+  () => el.set({ l: h.l }));
+
+/* ---------- beats ---------- */
+const BEATS = [
+  ['intro', 'Pivots and multipliers', (m, D) => {
+    const g = G(scene, { o: 0, y: 24 });
+    T(g, 'Unit 2, Chapter 17', { x: 800, y: 320, size: 28, fill: COL.dim, anchor: 'middle' });
+    T(g, 'Pivots and Multipliers', { x: 800, y: 430, size: 88, weight: 600, anchor: 'middle' });
+    tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+    const r = text(scene, 'the multiplier is the number to remove, divided by the pivot', 800, 560, m('sub'), { size: 36, fill: COL.dim, anchor: 'middle' });
+    const q = say(scene, ['ℓ  =  ', F('to remove', 'pivot')], 800, 700, m('move'), { size: 50, fill: COL.task, anchor: 'middle' });
+    tw(g, { o: 0, y: -24 }, D - .9, .8); hide(r, D - .9, .8); hide(q, D - .9, .8);
+  }],
+
+  ['names', 'Two names', (m) => {
+    const p = S.p = panel(0);
+    text(p, 'The pivot and the multiplier', 60, 110, .2, { size: 40, weight: 600 });
+    const A = [[1, 2], [3, 4]], b = [5, 11];
+    const { sys, el } = table(p, A, b, 'x + 2y = 5,     3x + 4y = 11', { t0: m('sys') - .3 });
+    el.op(1, 0, 3, m('step'));
+    el.ring(0, 0, m('piv'));
+    text(p, 'pivot row', 494, 268, m('piv') + 2.5, { size: 28, fill: BLUE, weight: 600 });
+    legend(p, false, ['pivot:  1'], 500, m('piv'));
+    el.ring(1, 0, m('rem'), { dash: true });
+    legend(p, true, ['to remove:  3'], 560, m('rem'));
+    say(p, ['multiplier  ℓ = 3'], 90, 630, m('mult'), { size: 34, fill: COL.task });
+    pulse(el.op_.lab.mult, m('mult') + 1, 1.35); pulse(el.op_.lab.mult, m('mult') + 3.5, 1.35);
+    ghost(sys, 3, 4, 1, 2, m('go'));
+    el.mult(3, m('go') + .3, 2, { count: false });
+    el.flash(1, m('zero'), 0);
+    text(p, 'a zero under the pivot', 90, 690, m('zero'), { size: 28, fill: COL.dim, weight: 600 });
+    el.ring(1, 1, m('second'));
+    say(p, ['second pivot:  −2'], 90, 750, m('second') + .8, { size: 34 });
+    el.flash(1, m('second') + 3, 1); el.flash(1, m('second') + 5.5, 1);
+  }],
+
+  ['rule', 'The rule', (m) => {
+    const p = panel(0);
+    text(p, 'Finding the multiplier', 60, 110, .2, { size: 40, weight: 600 });
+    const A = [[4, -1], [8, 1]], b = [5, 7];
+    const { sys, el } = table(p, A, b, '4x − y = 5,     8x + y = 7', { t0: m('sys') - .3 });
+    el.ring(0, 0, m('piv'));
+    legend(p, false, ['pivot:  4'], 500, m('piv'));
+    el.ring(1, 0, m('rem'), { dash: true });
+    legend(p, true, ['to remove:  8'], 560, m('rem'));
+    // the tempting mistake, played out: 8 × row 1 swings the line too far
+    const wrongOp = el.op(1, 0, 8, m('wrong'));
+    ghost(sys, 8, 1, 1, -1, m('wrong'));
+    el.mult(8, m('bad'), 1.4, { count: false });
+    const bad = say(p, ['8 − 8·4 = 8 − 32 = −24'], 90, 630, m('bad') + .6, { size: 34, fill: COL.bad });
+    const no = text(p, 'not 0', 520, 630, m('bad') + 3.2, { size: 30, fill: COL.bad, weight: 700 });
+    el.mult(0, m('ask') - .2, 1, { count: false });
+    hide(wrongOp.g, m('ask') - .3, .3);
+    [bad, no].forEach(e => hide(e, m('ask') - .3, .3));
+    say(p, ['8 − ℓ·4 = 0'], 90, 630, m('ask'), { size: 34, fill: COL.task });
+    say(p, ['ℓ = 8 ÷ 4 = 2'], 340, 630, m('div') + 1.4, { size: 34, fill: COL.task });
+    const box = G(p, { o: 0 });
+    mk('rect', { x: 76, y: 664, width: 520, height: 76, rx: 14, fill: 'none', stroke: COL.task, 'stroke-width': 3 }, box);
+    M(box, ['multiplier  ℓ  =  ', F('number to remove', 'pivot')], { x: 96, y: 712, size: 32, fill: COL.task, anchor: 'start' });
+    show(box, m('rule'));
+    el.op(1, 0, 2, m('go'));
+    el.mult(2, m('go') + .6, 1.8, { count: false });
+    lightCells(el, [m('e1'), m('e2'), m('e3')]);
+    hide(box, m('y') - .3, .3);
+    say(p, ['3y = −3,   y = −1'], 90, 712, m('y'), { size: 36, fill: COL.task });
+    say(p, ['4x + 1 = 5,   x = 1'], 90, 772, m('x'), { size: 36, fill: COL.task });
+    pin(sys, 1, -1, m('y') + 1);
+  }],
+
+  ['q1', 'Quick check', () => {
+    const p = panel(0);
+    text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
+    const g = G(p, { o: 0 }); show(g, .3);
+    M(g, ['ℓ  =  ', F('number to remove', 'pivot')], { x: 1160, y: 450, size: 44, fill: COL.task, anchor: 'middle' });
+  }, { ask: done => quiz({ x: 40, y: 170, w: 760, cls: 'side' }, [{
+    id: 'c-mult', prompt: ['Find the multiplier for each system.'],
+    build: blanks([
+      { parts: ['2x + y = 5', ',  ', '6x − y = 3', ':    ℓ = ', { box: '3' }], why: '6 ÷ 2 = 3.', hint: 'Divide 6 by the pivot, 2.' },
+      { parts: ['3x − 2y = 1', ',  ', '12x + y = 0', ':    ℓ = ', { box: '4' }], why: '12 ÷ 3 = 4.', hint: 'Divide 12 by the pivot, 3.' },
+      { parts: ['5x + 4y = 2', ',  ', '5x − y = 9', ':    ℓ = ', { box: '1' }], why: '5 ÷ 5 = 1: take row 1 away once.', hint: 'The two x numbers are the same.' },
+      { parts: ['4x + 3y = 7', ',  ', '8x + y = 1', ':    ℓ = ', { box: '2' }], why: '8 ÷ 4 = 2.', hint: 'Not 8: divide 8 by the pivot, 4.' },
+    ]),
+  }], done) }],
+
+  ['negative', 'A negative multiplier', (m) => {
+    const p = panel(0);
+    text(p, 'A negative multiplier', 60, 110, .2, { size: 40, weight: 600 });
+    const A = [[1, 2], [-2, 1]], b = [3, 4];
+    const { sys, el } = table(p, A, b, 'x + 2y = 3,     −2x + y = 4', { t0: m('sys') - .3, meet: false });
+    el.ring(1, 0, m('div'), { dash: true }); el.ring(0, 0, m('div') + 1.8);
+    say(p, ['ℓ = −2 ÷ 1 = −2'], 90, 500, m('div') + 3, { size: 34, fill: COL.task });
+    el.op(1, 0, -2, m('op'));
+    say(p, ['row 2 − (−2) × row 1  =  row 2 + 2 × row 1'], 90, 560, m('plus'), { size: 30, fill: COL.task });
+    el.line([2, 4, 6], 2, m('two'), { label: '2 × row 1', color: BLUE, sign: '+' });
+    ghost(sys, -2, 1, -1, 2, m('go'));
+    el.mult(-2, m('go') + .2, 2, { count: false });
+    lightCells(el, [m('e1'), m('e2'), m('e3')]);
+    pin(sys, -1, 2, m('turn'));
+    say(p, ['5y = 10,   y = 2'], 90, 650, m('y'), { size: 36, fill: COL.task });
+    say(p, ['x + 4 = 3,   x = −1'], 90, 710, m('x'), { size: 36, fill: COL.task });
+    show(sys.meetBox, m('x') + 2, .5);
+  }],
+
+  ['fraction', 'A fraction', (m) => {
+    const p = panel(0);
+    text(p, 'A fraction for a multiplier', 60, 110, .2, { size: 40, weight: 600 });
+    const A = [[2, 1], [3, 4]], b = [3, 2];
+    const { sys, el } = table(p, A, b, '2x + y = 3,     3x + 4y = 2', { t0: m('sys') - .3, meet: false });
+    el.ring(1, 0, m('div'), { dash: true }); el.ring(0, 0, m('div') + 1.6);
+    say(p, ['ℓ = 3 ÷ 2 = ', F(3, 2)], 90, 520, m('div') + 1.8, { size: 36, fill: COL.task });
+    el.op(1, 0, 1.5, m('op'));
+    el.line([3, null, null], 2, m('h1'), { label: [F(3, 2), ' × row 1'], color: BLUE });
+    el.line([null, 1.5, null], 2, m('h2'));
+    el.line([null, null, 4.5], 2, m('h3'));
+    ghost(sys, 3, 4, 2, -1, m('go'));
+    el.mult(1.5, m('go') + .2, 2, { count: false });
+    lightCells(el, [m('e1'), m('e2'), m('e3')]);
+    el.ring(1, 1, m('piv2'));
+    say(p, ['second pivot:  ', F(5, 2)], 90, 600, m('piv2') + .5, { size: 36 });
+    say(p, [F(5, 2), 'y = −', F(5, 2), ',   y = −1'], 90, 680, m('y'), { size: 36, fill: COL.task });
+    say(p, ['2x − 1 = 3,   2x = 4,   x = 2'], 90, 760, m('x'), { size: 36, fill: COL.task });
+    show(sys.meetBox, m('x') + 3, .5);
+  }],
+
+  ['drill', 'Three quick ones', (m) => {
+    const p = panel(0);
+    text(p, 'Three quick ones', 60, 110, .2, { size: 40, weight: 600 });
+    const ex = [
+      { A: [[5, 2], [10, 1]], b: [1, 5], l: 2, t: 'a', parts: ['ℓ = 10 ÷ 5 = 2'] },
+      { A: [[-3, 1], [6, 2]], b: [2, 1], l: -2, t: 'b', parts: ['ℓ = 6 ÷ (−3) = −2'] },
+      { A: [[4, 2], [2, 3]], b: [6, 5], l: .5, t: 'c', parts: ['ℓ = 2 ÷ 4 = ', F(1, 2)] },
+    ];
+    ex.forEach(({ A, b, l, t, parts }, k) => {
+      const x0 = 150 + k * 500, y0 = 330, s = bare(A, b);
+      const el = elim(p, s, { at: [x0, y0], size: 42, cw: 76, rh: 66, t0: m(t) - .3, dens: [2] });
+      el.ring(0, 0, m(t) + .4); el.ring(1, 0, m(t) + 1.6, { dash: true });
+      say(p, parts, x0 - 40, 520, m(t) + 3, { size: 32, fill: COL.task });
+      el.op(1, 0, l, m(t) + 3.4, { place: [x0 - 40, 600] });
+      el.mult(l, m(t) + 4.2, 1.6, { count: false });
+    });
+    const q = say(p, ['ℓ  =  ', F('number to remove', 'pivot')], 800, 760, m('same'), { size: 44, fill: COL.task, anchor: 'middle' });
+    pulse(q, m('same') + 2.5, 1.15);
+  }],
+
+  ['q2', 'Your turn', () => {
+    const p = panel(0);
+    text(p, 'Your turn', 60, 110, .2, { size: 40, weight: 600 });
+    const t = table(p, [[2, 1], [5, 3]], [1, 4], '2x + y = 1,     5x + 3y = 4', { step: .5 });
+    S.sys = t.sys; S.el = t.el;
+    S.el.op(1, 0, 0, .3);
+  }, { ask: done => quiz(CARD, [{
+    id: 'c-half', prompt: ['Drag the multiplier, in halves, until the coral line is flat.'],
+    build: handTask(S.el, { A: [[2, 1], [5, 3]], b: [1, 4], l: 2.5, sol: [-1, 3] }),
+  }], done) }],
+
+  ['triangle', 'Upper triangular', (m) => {
+    const p = panel(0);
+    text(p, 'After the step: a triangle', 60, 110, .2, { size: 40, weight: 600 });
+    const s = bare([[1, 2], [0, -2]], [5, -4]);
+    const el = elim(p, s, { at: TOP, size: 50, cw: 92, rh: 78, t0: .2 });
+    say(p, ['x + 2y = 5,     −2y = −4'], 90, 182, .3, { size: 32, fill: COL.dim });
+    // the diagonal through the pivots, the zero under it, the triangle above it
+    const d = path(p, `M${el.cx(0) - 40} ${el.ry(0) - 60}L${el.cx(1) + 40} ${el.ry(1) + 20}`, { stroke: COL.task, 'stroke-width': 4, 'stroke-dasharray': '10 8', fill: 'none' }, { o: 0 });
+    show(d, m('diag'), .5);
+    el.ring(0, 0, m('diag') + .4); el.ring(1, 1, m('diag') + 1);
+    el.flash(1, m('below'), 0); el.flash(1, m('below') + 1.4, 0);
+    const tri = path(p, `M${el.cx(0) - 44} ${el.ry(0) - 56}L${el.cx(1) + 46} ${el.ry(0) - 56}L${el.cx(1) + 46} ${el.ry(1) + 26}Z`, { fill: COL.task, stroke: COL.task, 'stroke-width': 2, 'fill-opacity': .14 }, { o: 0 });
+    show(tri, m('tri'), .6);
+    say(p, ['U'], el.cx(0) + 46, el.ry(1) + 120, m('tri') + 3, { size: 54, fill: COL.task, anchor: 'middle' });
+    text(p, 'upper triangular', el.cx(0) + 90, el.ry(1) + 112, m('tri') + 3, { size: 30, fill: COL.task, weight: 600 });
+    el.focus(1, m('why')); el.focus(null, m('why') + 4);
+    text(p, 'bottom row: one unknown, y', 90, 600, m('why') + .4, { size: 30, fill: COL.dim, weight: 600 });
+    say(p, ['a pivot is never 0:   ÷ 0 ✗'], 90, 700, m('never') + 1.6, { size: 34, fill: COL.bad });
+    el.flash(0, m('never') + 3.5, 0); el.flash(1, m('never') + 3.5, 1);
+    text(p, 'a zero in a pivot spot: chapter 20', 90, 760, m('never') + 5, { size: 28, fill: COL.dim, weight: 600 });
+    // three equations make a bigger triangle (chapter 18)
+    const s3 = bare([[1, 2, 1], [0, 2, -2], [0, 0, 5]], [2, 6, -10]);
+    const e3 = elim(p, s3, { at: [980, 330], size: 44, cw: 80, rh: 70, t0: m('tri') + 4.5 });
+    const tri3 = path(p, `M${e3.cx(0) - 38} ${e3.ry(0) - 50}L${e3.cx(2) + 40} ${e3.ry(0) - 50}L${e3.cx(2) + 40} ${e3.ry(2) + 22}Z`, { fill: COL.task, stroke: COL.task, 'stroke-width': 2, 'fill-opacity': .12 }, { o: 0 });
+    show(tri3, m('tri') + 5, .6);
+    text(p, 'three equations: a bigger triangle (chapter 18)', 1120, 630, m('tri') + 5, { size: 26, fill: COL.dim, weight: 600, anchor: 'middle' });
+  }],
+
+  ['q3', 'Quick check', () => {
+    const p = panel(0);
+    text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
+    const t = table(p, [[2, 1], [4, 5]], [3, 9], '2x + y = 3,     4x + 5y = 9');
+    S.sys = t.sys; S.el = t.el;
+    S.el.op(1, 0, 2, .3, { shown: 0 });
+    put(S.el.op_.lab.mult, { o: 0 });
+    S.r0 = G(S.el.g, { x: S.el.cx(0), y: S.el.ry(0) - 16, o: 0 });   // the pivot's ring, shown by the first answer
+    mk('ellipse', { rx: 40, ry: 31, fill: 'none', stroke: COL.chalk, 'stroke-width': 3.5 }, S.r0);
+  }, { ask: done => quiz(CARD, [{
+    id: 'c-names', prompt: ['Name the numbers of this step.'],
+    build: blanks([
+      { parts: ['first pivot:   ', { box: '2' }], why: 'Row 1 starts with 2.', hint: 'The pivot is the first number of row 1.', fx: () => fx(S.r0, { o: 1 }, 0, .3) },
+      { parts: ['multiplier:   ℓ = ', { box: '2' }], why: '4 ÷ 2 = 2.', hint: 'The number to remove, 4, divided by the pivot, 2.',
+        fx: () => { const el = S.el; fx(el.op_.lab.mult, { o: 1 }, 0, .3); el.op_.lab.lay(2); const s = S.sys, f = { ...s.v }; fxp(q => s.set({ a10: f.a10 * (1 - q), a11: f.a11 - 2 * q, b1: f.b1 - 6 * q }), .3, 1.6); } },
+      { parts: ['second pivot:   ', { box: '3' }], why: '5 − 2·1 = 3.', hint: 'Row 2 − 2 × row 1: the y number becomes 5 − 2·1.' },
+    ]),
+  }], done) }],
+
+  ['wrap', 'Summary', (m) => {
+    const p = panel(0);
+    [['The pivot starts the row we use; the multiplier ℓ says how many times we take it away.', 'w1'], ['ℓ = (number to remove) ÷ (pivot).', 'w2'],
+     ['ℓ can be negative (that adds) or a fraction.', 'w3'], ['After elimination: pivots on the diagonal, zeros below — upper triangular, U.', 'w4']].forEach(([str, mark], i) => {
+      const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
+      mk('circle', { cx: 120, cy: -12, r: 26, fill: COL.task }, g);
+      T(g, String(i + 1), { x: 120, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+      T(g, str, { x: 170, size: 33, weight: 600 });
+      tw(g, { o: 1, x: 0 }, m(mark), .6);
+    });
+  }],
+  ['final1', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-mult1', prompt: ['Find each multiplier ℓ: the number to remove, divided by the pivot. Fractions are fine.'],
+    build: blanks(MULTQ.slice(0, 4)),
+  }, {
+    id: 'p-mult2', prompt: ['Find each multiplier ℓ: the number to remove, divided by the pivot. Fractions are fine.'],
+    build: blanks(MULTQ.slice(4)),
+  }], done, 'Chapter practice · set 1 of 4') }],
+  ['final2', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
+    id: 'p-piv', prompt: ['Find both pivots: the first, and the one row 2 starts with after the step.'],
+    build: blanks(PIVQ),
+  }], done, 'Chapter practice · set 2 of 4') }],
+  ['final3', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
+    id: 'p-new', prompt: ['Work out the new row 2 (its x is gone).'],
+    build: blanks(NEWQ),
+  }], done, 'Chapter practice · set 3 of 4') }],
+  ['final4', 'Chapter practice', () => {
+    const p = panel(0);
+    text(p, 'Make it flat', 60, 110, .2, { size: 40, weight: 600 });
+    const h = HANDS[0], t = table(p, h.A, h.b, '', { step: .5 });
+    S.sys = t.sys; S.el = t.el; S.cap = t.cap;
+    S.el.op(1, 0, 0, .3);
+  }, { ask: done => quiz(CARD, HANDS.map((h, k) => ({
+    id: `p-flat${k + 1}`, prompt: ['Drag the multiplier until the coral line is flat.'],
+    build: (body, api) => { S.el.load(keysOf2(h.A, h.b)); return handTask(S.el, h)(body, api); },
+  })), done, 'Chapter practice · set 4 of 4') }],
+  ['play', 'Playground', (m) => {
+    const p = panel(0);
+    text(p, 'Playground', 60, 110, .2, { size: 40, weight: 600 });
+    const t = table(p, [[2, 1], [3, 4]], [3, 2], 'every number of the table can be dragged', { step: .5 });
+    S.sys = t.sys; S.el = t.el;
+    S.el.op(1, 0, 0, .3);
+    const hint = text(p, 'try: change the pivot, change the number to remove, then find ℓ', 90, 450, m('go'), { size: 24, fill: COL.dim });
+    hide(hint, m('go') + 8, .6);
+  }, { ask: playAsk(() => S.el, { pos: CARD, tip: 'Your table. Drag any number, the multiplier, or a line; draw on the board. Nothing is marked.' }) }],
+  ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+boot();
+</script>
+</body>
+</html>
