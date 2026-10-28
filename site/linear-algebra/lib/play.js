@@ -4,10 +4,10 @@
 // Works with any component that has .live(on), .v and .set(values) (linsys, lin3, vecs, grid2).
 const PLAY_INK = [COL.chalk, COL.task, COL.whole, COL.nat];
 
-function playAsk(getSys, { pos = { x: 40, y: 430, w: 720, cls: 'side' }, tip = 'Change anything you like and watch what moves with it.' } = {}) {
+function playAsk(getSys, { pos = { x: 40, y: 430, w: 720, cls: 'side' }, tip = 'Change anything you like and watch what moves with it.', live } = {}) {
   return done => {
     const gen = P.gen, sys = getSys(), start = { ...sys.v };
-    sys.live(true);
+    sys.live(true, live);   // live: the component's own options, e.g. vecs' { move: true }
     // the ink sits over the picture; in draw mode a sheet over the whole stage takes the pointer
     const L = qlayer(), ink = G(L, {}), sheet = mk('rect', { width: SW, height: SH, fill: 'transparent' }, L);
     Object.assign(sheet.style, { display: 'none', cursor: 'crosshair', touchAction: 'none' });
