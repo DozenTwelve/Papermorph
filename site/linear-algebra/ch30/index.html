@@ -18,7 +18,7 @@
 <script src="audio/en/timings.js"></script>
 <script>
 'use strict';
-const CHAPTER = { number: 30, title: 'A = LU', minutes: 10, language: 'en' };
+const CHAPTER = { number: 30, title: 'A = LU', minutes: 10, language: 'en' , next: '../ch31/' };
 
 /* ---------- chapter drawing helpers ---------- */
 const BLUE = LS_ROW[0], CORAL = LS_ROW[1], YELLOW = S3_ROW[2];
@@ -138,8 +138,8 @@ const HANDS = [
   { from: OWN3U, to: OWN3, ans: { e10: 1, e20: 2, e21: -1 } },
 ];
 const handHint = h => (v, pr) => {
-  const i = [1, 2].find(i => rowTxt(pr, i, 3) !== rowTxt(h.to, i, 3)) ?? 1;
-  return `Row ${i + 1} is ${rowTxt(pr, i, 3)}, not ${rowTxt(h.to, i, 3)}. Row ${i + 1} of L says how much of each row of U to take.`;
+  const to = keysOf(h.to), i = [1, 2].find(i => rowTxt(pr, i, 3) !== rowTxt(to, i, 3)) ?? 1;
+  return `Row ${i + 1} is ${rowTxt(pr, i, 3)}, not ${rowTxt(to, i, 3)}. Row ${i + 1} of L says how much of each row of U to take.`;
 };
 
 /* ---------- beats ---------- */
@@ -154,9 +154,10 @@ const BEATS = [
     const lg = G(scene, { o: 0 });
     const em = emat(lg, bare(U2.A), { A: U2.A, b: [0, 0], at: [460, 640], size: 36, cw: 62, ecw: 54, rh: 56, t0: 0, noB: true, name: 'L', names: ['U', '', 'LU', ''] });
     show(lg, m('sub') + 1.2, .5);
-    em.ringE(1, 0, m('move'));
-    em.to({ e10: 4 }, m('move') + .2, 1.4);
-    namesAt(em, ['U', '', 'A', ''], m('move') + 1.6);
+    em.ringE(1, 0, m('sub') + 2.5);             // "Run it backwards, and A becomes L times U": the product reads A in time to be seen
+    em.to({ e10: 4 }, m('sub') + 2.9, 1.4);
+    namesAt(em, ['U', '', 'A', ''], m('sub') + 4.4);
+    em.flashE(1, m('move') + .3, 0);
     tw(g, { o: 0, y: -24 }, D - .9, .8); hide(r, D - .9, .8); hide(lg, D - .9, .8);
   }],
 
@@ -268,7 +269,7 @@ const BEATS = [
   ['ex2', 'Chapter 16’s matrix', (m) => {
     const p = panel(0);
     text(p, 'A second example', 60, 110, .2, { size: 40, weight: 600 });
-    const { sys, em } = two(p, CH16, 'x + 2y = 5,    3x + 4y = 11', { t0: m('sys') - .3 });
+    const { sys, em } = two(p, CH16, 'x + 2y = 5,    3x + 4y = 11', { t0: .3 });
     em.setName('E₂₁');
     pin(sys, 1, 2, m('sys') + 3);
     say(p, ['ℓ = 3 ÷ 1 = 3'], 70, 680, m('l'), { size: 34 });
@@ -293,7 +294,7 @@ const BEATS = [
   ['ex3', 'A minus sign', (m) => {
     const p = panel(0);
     text(p, 'A negative multiplier', 60, 110, .2, { size: 40, weight: 600 });
-    const { sys, em } = two(p, NEGL, '2x + y = 3,    −6x + y = −5', { t0: m('sys') - .3 });
+    const { sys, em } = two(p, NEGL, '2x + y = 3,    −6x + y = −5', { t0: .3 });
     em.setName('E₂₁');
     pin(sys, 1, 1, m('sys') + 3);
     say(p, ['ℓ = −6 ÷ 2 = −3'], 70, 680, m('l'), { size: 34 });
@@ -314,7 +315,7 @@ const BEATS = [
     em.work(1, 0, { times: [m('w'), m('w') + 2, m('res')] });
     namesAt(em, ['U', 'c', 'A', 'b'], m('res'));
     em.Pt.flash(1, m('res') + .2);
-    thick(sys, 1, m('back'));
+    thick(sys, 1, m('back') - .6);   // within the voice: "A again" is the beat's last word
   }],
 
   ['q2', 'Your turn', () => {
@@ -336,10 +337,10 @@ const BEATS = [
   ['three', 'L fills in', (m) => {
     const p = panel(0);
     text(p, 'Three equations: L fills in', 60, 110, .2, { size: 40, weight: 600 });
-    const sys = lin3(p, { A: OWN.A, b: OWN.b, eq: [90, 190], mat: null, sol: false, space: { cx: 1250, size: 540, yaw: -35, pitch: 20 }, t0: m('sys') - .3 });
+    const sys = lin3(p, { A: OWN.A, b: OWN.b, eq: [90, 190], mat: null, sol: false, space: { cx: 1250, size: 540, yaw: -35, pitch: 20 }, t0: .3 });
     sys.E.style.visibility = 'hidden';   // hidden, yet measured (display: none measures as 0 and replays differ)
     say(p, ['x + y + z = 3,    2x + 3y + z = 6,    −x + y + 2z = 2'], 90, 172, m('sys'), { size: 28, fill: COL.dim });
-    const el = elim(p, sys, { at: [120, 260], size: 44, cw: 84, rh: 66, t0: m('sys') - .3, labelX: 520 });
+    const el = elim(p, sys, { at: [120, 260], size: 44, cw: 84, rh: 66, t0: .3, labelX: 520 });
     const L = elL(p, el, { at: [150, 590], size: 38, cw: 60, rh: 56, t0: m('l') - .2 });
     [0, 1, 2].forEach(i => el.flash(i, m('sys') + 1 + 2.2 * i));
     el.ring(0, 0, m('s1'));
@@ -469,7 +470,8 @@ const BEATS = [
     t.em.setName('L'); t.em.names(['U', 'c', 'A', 'b']);
     S.em = t.em;
     t.em.work(1, .3);
-    text(p, 'try: put 0 in L (A becomes U: the line goes flat); change U’s pivot 3; drag a line', 70, 175, m('go'), { size: 24, fill: COL.dim });
+    text(p, 'try: put 0 in L, and A becomes U (the line goes flat);', 70, 168, m('go'), { size: 24, fill: COL.dim });
+    text(p, 'change U’s pivot 3, or drag a line, and watch U and A follow', 70, 200, m('go') + .3, { size: 24, fill: COL.dim });
   }, { ask: playAsk(() => S.em, { pos: { x: 40, y: 586, w: 760, cls: 'side' }, tip: 'L, U and c are yours. Change any number, drag a line, or draw on the board. Nothing is marked.' }) }],
   ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));

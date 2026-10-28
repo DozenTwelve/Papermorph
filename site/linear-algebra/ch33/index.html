@@ -36,6 +36,28 @@ const cellGlow = (p, { x, y, w }, n, cells, at, len = 2) => {
   show(g, at, .25); hide(g, at + len, .4);
   return g;
 };
+// [U | b] as cells (j = n is b); on(cells, at) lights cells like '13' (row 1, column 3) for a moment; count([[at, v]]) sets the counter
+const ubGrid = (p, U, x0, y0, cs, t0, { blank = false, cy = 590 } = {}) => {
+  const n = U.length, cell = (i, j) => [x0 + j * cs + (j === n ? 24 : 0), y0 + i * cs];
+  const g = G(p, { o: 0 }); show(g, t0, .5);
+  const lit = {};
+  for (let i = 0; i < n; i++) for (let j = 0; j <= n; j++) {
+    const [x, y] = cell(i, j);
+    mk('rect', { x, y, width: cs, height: cs, fill: COL.chalk, 'fill-opacity': j === n ? .14 : (i > j ? .03 : .08), stroke: COL.faint, 'stroke-width': 1.5 }, g);
+    const hl = mk('rect', { x: x + 4, y: y + 4, width: cs - 8, height: cs - 8, rx: 8, fill: COL.chalk, 'fill-opacity': .5 }, g);
+    put(hl, { o: 0 }); lit[`${i}${j}`] = hl;
+    const lab = j === n ? [`b${'₁₂₃₄'[i]}`] : (blank && i <= j ? null : [num(U[i][j])]);
+    if (lab) M(g, lab, { x: x + cs / 2, y: y + cs / 2 + 13, size: 36, fill: j === n ? COL.task : (i > j ? COL.faint : COL.chalk), anchor: 'middle' });
+  }
+  path(g, `M${x0 + n * cs + 12} ${y0 - 6}V${y0 + n * cs + 6}`, { stroke: COL.dim, 'stroke-width': 2.5, 'stroke-dasharray': '6 6' });
+  const on = (cells, at, len = 2.2) => cells.forEach(k => { tw(lit[k], { o: 1 }, at, .25); tw(lit[k], { o: .35 }, at + len, .5); });
+  const cnt = G(p, { o: 0 }); show(cnt, t0, .4);
+  T(cnt, 'operations on b:', { x: x0, y: cy, size: 30, weight: 600 });
+  const cv = G(cnt, {});
+  let shown = -1;
+  const count = list => [[0, 0], ...list].forEach(([t, v]) => prog(q => { if (q > 0 && shown !== v) { shown = v; cv.replaceChildren(); T(cv, String(v), { x: x0 + 260, y: cy, size: 34, fill: COL.task, weight: 700 }); } }, t, 0, lin));
+  return { on, count };
+};
 const curveFlash = (ce, at) => { tw(ce.parts.curve, { 'a_stroke-width': 7 }, at, .3); tw(ce.parts.curve, { 'a_stroke-width': 3 }, at + 1.4, .5); };
 
 /* ---------- practice data (every count done twice: step by step, and by (n³ − n)/3) ---------- */
@@ -127,11 +149,11 @@ const BEATS = [
     const ce = cost(p, { n: 4, grid: { x: 130, y: 210, w: 320 }, chart: { ...CHART, N: 5 }, read: { x: 530, y: 260 }, t0: .3 });
     quietRead(ce); ce.set({ c: 0 });
     ce.count(1, m('s1') + .3, 3, lin);
-    text(p, '3 rows × 4 numbers = 12', 530, 420, m('s1') + .5, { size: 30, weight: 600 });
+    text(p, 'step 1:   3 rows × 4 numbers = 12', 530, 420, m('s1') + .5, { size: 30, weight: 600 });
     ce.count(2, m('s2') + .2, 2, lin);
-    text(p, '2 rows × 3 numbers = 6', 530, 470, m('s2') + .4, { size: 30, weight: 600 });
+    text(p, 'step 2:   2 rows × 3 numbers = 6', 530, 470, m('s2') + .4, { size: 30, weight: 600 });
     ce.count(3, m('s3') + .2, 1, lin);
-    text(p, '1 row × 2 numbers = 2', 530, 520, m('s3') + .4, { size: 30, weight: 600 });
+    text(p, 'step 3:   1 row × 2 numbers = 2', 530, 520, m('s3') + .4, { size: 30, weight: 600 });
     text(p, 'total:   12 + 6 + 2 = 20', 530, 580, m('tot'), { size: 30, weight: 600 });
     say(p, ['a k × k corner:   (k − 1) · k  ≈  k²'], 130, 660, m('pat'), { size: 32 });
     const GR4 = { x: 130, y: 210, w: 320 }, blk = (r0, c0) => { const o = []; for (let i = r0; i < 4; i++) for (let j = c0; j < 4; j++) o.push([i, j]); return o; };
@@ -205,41 +227,29 @@ const BEATS = [
 
   ['double', 'Twice the size', (m) => {
     const p = panel(0);
-    title(p, 'Twice the size');
+    title(p, 'Twice the size, and three times');
     const ce = cost(p, { n: 10, chart: { x: 760, y: 780, w: 760, h: 560, N: 10 }, read: { x: 90, y: 260 }, t0: .3 });
     quietRead(ce, ['n', 'ops', 'third']);
     ce.to({ n: 20 }, m('twenty') + .2, 2.6, lin);
-    say(p, ['2660 ÷ 330 ≈ 8 = 2³'], 90, 470, m('eight'), { size: 34 });
-    say(p, ['twice n:  × 8'], 90, 530, m('eight') + 4, { size: 34, fill: COL.chalk });
+    const r1 = say(p, ['2660 ÷ 330 ≈ 8 = 2³'], 90, 450, m('eight'), { size: 34 });
+    const r2 = say(p, ['twice n:  × 8'], 90, 505, m('eight') + 4, { size: 34 });
+    ce.to({ n: 5 }, m('five') + 1.6, .4); ce.to({ n: 10 }, m('back') + .1, 1.4, lin);
+    const r3 = say(p, ['330 ÷ 40 ≈ 8'], 90, 570, m('back') + 2, { size: 34 });
+    ce.to({ n: 30 }, m('thirty') + .1, 2.8, lin);
+    const r4 = say(p, ['8990 ÷ 330 ≈ 27 = 3³'], 90, 650, m('thirty') + 3.2, { size: 34 });
+    const r5 = say(p, ['three times n:  × 27'], 90, 705, m('thirty') + 5, { size: 34 });
+    [r1, r2, r3, r4, r5].forEach(e => hide(e, m('big') - .2, .5));
     curveFlash(ce, m('ten') + .5);
-    text(p, '1000 × 1000:   about 333,333,333 operations', 90, 600, m('big') + .5, { size: 28, weight: 600 });
-    text(p, 'well under a second on a computer', 90, 645, m('big') + 5, { size: 26, fill: COL.dim, weight: 600 });
-    text(p, 'a million × a million:   days', 90, 730, m('huge') + .5, { size: 28, weight: 600 });
+    text(p, '1000 × 1000:   about 333 million operations', 90, 470, m('big') + .5, { size: 28, weight: 600 });
+    text(p, 'well under a second on a computer', 90, 515, m('big') + 5, { size: 26, fill: COL.dim, weight: 600 });
+    text(p, 'a million × a million:   days', 90, 600, m('huge') + .5, { size: 28, weight: 600 });
   }],
 
   ['right', 'And b?', (m) => {
     const p = panel(0);
     title(p, 'And the right side b?');
-    const cs = 96, x0 = 140, y0 = 220, cell = (i, j) => [x0 + j * cs + (j === 3 ? 24 : 0), y0 + i * cs];
-    const U = [[2, 1, 1], [0, 1, 1], [0, 0, 2]], bb = ['b₁', 'b₂', 'b₃'];
-    const g = G(p, { o: 0 }); show(g, .4, .5);
-    const lit = {};
-    for (let i = 0; i < 3; i++) for (let j = 0; j < 4; j++) {
-      const [x, y] = cell(i, j);
-      const r = mk('rect', { x, y, width: cs, height: cs, fill: COL.chalk, 'fill-opacity': j === 3 ? .14 : .08, stroke: COL.faint, 'stroke-width': 1.5 }, g);
-      const hl = mk('rect', { x: x + 4, y: y + 4, width: cs - 8, height: cs - 8, rx: 8, fill: COL.chalk, 'fill-opacity': .5 }, g);
-      put(hl, { o: 0 }); lit[`${i}${j}`] = hl;
-      M(g, j === 3 ? [bb[i]] : [num(U[i][j])], { x: x + cs / 2, y: y + cs / 2 + 13, size: 36, fill: j === 3 ? COL.task : (i > j ? COL.faint : COL.chalk), anchor: 'middle' });
-    }
-    path(g, `M${x0 + 3 * cs + 12} ${y0 - 6}V${y0 + 3 * cs + 6}`, { stroke: COL.dim, 'stroke-width': 2.5, 'stroke-dasharray': '6 6' });
-    const on = (cells, at, len = 2.2) => cells.forEach(k => { tw(lit[k], { o: 1 }, at, .25); tw(lit[k], { o: .35 }, at + len, .5); });
-    // the counter: 0 → 2 → 3 (forward), → 4 → 6 → 9 (back)
-    const cnt = G(p, { o: 0 }); show(cnt, m('b'), .4);
-    T(cnt, 'operations on b:', { x: 140, y: 590, size: 30, weight: 600 });
-    const cv = G(cnt, {});
-    let shown = -1;
-    const counts = [[0, 0], [m('f1') + .6, 2], [m('f2') + .5, 3], [m('r3') + .6, 4], [m('r2') + .8, 6], [m('r1') + .8, 9]];
-    counts.forEach(([t, v]) => prog(q => { if (q > 0 && shown !== v) { shown = v; cv.replaceChildren(); T(cv, String(v), { x: 400, y: 590, size: 34, fill: COL.task, weight: 700 }); } }, t, 0, lin));
+    const { on, count } = ubGrid(p, [[2, 1, 1], [0, 1, 1], [0, 0, 2]], 140, 220, 96, .4);
+    count([[m('f1') + .6, 2], [m('f2') + .5, 3], [m('r3') + .6, 4], [m('r2') + .8, 6], [m('r1') + .8, 9]]);
     on(['13', '23'], m('f1') + .3);
     on(['23'], m('f2') + .3);
     text(p, 'forward: 2 + 1 = 3', 600, 300, m('f2') + 1.2, { size: 28, weight: 600 });
@@ -247,14 +257,52 @@ const BEATS = [
     on(['11', '12', '13'], m('r2') + .3);
     on(['00', '01', '02', '03'], m('r1') + .3);
     text(p, 'back: 1 + 2 + 3 = 6', 600, 350, m('r1') + 1.5, { size: 28, weight: 600 });
-    say(p, ['3 + 6 = 9 = 3²:   b costs n²'], 600, 420, m('nine') + .5, { size: 32 });
-    on(['03', '13', '23'], m('nine') + 2.4, 2.6);
-    const tb = G(p, { o: 0 }); show(tb, m('cheap'), .5);
-    const tbh = mk('rect', { x: 588, y: 612, width: 820, height: 44, rx: 10, fill: COL.chalk, 'fill-opacity': .13 }, tb); put(tbh, { o: 0 });
-    tw(tbh, { o: 1 }, m('cheap') + 3.5, .3); tw(tbh, { o: 0 }, m('lu') + 4, .6);
-    [['n', 'A: about n³/3', 'b: n²'], ['10', '330', '100'], ['1000', '333,333,000', '1,000,000']].forEach((row, i) => row.forEach((s, j) =>
-      T(tb, s, { x: 600 + [0, 150, 480][j], y: 520 + i * 50, size: 28, fill: i ? COL.chalk : COL.dim, weight: 600 })));
-    text(p, 'factor A = LU once;  each new b: n² only', 140, 760, m('lu') + 1, { size: 30, weight: 600 });
+    say(p, ['3 + 6 = 9 = 3²'], 600, 420, m('nine') + .5, { size: 32 });
+    on(['03', '13', '23'], m('nine') + 1.6, 2.6);
+  }],
+
+  ['b4', 'b for 4 × 4', (m) => {
+    const p = panel(0);
+    title(p, 'The right side of a 4 × 4');
+    const { on, count } = ubGrid(p, [[1, 1, 1, 1], [0, 1, 1, 1], [0, 0, 1, 1], [0, 0, 0, 1]], 140, 200, 84, .3, { blank: true, cy: 600 });
+    count([[m('f1') + .6, 3], [m('f2') + .4, 5], [m('f3') + .4, 6], [m('r4') + .2, 7], [m('r3') + .2, 9], [m('r2') + .2, 12], [m('r1') + .2, 16]]);
+    on(['14', '24', '34'], m('f1') + .3, 1.6);
+    on(['24', '34'], m('f2') + .2, 1.2);
+    on(['34'], m('f3') + .2, 1.2);
+    text(p, 'forward: 3 + 2 + 1 = 6', 640, 280, m('f3') + 1, { size: 28, weight: 600 });
+    on(['33', '34'], m('r4'), 1.4);
+    on(['22', '23', '24'], m('r3'), 1.4);
+    on(['11', '12', '13', '14'], m('r2'), 1.4);
+    on(['00', '01', '02', '03', '04'], m('r1'), 1.6);
+    text(p, 'back: 1 + 2 + 3 + 4 = 10', 640, 330, m('r1') + .8, { size: 28, weight: 600 });
+    say(p, ['6 + 10 = 16 = 4²'], 640, 400, m('sum') + .3, { size: 32 });
+    say(p, ['n × n:   b costs n²'], 640, 470, m('any') + .3, { size: 34 });
+    on(['04', '14', '24', '34'], m('any') + .6, 2.4);
+  }],
+
+  ['keep', 'Keep L and U', (m) => {
+    const p = panel(0);
+    title(p, 'Factor once, keep L and U');
+    const tb = G(p, { o: 0 }); show(tb, m('cheap') + .3, .5);
+    const tbh = mk('rect', { x: 128, y: 284, width: 900, height: 46, rx: 10, fill: COL.chalk, 'fill-opacity': .13 }, tb); put(tbh, { o: 0 });
+    tw(tbh, { o: 1 }, m('ex') + .3, .3);
+    // the voice compares the columns: b's n² first, then A's
+    [[688, m('cheap') + 1.2], [318, m('cheap') + 3.6]].forEach(([x, at]) => { const c = mk('rect', { x, y: 186, width: 300, height: 196, rx: 12, fill: 'none', stroke: COL.chalk, 'stroke-width': 3 }, p); put(c, { o: 0 }); show(c, at, .3); hide(c, at + 2.2, .4); });
+    [['n', 'A: (n³ − n)/3', 'b: n²'], ['10', '330', '100'], ['100', '333,300', '10,000'], ['1000', '333,333,000', '1,000,000']].forEach((row, i) => row.forEach((str, j) =>
+      T(tb, str, { x: 140 + [0, 190, 560][j], y: 220 + i * 50, size: 28, fill: i ? COL.chalk : COL.dim, weight: 600 })));
+    // two bars to scale: 1 × A + 10 × b, against 10 × (A + b)
+    const X = 140, W = 1320, k = W / 3433000, wA = 333300 * k, wb = 10000 * k, H = 56;
+    const blk = (g, x, w, fill, at, op = .55) => { const r = mk('rect', { x, y: 0, width: w, height: H, fill, 'fill-opacity': op, stroke: COL.board, 'stroke-width': 1 }, g); put(r, { o: 0 }); show(r, at, .2); return r; };
+    const b1 = G(p, { y: 500 }), b2 = G(p, { y: 670 });
+    const l1 = G(p, { o: 0 }); show(l1, m('once'), .4);
+    T(l1, 'factor A once, then 10 right sides:', { x: X, y: 482, size: 28, weight: 600 }); T(l1, '333,300', { x: X + 600, y: 482, size: 28, fill: COL.task, weight: 700 });
+    text(p, '+ 10 × 10,000 = 433,300', X + 722, 482, m('tenb') + .4, { size: 28, fill: COL.task, weight: 700 });
+    blk(b1, X, wA, COL.chalk, m('once') + .4);
+    for (let i = 0; i < 10; i++) blk(b1, X + wA + i * wb, wb, COL.task, m('tenb') + .4 + i * .25, .9);
+    const l2 = G(p, { o: 0 }); show(l2, m('redo'), .4);
+    T(l2, 'start over for every b:', { x: X, y: 652, size: 28, weight: 600 }); T(l2, '10 × 343,300 = 3,433,000', { x: X + 600, y: 652, size: 28, fill: COL.task, weight: 700 });
+    for (let i = 0; i < 10; i++) { const x = X + i * (wA + wb); blk(b2, x, wA, COL.chalk, m('redo') + .5 + i * .45); blk(b2, x + wA, wb, COL.task, m('redo') + .5 + i * .45, .9); }
+    text(p, 'factor A = LU once;  each new b: n² only', 140, 820, m('lu') + 1, { size: 30, weight: 600 });
   }],
 
   ['q3', 'Quick check', () => {
@@ -307,7 +355,7 @@ const BEATS = [
   ['play', 'Playground', (m) => {
     const p = panel(0);
     title(p, 'Playground');
-    const ce = cost(p, { n: 5, grid: { x: 420, y: 170, w: 170 }, pyr: { x: 760, y: 780, size: 300 }, chart: { x: 1080, y: 780, w: 440, h: 480, N: 10 }, read: { x: 70, y: 200, gap: 46, size: 30 } });
+    const ce = cost(p, { n: 5, grid: { x: 420, y: 170, w: 170 }, pyr: { x: 725, y: 780, size: 280 }, chart: { x: 1120, y: 780, w: 420, h: 480, N: 10 }, read: { x: 70, y: 200, gap: 46, size: 30 } });
     S.ce = ce;
     const hint = text(p, 'try: n = 2;  n = 20;  n = 60', 300, 110, m('go'), { size: 24, fill: COL.dim });
     hide(hint, m('go') + 7, .6);

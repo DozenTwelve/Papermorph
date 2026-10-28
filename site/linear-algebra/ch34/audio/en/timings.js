@@ -83,36 +83,70 @@ window.TIMINGS = {
   ]
  },
  "why": {
-  "dur": 25.536,
+  "dur": 55.752,
   "marks": {
-   "row1": 3.932,
-   "piv": 11.302,
-   "zero": 14.388,
-   "so": 18.008
+   "lu": 2.5,
+   "row1": 14.427,
+   "row2": 21.12,
+   "try": 29.375,
+   "fail": 36.797,
+   "so": 44.466
   },
   "cues": [
    [
     0.104,
-    "Why not A equals L U, for A itself?"
+    "Why can't we factor A itself?"
    ],
    [
-    3.932,
-    "In L times U, row one of L is one, zero, zero, so row one of the product is row one of U."
+    2.5,
+    "Take any L and U, two by two."
    ],
    [
-    11.302,
-    "That makes the top left number of A the first pivot."
+    5.768,
+    "L has ones on its diagonal and a multiplier, ell, below them."
    ],
    [
-    14.388,
-    "Here it's zero, and a pivot is never zero."
+    10.638,
+    "U has its first pivot p, then q, and r."
    ],
    [
-    18.008,
+    14.427,
+    "Row one of L is one, zero, so row one of L U is just row one of U: p, q."
+   ],
+   [
+    21.12,
+    "Row two of L is ell, one: ell times p, q, plus zero, r."
+   ],
+   [
+    26.536,
+    "So row two of L U starts with ell times p."
+   ],
+   [
+    29.375,
+    "Now try to make our A."
+   ],
+   [
+    31.042,
+    "Its row one is zero, two, so p must be zero, and q must be two."
+   ],
+   [
+    36.797,
+    "Then row two of L U starts with ell times zero, which is zero, whatever ell is."
+   ],
+   [
+    42.305,
+    "But row two of A starts with three."
+   ],
+   [
+    44.466,
     "So no L and U multiply to this A."
    ],
    [
-    20.99,
+    47.656,
+    "A zero in the first pivot spot rules it out."
+   ],
+   [
+    51.068,
     "We factor P A instead: the same rows, in a good order."
    ]
   ]
@@ -215,16 +249,17 @@ window.TIMINGS = {
   ]
  },
  "both": {
-  "dur": 47.688,
+  "dur": 55.512,
   "marks": {
-   "left": 5.286,
-   "pa": 9.766,
-   "right": 14.87,
-   "r1": 17.904,
-   "r2": 23.086,
-   "r3": 32.096,
-   "eq": 40.573,
-   "pic": 43.125
+   "left": 5.078,
+   "pa": 9.388,
+   "right": 14.245,
+   "r1": 17.279,
+   "r2": 22.786,
+   "r3": 31.471,
+   "eq": 39.896,
+   "pic": 42.448,
+   "c": 46.901
   },
   "cues": [
    [
@@ -232,44 +267,48 @@ window.TIMINGS = {
     "Now check P A equals L U, by multiplying out both sides."
    ],
    [
-    5.286,
+    5.078,
     "The left side: P takes rows one, three and two of A."
    ],
    [
-    9.766,
+    9.388,
     "One, two, one; three, seven, five; two, four, three."
    ],
    [
-    14.87,
+    14.245,
     "The right side: L times U, row by row."
    ],
    [
-    17.904,
+    17.279,
     "Row one of L is one, zero, zero: just row one of U, one, two, one."
    ],
    [
-    23.086,
+    22.786,
     "Row two of L is three, one, zero: three times one, two, one, plus zero, one, two."
    ],
    [
-    29.766,
+    29.089,
     "That's three, seven, five."
    ],
    [
-    32.096,
+    31.471,
     "Row three is two, zero, one: two times one, two, one, plus zero, zero, one."
    ],
    [
-    39.141,
+    38.425,
     "Two, four, three."
    ],
    [
-    40.573,
+    39.896,
     "Both sides match, number by number."
    ],
    [
-    43.125,
+    42.448,
     "And in the picture, L turns U's planes back into the planes of P A."
+   ],
+   [
+    46.901,
+    "The right side follows too: L turns one, one, one, what elimination made of b, back into P b: one, four, three."
    ]
   ]
  },
@@ -288,16 +327,16 @@ window.TIMINGS = {
   ]
  },
  "ex2": {
-  "dur": 54.816,
+  "dur": 56.976,
   "marks": {
-   "A": 3.073,
-   "zero": 8.268,
-   "swap": 10.742,
-   "l21": 16.419,
-   "l31": 23.255,
-   "l32": 28.737,
-   "LU": 33.945,
-   "check": 44.219
+   "A": 2.956,
+   "zero": 8.372,
+   "swap": 10.833,
+   "l21": 16.341,
+   "l31": 23.32,
+   "l32": 29.01,
+   "LU": 34.219,
+   "check": 44.349
   },
   "cues": [
    [
@@ -305,48 +344,52 @@ window.TIMINGS = {
     "Another one, with the zero right at the start."
    ],
    [
-    3.073,
+    2.956,
     "A is zero, one, one; one, two, one; two, seven, nine."
    ],
    [
-    8.268,
+    8.372,
     "The first pivot spot is zero."
    ],
    [
-    10.742,
+    10.833,
     "Row two has a one there, so exchange rows one and two: P is P one two."
    ],
    [
-    16.419,
+    16.341,
     "Now eliminate P A."
    ],
    [
-    18.828,
+    18.75,
     "Row two already starts with zero: its multiplier is zero."
    ],
    [
-    23.255,
+    23.32,
     "Row three minus two times row one: zero, three, seven."
    ],
    [
-    28.737,
+    29.01,
     "Row three minus three times row two: zero, zero, four."
    ],
    [
-    33.945,
+    34.219,
     "L has zero, two and three below its diagonal."
    ],
    [
-    38.255,
+    38.398,
     "U is one, two, one; zero, one, one; zero, zero, four."
    ],
    [
-    44.219,
+    44.349,
     "Check row three of L U: two times row one of U, plus three times row two, plus row three."
    ],
    [
-    51.341,
+    51.25,
     "Two, seven, nine: row three of P A."
+   ],
+   [
+    54.844,
+    "So P A equals L U."
    ]
   ]
  },
@@ -361,6 +404,61 @@ window.TIMINGS = {
    [
     1.003,
     "Change the numbers of P until elimination on P A needs no exchange."
+   ]
+  ]
+ },
+ "stuck": {
+  "dur": 44.016,
+  "marks": {
+   "A": 1.471,
+   "c1": 11.341,
+   "zero": 18.49,
+   "below": 21.185,
+   "none": 25.846,
+   "line": 30.286,
+   "pts": 34.505,
+   "rule": 38.633
+  },
+  "cues": [
+   [
+    0.104,
+    "Can a P always help?"
+   ],
+   [
+    1.471,
+    "Take x plus two y plus z equals one, two x plus four y plus three z equals three, and three x plus six y plus five z equals five."
+   ],
+   [
+    11.341,
+    "Column one: row two minus two times row one, and row three minus three times row one."
+   ],
+   [
+    18.49,
+    "The second pivot spot holds a zero."
+   ],
+   [
+    21.185,
+    "Look below it: zero again."
+   ],
+   [
+    23.737,
+    "No row has a y left to give."
+   ],
+   [
+    25.846,
+    "No exchange can bring a pivot into this column, so no P can help."
+   ],
+   [
+    30.286,
+    "The picture says why: the three planes don't meet at one point."
+   ],
+   [
+    34.505,
+    "They share a whole line, and every point on it is a solution."
+   ],
+   [
+    38.633,
+    "A P can fix a zero pivot only when a number that is not zero sits below it."
    ]
   ]
  },
@@ -379,16 +477,22 @@ window.TIMINGS = {
   ]
  },
  "inv": {
-  "dur": 51.264,
+  "dur": 68.856,
   "marks": {
-   "undo": 1.836,
-   "cycle": 11.992,
-   "back": 20.99,
-   "flip": 28.828,
-   "name": 35.091,
-   "check": 39.779,
-   "rule": 43.607,
-   "next": 48.372
+   "undo": 1.81,
+   "cycle": 11.667,
+   "c1": 20.456,
+   "c2": 22.279,
+   "c3": 24.31,
+   "back": 26.589,
+   "b1": 30.039,
+   "b2": 36.706,
+   "b3": 41.576,
+   "flip": 46.042,
+   "name": 52.826,
+   "check": 57.383,
+   "rule": 61.133,
+   "next": 65.99
   },
   "cues": [
    [
@@ -396,55 +500,71 @@ window.TIMINGS = {
     "One more fact about P."
    ],
    [
-    1.836,
+    1.81,
     "To undo P, put the rows back."
    ],
    [
-    4.544,
+    4.427,
     "For one exchange, P undoes itself: P times P is the identity, as in chapter twenty-two."
    ],
    [
-    11.992,
-    "But take P that moves every row: zero, zero, one; one, zero, zero; zero, one, zero."
+    11.667,
+    "But take a P that moves every row: zero, zero, one; one, zero, zero; zero, one, zero."
    ],
    [
-    20.99,
-    "The matrix that undoes it is zero, one, zero; zero, zero, one; one, zero, zero."
+    20.456,
+    "Row one takes row three, row two takes row one, and row three takes row two."
    ],
    [
-    28.828,
-    "Look closely: it's P flipped across its diagonal."
+    26.589,
+    "To undo it, fetch each row back from where P put it."
    ],
    [
-    32.656,
+    30.039,
+    "The old row one now sits in second place, so the undo's row one is zero, one, zero."
+   ],
+   [
+    36.706,
+    "The old row two sits in third place: zero, zero, one."
+   ],
+   [
+    41.576,
+    "And the old row three sits on top: one, zero, zero."
+   ],
+   [
+    46.042,
+    "Now look: the undo is P flipped across its diagonal."
+   ],
+   [
+    50.534,
     "Row one of P becomes column one."
    ],
    [
-    35.091,
+    52.826,
     "That flip is called the transpose, written P with a small T."
    ],
    [
-    39.779,
+    57.383,
     "Multiply: P transpose times P is the identity."
    ],
    [
-    43.607,
+    61.133,
     "For every permutation, P inverse is P transpose."
    ],
    [
-    48.372,
+    65.99,
     "Transposes are the subject of the next chapter."
    ]
   ]
  },
  "wrap": {
-  "dur": 32.52,
+  "dur": 33.624,
   "marks": {
-   "w1": 1.016,
-   "w2": 9.805,
-   "w3": 17.565,
-   "w4": 23.997,
-   "end": 30.404
+   "w1": 1.042,
+   "w2": 9.596,
+   "w3": 17.174,
+   "w4": 23.88,
+   "end": 31.406
   },
   "cues": [
    [
@@ -452,27 +572,27 @@ window.TIMINGS = {
     "Let's sum up."
    ],
    [
-    1.016,
+    1.042,
     "A zero in a pivot spot is fixed by a row exchange, and a permutation P can make every exchange before elimination starts."
    ],
    [
-    9.805,
+    9.596,
     "Then P A equals L U: L holds the multipliers, U the pivots, and no exchange is needed on the way."
    ],
    [
-    17.565,
+    17.174,
     "Check it by multiplying out both sides: P reorders the rows of A, L mixes the rows of U."
    ],
    [
-    23.997,
+    23.88,
     "P inverse is P transpose."
    ],
    [
-    26.875,
-    "If no row below has a number, no P can help."
+    26.589,
+    "And if every number below a zero pivot is zero too, no P can help."
    ],
    [
-    30.404,
+    31.406,
     "Now try the chapter practice."
    ]
   ]

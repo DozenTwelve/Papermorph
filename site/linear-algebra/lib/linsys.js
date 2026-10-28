@@ -311,6 +311,7 @@ function linsys(p, { A = [[2, -1], [-1, 2]], b = [0, 3], eq = [90, 250], mat = [
       if (l.getAttribute('d') !== d) { l.setAttribute('d', d); hit.setAttribute('d', d); }
       const kp = turning && turning.i === i ? (turning.k ? [turning.pivot, turning.at] : [turning.at, turning.pivot]) : knobsFor(i);
       if (kp) { knobPos[i] = kp; kp.forEach(([x, y], k) => put(knobs[i][k], { x: PX(x), y: PY(y) })); }
+      knobs[i].forEach(h => { const want = kp ? '' : 'none'; if (h.style.display !== want) h.style.display = want; });   // no line (0 = 0, or off the grid): no handles
     });
     const s = solve(), inGrid = s.x !== undefined && s.x >= bx[0] && s.x <= bx[1] && s.y >= by[0] && s.y <= by[1];
     put(meet, { x: inGrid ? PX(s.x) : 0, y: inGrid ? PY(s.y) : 0, o: inGrid ? 1 : 0 });

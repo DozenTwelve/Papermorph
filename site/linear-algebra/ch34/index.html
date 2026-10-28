@@ -26,6 +26,7 @@ const Z3 = { A: [[1, 2, 1], [2, 4, 3], [3, 7, 5]], b: [1, 3, 4] };              
 const PZ3 = { A: [[1, 2, 1], [3, 7, 5], [2, 4, 3]], b: [1, 4, 3] };                 // its rows in the order 1, 3, 2
 const U3 = { A: [[1, 2, 1], [0, 1, 2], [0, 0, 1]], b: [1, 1, 1] };
 const L3 = [[1, 0, 0], [3, 1, 0], [2, 0, 1]], P23 = [[1, 0, 0], [0, 0, 1], [0, 1, 0]];
+const STUCK = { A: [[1, 2, 1], [2, 4, 3], [3, 6, 5]], b: [1, 3, 5] };            // no P helps: the planes share the line (−2t, t, 1)
 const EX2 = { A: [[0, 1, 1], [1, 2, 1], [2, 7, 9]], b: [2, 4, 18] };                // x = (1, 1, 1)
 const CYC = [[0, 0, 1], [1, 0, 0], [0, 1, 0]], CYCT = [[0, 1, 0], [0, 0, 1], [1, 0, 0]];
 const AT2 = [70, 290], AT3 = [64, 262];
@@ -69,19 +70,21 @@ const mat = (p, rows, x, y, t0, { size = 30, cw = 46, rh = 42, name = '', fill =
   const hl = mk('rect', { x: x - 8, y: top - 6, width: w + 16, height: bot - top + 12, rx: 12, fill: COL.chalk, 'fill-opacity': .13 }, g);
   put(hl, { o: 0 });
   path(g, `M${x + 12} ${top}H${x}V${bot}H${x + 12}M${x + w - 12} ${top}H${x + w}V${bot}H${x + w - 12}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' });
-  rows.forEach((r, i) => r.forEach((v, j) => v !== '' && M(g, [num(v)], { x: x + cw * (j + .5), y: y + i * rh, size, fill: fill(i, j), anchor: 'middle' })));
+  rows.forEach((r, i) => r.forEach((v, j) => v !== '' && M(g, [typeof v === 'string' ? v : num(v)], { x: x + cw * (j + .5), y: y + i * rh, size, fill: fill(i, j), anchor: 'middle' })));
   if (name) M(g, [].concat(name), { x: x - 14, y: y + (n - 1) * rh / 2 + size * .3, size: size * 1.05, fill: COL.chalk, anchor: 'end' });
   if (under) M(g, [under], { x: x + w / 2, y: bot + size * .95, size: 24, fill: COL.dim, anchor: 'middle' });
   if (t0 !== null) show(g, t0, .5);
   const cx = j => x + cw * (j + .5), ry = i => y + i * rh;
-  const ring = (i, j, at, { color = COL.chalk, dash = false } = {}) => {
+  const ring = (i, j, at, { color = COL.chalk, dash = false, rx = cw * .46 } = {}) => {
     const rg = G(p, { x: cx(j), y: ry(i) - size * .32, o: 0 });
-    mk('ellipse', { rx: cw * .46, ry: size * .66, fill: 'none', stroke: color, 'stroke-width': 3.5, ...(dash ? { 'stroke-dasharray': '7 6' } : {}) }, rg);
+    mk('ellipse', { rx, ry: size * .66, fill: 'none', stroke: color, 'stroke-width': 3.5, ...(dash ? { 'stroke-dasharray': '7 6' } : {}) }, rg);
     show(rg, at, .35);
     return rg;
   };
   const glow = (at, len = 1.4) => { tw(hl, { o: 1 }, at, .25); tw(hl, { o: 0 }, at + len, .6); };
-  return { g, cx, ry, w, x, ring, glow };
+  // one row lit for len seconds
+  const glowRow = (i, at, len = 2.4) => { const r = mk('rect', { x: x + 4, y: y + i * rh - size * .95, width: w - 8, height: size * 1.3, rx: 10, fill: COL.chalk, 'fill-opacity': .16 }, p); put(r, { o: 0 }); tw(r, { o: 1 }, at, .25); tw(r, { o: 0 }, at + len, .6); return r; };
+  return { g, cx, ry, w, x, ring, glow, glowRow };
 };
 const keysOf = ({ A, b }, E = null) => {
   const o = {}, n = A.length;
@@ -91,6 +94,26 @@ const keysOf = ({ A, b }, E = null) => {
 const isPerm = (v, n) => { const I = [...Array(n).keys()], ok = x => x === 0 || x === 1; return I.every(i => I.every(j => ok(v[`e${i}${j}`]))) && I.every(i => I.reduce((s, j) => s + v[`e${i}${j}`], 0) === 1) && I.every(j => I.reduce((s, i) => s + v[`e${i}${j}`], 0) === 1); };
 // elimination on PA meets no zero pivot: the corners 1 × 1 and 2 × 2 of PA are not 0 (A itself can be undone)
 const noSwap = pr => Math.abs(pr.a00) > 1e-9 && Math.abs(pr.a00 * pr.a11 - pr.a01 * pr.a10) > 1e-9;
+// PA's pivots, read live under the tables as P (or A) changes: the reader sees elimination run or stop
+const pfmt = v => { const r = Math.round(v); if (Math.abs(v - r) < 1e-9) return num(r); for (let d = 2; d <= 60; d++) { const k = Math.round(v * d); if (Math.abs(v * d - k) < 1e-9) { const g = gcd(Math.abs(k), d); return (k < 0 ? '−' : '') + Math.abs(k) / g + '/' + d / g; } } return num(Math.round(v * 100) / 100); };
+const pivRead = (p, em, x, y) => {
+  const g = G(p, {});
+  const draw = () => {
+    g.replaceChildren();
+    const v = em.v, pr = em.prod(), line = (parts, fill, dx = 0) => M(g, parts, { x: x + dx, y, size: 30, fill, anchor: 'start' });
+    if (!isPerm(v, 3)) { T(g, 'P is not a permutation yet: one 1 in every row and every column', { x, y, size: 26, fill: COL.dim, weight: 600 }); return; }
+    const p1 = pr.a00, d2 = pr.a00 * pr.a11 - pr.a01 * pr.a10, d3 = S3_det([0, 1, 2].map(i => [0, 1, 2].map(j => pr[`a${i}${j}`])));
+    const z = q => Math.abs(q) < 1e-9;
+    T(g, 'elimination on PA:', { x, y, size: 26, fill: COL.dim, weight: 600 });
+    if (z(p1)) { T(g, 'first pivot spot 0: stuck', { x: x + 230, y, size: 28, fill: COL.bad, weight: 600 }); return; }
+    const p2 = d2 / p1;
+    if (z(p2)) { line(['pivot ' + pfmt(p1) + ', then 0: stuck'], COL.bad, 230); return; }
+    line(['pivots ' + pfmt(p1) + ', ' + pfmt(p2) + ', ' + pfmt(d3 / d2)], COL.chalk, 230);
+    T(g, z(d3) ? 'last pivot 0: no inverse' : 'no exchange needed', { x: x + 520, y, size: 26, fill: z(d3) ? COL.bad : COL.dim, weight: 600 });
+  };
+  em.onChange(draw); draw();
+  return g;
+};
 const permHint = (v, pr) => !isPerm(v, 3) ? 'P must be the identity with its rows in a new order: one 1 in every row and every column.'
   : Math.abs(pr.a00) < 1e-9 ? 'PA still starts with 0: the first pivot spot needs a row whose first number is not 0.'
   : 'After column 1 of PA, the second pivot spot is 0: try another row in second place.';
@@ -144,6 +167,7 @@ const BEATS = [
     title(p, 'A zero in the pivot spot');
     const { sys, em } = two(p, ZERO2, 'chapter 20:    2y = 4,    3x + y = 5', { t0: .4 });
     pin(sys, 1, 2, m('sys') + 3);
+    thick(sys, 0, m('sys') + .2); thick(sys, 1, m('sys') + 2);
     put(em.Eg, { o: 0 }); show(em.Eg, m('p'), .5);
     put(em.eqSign, { o: 0 }); show(em.eqSign, m('p'), .4);
     tw(em.Pt.g, { o: 0 }, 0, 0); show(em.Pt.g, m('p'), .5);
@@ -165,18 +189,40 @@ const BEATS = [
   ['why', 'Why not A = LU?', (m) => {
     const p = panel(0);
     title(p, 'Why not A = LU?');
-    const e = emat(p, bare(U3.A), { A: U3.A, b: [0, 0, 0], E: L3, at: [64, 300], size: 34, cw: 56, ecw: 48, rh: 56, gap: 60, t0: .3, noB: true, name: 'L', names: ['U', '', 'LU', ''] });
-    e.focusE(0, m('row1')); e.work(0, 0, { times: [m('row1') + 1.5, m('row1') + 2.5, m('row1') + 3, m('row1') + 4] });
-    e.Pt.flash(0, m('row1') + 4.4);
-    e.work(null, m('piv'));
-    e.focusE(null, m('piv'));
-    e.B.ring(0, 0, m('piv') + .2); e.Pt.ring(0, 0, m('piv') + .6);
-    text(p, 'top-left of LU = the first pivot of U', 64, 620, m('piv') + 1, { size: 28, weight: 600 });
-    const A = mat(p, ZERO2.A, 1120, 330, m('zero') - .2, { size: 40, cw: 64, rh: 58, name: 'A =' });
-    A.ring(0, 0, m('zero') + .6, { color: COL.bad });
-    text(p, 'a pivot is never 0', 1060, 500, m('zero') + 1.2, { size: 30, fill: COL.bad, weight: 600 });
-    text(p, 'no L and U make this A', 1060, 560, m('so'), { size: 30, weight: 600 });
-    say(p, ['so: factor PA'], 1060, 640, m('so') + 3, { size: 36 });
+    text(p, 'any L and U, two by two:', 70, 190, m('lu') - .3, { size: 28, fill: COL.dim, weight: 600 });
+    const o = { size: 40, rh: 62 };
+    const Lm = mat(p, [[1, 0], ['ℓ', 1]], 110, 300, m('lu') + .3, { ...o, cw: 62, under: 'L' });
+    const Um = mat(p, [['p', 'q'], [0, 'r']], 270, 300, m('lu') + 8.1, { ...o, cw: 62, under: 'U' });
+    // name the parts as they are said: L's ones and ℓ, then U's p, q, r
+    [[0, 0, 3.4], [1, 1, 3.4], [1, 0, 6]].forEach(([i, j, d]) => hide(Lm.ring(i, j, m('lu') + d), m('lu') + 8, .3));
+    [[0, 0, 9], [0, 1, 10.2], [1, 1, 11]].forEach(([i, j, d]) => hide(Um.ring(i, j, m('lu') + d), m('row1') - .2, .3));
+    say(p, ['='], 425, 330, m('row1'), { size: 44, anchor: 'middle' });
+    const LU = mat(p, [['', ''], ['', '']], 455, 300, m('row1'), { ...o, cw: 120, under: 'LU' });
+    const cell = (parts, i, j, at) => { const e = M(p, [].concat(parts), { x: LU.cx(j), y: LU.ry(i), size: 40, anchor: 'middle', o: 0 }); show(e, at, .4); return e; };
+    // row 1 of L is (1, 0): row 1 of LU is row 1 of U
+    Lm.glowRow(0, m('row1'), 3); Um.glowRow(0, m('row1') + .8, 2.6);
+    cell('p', 0, 0, m('row1') + 1.6); cell('q', 0, 1, m('row1') + 2);
+    // row 2 of L is (ℓ, 1): ℓ × (p, q) + (0, r)
+    Lm.glowRow(1, m('row2'), 5); Um.glowRow(0, m('row2') + 1.2, 1.8); Um.glowRow(1, m('row2') + 3, 1.8);
+    cell('ℓp', 1, 0, m('row2') + 2.2); cell('ℓq + r', 1, 1, m('row2') + 3.6);
+    hide(LU.ring(1, 0, m('row2') + 5.2, { rx: 40 }), m('try'), .3);
+    // try to make A
+    const A = mat(p, ZERO2.A, 960, 300, m('try') - .3, { ...o, cw: 66, name: 'A =' });
+    LU.glowRow(0, m('try') + .6, 3); A.glowRow(0, m('try') + .6, 3);
+    say(p, ['row 1:   p = 0,'], 70, 540, m('try') + 3.4, { size: 34 });
+    say(p, ['q = 2'], 300, 540, m('try') + 5.2, { size: 34 });
+    LU.ring(0, 0, m('try') + 2.6, { color: COL.bad, rx: 32 });
+    say(p, ['row 2 starts with  ℓ × 0 = 0'], 70, 610, m('fail') + .4, { size: 34 });
+    LU.ring(1, 0, m('fail') + .6, { color: COL.bad, rx: 40 });
+    Lm.glowRow(1, m('fail') + 2.4, 2.4);
+    A.ring(1, 0, m('fail') + 4.4, { color: COL.bad });
+    text(p, 'but A’s row 2 starts with 3', 520, 606, m('fail') + 4.4, { size: 30, fill: COL.bad, weight: 600 });
+    text(p, 'no L and U make this A', 70, 700, m('so'), { size: 34, weight: 600 });
+    A.ring(0, 0, m('so') + 3.4, { color: COL.bad, rx: 40 });
+    say(p, ['so: factor PA'], 960, 520, m('so') + 5, { size: 38 });
+    const PA = mat(p, [[3, 1], [0, 2]], 1010, 610, m('so') + 6, { size: 36, cw: 60, rh: 56, name: 'PA =' });
+    A.glowRow(1, m('so') + 7, 1.6); PA.glowRow(0, m('so') + 7.5, 1.6);   // the same rows, in a good order
+    A.glowRow(0, m('so') + 9, 1.2); PA.glowRow(1, m('so') + 9.4, 1.2);
   }],
 
   ['ex3', 'Three by three', (m) => {
@@ -211,7 +257,7 @@ const BEATS = [
     el.op(2, 1, 0, m('l32') + .3);
     triangle(el, m('u'));
     [0, 1, 2].forEach(i => el.ring(i, i, m('u') + 1 + .4 * i));
-    const Lm = mat(p, L3, 190, 600, m('L'), { size: 30, cw: 46, rh: 42, name: 'L =' });
+    const Lm = mat(p, L3, 150, 590, m('L'), { size: 30, cw: 58, rh: 50, name: 'L =' });
     const r1 = Lm.ring(1, 0, m('L') + 1, { dash: true }), r2 = Lm.ring(2, 0, m('L') + 1.4, { dash: true });
     Lm.ring(2, 1, m('L') + 3.2, { dash: true });
     const bf = G(p, { o: 0 }); show(bf, m('look') + 2, .4);
@@ -242,6 +288,8 @@ const BEATS = [
     e2.work(null, m('eq')); e2.focusE(null, m('eq'));
     [0, 1, 2].forEach(i => { e1.Pt.flash(i, m('eq') + .4 + .9 * i); e2.Pt.flash(i, m('eq') + .4 + .9 * i); });
     say(p, ['PA = LU  ✓'], 64, 700, m('eq') + 2, { size: 40, fill: COL.good });
+    say(p, ['Lc = (1, 4, 3) = Pb'], 64, 780, m('c') + 1, { size: 34 });
+    [0, 1, 2].forEach(i => { e2.Pt.flash(i, m('c') + 1.5 + .5 * i); e1.Pt.flash(i, m('c') + 4 + .5 * i); });
   }],
 
   ['q1', 'Quick check', () => {
@@ -269,15 +317,17 @@ const BEATS = [
     el.swap(0, 1, m('swap') + .5, 1.6);
     sys.planes[0].fade(1, m('swap') + 2.3, .5); sys.planes[1].fade(1, m('swap') + 2.3, .5);
     el.ring(0, 0, m('swap') + 2.4, { color: COL.good });
+    mat(p, [[0, 1, 0], [1, 0, 0], [0, 0, 1]], 170, 600, m('swap') + 3, { size: 30, cw: 46, rh: 42, name: 'P₁₂ =' });
     el.op(1, 0, 0, m('l21') + 2);
     el.step(2, 0, 2, m('l31') + .2, 1.8);
     el.step(2, 1, 3, m('l32') + .2, 1.8);
     triangle(el, m('LU') - .4);
-    const Lm = mat(p, [[1, 0, 0], [0, 1, 0], [2, 3, 1]], 160, 600, m('LU'), { size: 30, cw: 46, rh: 42, name: 'L =' });
-    const Um = mat(p, [[1, 2, 1], [0, 1, 1], [0, 0, 4]], 440, 600, m('LU') + 2.4, { size: 30, cw: 46, rh: 42, name: 'U =' });
+    const Lm = mat(p, [[1, 0, 0], [0, 1, 0], [2, 3, 1]], 440, 600, m('LU'), { size: 30, cw: 46, rh: 42, name: 'L =' });
+    const Um = mat(p, [[1, 2, 1], [0, 1, 1], [0, 0, 4]], 700, 600, m('LU') + 2.4, { size: 30, cw: 46, rh: 42, name: 'U =' });
     Lm.ring(2, 0, m('check') + .6); Lm.ring(2, 1, m('check') + .6);
     Um.glow(m('check') + 1.6, 3);
     say(p, ['2·(1, 2, 1) + 3·(0, 1, 1) + (0, 0, 4) = (2, 7, 9)'], 64, 790, m('check') + 4, { size: 30 });
+    text(p, '= row 3 of PA:   PA = LU', 640, 786, m('check') + 7.5, { size: 28, fill: COL.good, weight: 600 });
   }],
 
   ['q2', 'Your turn', () => {
@@ -285,11 +335,31 @@ const BEATS = [
     title(p, 'Your turn');
     const t = three(p, Z3, 'chapter 20:   x + 2y + z = 1,    2x + 4y + 3z = 3,    3x + 7y + 5z = 4');
     S.em = t.em;
+    pivRead(p, t.em, 70, 460);
   }, { ask: done => quiz(CARD3, [{
     id: 'c-perm', prompt: ['Change the numbers of P until elimination on PA meets no zero pivot.'],
     build: emTask(S.em, (v, pr) => isPerm(v, 3) && noSwap(pr), 'Rows 1, 3, 2 (P₂₃) work, and so do three other orders. Only rows 1 and 2 on top fail: their 2 × 2 corner gives a 0 pivot.',
       permHint, () => S.em.set(eKeys(P23)), { only: ['e00', 'e01', 'e02', 'e10', 'e11', 'e12', 'e20', 'e21', 'e22'] }),
   }], done) }],
+
+  ['stuck', 'When no P helps', (m) => {
+    const p = panel(0);
+    title(p, 'When no P can help');
+    const { sys, el, V } = table3(p, STUCK, 'x + 2y + z = 1,    2x + 4y + 3z = 3,    3x + 6y + 5z = 5', { t0: .4 });
+    V.sway(5, 13);
+    [0, 1, 2].forEach(i => el.flash(i, m('A') + .3 + 2.3 * i));
+    el.step(1, 0, 2, m('c1') + .3, 1.8);
+    el.step(2, 0, 3, m('c1') + 3.2, 1.8);
+    hide(el.op_.lab.g, m('zero') - .2, .3);
+    el.ring(1, 1, m('zero'), { color: COL.bad });
+    el.ring(2, 1, m('below'), { color: COL.bad, dash: true });
+    text(p, 'every number below is 0 too', 90, 520, m('below') + 1, { size: 30, fill: COL.bad, weight: 600 });
+    text(p, 'no row to exchange with: no P helps', 90, 580, m('none'), { size: 30, fill: COL.bad, weight: 600 });
+    V.turn({ yaw: 35, pitch: 30 }, m('line') - .6, 3);   // the shared line lies across the view
+    [[0, 0, 1], [-2, 1, 1], [2, -1, 1]].forEach((q, i) => { const pt = V.point(q, { label: `(${q.map(num).join(', ')})`, size: 24, halo: true, ...(i === 0 ? { dx: -20, dy: 34 } : {}) }); put(pt.e, { o: 0 }); show(pt.e, m('pts') + 1.2 * i, .4); });
+    text(p, 'one whole line of solutions, not one point', 90, 640, m('pts') + .5, { size: 30, weight: 600 });
+    text(p, 'P fixes a 0 pivot only when a number below it is not 0', 90, 740, m('rule'), { size: 30, fill: COL.good, weight: 600 });
+  }],
 
   ['q3', 'Quick check', () => {
     const p = panel(0);
@@ -312,14 +382,22 @@ const BEATS = [
     [0, 1, 2].forEach(i => { pp.flashE(i, m('undo') + 3.5 + 1.6 * i); pp.Pt.flash(i, m('undo') + 4 + 1.6 * i); });
     const Pm = mat(p, CYC, 160, 330, m('cycle'), { size: 36, cw: 56, rh: 50, name: 'P =' });
     text(p, 'moves every row', 110, 480, m('cycle') + .6, { size: 26, fill: COL.dim, weight: 600 });
-    [[0, 2], [1, 0], [2, 1]].forEach(([i, j], k) => hide(Pm.ring(i, j, m('cycle') + 2.4 + 1.4 * k), m('flip') - .3, .3));
-    const Pv = mat(p, CYCT, 500, 330, m('back'), { size: 36, cw: 56, rh: 50, name: 'P⁻¹ =' });
-    [[0, 1], [1, 2], [2, 0]].forEach(([i, j], k) => hide(Pv.ring(i, j, m('back') + 2 + 1.3 * k), m('flip') - .3, .3));
-    text(p, 'puts every row back', 450, 480, m('back') + 5, { size: 26, fill: COL.dim, weight: 600 });
+    [0, 1, 2].forEach(i => Pm.glowRow(i, m('cycle') + 2.6 + 2 * i, 1.8));
+    ['c1', 'c2', 'c3'].forEach((mk_, k) => { const [i, j] = [[0, 2], [1, 0], [2, 1]][k]; Pm.glowRow(i, m(mk_), 2); hide(Pm.ring(i, j, m(mk_) + .3), m('flip') - .3, .3); });
+    // the undo sits on the right; the gap between is where the flip lands
+    const Pv = mat(p, CYCT.map(r => r.map(() => '')), 880, 330, m('back'), { size: 36, cw: 56, rh: 50, name: 'P⁻¹ =' });
+    text(p, 'fetches every row back', 820, 480, m('back') + 1, { size: 26, fill: COL.dim, weight: 600 });
+    ['b1', 'b2', 'b3'].forEach((mk_, i) => {
+      const said = m(mk_) + .55 * (m(['b2', 'b3', 'flip'][i]) - m(mk_));   // the row's numbers, as they are read out
+      const r = G(p, { o: 0 }); CYCT[i].forEach((v, j) => M(r, [num(v)], { x: Pv.cx(j), y: Pv.ry(i), size: 36, anchor: 'middle' })); show(r, said, .4);
+      const j = CYCT[i].indexOf(1); hide(Pv.ring(i, j, said + .8), m('flip') - .3, .3);
+      Pm.glowRow(j, m(mk_), 2.2);   // where P put the old row i + 1
+    });
     // the flip: P's diagonal dashed, every number flies from (i, j) to (j, i) of a new matrix
     const dg = path(p, `M${Pm.cx(0) - 20} ${Pm.ry(0) - 30}L${Pm.cx(2) + 20} ${Pm.ry(2) + 12}`, { stroke: COL.chalk, 'stroke-width': 2.5, 'stroke-dasharray': '8 7', fill: 'none' }, { d: 0 });
     tw(dg, { d: 1 }, m('flip'), .8); hide(dg, m('name') + 1, .5);
-    const Tm = mat(p, CYCT.map(r => r.map(() => '')), 880, 330, m('flip') + .4, { size: 36, cw: 56, rh: 50, name: 'Pᵀ =' });
+    Pm.glowRow(0, m('flip') + 4.6, 2.2);
+    const Tm = mat(p, CYCT.map(r => r.map(() => '')), 500, 330, m('flip') + .4, { size: 36, cw: 56, rh: 50, name: 'Pᵀ =' });
     CYC.forEach((r, i) => r.forEach((v, j) => {
       const t = G(p, { x: Pm.cx(j), y: Pm.ry(i), o: 0 });
       M(t, [num(v)], { size: 36, fill: v ? COL.chalk : COL.dim, anchor: 'middle' });
@@ -327,7 +405,8 @@ const BEATS = [
       show(t, at, .1);
       tw(t, { x: Tm.cx(i), y: Tm.ry(j) }, at, 1.4);
     }));
-    say(p, ['P⁻¹ = Pᵀ'], 880, 520, m('name') + 2, { size: 40 });
+    say(p, ['P⁻¹ = Pᵀ'], 640, 540, m('name') + 2, { size: 40, anchor: 'middle' });
+    Tm.glow(m('name') + 2, 2); Pv.glow(m('name') + 2, 2);
     const e = emat(p, bare(CYC), { A: CYC, b: [0, 0, 0], E: CYCT, at: [64, 690], size: 28, cw: 46, ecw: 40, rh: 44, gap: 56, t0: m('check') - .2, noB: true, name: 'Pᵀ', names: ['P', '', 'I', ''] });
     [0, 1, 2].forEach(i => e.Pt.flash(i, m('check') + 1 + .7 * i));
     text(p, 'every permutation:  P⁻¹ = Pᵀ', 880, 600, m('rule'), { size: 30, weight: 600 });
@@ -337,7 +416,7 @@ const BEATS = [
   ['wrap', 'Summary', (m) => {
     const p = panel(0);
     [['A zero pivot is fixed by a row exchange; P can make every exchange first.', 'w1'], ['Then PA = LU: L holds the multipliers, U the pivots.', 'w2'],
-     ['Check by multiplying out: P reorders the rows of A, L mixes the rows of U.', 'w3'], ['P⁻¹ = Pᵀ. If no row below has a number, no P can help.', 'w4']].forEach(([str, mark], i) => {
+     ['Check by multiplying out: P reorders the rows of A, L mixes the rows of U.', 'w3'], ['P⁻¹ = Pᵀ. If every number below a zero pivot is 0, no P helps.', 'w4']].forEach(([str, mark], i) => {
       const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
       mk('circle', { cx: 120, cy: -12, r: 26, fill: COL.chalk }, g);
       T(g, String(i + 1), { x: 120, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
@@ -362,6 +441,7 @@ const BEATS = [
     title(p, 'Build P');
     const t = three(p, HANDS[0].sys, '');
     S.em = t.em;
+    pivRead(p, t.em, 70, 460);
   }, { ask: done => quiz(CARD3, HANDS.map((h, k) => ({
     id: `p-hand${k + 1}`, prompt: [h.prompt],
     build: (body, api) => {
@@ -374,8 +454,8 @@ const BEATS = [
     title(p, 'Playground');
     const t = three(p, Z3, '', { E: P23 });
     S.em = t.em;
-    const hint = text(p, 'try: P = I;  rows 2, 1, 3;  a 0 in A’s first column', 64, 160, m('go'), { size: 24, fill: COL.dim });
-    hide(hint, m('go') + 7, .6);
+    pivRead(p, t.em, 70, 432);
+    text(p, 'try: P = I;   rows 2, 1, 3;   a 0 in A’s first column;   A’s row 3 = row 1 + row 2', 64, 160, m('go'), { size: 24, fill: COL.dim });
   }, { ask: playAsk(() => S.em, { pos: { x: 40, y: 480, w: 820, cls: 'side' }, tip: 'Your matrices. Change any number of P or of A | b, turn the picture, or draw on the board. Nothing is marked.' }) }],
   ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));

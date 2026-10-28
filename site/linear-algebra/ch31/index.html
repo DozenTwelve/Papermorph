@@ -18,7 +18,7 @@
 <script src="audio/en/timings.js"></script>
 <script>
 'use strict';
-const CHAPTER = { number: 31, title: 'Why L Is Clean and E Is Not', minutes: 10, language: 'en' };
+const CHAPTER = { number: 31, title: 'Why L Is Clean and E Is Not', minutes: 10, language: 'en' , next: '../ch32/' };
 
 /* ---------- chapter drawing helpers ---------- */
 const BLUE = LS_ROW[0], CORAL = LS_ROW[1], YELLOW = S3_ROW[2];
@@ -88,17 +88,24 @@ const rowTxt = (pr, i, n) => `(${[...Array(n).keys()].map(j => r1(pr[`a${i}${j}`
 // A matrix times a matrix with no picture (E₃₂E₂₁): emat on a bare system, the b columns hidden (chapter 21).
 const mm3 = (p, Ebig, Bm, names, nameE, t0) => emat(p, bare(Bm), { A: Bm, b: [0, 0, 0], E: Ebig, at: AT3, size: 32, cw: 52, ecw: 44, rh: 54, gap: 64, t0, noB: true, names, name: nameE });
 // A matrix of math parts (letters allowed); .ring(i, j, at) circles an entry. cws: one width per column.
-const symMat = (p, rows, x, y, t0, { size = 34, cws = null, rh = 50, name = '' } = {}) => {
+const symMat = (p, rows, x, y, t0, { size = 34, cws = null, rh = 50, name = '', fill = COL.chalk } = {}) => {
   const g = G(p, { o: 0 }), n = rows.length, W = cws || rows[0].map(() => 56), w = W.reduce((a, b) => a + b, 0), top = y - size * .95, bot = y + (n - 1) * rh + size * .35;
   const cx = j => x + W.slice(0, j).reduce((a, b) => a + b, 0) + W[j] / 2;
   path(g, `M${x + 12} ${top}H${x}V${bot}H${x + 12}M${x + w - 12} ${top}H${x + w}V${bot}H${x + w - 12}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' });
-  rows.forEach((r, i) => r.forEach((v, j) => M(g, [].concat(typeof v === 'number' ? num(v) : v), { x: cx(j), y: y + i * rh, size, fill: COL.chalk, anchor: 'middle' })));
+  rows.forEach((r, i) => r.forEach((v, j) => M(g, [].concat(typeof v === 'number' ? num(v) : v), { x: cx(j), y: y + i * rh, size, fill, anchor: 'middle' })));
   if (name) M(g, [].concat(name), { x: x - 18, y: y + (n - 1) * rh / 2 + 10, size: size * 1.05, fill: COL.chalk, anchor: 'end' });
-  show(g, t0, .5);
-  g.ring = (i, j, at, { dash = false, color = COL.chalk } = {}) => { const e = mk('ellipse', { cx: cx(j), cy: y + i * rh - size * .32, rx: W[j] * .48, ry: size * .62, fill: 'none', stroke: color, 'stroke-width': 3, ...(dash ? { 'stroke-dasharray': '7 6' } : {}) }, p); put(e, { o: 0 }); show(e, at, .35); return e; };
+  if (t0 === null) put(g, { o: 1 }); else show(g, t0, .5);   // null: at once (inside a question)
+  g.ring = (i, j, at, { dash = false, color = COL.chalk, rx = W[j] * .48, ry = size * .62 } = {}) => { const e = mk('ellipse', { cx: cx(j), cy: y + i * rh - size * .32, rx, ry, fill: 'none', stroke: color, 'stroke-width': 3, ...(dash ? { 'stroke-dasharray': '7 6' } : {}) }, p); put(e, { o: 0 }); show(e, at, .35); return e; };
   return g;
 };
 const emL = Lm => { const o = {}; Lm.forEach((r, i) => r.forEach((x, j) => { o[`e${i}${j}`] = x; })); return o; };
+// A line of row algebra with "row 1/2/3" in the rows' colours.
+const RCOL = { 1: BLUE, 2: CORAL, 3: YELLOW };
+const rline = (p, str, x, y, t0, { size = 30, fill = COL.chalk } = {}) => {
+  const e = T(p, '', { x, y, size, fill, weight: 600, o: 0 });
+  str.split(/((?:new )?row [123])/).forEach(part => { if (!part) return; const t = mk('tspan', {}, e); t.textContent = part; const k = part.match(/row ([123])/); if (k) t.setAttribute('fill', RCOL[k[1]]); });
+  show(e, t0); return e;
+};
 const upperOK = pr => [pr.a10, pr.a20, pr.a21].every(x => Math.abs(x) < 1e-9);
 
 /* ---------- practice data (every answer worked twice: by multiplying the step matrices, and by −ℓ₃₁ + ℓ₃₂ℓ₂₁) ---------- */
@@ -127,13 +134,12 @@ const TFQ = [
 ];
 const SYS3 = { A: [[1, 1, 1], [2, 3, 4], [0, 3, 7]], b: [3, 9, 10] };
 const LEC = { A: [[1, 2, 1], [3, 8, 1], [0, 4, 1]], b: [2, 12, 2] }, LECU = { A: [[1, 2, 1], [0, 2, -2], [0, 0, 5]], b: [2, 6, -10] };
-const rowsTxt = s => s.A.map((r, i) => `(${r.map(num).join(', ')} | ${num(s.b[i])})`).join(', ');
 const HANDS = [
-  { kind: 'L', from: SYS2U, to: SYS2, ans: { e10: 2, e20: 1, e21: 3 }, prompt: `L in front of U | c: change L’s numbers below the diagonal until LU | Lc is ${rowsTxt(SYS2)}.`,
+  { kind: 'L', from: SYS2U, to: SYS2, ans: { e10: 2, e20: 1, e21: 3 }, prompt: 'L in front of U | c: change L’s numbers below the diagonal until LU | Lc is the amber target.',
     why: 'L = (1, 0, 0), (2, 1, 0), (1, 3, 1): the three multipliers, untouched.' },
   { kind: 'E', from: SYS3, ans: { e10: -2, e20: 6, e21: -3 }, prompt: 'One E for all of elimination: change E’s numbers below the diagonal until EA is upper triangular (ℓ₂₁ = 2, ℓ₃₂ = 3).',
     why: 'E = (1, 0, 0), (−2, 1, 0), (6, −3, 1): the 6 is 3 × 2, the mix.' },
-  { kind: 'L', from: LECU, to: LEC, ans: { e10: 3, e20: 0, e21: 2 }, prompt: `Chapter 18’s system: change L’s numbers until LU | Lc is ${rowsTxt(LEC)}.`,
+  { kind: 'L', from: LECU, to: LEC, ans: { e10: 3, e20: 0, e21: 2 }, prompt: 'Chapter 18’s system after elimination: change L’s numbers until LU | Lc is the amber target, A | b.',
     why: 'L = (1, 0, 0), (3, 1, 0), (0, 2, 1): ℓ₂₁ = 3, no step for row 3, column 1, ℓ₃₂ = 2.' },
 ];
 const handTest = h => (v, pr) => h.kind === 'E' ? upperOK(pr) : same(pr, h.to);
@@ -210,8 +216,9 @@ const BEATS = [
     const sys = lin3(p, { A: SYS1.A, b: SYS1.b, eq: [90, 190], mat: null, sol: false, space: { cx: 1262, size: 520, yaw: -30, pitch: 20 } });
     sys.E.style.visibility = 'hidden';
     sys.space.sway(4, 20);
-    const line = (str, y, t0, { size = 30, fill = COL.chalk } = {}) => text(p, str, 64, y, t0, { size, fill, weight: 600 });
-    symMat(p, [E1[2]], 330, 190, m('recipe') - .6, { size: 32, name: 'row 3 of E:' });
+    const line = (str, y, t0, { size = 30, fill = COL.chalk } = {}) => rline(p, str, 64, y, t0, { size, fill });
+    const e3 = symMat(p, [E1[2]], 330, 190, m('recipe') - .6, { size: 32, name: 'row 3 of E:' });
+    e3.ring(0, 0, m('ten'), { dash: true });
     line('new row 3 = 10 × row 1 − 5 × row 2 + row 3', 260, m('recipe') + .4);
     line('step 2:   new row 3 = row 3 − 5 × (new row 2)', 370, m('step2') + .4);
     sys.focus(2, m('step2'));
@@ -266,7 +273,7 @@ const BEATS = [
     say(p, ['on:   E₂₁ first, then E₃₂'], 64, 730, m('socks') + 3.5, { size: 30 });
     const f = say(p, ['(E₃₂E₂₁)⁻¹ = E₂₁⁻¹E₃₂⁻¹'], 64, 800, m('inv') + .3, { size: 38 });
     pulse(f, m('inv') + 5, 1.1);
-    em.ringE(2, 1, m('first') + .6);
+    hide(em.ringE(2, 1, m('first') + .6), m('second') - .3, .3);
     em.work(2, 0, { times: [m('first') + 1.5, m('first') + 2, m('first') + 2.5, m('p1')] });
     em.to({ e21: 5 }, m('first') + 1.6, 2.6);
     sys.focus(2, m('p1') - .5); sys.focus(null, m('second'));
@@ -295,6 +302,9 @@ const BEATS = [
     em.focusE(null, m('clean'));
     em.Pt.ring(1, 0, m('clean') + 4, { color: COL.good }); em.Pt.ring(2, 1, m('clean') + 4.6, { color: COL.good });
     text(p, 'no 10: just the 2 and the 5, each in its own spot', 64, 700, m('clean') + 4, { size: 30, weight: 600 });
+    const Ec = symMat(p, E1, 1040, 300, m('clean') + 5.5, { size: 38, cws: [64, 64, 56], rh: 56, name: 'E =' });
+    Ec.ring(2, 0, m('clean') + 6.4, { dash: true });
+    text(p, 'E, for comparison: the 10', 1000, 470, m('clean') + 6, { size: 26, fill: COL.dim, weight: 600 });
   }],
 
   ['why', 'Why nothing mixes', (m, D) => {
@@ -336,10 +346,12 @@ const BEATS = [
     em.to({ e20: 5, e21: -3 }, m('res') + 4, 1.8);
     hide(em.ringE(2, 0, m('five'), { dash: true }), m('back'), .3);
     hinge(sys, 0, m('go') + .2, 1.4); hinge(sys, 2, m('go') + .2, 1.4);
-    em.carry(m('back') + .1, .8, { names: ['U', 'c', '', ''] });
-    nameAt(em, 'L', m('back') + .9);
-    em.to(emL(L2), m('back') + 1, 1.8);
-    namesAt(em, ['U', 'c', 'A', 'b'], m('back') + 2.8);
+    em.carry(m('back') + .1, 1, { names: ['U', 'c', '', ''] });
+    nameAt(em, 'L', m('lin') - .2);
+    em.to(emL(L2), m('lin'), 2.4);
+    hinge(sys, 1, m('lin') + .4, 1.4); hinge(sys, 2, m('lin') + .4, 1.4);
+    namesAt(em, ['U', 'c', 'A', 'b'], m('lin') + 2.6);
+    [[1, 0], [2, 0], [2, 1]].forEach(([i, j], k) => em.ringE(i, j, m('just') + .3 + .4 * k, { color: COL.good }));
     V.turn({ yaw: 15, pitch: 26 }, 12, m('go') - 12); V.turn({ yaw: -15, pitch: 20 }, m('go'), Math.max(3, D - m('go')));
   }],
 
@@ -352,7 +364,9 @@ const BEATS = [
   }, { ask: done => quiz(CARD3, [{
     id: 'c-oneE', prompt: ['Change E’s three numbers below the diagonal until EA is upper triangular: U in one step.'],
     build: emTask(S.em, (v, pr) => upperOK(pr), 'E = (1, 0, 0), (−2, 1, 0), (5, −3, 1): the 5 is −1 + 3 × 2, the mix.',
-      (v, pr) => `Below the diagonal the answer still has ${r1(pr.a10)}, ${r1(pr.a20)}, ${r1(pr.a21)}. Row 2 first; then row 3 must also undo what the new row 2 brings.`,
+      (v, pr) => `Below the diagonal the answer still has ${r1(pr.a10)}, ${r1(pr.a20)}, ${r1(pr.a21)}. ` + (v.e10 !== -2 ? 'Start with row 2: ℓ₂₁ = 2, so E has −2 in row 2, column 1.'
+        : v.e21 !== -3 ? 'Row 3, column 2: the last step takes 3 × the new row 2 away (ℓ₃₂ = 3).'
+        : 'Row 3, column 1 is not just −ℓ₃₁ = −1: taking away 3 × the new row 2 (which holds −2 × row 1) also adds back 3 × 2 = 6 of row 1. Count that in.'),
       () => S.em.set(emL(E2)), { only: ['e10', 'e20', 'e21'] }),
   }], done) }],
 
@@ -363,10 +377,11 @@ const BEATS = [
     Lm.ring(1, 0, m('l') + 2.4); Lm.ring(2, 0, m('l') + 3); Lm.ring(2, 1, m('l') + 3.6);
     text(p, 'ℓᵢⱼ: how much of row j was taken from row i', 100, 520, m('l') + 4, { size: 28, weight: 600 });
     text(p, 'write each multiplier down as you go: L is done', 100, 580, m('no') + .5, { size: 28, fill: COL.dim, weight: 600 });
-    const Em = symMat(p, [['1', '0', '0'], ['−ℓ₂₁', '1', '0'], ['−ℓ₃₁ + ℓ₃₂ℓ₂₁', '−ℓ₃₂', '1']], 900, 300, m('e'), { size: 40, cws: [250, 90, 70], rh: 64, name: 'E =' });
-    Em.ring(2, 0, m('e') + 2.4, { dash: true });
-    text(p, 'lecture: 0 + 5 × 2 = 10        all three steps: −1 + 3 × 2 = 5', 900, 520, m('e') + 5, { size: 26, fill: COL.dim, weight: 600 });
-    text(p, 'bigger matrices: more mixing in E, none in L', 900, 580, m('big') + .5, { size: 28, weight: 600 });
+    const Em = symMat(p, [['1', '0', '0'], ['−ℓ₂₁', '1', '0'], ['−ℓ₃₁ + ℓ₃₂ℓ₂₁', '−ℓ₃₂', '1']], 900, 300, m('e'), { size: 40, cws: [290, 96, 70], rh: 64, name: 'E =' });
+    Em.ring(2, 0, m('e') + 2.4, { dash: true, rx: 132, ry: 34 });
+    text(p, 'lecture:  0 + 5 × 2 = 10', 900, 500, m('e') + 5, { size: 26, fill: COL.dim, weight: 600 });
+    text(p, 'all three steps:  −1 + 3 × 2 = 5', 900, 540, m('e') + 6, { size: 26, fill: COL.dim, weight: 600 });
+    text(p, 'bigger matrices: more mixing in E, none in L', 900, 610, m('big') + .5, { size: 28, weight: 600 });
   }],
 
   ['q3', 'Quick check', () => {
@@ -418,10 +433,13 @@ const BEATS = [
     text(p, 'Build L and E', 60, 110, .2, { size: 40, weight: 600 });
     const t = three(p, SYS2U, '');
     S.em = t.em;
+    S.tg = G(p, {});
   }, { ask: done => quiz(CARD3, HANDS.map((h, k) => ({
     id: `p-hand${k + 1}`, prompt: [h.prompt],
     build: (body, api) => {
-      S.em.set(keysOf(h.from)); S.em.setName(h.kind);
+      S.em.set(keysOf(h.from)); S.em.setName(h.kind); S.tg.replaceChildren();
+      if (h.kind === 'L') symMat(S.tg, h.to.A.map((r, i) => [...r, h.to.b[i]]), 400, 450, null, { size: 30, cws: [48, 48, 48, 60], rh: 44, name: 'target  LU | Lc =', fill: COL.task });
+      else T(S.tg, 'target: 0, 0, 0 below the diagonal of EA', { x: 64, y: 480, size: 30, fill: COL.task, weight: 600 });
       S.em.names(h.kind === 'L' ? ['U', 'c', 'LU', 'Lc'] : ['A', 'b', 'EA', 'Eb']);
       return emTask(S.em, handTest(h), h.why, handHint(h), () => S.em.set(h.ans), { only: ['e10', 'e20', 'e21'] })(body, api);
     },

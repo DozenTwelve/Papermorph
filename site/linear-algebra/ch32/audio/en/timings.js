@@ -305,6 +305,71 @@ window.TIMINGS = {
    ]
   ]
  },
+ "plane": {
+  "dur": 53.16,
+  "marks": {
+   "sq": 7.344,
+   "u": 18.581,
+   "d": 26.094,
+   "l": 32.461,
+   "a": 38.542,
+   "sum": 47.552
+  },
+  "cues": [
+   [
+    0.104,
+    "There is one more way to see L, D and U: as moves of the whole plane, as in chapter twenty-six."
+   ],
+   [
+    7.344,
+    "Here is the plane with its square."
+   ],
+   [
+    9.987,
+    "A times a point is L times D times U times that point, so U moves it first, then D, then L."
+   ],
+   [
+    18.581,
+    "First U."
+   ],
+   [
+    19.531,
+    "The one half slides the square sideways: its top moves right by one half, and nothing gets bigger."
+   ],
+   [
+    26.094,
+    "Then D."
+   ],
+   [
+    27.031,
+    "The pivots stretch it: two times as wide, and three times as tall."
+   ],
+   [
+    32.461,
+    "Then L."
+   ],
+   [
+    33.333,
+    "The four slides it upward: every point rises by four times its x."
+   ],
+   [
+    38.542,
+    "The result is exactly what A does."
+   ],
+   [
+    41.107,
+    "One, zero lands on two, eight, and zero, one lands on one, seven: the columns of A."
+   ],
+   [
+    47.552,
+    "So L and U only slide."
+   ],
+   [
+    49.935,
+    "All the stretching is in D, the pivots."
+   ]
+  ]
+ },
  "q1": {
   "dur": 2.856,
   "marks": {},
@@ -397,68 +462,81 @@ window.TIMINGS = {
   ]
  },
  "ex3": {
-  "dur": 53.28,
+  "dur": 68.208,
   "marks": {
-   "A": 2.513,
-   "U": 6.693,
-   "piv": 15.43,
-   "r1": 18.099,
-   "r2": 22.409,
-   "r3": 28.542,
-   "still": 34.089,
-   "D": 35.599,
-   "go": 38.333,
-   "L": 43.372,
-   "ldu": 48.034
+   "A": 2.474,
+   "U": 6.615,
+   "piv": 15.273,
+   "r1": 18.021,
+   "r2": 22.383,
+   "r3": 28.438,
+   "still": 33.984,
+   "D": 35.482,
+   "go": 38.281,
+   "L": 43.503,
+   "ldu": 48.021,
+   "chk": 53.398
   },
   "cues": [
    [
-    0.156,
+    0.13,
     "Three by three works the same way."
    ],
    [
-    2.513,
+    2.474,
     "This is the lecture's system from chapters eighteen and twenty-one."
    ],
    [
-    6.693,
+    6.615,
     "Elimination left U: one, two, one; zero, two, minus two; zero, zero, five."
    ],
    [
-    15.43,
+    15.273,
     "Its pivots are one, two and five."
    ],
    [
-    18.099,
+    18.021,
     "Row one's pivot is one: dividing by one changes nothing."
    ],
    [
-    22.409,
+    22.383,
     "Row two divided by two: zero, one, minus one, and three on the right."
    ],
    [
-    28.542,
+    28.438,
     "Row three divided by five: zero, zero, one, and minus two."
    ],
    [
-    34.089,
+    33.984,
     "Not one plane moved."
    ],
    [
-    35.599,
+    35.482,
     "D holds the pivots: one, two, five."
    ],
    [
-    38.333,
+    38.281,
     "Grow D from the identity, and the table with ones turns back into the old U."
    ],
    [
-    43.372,
+    43.503,
     "L holds the multipliers: three, zero and two."
    ],
    [
-    48.034,
-    "A equals L D U, and both L and U have ones down the diagonal."
+    48.021,
+    "So A equals L D U, and both L and U have ones down the diagonal."
+   ],
+   [
+    53.398,
+    "Check one row."
+   ],
+   [
+    54.505,
+    "Row two of L is three, one, zero: three times row one of D U, which is three, six, three, plus row two, zero, two, minus two."
+   ],
+   [
+    64.922,
+    "That's three, eight, one: row two of A."
    ]
   ]
  },

@@ -391,18 +391,20 @@ window.TIMINGS = {
   ]
  },
  "ex2": {
-  "dur": 59.496,
+  "dur": 70.968,
   "marks": {
-   "sys": 2.175,
-   "l": 10.143,
-   "e": 17.487,
-   "rows": 20.833,
-   "r3": 28.138,
-   "then": 35.104,
-   "res": 41.68,
-   "five": 48.984,
-   "go": 54.362,
-   "back": 57.695
+   "sys": 2.344,
+   "l": 10.547,
+   "e": 17.891,
+   "rows": 21.289,
+   "r3": 28.568,
+   "then": 35.482,
+   "res": 41.654,
+   "five": 49.362,
+   "go": 54.792,
+   "back": 58.542,
+   "lin": 61.419,
+   "just": 65.625
   },
   "cues": [
    [
@@ -410,44 +412,56 @@ window.TIMINGS = {
     "One more, with all three steps."
    ],
    [
-    2.175,
+    2.344,
     "Here the multipliers are two for row two, one for row three, and then three for row three, column two."
    ],
    [
-    10.143,
+    10.547,
     "L is just these: one, zero, zero; two, one, zero; one, three, one."
    ],
    [
-    17.487,
+    17.891,
     "Now E, the product of the three steps."
    ],
    [
-    20.833,
+    21.289,
     "Rows one and two are easy: one, zero, zero, and minus two, one, zero."
    ],
    [
-    28.138,
+    28.568,
     "For row three, the first step takes away one times row one: minus one, zero, one."
    ],
    [
-    35.104,
+    35.482,
     "Then the last step takes away three times the new row two, which is minus two, one, zero."
    ],
    [
-    41.68,
+    41.654,
     "Minus one, zero, one, minus three times minus two, one, zero, gives five, minus three, one."
    ],
    [
-    48.984,
+    49.362,
     "A five: minus one, plus three times two."
    ],
    [
-    52.917,
+    53.307,
     "The steps mixed again."
    ],
    [
-    54.362,
-    "On the planes, E does all three steps at once, and L brings them all back."
+    54.792,
+    "On the planes, E does all three steps at once."
+   ],
+   [
+    58.542,
+    "Now go back: start from U and c, and put L in front."
+   ],
+   [
+    62.76,
+    "All three planes turn back to A and b."
+   ],
+   [
+    65.625,
+    "And L's numbers are just the multipliers: two, one and three."
    ]
   ]
  },

@@ -294,16 +294,16 @@ window.TIMINGS = {
   ]
  },
  "pyr": {
-  "dur": 41.712,
+  "dur": 47.184,
   "marks": {
-   "stack": 1.172,
-   "l1": 5.495,
-   "l2": 11.628,
-   "all": 15.469,
-   "box": 19.01,
-   "cone": 23.307,
-   "third": 28.62,
-   "steps": 36.432
+   "stack": 1.211,
+   "l1": 5.534,
+   "l2": 11.393,
+   "all": 14.909,
+   "box": 18.672,
+   "cone": 22.799,
+   "third": 28.203,
+   "steps": 36.055
   },
   "cues": [
    [
@@ -311,44 +311,48 @@ window.TIMINGS = {
     "Why a third?"
    ],
    [
-    1.172,
+    1.211,
     "Stack the steps on top of the matrix, one layer for each step."
    ],
    [
-    5.495,
+    5.534,
     "The first layer covers the corner the first step works on."
    ],
    [
-    9.102,
+    8.971,
     "Each square on it is one operation."
    ],
    [
-    11.628,
+    11.393,
     "The second layer sits on top, one smaller each way."
    ],
    [
-    15.469,
+    14.909,
     "Then the third, and so on, up to the last little step."
    ],
    [
-    19.01,
+    18.672,
     "The layers build a staircase inside a box, n by n by n."
    ],
    [
-    23.307,
+    22.799,
     "The staircase hugs a pyramid, with a base n by n and a height of n."
    ],
    [
-    28.62,
+    28.203,
     "A pyramid holds one third of its box: base times height, divided by three."
    ],
    [
-    34.206,
+    33.724,
     "That's n cubed over three."
    ],
    [
-    36.432,
-    "The steps leave out a sliver along the edges: that's the minus n over three."
+    36.055,
+    "The steps stick out of the pyramid in some places and fall short in others."
+   ],
+   [
+    40.82,
+    "All together they come to just n over three less: seventy, against seventy-two."
    ]
   ]
  },
@@ -367,13 +371,17 @@ window.TIMINGS = {
   ]
  },
  "double": {
-  "dur": 28.8,
+  "dur": 50.088,
   "marks": {
-   "ten": 3.151,
-   "twenty": 6.458,
-   "eight": 9.922,
-   "big": 16.68,
-   "huge": 24.518
+   "ten": 3.229,
+   "twenty": 6.523,
+   "eight": 9.909,
+   "five": 16.927,
+   "back": 20.898,
+   "triple": 25.247,
+   "thirty": 29.792,
+   "big": 38.086,
+   "huge": 45.99
   },
   "cues": [
    [
@@ -381,48 +389,78 @@ window.TIMINGS = {
     "What happens when the matrix gets twice as big?"
    ],
    [
-    3.151,
+    3.229,
     "Ten by ten: three hundred thirty operations."
    ],
    [
-    6.458,
+    6.523,
     "Twenty by twenty: two thousand six hundred sixty."
    ],
    [
-    9.922,
+    9.909,
     "That's eight times as many, because two cubed is eight."
    ],
    [
-    13.724,
+    14.01,
     "Twice the size, eight times the work."
    ],
    [
-    16.68,
+    16.927,
+    "Check it from a smaller start."
+   ],
+   [
+    18.815,
+    "Five by five: forty."
+   ],
+   [
+    20.898,
+    "Ten by ten: three hundred thirty."
+   ],
+   [
+    23.568,
+    "About eight times again."
+   ],
+   [
+    25.247,
+    "And three times the size?"
+   ],
+   [
+    27.474,
+    "Three cubed is twenty-seven."
+   ],
+   [
+    29.792,
+    "Thirty by thirty: eight thousand nine hundred ninety."
+   ],
+   [
+    34.128,
+    "That's about twenty-seven times the three hundred thirty for ten."
+   ],
+   [
+    38.086,
     "A thousand by a thousand takes about three hundred thirty-three million operations."
    ],
    [
-    21.589,
+    43.099,
     "A computer does that in well under a second."
    ],
    [
-    24.518,
+    45.99,
     "But a million by a million would keep a fast computer busy for days."
    ]
   ]
  },
  "right": {
-  "dur": 44.112,
+  "dur": 27.672,
   "marks": {
-   "b": 1.68,
-   "f1": 6.836,
-   "f2": 10.378,
-   "back": 11.693,
-   "r3": 14.349,
-   "r2": 16.354,
-   "r1": 20.169,
-   "nine": 23.021,
-   "cheap": 30.378,
-   "lu": 36.745
+   "b": 1.745,
+   "f1": 6.615,
+   "f2": 10.182,
+   "back": 11.432,
+   "r3": 14.232,
+   "r2": 16.497,
+   "r1": 20.391,
+   "nine": 23.151
   },
   "cues": [
    [
@@ -430,47 +468,129 @@ window.TIMINGS = {
     "And the right side, b?"
    ],
    [
-    1.68,
+    1.745,
     "Each step changes just one number of b in every row below the pivot."
    ],
    [
-    6.836,
+    6.615,
     "For three by three: two numbers in the first step, one in the second."
    ],
    [
-    11.693,
+    11.432,
     "Then back substitution, from the bottom up."
    ],
    [
-    14.349,
+    14.232,
     "Row three: one division."
    ],
    [
-    16.354,
+    16.497,
     "Row two: one multiply-subtract, and a division."
    ],
    [
-    20.169,
+    20.391,
     "Row one: two, and a division."
    ],
    [
-    23.021,
-    "Three plus six: nine operations, three squared."
+    23.151,
+    "Three plus six: nine operations."
    ],
    [
-    27.253,
-    "For any n, b costs n squared."
+    26.068,
+    "That's three squared."
+   ]
+  ]
+ },
+ "b4": {
+  "dur": 22.272,
+  "marks": {
+   "f1": 2.018,
+   "f2": 5.208,
+   "f3": 6.862,
+   "back": 9.062,
+   "r4": 11.589,
+   "r3": 12.201,
+   "r2": 12.487,
+   "r1": 13.008,
+   "sum": 14.688,
+   "any": 18.398
+  },
+  "cues": [
+   [
+    0.104,
+    "Check it on four by four."
    ],
    [
-    30.378,
+    2.018,
+    "Forward: three numbers of b change in the first step, two in the second, one in the third."
+   ],
+   [
+    8.086,
+    "Six."
+   ],
+   [
+    9.062,
+    "Back substitution, from the bottom up: one, two, three, four."
+   ],
+   [
+    13.906,
+    "Ten."
+   ],
+   [
+    14.688,
+    "Six plus ten is sixteen: four squared."
+   ],
+   [
+    18.398,
+    "For any n, the right side costs n squared."
+   ]
+  ]
+ },
+ "keep": {
+  "dur": 38.136,
+  "marks": {
+   "cheap": 0.104,
+   "ex": 7.305,
+   "once": 11.849,
+   "tenb": 16.914,
+   "redo": 21.536,
+   "lu": 30.456
+  },
+  "cues": [
+   [
+    0.104,
     "So a new right side is cheap: n squared, against n cubed over three for A."
    ],
    [
-    36.745,
+    7.305,
+    "Say A is a hundred by a hundred, and ten different right sides arrive."
+   ],
+   [
+    11.849,
+    "Factor A once: about three hundred thirty-three thousand operations."
+   ],
+   [
+    16.914,
+    "Then each b costs ten thousand."
+   ],
+   [
+    19.414,
+    "Ten of them: a hundred thousand."
+   ],
+   [
+    21.536,
+    "Start from scratch for every b instead, and you pay for A ten times: about three point four million."
+   ],
+   [
+    29.01,
+    "Eight times the work."
+   ],
+   [
+    30.456,
     "That's why we keep L and U."
    ],
    [
-    38.32,
+    32.24,
     "We factor A once, the expensive part, and then every new b costs only n squared."
    ]
   ]

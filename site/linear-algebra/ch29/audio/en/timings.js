@@ -304,6 +304,93 @@ window.TIMINGS = {
    ]
   ]
  },
+ "wrong": {
+  "dur": 67.056,
+  "marks": {
+   "sys": 2.891,
+   "g1": 11.562,
+   "w1": 15.195,
+   "res1": 22.057,
+   "past": 26.237,
+   "g2": 36.198,
+   "w2": 39.375,
+   "res2": 42.682,
+   "short": 47.031,
+   "g3": 53.229,
+   "res3": 57.839,
+   "home": 60.13
+  },
+  "cues": [
+   [
+    0.104,
+    "Why change the sign?"
+   ],
+   [
+    1.51,
+    "Why not some other number?"
+   ],
+   [
+    2.891,
+    "Here is the flat line again, after row two minus three times row one."
+   ],
+   [
+    8.607,
+    "The dashed line is where row two started."
+   ],
+   [
+    11.562,
+    "Guess one: use E again, with minus three."
+   ],
+   [
+    15.195,
+    "Minus three times row one is minus three, minus six, minus fifteen."
+   ],
+   [
+    20.56,
+    "Add the new row two, and you get minus three, minus eight, minus nineteen."
+   ],
+   [
+    26.237,
+    "The line turns, but it stops short of the dashed line, and the numbers are not the old row."
+   ],
+   [
+    31.562,
+    "E again takes away three more of row one; it puts nothing back."
+   ],
+   [
+    36.198,
+    "Guess two: divide, and use one third."
+   ],
+   [
+    39.375,
+    "One third of row one, plus the new row two, gives one third, minus four thirds, minus seven thirds."
+   ],
+   [
+    47.031,
+    "This time the line turns the wrong way."
+   ],
+   [
+    49.453,
+    "One third of row one is not the three of row one we took away."
+   ],
+   [
+    53.229,
+    "Guess three: plus three."
+   ],
+   [
+    55.508,
+    "It puts back exactly what was taken."
+   ],
+   [
+    57.839,
+    "Three, four, eleven, and the line lands on the dashed line."
+   ],
+   [
+    62.305,
+    "Every guess kept the meeting point, but only plus three brings the line home."
+   ]
+  ]
+ },
  "twice": {
   "dur": 42.192,
   "marks": {
