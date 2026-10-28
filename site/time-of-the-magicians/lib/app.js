@@ -61,7 +61,7 @@
   const labels = el('g', {}, svg);
   const countries = COUNTRIES.map(([name, lon, lat, a = FIRST, b = LAST]) => {
     const [x, y] = xy(lon, lat), t = el('text', { class: 'country', x, y }, labels);
-    t.textContent = name; t.dataset.a = a; t.dataset.b = b; return t;
+    t.textContent = name; t.dataset.a = a; t.dataset.b = b; t.dataset.x = x; t.dataset.y = y; return t;
   });
   for (const [name, lon, lat] of SEAS) { const [x, y] = xy(lon, lat); el('text', { class: 'seaname', x, y }, labels).textContent = name; }
   const trails = el('g', {}, svg);
@@ -106,7 +106,7 @@
       f.ring.setAttribute('x', -wd / 2 - 4); f.ring.setAttribute('y', -h - 22 * K); f.ring.setAttribute('width', wd + 8); f.ring.setAttribute('height', h + 26 * K);
       f.tt.setAttribute('x', 0); f.tt.setAttribute('y', -h - 11 * K);
       const tw = f.tt.getComputedTextLength() + 10 * K;
-      f.tr.setAttribute('x', -tw / 2); f.tr.setAttribute('y', -h - 18 * K); f.tr.setAttribute('width', tw); f.tr.setAttribute('height', 14 * K);
+      f.tr.setAttribute('x', -tw / 2); f.tr.setAttribute('y', -h - 18 * K); f.tr.setAttribute('width', tw); f.tr.setAttribute('height', 14 * K); f.tw = tw;
     }
   }
 
@@ -128,6 +128,7 @@
     K = Math.max(1, .85 / s); FH = Math.max(96, (H < 520 ? 58 : 84) / s);
     svg.style.setProperty('--k', K); svg.style.setProperty('--kc', Math.max(1, .6 / s));
     sizeFigures(); if (!walk) spread(standing); for (const w2 of WHO) place(w2);
+    layout();
   }
 
   /* ---------- the year ---------- */
@@ -135,13 +136,14 @@
   function showYear(y) {
     shown = y;
     for (const p of paths) p.classList.toggle('off', !(p.dataset.a <= y && y <= p.dataset.b));
-    for (const t of countries) t.style.opacity = t.dataset.a <= y && y <= t.dataset.b ? 1 : 0;
+    for (const t of countries) t.classList.toggle('off', !(t.dataset.a <= y && y <= t.dataset.b));
     $('#year').textContent = y;
     $('#prev').disabled = y <= FIRST; $('#next').disabled = y >= LAST;
     // the places of this year's routes, and where everyone stands
     const on = new Set();
     for (const w of WHO) { on.add(where[y - 1][w]); for (const k of YEARS[y][w].route || []) on.add(k); on.add(where[y][w]); }
     for (const p of Object.values(P)) p.g.classList.toggle('off', !on.has(p.key));
+    onPlaces = on; layout();
   }
 
   /* ---------- walking ---------- */
@@ -183,6 +185,86 @@
   }
   function face(w, dx) { if (Math.abs(dx) > .5) F[w].flip.setAttribute('transform', dx < 0 ? 'scale(-1,1)' : ''); }
 
+  /* ---------- labels: city names and name tags stay clear of the figures and of each other; countries yield ---------- */
+  let onPlaces = new Set();   // the places shown this year
+  const hit = (a, b) => Math.max(0, Math.min(a[2], b[2]) - Math.max(a[0], b[0])) * Math.max(0, Math.min(a[3], b[3]) - Math.max(a[1], b[1]));
+  const hits = (b, list) => list.reduce((s, o) => s + hit(b, o), 0);
+  function layout() {
+    if (walk) return;
+    const solid = [], tags = [], v = svg.viewBox.baseVal;
+    const out = b => b[0] < v.x || b[1] < v.y || b[2] > v.x + v.width || b[3] > v.y + v.height;   // off the screen
+    for (const w of WHO) {   // the figures, as they stand
+      const f = F[w], x = f.pos[0] + f.off[0], y = f.pos[1] + f.off[1], hw = FH * (PEOPLE[w].aspect || .5) / 2 + 2;
+      f.box = [x - hw, y - FH - 2, x + hw, y + 3]; solid.push(f.box);
+    }
+    for (const w of WHO) {   // name tags: above the head, beside it, higher, over the hat, or under the feet: where no other figure or tag is
+      const f = F[w], x = f.pos[0] + f.off[0], y = f.pos[1] + f.off[1], top0 = -FH - 18 * K;
+      const others = solid.filter(b => b !== f.box).concat(tags);
+      const sh = f.tw * .6, tops = [[0, top0], [-sh, top0], [sh, top0], [0, top0 - 16 * K], [-sh, top0 - 16 * K], [sh, top0 - 16 * K], [0, top0 - 32 * K], [0, top0 + 12 * K], [-sh, top0 + 12 * K], [sh, top0 + 12 * K], [0, 6 * K]];
+      const [dx, top] = tops.find(([d, t]) => { const b = [x + d - f.tw / 2, y + t, x + d + f.tw / 2, y + t + 14 * K]; return !out(b) && !hits(b, others); }) ?? [0, top0];
+      f.tag.setAttribute('transform', `translate(${dx},${top - top0})`);
+      tags.push([x + dx - f.tw / 2 - 1, y + top - 1, x + dx + f.tw / 2 + 1, y + top + 14 * K + 1]);
+    }
+    const stand = new Set(WHO.map(w => where[standing][w]));
+    const S = { r: [7, 5, 'start'], l: [-7, 5, 'end'], b: [0, 18, 'middle'], t: [0, -9, 'middle'], br: [7, 18, 'start'], bl: [-7, 18, 'end'],
+      tr: [7, -9, 'start'], tl: [-7, -9, 'end'], b2: [0, 32, 'middle'], b3: [0, 46, 'middle'], r2: [24, 18, 'start'], l2: [-24, 18, 'end'] };
+    // a city where someone stands first (its name goes under his feet), then the places only passed through
+    function placeCities(keys) {
+      const dots = {}, placed = [], squeezed = [];
+      for (const k of onPlaces) { const [x, y] = P[k].p; dots[k] = [x - 4, y - 4, x + 4, y + 4]; }
+      for (const k of keys) {
+        const p = P[k], t = p.g.querySelector('text'), [x, y] = p.p;
+        const order = stand.has(k) ? ['b', 'br', 'bl', 'b2', 'r2', 'l2', 'b3', p.side, 'r', 'l', 't', 'tr', 'tl']
+          : [p.side, 'r', 'l', 'b', 't', 'br', 'bl', 'tr', 'tl', 'b2', 'r2', 'l2', 'b3'];
+        const obstacles = solid.concat(tags, placed, Object.entries(dots).filter(([k2]) => k2 !== k).map(([, b]) => b));
+        const cands = order.map(side => { const [dx, dy, anchor] = S[side] || S.r; return [x + dx * K, y + dy * K, anchor]; });
+        if (stand.has(k)) {   // beside the body of whoever stands here, at the feet and at the waist
+          const bs = WHO.filter(w => where[standing][w] === k).map(w => F[w].box);
+          const u = [Math.min(...bs.map(b => b[0])), Math.min(...bs.map(b => b[1])), Math.max(...bs.map(b => b[2])), Math.max(...bs.map(b => b[3]))];
+          cands.splice(3, 0, [u[2] + 4, y + 5 * K, 'start'], [u[0] - 4, y + 5 * K, 'end'], [u[2] + 4, (u[1] + u[3]) / 2, 'start'], [u[0] - 4, (u[1] + u[3]) / 2, 'end']);
+        }
+        let best = null;
+        for (const [ax, by, anchor] of cands) {
+          t.setAttribute('x', ax); t.setAttribute('y', by); t.setAttribute('text-anchor', anchor);
+          const r = t.getBBox(), box = [r.x - 2, r.y, r.x + r.width + 2, r.y + r.height], cost = hits(box, obstacles) + (out(box) ? 1e4 : 0);
+          if (!best || cost < best.cost) best = { cost, ax, by, anchor, box };
+          if (!cost) break;
+        }
+        // a place only passed through gives up its name when there is no room for it; a place where someone stands never does
+        const drop = best.cost > 0 && !stand.has(k);
+        if (best.cost > 0 && stand.has(k)) squeezed.push(k);
+        t.classList.toggle('drop', drop);
+        t.setAttribute('x', best.ax); t.setAttribute('y', best.by); t.setAttribute('text-anchor', best.anchor);
+        if (!drop) placed.push(best.box);
+        else delete dots[k];
+      }
+      return { placed, squeezed };
+    }
+    // two names where people stand may want one spot: try again with the squeezed one placed first
+    let keys = [...onPlaces].sort((a, b) => stand.has(b) - stand.has(a)), res = placeCities(keys), bestKeys = keys;
+    for (let i = 0; i < 3 && res.squeezed.length; i++) {
+      keys = [...res.squeezed, ...keys.filter(k => !res.squeezed.includes(k))];
+      const next = placeCities(keys);
+      if (next.squeezed.length < res.squeezed.length) { res = next; bestKeys = keys; }
+    }
+    if (bestKeys !== keys) res = placeCities(bestKeys);   // the labels on the page are the last try's: put the best back
+    if (res.squeezed.length) console.info(`labels ${shown}: no clear room for ${res.squeezed.map(k => P[k].name).join(', ')}`);
+    const placed = res.placed;
+    // country names move a little, or fade, where a city name, a tag or a figure needs the room
+    const busy = solid.concat(tags, placed);
+    for (const t of countries) {
+      t.setAttribute('x', t.dataset.x); t.setAttribute('y', t.dataset.y);
+      if (t.classList.contains('off')) { t.classList.remove('yield'); continue; }
+      const b0 = t.getBBox(), cfs = b0.height, ok = [];
+      for (const [dx, dy] of [[0, 0], [0, -1.2 * cfs], [0, 1.2 * cfs], [-.35 * b0.width, 0], [.35 * b0.width, 0], [0, -2.4 * cfs], [0, 2.4 * cfs]]) {
+        const box = [b0.x + dx, b0.y + dy, b0.x + b0.width + dx, b0.y + b0.height + dy];
+        if (!hits(box, busy)) { ok.push([dx, dy]); busy.push(box); break; }
+      }
+      t.classList.toggle('yield', !ok.length);
+      if (ok.length) { t.setAttribute('x', +t.dataset.x + ok[0][0]); t.setAttribute('y', +t.dataset.y + ok[0][1]); }
+    }
+  }
+
   let walk = null;   // { start, items: [{w, pts, L, dur, trail, off0, off1}], fwd, y, to }
   let standing = FIRST - 1;   // the year whose end the figures stand at
   function drawTrails(y, old) {
@@ -196,7 +278,8 @@
   }
   function fullTrails(y) { drawTrails(y, false); for (const t of trails.querySelectorAll('.trail')) t.setAttribute('d', dpath(routeOf(y, t.dataset.w))); }
   function startWalk(from, to) {   // walk from the end of year `from` to the end of `to` (one step either way)
-    finishWalk();
+    clearTimeout(cardTimer); finishWalk();
+    for (const w of WHO) F[w].tag.removeAttribute('transform');
     const fwd = to > from, y = fwd ? to : from;
     drawTrails(y, false);
     const offs0 = Object.fromEntries(WHO.map(w => [w, F[w].off.slice()]));
@@ -234,6 +317,7 @@
       if (it.trail) it.trail.setAttribute('d', dpath(it.pts));
     }
     if (!w0.fwd) fullTrails(w0.y - 1);
+    layout();
   }
 
   /* ---------- cards ---------- */
@@ -285,10 +369,11 @@
 
   /* ---------- moving through the years ---------- */
   let pending = null;   // [from, to]: the walk that starts when the Europe card closes
+  let cardTimer = 0;    // the Europe card waits for last year's country names to fade out (page.css: .3 s out, .3 s in)
   function go(d) {
     const to = year + d;
     if (to < FIRST || to > LAST) return;
-    finishWalk(); closeCards(false); pending = null;
+    clearTimeout(cardTimer); finishWalk(); closeCards(false); pending = null;
     const from = year; year = to;
     // stand everyone where `from` left them, then show the new year and its card
     standing = from; spread(from);
@@ -296,7 +381,7 @@
     showYear(to);
     if (d < 0) fullTrails(from); else drawTrails(from, true);
     pending = [from, to];
-    openEurope(to);
+    cardTimer = setTimeout(() => openEurope(to), 650);
   }
   $('#prev').addEventListener('click', e => { e.stopPropagation(); go(-1); });
   $('#next').addEventListener('click', e => { e.stopPropagation(); go(1); });
@@ -316,6 +401,7 @@
     else if (e.key === 'ArrowLeft' && !e.altKey) go(-1);
   });
   addEventListener('resize', fit);
+  document.fonts?.ready.then(layout);   // text widths change when the fonts arrive
 
   /* ---------- start: 1919, from where the war left them ---------- */
   showYear(FIRST);

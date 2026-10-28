@@ -23,11 +23,14 @@ button { font: inherit; color: inherit; }
 .state { fill: var(--land); stroke: var(--line); stroke-width: 1.1; stroke-linejoin: round; vector-effect: non-scaling-stroke; transition: opacity .6s; }
 .state.off { opacity: 0; }
 .grain { pointer-events: none; mix-blend-mode: multiply; opacity: .5; }
-.country { font: 600 calc(15px * var(--kc, 1)) var(--sans); letter-spacing: .22em; fill: var(--line); text-anchor: middle; text-transform: uppercase; transition: opacity .6s; pointer-events: none; }
+.country { font: 600 calc(15px * var(--kc, 1)) var(--sans); letter-spacing: .22em; fill: var(--line); text-anchor: middle; text-transform: uppercase; transition: opacity .3s .3s; pointer-events: none; }
+/* last year's names fade out first, then this year's fade in; app.js opens the Europe card after both */
+.country.off, .country.yield { opacity: 0; transition-delay: 0s; }
 .seaname { font: italic calc(17px * var(--kc, 1)) var(--serif); fill: #7c8f8a; text-anchor: middle; letter-spacing: .08em; pointer-events: none; }
 .place circle { fill: var(--ink); }
 .place text { font: 500 calc(14px * var(--k, 1)) var(--sans); fill: var(--ink); paint-order: stroke; stroke: var(--land); stroke-width: calc(3.5px * var(--k, 1)); stroke-linejoin: round; }
 .place { transition: opacity .5s; pointer-events: none; }
+.place text.drop { opacity: 0; }
 .place.off { opacity: 0; }
 .trail { fill: none; stroke-width: calc(3px * var(--k, 1)); stroke-linecap: round; stroke-dasharray: 0 calc(9px * var(--k, 1)); opacity: .85; pointer-events: none; }
 .trail.old { opacity: .3; }
