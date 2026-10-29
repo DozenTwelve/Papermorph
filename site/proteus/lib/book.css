@@ -1,0 +1,14 @@
+/* The film's colours (Proteus: the landing page's paper and ink): --board is the ground, --chalk the ink on it,
+   --dim captions; --accent, and an old document's --paper, --paper-ink and --stamp, are read by film.js. Bake pictures
+   to match (prep.py and frames.py --ink is --chalk, prep.py --paper the paper). Imported by engine.css; engine.py never
+   overwrites it. */
+@import url("fonts.css");
+:root {
+  --page: #e9e1cf; --board: #f3ecdc; --panel: #fbf7ee; --edge: #d8ccb4;
+  --chalk: #26231f; --dim: #5d564c; --faint: #b9ad97;
+  --task: #b5383c; --quiz: #2b78a6; --good: #3f8a1d; --bad: #b5383c;
+  --on-fill: #fffaf0; --vignette: rgba(90, 70, 30, .10); color-scheme: light;
+  --rule: #e6dccb; --track: #e2d8c4; --track-ask: #cfdeeb;
+  --bar-edge: #e2d8c4; --hover: #ece3d1; --veil: #e9e1cf;
+  --accent: #b5383c; --paper: #fbf7ee; --paper-ink: #26231f; --stamp: #b5383c;
+}

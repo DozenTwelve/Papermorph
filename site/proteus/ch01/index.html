@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proteus</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<!-- A documentary chapter: one beat per paragraph of the script. After engine.py has made site/<book>/lib/, copy lib/
+     found pictures; add lib/lines.js (trace.py) and img/frames.js (frames.py) when the film uses traced drawings or clips. -->
+<script src="../lib/engine.js"></script>
+<script src="../lib/film.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+// lead: false — every opening is timed by hand, so the engine never pulls a beat's first reveal earlier
+const CHAPTER = { number: 1, title: 'Proteus', minutes: 1, language: 'en', lead: false };
+
+const CX = 1130, CY = 400, KY = 690;   // each shape's card, and its word under it
+
+// a card for one shape with its word, at the shape's second mark
+function shapeCard(p, name, col, word, t0, cx = CX) {
+  const g = sheet(p, cx, CY, col, t0 - .1);
+  CARDS[name](g, t0);
+  key(p, word, cx, KY, t0 + .1, { size: 72, fill: col });
+  tw(S.pro.disc, { x: cx, c_fill: col }, Math.max(0, t0 - 1.3), .9, soft);   // the colour field follows the card
+  return g;
+}
+// the leopard's spots, on its body in stage coordinates; they fly off to be the film strip's holes
+const SPOTS = [[-190, -112], [-140, -128], [-95, -104], [-50, -128], [-5, -108], [40, -130], [85, -110], [130, -128], [-120, -95], [-25, -90], [65, -92], [150, -100]];
+const HOLES = SPOTS.map((_, i) => [CX - 220 + (i % 6) * 88, CY + (i < 6 ? -146 : 146)]);
+// a hand of the one who holds on (Menelaus), cut from paper, reaching from the side dir (-1 left, 1 right)
+function hand(p, x, y, dir) {
+  const g = G(p, { x: x - dir * 260, y, o: 0 });
+  const h = G(g, { s: dir < 0 ? 1 : -1 });   // drawn for the left hand; mirrored for the right
+  path(h, 'M-240 -30H-70C-40 -44 -6 -34 6 -8C16 16 12 44 -10 52C-30 58 -60 50 -80 40H-240Z', { fill: '#c98f62' });
+  path(h, 'M-74 -32C-66 -66 -30 -72 -12 -54C-20 -44 -36 -40 -50 -30Z', { fill: '#d9a275' });
+  path(h, 'M-16 -14C-6 -10 0 0 2 8M-20 10C-10 14 -4 22 -4 30M-30 32C-22 36 -18 42 -18 46', { stroke: '#a8714a', 'stroke-width': 3, fill: 'none', 'stroke-linecap': 'round' });
+  return g;
+}
+
+/* ---------- beats ----------
+   [id, title, run, extra]: id names audio/en/<id>.mp3 and its TIMINGS entry; m('mark') is the time a word is heard.
+   `pre` gives the picture seconds before the narration starts. The last frame is the first (the page), so it loops. */
+// every beat's length on screen, hold included (a little over what it needs; ?lengths shows it), so the film has one
+// clock: the start of each beat (the waves run on it) and its whole length, the loop
+const LEN = { open: 5.8, lion: 5.4, dragon: 4.3, leopard: 3.8, boar: 4.1, water: 4.2, tree: 9.3 };
+const AT0 = {}; let FILM_LEN = 0;
+for (const id in LEN) { AT0[id] = FILM_LEN; FILM_LEN += LEN[id]; }
+window.FILM_LEN = FILM_LEN;
+
+// a beat's picture: the last beat's card fades on this beat's clock (in the export too), gone before Proteus lands
+function nextPanel() {
+  if (S.panel) hide(S.panel, 0, .35);
+  return panel(.5);
+}
+
+// Proteus changes in beat `id`: the morph, a splash as he melts, and the animal's call once he has the shape
+// (the call waits for the pause after the animal is named, so it never covers a word)
+function change(id, D, from, to, t0, dur, call, vol = 1, callAt = t0 + dur) {
+  S.at0 = AT0[id];
+  morph(D, from, to, t0, dur, callAt);
+  sfx(id, t0, 'splash', .45);
+  if (call) sfx(id, callAt, call, vol);
+}
+
+const BEATS = [
+  ['open', 'Proteus', (m, D) => {
+    proteus();
+    const p = nextPanel();
+    change('open', D, 'page', 'water', .3, 1.4, null, 1, m('hands'));
+    key(p, 'Proteus', CX, CY + 20, m('proteus'), { size: 120, fill: DEEP });
+    const tg = tag(p, 'Odyssey, book IV', CX, CY + 80, m('proteus', .4), { size: 30, anchor: 'middle' });
+    tg.setAttribute('font-style', 'italic');
+    [-1, 1].forEach(dir => { const h = hand(p, 470 + dir * 130, 610, dir); tw(h, { x: 470 + dir * 130, o: 1 }, m('hands', -.3), .5, out);
+      tw(h, { x: 470 + dir * 330, o: 0 }, D - .1, .5, io);   // he slips out of them
+    });
+  }, { pre: .4 }],
+  ['lion', 'A lesson', (m, D) => {
+    const p = nextPanel();
+    change('lion', D, 'water', 'lion', Math.max(0, m('lion', -.45)), .9, 'roar', .8, m('lesson', -.72));
+    shapeCard(p, 'lesson', RED, 'a lesson', m('lesson'));
+  }],
+  ['dragon', 'A picture book', (m, D) => {
+    const p = nextPanel();
+    change('dragon', D, 'lion', 'dragon', Math.max(0, m('dragon', -.3)), .9, 'hiss', .7, m('book', -.56));
+    shapeCard(p, 'book', BLUE, 'a picture book', m('book'), 470);
+  }],
+  ['leopard', 'A film', (m, D) => {
+    const p = nextPanel();
+    change('leopard', D, 'dragon', 'leopard', m('leopard', -.6), .8, 'growl', 1.4, m('film', -.62));
+    const strip = G(p, { x: 470, y: 760 });
+    shapeCard(p, 'film', PURPLE, 'a film', m('film'));
+    p.appendChild(strip);   // the spots go over the card as its holes
+    clockRun(t => {   // on the body, then level while they fly
+      const { x, y, r } = st(S.pro.g), k = smooth01(span01(t, m('film'), m('film', .7)));
+      put(strip, { x: x + (470 - x) * k, y: y + (760 - y) * k, r: r * (1 - k) });
+    }, D, { tail: true });
+    SPOTS.forEach(([x, y], i) => {
+      const e = G(strip, { x, y, o: 0 });
+      const r = mk('rect', { x: -11, y: -8, width: 22, height: 16, rx: 5, fill: '#3b2357' }, e);
+      show(e, m('leopard', .15), .3);
+      tw(e, { x: HOLES[i][0] - 470, y: HOLES[i][1] - 760 }, m('film', i * .03), .7, soft);
+      tw(r, { c_fill: '#f3ede0' }, m('film', .5), .3);
+    });
+  }, { pre: .6 }],
+  ['boar', 'A short', (m, D) => {
+    const p = nextPanel();
+    change('boar', D, 'leopard', 'boar', m('boar', -.5), .8, 'grunt', .9, m('short', -.44));
+    shapeCard(p, 'short', OCHRE, 'a short', m('short'), 470);
+  }, { pre: .5 }],
+  ['water', 'A map', (m, D) => {
+    const p = nextPanel();
+    change('water', D, 'boar', 'stream', m('water', -.5), .9, 'whoosh', .6, m('map', -.54));
+    shapeCard(p, 'map', TEAL, 'a map', m('map'));
+  }, { pre: .5 }],
+  ['tree', 'One source', (m, D) => {
+    const p = nextPanel();
+    const t1 = m('tree', -.5), t2 = m('name', 2.2);   // into the tree, then back to the page
+    sfx('tree', t1, 'splash', .7); sfx('tree', t2, 'splash', .6);
+    S.at0 = AT0.tree; sea(D);
+    clockRun(t => t < t2 ? drawPro('stream', 'tree', smooth01(span01(t, t1, t1 + 1.1)), t, t - t1 - 1.1)
+      : drawPro('tree', 'page', smooth01(span01(t, t2, t2 + 1.2)), t), D, { tail: true });
+    S.pro.at = 'page';
+    const T0 = SHAPES.tree;
+    const shelf = [['lesson', RED, -250, -322], ['book', BLUE, -220, -492], ['film', PURPLE, 0, -684], ['short', OCHRE, 228, -547], ['map', TEAL, 252, -380]];
+    shelf.forEach(([name, col, x, y], i) => {
+      const g = sheet(p, T0.x + x, T0.y + y, col, m('tree', .9 + i * .22), { s: .3 });
+      CARDS[name](g, m('tree', 1 + i * .22));
+      tw(g, { x: SHAPES.page.x, y: SHAPES.page.y - 210, s: .1 }, t2 - .3 + i * .05, .6, io);   // the shapes go back into the one source
+      hide(g, t2 - .1 + i * .05, .3);
+    });
+    [['One source.', 380, m('one')], ['Many shapes.', 490, m('many')]].forEach(([w, y, t]) => hide(key(p, w, 1250, y, t, { size: 96 }), t2, .5));
+    hide(key(p, 'Papermorph', 1250, 640, m('name'), { size: 80, fill: DEEP }), t2, .5);
+    tw(S.pro.disc, { x: 1250, c_fill: WATER }, m('one', -.6), .9, soft);
+    tw(S.pro.disc, { x: CX }, t2, 1.2, soft);   // where the film starts, so it loops
+    prog(() => {}, 0, t2 + 1.25);   // hold the page a moment: the film's last frame is its first
+  }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra, minDur: LEN[id] }));
+
+/* ---------- music ----------
+   One music(file, [beat ids], gain, fade) per part of the film; window.MUSIC_UP_IN_PRE lifts it in a music-only opening. */
+window.MUSIC_UP_IN_PRE = ['open'];
+music('audio/bgm/haydn-lark-finale.mp3', BEATS.map(b => b.id), .6, 0);
+
+// the fonts must be in before words are measured
+Promise.all(['600 40px Oswald', '500 40px Oswald', 'italic 400 40px "EB Garamond"', '400 40px "EB Garamond"']
+  .map(f => document.fonts.load(f))).then(boot);
+</script>
+</body>
+</html>

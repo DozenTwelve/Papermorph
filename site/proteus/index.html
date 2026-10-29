@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proteus</title>
+<meta name="description" content="Papermorph introduces itself: Proteus, the old man of the sea, becomes a lesson, a picture book, a film, a short and a map.">
+<link rel="stylesheet" href="lib/book.css"><!-- only for --progress-key, if the book sets one -->
+<style>
+  :root { --ink: #2f2418; --soft: #6b5a46; --paper: #f3ecdc; --card: #fffaf0; --line: #e4d6bb; --accent: #2b6f8f;
+    --ui: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif; --serif: "Iowan Old Style", Palatino, Georgia, serif; color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 18px/1.6 var(--ui); }
+  header { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 40px; align-items: center; max-width: 1180px; margin: 0 auto; padding: 48px 24px 24px; }
+  header img { width: 100%; height: auto; border-radius: 10px; box-shadow: 0 14px 40px #4a33182e; }
+  h1 { margin: 0 0 8px; font: 700 clamp(34px, 4.6vw, 56px)/1.05 var(--serif); }
+  .lede { font-size: 20px; color: var(--soft); }
+  main { max-width: 1000px; margin: 0 auto; padding: 8px 24px 80px; }
+  .episodes { list-style: none; padding: 0; margin: 18px 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .episodes a { display: flex; flex-direction: column; height: 100%; background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    overflow: hidden; color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; }
+  .episodes a:hover, .episodes a:focus-visible { border-color: var(--accent); transform: translateY(-2px); }
+  .episodes img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
+  .episodes small { margin: 12px 16px 0; color: var(--soft); font-size: 13px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; }
+  .episodes b { margin: 2px 16px 4px; font: 700 21px/1.25 var(--serif); }
+  .episodes span { margin: 0 16px 16px; color: var(--soft); font-size: 15px; line-height: 1.5; }
+  .watched small::after { content: " · ✓ watched"; color: var(--accent); }
+  .credits { margin-top: 48px; color: var(--soft); font-size: 15px; } .credits h2 { font: 700 22px/1.2 var(--serif); color: var(--ink); }
+  .credits a { color: var(--accent); }
+  @media (max-width: 760px) { header { grid-template-columns: 1fr; padding-top: 28px; } .episodes { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <img src="img/cover.webp" width="1400" height="788" alt="A paper tree whose branches hold five small cards: a lesson, a picture book, a film, a short and a map, beside the words One source, many shapes, Papermorph.">
+  <div>
+    <h1>Proteus</h1>
+    <p class="lede">Homer’s old man of the sea changes shape in your hands, and so does a source in Papermorph: a lesson, a picture book, a film, a short, a map.</p>
+  </div>
+</header>
+<main>
+  <ul class="episodes" id="episodes"></ul>
+  <section class="credits">
+    <h2>Sources</h2>
+    <ul>
+      <li>The story: Homer, <i>The Odyssey</i>, book IV, translated by Samuel Butler (1900), <a href="https://www.gutenberg.org/ebooks/1727">Project Gutenberg</a>, public domain.</li>
+      <li>Music: Joseph Haydn, String Quartet in D major, Op. 64 No. 5 “The Lark”, finale, Musopen String Quartet, <a href="https://commons.wikimedia.org/wiki/File:Haydn_StringQuartetInDMajorOp.64_JosephHaydn-StringQuartetInDOp.645H363Lark-04-FinaleVivace.ogg">Wikimedia Commons</a>, public domain.</li>
+      <li>The lion: <a href="https://commons.wikimedia.org/wiki/File:Lion_raring-sound1TamilNadu178.ogg">a lion roaring</a>, recorded in Tamil Nadu by த*உழவன், public domain.</li>
+      <li>The leopard: <a href="https://commons.wikimedia.org/wiki/File:Yellowstone_sound_library_-_Grizzly_Bears_Roar_-_001.mp3">grizzly bears roaring</a>, Yellowstone sound library, NPS &amp; MSU Acoustic Atlas / Jennifer Jerrett, public domain.</li>
+      <li>The dragon: <a href="https://commons.wikimedia.org/wiki/File:Cat_hissing_-_Zabuhailo.wav">a cat hissing</a>, Zabuhailo (Freesound), CC0.</li>
+      <li>The boar: <a href="https://commons.wikimedia.org/wiki/File:Man_grunts_like_pig.ogg">a man grunting like a pig</a>, stilgar (PDSounds), public domain.</li>
+      <li>Pictures: cut paper drawn in code for this film. Splashes and the rush of water synthesized. Narration: ElevenLabs.</li>
+    </ul>
+  </section>
+</main>
+<script>
+'use strict';
+// One entry per finished episode, in order: its folder, title, a still (16:9) with alt text, and one line.
+const EPISODES = [
+  { ch: 'ch01', title: 'One source, many shapes', minutes: 1, still: 'img/cover.webp', alt: 'The paper tree holding five shapes.', line: 'A lion, a dragon, a leopard, a wild boar, running water: five shapes of one source, gathered on a tree.' },
+];
+// The player records finished episodes under the same key as here (engine progress(): lib/book.css --progress-key,
+// else this folder's path).
+const key = getComputedStyle(document.documentElement).getPropertyValue('--progress-key').trim().replace(/^["']|["']$/g, '')
+  || 'animebook:progress:' + new URL('.', location.href).pathname;
+let done = [];
+try { done = JSON.parse(localStorage.getItem(key) || '{}').done || []; } catch {}
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+document.getElementById('episodes').innerHTML = EPISODES.map((e, i) => `<li${done.includes(+e.ch.slice(2)) ? ' class="watched"' : ''}>
+  <a href="${e.ch}/"><img src="${esc(e.still)}" alt="${esc(e.alt)}" loading="lazy">
+  <small>Episode ${i + 1} · ${e.minutes} minute${e.minutes == 1 ? "" : "s"}</small><b>${esc(e.title)}</b><span>${esc(e.line)}</span></a></li>`).join('');
+</script>
+</body>
+</html>
