@@ -14,7 +14,7 @@
   <a href=".claude/skills/papermorph/SKILL.md">Read the Skill</a>
 </p>
 
-> **1,000 stars.** Papermorph passed a thousand stars this week. Thank you to everyone who starred it, tried the Skill on their own books, filed issues and sent pull requests. The first roadmap is done; the next one is being worked out ([below](#roadmap)).
+> **1,000 stars.** Papermorph passed a thousand stars this week. Thank you to everyone who starred it, tried the Skill on their own books, filed issues and sent pull requests. The first roadmap is done, and the next one is [below](#roadmap).
 
 Everything is a static web page: no server, no database, no account. A book is a folder you can host anywhere.
 
@@ -84,7 +84,17 @@ Any chapter or episode also renders to a 1080p MP4 with an `.srt`, frame by fram
 
 ## Roadmap
 
-The first roadmap is done: maths books, science books, picture books, a model of your choice for every step, documentaries, and upright shorts. Point-and-read, a rifle, a map and a scroll story came along the way. The next roadmap is being worked out; ideas are welcome in [Discussions](https://github.com/DozenTwelve/Papermorph/discussions).
+The first roadmap is done: maths books, science books, picture books, a model of your choice for every step, documentaries, and upright shorts. Point-and-read, a rifle, a map and a scroll story came along the way. Next:
+
+- **Picture books for children who can't read yet.** New looks besides paper cut-outs, still moved in code, and more ways to play inside the film by voice and touch: find the thing the narrator names, tap to make the story go on, choose by picture.
+- **Picture books from a PDF of pictures.** Bring an illustrated book and make its pages move: tap to hear names over the painting, layers that drift in parallax, characters cut into paper puppets, the printed text read aloud. For your own books or a publisher's; our own examples will use public-domain books or pictures we draw.
+- **Lessons with their own examples.** The textbook sets what is taught, in what order and how hard; the Skill writes new worked examples and exercises, with answers computed in code, so nothing is copied from the book.
+- **One source, every shape.** A single Wikipedia article made into a documentary, shorts, an interactive page and a scroll story, side by side.
+- **Elementary Physics, remade** with what the newer books can do.
+
+## Working with us
+
+The shelf is a set of examples: the shapes that suit a maths book, a language course, a picture book or a documentary, and one source can take several of them (*The Pandemic* is a film, six shorts and a scroll story). For publishers, schools and studios we build the pipeline around your own titles and your own style. Write to [a972848363@gmail.com](mailto:a972848363@gmail.com) with what the titles are, who they are for, and how many you have in mind.
 
 ## FAQ
 
