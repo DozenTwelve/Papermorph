@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Four Ways to Multiply</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render"><!-- hold the first frame until the player exists, so the page transition can run -->
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/math.js"></script>
+<script src="../lib/grid2.js"></script>
+<script src="../lib/mm.js"></script>
+<script src="../lib/play.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 24, title: 'Four Ways to Multiply', minutes: 10, language: 'en', next: '../ch25/' };
+
+/* ---------- chapter drawing helpers ---------- */
+const GREEN = MM_COL[0], VIOLET = MM_COL[1], BLUE = MM_ROW[0], CORAL = MM_ROW[1];
+const A0 = [[2, 1], [1, 1]], B0 = [[1, -1], [2, 1]];                // the chapter's pair: AB = [[4, −1], [3, 0]]
+const AT = [70, 260];
+const PLANE = { cx: 1190, cy: 440, u: 60, x0: -5, x1: 5, y0: -5, y1: 5 };   // closer in: this pair's points are all within 5
+const PLANE6 = { cx: 1190, cy: 450, u: 50 };                               // rows2 goes to (−3, −6)
+const CARD = { x: 40, y: 610, w: 780, cls: 'side' };
+const say = (p, parts, x, y, t0, { size = 40, fill = COL.chalk, anchor = 'start' } = {}) => { const e = M(p, [].concat(parts), { x, y, size, fill, anchor, o: 0 }); show(e, t0); return e; };
+const text = (p, str, x, y, t0, { size = 30, fill = COL.chalk, anchor = 'start', weight = 500 } = {}) => { const e = T(p, str, { x, y, size, fill, anchor, weight, o: 0 }); show(e, t0); return e; };
+const title = (p, str) => text(p, str, 60, 110, .2, { size: 40, weight: 600 });
+const thick = (e, t0, w = 5) => { tw(e, { 'a_stroke-width': w + 5 }, t0, .3); tw(e, { 'a_stroke-width': w }, t0 + 1.2, .6); };
+// The column way's picture (chapter 23): A's columns as arrows, x = a column of B, Ax = that column of AB.
+const colPic = (p, P_, col = 0, t0 = .1, plane = PLANE) => {
+  const g = grid2(p, { A: [[P_.v.a00, P_.v.a01], [P_.v.a10, P_.v.a11]], x: [0, 0], mat: null, grid: false, square: false, units: false, brackets: true, plane, t0 });
+  g.labels(['col 1', 'col 2']);
+  P_.link(g, { col, dots: true });
+  return g;
+};
+// The row way's picture: the arrows are the rows of B (blue, coral), x = a row of A, Ax = that row of AB.
+const rowPic = (p, P_, row = 0, t0 = .1, plane = PLANE) => {
+  const g = grid2(p, { A: [[0, 0], [0, 0]], x: [0, 0], mat: null, grid: false, square: false, units: false, brackets: true, plane, t0 });
+  g.labels(['row 1 of B', 'row 2 of B']);
+  [0, 1].forEach(j => {
+    [g.cols[j], g.combo[j]].forEach(e => { e.setAttribute('stroke', MM_ROW[j]); e.setAttribute('fill', MM_ROW[j]); });
+    g.tips[j]._ring.setAttribute('stroke', MM_ROW[j]);
+    g.tipLabels[j].querySelectorAll('text, tspan').forEach(t => t.setAttribute('fill', MM_ROW[j]));
+  });
+  P_.link(g, { col: row, dots: true, rows: true });
+  return g;
+};
+const target = (P2, [x, y], into, t0 = .3) => {
+  const g = G(into, { x: P2.PX(x), y: P2.PY(y), o: 0 });
+  mk('circle', { r: 17, fill: 'none', stroke: COL.task, 'stroke-width': 3, 'stroke-dasharray': '5 5' }, g);
+  const left = P2.PX(x) > 1380;   // near the right edge the label goes on the left
+  T(g, `target (${num(x)}, ${num(y)})`, { x: left ? -22 : 22, y: 40, size: 22, fill: COL.task, font: MATH, anchor: left ? 'end' : 'start' });
+  show(g, t0, .4);
+  return g;
+};
+// The four ways as a list, each line lit while the chapter is on it.
+const WAYS = ['1  entries: a row times a column', '2  columns: A times each column of B', '3  rows: each row of A times B', '4  pieces: columns times rows, added'];
+const waysList = (p, x, y, times, { size = 30 } = {}) => WAYS.map((s, k) => text(p, s, x, y + k * 52, times[k], { size, weight: 600 }));
+const pairEl = (A, B) => ['A = ', mmEl(A), '      B = ', mmEl(B)];
+const fac = v => v < 0 ? `(${num(v)})` : num(v);
+
+/* ---------- practice data (every answer worked twice: by the asked way and entry by entry) ---------- */
+const ROWQ = [
+  { A: [[1, 2], [0, 1]], B: [[1, 1], [2, -1]], C: [[5, -1], [2, -1]] },
+  { A: [[3, -1], [1, 1]], B: [[1, 0], [2, 2]], C: [[1, -2], [3, 2]] },
+  { A: [[1, 0], [-2, 1]], B: [[2, 1], [4, 5]], C: [[2, 1], [0, 3]] },
+  { A: [[1, 1], [2, 0]], B: [[1, 2, 3], [0, 1, -1]], C: [[1, 3, 2], [2, 4, 6]] },
+];
+const rowRows = ({ A, B, C }) => C.map((r, i) => ({
+  parts: [`row ${i + 1} of AB  =  (`, ...r.flatMap((v, j) => [...(j ? [', '] : []), { box: String(v) }]), ')'],
+  why: `${fac(A[i][0])}·(${B[0].map(num).join(', ')}) + ${fac(A[i][1])}·(${B[1].map(num).join(', ')}) = (${r.map(num).join(', ')}).`,
+  hint: `Row ${i + 1} of A is (${A[i].map(num).join(', ')}): that much of row 1 of B, plus that much of row 2 of B.`,
+}));
+const PIECEQ = [
+  { prompt: ['Column times row:   ', mmEl([[2], [3]]), ' ', mmEl([[1, 4]])], rows: [
+    { parts: ['row 1  =  (', { box: '2' }, ', ', { box: '8' }, ')'], why: '2·1 = 2 and 2·4 = 8.', hint: 'Row 1: the top of the column, 2, times the row (1, 4).' },
+    { parts: ['row 2  =  (', { box: '3' }, ', ', { box: '12' }, ')'], why: '3·1 = 3 and 3·4 = 12: 3 times the same row.', hint: 'Row 2: 3 times the row (1, 4).' }] },
+  { prompt: ['Column times row, 2 × 1 times 1 × 3:   ', mmEl([[1], [-1]]), ' ', mmEl([[2, 1, 3]])], rows: [
+    { parts: ['row 1  =  (', { box: '2' }, ', ', { box: '1' }, ', ', { box: '3' }, ')'], why: '1 times the row.', hint: 'Each row is the top number of the column times (2, 1, 3).' },
+    { parts: ['row 2  =  (', { box: '-2' }, ', ', { box: '-1' }, ', ', { box: '-3' }, ')'], why: '−1 times the row: every sign flips.', hint: 'Row 2 is −1 times (2, 1, 3).' }] },
+  { prompt: ['AB in pieces.   ', ...pairEl([[1, 0], [2, 1]], [[3, 1], [1, 4]])], rows: [
+    { parts: ['piece 1 = (column 1)(row 1)  =  [', { box: '3' }, ' ', { box: '1' }, ';  ', { box: '6' }, ' ', { box: '2' }, ']'], why: '(1, 2) times (3, 1): rows (3, 1) and (6, 2).', hint: 'Column 1 of A is (1, 2); row 1 of B is (3, 1).' },
+    { parts: ['piece 2 = (column 2)(row 2)  =  [', { box: '0' }, ' ', { box: '0' }, ';  ', { box: '1' }, ' ', { box: '4' }, ']'], why: '(0, 1) times (1, 4): rows (0, 0) and (1, 4).', hint: 'Column 2 of A is (0, 1); row 2 of B is (1, 4).' },
+    { parts: ['AB  =  [', { box: '3' }, ' ', { box: '1' }, ';  ', { box: '7' }, ' ', { box: '6' }, ']'], why: 'The pieces added: [3 1; 7 6]. Entry by entry: 3 + 0, 1 + 0, 6 + 1, 2 + 4.', hint: 'Add the two pieces number by number.' }] },
+  { prompt: ['Chapter 23’s first pair in pieces.   ', ...pairEl([[2, 1], [1, 3]], [[1, 2], [1, -1]])], rows: [
+    { parts: ['piece 1  =  [', { box: '2' }, ' ', { box: '4' }, ';  ', { box: '1' }, ' ', { box: '2' }, ']'], why: '(2, 1) times (1, 2).', hint: 'Column 1 of A times row 1 of B.' },
+    { parts: ['piece 2  =  [', { box: '1' }, ' ', { box: '-1' }, ';  ', { box: '3' }, ' ', { box: '-3' }, ']'], why: '(1, 3) times (1, −1).', hint: 'Column 2 of A times row 2 of B.' },
+    { parts: ['AB  =  [', { box: '3' }, ' ', { box: '3' }, ';  ', { box: '4' }, ' ', { box: '-1' }, ']'], why: 'The same AB as in chapter 23.', hint: 'Add the two pieces.' }] },
+];
+const WAYQ = [
+  ['1·5 + 2·7 = 19', 'e'], ['5·(column 1 of A) + 7·(column 2 of A)', 'c'], ['1·(row 1 of B) + 2·(row 2 of B)', 'r'],
+  ['(column 1 of A)(row 1 of B) + (column 2 of A)(row 2 of B)', 'p'], ['row 2 of A times column 1 of B: one number', 'e'], ['row 2 of E mixes the rows of A (elimination)', 'r'],
+].map(([s, k]) => ({ parts: [s], ans: [k], why: { e: 'One entry: a row times a column.', c: 'A mix of the columns of A: one column of AB.', r: 'A mix of the rows of the right matrix: one row of the answer.', p: 'Pieces added: columns times rows.' }[k] }));
+const HANDS = [
+  { A: [[1, 0], [0, 1]], B: [[1, -1], [2, 1]], row: 0, tgt: [3, 0], ans: { a00: 1, a01: 1 }, prompt: 'Move row 1 of A (the ring x, or its numbers) until row 1 of AB lands on the target.',
+    why: 'Row 1 of A = (1, 1): (1, −1) + (2, 1) = (3, 0).' },
+  { A: [[1, 0], [0, 1]], B: [[1, 0], [1, 1]], row: 1, tgt: [-1, 2], ans: { a10: -3, a11: 2 }, prompt: 'New rows of B. Make row 2 of AB land on the target.',
+    why: 'Row 2 of A = (−3, 2): −3·(1, 0) + 2·(1, 1) = (−1, 2).' },
+  { A: [[1, 0], [0, 1]], B: [[1, 0], [0, 1]], row: 0, tgt: null, ans: { b00: 1, b01: 2, b10: 3, b11: 1 }, prompt: 'A is the identity. Change B (its numbers, or drag the row arrows) until AB = [1 2; 3 1].',
+    why: 'A = I, so each row of AB is just a row of B: B = [1 2; 3 1].' },
+];
+
+/* ---------- beats ---------- */
+const BEATS = [
+  ['intro', 'Four ways to multiply', (m, D) => {
+    const g = G(scene, { o: 0, y: 24 });
+    T(g, 'Unit 3, Chapter 24', { x: 800, y: 250, size: 28, fill: COL.dim, anchor: 'middle' });
+    T(g, 'Four Ways to Multiply', { x: 800, y: 360, size: 88, weight: 600, anchor: 'middle' });
+    tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+    const r = text(scene, 'one product, worked out four different ways', 800, 460, m('sub'), { size: 34, fill: COL.dim, anchor: 'middle' });
+    const lg = G(scene, { o: 0 });
+    const P_ = mm(lg, { A: A0, B: B0, at: [560, 600], size: 36, cw: 56, sizes: false, t0: 0 });
+    put(P_.W, { o: 0 });
+    show(lg, m('sub') + 1, .5);
+    P_.show('entry', [0, 0], m('move')); P_.show('cols', 1, m('move') + 1.2); P_.show('rows', 1, m('move') + 2.4); P_.show('outer', 0, m('move') + 3.6); P_.show(null, null, m('move') + 4.8);
+    tw(g, { o: 0, y: -24 }, D - .9, .8); hide(r, D - .9, .8); hide(lg, D - .9, .8);
+  }],
+
+  ['pair', 'One pair', (m) => {
+    const p = panel(0);
+    title(p, 'One pair, four ways');
+    const P_ = mm(p, { A: A0, B: B0, at: [90, 280], size: 46, cw: 70, rh: 68, hideC: true, t0: m('A') - .3 });
+    put(P_.L.b.g, { o: 0 }); show(P_.L.b.g, m('B'), .5);
+    P_.flash('a', 'all', m('A') + .4); P_.flash('b', 'all', m('B') + .4);
+    P_.reveal('all', m('ab'));
+    const ws = waysList(p, 860, 260, [m('w1'), m('w2'), m('w3'), m('w4')], { size: 32 });
+    P_.show('entry', [0, 0], m('w1') + .2); P_.show('cols', 0, m('w2') + .2);
+    text(p, 'ways 1 and 2: chapter 23', 860, 500, m('last'), { size: 24, fill: COL.dim, weight: 600 });
+    P_.show('rows', 0, m('w3') + .2); P_.show('outer', 0, m('w4') + .2);
+    P_.flash('a', { row: 0 }, m('w1') + 2); P_.flash('b', { col: 0 }, m('w1') + 3.5);
+    P_.flash('a', { col: 0 }, m('w4') + 1.5); P_.flash('b', { row: 0 }, m('w4') + 2.5);
+    [0, 1].forEach(k => tw(ws[k], { o: .45 }, m('w3'), .4));
+    tw(ws[2], { o: .45 }, m('w4'), .4);
+  }],
+
+  ['entries', 'Way 1: entries', (m) => {
+    const p = panel(0);
+    title(p, 'Way 1: entries, a row times a column');
+    const P_ = mm(p, { A: A0, B: B0, at: [90, 280], size: 46, cw: 70, rh: 68, hideC: true, t0: .1, wsize: 36 });
+    [['e11', [0, 0]], ['e12', [0, 1]], ['e21', [1, 0]], ['e22', [1, 1]]].forEach(([k, c], i) => {
+      const long = i < 2;
+      P_.show('entry', c, m(k), { times: [m(k) + 1.5, m(k) + (long ? 5 : 4.6), m(k) + (long ? 6.4 : 5.4)] });
+      P_.reveal({ cell: c }, m(k) + (long ? 6.4 : 5.4));
+    });
+    P_.flash('a', { row: 0 }, m('e11') + 2); P_.flash('b', { col: 0 }, m('e11') + 3.5);
+    P_.flash('c', 'all', m('count') + 3);
+    P_.show(null, null, m('count'));
+    const cg = G(p, { o: 0 });
+    M(cg, ['4 entries × 2 products = 8 multiplications'], { x: 90, y: 690, size: 36, anchor: 'start' });
+    show(cg, m('count') + .3, .5);
+    P_.flash('c', 'all', m('count') + .3);
+    text(p, 'handy when you need just one number', 90, 780, m('handy'), { size: 30, fill: COL.dim, weight: 600 });
+    P_.show('entry', [1, 0], m('handy') + .3);
+  }],
+
+  ['columns', 'Way 2: columns', (m) => {
+    const p = panel(0);
+    title(p, 'Way 2: A times each column of B');
+    const P_ = mm(p, { A: A0, B: B0, at: AT, tintA: 'cols', hideC: true, t0: .1 });
+    const g = colPic(p, P_, 0);
+    P_.show('cols', 0, m('c1'), { times: [m('c1') + 1.5, m('c1') + 5, m('c1') + 6.3] });
+    P_.reveal({ col: 0 }, m('c1') + 6.3);
+    pulse(g.axDot, m('land1') + .3); thick(g.combo[0], m('land1') + 1, 4); thick(g.combo[1], m('land1') + 2, 4);
+    P_.linkCol(1, m('c2'));
+    P_.show('cols', 1, m('c2'), { times: [m('c2') + 1.8, m('c2') + 5.4, m('c2') + 7.4] });
+    P_.reveal({ col: 1 }, m('c2') + 7.4);
+    pulse(g.axDot, m('land2') + .3); P_.flash('c', { col: 1 }, m('land2') + 1.2);
+    P_.flash('a', { col: 0 }, m('c2') + 4); P_.flash('a', { col: 1 }, m('c2') + 7);
+    P_.flash('a', { col: 0 }, m('mix') + .5); P_.flash('a', { col: 1 }, m('mix') + 1.5); P_.flash('c', 'all', m('mix') + 2.5);
+    text(p, 'handy to see what A does: it moves each column of B', 70, 740, m('handy'), { size: 28, fill: COL.dim, weight: 600 });
+    P_.linkCol(0, m('handy') + 2.5);
+  }],
+
+  ['columns2', 'Both ways', (m) => {
+    const p = panel(0);
+    title(p, 'One more pair, two ways');
+    const P_ = mm(p, { A: [[1, -1], [1, 2]], B: [[1, 2], [1, -1]], at: AT, tintA: 'cols', hideC: true, t0: m('A') - .3 });
+    const g = colPic(p, P_, 0, m('A') - .3);
+    put(P_.L.b.g, { o: 0 }); show(P_.L.b.g, m('B'), .5);
+    P_.flash('a', { col: 0 }, m('A') + 2.6); P_.flash('a', { col: 1 }, m('A') + 3.8); thick(g.cols[0], m('A') + 2.6); thick(g.cols[1], m('A') + 3.8);
+    P_.show('cols', 0, m('c1'), { times: [m('c1') + 2.5, m('m1'), m('r1')] });
+    P_.reveal({ col: 0 }, m('r1'));
+    P_.linkCol(1, m('c2'));
+    P_.show('cols', 1, m('c2'), { times: [m('c2') + 2.5, m('m2'), m('r2')] });
+    P_.reveal({ col: 1 }, m('r2'));
+    pulse(g.axDot, m('r2') + .2);
+    P_.show(null, null, m('ab')); P_.flash('c', 'all', m('ab') + .3);
+    P_.flash('a', { row: 0 }, m('e12') + 3.5); P_.flash('b', { col: 1 }, m('e12') + 5.5);
+    P_.show('entry', [0, 1], m('e12') + 2.5, { times: [m('p12'), m('p12') + 2.6, m('r12')] });
+    P_.flash('c', { cell: [0, 1] }, m('same'), { color: COL.good });
+    text(p, 'way 1 and way 2: the same number', 70, 790, m('same') + .3, { size: 28, fill: COL.dim, weight: 600 });
+  }],
+
+  ['q1', 'Quick check', () => {
+    const p = panel(0);
+    title(p, 'Quick check');
+    S.P = mm(p, { A: [[1, 3], [2, 1]], B: [[2, 0], [1, 1]], at: [90, 280], size: 46, cw: 70, rh: 68, hideC: true });
+  }, { ask: done => quiz({ x: 40, y: 480, w: 800, cls: 'side' }, [{
+    id: 'c-two', prompt: ['Use way 1 for one number, way 2 for a whole column.'],
+    build: blanks([
+      { parts: ['entry (2, 1) of AB  =  ', { box: '5' }], why: 'Row 2 of A times column 1 of B: 2·2 + 1·1 = 5.', hint: 'Row 2 of A is (2, 1); column 1 of B is (2, 1).',
+        fx: () => fxp(q => { if (q > 0) S.P.uncover({ cell: [1, 0] }); }, 0, .1) },
+      { parts: ['column 2 of AB  =  (', { box: '3' }, ', ', { box: '1' }, ')'], why: '0·(1, 2) + 1·(3, 1) = (3, 1).', hint: 'Column 2 of B is (0, 1): none of column 1 of A, one of column 2.',
+        fx: () => fxp(q => { if (q > 0) S.P.uncover({ col: 1 }); }, 0, .1) },
+    ]),
+  }], done) }],
+
+  ['rows', 'Way 3: rows', (m) => {
+    const p = panel(0);
+    title(p, 'Way 3: each row of A times B');
+    const P_ = mm(p, { A: A0, B: B0, at: AT, tintB: 'rows', hideC: true, t0: .1 });
+    const g = rowPic(p, P_, 0);
+    put(g.parts.cols, { o: 0 }); put(g.parts.x, { o: 0 }); put(g.stage, { o: 0 });
+    show(g.stage, m('pic1') - .3, .4); show(g.parts.cols, m('pic1'), .5); show(g.parts.x, m('pic1') + 2, .5);
+    P_.flash('a', { row: 0 }, m('turn')); P_.flash('b', 'all', m('turn') + 1.2);
+    P_.show('rows', 0, m('r1'), { times: [m('r1') + 1.5, m('m1'), m('s1')] });
+    P_.flash('b', { row: 0 }, m('r1') + 2.5); P_.flash('b', { row: 1 }, m('r1') + 4.2);
+    P_.reveal({ row: 0 }, m('s1') + .3);
+    P_.flash('b', { row: 0 }, m('m1') + .5); P_.flash('b', { row: 1 }, m('m1') + 3);
+    thick(g.cols[0], m('pic1') + 3); thick(g.cols[1], m('pic1') + 4.6); pulse(g.axDot, m('pic1') + 7.5);
+    P_.linkCol(1, m('r2'));
+    P_.show('rows', 1, m('r2'), { times: [m('r2') + 1.2, m('s2'), m('s2') + 2.4] });
+    P_.reveal({ row: 1 }, m('s2') + 2.4);
+    pulse(g.axDot, m('s2') + 2.6);
+    P_.flash('b', { row: 0 }, m('mix') + .6); P_.flash('b', { row: 1 }, m('mix') + 1.4); P_.flash('c', 'all', m('mix') + 2.3);
+  }],
+
+  ['rows2', 'Elimination is the row way', (m) => {
+    const p = panel(0);
+    title(p, 'The row way is elimination');
+    const P_ = mm(p, { A: [[1, 0], [-3, 1]], B: [[1, 2], [3, 4]], names: ['E', 'A', 'EA'], at: AT, tintB: 'rows', hideC: true, t0: m('E') + .3 });
+    const g = rowPic(p, P_, 0, m('sys') - .3, PLANE6);
+    text(p, 'chapter 21:  numbers on the left mix the rows', 70, 162, m('E'), { size: 26, fill: COL.dim, weight: 600 });
+    P_.flash('a', 'all', m('sys') + .3); P_.flash('b', 'all', m('sys') + 3);
+    P_.show('rows', 0, m('r1'), { times: [m('r1') + 1.5, m('r1') + 2.5, m('r1') + 3.6] });
+    P_.reveal({ row: 0 }, m('r1') + 3.6);
+    P_.linkCol(1, m('r2'));
+    P_.show('rows', 1, m('r2'), { times: [m('r2') + 1.6, m('s2'), m('s2') + 3] });
+    P_.reveal({ row: 1 }, m('s2') + 3);
+    pulse(g.axDot, m('s2') + 3.2);
+    P_.flash('b', { row: 0 }, m('r2') + 2.5); P_.flash('b', { row: 1 }, m('r2') + 4.5);
+    P_.flash('a', { row: 1 }, m('step') + 1.5); P_.flash('c', { row: 1 }, m('step') + 3); P_.flash('a', 'all', m('handy') + 1);
+    const st = G(p, { o: 0 });
+    M(st, ['row 2'], { x: 70, y: 740, size: 34, fill: CORAL, anchor: 'start' }); M(st, ['− 3 ×'], { x: 180, y: 740, size: 34, anchor: 'start' }); M(st, ['row 1'], { x: 290, y: 740, size: 34, fill: BLUE, anchor: 'start' });
+    show(st, m('step'), .5);
+    text(p, 'elimination mixes rows: use the row way', 70, 800, m('handy'), { size: 28, fill: COL.dim, weight: 600 });
+  }],
+
+  ['q2', 'Your turn', () => {
+    const p = panel(0);
+    title(p, 'Your turn');
+    S.P = mm(p, { A: [[2, 1], [1, 0]], B: B0, at: AT, tintB: 'rows', wsize: 30 });   // one line of working, clear of the card
+    S.g = rowPic(p, S.P, 1);
+    target(S.g.P, [5, -2], p, .3);
+    S.P.show('rows', 1, .4);
+  }, { ask: done => quiz(CARD, [{
+    id: 'c-row', prompt: ['Change row 2 of A (drag the ring x, or its numbers) until row 2 of AB lands on the target.'],
+    build: mmTask(S.P, (v, C) => C[1][0] === 5 && C[1][1] === -2, 'Row 2 of A = (3, 1): 3·(1, −1) + 1·(2, 1) = (5, −2).',
+      (v, C) => `Row 2 of AB is (${num(Math.round(C[1][0] * 10) / 10)}, ${num(Math.round(C[1][1] * 10) / 10)}): ${num(Math.round(v.a10))} of the blue row plus ${num(Math.round(v.a11))} of the coral row.`,
+      () => S.P.set({ a10: 3, a11: 1 }), { only: ['a10', 'a11'] }),
+  }], done) }],
+
+  ['outer', 'Way 4: columns times rows', (m) => {
+    const p = panel(0);
+    title(p, 'Way 4: a column times a row');
+    const one = G(p, {});
+    const Q = mm(one, { A: [[2], [1]], B: [[1, -1]], at: [90, 270], tintA: 'cols', tintB: 'rows', t0: m('cr') - .3, hideC: true });
+    Q.flash('a', 'all', m('cr') + 1); Q.flash('b', 'all', m('cr') + 2.5);
+    Q.inner(m('sz') + 2);
+    Q.outer(m('sz') + 4.5);
+    [[0, 0], [0, 1], [1, 0], [1, 1]].forEach(([i, j], k) => { const t = m('each') + 1.2 + k * 2.2; Q.flash('a', { cell: [i, 0] }, t - .5); Q.flash('b', { cell: [0, j] }, t - .5); Q.reveal({ cell: [i, j] }, t + .4); });
+    Q.flash('c', { row: 0 }, m('look') + .5); Q.flash('c', { row: 1 }, m('look') + 1.7);
+    text(one, 'every row is a multiple of (1, −1)', 90, 520, m('look') + 3, { size: 32, weight: 600 });
+    Q.flash('c', { row: 0 }, m('look') + 5.5); Q.flash('c', { row: 1 }, m('look') + 6.5); Q.flash('b', 'all', m('look') + 7.5);
+    hide(one, m('pair'), .5);
+    const two = G(p, { o: 0 }); show(two, m('pair') + .3, .5);
+    const P_ = mm(two, { A: A0, B: B0, at: AT, tintA: 'cols', tintB: 'rows', hideC: true, t0: 0, wsize: 40 });
+    P_.show('outer', 0, m('p1'), { times: [m('p1'), m('p1') + 3] });
+    P_.show('outer', 1, m('p2'), { times: [m('p2'), m('p2') + 5] });
+    P_.flash('a', { col: 0 }, m('p1') + .5); P_.flash('b', { row: 0 }, m('p1') + 1.5); P_.flash('a', { col: 1 }, m('p2') + .5); P_.flash('b', { row: 1 }, m('p2') + 2.5);
+    P_.show('sum', null, m('sum'), { times: [m('sum'), m('sum') + 1.2] });
+    [[0, 0], [0, 1], [1, 0], [1, 1]].forEach((c, k) => P_.reveal({ cell: c }, m('sum') + 2.5 + k * 2.4));
+    P_.flash('c', 'all', m('same'));
+  }],
+
+  ['outer2', 'Pieces again', (m) => {
+    const p = panel(0);
+    title(p, 'Pieces, with bigger numbers');
+    const P_ = mm(p, { A: [[1, 2], [3, 4]], B: [[5, 6], [7, 8]], at: AT, tintA: 'cols', tintB: 'rows', hideC: true, t0: .1, wsize: 40 });
+    P_.flash('a', 'all', 2); P_.flash('b', 'all', 4.5);
+    P_.show('outer', 0, m('p1'), { times: [m('p1'), m('p1') + 4.5] });
+    P_.flash('a', { col: 0 }, m('p1') + 1); P_.flash('b', { row: 0 }, m('p1') + 3);
+    P_.show('outer', 1, m('p2'), { times: [m('p2'), m('p2') + 4.5] });
+    P_.flash('a', { col: 1 }, m('p2') + 1); P_.flash('b', { row: 1 }, m('p2') + 3);
+    P_.show('sum', null, m('sum'), { times: [m('sum'), m('sum') + 1.5] });
+    P_.reveal('all', m('sum') + 2.5);
+    P_.flash('c', 'all', m('same'));
+    text(p, 'chapter 23, entry by entry:  [19 22; 43 50]', 70, 760, m('same') + .3, { size: 28, fill: COL.dim, weight: 600 });
+  }],
+
+  ['why', 'Why they agree', (m) => {
+    const p = panel(0);
+    title(p, 'The same eight products');
+    const x0 = 340, cw = 420, y0 = 330, rh = 120, sz = 48;
+    const tg = G(p, { o: 0 }); show(tg, m('table'), .5);
+    path(tg, `M${x0 + 20} ${y0 - 70}H${x0}V${y0 + rh + 40}H${x0 + 20}M${x0 + 2 * cw - 20} ${y0 - 70}H${x0 + 2 * cw}V${y0 + rh + 40}H${x0 + 2 * cw - 20}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' });
+    T(tg, 'AB', { x: x0 + cw, y: y0 - 90, size: 30, fill: COL.dim, font: MATH, anchor: 'middle' });
+    const terms = [[0, 0], [0, 1], [1, 0], [1, 1]].map(([i, j]) => {
+      const cx = x0 + cw * (j + .5), y = y0 + rh * i;
+      const t1 = M(tg, [`${fac(A0[i][0])}·${fac(B0[0][j])}`], { x: cx - 18, y, size: sz, fill: GREEN, anchor: 'end' });
+      M(tg, ['+'], { x: cx, y, size: sz, anchor: 'middle' });
+      const t2 = M(tg, [`${fac(A0[i][1])}·${fac(B0[1][j])}`], { x: cx + 18, y, size: sz, fill: VIOLET, anchor: 'start' });
+      return { t1, t2, cx, y };
+    });
+    const eight = text(p, '8 products', 1340, 330, m('eight'), { size: 34, weight: 600 });
+    const box = (x, y, w, h, t0, t1, color = COL.chalk) => { const r = mk('rect', { x, y, width: w, height: h, rx: 16, fill: color, 'fill-opacity': .1, stroke: color, 'stroke-width': 3 }, p); put(r, { o: 0 }); show(r, t0, .3); hide(r, t1, .3); };
+    terms.forEach((t, k) => [t.t1, t.t2].forEach(e => pulse(e, m('eight') + .3 + k * .5)));
+    terms.forEach((t, k) => pulse(t.t1, m('table') + 2 + k * .9));
+    terms.forEach(t => pulse(t.t1, m('g') + 3));
+    terms.forEach((t, k) => [t.t1, t.t2].forEach(e => pulse(e, m('same') + 2 + k * .4)));
+    box(x0 + 10, y0 - 50, cw - 20, 70, m('e'), m('c'));
+    box(x0 + 10, y0 - 54, cw - 20, rh + 80, m('c'), m('r'));
+    box(x0 + 10, y0 - 50, 2 * cw - 20, 70, m('r'), m('g'));
+    const lab = (s, t0, t1) => { const e = text(p, s, x0, y0 + rh + 130, t0, { size: 30, weight: 600 }); hide(e, t1, .3); };
+    lab('way 1: one entry', m('e'), m('c')); lab('way 2: one column', m('c'), m('r')); lab('way 3: one row', m('r'), m('g'));
+    lab('way 4: all the green products = piece 1', m('g'), m('v')); const lv = text(p, '… all the violet products = piece 2', x0, y0 + rh + 130, m('v'), { size: 30, weight: 600 });
+    terms.forEach(t => { pulse(t.t1, m('g') + .4); pulse(t.t2, m('v') + .4); });
+    terms.forEach(t => { tw(t.t2, { o: .3 }, m('g'), .3); tw(t.t2, { o: 1 }, m('v'), .3); tw(t.t1, { o: .3 }, m('v'), .3); tw(t.t1, { o: 1 }, m('same'), .3); });
+    text(p, 'only the order of adding changes', x0, y0 + rh + 190, m('same') + .5, { size: 30, fill: COL.dim, weight: 600 });
+  }],
+
+  ['q3', 'Quick check', () => {
+    const p = panel(0);
+    title(p, 'Quick check');
+    S.P = mm(p, { A: [[1, 2], [0, 1]], B: [[3, 1], [1, 2]], at: [90, 250], tintA: 'cols', tintB: 'rows', hideC: true });
+  }, { ask: done => quiz({ x: 40, y: 400, w: 860, cls: 'side' }, [{
+    id: 'c-pieces', prompt: ['AB as two pieces: column 1 of A times row 1 of B, plus column 2 times row 2.'],
+    build: blanks([
+      { parts: ['piece 1  =  [', { box: '3' }, ' ', { box: '1' }, ';  ', { box: '0' }, ' ', { box: '0' }, ']'], why: '(1, 0) times (3, 1): rows (3, 1) and (0, 0).', hint: 'Column 1 of A is (1, 0); row 1 of B is (3, 1).' },
+      { parts: ['piece 2  =  [', { box: '2' }, ' ', { box: '4' }, ';  ', { box: '1' }, ' ', { box: '2' }, ']'], why: '(2, 1) times (1, 2): rows (2, 4) and (1, 2).', hint: 'Column 2 of A is (2, 1); row 2 of B is (1, 2).' },
+      { parts: ['AB  =  [', { box: '5' }, ' ', { box: '5' }, ';  ', { box: '1' }, ' ', { box: '2' }, ']'], why: 'The pieces added; the same as chapter 23’s quick check.', hint: 'Add the pieces number by number.',
+        fx: () => fxp(q => { if (q > 0) S.P.uncover('all'); }, 0, .1) },
+    ]),
+  }], done) }],
+
+  ['handy', 'Which way when', (m) => {
+    const p = panel(0);
+    title(p, 'Which way, when?');
+    [['one', '1  entries', 'you need one number of AB'], ['two', '2  columns', 'to see what A does to vectors (the picture)'],
+     ['three', '3  rows', 'elimination: rows are mixed'], ['four', '4  pieces', 'splitting AB into simple pieces (later in the course)']].forEach(([k, a, b], i) => {
+      text(p, a, 90, 240 + i * 120, m(k), { size: 38, weight: 600 });
+      text(p, b, 420, 240 + i * 120, m(k) + .4, { size: 32, fill: COL.dim, weight: 600 });
+    });
+    const P_ = mm(p, { A: A0, B: B0, at: [1000, 760], size: 30, cw: 46, rh: 44, sizes: false, t0: m('one') });
+    put(P_.W, { o: 0 });
+    P_.show('entry', [0, 0], m('one')); P_.show('cols', 0, m('two')); P_.show('rows', 0, m('three')); P_.show('outer', 0, m('four') + .5); P_.show('outer', 1, m('four') + 3.5); P_.show(null, null, m('four') + 6.5);
+    P_.flash('c', 'all', m('four') + 7);
+  }],
+
+  ['wrap', 'Summary', (m) => {
+    const p = panel(0);
+    [['Entries: entry (i, j) = row i of A times column j of B.', 'w1'], ['Columns: column j of AB = A times column j of B, a mix of A’s columns.', 'w2'],
+     ['Rows: row i of AB = row i of A times B, a mix of B’s rows.', 'w3'], ['Pieces: AB = (column 1)(row 1) + (column 2)(row 2) + …', 'w4']].forEach(([str, mark], i) => {
+      const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
+      mk('circle', { cx: 120, cy: -12, r: 26, fill: COL.chalk }, g);
+      T(g, String(i + 1), { x: 120, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+      T(g, str, { x: 170, size: 34, weight: 600 });
+      tw(g, { o: 1, x: 0 }, m(mark), .6);
+    });
+  }],
+  ['final1', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, ROWQ.map((q, k) => ({
+    id: `p-row${k + 1}`, prompt: ['Work out AB by rows: each row of A mixes the rows of B.   ', ...pairEl(q.A, q.B)],
+    build: blanks(rowRows(q)),
+  })), done, 'Chapter practice · set 1 of 4') }],
+  ['final2', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, PIECEQ.map((q, k) => ({
+    id: `p-piece${k + 1}`, prompt: q.prompt, build: blanks(q.rows),
+  })), done, 'Chapter practice · set 2 of 4') }],
+  ['final3', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-way', prompt: ['Which way is each working?'],
+    build: grid(WAYQ, [['e', 'Entries', COL.chalk, 'E'], ['c', 'Columns', GREEN, 'C'], ['r', 'Rows', BLUE, 'R'], ['p', 'Pieces', COL.rat, 'P']], { multi: false, text: true }),
+  }, {
+    id: 'p-count', prompt: ['A is 3 × 2 and B is 2 × 4.'],
+    build: blanks([
+      { parts: ['AB is the sum of  ', { box: '2' }, '  pieces (column times row)'], why: 'One piece for each column of A (and row of B): 2.', hint: 'Column k of A goes with row k of B. How many columns has A?' },
+      { parts: ['each piece is  ', { box: '3' }, ' × ', { box: '4' }], why: 'A 3 × 1 column times a 1 × 4 row is 3 × 4, the size of AB.', hint: 'A column of A has 3 numbers, a row of B has 4.' },
+      { parts: ['AB has  ', { box: '12' }, '  entries, each a sum of  ', { box: '2' }, '  products'], why: '3 × 4 = 12 entries; each is a row of A (2 numbers) times a column of B.', hint: 'AB is 3 × 4. A row of A has 2 numbers.' },
+    ]),
+  }], done, 'Chapter practice · set 3 of 4') }],
+  ['final4', 'Chapter practice', () => {
+    const p = panel(0);
+    title(p, 'Hit the targets with rows');
+    S.P = mm(p, { A: HANDS[0].A, B: HANDS[0].B, at: AT, tintB: 'rows', wsize: 30 });
+    S.g = rowPic(p, S.P, 0); S.tg = G(p, {});
+  }, { ask: done => quiz(CARD, HANDS.map((h, k) => ({
+    id: `p-hand${k + 1}`, prompt: [h.prompt],
+    build: (body, api) => {
+      const { A, B } = h;
+      S.P.set({ a00: A[0][0], a01: A[0][1], a10: A[1][0], a11: A[1][1], b00: B[0][0], b01: B[0][1], b10: B[1][0], b11: B[1][1] });
+      S.tg.replaceChildren();
+      if (h.tgt) { target(S.g.P, h.tgt, S.tg, 0); put(S.tg.lastChild, { o: 1 }); }
+      const only = h.tgt ? [`a${h.row}0`, `a${h.row}1`] : ['b00', 'b01', 'b10', 'b11'];
+      S.P.show('rows', h.row, 0);
+      const test = h.tgt ? (v, C) => C[h.row][0] === h.tgt[0] && C[h.row][1] === h.tgt[1] : (v, C) => C[0][0] === 1 && C[0][1] === 2 && C[1][0] === 3 && C[1][1] === 1;
+      const hint = h.tgt ? (v, C) => `Row ${h.row + 1} of AB is (${num(Math.round(C[h.row][0] * 10) / 10)}, ${num(Math.round(C[h.row][1] * 10) / 10)}). Which mix of B’s rows gives (${num(h.tgt[0])}, ${num(h.tgt[1])})?`
+        : (v, C) => `AB is [${num(C[0][0])} ${num(C[0][1])}; ${num(C[1][0])} ${num(C[1][1])}]. With A = I, AB is just B.`;
+      return mmTask(S.P, test, h.why, hint, () => S.P.set(h.ans), { only })(body, api);
+    },
+  })), done, 'Chapter practice · set 4 of 4') }],
+  ['play', 'Playground', (m, D) => {
+    const p = panel(0);
+    title(p, 'Playground');
+    S.P = mm(p, { A: A0, B: B0, at: AT, tintB: 'rows', wsize: 30 });
+    rowPic(p, S.P, 0);
+    const hint = text(p, 'try: equal rows in B · a row of zeros in A · A = the identity', 70, 170, m('go'), { size: 24, fill: COL.dim });
+    hide(hint, Math.min(m('go') + 9, D - .7), .6);
+  }, { ask: playAsk(() => S.P, { pos: { ...CARD, y: 470 }, tip: 'The row way, live: the arrows are the rows of B, the ring is a row of A. Change anything, or draw on the board. Nothing is marked.' }) }],
+  ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+boot();
+</script>
+</body>
+</html>

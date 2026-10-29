@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Finding the Inverse: Gauss–Jordan</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render"><!-- hold the first frame until the player exists, so the page transition can run -->
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/math.js"></script>
+<script src="../lib/grid2.js"></script>
+<script src="../lib/inv.js"></script>
+<script src="../lib/play.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 27, title: 'Finding the Inverse: Gauss–Jordan', minutes: 9, language: 'en', next: '../ch28/' };
+
+/* ---------- layout and colours ---------- */
+const COLC = [COL.irr, COL.real, COL.rat];
+const LEFT = { x: 40, y: 430, w: 720, cls: 'side' };
+const TOPL = { x: 40, y: 180, w: 760, cls: 'side' };
+const I2 = [[1, 0], [0, 1]];
+const LEC = [[1, 3], [2, 7]], LECI = [[7, -3], [-2, 1]];
+const EX2 = [[2, 1], [6, 4]];
+const A3 = [[1, 2, 1], [2, 5, 3], [1, 3, 3]], A3I = [[6, -3, 1], [-3, 2, -1], [1, -1, 1]];
+const PL = { cx: 1210, u: 40, x0: -8, x1: 8, y0: -8, y1: 8 };   // the plane on the right, wide enough for (7, −2) and (3, 7)
+const TAB = [120, 270];                                         // where a 2 × 2 table [A | I] stands
+const INV = ['A', E('−1')];
+
+/* ---------- chapter drawing helpers ---------- */
+const say = (p, parts, x, y, t0, { size = 40, fill = COL.chalk, anchor = 'start' } = {}) => { const e = M(p, [].concat(parts), { x, y, size, fill, anchor, o: 0 }); show(e, t0); return e; };
+const text = (p, str, x, y, t0, { size = 30, fill = COL.chalk, anchor = 'start', weight = 500 } = {}) => { const e = T(p, str, { x, y, size, fill, anchor, weight, o: 0 }); show(e, t0); return e; };
+const title = (p, str) => text(p, str, 60, 110, .2, { size: 40, weight: 600 });
+const ringAt = (P2, [x, y], color, into, t0, label, { dx = 20, dy = -18, anchor = 'start' } = {}) => {
+  const g = G(into, { x: P2.PX(x), y: P2.PY(y), o: 0 });
+  mk('circle', { r: 17, fill: 'none', stroke: color, 'stroke-width': 3, 'stroke-dasharray': '5 5' }, g);
+  if (label) T(g, label, { x: dx, y: dy, size: 22, fill: color, font: MATH, anchor });
+  if (t0 !== undefined) show(g, t0, .4); else put(g, { o: 1 });
+  return g;
+};
+// A 2 × 2 table [A | I] with the plane beside it, moved by the table's left half.
+function table2(p, A, { rows = null, t0 = .1, at = TAB, size = 42 } = {}) {
+  const g = grid2(p, { A, mat: null, shape: true, plane: PL, t0 });
+  g.labels(['col 1', 'col 2']);
+  const t = gj(p, A, { at, size, link: g, t0 });
+  if (rows) t.load(rows);
+  return { g, t };
+}
+const rowBand = (p, t, i, t0, t1) => { const r = mk('rect', { x: t.cx(t.n) - 44, y: t.ry(i) - 46, width: t.cx(2 * t.n - 1) - t.cx(t.n) + 88, height: 62, rx: 12, fill: COL.task }, p); p.insertBefore(r, p.firstChild); put(r, { o: 0 }); tw(r, { o: .15 }, t0, .3); tw(r, { o: 0 }, t1, .3); };
+const rowsOf = (A, R = A.map((r, i) => r.map((_, j) => +(i === j)))) => A.map((r, i) => [...r, ...R[i]]);
+// An [A | I] table for a card (right block amber, as b is).
+function augEl(rows, n, { size = 24 } = {}) {
+  const m = rows[0].length, cw = size * 1.9, rh = size * 1.3, gap = 14, w = cw * m + 16 + (m > n ? gap : 0), hh = rh * rows.length + size * .3;
+  const svg = mk('svg', { class: 'm', viewBox: `0 0 ${w} ${hh}`, width: w, height: hh });
+  svg.style.verticalAlign = 'middle';
+  path(svg, `M12 2H3V${hh - 2}H12M${w - 12} 2H${w - 3}V${hh - 2}H${w - 12}`, { stroke: 'currentColor', 'stroke-width': 2.5 });
+  if (m > n) path(svg, `M${8 + cw * n + gap / 2} 4V${hh - 4}`, { stroke: 'currentColor', 'stroke-width': 1.5, 'stroke-dasharray': '4 4', opacity: .6 });
+  rows.forEach((r, i) => r.forEach((v, j) => T(svg, fracTxt(v), { x: 8 + cw * (j + .5) + (j >= n ? gap : 0), y: rh * (i + .5) + size * .5, size: size * (String(fracTxt(v)).length > 3 ? .8 : 1), fill: j >= n ? COL.task : 'currentColor', font: MATH, anchor: 'middle' })));
+  return svg;
+}
+const fracTxt = x => { const f = g2frac(x); return !f || f[1] === 1 ? num(x) : `${f[0] < 0 ? '−' : ''}${Math.abs(f[0])}/${f[1]}`; };
+const ansTxt = x => fracTxt(x).replace('−', '-');
+const invOf = A => { const n = A.length, R = rowsOf(A).map(r => r.slice()); for (let c = 0; c < n; c++) { const pr = R[c][c]; R[c] = R[c].map(x => x / pr); for (let i = 0; i < n; i++) if (i !== c) { const l = R[i][c]; R[i] = R[i].map((x, k) => x - l * R[c][k]); } } return R.map(r => r.slice(n)); };
+const rowBoxes = (label, vals, why, hint) => ({ parts: [label, ' (', ...vals.flatMap((v, k) => [...(k ? [', '] : []), { box: ansTxt(v) }]), ')'], why, hint });
+
+/* ---------- practice data ---------- */
+const STEPQ = [
+  { rows: rowsOf([[1, 4], [2, 9]]), i: 1, j: 0, l: 2, why: '2 ÷ 1 = 2. Row 2 − 2 × row 1: (2 − 2, 9 − 8 | 0 − 2, 1 − 0) = (0, 1 | −2, 1).' },
+  { rows: [[1, 4, 1, 0], [0, 1, -2, 1]], i: 0, j: 1, l: 4, why: 'Clear the 4 above the pivot: row 1 − 4 × row 2 = (1, 0 | 1 + 8, 0 − 4) = (1, 0 | 9, −4). So A⁻¹ = [9 −4; −2 1].' },
+  { rows: rowsOf([[2, 6], [1, 4]]), i: 1, j: 0, l: .5, why: '1 ÷ 2 = 1/2. Row 2 − ½ × row 1: (1 − 1, 4 − 3 | 0 − ½, 1 − 0) = (0, 1 | −1/2, 1).' },
+];
+const WHOLEQ = [[[1, 1], [2, 3]], [[2, 3], [1, 2]], [[1, -2], [1, -1]], [[2, 2], [1, 2]], [[3, 0], [1, 1]]];
+const THREEQ = [
+  { A: [[2, 0, 0], [0, 4, 0], [0, 0, 1]], why: 'Only divisions: row 1 ÷ 2, row 2 ÷ 4. A diagonal matrix is undone number by number.' },
+  { A: [[1, 0, 0], [-3, 1, 0], [0, 0, 1]], why: 'This E subtracts 3 × row 1 from row 2; its inverse adds it back: a +3 in the same place.' },
+  { A: [[1, 2, 0], [0, 1, 1], [1, 2, 1]], why: 'Row 3 − row 1, then row 2 − row 3, then row 1 − 2 × row 2. Check: row 1 of A times column 1, (1, 2, 0)·(−1, 1, −1) = 1.' },
+];
+const HANDQ = [
+  { rows: rowsOf([[2, 1], [4, 3]]), i: 1, j: 0, l: 2, what: 'the 4 under the pivot 2' },
+  { rows: [[1, 3, 1, 0], [0, 1, -2, 1]], i: 0, j: 1, l: 3, what: 'the 3 above the second pivot' },
+  { rows: rowsOf([[2, 1], [-4, 1]]), i: 1, j: 0, l: -2, what: 'the −4 under the pivot 2' },
+  { rows: rowsOf([[1, 0], [5, 1]]), i: 1, j: 0, l: 5, what: 'the 5 under the pivot 1' },
+];
+
+/* ---------- beats: [id, title, run(m, D), { ask }?] ---------- */
+const BEATS = [
+  ['intro', 'Finding the inverse: Gauss–Jordan', (m, D) => {
+    const g = G(scene, { o: 0, y: 24 });
+    T(g, 'Unit 3, Chapter 27', { x: 800, y: 250, size: 28, fill: COL.dim, anchor: 'middle' });
+    T(g, 'Finding the Inverse: Gauss–Jordan', { x: 800, y: 360, size: 76, weight: 600, anchor: 'middle' });
+    tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+    const r = text(scene, 'elimination on two sides at once', 800, 450, m('sub'), { size: 36, fill: COL.dim, anchor: 'middle' });
+    const sm = G(scene, { o: 0 });
+    const t = gj(sm, LEC, { at: [610, 640], size: 36 });
+    show(sm, m('move') - .4, .6);
+    t.sub(1, 0, 2, m('move') + 1, 1.2, { lead: .5 }); t.sub(0, 1, 3, m('move') + 3, 1.2, { lead: .5 }); t.done(m('move') + 4.6);
+    tw(g, { o: 0, y: -24 }, D - .9, .8); hide(r, D - .9, .8); hide(sm, D - .9, .8);
+  }],
+
+  ['cols', 'One column at a time', (m) => {
+    const p = panel(0);
+    title(p, 'A A⁻¹ = I, one column at a time');
+    const g = S.g = grid2(p, { A: I2, x: [0, 0], mat: [90, 270], size: 46, plane: PL, brackets: true, shape: false, units: false, t0: m('A') - .4 });
+    g.to({ a00: 1, a01: 3, a10: 2, a11: 7 }, m('A') + .6, 2.6);
+    say(p, ['want  ', ...INV, ':   A ', ...INV, ' = I'], 90, 455, m('want') + .4, { size: 34 });
+    g.labels(['col 1', 'col 2']);
+    g.combo.forEach(e => put(e, { o: 0 }));
+    [g.xLab, g.axLab].forEach(e => put(e, { o: 0 }));   // x and Ax are read in the brackets
+    put(g.parts.x, { o: 0 }); show(g.parts.x, m('pic') - .2, .4);
+    say(p, ['A · (column 1 of ', ...INV, ')  =  (1, 0)'], 90, 515, m('split') + .5, { size: 32 });
+    say(p, ['A · (column 2 of ', ...INV, ')  =  (0, 1)'], 90, 565, m('s2') + .3, { size: 32 });
+    text(p, 'two systems Ax = b: b = (1, 0) and b = (0, 1)', 90, 625, m('two') + .5, { size: 26, fill: COL.task, weight: 600 });
+    ringAt(g.P, [1, 0], COL.task, p, m('two') + 1.5, '(1, 0)', { dx: 6, dy: 40 });
+    ringAt(g.P, [0, 1], COL.task, p, m('two') + 5.2, '(0, 1)', { dx: -18, dy: -16, anchor: 'end' });
+    g.to({ x0: 3, x1: -1 }, m('pic') + .6, 1.4); g.to({ x0: 7, x1: -2 }, m('x1') - .2, 1.4);
+    g.to({ x0: -3, x1: 1 }, m('x2') + 1.4, 1.8);
+    const xs = G(p, {});
+    ringAt(g.P, [7, -2], COL.irr, xs, m('x1') + 1.4, '(7, −2)', { dx: -14, dy: 36, anchor: 'end' });
+    ringAt(g.P, [-3, 1], COL.real, xs, m('read') - .2, '(−3, 1)', { dx: -14, dy: -18, anchor: 'end' });
+    const Bm = ivMat(p, LECI, { x: 90, y: 720, size: 40, name: INV, fill: (i, j) => COLC[j], o: 0 });
+    show(Bm.g, m('read') + .6, .5);
+    text(p, 'its columns: the two points', 330, 755, m('read') + 1.5, { size: 26, fill: COL.dim });
+  }],
+
+  ['table', 'A next to I', (m) => {
+    const p = panel(0);
+    title(p, 'Write A and I side by side');
+    const { g, t } = S.tb = table2(p, LEC, { t0: m('A') - .5 });
+    put(t.divider, { o: 0 }); show(t.divider, m('bar'), .3);
+    const right = t.cells.flatMap(r => r.slice(2).map(c => c.g.parentNode));
+    right.forEach((e, k) => { put(e, { o: 0 }); show(e, m('I') + .2 + k * .35, .3); });
+    put(t.nameG[1], { o: 0 }); show(t.nameG[1], m('I') + 1.6, .3);
+    say(p, ['[ A  |  I ]:  two right sides at once'], 90, 470, m('aug') + .3, { size: 32 });
+    say(p, ['goal:  [ A | I ]  →  [ I | ', ...INV, ' ]'], 90, 540, m('goal') + .3, { size: 34 });
+    text(p, 'the plane is moved by the left half', 90, 620, m('grid') + .5, { size: 28, weight: 600 });
+    text(p, 'left half = I  →  the plane is home', 90, 670, m('grid') + 3, { size: 28, fill: COL.dim });
+    t.block(0, m('grid') + .5, m('grid') + 4);
+    t.block(1, m('I') + 4.5, m('aug'));
+  }],
+
+  ['down', 'Eliminate down', (m) => {
+    const p = panel(0);
+    title(p, 'Step 1: eliminate down');
+    const { g, t } = table2(p, LEC);
+    t.ring(0, 0, m('piv'), m('op'));
+    t.ring(1, 0, m('mult'), m('op'), { dash: true });
+    say(p, ['multiplier  =  2 ÷ 1  =  2'], 90, 470, m('mult') + .6, { size: 32 });
+    t.sub(1, 0, 2, m('go') + .2, 2.6, { lead: m('go') + .2 - m('op') });
+    say(p, ['2 − 2·1 = 0,'], 90, 540, m('go') + 1.2, { size: 30 }); say(p, ['7 − 2·3 = 1'], 290, 540, m('go') + 4.6, { size: 30 });
+    t.block(1, m('right'), m('plane'));
+    say(p, ['0 − 2·1 = −2,'], 90, 600, m('right') + .5, { size: 30, fill: COL.task }); say(p, ['1 − 2·0 = 1'], 300, 600, m('right') + 3.6, { size: 30, fill: COL.task });
+    text(p, 'left half [1 3; 0 1]: one step closer to home', 90, 680, m('plane') + .5, { size: 28, weight: 600 });
+    t.block(0, m('plane') + .3, m('plane') + 5.5);
+  }],
+
+  ['up', 'Eliminate up', (m) => {
+    const p = panel(0);
+    title(p, 'Step 2: eliminate up');
+    const { g, t } = table2(p, LEC, { rows: [[1, 3, 1, 0], [0, 1, -2, 1]] });
+    text(p, 'back substitution would stop here; Gauss–Jordan goes on', 90, 470, 1, { size: 24, fill: COL.dim });
+    const upA = G(p, {}); draw(path(upA, `M${t.cx(3) + 100} ${t.ry(1) - 10}V${t.ry(0) - 30}M${t.cx(3) + 88} ${t.ry(0) - 16}L${t.cx(3) + 100} ${t.ry(0) - 32}L${t.cx(3) + 112} ${t.ry(0) - 16}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' }, { d: 0 }), 3, 1.2); hide(upA, m('op') - .3, .3);
+    t.ring(1, 1, m('above') - .3, m('op'));
+    t.ring(0, 1, m('above') + .4, m('op'), { dash: true });
+    t.sub(0, 1, 3, m('go') + .2, 2.6, { lead: m('go') + .2 - m('op') });
+    say(p, ['3 − 3·1 = 0,    1 − 3·0 = 1'], 90, 540, m('go') + 1, { size: 30 });
+    t.block(1, m('right'), m('left'));
+    say(p, ['1 − 3·(−2) = 7,'], 90, 600, m('right') + .5, { size: 30, fill: COL.task }); say(p, ['0 − 3·1 = −3'], 320, 600, m('right') + 4.2, { size: 30, fill: COL.task });
+    [0, 1].forEach(i => rowBand(p, t, i, m('read') + 1.5 + i * 2.6, m('read') + 3.9 + i * 2.6));
+    t.block(0, m('left'), m('read'));
+    text(p, 'left half I: the plane is home', 90, 670, m('home') + .2, { size: 28, weight: 600 });
+    t.names(['I', INV], m('read') + .2); t.done(m('read'));
+    const Bm = ivMat(p, LECI, { x: 90, y: 760, size: 38, fill: (i, j) => COLC[j], o: 0 });
+    say(p, [...INV, '  ='], 90, 787, m('read') + 1, { size: 36 }); put(Bm.g, { x: 110 }); show(Bm.g, m('read') + 1, .4);
+    ringAt(g.P, [7, -2], COL.irr, p, m('same') + .6, '(7, −2)', { dx: -14, dy: 36, anchor: 'end' });
+    ringAt(g.P, [-3, 1], COL.real, p, m('same') + 1.6, '(−3, 1)', { dx: -14, dy: -18, anchor: 'end' });
+  }],
+
+  ['check', 'Check by multiplying', (m) => {
+    const p = panel(0);
+    title(p, 'Check: A times A⁻¹');
+    const pr = ivProd(p, LEC, LECI, { at: [150, 330], size: 52, names: ['A', INV, 'I'], work: [150, 560], workSize: 40, o: 0 });
+    show(pr.g, .4, .5);
+    pr.entry(0, 0, m('e1'), m('e2') - m('e1') - .2); pr.entry(0, 1, m('e2'), m('e3') - m('e2') - .2);
+    pr.entry(1, 0, m('e3'), m('e4') - m('e3') - .2); pr.entry(1, 1, m('e4'), m('I') - m('e4'));
+    text(p, 'A A⁻¹ = I: Gauss–Jordan worked', 150, 680, m('I') + .3, { size: 32, weight: 600, fill: COL.good });
+  }],
+
+  ['why', 'Why the right half is A⁻¹', (m) => {
+    const p = panel(0);
+    title(p, 'Why the right half becomes A⁻¹');
+    const e1 = ivMat(p, [[1, 0], [-2, 1]], { x: 90, y: 250, size: 38, name: 'E₁', o: 0 });
+    const e2 = ivMat(p, [[1, -3], [0, 1]], { x: 420, y: 250, size: 38, name: 'E₂', o: 0 });
+    show(e1.g, m('E') + 1, .4); show(e2.g, m('E') + 3.5, .4);
+    text(p, 'row 2 − 2 × row 1', 90, 395, m('E') + 1.2, { size: 24, fill: COL.dim });
+    text(p, 'row 1 − 3 × row 2', 420, 395, m('E') + 3.7, { size: 24, fill: COL.dim });
+    say(p, ['E  =  E₂E₁   (both steps, E₁ first)'], 90, 480, m('all') + .4, { size: 34 });
+    say(p, ['E [ A | I ]  =  [ EA | EI ]'], 90, 570, m('all') + 2.2, { size: 40 });
+    say(p, ['EA = I,   so   E = ', ...INV], 90, 650, m('left') + .5, { size: 40 });
+    say(p, ['EI = E = ', ...INV, ':   the right half'], 90, 730, m('right') + .8, { size: 40, fill: COL.task });
+    text(p, 'the right half recorded every step', 90, 820, m('rec') + .3, { size: 30, weight: 600 });
+    // the same two steps, run again on a small table on the right
+    const sm = G(p, { o: 0 });
+    const t = gj(sm, LEC, { at: [900, 300], size: 36 });
+    put(t.g, { o: 1 });
+    show(sm, m('E') + .5, .4);
+    t.sub(1, 0, 2, m('E') + 2, 1.2, { lead: .6 }); t.sub(0, 1, 3, m('E') + 4.5, 1.2, { lead: .6 }); t.done(m('all')); t.names(['I', INV], m('left') + .4);
+    t.block(1, m('right') + .5, m('rec') + 3); t.block(0, m('left') + 1, m('right'));
+  }],
+
+  ['q1', 'Quick check', () => {
+    const p = panel(0);
+    title(p, 'Quick check');
+    S.tb = table2(p, [[1, 2], [3, 7]]);
+  }, { ask: done => quiz(LEFT, [{
+    id: 'c-mult', prompt: ['Choose the multiplier ℓ that puts a 0 under the pivot.'],
+    build: (body, api) => { S.tb.t.open(1, 0); return gjTask(S.tb.t, v => v.c10 === 0, 'ℓ = 3 ÷ 1 = 3. Row 2 becomes (0, 1 | −3, 1), and the plane takes one step home.',
+      v => v.l < 3 ? `Row 2 still starts with ${num(3 - v.l)}. The number to clear is 3, the pivot is 1: ℓ = 3 ÷ 1.` : 'Too far: row 2 now starts below zero. ℓ = 3 ÷ 1 = 3.', () => S.tb.t.set({ l: 3 }))(body, api); },
+  }], done) }],
+
+  ['ex2', 'Pivots that are not 1', (m) => {
+    const p = panel(0);
+    title(p, 'A second one: A = [2 1; 6 4]');
+    const { g, t } = table2(p, EX2, { t0: m('A') - .5 });
+    t.ring(0, 0, m('down'), m('down') + 3.4);
+    t.sub(1, 0, 3, m('d2') - .4, 2, { lead: m('d2') - .4 - (m('down') + 3.4) });
+    say(p, ['ℓ = 6 ÷ 2 = 3'], 90, 470, m('down') + 1, { size: 30 });
+    t.ring(1, 1, m('up') + .3, m('up') + 3);
+    t.sub(0, 1, 1, m('u2') - .4, 2, { lead: m('u2') - .4 - (m('up') + 3) });
+    say(p, ['ℓ = 1 ÷ 1 = 1'], 90, 530, m('up') + 1, { size: 30 });
+    t.done(m('left'));
+    t.block(0, m('left') + .2, m('left') + 4);
+    text(p, 'left half [2 0; 0 1]: not I yet, the plane is twice as wide', 90, 610, m('left') + .4, { size: 28, weight: 600 });
+  }],
+
+  ['divp', 'Divide by the pivots', (m) => {
+    const p = panel(0);
+    title(p, 'Step 3: divide by the pivots');
+    const { g, t } = table2(p, EX2, { rows: [[2, 0, 4, -1], [0, 1, -3, 1]] });
+    t.ring(0, 0, m('piv') + .2, m('d3'));
+    t.div(0, 2, m('d3') + .4, 2.6, { lead: m('d3') + .4 - m('piv') - 1.6 });
+    say(p, ['pivot 2: divide row 1 by 2'], 90, 470, m('piv') + 1.6, { size: 30 });
+    text(p, '÷ 2 squeezes the plane to half the width: home', 90, 540, m('d3') + 1.2, { size: 28, weight: 600 });
+    say(p, ['2 ÷ 2 = 1,    0 ÷ 2 = 0'], 90, 610, m('nums') + .6, { size: 28 });
+    say(p, ['4 ÷ 2 = 2,   −1 ÷ 2 = −', F(1, 2)], 90, 665, m('nums') + 3.2, { size: 28, fill: COL.task });
+    t.names(['I', INV], m('read')); t.done(m('read'));
+    [0, 1].forEach(i => rowBand(p, t, i, m('read') + .8 + i * 2.6, m('read') + 3.2 + i * 2.6));
+    const ck = say(p, ['check:  ad − bc = 8 − 6 = 2,'], 90, 750, m('check') + .5, { size: 28 });
+    const ck2 = say(p, [F(1, 2), '·[4  −1; −6  2]'], 90 + ck._w + 14, 750, m('check') + 5.2, { size: 28 });
+    say(p, ['= [2  −', F(1, 2), '; −3  1]'], 90 + ck._w + ck2._w + 26, 750, m('check') + 9, { size: 28 });
+  }],
+
+  ['q2', 'Quick check', () => {
+    const p = panel(0);
+    title(p, 'Quick check');
+    S.tb = table2(p, [[1, 2], [3, 7]]);
+  }, { ask: done => quiz(LEFT, [{
+    id: 'c-gj1', prompt: ['Gauss–Jordan on ', $m('A'), ' = [1 2; 3 7]. First, down.'],
+    build: blanks([
+      { parts: ['down:  ℓ = ', { box: '3' }], why: '3 ÷ 1 = 3: row 2 − 3 × row 1.', hint: 'Under the pivot 1 sits a 3.' },
+      { parts: ['new row 2, right half:  (', { box: '-3' }, ', ', { box: '1' }, ')'], why: '(0, 1) − 3 × (1, 0) = (−3, 1). Row 2 is now (0, 1 | −3, 1).', hint: 'On the right: (0, 1) − 3 × (1, 0).' },
+    ]),
+  }, {
+    id: 'c-gj2', prompt: ['Now row 2 is (0, 1 | −3, 1). Go up.'],
+    build: blanks([
+      { parts: ['up:  ℓ = ', { box: '2' }], why: 'Row 1 − 2 × row 2 clears the 2 above the second pivot.', hint: 'Above the second pivot (a 1) there is a 2.' },
+      { parts: ['new row 1, right half:  (', { box: '7' }, ', ', { box: '-2' }, ')'], why: 'A⁻¹ = [7 −2; −3 1]. Check: 1·7 + 2·(−3) = 1.', hint: 'On the right: (1, 0) − 2 × (−3, 1).' },
+    ]),
+  }], done) }],
+
+  ['three', 'Three by three', (m) => {
+    const p = panel(0);
+    title(p, 'The same recipe, 3 × 3');
+    const t = gj(p, A3, { at: [200, 300], size: 44, t0: m('A') - .5 });
+    const right = t.cells.flatMap(r => r.slice(3).map(c => c.g.parentNode));
+    right.forEach(e => { put(e, { o: 0 }); show(e, m('aug') + .4, .4); });
+    put(t.divider, { o: 0 }); show(t.divider, m('aug'), .3); put(t.nameG[1], { o: 0 }); show(t.nameG[1], m('aug') + .5, .3);
+    t.sub(1, 0, 2, m('c1') + 2.2, 1.4, { lead: 1.2 });
+    t.sub(2, 0, 1, m('c1b') + 1.3, 1.4, { lead: 1 });
+    t.sub(2, 1, 1, m('c2') + 1.6, 1.4, { lead: 1.2 });
+    const L_ = j => t.cx(j) - 44, R_ = j => t.cx(j) + 44, T_ = i => t.ry(i) - 48, B_ = i => t.ry(i) + 20;
+    const tri = path(p, `M${L_(0)} ${T_(0)}H${R_(2)}V${B_(2)}H${L_(2)}V${B_(1)}H${L_(1)}V${B_(0)}H${L_(0)}Z`, { fill: COL.chalk, 'fill-opacity': .1, stroke: COL.chalk, 'stroke-width': 2 }, { o: 0 });
+    show(tri, m('tri') + .3, .5); hide(tri, m('up'), .4);
+    text(p, 'down: zeros below the pivots ✓', 160, 560, m('tri') + 1, { size: 28, weight: 600 });
+    t.sub(1, 2, 1, m('up') + 1.8, 1.2, { lead: .9 });
+    t.sub(0, 2, 1, m('up2') + .6, 1.2, { lead: .6 });
+    t.sub(0, 1, 2, m('up3') + 1.6, 1.4, { lead: 1.2 });
+    text(p, 'up: zeros above the pivots ✓', 160, 620, m('I') - .2, { size: 28, weight: 600 });
+    t.done(m('I')); t.block(0, m('I'), m('read'));
+    t.names(['I', INV], m('read') + .2);
+    [0, 1, 2].forEach(i => rowBand(p, t, i, m('read') + 1 + i * 2.6, m('read') + 3.4 + i * 2.6));
+    t.block(0, m('A') + 1.5, m('aug'));
+  }],
+
+  ['check3', 'Check a few numbers', (m) => {
+    const p = panel(0);
+    title(p, 'Check: A times A⁻¹');
+    const pr = ivProd(p, A3, A3I, { at: [110, 320], size: 40, cw: 70, names: ['A', INV, 'I'], work: [110, 560], workSize: 36, o: 0 });
+    show(pr.g, .4, .5);
+    pr.entry(0, 0, m('e1'), m('e2') - m('e1') - .2); pr.entry(1, 0, m('e2'), m('e3') - m('e2') - .2); pr.entry(2, 2, m('e3'), m('rest') - m('e3') - .2);
+    pr.fill(m('rest') + .3);
+    text(p, 'A A⁻¹ = I', 110, 660, m('rest') + 2, { size: 32, weight: 600, fill: COL.good });
+  }],
+
+  ['q3', 'Quick check', () => {
+    const p = panel(0);
+    title(p, 'Quick check');
+    gj(p, [[1, 2, 0], [0, 1, 1], [1, 2, 1]], { at: [960, 330], size: 40 });
+  }, { ask: done => quiz(TOPL, [{
+    id: 'c-three', prompt: ['First step: clear the 1 in row 3, column 1.'],
+    build: blanks([
+      { parts: ['row 3 − ', { box: '1' }, ' × row 1'], why: '1 ÷ 1 = 1.', hint: 'The number to clear is 1 and the pivot is 1.' },
+      rowBoxes('new row 3, left half:', [0, 0, 1], '(1, 2, 1) − (1, 2, 0) = (0, 0, 1).', 'Take row 1, (1, 2, 0), away from row 3, (1, 2, 1).'),
+      rowBoxes('new row 3, right half:', [-1, 0, 1], '(0, 0, 1) − (1, 0, 0) = (−1, 0, 1).', 'The right halves too: (0, 0, 1) − (1, 0, 0).'),
+    ]),
+  }], done) }],
+
+  ['recipe', 'The recipe', (m) => {
+    const p = panel(0);
+    title(p, 'Gauss–Jordan, step by step');
+    [['write [ A | I ]', 'r1'], ['down: zeros below each pivot', 'r2'], ['up: zeros above each pivot', 'r3'], ['divide each row by its pivot', 'r4'], ['read A⁻¹ on the right; check by multiplying', 'r5']].forEach(([str, mark], i) => {
+      const g = G(p, { x: -16, y: 210 + i * 80, o: 0 });
+      mk('circle', { cx: 80, cy: -10, r: 22, fill: COL.chalk }, g);
+      T(g, String(i + 1), { x: 80, y: -1, size: 26, fill: COL.board, weight: 700, anchor: 'middle' });
+      T(g, str, { x: 125, size: 30, weight: 600 });
+      tw(g, { o: 1, x: 0 }, m(mark), .5);
+    });
+    const sm = G(p, {});
+    const t = gj(sm, EX2, { at: [900, 260], size: 36, t0: m('r1') });
+    t.sub(1, 0, 3, m('r2') + 1, 1, { lead: .5 }); t.sub(0, 1, 1, m('r3') + 1, 1, { lead: .5 }); t.div(0, 2, m('r4') + .8, 1, { lead: .5 }); t.done(m('r5'));
+    t.names(['I', INV], m('r5') + .3);
+    hide(sm, m('r6') - .2, .4);
+    // when it fails: a zero row, no pivot
+    const bad = G(p, { o: 0 });
+    const t2 = gj(bad, [[1, 2], [2, 4]], { at: [900, 620], size: 36 });
+    put(t2.g, { o: 1 });
+    show(bad, m('r6'), .4);
+    t2.sub(1, 0, 2, m('r6') + 2, 1.2, { lead: .6 });
+    t2.ring(1, 1, m('r6') + 4, undefined, { color: COL.bad });
+    text(p, 'a zero row, no pivot: no inverse', 1100, 800, m('r6') + 4.5, { size: 28, fill: COL.bad, weight: 600, anchor: 'middle' });
+  }],
+
+  ['wrap', 'Summary', (m) => {
+    const p = panel(0);
+    [['A A⁻¹ = I is one system for each column of I.', 'w1'], ['Gauss–Jordan: [ A | I ], down, up, divide by the pivots.', 'w2'],
+     ['The left half becomes I, the right half A⁻¹.', 'w3'], ['Check by multiplying.', 'w4']].forEach(([str, mark], i) => {
+      const g = G(p, { x: -16, y: 150 + i * 95, o: 0 });
+      mk('circle', { cx: 150, cy: -12, r: 26, fill: COL.chalk }, g);
+      T(g, String(i + 1), { x: 150, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+      T(g, str, { x: 210, size: 32, weight: 600 });
+      tw(g, { o: 1, x: 0 }, m(mark), .6);
+    });
+    const sm = G(p, { o: 0 });
+    const k = grid2(sm, { A: LEC, mat: null, shape: true, units: false, plane: { cx: 1250, cy: 690, u: 18, x0: -8, x1: 8, y0: -8, y1: 8, labels: false } });
+    put(k.parts.cols, { o: 0 });
+    const t = gj(sm, LEC, { at: [520, 650], size: 34, link: k });
+    show(sm, .3, .6);
+    t.sub(1, 0, 2, m('w2') + 2, 1.4, { lead: .5 }); t.sub(0, 1, 3, m('w2') + 4.4, 1.4, { lead: .5 }); t.done(m('w3'));
+    t.names(['I', INV], m('w3') + .5); t.block(1, m('w3') + 2, m('w4'));
+  }],
+
+  ['final1', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [...STEPQ.map((q, k) => {
+    const after = q.rows[q.i].map((x, c) => x - q.l * q.rows[q.j][c]);
+    return {
+      id: `p-step${k + 1}`, prompt: ['In ', augEl(q.rows, 2), ', clear the number in row ', String(q.i + 1), ', column ', String(q.j + 1), '.'],
+      build: blanks([
+        { parts: [`row ${q.i + 1} − `, { box: ansTxt(q.l) }, ` × row ${q.j + 1}`], why: `ℓ = ${fracTxt(q.rows[q.i][q.j])} ÷ ${fracTxt(q.rows[q.j][q.j])} = ${fracTxt(q.l)}.`, hint: 'The multiplier is (the number to clear) ÷ (the pivot in its column).' },
+        rowBoxes(`new row ${q.i + 1}:`, after, q.why, 'Take ℓ times the pivot row away from every number of the row, on both sides of the line.'),
+      ]),
+    };
+  }), {
+    id: 'p-step4', prompt: ['In ', augEl(rowsOf([[3, 0], [0, 2]]), 2), ', divide by the pivots and read ', $m('A', E('−1')), '.'],
+    build: blanks([
+      { parts: ['row 1 ÷ ', { box: '3' }, ',   row 2 ÷ ', { box: '2' }], why: 'Each row by its own pivot.', hint: 'The pivots are the numbers on the diagonal of the left half.' },
+      rowBoxes('first row of A⁻¹:', [1 / 3, 0], '(1, 0) ÷ 3 = (1/3, 0).', 'Divide the right half of row 1 by 3.'),
+      rowBoxes('second row of A⁻¹:', [0, 1 / 2], '(0, 1) ÷ 2 = (0, 1/2). A⁻¹ = [1/3 0; 0 1/2].', 'Divide the right half of row 2 by 2.'),
+    ]),
+  }], done, 'Chapter practice · set 1 of 4') }],
+  ['final2', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, WHOLEQ.map((A, k) => {
+    const B = invOf(A);
+    return {
+      id: `p-whole${k + 1}`, prompt: ['Find ', $m('A', E('−1')), ' for ', $m('A'), ' = ', augEl(A, 2), ' by Gauss–Jordan (or the formula), and check.'],
+      build: blanks([
+        rowBoxes('first row of A⁻¹:', B[0], 'Down, up, divide: the right half of row 1.', `Start from ${'[A | I]'}: clear the number under the first pivot, then the one above the second, then divide.`),
+        rowBoxes('second row of A⁻¹:', B[1], `A⁻¹ = [${B[0].map(fracTxt).join(' ')}; ${B[1].map(fracTxt).join(' ')}].`, 'Check: A times your A⁻¹ must give I.'),
+      ]),
+    };
+  }), done, 'Chapter practice · set 2 of 4') }],
+  ['final3', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, THREEQ.map((q, k) => {
+    const B = invOf(q.A);
+    return {
+      id: `p-three${k + 1}`, prompt: ['Find ', $m('A', E('−1')), ' for ', $m('A'), ' = ', augEl(q.A, 3), '.'],
+      build: blanks(B.map((r, i) => rowBoxes(`row ${i + 1} of A⁻¹:`, r, i === 2 ? q.why : 'Right.', 'Write [A | I]; zeros below the pivots, zeros above, then divide each row by its pivot.'))),
+    };
+  }), done, 'Chapter practice · set 3 of 4') }],
+  ['final4', 'Chapter practice', () => {
+    const p = panel(0);
+    title(p, 'Choose the multiplier');
+    S.tb = table2(p, I2, { rows: HANDQ[0].rows });
+  }, { ask: done => quiz(LEFT, HANDQ.map((q, k) => ({
+    id: `p-hand${k + 1}`, prompt: ['Set ℓ to clear ', q.what, ', and watch the plane.'],
+    build: (body, api) => {
+      const t = S.tb.t; t.load(q.rows); t.open(q.i, q.j);
+      return gjTask(t, v => Math.abs(v[`c${q.i}${q.j}`]) < 1e-9, `ℓ = ${fracTxt(q.rows[q.i][q.j])} ÷ ${fracTxt(q.rows[q.j][q.j])} = ${fracTxt(q.l)}.`,
+        v => `Row ${q.i + 1}, column ${q.j + 1} reads ${fracTxt(v[`c${q.i}${q.j}`])}, not 0. ℓ = (number to clear) ÷ (pivot).`, () => t.set({ l: q.l }))(body, api);
+    },
+  })), done, 'Chapter practice · set 4 of 4') }],
+  ['play', 'Playground', (m, D) => {
+    const p = panel(0);
+    title(p, 'Playground');
+    const { g, t } = S.tb = table2(p, EX2);
+    t.open(1, 0);
+    // three row operations to choose from (click, or keys 1–3); the open one's ℓ is live
+    const ops = [{ k: '1', words: 'row 2 − ℓ × row 1', act: () => t.open(1, 0) }, { k: '2', words: 'row 1 − ℓ × row 2', act: () => t.open(0, 1) }, { k: '3', words: 'divide each row by its pivot', act: () => {
+      const R = t.rows().map(r => { const pv = r.slice(0, 2).find(x => Math.abs(x) > 1e-9); return pv ? r.map(x => x / pv) : r; });
+      t.load(R); t.open(1, 0);
+    } }];
+    S.playOps = ops.map(({ k, words, act }, i) => {
+      const c = G(p, { x: 90, y: 412 + i * 56 });
+      const r = mk('rect', { x: 0, y: -36, width: 520, height: 50, rx: 12, fill: COL.chalk, 'fill-opacity': .08, stroke: COL.faint, 'stroke-width': 2 }, c);
+      T(c, k, { x: 22, y: -2, size: 26, fill: COL.dim, weight: 700, anchor: 'middle' });
+      T(c, words, { x: 50, y: -2, size: 26, fill: COL.chalk });
+      c.style.cursor = 'pointer';
+      c.addEventListener('click', () => { if (P.waiting && BEATS[P.i].id === 'play') { act(); t.live(true); } });
+      return { k, act };
+    });
+    S.sys = { get v() { return t.v; }, live: on => t.live(on), set: vals => t.set(vals) };
+    const hint = text(p, 'try: bring the plane home · make the right half A⁻¹', 1210, 870, m('go'), { size: 24, fill: COL.dim, anchor: 'middle' });
+    hide(hint, Math.min(m('go') + 9, D - .7), .6);
+  }, { ask: playAsk(() => S.sys, { pos: { x: 40, y: 578, w: 720, cls: 'side' }, tip: 'Pick a row operation (1, 2, 3), drag or arrow its ℓ, and watch the table and the plane. Nothing is marked.' }) }],
+  ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+// the playground's operation keys
+document.addEventListener('keydown', e => {
+  if (!P.waiting || BEATS[P.i]?.id !== 'play' || e.target.matches?.('input') || e.altKey || e.metaKey || e.ctrlKey) return;
+  const op = S.playOps?.find(o => o.k === e.key);
+  if (op) { e.preventDefault(); op.act(); S.tb.t.live(true); }
+});
+
+boot();
+</script>
+</body>
+</html>

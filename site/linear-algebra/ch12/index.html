@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Three Planes, One Point</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render"><!-- hold the first frame until the player exists, so the page transition can run -->
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/math.js"></script>
+<script src="../lib/linsys.js"></script>
+<script src="../lib/space3.js"></script>
+<script src="../lib/play.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 12, title: 'Three Planes, One Point', minutes: 14, language: 'en' , next: '../ch13/' };
+
+/* ---------- chapter drawing helpers ---------- */
+const LEC = { A: [[2, -1, 0], [-1, 2, -1], [0, -3, 4]], b: [0, -1, 4] };   // the lecture's system (OCW 18.06, lecture 1)
+const VIEW = { yaw: -35, pitch: 22 };                                     // all three lecture planes seen face-on enough to tell apart
+const CARD = { x: 40, y: 430, w: 720, cls: 'side' };                      // under the three equations and their readout
+const say = (p, parts, x, y, t0, { size = 40, fill = COL.chalk, anchor = 'start' } = {}) => { const e = M(p, [].concat(parts), { x, y, size, fill, anchor, o: 0 }); show(e, t0); return e; };
+const text = (p, str, x, y, t0, { size = 30, fill = COL.chalk, anchor = 'start', weight = 500 } = {}) => { const e = T(p, str, { x, y, size, fill, anchor, weight, o: 0 }); show(e, t0); return e; };
+const r1 = n => Math.round(n * 10) / 10;
+const tri = q => `(${q.map(c => num(r1(c))).join(', ')})`;
+// A 3 × 3 system: equations top left, its planes on the right, no matrix (chapter 13 brings it back).
+const three = (p, A, b, { t0 = .1, view = VIEW, sol = true } = {}) => lin3(p, { A, b, eq: [90, 180], mat: null, space: { ...view }, t0, sol });
+const flash = (sys, key, t0) => sys.num(key).forEach(e => { tw(e, { c_fill: COL.task }, t0, .25); tw(e, { c_fill: COL.chalk }, t0 + 1.2, .6); });
+const glowPl = (pl, t0) => prog(q => pl.width(3 + 5 * Math.sin(Math.PI * q)), t0, 1.2, lin);
+// Start with every plane, line and the meeting point hidden; reveal(i, t) brings plane i in.
+const hideAll = sys => { sys.shown = new Set(); sys.planes.forEach(pl => pl.fade(0, 0, 0)); tw(sys.meet.e, { o: 0 }, 0, 0); tw(sys.sol, { o: 0 }, 0, 0); };
+const reveal = (sys, i, t, dur = 1) => { sys.shown?.add(i); sys.planes[i].fade(1, t, dur); };
+// Light some equations (and their planes, if shown yet) and dim the rest; planes not yet revealed stay hidden.
+const lit = (sys, on, t, dur = .6) => {
+  const L = on === null ? [0, 1, 2] : [].concat(on);
+  [0, 1, 2].forEach(i => {
+    tw(sys.rows[i], { o: L.includes(i) ? 1 : .35 }, t, dur);
+    if (!sys.shown || sys.shown.has(i)) sys.planes[i].fade(L.includes(i) ? 1 : .18, t, dur);
+  });
+};
+const ring = (V, q, color = COL.task, label = tri(q)) => {
+  const d = V.point(q, { color, r: 14, label, size: 24 });
+  const c = d.e.firstChild; c.setAttribute('fill', 'none'); c.setAttribute('stroke', color); c.setAttribute('stroke-dasharray', '4 4'); c.setAttribute('stroke-width', 3);
+  return d;
+};
+// One checked line: "2·0 − 0 = 0" then a ✓ or ✗, appearing on a word.
+const chk = (p, str, ok, x, y, t, size = 30) => {
+  say(p, [str], x, y, t, { size });
+  return text(p, ok ? '✓' : '✗', x + mathW([str], size) + 18, y, t + 1.2, { size, fill: ok ? COL.good : COL.bad, weight: 700 });
+};
+// A wall rising from a line on the floor (a growing upright strip), then handed to the real plane.
+const rise = (sys, i, a, b, t, dur = 1.6) => {
+  const V = sys.space, R = V.R, wl = V.poly(null, { color: S3_ROW[i], fo: .2, w: 3, into: V.polys });
+  prog(q => { const h = R * q; wl.set(q ? [[a[0], a[1], -h], [b[0], b[1], -h], [b[0], b[1], h], [a[0], a[1], h]] : null); }, t, dur, io);
+  reveal(sys, i, t + dur, .3); hide(wl.e, t + dur + .2, .3);
+};
+const tickCross = (V, pts, t, color = COL.chalk, into) => pts.map(([q, lab, dx, dy], k) => {
+  const d = V.point(null, { color, r: 8, label: lab || tri(q), size: 24, dx, dy, into });
+  prog(() => d.set(q), t[k], 0, lin); pulse(d.e, t[k]);
+  return d;
+});
+
+/* ---------- practice data ---------- */
+const YN = [['y', 'Yes', null, 'Y'], ['n', 'No', null, 'N']];
+const KIND = [['o', 'One point', null, 'O'], ['n', 'No point', null, 'N'], ['l', 'A whole line', null, 'L']];
+const SYS_S = ['x + y + z = 6', '2x − y = 0', 'z = 3'], SYS_T = ['x = 2', 'y + z = 1', 'x + y = 0'];
+const sysParts = rows => rows.flatMap((r, i) => [i ? ',   ' : '', $m(r)]);
+const SQ = [
+  { parts: [$m('(1, 2, 3)')], ans: ['y'], why: '1 + 2 + 3 = 6,  2 − 2 = 0,  z = 3. All three.' },
+  { parts: [$m('(3, 0, 3)')], ans: ['n'], why: 'The first works (6), but 2·3 − 0 = 6, not 0.' },
+  { parts: [$m('(2, 4, 0)')], ans: ['n'], why: '2 + 4 + 0 = 6 and 4 − 4 = 0, but z is 0, not 3. Two out of three is not enough.' },
+  { parts: [$m('(1, 2, 0)')], ans: ['n'], why: '1 + 2 + 0 = 3, not 6.' },
+];
+const TQ = [
+  { parts: [$m('(2, −2, 3)')], ans: ['y'], why: 'x = 2;  −2 + 3 = 1;  2 + (−2) = 0. All three.' },
+  { parts: [$m('(2, 0, 1)')], ans: ['n'], why: 'x = 2 and 0 + 1 = 1, but 2 + 0 = 2, not 0.' },
+  { parts: [$m('(2, −2, 1)')], ans: ['n'], why: '−2 + 1 = −1, not 1.' },
+  { parts: [$m('(0, 0, 1)')], ans: ['n'], why: 'x must be 2.' },
+];
+const MEETQ = [
+  { parts: ['x = 4,   y = −1,   z = 2:      (', { box: '4' }, ', ', { box: '-1' }, ', ', { box: '2' }, ')'], why: 'Each equation names one letter: read them off.', hint: 'Each equation already says what its letter is.' },
+  { parts: ['z = 2,   y = 3,   x + y + z = 6:      (', { box: '1' }, ', ', { box: '3' }, ', ', { box: '2' }, ')'], why: 'x + 3 + 2 = 6, so x = 1.', hint: 'Put y = 3 and z = 2 into the third: x + 5 = 6.' },
+  { parts: ['x = 1,   x + y = 3,   y + z = 5:      (', { box: '1' }, ', ', { box: '2' }, ', ', { box: '3' }, ')'], why: 'x = 1, so y = 2; then 2 + z = 5, so z = 3.', hint: 'Start with x = 1. The second then gives y; the third gives z.' },
+  { parts: ['z = −1,   y = 2z,   x + y + z = 0:      (', { box: '3' }, ', ', { box: '-2' }, ', ', { box: '-1' }, ')'], why: 'y = 2·(−1) = −2; x − 2 − 1 = 0, so x = 3.', hint: 'y is twice z, so y = −2. Then x − 2 − 1 = 0.' },
+  { parts: ['x − y = 0,   z = 2,   x + y + z = 8:      (', { box: '3' }, ', ', { box: '3' }, ', ', { box: '2' }, ')'], why: 'x = y, so x + x + 2 = 8, 2x = 6, x = 3 and y = 3.', hint: 'x and y are the same number. Then x + x + 2 = 8.' },
+];
+const KINDQ = [
+  { parts: [$m('x = 1,   y = 1,   z = 1')], ans: ['o'], why: 'Two walls and a floor: one corner, (1, 1, 1).' },
+  { parts: [$m('z = 0,   z = 2,   x = 5')], ans: ['n'], why: 'z = 0 and z = 2 are two floors that never meet.' },
+  { parts: [$m('x = 0,   y = 0,   2x + 3y = 0')], ans: ['l'], why: 'All three are walls through the z-axis: every (0, 0, z) works.' },
+  { parts: [$m('x + y + z = 2,   x + y + z = 5,   y = 1')], ans: ['n'], why: 'x + y + z cannot be 2 and 5 at once: the first two planes are parallel.' },
+  { parts: [$m('y = 0,   z = 0,   x + y + z = 4')], ans: ['o'], why: 'y = 0, z = 0, then x = 4: the point (4, 0, 0).' },
+  { parts: [$m('x − y = 0,   y − z = 0,   x − z = 0')], ans: ['l'], why: 'x = y = z: the line through (1, 1, 1), (2, 2, 2), …' },
+];
+
+/* ---------- beats: [id, title, run(m, D), { ask }?] ---------- */
+const BEATS = [
+  ['intro', 'Three planes, one point', (m, D) => {
+    const g = G(scene, { o: 0, y: 24 });
+    T(g, 'Unit 1, Chapter 12', { x: 800, y: 320, size: 28, fill: COL.dim, anchor: 'middle' });
+    T(g, 'Three Planes, One Point', { x: 800, y: 430, size: 88, weight: 600, anchor: 'middle' });
+    tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+    const r = text(scene, 'three equations in x, y, z: three planes, and the point they share', 800, 560, m('sub'), { size: 34, fill: COL.dim, anchor: 'middle' });
+    // three strokes that swing in and cross at one dot
+    const lg = G(scene, { x: 800, y: 730 });
+    S3_ROW.forEach((c, i) => {
+      const l = path(lg, 'M-115 0H115', { stroke: c, 'stroke-width': 6, 'stroke-linecap': 'round' });
+      put(l, { o: 0, r: 0 }); tw(l, { o: 1 }, m('sub') + 1 + i * .5, .4); tw(l, { r: [-35, 30, 85][i] }, m('sub') + 1 + i * .5, 1.6, soft);
+    });
+    tw(lg, { r: 25 }, m('sub') + 1, D - m('sub') - 1, soft);
+    const dt = mk('circle', { r: 11, fill: COL.chalk, stroke: COL.board, 'stroke-width': 3 }, lg);
+    put(dt, { o: 0, s: 0 }); pop(dt, m('move') + .5); pulse(dt, m('move') + 2);
+    tw(g, { o: 0, y: -24 }, D - .9, .8); hide(r, D - .9, .8); hide(lg, D - .9, .8);
+  }],
+
+  ['system', 'Three equations at once', (m) => {
+    const p = S.p = panel(0);
+    text(p, 'Three equations, three unknowns', 60, 110, .2, { size: 40, weight: 600 });
+    const recap = G(p, {});
+    text(recap, 'chapter 2: two lines, one crossing point', 90, 220, .5, { size: 30, fill: COL.dim });
+    const sk = G(recap, { x: 330, y: 420 });   // chapter 2 in a sketch: two lines drawn on, crossing at a dot
+    [['M-180 90L180 -90', S3_ROW[0]], ['M-180 -60L180 60', S3_ROW[1]]].forEach(([d, c], i) => draw(path(sk, d, { stroke: c, 'stroke-width': 5, 'stroke-linecap': 'round' }, { d: 0 }), 1 + i * 1.6, 1.4));
+    const sd = mk('circle', { r: 10, fill: COL.chalk }, sk); put(sd, { o: 0, s: 0 }); pop(sd, 4.4); pulse(sd, 6);
+    hide(recap, m('eq') - .5, .4);
+    const sys = S.sys = three(p, LEC.A, LEC.b, { t0: m('eq') - .3 });
+    hideAll(sys);
+    put(sys.E, { o: 0 });
+    sys.rows.forEach((g, i) => { put(g, { o: 0 }); show(g, m('eq') + [0, 3.2, 8.4][i], .5); });
+    flash(sys, 'a02', m('zero')); flash(sys, 'a20', m('zero') + 2.2);
+    text(p, 'all three true at once', 90, 420, m('all'), { size: 30, fill: COL.chalk, weight: 600 });
+    const V = sys.space;
+    V.sway(6, 14);
+    // two tries, side by side
+    const P1 = V.point(null, { color: COL.chalk, label: '(0, 0, 1)', size: 26 }), P2 = V.point(null, { color: COL.chalk, label: '(1, 2, 4)', size: 26, stem: true });
+    prog(() => P1.set([0, 0, 1]), m('try'), 0, lin); pulse(P1.e, m('try'));
+    prog(() => P2.set([1, 2, 4]), m('try2'), 0, lin); pulse(P2.e, m('try2'));
+    S.P1 = P1; S.P2 = P2;
+    say(p, ['(0, 0, 1)'], 90, 490, m('try'), { size: 34, fill: COL.chalk });
+    chk(p, '2·0 − 0 = 0', true, 90, 545, m('c1'));
+    chk(p, '−0 + 2·0 − 1 = −1', true, 90, 595, m('c2'));
+    chk(p, '−3·0 + 4·1 = 4', true, 90, 645, m('c3'));
+    text(p, 'a solution', 90, 705, m('yes'), { size: 30, fill: COL.good, weight: 600 });
+    say(p, ['(1, 2, 4)'], 450, 490, m('try2'), { size: 34, fill: COL.chalk });
+    chk(p, '2 − 2 = 0', true, 450, 545, m('d1'));
+    chk(p, '−1 + 4 − 4 = −1', true, 450, 595, m('d2'));
+    chk(p, '−6 + 16 = 10', false, 450, 645, m('d3'));
+    text(p, 'not a solution', 450, 705, m('no'), { size: 30, fill: COL.bad, weight: 600 });
+  }],
+
+  ['p1', 'The first plane', (m) => {
+    const sys = S.sys, V = sys.space, p = S.p;
+    V.sway(5, 13);
+    // clear the checks (everything drawn on the panel after the equations' space) for the plane story
+    [...p.children].filter(e => e !== sys.E && e !== V.g && !e.textContent.startsWith('Three equations')).forEach(e => hide(e, .1, .4));
+    lit(sys, 0, .2);
+    const w = G(p, {});
+    text(w, 'z is missing: z is free', 90, 460, m('free'), { size: 30, fill: COL.chalk, weight: 600 });
+    text(w, 'on the floor: the line 2x − y = 0', 90, 510, m('floor'), { size: 30, fill: S3_ROW[0], weight: 600 });
+    text(w, 'stood up: a wall', 90, 560, m('rise'), { size: 30, fill: S3_ROW[0], weight: 600 });
+    S.w = w;
+    const ln = V.line(null, null, { color: S3_ROW[0], w: 6, into: V.content });
+    prog(q => ln.set([-2, -4, 0], [-2 + 4 * q, -4 + 8 * q, 0]), m('floor') + .3, 1.4, io);
+    hide(ln.e, m('rise') + 2, .4);
+    V.turn({ pitch: 55 }, m('floor'), 1.6); V.turn({ pitch: VIEW.pitch }, m('rise'), 1.6);
+    rise(sys, 0, [-2, -4], [2, 4], m('rise'));
+    pulse(S.P1.e, m('pts') + .3); pulse(S.P2.e, m('pts') + 1.6);
+  }],
+
+  ['p2', 'The second plane', (m) => {
+    const sys = S.sys, V = sys.space, p = S.p;
+    V.sway(5, 13);
+    hide(S.w, .1, .4);
+    lit(sys, 1, m('eq2') - .3);
+    const w = S.w = G(p, {});
+    const cr = tickCross(V, [[[1, 0, 0], '', 12, 30], [[0, -.5, 0], '(0, −½, 0)', -120, 4], [[0, 0, 1], ' ', -100, -14]], [m('cx') + 2.5, m('cy') + 2.8, m('cz') + 2.4], COL.chalk, w);
+    say(w, ['x-axis:  −x = −1,   x = 1'], 90, 460, m('cx') + 1, { size: 30 });
+    say(w, ['y-axis:  2y = −1,   y = −', F(1, 2)], 90, 510, m('cy') + 1, { size: 30 });
+    say(w, ['z-axis:  −z = −1,   z = 1'], 90, 560, m('cz') + 1, { size: 30 });
+    reveal(sys, 1, m('show'), 1);
+    cr.forEach(d => hide(d.e, m('meet'), .4));
+    lit(sys, [0, 1], m('meet'));
+    prog(q => sys.lines[0].e.setAttribute('stroke-width', 2.5 + 4 * Math.sin(Math.PI * q)), m('meet') + .3, 1.4, lin);
+    hide(w, m('line') - .3, .3);
+    const w2 = G(p, {});
+    text(w2, 'on the dashed line: both equations true', 90, 460, m('line'), { size: 30, fill: COL.chalk, weight: 600 });
+    // a probe runs along the meeting line (t, 2t, 1 + 3t)
+    const pr = V.point(null, { color: COL.chalk, r: 9 });
+    prog(q => { const t = -1 + 1.8 * (1 - Math.cos(2 * Math.PI * q)) / 2; pr.set([t, 2 * t, 1 + 3 * t]); }, m('line') + .3, m('both') - m('line') - .4, lin);
+    hide(pr.e, m('both'), .3);
+    pulse(S.P1.e, m('both') + .5); pulse(S.P2.e, m('both') + 1.2);
+    text(w2, 'two equations: a whole line of solutions', 90, 520, m('many'), { size: 30, fill: COL.chalk, weight: 600 });
+    S.w = w2;
+    V.turn({ yaw: VIEW.yaw + 20 }, m('meet'), 3);   // not past −15: y would run up the z axis V.turn({ yaw: VIEW.yaw }, m('many'), 2.5);
+  }],
+
+  ['p3', 'The third plane', (m) => {
+    const sys = S.sys, V = sys.space, p = S.p;
+    V.sway(5, 13);
+    hide(S.w, .1, .4);
+    lit(sys, 2, m('eq3') - .3);
+    const w = S.w = G(p, {});
+    text(w, 'x is missing: it runs along x', 90, 460, m('nox'), { size: 30, fill: COL.chalk, weight: 600 });
+    say(w, ['z-axis:  4z = 4,   z = 1'], 90, 515, m('cz'), { size: 30 });
+    say(w, ['y-axis:  −3y = 4,   y = −', F(4, 3)], 90, 570, m('cy'), { size: 30 });
+    const cr = tickCross(V, [[[0, 0, 1], ' ', -100, -14], [[0, -4 / 3, 0], '(0, −4/3, 0)', -150, 4]], [m('cz') + .4, m('cy') + .6], COL.chalk, w);
+    reveal(sys, 2, m('show'), 1);
+    cr.forEach(d => hide(d.e, m('cut'), .4));
+    lit(sys, [0, 1], m('cut') - .2);   // the line of the first two, bright; the third plane dim while we look at the line
+    prog(q => sys.lines[0].e.setAttribute('stroke-width', 2.5 + 4 * Math.sin(Math.PI * q)), m('cut'), 1.4, lin);
+    lit(sys, null, m('cut') + 2.4);
+    show(sys.meet.e, m('pt'), .3); pulse(sys.meet.e, m('pt')); pulse(sys.meet.e, m('pt') + 1); hide(S.P1.e, m('pt'), .3);
+    // (1, 2, 4) is on the line of planes 1 and 2 but off plane 3: plane 3 alone, the line through it
+    const ln = V.line(null, null, { color: COL.chalk, w: 4, dash: '10 8', clip: true });
+    prog(() => ln.set([-2, -4, -5], [2, 4, 7]), m('miss'), 0, lin); tw(ln.e, { o: 0 }, 0, 0); show(ln.e, m('miss'), .4); hide(ln.e, m('only') + .4, .4);
+    lit(sys, 2, m('miss')); lit(sys, null, m('only') + .4);
+    show(sys.sol, m('pt') + .4, .5);
+    hide(w, m('miss') - .3, .3);
+    tw(S.P2.e, { o: 1 }, m('miss'), 0); tw(S.P2.e.firstChild, { c_fill: COL.bad }, m('miss'), .3); tw(S.P2.t, { c_fill: COL.bad }, m('miss'), .3);
+    text(p, '(1, 2, 4): on the line, off the third plane', 90, 470, m('miss'), { size: 28, fill: COL.bad, weight: 600 });
+    text(p, '(0, 0, 1): on all three planes', 90, 530, m('only'), { size: 30, fill: COL.good, weight: 600 });
+    V.turn({ yaw: VIEW.yaw - 25, pitch: 30 }, m('cut'), 3);
+  }],
+
+  ['check', 'From all sides', (m) => {
+    const sys = S.sys, V = sys.space;
+    hide(S.P2.e, .1, .5); hide(S.P1.e, .1, .3);
+    V.turn({ yaw: -95, pitch: 24 }, .3, m('f1') + .4);          // the wall 2x − y = 0 nearly face-on
+    V.turn({ yaw: -25, pitch: 24 }, m('f2'), 1.4);              // plane 2 face-on
+    V.turn({ yaw: 5, pitch: 36 }, m('f3'), 1.3);                // plane 3 face-on
+    V.turn({ yaw: -50, pitch: 28 }, m('lines'), 3);             // all three well apart
+    V.turn({ yaw: 310, pitch: 28 }, m('ans') + .4, 9.5);        // then once all the way round: from all sides
+    sys.focus(0, m('f1')); sys.focus(1, m('f2')); sys.focus(2, m('f3')); sys.focus(null, m('lines'));
+    [m('f1'), m('f2'), m('f3')].forEach(t => pulse(sys.meet.e, t + .4));
+    [0, 1, 2].forEach(i => prog(q => sys.lines[i].e.setAttribute('stroke-width', 2.5 + 3.5 * Math.sin(Math.PI * q)), m('lines') + i * .5, 1.2, lin));
+    pulse(sys.meet.e, m('thru') + .5);
+    tw(sys.sol, { s: 1.08 }, m('ans'), .3); tw(sys.sol, { s: 1 }, m('ans') + .5, .4);
+    const n = G(S.p, { o: 0 });
+    T(n, 'three planes meet  →  the solution', { x: 90, y: 610, size: 34, weight: 600, fill: COL.chalk });
+    show(n, m('name'));
+    V.sway(5, 12, m('ans'));
+  }],
+
+  ['q1', 'Quick check', () => {
+    const p = panel(0);
+    text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
+    S.sys = three(p, LEC.A, LEC.b, { sol: false });
+    put(S.sys.meet.t, { o: 0 });   // the meeting point unnamed: the reader checks (0, 0, 1) by putting it in
+    S.sys.space.sway(6, 14);
+  }, { ask: done => quiz(CARD, [{
+    id: 'c-all', prompt: ['Does the point solve all three equations?'],
+    build: grid([
+      { parts: [$m('(0, 0, 1)')], ans: ['y'], why: '0 = 0,  −1 = −1,  4 = 4. It is the meeting point.' },
+      { parts: [$m('(1, 2, 4)')], ans: ['n'], why: 'The first two work, but the third gives −6 + 16 = 10, not 4.' },
+      { parts: [$m('(0, 0, 0)')], ans: ['n'], why: 'The first works, but the second gives 0, not −1.' },
+      { parts: [$m('(1, 2, 0)')], ans: ['n'], why: 'The first works (2 − 2 = 0), but the second gives −1 + 4 − 0 = 3, not −1.' },
+    ], YN, { multi: false, text: true }),
+  }], done) }],
+
+  ['corner', 'The corner of a room', (m) => {
+    const p = panel(0);
+    text(p, 'Two walls and a ceiling', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = three(p, [[1, 0, 0], [0, 1, 0], [0, 0, 1]], [1, 2, 3], { t0: m('eq') - .3, view: { yaw: 30, pitch: 22 } });
+    hideAll(sys);
+    const V = sys.space;
+    V.sway(6, 14);
+    reveal(sys, 0, m('wx')); lit(sys, 0, m('wx') - .2);
+    reveal(sys, 1, m('wy')); lit(sys, 1, m('wy') - .2);
+    reveal(sys, 2, m('fz')); lit(sys, 2, m('fz') - .2);
+    lit(sys, null, m('pt') - .2);
+    show(sys.meet.e, m('pt'), .3); pulse(sys.meet.e, m('pt') + .2); show(sys.sol, m('pt') + .6);
+    // the corner's three edges, from the point, along the three axes' directions
+    const e = [0, 1, 2].map(j => V.line(null, null, { color: COL.chalk, w: 3, dash: '2 6', into: V.content }));
+    prog(() => { e[0].set([1, 2, 3], [-4, 2, 3]); e[1].set([1, 2, 3], [1, -4, 3]); e[2].set([1, 2, 3], [1, 2, -4]); }, m('pt') + .6, 0, lin);
+    text(p, 'one letter per equation: read it off', 90, 480, m('read'), { size: 30, fill: COL.chalk, weight: 600 });
+  }],
+
+  ['solve', 'A little more work', (m) => {
+    const p = panel(0);
+    text(p, 'Finding the point step by step', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = three(p, [[1, 1, 1], [1, -1, 0], [0, 0, 1]], [3, 0, 1], { t0: m('eq') - .3, view: { yaw: 25, pitch: 20 } });
+    hideAll(sys);
+    const V = sys.space;
+    V.sway(6, 14);
+    const w = G(p, {});
+    say(w, ['z = 1'], 90, 470, m('s3'), { size: 34, fill: S3_ROW[2] });
+    say(w, ['x − y = 0,   so  x = y'], 90, 525, m('s2'), { size: 34, fill: S3_ROW[1] });
+    say(w, ['x + x + 1 = 3'], 90, 580, m('s1'), { size: 34, fill: S3_ROW[0] });
+    say(w, ['2x = 2,   x = 1'], 90, 635, m('s1b'), { size: 34 });
+    say(w, ['y = x = 1'], 90, 690, m('sy'), { size: 34 });
+    lit(sys, 2, m('s3') - .2); lit(sys, 1, m('s2') - .2); lit(sys, 0, m('s1') - .2); lit(sys, null, m('pt') - .2);   // before the reveals: rows only
+    show(sys.sol, m('pt') + .4);
+    // each plane comes in as its equation is used, so the picture keeps pace with the algebra; named again on see / w / f
+    reveal(sys, 2, m('s3') + .3); reveal(sys, 1, m('s2') + .3); reveal(sys, 0, m('s1') + .3);
+    glowPl(sys.planes[0], m('see')); glowPl(sys.planes[1], m('w')); glowPl(sys.planes[2], m('f'));
+    show(sys.meet.e, m('pt') + .4, .3); pulse(sys.meet.e, m('pt') + .6); pulse(sys.meet.e, m('f') + .8);
+    tw(w, { o: .25 }, m('see'), .4);
+    V.turn({ yaw: 60, pitch: 26 }, m('see'), 4);
+    const c = G(p, {});
+    chk(c, '1 + 1 + 1 = 3', true, 430, 470, m('chk') + 1);
+    chk(c, '1 − 1 = 0', true, 430, 525, m('chk') + 3.6);
+    chk(c, 'z = 1', true, 430, 580, m('chk') + 5.2);
+  }],
+
+  ['move', 'Change a right side', (m) => {
+    const p = panel(0);
+    text(p, 'Change a right side', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = three(p, LEC.A, LEC.b);
+    const V = sys.space;
+    V.sway(5, 14);
+    flash(sys, 'b2', m('b3'));
+    sys.focus(2, m('slide') - .3);
+    sys.to({ b2: 10 }, m('slide'), m('new') - m('slide'), io);
+    flash(sys, 'b2', m('slide'));
+    prog(q => sys.lines[0].e.setAttribute('stroke-width', 2.5 + 4 * Math.sin(Math.PI * q)), m('along'), 1.4, lin);
+    sys.focus(null, m('along'));
+    const old = V.point([0, 0, 1], { color: COL.dim, r: 7 });
+    put(old.e, { o: 0 }); show(old.e, m('slide'), .3);
+    pulse(sys.meet.e, m('new'));
+    const c10 = say(p, ['−3·2 + 4·4 = −6 + 16 = 10  ✓'], 90, 480, m('old') + 4, { size: 30, fill: COL.good }); hide(c10, m('back'), .3);
+    sys.to({ b2: 4 }, m('back'), 2.2, io); flash(sys, 'b2', m('back'));
+    V.turn({ yaw: VIEW.yaw + 20, pitch: 28 }, m('slide'), 4);
+  }],
+
+  ['q2', 'Your turn', () => {
+    const p = panel(0);
+    text(p, 'Your turn', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = three(p, LEC.A, LEC.b);
+    ring(sys.space, [1, 1, 1]);
+    sys.space.sway(5, 16);
+  }, { ask: done => quiz(CARD, [{
+    id: 'c-meet', prompt: ['Change only the right sides until the three planes meet at ', $m('(1, 1, 1)'), '. Scrub a right side, or drag a plane by its edge.'],
+    build: lin3Task(S.sys, v => v.b0 === 1 && v.b1 === 0 && v.b2 === 1,
+      'Right sides 1, 0, 1: put x = y = z = 1 into each left side. 2 − 1 = 1,  −1 + 2 − 1 = 0,  −3 + 4 = 1.',
+      'Put x = 1, y = 1, z = 1 into each left side: what you get is the right side that plane needs.',
+      () => S.sys.set({ b0: 1, b1: 0, b2: 1 }), ['b0', 'b1', 'b2']),
+  }], done) }],
+
+  ['none', 'No point at all', (m) => {
+    const p = panel(0);
+    text(p, 'When there is no meeting point', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = three(p, [[0, 0, 1], [0, 0, 1], [1, 0, 0]], [1, 3, 0], { t0: m('eq') - .3, view: { yaw: 40, pitch: 16 } });
+    const V = sys.space;
+    V.sway(5, 14);
+    tw(sys.sol, { o: 0 }, 0, 0); show(sys.sol, m('nosol'), .4);
+    sys.focus([0, 1], m('two'));
+    const a = text(p, 'z = 1 and z = 3 at once? Never.', 90, 470, m('two') + 2, { size: 30, fill: COL.bad, weight: 600 });
+    sys.focus(null, m('nosol'));
+    tw(sys.sol, { s: 1.06 }, m('nosol'), .3); tw(sys.sol, { s: 1 }, m('nosol') + .5, .4);
+    hide(a, m('eq2') - .4, .3); hide(sys.sol, m('eq2') - .4, .3); show(sys.sol, m('none'), .4);
+    // switch to the tent: hide the planes, change the numbers, bring them back
+    sys.planes.forEach(pl => { pl.fade(0, m('eq2') - .4, .3); pl.fade(1, m('eq2') + .5, .8); });
+    sys.to({ a00: 1, a01: 0, a02: 1, a10: -1, a11: 0, a12: 1, a20: 0, a21: 0, a22: 1, b0: 2, b1: 2, b2: 0 }, m('eq2') - .1, .1, lin);
+    V.turn({ yaw: 30, pitch: 20 }, m('eq2') - .1, .1);
+    [0, 1, 2].forEach(i => prog(q => sys.lines[i].e.setAttribute('stroke-width', 2.5 + 3.5 * Math.sin(Math.PI * q)), m('pairs') + .6 + i * .6, 1.2, lin));
+    V.turn({ yaw: 14, pitch: 7 }, m('end'), 2.4);   // nearly along y: the planes stand as a triangle, the three lines run side by side into the picture
+    const b = G(p, {});
+    text(b, 'every two meet in a line,', 90, 470, m('pairs'), { size: 30, fill: COL.chalk, weight: 600 });
+    text(b, 'but the three lines never meet', 90, 515, m('par'), { size: 30, fill: COL.bad, weight: 600 });
+    say(b, ['first two:  z = 2.     third:  z = 0.'], 90, 580, m('alg'), { size: 30 });
+    V.turn({ yaw: 30, pitch: 22 }, m('none') - .6, 1.6);
+  }],
+
+  ['line', 'A whole line', (m) => {
+    const p = panel(0);
+    text(p, 'When the planes share a line', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = three(p, [[1, -1, 0], [0, 1, -1], [1, 0, -1]], [0, 0, 0], { t0: m('eq') - .3, view: { yaw: -60, pitch: 15 } });
+    const V = sys.space;
+    tw(sys.sol, { o: 0 }, 0, 0); show(sys.sol, m('many'), .4);
+    V.sway(6, 12);
+    const sp = V.line(null, null, { color: COL.chalk, w: 6, into: V.content });
+    prog(q => sp.set([-4, -4, -4], [-4 + 8 * q, -4 + 8 * q, -4 + 8 * q]), m('spine'), 1.4, io);
+    // look down the spine, like looking at a book from its end
+    V.turn({ yaw: -135, pitch: 35.3 }, m('spine') + 1.2, 3); V.turn({ yaw: -60, pitch: 15 }, m('pts') - .2, 2.6);
+    [[1, 1, 1], [2, 2, 2], [-1, -1, -1]].forEach((q, i) => {
+      const d = V.point(null, { color: COL.chalk, label: tri(q), size: 24 });
+      const t = m('pts') + [0, 1.6, 3.2][i];
+      prog(() => d.set(q), t, 0, lin); pulse(d.e, t);
+    });
+    say(p, ['1 − 1 = 0,   1 − 1 = 0,   1 − 1 = 0  ✓'], 90, 480, m('pts') + .4, { size: 28, fill: COL.good });
+    tw(sys.sol, { s: 1.06 }, m('many'), .3); tw(sys.sol, { s: 1 }, m('many') + .5, .4);
+    const n = G(p, { o: 0 });
+    T(n, 'one point  ·  no point  ·  a whole line', { x: 90, y: 600, size: 34, weight: 600, fill: COL.chalk });
+    show(n, m('sum'));
+  }],
+
+  ['q3', 'Quick check', () => {
+    const p = panel(0);
+    text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
+    const V = space3(p, { ...VIEW, cx: 1330, size: 460 });
+    [[0, 0, 1, 1], [0, 0, 1, 3], [1, 0, 0, 0]].forEach((c, i) => V.plane(...c, { color: S3_ROW[i], fo: .14 }));
+    V.sway(6, 14);
+  }, { ask: done => quiz({ x: 40, y: 170, w: 1010, cls: 'side' }, [{
+    id: 'c-kind', prompt: ['Do the three planes meet in one point, in no point, or along a whole line?'],
+    build: grid([
+      { parts: [$m('x = 2,   y = −1,   z = 0')], ans: ['o'], why: 'Each names one letter: the point (2, −1, 0).' },
+      { parts: [$m('z = 1,   z = 4,   x + y = 0')], ans: ['n'], why: 'Two floors, z = 1 and z = 4, never meet.' },
+      { parts: [$m('x = 0,   y = 0,   x + y = 0')], ans: ['l'], why: 'Three walls through the z-axis: every (0, 0, z).' },
+      { parts: [$m('x + y + z = 3,   x − y = 0,   z = 1')], ans: ['o'], why: 'This was our example: (1, 1, 1).' },
+    ], KIND, { multi: false, text: true }),
+  }], done) }],
+
+  ['wrap', 'Summary', (m) => {
+    const p = panel(0);
+    [['Three equations, three unknowns: one triple must make all three true.', 'w1'], ['Each equation is a plane; two planes usually meet in a line.', 'w2'],
+     ['The third plane cuts that line at one point: the solution. Check it in each.', 'w3'], ['Three planes can also meet nowhere, or along a whole line.', 'w4']].forEach(([str, mark], i) => {
+      const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
+      mk('circle', { cx: 150, cy: -12, r: 26, fill: COL.chalk }, g);
+      T(g, String(i + 1), { x: 150, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+      T(g, str, { x: 210, size: 34, weight: 600 });
+      tw(g, { o: 1, x: 0 }, m(mark), .6);
+    });
+  }],
+  ['final1', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-s', prompt: ['System:   ', ...sysParts(SYS_S), '.   Does the point solve all three?'],
+    build: grid(SQ, YN, { multi: false, text: true }),
+  }, {
+    id: 'p-t', prompt: ['System:   ', ...sysParts(SYS_T), '.   Does the point solve all three?'],
+    build: grid(TQ, YN, { multi: false, text: true }),
+  }], done, 'Chapter practice · set 1 of 4') }],
+  ['final2', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
+    id: 'p-meet', prompt: ['Find the point where the three planes meet. Start with the equation that names one letter.'],
+    build: blanks(MEETQ),
+  }], done, 'Chapter practice · set 2 of 4') }],
+  ['final3', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
+    id: 'p-kind', prompt: ['One point, no point, or a whole line?'],
+    build: grid(KINDQ, KIND, { multi: false, text: true }),
+  }], done, 'Chapter practice · set 3 of 4') }],
+  ['final4', 'Chapter practice', () => {
+    const p = panel(0);
+    text(p, 'Move the planes', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = three(p, LEC.A, LEC.b);
+    sys.space.sway(5, 16);
+  }, { ask: done => quiz(CARD, [{
+    id: 'p-meet1', prompt: ['Change only the right sides so the planes meet at ', $m('(1, 0, 1)'), '.'],
+    build: lin3Task(S.sys, v => v.b0 === 2 && v.b1 === -2 && v.b2 === 4, 'Right sides 2, −2, 4:  2·1 − 0 = 2,  −1 + 0 − 1 = −2,  0 + 4 = 4.',
+      'Put x = 1, y = 0, z = 1 into each left side.', () => S.sys.set({ b0: 2, b1: -2, b2: 4 }), ['b0', 'b1', 'b2']),
+  }, {
+    id: 'p-meet2', prompt: ['Now make them meet at ', $m('(2, 1, 0)'), '.'],
+    build: lin3Task(S.sys, v => v.b0 === 3 && v.b1 === 0 && v.b2 === -3, 'Right sides 3, 0, −3:  4 − 1 = 3,  −2 + 2 − 0 = 0,  −3 + 0 = −3.',
+      'Put x = 2, y = 1, z = 0 into each left side.', () => S.sys.set({ b0: 3, b1: 0, b2: -3 }), ['b0', 'b1', 'b2']),
+  }, {
+    id: 'p-none', prompt: ['Change only the numbers in front of x, y, z in the third equation, so that no point lies on all three planes.'],
+    build: lin3Task(S.sys, (v, s) => !!s.none && (v.a20 || v.a21 || v.a22), 'For example 2x − y + 0z on the third left side: the third plane is then parallel to the first. Both say 2x − y equals a number, but different numbers, so they never meet.',
+      'Make the third plane parallel to the first: copy the first equation’s numbers in front of x, y and z. Then both say 2x − y equals something, but different somethings.',
+      () => S.sys.set({ a20: 2, a21: -1, a22: 0 }), ['a20', 'a21', 'a22']),
+  }], done, 'Chapter practice · set 4 of 4') }],
+  ['play', 'Playground', (m) => {
+    const p = panel(0);
+    text(p, 'Playground', 60, 110, .2, { size: 40, weight: 600 });
+    S.sys = three(p, LEC.A, LEC.b);
+    S.sys.space.sway(5, 16);
+    const hint = text(p, 'try: move the meeting point to (1, 1, 1), make two planes parallel, make all three share a line', 90, 870, m('go'), { size: 26, fill: COL.dim });
+    hide(hint, m('go') + 8, .6);
+  }, { ask: playAsk(() => S.sys, { tip: 'Your three planes. Change any number, drag a plane by its edge, turn the space, or draw on the board. Nothing is marked.' }) }],
+  ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+boot();
+</script>
+</body>
+</html>

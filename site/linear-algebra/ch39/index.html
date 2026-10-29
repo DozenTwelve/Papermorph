@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Subspaces of Space</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render"><!-- hold the first frame until the player exists, so the page transition can run -->
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/math.js"></script>
+<script src="../lib/space3.js"></script>
+<script src="../lib/play.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 39, title: 'Subspaces of Space', minutes: 11, language: 'en', next: '../ch40/' };
+
+/* ---------- chapter drawing helpers ---------- */
+const [GREEN, VIOLET] = S3_COLS;          // u green, w violet; the set S blue (an equation's plane, or a line)
+const SETC = COL.whole;
+const VIEW = { yaw: 30, pitch: 24 };       // chapter 11's view: the origin's corner faces us
+const CARD = { x: 40, y: 470, w: 720, cls: 'side' };
+const say = (p, parts, x, y, t0, { size = 40, fill = COL.chalk, anchor = 'start' } = {}) => { const e = M(p, [].concat(parts), { x, y, size, fill, anchor, o: 0 }); show(e, t0); return e; };
+const text = (p, str, x, y, t0, { size = 30, fill = COL.chalk, anchor = 'start', weight = 500 } = {}) => { const e = T(p, str, { x, y, size, fill, anchor, weight, o: 0 }); show(e, t0); return e; };
+const pulseG = (e, t0) => { tw(e, { o: .35 }, t0, .2); tw(e, { o: 1 }, t0 + .25, .3); tw(e, { o: .35 }, t0 + .6, .2); tw(e, { o: 1 }, t0 + .85, .3); };
+const bump = (sb, t0) => { const e = sb.ring.firstChild; tw(e, { s: 1.5 }, t0, .25); tw(e, { s: 1 }, t0 + .3, .4); };   // the ring's own dot: scaling the group would fling it toward the stage corner
+const sub3 = (p, o = {}) => subspace3(p, { space: { ...VIEW, size: 780 }, ...o });   // bigger than space3's 640: short arrows read
+// The test on the left: the equation (or the line), u and w as columns with their checks, c u + d w and the verdict.
+const testBoard = (p, { set = 'plane', plane = [1, 1, 1, 0], line, u, w, c = 1, d = 1, show: sh = [], t0 = .1, o = 0, eq = true, range, view } = {}) => {
+  const sb = sub3(p, { set, plane, line, u, w, c, d, show: sh, t0, range, ...(view ? { space: { ...VIEW, size: 780, ...view } } : {}) });
+  return {
+    sb,
+    eq: eq ? sb.eq({ x: 90, y: 200, size: 44, o }) : null,
+    u: sb.vec('u', { x: 90, y: 345, size: 32, o }),
+    w: sb.vec('w', { x: 340, y: 345, size: 32, o }),
+    cu: sb.check('u', { x: 90, y: 452, size: 24, o }),
+    cw: sb.check('w', { x: 340, y: 452, size: 24, o }),
+    combo: sb.combo({ x: 90, y: 560, size: 32, o }),
+    out: sb.readout({ x: 90, y: 680, size: 30, o }),
+  };
+};
+// A dashed ring at a point in space: a target (amber) or a mark.
+const ring3 = (V, q, label, color = COL.task, into) => {
+  const d = V.point(q, { color, r: 16, label, size: 26, into: into ?? V.content, halo: true });
+  const c = d.e.firstChild; c.setAttribute('fill', 'none'); c.setAttribute('stroke', color); c.setAttribute('stroke-dasharray', '5 5'); c.setAttribute('stroke-width', 3.5);
+  return d;
+};
+// A small flat plane with one set drawn on it (the plane's subspaces, recalled).
+const thumb = (p, cx, cy, label, draw_, t0) => {
+  const g = G(p, { o: 0 });
+  const P2 = plane(g, { cx, cy, u: 16, x0: -4, x1: 4, y0: -4, y1: 4, t0: 0, labels: false });
+  draw_(G(P2.g, {}), P2.PX, P2.PY);
+  T(g, label, { x: cx, y: cy + 4 * 16 + 52, size: 24, fill: COL.chalk, weight: 600, anchor: 'middle' });
+  show(g, t0, .5);
+  return g;
+};
+
+/* ---------- practice data ---------- */
+const YN = [['y', 'Yes', null, 'Y'], ['n', 'No', null, 'N']];
+const SETQ = [
+  { parts: ['the plane ', $m('x + y + z = 0')], ans: ['y'], why: 'Right side 0: through the origin. Sums give 0 + 0, multiples c·0.' },
+  { parts: ['the plane ', $m('x + y + z = 1')], ans: ['n'], why: '(0, 0, 0) gives 0, not 1: no zero vector.' },
+  { parts: ['the z-axis'], ans: ['y'], why: 'Every multiple of (0, 0, 1): a line through the origin.' },
+  { parts: ['the floor, ', $m('z = 0')], ans: ['y'], why: 'The plane 0x + 0y + z = 0, through the origin.' },
+  { parts: ['the plane ', $m('z = 2')], ans: ['n'], why: '(0, 0, 2) + (0, 0, 2) = (0, 0, 4): z is 4, not 2.' },
+  { parts: ['every multiple ', $m('t·(1, 2, 3)')], ans: ['y'], why: 'A line through the origin: multiples add to multiples.' },
+  { parts: ['the line ', $m('(1, 0, 0) + t·(0, 1, 0)')], ans: ['n'], why: 'Every point has x = 1, so (0, 0, 0) is not on it.' },
+  { parts: ['the single point ', $m('(1, 1, 1)')], ans: ['n'], why: '2·(1, 1, 1) = (2, 2, 2) is not in it.' },
+];
+const SUMQ = [
+  ['x + y + z = 0', [1, 2, -3], [2, -1, -1], q => q[0] + q[1] + q[2]],
+  ['2x − y + z = 0', [1, 2, 0], [1, 3, 1], q => 2 * q[0] - q[1] + q[2]],
+  ['x + y + z = 3', [1, 1, 1], [3, 0, 0], q => q[0] + q[1] + q[2]],
+  ['x − z = 2', [2, 5, 0], [3, -1, 1], q => q[0] - q[2]],
+].map(([eq, u, w, f]) => {
+  const s = u.map((x, j) => x + w[j]), val = f(s), br = q => `(${q.map(num).join(', ')})`;
+  console.assert(f(u) === f(w), 'SUMQ: u and w in one plane', eq);
+  return { eq, gives: f(u), parts: [`${eq}:  u = ${br(u)}, w = ${br(w)}.   u + w = (`, { box: String(s[0]) }, ', ', { box: String(s[1]) }, ', ', { box: String(s[2]) }, '),  left side ', { box: String(val) }],
+    why: `u + w = ${br(s)}, which gives ${num(val)}. ${val === f(u) ? 'In the plane.' : `The plane needs ${num(f(u))}: off it.`}`,
+    hint: 'Add the three pairs of numbers. Then put the sum into the left side of the equation.' };
+});
+const RULEQ = [
+  { parts: ['u = (1, −2, 3) is in a subspace, so −2u = (', { box: '-2' }, ', ', { box: '4' }, ', ', { box: '-6' }, ') is too'], why: '−2 times each number.', hint: 'Multiply each number of u by −2.' },
+  { parts: ['u = (1, 0, 2), w = (0, 1, 1): so u + 2w = (', { box: '1' }, ', ', { box: '2' }, ', ', { box: '4' }, ') is too'], why: '2w = (0, 2, 2); then (1, 0, 2) + (0, 2, 2) = (1, 2, 4).', hint: 'First 2w, then add u.' },
+  { parts: ['x + 2y − z = k is a subspace exactly when k = ', { box: '0' }], why: 'Only then does (0, 0, 0) lie on it.', hint: 'Put (0, 0, 0) into x + 2y − z.' },
+  { parts: ['every vector on 3x + y + z = 5 gives 5:  u + w gives ', { box: '10' }, ',  2u gives ', { box: '10' }], why: '5 + 5 = 10 and 2 · 5 = 10: both leave the plane.', hint: 'A sum gives the sum of what each gives; 2u gives twice what u gives.' },
+  { parts: ['on the line t·(1, 2, 2), the point (3, 6, 6) has t = ', { box: '3' }], why: '3·(1, 2, 2) = (3, 6, 6).', hint: 'What times 1 is 3?' },
+];
+
+/* ---------- beats ---------- */
+const BEATS = [
+  ['intro', 'Subspaces of space', (m, D) => {
+    const g = G(scene, { o: 0, y: 24 });
+    T(g, 'Unit 5, Chapter 39', { x: 800, y: 250, size: 28, fill: COL.dim, anchor: 'middle' });
+    T(g, 'Subspaces of Space', { x: 800, y: 360, size: 88, weight: 600, anchor: 'middle' });
+    tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+    const r = text(scene, 'in three dimensions: lines and planes through the origin', 800, 460, m('sub'), { size: 34, fill: COL.dim, anchor: 'middle' });
+    // a tilted sheet through the origin with two arrows in it and their sum, still in it
+    const lg = G(scene, { x: 800, y: 680, o: 0 });
+    path(lg, 'M-260 40L-60 -70L260 -40L60 70Z', { fill: SETC, 'fill-opacity': .18, stroke: SETC, 'stroke-width': 3 });
+    const arr = (x0, y0, x1, y1, color) => {
+      const L = Math.hypot(x1 - x0, y1 - y0), ux = (x1 - x0) / L, uy = (y1 - y0) / L;
+      return path(lg, `M${x0} ${y0}L${x1 - ux * 12} ${y1 - uy * 12}M${x1 - 20 * ux - 10 * uy} ${y1 - 20 * uy + 10 * ux}L${x1} ${y1}L${x1 - 20 * ux + 10 * uy} ${y1 - 20 * uy - 10 * ux}Z`, { stroke: color, fill: color, 'stroke-width': 5, 'stroke-linejoin': 'round' }, { d: 0 });
+    };
+    const a1 = arr(0, 0, 110, -40, GREEN), a2 = arr(110, -40, 170, 30, VIOLET), a3 = arr(0, 0, 170, 30, COL.chalk);
+    show(lg, m('sub') + .8, .5); draw(a1, m('sub') + 1.2, .6); draw(a2, m('move') + .3, .6); draw(a3, m('move') + 1.1, .6);
+    tw(g, { o: 0, y: -24 }, D - .9, .8); hide(r, D - .9, .8); hide(lg, D - .9, .8);
+  }],
+
+  ['recap', 'From the plane to space', (m) => {
+    const p = S.p = panel(0);
+    text(p, 'From the plane to space', 60, 110, .2, { size: 40, weight: 600 });
+    const th = G(p, {});
+    thumb(th, 980, 330, 'the zero vector', (g, PX, PY) => mk('circle', { cx: PX(0), cy: PY(0), r: 8, fill: SETC }, g), m('z'));
+    thumb(th, 1190, 330, 'a line through 0', (g, PX, PY) => path(g, `M${PX(-4)} ${PY(-2)}L${PX(4)} ${PY(2)}`, { stroke: SETC, 'stroke-width': 5 }), m('l'));
+    thumb(th, 1400, 330, 'the whole plane', (g, PX, PY) => mk('rect', { x: PX(-4), y: PY(4), width: PX(4) - PX(-4), height: PY(-4) - PY(4), fill: SETC, 'fill-opacity': .2 }, g), m('p'));
+    text(p, 'subspaces of R²', 1190, 200, m('z'), { size: 30, fill: COL.dim, anchor: 'middle', weight: 600 });
+    hide(th, m('space') - .3, .4); hide(p.lastChild, m('space') - .3, .4);
+    const sb = S.sb = sub3(p, { set: 'all', u: [2, 1, 0], w: [-1, 1, 2], show: [], t0: m('space') + .2 });
+    sb.V.sway(5, 16, m('space'));
+    text(p, 'R³: vectors with three numbers', 90, 210, m('space') + .4, { size: 32, fill: SETC, weight: 600 });
+    const tt = G(p, { o: 0 });
+    T(tt, 'the test, as before:', { x: 90, y: 320, size: 30, fill: COL.dim, weight: 600 });
+    T(tt, 'pick u and w in the set', { x: 90, y: 372, size: 30, weight: 600 });
+    T(tt, 'every sum and every multiple stays in?', { x: 90, y: 420, size: 30, weight: 600 });
+    show(tt, m('test'), .6);
+    sb.show('u', m('space') + 2.5); sb.show('w', m('test') + 2.5); sb.show(['dw', 'sum'], m('sp') + 1.4);   // three numbers, an arrow; then the two the test picks
+    text(p, 'R³ is a subspace of itself', 90, 540, m('sp') + 4, { size: 30, fill: COL.good, weight: 700 });
+  }],
+
+  ['plane0', 'A plane through the origin', (m) => {
+    const p = S.p = panel(0);
+    text(p, 'Test 1: the plane x + y + z = 0', 60, 110, .2, { size: 40, weight: 600 });
+    const B = S.B = testBoard(p, { u: [1, 0, -1], w: [0, 2, -2] }), sb = S.sb = B.sb;
+    sb.V.sway(5, 16);
+    sb.plane.fade(0, 0, 0); show(B.eq, .3); sb.show('set', m('eq'), .8);
+    text(p, 'right side 0: through the origin', 90, 256, m('eq') + 4, { size: 26, fill: COL.dim });
+    show(B.u, m('u')); sb.show('u', m('u') + .2); show(B.cu, m('u') + 2.4);
+    show(B.w, m('w')); sb.show('w', m('w') + .2); show(B.cw, m('w') + 2.6);
+    show(B.combo, m('add'));
+    ['0', '1', '2'].forEach((j, i) => { sb.flash('u' + j, m('add') + .6 + i * .8); sb.flash('w' + j, m('add') + .6 + i * .8); });
+    sb.show('dw', m('pic')); sb.show('sum', m('pic') + 2.4);
+    show(B.out, m('test')); bump(sb, m('on') + .2);
+    sb.hide(['dw', 'w'], m('two') - .3, .3); hide(B.cw, m('two') - .3, .3);
+    sb.to({ c: 2, d: 0 }, m('two'), 1.3); sb.flash('c', m('two'));
+    sb.to({ c: -1 }, m('neg'), 1.3); sb.flash('c', m('neg'));
+    sb.to({ c: 0 }, m('zero'), 1.1); sb.flash('c', m('zero'));
+  }],
+
+  ['why0', 'Why it always works', (m) => {
+    const p = S.p, B = S.B, sb = S.sb;
+    sb.to({ c: 1, d: 1 }, .2, .8); sb.show(['w', 'dw'], .3); show(B.cw, .3);
+    pulseG(B.cu, m('each') + .8); pulseG(B.cw, m('each') + 1.6);
+    const n1 = text(p, 'u + w gives  0 + 0 = 0', 90, 790, m('sum') + 1, { size: 30, weight: 600 });
+    const n2 = text(p, 'c·u gives  c · 0 = 0', 430, 790, m('mult'), { size: 30, weight: 600 });
+    sb.to({ u0: 2, u1: -1 }, m('drag') + .2, 1.2); sb.to({ w0: -1, w1: 2 }, m('drag') + 1.6, 1.2); sb.to({ u0: 1, u1: 1 }, m('drag') + 3, 1.2);
+    sb.V.turn({ yaw: VIEW.yaw + 25 }, m('drag'), 3); sb.V.turn({ yaw: VIEW.yaw }, m('drag') + 3.2, 2);
+    hide(n1, m('name') - .2, .3); hide(n2, m('name') - .2, .3);
+    text(p, 'x + y + z = 0 is a subspace of R³', 90, 790, m('name') + 1, { size: 32, fill: COL.good, weight: 700 });
+  }],
+
+  ['ex2', 'Another plane through the origin', (m) => {
+    const p = S.p = panel(0);
+    text(p, 'Test 2: the plane x + 2y + z = 0', 60, 110, .2, { size: 40, weight: 600 });
+    const B = S.B = testBoard(p, { u: [1, 0, -1], w: [0, 2, -2], o: 1, show: ['u', 'w'] }), sb = S.sb = B.sb;
+    sb.V.sway(5, 16);
+    hide(B.combo, 0, 0); hide(B.out, 0, 0);
+    sb.to({ n1: 2, u0: 2, u1: -1, u2: 0, w0: -1, w1: 2, w2: -3 }, m('turn'), 1.8); sb.flash('n1', m('turn'));
+    pulseG(B.cu, m('u') + .5); pulseG(B.cw, m('w') + .5);
+    const bk = G(p, { o: 0 });
+    T(bk, 'chapter 14: columns 1 and 2 of the lecture’s matrix,', { x: 90, y: 790, size: 26, fill: COL.dim, weight: 600 });
+    T(bk, 'and this plane was their flat sheet', { x: 90, y: 828, size: 26, fill: COL.dim, weight: 600 });
+    show(bk, m('back'), .5); hide(bk, m('same') - .3, .3);
+    show(B.combo, m('add'), .5); sb.show(['dw', 'sum'], m('add') + .3); show(B.out, m('add') + 1.6); bump(sb, m('add') + 3);
+    sb.hide(['dw', 'u'], m('neg') - .3, .3); hide(B.cu, m('neg') - .3, .3);
+    sb.to({ c: 0, d: -1 }, m('neg'), 1.3); sb.flash('d', m('neg'));
+    text(p, 'every plane through the origin is a subspace', 90, 790, m('same') + 3, { size: 30, fill: COL.good, weight: 700 });
+  }],
+
+  ['q1', 'Quick check', () => {
+    const p = panel(0);
+    text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
+    const B = S.B = testBoard(p, { plane: [2, -1, 1, 0], u: [1, 2, 0], w: [0, 1, 1], o: 1, show: ['u', 'w'], view: { yaw: -30 } }), sb = S.sb = B.sb;   // from yaw 30 this plane is seen edge on
+    [B.combo, B.out].forEach(e => put(e, { o: 0 }));
+    sb.V.sway(4, 18);
+  }, { ask: done => quiz(CARD, [{
+    id: 'c-sum', prompt: ['In the plane ', $m('2x − y + z = 0'), ': add ', $m('u'), ' and ', $m('w'), ', then put the sum into ', $m('2x − y + z'), '.'],
+    build: blanks([
+      { parts: ['u + w = (', { box: '1' }, ', ', { box: '3' }, ', ', { box: '1' }, ')'], why: '1 + 0, 2 + 1, 0 + 1.', hint: 'Add the tops, the middles, the bottoms.',
+        fx: () => { const sb = S.sb; [sb.A.dw.g, sb.A.sum.g, sb.ring].forEach((e, i) => fx(e, { o: 1 }, .1 + i * .3, .5)); } },
+      { parts: ['2·1 − 3 + 1 = ', { box: '0' }], why: 'Zero: the sum is in the plane.', hint: '2 − 3 is −1. Then add 1.', fx: () => fx(S.B.out, { o: 1 }, .1, .5) },
+    ]),
+  }], done) }],
+
+  ['off', 'A plane that misses the origin', (m) => {
+    const p = S.p = panel(0);
+    text(p, 'Test 3: the plane x + y + z = 3', 60, 110, .2, { size: 40, weight: 600 });
+    const B = S.B = testBoard(p, { plane: [1, 1, 1, 3], u: [2, 1, 0], w: [2, 0, 1] }), sb = S.sb = B.sb;
+    sb.V.sway(5, 16);
+    show(B.eq, .3); text(p, 'right side 3: misses the origin', 90, 256, .8, { size: 26, fill: COL.dim });
+    show(B.u, m('u')); sb.show('u', m('u') + .2); show(B.cu, m('u') + 1.8);
+    show(B.w, m('w')); sb.show('w', m('w') + .2); show(B.cw, m('w') + 1);
+    show(B.combo, m('add')); sb.show(['dw', 'sum'], m('add') + .4);
+    show(B.out, m('test')); bump(sb, m('off') + .2);
+    const why = text(p, 'u gives 3, w gives 3:  u + w gives 3 + 3 = 6', 90, 790, m('why') + .5, { size: 30, weight: 600 });
+    hide(why, m('mult') - .3, .3);
+    sb.hide(['dw', 'w'], m('mult') - .3, .3); hide(B.cw, m('mult') - .3, .3);
+    sb.to({ c: 2, d: 0 }, m('mult'), 1.3); sb.flash('c', m('mult'));
+    sb.to({ c: 0 }, m('zero'), 1.1); sb.flash('c', m('zero'));
+    const o = ring3(sb.V, [0, 0, 0], '', COL.bad); put(o.e, { o: 0 }); show(o.e, m('zero') + 1.2, .4);
+    text(p, '(0, 0, 0) gives 0, not 3', 90, 790, m('zero') + 1, { size: 30, weight: 600 });
+    text(p, 'x + y + z = 3 is not a subspace', 90, 838, m('name'), { size: 32, fill: COL.bad, weight: 700 });
+  }],
+
+  ['slide', 'Slide the plane', (m) => {
+    const p = S.p = panel(0);
+    text(p, 'The quick test: the origin', 60, 110, .2, { size: 40, weight: 600 });
+    const B = S.B = testBoard(p, { plane: [1, 1, 1, 3], u: [2, 1, 0], w: [2, 0, 1], o: 1, show: ['u', 'w', 'dw', 'sum'] }), sb = S.sb = B.sb;
+    sb.V.sway(5, 16);
+    text(p, 'a subspace holds (0, 0, 0)', 90, 790, m('zero'), { size: 30, weight: 600 });
+    sb.to({ k: 1 }, m('k1') - .3, 1.3); sb.flash('k', m('k1'));
+    sb.to({ k: 0 }, m('k0') - .2, 1.3); sb.flash('k', m('k0'));
+    sb.to({ k: -1 }, m('kn') - .2, 1.3); sb.flash('k', m('kn'));
+    text(p, 'a plane is a subspace exactly when it passes through 0', 90, 838, m('rule'), { size: 28, fill: COL.good, weight: 700 });
+    sb.to({ k: 0 }, m('rule') + .4, 1.4);
+  }],
+
+  ['q2', 'Your turn', () => {
+    const p = panel(0);
+    text(p, 'Your turn', 60, 110, .2, { size: 40, weight: 600 });
+    const sb = S.sb = sub3(p, { plane: [1, 2, -1, 4], u: [2, 2, 2], w: [0, 1, -2], show: ['u', 'w', 'dw', 'sum'], range: { k: [-8, 8] } });
+    sb.eq({ x: 90, y: 200, size: 44 });
+    S.B = { sb, out: sb.readout({ x: 90, y: 300, size: 30 }) };
+  }, { ask: done => quiz({ ...CARD, y: 410 }, [{
+    id: 'c-slide', prompt: ['Slide the plane until it is a subspace: drag it by its edge, or change its right side.'],
+    build: sub3Task(S.sb, v => v.k === 0, 'Right side 0: x + 2y − z = 0 passes through the origin, and every sum stays in it.',
+      v => `Right side ${num(v.k)}: the plane misses (0, 0, 0). What does (0, 0, 0) give?`, () => S.sb.set({ k: 0 }), { only: ['k'], drag: [] }),
+  }], done) }],
+
+  ['line', 'A line through the origin', (m) => {
+    const p = S.p = panel(0);
+    text(p, 'Test 4: a line through the origin', 60, 110, .2, { size: 40, weight: 600 });
+    const B = S.B = testBoard(p, { set: 'line', line: { dir: [2, 1, -1], at: [0, 0, 0] }, u: [2, 1, -1], w: [-4, -2, 2], eq: false, view: { yaw: -15 } }), sb = S.sb = B.sb;   // the line seen side on, not end on
+    sb.V.sway(5, 16);
+    const L = S.L = sb.lineRow({ x: 90, y: 215, size: 30, o: 0 });
+    put(L.at, { o: 0 }); put(L.g, { x: -98 });
+    show(L.g, m('line'), .5); sb.setG && put(sb.setG, { o: 0 }); show(sb.setG, m('line') + .3, .6);
+    show(B.u, m('u')); sb.show('u', m('u') + .2); show(B.cu, m('u') + .8);
+    show(B.w, m('w')); sb.show('w', m('w') + .2); show(B.cw, m('w') + 1.6);
+    show(B.combo, m('add')); sb.show(['dw', 'sum'], m('add') + .4); show(B.out, m('add') + 1.6); bump(sb, m('add') + 3);
+    sb.hide(['dw', 'w'], m('two') - .3, .3); hide(B.cw, m('two') - .3, .3);
+    sb.to({ c: 2, d: 0 }, m('two'), 1.3); sb.flash('c', m('two'));
+    text(p, 'a multiple + a multiple = a multiple', 90, 790, m('why'), { size: 30, weight: 600 });
+    text(p, 'every line through the origin is a subspace', 90, 838, m('name'), { size: 30, fill: COL.good, weight: 700 });
+  }],
+
+  ['lineoff', 'A line that misses the origin', (m) => {
+    const p = S.p, B = S.B, sb = S.sb, L = S.L;
+    sb.V.sway(5, 16);
+    const tx = [...p.querySelectorAll(':scope > text')];
+    tx.slice(-2).forEach(e => hide(e, .1, .3));
+    hide(tx[0], m('shift') - .4, .3); text(p, 'Test 5: a line that misses the origin', 60, 110, m('shift') - .1, { size: 40, weight: 600 });
+    sb.to({ c: 1, d: 1 }, .1, .6); sb.show(['w', 'dw'], .2); show(B.cw, .2);
+    tw(L.g, { x: 0 }, m('shift'), .6); show(L.at, m('shift') + .4, .5);
+    sb.to({ p2: 2, u0: 2, u1: 1, u2: 1, w0: -2, w1: -1, w2: 3 }, m('shift'), 1.6); sb.flash('p2', m('shift') + 1);
+    pulseG(B.cu, m('u') + .3); pulseG(B.cw, m('w') + .3);
+    hide(B.out, m('shift') - .3, .3); show(B.out, m('test'), .4);   // the verdict waits for the question
+    sb.flash('sum0', m('add') + .5); sb.flash('sum1', m('add') + .5); sb.flash('sum2', m('add') + .5);
+    const t1 = G(p, { o: 0 });
+    T(t1, 'first number 0 → t = 0 → the point would be (0, 0, 2)', { x: 90, y: 790, size: 26, weight: 600 });
+    show(t1, m('test') + 2, .5); bump(sb, m('off'));
+    hide(t1, m('zero') - .3, .3);
+    const o = ring3(sb.V, [0, 0, 0], '', COL.bad); put(o.e, { o: 0 }); show(o.e, m('zero'), .4);
+    text(p, 'it never passes through (0, 0, 0)', 90, 790, m('zero') + .3, { size: 28, weight: 600 });
+    text(p, 'a line that misses the origin is not a subspace', 90, 838, m('name'), { size: 30, fill: COL.bad, weight: 700 });
+  }],
+
+  ['q3', 'Your turn', () => {
+    const p = panel(0);
+    text(p, 'Your turn', 60, 110, .2, { size: 40, weight: 600 });
+    const sb = S.sb = sub3(p, { space: { ...VIEW, size: 780, yaw: -15 }, set: 'line', line: { dir: [2, 1, -1], at: [0, 0, 2] }, u: [2, 1, 1], w: [-2, -1, 3], show: ['u', 'w', 'dw', 'sum'] });
+    sb.lineRow({ x: 90, y: 250, size: 32 });
+    S.B = { sb, out: sb.readout({ x: 90, y: 400, size: 30 }) };
+    ring3(sb.V, [0, 0, 0], '(0, 0, 0)', COL.task);
+  }, { ask: done => quiz({ ...CARD, y: 500 }, [{
+    id: 'c-line', prompt: ['Change the starting point (the first column) until the line is a subspace.'],
+    build: sub3Task(S.sb, (v, sb) => sb.inSet([0, 0, 0]), 'Now (0, 0, 0) is on the line, so it is a line through the origin: a subspace. (Starting at (0, 0, 0) works, and so does any multiple of (2, 1, −1).)',
+      'The line still misses (0, 0, 0). Try the starting point (0, 0, 0).', () => S.sb.set({ p0: 0, p1: 0, p2: 0 }), { only: ['p0', 'p1', 'p2'], drag: [] }),
+  }], done) }],
+
+  ['small', 'The smallest and the biggest', (m) => {
+    const p = S.p = panel(0);
+    text(p, 'The smallest and the biggest', 60, 110, .2, { size: 40, weight: 600 });
+    const sb = S.sb = sub3(p, { set: 'zero', u: [0, 0, 0], w: [0, 0, 0], show: ['sum'] });
+    sb.V.sway(5, 16);
+    const c = sb.combo({ x: 90, y: 400, size: 32, o: 0 }), out = sb.readout({ x: 90, y: 520, size: 30, o: 0 });
+    show(c, m('z') + 2.6, .5); show(out, m('z') + 2.6, .5);   // with the first c and d, after the set is named
+    const t1 = text(p, 'the zero vector alone', 90, 210, m('z'), { size: 34, fill: SETC, weight: 600 });
+    const zz = say(p, ['0 + 0 = 0,     c · 0 = 0'], 90, 280, m('z') + 1.5, { size: 32 });
+    [[3, -2], [-1, 4]].forEach(([cc, d], i) => sb.to({ c: cc, d }, m('z') + 3 + i * 1.3, 1));
+    const n1 = text(p, 'a subspace', 90, 640, m('name'), { size: 30, fill: COL.good, weight: 700 });
+    [t1, n1, zz].forEach(e => hide(e, m('all') - .3, .3));
+    sb.kind('all', m('all'));
+    sb.to({ u0: 2, u1: 1, u2: 0, w0: -1, w1: 1, w2: 2, c: 1, d: 1 }, m('all') + .1, 1.2);
+    sb.show(['u', 'w', 'dw'], m('all') + .4);
+    text(p, 'all of R³', 90, 210, m('all') + .2, { size: 34, fill: SETC, weight: 600 });
+    [[2, -1], [-1, 1]].forEach(([cc, d], i) => sb.to({ c: cc, d }, m('all') + 1.6 + i * 1.3, 1));
+    text(p, 'a subspace of itself', 90, 640, m('name2'), { size: 30, fill: COL.good, weight: 700 });
+  }],
+
+  ['list', 'Every subspace of space', (m) => {
+    const p = S.p = panel(0);
+    text(p, 'Every subspace of space', 60, 110, .2, { size: 40, weight: 600 });
+    const sb = S.sb = sub3(p, { set: 'zero', u: [0, 0, 0], w: [0, 0, 0], c: 1, d: 0, show: [], t0: .3 });
+    sb.V.sway(6, 18);
+    const L = (str, y, t) => { const g = G(p, { o: 0 }); mk('circle', { cx: 104, cy: y - 10, r: 8, fill: SETC }, g); T(g, str, { x: 130, y, size: 30, weight: 600 }); show(g, t, .5); return g; };
+    L('the zero vector alone', 210, m('z'));
+    sb.kind('line', m('l')); sb.to({ e0: 2, e1: 1, e2: -1, u0: 2, u1: 1, u2: -1 }, m('l') + .05, .01);
+    L('any line through the origin', 262, m('l'));
+    sb.kind('plane', m('p')); sb.to({ n0: 1, n1: -1, n2: 1, k: 0, u0: 2, u1: 1, u2: -1, w0: 0, w1: 1, w2: 1 }, m('p') + .05, .01);
+    L('any plane through the origin', 314, m('p'));
+    sb.kind('all', m('r3'));
+    L('all of R³', 366, m('r3'));
+    text(p, 'why nothing else?', 90, 450, m('why'), { size: 30, fill: COL.dim, weight: 600 });
+    // one vector: its line; a second off it: a plane; a third off that: everything
+    sb.kind('line', m('one') - .1); sb.show(['u', 'sum'], m('one') + .2); sb.multiples(m('one') + 1);
+    sb.to({ c: -1.5 }, m('one') + 1.6, 1.2); sb.to({ c: 1.5 }, m('one') + 2.9, 1.4);
+    text(p, 'one vector u ≠ 0  →  its whole line', 90, 520, m('one') + .5, { size: 28, weight: 600 });
+    sb.kind('plane', m('two')); sb.multiples(m('two'), false);
+    sb.show(['w', 'dw'], m('two') + .3);
+    [[1, 1], [-1, 2], [1, -2], [1, 1]].forEach(([c, d], i) => sb.to({ c, d }, m('two') + 1 + i * 1.2, 1));
+    text(p, '+ w off that line  →  a plane through 0', 90, 572, m('two') + .5, { size: 28, weight: 600 });
+    sb.kind('all', m('three'));
+    const a3 = sb.V.arrow([0, 0, 0], [1, -1, 3], { color: S3_COLS[2] });   // off x − y + z = 0: it gives 5
+    put(a3.e, { o: 0 }); show(a3.e, m('three') + .2, .5);
+    text(p, '+ a third off the plane  →  all of space', 90, 624, m('three') + .3, { size: 28, weight: 600 });
+    text(p, 'point, line, plane, or everything', 90, 720, m('so'), { size: 32, fill: COL.good, weight: 700 });
+  }],
+
+  ['q4', 'Quick check', () => {
+    const p = panel(0);
+    text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
+    const sb = S.sb = sub3(p, { plane: [0, 0, 1, 1], u: [2, 0, 1], w: [0, 2, 1], show: [] });
+    sb.V.sway(6, 16);
+  }, { ask: done => quiz({ x: 40, y: 200, w: 720, cls: 'side' }, [{
+    id: 'c-not', prompt: ['Which set is ', h('b', '', ['not']), ' a subspace of ', $m('R³'), '? (The picture shows one of them.)'],
+    build: choice([['the plane ', $m('x + y + z = 0')], ['the z-axis'], ['the plane ', $m('z = 1')], ['all of ', $m('R³')]], 2,
+      'z = 1 misses the origin: (0, 0, 0) gives 0, not 1. And (0, 0, 1) + (0, 0, 1) = (0, 0, 2) leaves it.',
+      ['Right side 0: it passes through the origin, and it is a subspace.', 'The z-axis is every multiple of (0, 0, 1): a line through the origin, a subspace.', '',
+       'All of space holds every sum and multiple: a subspace of itself.']),
+  }], done) }],
+
+  ['wrap', 'Summary', (m) => {
+    const p = panel(0);
+    [['The test in space is the same: every sum and every multiple stays inside.', 'w1'],
+     ['A plane through the origin is a subspace: sums give 0 + 0, multiples c · 0.', 'w2'],
+     ['A plane or a line that misses the origin is not.', 'w3'],
+     ['Subspaces of R³: the zero vector, lines and planes through 0, R³ itself.', 'w4']].forEach(([str, mark], i) => {
+      const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
+      mk('circle', { cx: 150, cy: -12, r: 26, fill: COL.chalk }, g);
+      T(g, String(i + 1), { x: 150, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+      T(g, str, { x: 210, size: 34, weight: 600 });
+      tw(g, { o: 1, x: 0 }, m(mark), .6);
+    });
+  }],
+  ['final1', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-sets', prompt: ['Is the set a subspace of ', $m('R³'), '?'],
+    build: grid(SETQ, YN, { multi: false, text: true }),
+  }], done, 'Chapter practice · set 1 of 4') }],
+  ['final2', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
+    id: 'p-sums', prompt: ['u and w are in the plane. Add them, then put the sum into the left side.'],
+    build: blanks(SUMQ),
+  }, {
+    id: 'p-planes', prompt: ['So which of these planes are subspaces?'],
+    build: grid(SUMQ.map(q => ({ parts: [$m(q.eq)], ans: [q.gives === 0 ? 'y' : 'n'], why: q.gives === 0 ? 'Right side 0: through the origin.' : `Right side ${num(q.gives)}: it misses the origin; the sum gave twice ${num(q.gives)}.` })), YN, { multi: false, text: true }),
+  }], done, 'Chapter practice · set 2 of 4') }],
+  ['final3', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
+    id: 'p-rule', prompt: ['Sums and multiples stay inside a subspace. Work them out.'],
+    build: blanks(RULEQ),
+  }], done, 'Chapter practice · set 3 of 4') }],
+  ['final4', 'Chapter practice', () => {
+    const p = panel(0);
+    text(p, 'Make it', 60, 110, .2, { size: 40, weight: 600 });
+    const sb = S.sb = sub3(p, { plane: [1, 1, 1, 2], u: [1, 1, 0], w: [0, 1, 1], show: [] });
+    sb.V.sway(4, 18);
+    S.B = { sb, eq: sb.eq({ x: 90, y: 200, size: 44 }) };
+  }, { ask: done => quiz({ ...CARD, y: 495 }, [{
+    id: 'p-plane', prompt: ['Make the plane a subspace that holds both amber points, ', $m('(1, 0, 1)'), ' and ', $m('(0, 1, 1)'), '.'],
+    build: (body, api) => {
+      const L = qlayer(), V = S.sb.V, rg = G(V.content, {});
+      ring3(V, [1, 0, 1], '(1, 0, 1)', COL.task, rg); ring3(V, [0, 1, 1], '(0, 1, 1)', COL.task, rg);
+      S.rg = rg;
+      return sub3Task(S.sb, v => v.k === 0 && v.n0 + v.n2 === 0 && v.n1 + v.n2 === 0 && (v.n0 || v.n1 || v.n2),
+        'x + y − z = 0 (or a multiple): right side 0, and both points give 1 − 1 = 0.',
+        v => v.k !== 0 ? 'A subspace passes through the origin: make the right side 0.' : `(1, 0, 1) gives ${num(v.n0 + v.n2)} and (0, 1, 1) gives ${num(v.n1 + v.n2)}; both must give 0. Try −1 in front of z.`,
+        () => S.sb.set({ n0: 1, n1: 1, n2: -1, k: 0 }), { drag: [] })(body, api);
+    },
+  }, {
+    id: 'p-reach', prompt: ['In the plane ', $m('x + y + z = 0'), ', find ', $m('c'), ' and ', $m('d'), ' so that ', $m('cu + dw'), ' lands on the amber ring.'],
+    build: (body, api) => {
+      if (S.rg) S.rg.remove();
+      S.sb.set({ n0: 1, n1: 1, n2: 1, k: 0, u0: 1, u1: -1, u2: 0, w0: 1, w1: 0, w2: -1, c: 1, d: 1 });
+      ['u', 'w', 'dw', 'sum'].forEach(id => put(S.sb.A[id].g, { o: 1 })); put(S.sb.ring, { o: 1 });
+      ring3(S.sb.V, [1, 2, -3], '(1, 2, −3)', COL.task);
+      if (!S.combo) S.combo = S.sb.combo({ x: 90, y: 400, size: 30 });
+      return sub3Task(S.sb, v => { const s = S.sb.calc().sum; return s[0] === 1 && s[1] === 2 && s[2] === -3; }, 'c = −2, d = 3: −2·(1, −1, 0) + 3·(1, 0, −1) = (1, 2, −3).',
+        () => { const s = S.sb.calc().sum; return `c u + d w = (${s.map(S3_fmt).join(', ')}). The middle number is −c and the bottom is −d: read c and d off the ring.`; },
+        () => S.sb.set({ c: -2, d: 3 }), { only: ['c', 'd'], drag: [] })(body, api);
+    },
+  }], done, 'Chapter practice · set 4 of 4') }],
+  ['play', 'Playground', (m) => {
+    const p = panel(0);
+    text(p, 'Playground', 60, 110, .2, { size: 40, weight: 600 });
+    const B = S.B = testBoard(p, { u: [1, 0, -1], w: [0, 2, -2], o: 1, show: ['u', 'w', 'dw', 'sum'] }), sb = S.sb = B.sb;
+    [B.cu, B.cw].forEach(e => put(e, { o: 0 }));
+    put(B.combo, { y: -110 }); put(B.out, { y: -150 });
+    text(p, 'try: slide it off the origin · tilt it · make c negative', 90, 256, m('go'), { size: 24, fill: COL.dim });
+  }, { ask: playAsk(() => S.sb, { pos: { x: 40, y: 590, w: 720, cls: 'side' }, tip: 'Your test in space: change anything, drag the plane or a tip, turn the picture. Green ring: c u + d w stays in.' }) }],
+  ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+boot();
+</script>
+</body>
+</html>

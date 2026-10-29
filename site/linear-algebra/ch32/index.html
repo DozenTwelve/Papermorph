@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A = LDU</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render"><!-- hold the first frame until the player exists, so the page transition can run -->
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/math.js"></script>
+<script src="../lib/linsys.js"></script>
+<script src="../lib/space3.js"></script>
+<script src="../lib/elim.js"></script>
+<script src="../lib/emat.js"></script>
+<script src="../lib/grid2.js"></script>
+<script src="../lib/play.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 32, title: 'A = LDU', minutes: 8, language: 'en', next: '../ch33/' };
+
+/* ---------- chapter drawing helpers (chapter 21's, with fractions) ---------- */
+const DENS = [1, 2, 3, 4, 5];
+const LECA = [[2, 1], [8, 7]], LECB = [3, 15];                      // the lecture's 2 × 2 (OCW 18.06, lecture 4), chapter 30's b, x = (1, 1)
+const UOLD = [[2, 1], [0, 3]], COLD = [3, 3];                        // U with the pivots, its right side
+const UNEW = [[1, 1 / 2], [0, 1]], CNEW = [3 / 2, 1];                    // each row divided by its pivot
+const L2 = [[1, 0], [4, 1]], D2 = [[2, 0], [0, 3]];
+const LEC3 = { A: [[1, 2, 1], [3, 8, 1], [0, 4, 1]], b: [2, 12, 2] };          // chapters 18 and 21
+const U3OLD = { A: [[1, 2, 1], [0, 2, -2], [0, 0, 5]], b: [2, 6, -10] };
+const AT2 = [70, 290], AT3 = [64, 262];
+const CARD2 = { x: 40, y: 600, w: 760, cls: 'side' }, CARD3 = { x: 40, y: 640, w: 820, cls: 'side' };
+const say = (p, parts, x, y, t0, { size = 40, fill = COL.chalk, anchor = 'start' } = {}) => { const e = M(p, [].concat(parts), { x, y, size, fill, anchor, o: 0 }); show(e, t0); return e; };
+const text = (p, str, x, y, t0, { size = 30, fill = COL.chalk, anchor = 'start', weight = 500 } = {}) => { const e = T(p, str, { x, y, size, fill, anchor, weight, o: 0 }); show(e, t0); return e; };
+const thick = (sys, i, t0) => { tw(sys.lines[i].l, { 'a_stroke-width': 10 }, t0, .35); tw(sys.lines[i].l, { 'a_stroke-width': 5 }, t0 + .9, .6); };
+// a number as math parts: whole, a fraction in lowest terms, or one decimal
+const fp = v => {
+  const r = Math.round(v);
+  if (Math.abs(v - r) < 1e-9) return [num(r)];
+  for (let d = 2; d <= 12; d++) { const k = Math.round(v * d); if (Math.abs(v * d - k) < 1e-9) return k < 0 ? ['−', F(-k, d)] : [F(k, d)]; }
+  return [num(Math.round(v * 10) / 10)];
+};
+// A small matrix in brackets with its name to the left ("L ="); t0 null: at once (inside a question).
+const mat = (p, rows, x, y, t0, { size = 32, cw = 52, rh = 46, name = '', fill = () => COL.chalk, under = '' } = {}) => {
+  const g = G(p, { o: t0 === null ? 1 : 0 }), n = rows.length, w = rows[0].length * cw, top = y - size * .95, bot = y + (n - 1) * rh + size * .4;
+  const hl = mk('rect', { x: x - 8, y: top - 6, width: w + 16, height: bot - top + 12, rx: 12, fill: COL.chalk, 'fill-opacity': .13 }, g);
+  put(hl, { o: 0 });
+  path(g, `M${x + 12} ${top}H${x}V${bot}H${x + 12}M${x + w - 12} ${top}H${x + w}V${bot}H${x + w - 12}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' });
+  rows.forEach((r, i) => r.forEach((v, j) => M(g, fp(v), { x: x + cw * (j + .5), y: y + i * rh, size, fill: fill(i, j), anchor: 'middle' })));
+  if (name) M(g, [].concat(name), { x: x - 14, y: y + (n - 1) * rh / 2 + size * .3, size: size * 1.05, fill: COL.chalk, anchor: 'end' });
+  if (under) T(g, under, { x: x + w / 2, y: bot + size * .95, size: 22, fill: COL.dim, weight: 600, anchor: 'middle' });
+  if (t0 !== null) show(g, t0, .5);
+  const cx = j => x + cw * (j + .5), ry = i => y + i * rh;
+  const ring = (i, j, at, { color = COL.chalk, dash = false } = {}) => {
+    const rg = G(p, { x: cx(j), y: ry(i) - size * .32, o: 0 });
+    mk('ellipse', { rx: cw * .46, ry: size * .66, fill: 'none', stroke: color, 'stroke-width': 3.5, ...(dash ? { 'stroke-dasharray': '7 6' } : {}) }, rg);
+    show(rg, at, .35);
+    return rg;
+  };
+  const glow = (at, len = 1.4) => { tw(hl, { o: 1 }, at, .25); tw(hl, { o: 0 }, at + len, .6); };
+  return { g, cx, ry, w, x, top, bot, ring, glow };
+};
+// A row of matrices "name = M₁ M₂ …" from x; items: [rows, { name, under, fill }]; returns the mats.
+const chain = (p, items, x, y, t0, { size = 30, cw = 50, rh = 44, gap = 26, step = 0 } = {}) => {
+  let cx0 = x;
+  return items.map(([rows, o = {}], k) => {
+    if (o.name) cx0 += mathW([].concat(o.name), size * 1.05) + 14;
+    const mm_ = mat(p, rows, cx0, y, o.at ?? t0 + k * step, { size, cw, rh, ...o });
+    cx0 += mm_.w + gap;
+    return mm_;
+  });
+};
+// 2D: the plane on the right, three tables on the left (E · [A | b] = [EA | Eb]).
+const two = (p, { A, b }, caption, { t0 = .1, E = null, name = 'D', names = ['U', '', 'DU', ''] } = {}) => {
+  const sys = linsys(p, { A, b, eq: [90, 200], mat: null, sol: false, plane: { cx: 1215, u: 50 }, t0 });
+  sys.E.style.display = 'none';
+  if (caption) say(p, [caption], 70, 175, t0 + .1, { size: 28, fill: COL.dim });
+  const em = emat(p, sys, { A, b, E, at: AT2, size: 38, cw: 64, ecw: 56, rh: 62, gap: 66, t0, dens: DENS, name, names });
+  return { sys, em };
+};
+const three = (p, { A, b }, caption, { t0 = .1, E = null, view = { yaw: -30, pitch: 22 }, name = 'D', names = ['U', '', 'DU', ''] } = {}) => {
+  const sys = lin3(p, { A, b, eq: [90, 190], mat: null, sol: false, space: { cx: 1262, size: 520, ...view }, t0 });
+  sys.E.style.display = 'none';
+  if (caption) say(p, [caption], 64, 160, t0 + .1, { size: 26, fill: COL.dim });
+  const em = emat(p, sys, { A, b, E, at: AT3, size: 32, cw: 52, ecw: 44, rh: 54, gap: 64, t0, dens: DENS, name, names });
+  return { sys, em, V: sys.space };
+};
+// The plane alone with an elimination table beside it (chapter 16's layout, the plane further right).
+const table = (p, { A, b }, caption, { t0 = .1 } = {}) => {
+  const sys = linsys(p, { A, b, eq: [90, 200], mat: null, sol: false, plane: { cx: 1215, u: 50 }, t0 });
+  sys.E.style.display = 'none';
+  if (caption) say(p, [caption], 70, 175, t0 + .1, { size: 28, fill: COL.dim });
+  const el = elim(p, sys, { at: [150, 320], size: 44, cw: 92, rh: 68, t0, dens: DENS });
+  return { sys, el };
+};
+const bare = A => {
+  const v = {}, fs = [];
+  A.forEach((r, i) => { r.forEach((x, j) => { v[`a${i}${j}`] = x; }); v[`b${i}`] = 0; });
+  return { v, set(to) { Object.assign(v, to); fs.forEach(f => f(v)); }, onChange: f => fs.push(f), solve: () => ({}), live() {}, to() {} };
+};
+const pin = (sys, x, y, t0) => { const g = G(sys.stage, { x: sys.P.PX(x), y: sys.P.PY(y), o: 0 }); mk('circle', { r: 20, fill: 'none', stroke: COL.chalk, 'stroke-width': 3.5, 'stroke-dasharray': '6 5' }, g); show(g, t0, .4); return g; };
+// "row 1 ÷ 2" beside row i of an elim table
+const divLab = (p, el, i, k, at) => { const g = G(p, { o: 0 }); M(g, [`row ${i + 1} ÷ `, ...fp(k)], { x: el.cx(2) + 110, y: el.ry(i) - 4, size: 34, fill: COL.chalk, anchor: 'start' }); show(g, at, .4); return g; };
+const keysOf = ({ A, b }, E = null) => {
+  const o = {}, n = A.length;
+  A.forEach((r, i) => { r.forEach((x, j) => { o[`a${i}${j}`] = x; o[`e${i}${j}`] = E ? E[i][j] : +(i === j); }); o[`b${i}`] = b[i]; });
+  return o;
+};
+const near = (a, b) => Math.abs(a - b) < 1e-9;
+const sameU = (pr, U) => U.every((r, i) => r.every((x, j) => near(pr[`a${i}${j}`], x)));
+
+/* ---------- practice data (every answer worked twice: by dividing, and by multiplying back) ---------- */
+const SPLITQ = [
+  { parts: ['U = (2, 6), (0, 5):     D has ', { box: '2' }, ' and ', { box: '5' }, ';   row 1 of the new U = (1, ', { box: '3' }, ')'], why: 'Pivots 2 and 5. Row 1 ÷ 2 = (1, 3).', hint: 'The pivots are on U’s diagonal. Then divide row 1 by its pivot.' },
+  { parts: ['U = (4, −2), (0, 3):     D has ', { box: '4' }, ' and ', { box: '3' }, ';   row 1 of the new U = (1, ', { box: '-1/2' }, ')'], why: 'Row 1 ÷ 4 = (1, −2/4) = (1, −½).', hint: '−2 ÷ 4 is a fraction.' },
+  { parts: ['U = (−1, 3), (0, 2):     D has ', { box: '-1' }, ' and ', { box: '2' }, ';   row 1 of the new U = (1, ', { box: '-3' }, ')'], why: 'A pivot can be negative: row 1 ÷ (−1) = (1, −3).', hint: 'Dividing by −1 changes every sign.' },
+  { parts: ['U = (3, 3, 6), (0, 2, 4), (0, 0, 7):     D has ', { box: '3' }, ', ', { box: '2' }, ', ', { box: '7' }, ';   row 2 of the new U = (0, 1, ', { box: '2' }, ')'], why: 'Pivots 3, 2, 7. Row 2 ÷ 2 = (0, 1, 2).', hint: 'Three pivots, down the diagonal.' },
+  { parts: ['U = (5, 0), (0, 2):     the new U = (1, ', { box: '0' }, '), (0, ', { box: '1' }, ')'], why: 'U was already diagonal: U = D, and the new U is I.', hint: 'Row 1 ÷ 5, row 2 ÷ 2.' },
+];
+const MULTQ = [
+  { parts: ['L = (1, 0), (2, 1);   D = diag(3, 1);   U = (1, 2), (0, 1):     A = (3, 6), (', { box: '6' }, ', ', { box: '13' }, ')'], why: 'DU = (3, 6), (0, 1). Row 2 of A = 2 × (3, 6) + (0, 1) = (6, 13).', hint: 'First D scales the rows of U, then row 2 of L says: 2 of row 1, plus row 2.' },
+  { parts: ['L = (1, 0), (−1, 1);   D = diag(2, 4);   U = (1, 3), (0, 1):     A = (', { box: '2' }, ', ', { box: '6' }, '), (', { box: '-2' }, ', ', { box: '-2' }, ')'], why: 'DU = (2, 6), (0, 4). Row 2 = −(2, 6) + (0, 4) = (−2, −2).', hint: 'DU first: row 1 × 2, row 2 × 4.' },
+  { parts: ['L = (1, 0), (3, 1);   D = diag(1, −2);   U = (1, −1), (0, 1):     row 2 of A = (', { box: '3' }, ', ', { box: '-5' }, ')'], why: 'DU = (1, −1), (0, −2). Row 2 = 3 × (1, −1) + (0, −2) = (3, −5).', hint: 'Row 2 of DU is (0, −2).' },
+  { parts: ['L = (1,0,0), (2,1,0), (0,1,1);   D = diag(1, 1, 3);   U = (1,1,1), (0,1,2), (0,0,1):    row 3 of A = (', { box: '0' }, ', ', { box: '1' }, ', ', { box: '5' }, ')'], why: 'DU = (1, 1, 1), (0, 1, 2), (0, 0, 3). Row 3 = row 2 + row 3 of DU = (0, 1, 5).', hint: 'Row 3 of L is (0, 1, 1): row 2 plus row 3 of DU.' },
+];
+const FACTQ = [
+  { parts: ['A = (2, 4), (6, 7):     ℓ = ', { box: '3' }, ';   D has ', { box: '2' }, ' and ', { box: '-5' }, ';   U = (1, ', { box: '2' }, '), (0, 1)'], why: 'ℓ = 6 ÷ 2 = 3; 7 − 3 × 4 = −5. Row 1 ÷ 2 = (1, 2).', hint: 'Eliminate first: row 2 − 3 × row 1.' },
+  { parts: ['A = (1, 3), (2, 8):     ℓ = ', { box: '2' }, ';   D has ', { box: '1' }, ' and ', { box: '2' }, ';   U = (1, ', { box: '3' }, '), (0, 1)'], why: 'Row 2 − 2 × row 1 = (0, 2). Pivots 1 and 2.', hint: '8 − 2 × 3 is the second pivot.' },
+  { parts: ['A = (4, 8), (2, 5):     ℓ = ', { box: '1/2' }, ';   D has ', { box: '4' }, ' and ', { box: '1' }, ';   U = (1, ', { box: '2' }, '), (0, 1)'], why: 'ℓ = 2 ÷ 4 = ½; 5 − ½ × 8 = 1. Row 1 ÷ 4 = (1, 2).', hint: 'The multiplier is a fraction this time.' },
+  { parts: ['A = (3, −3), (−6, 10):     ℓ = ', { box: '-2' }, ';   D has ', { box: '3' }, ' and ', { box: '4' }, ';   U = (1, ', { box: '-1' }, '), (0, 1)'], why: 'ℓ = −6 ÷ 3 = −2; 10 − (−2)(−3) = 4. Row 1 ÷ 3 = (1, −1).', hint: 'ℓ is negative; careful with −ℓ × −3.' },
+  { parts: ['A = (2, 1), (8, 7):     D has ', { box: '2' }, ' and ', { box: '3' }, ';   U = (1, ', { box: '1/2' }, '), (0, 1)'], why: 'The lecture’s A: pivots 2 and 3, row 1 ÷ 2 = (1, ½).', hint: 'This is the matrix of the chapter.' },
+];
+// Hands-on in 3D: D's diagonal, until D times U is the target.
+const HANDS = [
+  { sys: { A: [[1, 2, 1], [0, 1, -1], [0, 0, 1]], b: [2, 3, -2] }, target: [[1, 2, 1], [0, 2, -2], [0, 0, 5]], ans: { e00: 1, e11: 2, e22: 5 },
+    why: 'D = 1, 2, 5: the lecture’s pivots. Row 2 × 2 = (0, 2, −2), row 3 × 5 = (0, 0, 5).' },
+  { sys: { A: [[1, 1, 1], [0, 1, 2], [0, 0, 1]], b: [3, 3, 1] }, target: [[2, 2, 2], [0, -1, -2], [0, 0, 3]], ans: { e00: 2, e11: -1, e22: 3 },
+    why: 'D = 2, −1, 3. A negative pivot flips the signs of its row.' },
+  { sys: { A: [[1, -1, 2], [0, 1, 1], [0, 0, 1]], b: [2, 2, 1] }, target: [[3, -3, 6], [0, 4, 4], [0, 0, -2]], ans: { e00: 3, e11: 4, e22: -2 },
+    why: 'D = 3, 4, −2: row 1 × 3, row 2 × 4, row 3 × (−2).' },
+];
+const dHint = target => (v, pr) => {
+  const bad = [0, 1, 2].find(i => !near(pr[`a${i}${i}`], target[i][i]));
+  return bad === undefined ? 'Only the diagonal of D should change.' : `Row ${bad + 1} of the answer starts its pivot at ${num(Math.round(pr[`a${bad}${bad}`] * 10) / 10)}; the target has ${num(target[bad][bad])}. What times 1 gives that?`;
+};
+
+/* ---------- beats ---------- */
+const BEATS = [
+  ['intro', 'A = LDU', (m, D) => {
+    const g = G(scene, { o: 0, y: 24 });
+    T(g, 'Unit 4, Chapter 32', { x: 800, y: 250, size: 28, fill: COL.dim, anchor: 'middle' });
+    T(g, 'A = LDU', { x: 800, y: 360, size: 88, weight: 600, anchor: 'middle' });
+    tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+    const r = text(scene, 'pull the pivots out of U into a diagonal matrix D', 800, 460, m('sub'), { size: 34, fill: COL.dim, anchor: 'middle' });
+    const lg = G(scene, { o: 0 }); show(lg, m('sub') + 1, .5);
+    say(lg, ['U ='], 562, 664, 0, { size: 40, anchor: 'end' });
+    const u0 = mat(lg, UOLD, 580, 625, 0, { size: 38, cw: 62, rh: 54 });
+    const r1 = u0.ring(0, 0, m('sub') + 2.5), r2 = u0.ring(1, 1, m('sub') + 2.9);
+    hide(u0.g, m('move') + .3, .5); hide(r1, m('move') + .3, .4); hide(r2, m('move') + .3, .4);
+    const dm = mat(lg, D2, 580, 625, m('move') + .3, { size: 38, cw: 62, rh: 54, under: 'D' });
+    dm.ring(0, 0, m('move') + .3); dm.ring(1, 1, m('move') + .3);
+    mat(lg, UNEW, 740, 625, m('move') + 1.1, { size: 38, cw: 72, rh: 54, under: 'U' });
+    tw(g, { o: 0, y: -24 }, D - .9, .8); hide(r, D - .9, .8); hide(lg, D - .9, .8);
+  }],
+
+  ['recall', 'A = LU, again', (m) => {
+    const p = panel(0);
+    text(p, 'A = LU, again', 60, 110, .2, { size: 40, weight: 600 });
+    const [A, L, U] = chain(p, [[LECA, { name: 'A =' }], [L2, { name: '=', under: 'L', at: m('L') }], [UOLD, { under: 'U', at: m('U') }]], 110, 260, .4, { size: 36, cw: 58, rh: 52, gap: 30 });
+    text(p, 'row 2 − 4 × row 1', 110, 410, m('A'), { size: 28, fill: COL.dim, weight: 600 });
+    L.ring(1, 0, m('L') + .4, { dash: true });
+    A.glow(m('mult') + .2);
+    const o1 = L.ring(0, 0, m('ones')), o2 = L.ring(1, 1, m('ones') + .3);
+    const p1 = U.ring(0, 0, m('piv')), p2 = U.ring(1, 1, m('piv') + .3);
+    text(p, 'L: ones on the diagonal.   U: the pivots.', 110, 470, m('lop'), { size: 30, weight: 600 });
+    const sys = linsys(p, { A: LECA, b: LECB, eq: [90, 200], mat: null, sol: false, plane: { cx: 1215, u: 50 }, t0: m('A') - .3 });
+    sys.E.style.display = 'none';
+    const c1 = say(p, ['2x + y = 3,    8x + 7y = 15'], 110, 580, m('A') + .2, { size: 32, fill: COL.dim });
+    pin(sys, 1, 1, m('sys') + 4);
+    thick(sys, 0, m('sys') + 2); thick(sys, 1, m('sys') + 4.4); pulse(sys.meet, m('sys') + 7);
+    hide(c1, m('elim') + 2.4, .4);
+    say(p, ['2x + y = 3,    3y = 3'], 110, 580, m('elim') + 2.6, { size: 32, fill: COL.dim });
+    sys.to({ a10: 0, a11: 3, b1: 3 }, m('elim') + .2, 2.6);
+    thick(sys, 1, m('elim') + 3.4);
+  }],
+
+  ['pull', 'Pivots out', (m) => {
+    const p = panel(0);
+    text(p, 'Take the pivots out of U', 60, 110, .2, { size: 40, weight: 600 });
+    const { sys, el } = table(p, { A: UOLD, b: COLD }, 'U with its right side:    2x + y = 3,    3y = 3', { t0: .3 });
+    pin(sys, 1, 1, .8);
+    el.focus(0, m('r1'));
+    const g1 = el.ring(0, 0, m('r1') + .5);
+    divLab(p, el, 0, 2, m('div1'));
+    el.to({ a00: 1, a01: .5, b0: 1.5 }, m('div1') + .5, 2.2);
+    hide(g1, m('div1') + 2.8, .4);
+    thick(sys, 0, m('same1'));
+    [[0, 3, '2·0 + 3 = 3,   0 + ½·3 = 3/2'], [2, -1, '2·2 − 1 = 3,   2 − ½·1 = 3/2']].forEach(([x, y, s], k) => {
+      const t = m('same1') + 2.5 + 2.6 * k, d = G(sys.stage, { x: sys.P.PX(x), y: sys.P.PY(y), o: 0 });
+      mk('circle', { r: 9, fill: COL.chalk }, d); show(d, t, .3); hide(d, m('chk1') - .2, .3);
+      hide(say(p, [s], 150, 470 + 0 * k, t, { size: 28, fill: COL.dim }), t + 2.4, .3);
+    });
+    say(p, ['1 + ', F(1, 2), ' · 1 = ', F(3, 2), '  ✓'], 150, 560, m('chk1'), { size: 34 });
+    pulse(sys.meet, m('chk1') + .4);
+    el.focus(1, m('r2'));
+    const g2 = el.ring(1, 1, m('r2') + .5);
+    divLab(p, el, 1, 3, m('div2'));
+    el.to({ a11: 1, b1: 1 }, m('div2') + .5, 2);
+    hide(g2, m('div2') + 2.6, .4);
+    thick(sys, 1, m('same2'));
+    say(p, ['3y = 3   and   y = 1:   the same line'], 150, 620, m('same2'), { size: 30, fill: COL.dim });
+    el.focus(null, m('new'));
+    el.diag(m('new'), { color: COL.chalk });
+    text(p, 'ones down the diagonal, like L', 150, 690, m('new') + .3, { size: 30, weight: 600 });
+    text(p, 'and the pivots 2 and 3?', 150, 750, m('keep'), { size: 30, fill: COL.bad, weight: 600 });
+  }],
+
+  ['dmat', 'The matrix D', (m) => {
+    const p = panel(0);
+    text(p, 'The diagonal matrix D', 60, 110, .2, { size: 40, weight: 600 });
+    const { sys, em } = two(p, { A: UNEW, b: CNEW }, 'the table with ones:    x + ½y = 3/2,    y = 1', { t0: .3, names: ['new U', '', 'answer', ''] });
+    pin(sys, 1, 1, .8);
+    put(em.Eg, { o: 0 }); show(em.Eg, m('go1') - .6, .5);
+    put(em.eqSign, { o: 0 }); show(em.eqSign, m('go1') - .6, .4);
+    tw(em.Pt.g, { o: 0 }, 0, 0); show(em.Pt.g, m('go1') - .6, .5);
+    prog(q => em.setName(q > 0 ? 'D' : 'I'), m('go1') + .8, 0, lin);
+    text(p, 'row 1 × 2', 90, 640, m('r1'), { size: 30, fill: COL.chalk, weight: 600 });
+    text(p, 'row 2 × 3', 270, 640, m('r2'), { size: 30, fill: COL.chalk, weight: 600 });
+    const dm = mat(p, D2, 560, 640, m('mat'), { size: 34, cw: 56, rh: 50, name: 'D =' });
+    const rr1 = G(p, { o: 0 }); mk('rect', { x: 552, y: 606, width: 128, height: 44, rx: 10, fill: COL.chalk, opacity: .14 }, rr1);
+    show(rr1, m('mat') + 1.5, .3); hide(rr1, m('row2'), .3);
+    em.B.flash(0, m('mat') + 3.6); em.B.flash(1, m('mat') + 6.4);
+    const rr2 = G(p, { o: 0 }); mk('rect', { x: 552, y: 656, width: 128, height: 44, rx: 10, fill: COL.chalk, opacity: .14 }, rr2);
+    show(rr2, m('row2'), .3); hide(rr2, m('D'), .3);
+    dm.ring(0, 0, m('D')); dm.ring(1, 1, m('D') + .2);
+    text(p, 'diagonal matrix', 720, 676, m('D') + .4, { size: 26, fill: COL.dim, weight: 600 });
+    em.work(0, m('go1'));
+    em.ringE(0, 0, m('go1') + .5);
+    em.to({ e00: 2 }, m('go1') + 1.4, 2.4);
+    em.Pt.flash(0, m('go1') + 3.6);
+    thick(sys, 0, m('still'));
+    em.work(1, m('go2'));
+    em.ringE(1, 1, m('go2') + .3);
+    em.to({ e11: 3 }, m('go2') + .9, 2);
+    em.Pt.flash(1, m('go2') + 3);
+    thick(sys, 1, m('go2') + 2);
+    em.work(null, m('back'));
+    prog(q => em.names(q > 0 ? ['new U', '', 'old U', ''] : ['new U', '', 'answer', '']), m('back'), 0, lin);
+    prog(q => em.names(q > 0 ? ['U', '', 'DU', ''] : ['new U', '', 'old U', '']), m('name') + .4, 0, lin);
+    em.Pt.flash(0, m('back') + .6); em.Pt.flash(1, m('back') + .6);
+    text(p, 'U: ones on the diagonal.   D: the pivots.', 90, 790, m('name') + .4, { size: 30, weight: 600 });
+  }],
+
+  ['ldu', 'Multiply it out', (m, D) => {
+    const p = panel(0);
+    text(p, 'A = L D U', 60, 110, .2, { size: 40, weight: 600 });
+    text(p, 'A = L × (old U),    old U = D × U', 70, 175, m('eq'), { size: 28, fill: COL.dim, weight: 600 });
+    const [Am, L, Dm, U] = chain(p, [[LECA, { name: 'A =' }], [L2, { name: '=', under: 'L' }], [D2, { under: 'D' }], [UNEW, { under: 'U', cw: 58 }]], 110, 250, m('ldu'), { size: 30, cw: 50, rh: 42, gap: 22, step: .5 });
+    L.glow(m('three')); Dm.glow(m('three') + 2.2); U.glow(m('three') + 4.6);
+    const sys = linsys(p, { A: UOLD, b: COLD, eq: [90, 200], mat: null, sol: false, plane: { cx: 1215, u: 50 }, t0: .4 });
+    sys.E.style.display = 'none';
+    const g1 = G(p, { o: 0 }); show(g1, m('du') - .3, .5); hide(g1, m('lu') - .2, .4);
+    const e1 = emat(g1, bare(UNEW), { A: UNEW, b: [0, 0], E: D2, at: [70, 460], size: 36, cw: 64, ecw: 56, rh: 60, gap: 60, t0: 0, noB: true, name: 'D', names: ['U', '', 'DU', ''], dens: DENS });
+    e1.Pt.flash(0, m('du1')); e1.flashE(0, m('du1'));
+    e1.Pt.flash(1, m('du2')); e1.flashE(1, m('du2'));
+    const g2 = G(p, { o: 0 }); show(g2, m('lu'), .5);
+    const e2 = emat(g2, sys, { A: UOLD, b: COLD, at: [70, 460], size: 36, cw: 64, ecw: 56, rh: 60, gap: 60, t0: 0, name: 'L', names: ['DU', '', 'A', 'b'], dens: DENS });
+    e2.work(0, m('lr1'));
+    e2.focusE(0, m('lr1'));
+    e2.focusE(1, m('lr2')); e2.work(1, m('lr2'));
+    e2.ringE(1, 0, m('lr2') + .3);
+    e2.to({ e10: 4 }, m('lr2') + .8, 2.4);
+    e2.Pt.flash(1, m('lr2') + 5.6);
+    e2.Pt.flash(1, m('a') - .3);
+    e2.focusE(null, m('a'));
+    Am.glow(m('a') + 1);
+    thick(sys, 1, m('pic') + .5);
+    pin(sys, 1, 1, m('pic') + 1);
+  }],
+
+  ['plane', 'Three moves', (m) => {
+    const p = panel(0);
+    text(p, 'Slide, stretch, slide', 60, 110, .2, { size: 40, weight: 600 });
+    const g = grid2(p, { A: [[1, 0], [0, 1]], pre: [[1, 0], [0, 1]], mat: null, units: false, grid: false, plane: { cx: 1150, cy: 790, u: 40, x0: -4, x1: 6, y0: -1, y1: 15.5 }, t0: .3 });
+    put(g.parts.cols, { o: 0 });
+    const [Am, L, Dm, U] = chain(p, [[LECA, { name: 'A =' }], [L2, { name: '=', under: 'L' }], [D2, { under: 'D' }], [UNEW, { under: 'U', cw: 58 }]], 110, 250, .4, { size: 34, cw: 54, rh: 46, gap: 22 });
+    L.glow(2.6, 1); Dm.glow(3.1, 1); U.glow(3.6, 1);   // "L, D and U"
+    const sqP = g.parts.square; tw(sqP, { o: .35 }, m('sq') + .4, .3); tw(sqP, { o: 1 }, m('sq') + .9, .4); tw(sqP, { o: .35 }, m('sq') + 1.4, .3); tw(sqP, { o: 1 }, m('sq') + 1.9, .4);
+    text(p, 'A x = L (D (U x)):   U first, then D, then L', 110, 400, m('sq') + 3, { size: 28, fill: COL.dim, weight: 600 });
+    U.glow(m('sq') + 7, 1); Dm.glow(m('sq') + 8.2, 1); L.glow(m('sq') + 9.2, 1);
+    U.glow(m('u'), 4); g.to({ p01: .5 }, m('u') + 1, 2.4);
+    text(p, 'U: the ½ slides it sideways', 110, 470, m('u') + .6, { size: 30, weight: 600 });
+    Dm.glow(m('d'), 4); g.to({ a00: 2, a11: 3 }, m('d') + .8, 2.6);
+    text(p, 'D: the pivots stretch it, × 2 wide, × 3 tall', 110, 530, m('d') + .4, { size: 30, weight: 600 });
+    g.to({ p00: 2, p01: 1, p11: 3, a00: 1, a11: 1 }, m('l') - .3, .05);   // the same plane, now as I · (DU)
+    L.glow(m('l'), 4); g.to({ a10: 4 }, m('l') + .8, 2.6);
+    text(p, 'L: the 4 slides it up, by 4 times x', 110, 590, m('l') + .4, { size: 30, weight: 600 });
+    Am.glow(m('a'), 5);
+    [[2, 8, COL.irr, '(2, 8)', 'start', 14], [1, 7, COL.real, '(1, 7)', 'end', -14]].forEach(([x, y, c, s, anchor, dx], k) => {
+      const d = G(g.stage, { x: g.P.PX(x), y: g.P.PY(y), o: 0 });
+      mk('circle', { r: 9, fill: c }, d); T(d, s, { x: dx, y: 8, size: 26, fill: c, weight: 700, anchor });
+      show(d, m('a') + 1 + 3 * k, .4);
+    });
+    text(p, '(1, 0) lands on (2, 8),   (0, 1) on (1, 7): A’s columns', 110, 670, m('a') + 1, { size: 28, fill: COL.dim, weight: 600 });
+    text(p, 'L and U only slide; all the stretching is in D', 110, 760, m('sum'), { size: 30, weight: 600 });
+  }],
+
+  ['q1', 'Quick check', () => {
+    const p = panel(0);
+    text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
+    const t = table(p, { A: [[3, 6], [0, 2]], b: [9, 4] }, 'U:    3x + 6y = 9,    2y = 4');
+    S.sys = t.sys;
+  }, { ask: done => quiz({ x: 40, y: 440, w: 780, cls: 'side' }, [{
+    id: 'c-split', prompt: ['Pull the pivots out of U into D. The new U has ones on its diagonal.'],
+    build: blanks([
+      { parts: ['D has  ', { box: '3' }, '  and  ', { box: '2' }, '  on its diagonal'], why: 'The pivots are U’s diagonal: 3 and 2.', hint: 'Look down U’s diagonal.' },
+      { parts: ['new U:   (', { box: '1' }, ', ', { box: '2' }, ' | ', { box: '3' }, '),   (0, ', { box: '1' }, ' | ', { box: '2' }, ')'],
+        why: 'Row 1 ÷ 3 = (1, 2 | 3); row 2 ÷ 2 = (0, 1 | 2). Neither line moves.', hint: 'Divide every number of a row by its pivot, right side too.',
+        fx: () => fxp(q => S.sys.set({ a00: 3 - 2 * q, a01: 6 - 4 * q, b0: 9 - 6 * q, a11: 2 - q, b1: 4 - 2 * q }), 0, 1.6) },
+    ]),
+  }], done) }],
+
+  ['ex2', 'From the start', (m) => {
+    const p = panel(0);
+    text(p, 'A second example, from the start', 60, 110, .2, { size: 40, weight: 600 });
+    const { sys, el } = table(p, { A: [[3, 6], [6, 16]], b: [0, -4] }, '3x + 6y = 0,    6x + 16y = −4', { t0: .3 });
+    el.flash(0, m('A') + .3); el.flash(1, m('A') + 1.6);
+    pin(sys, 2, -1, m('A') + 3);
+    const lt = say(p, ['ℓ = 6 ÷ 3 = 2'], 150, 520, m('l'), { size: 34 });
+    el.step(1, 0, 2, m('step'), 2.2);
+    const lab = el.op_.lab.g;
+    thick(sys, 1, m('step') + 3.2);
+    const bot1 = G(p, { o: 0 }); show(bot1, m('LU'), .4);
+    const [Lb, Ub] = chain(bot1, [[[[1, 0], [2, 1]], { name: 'L =' }], [[[3, 6], [0, 4]], { name: 'old U =' }]], 110, 640, 0, { size: 32, cw: 52, rh: 46, gap: 40 });
+    Lb.glow(m('LU') + 1.6); Ub.glow(m('LU') + 4.4);
+    const r1 = el.ring(0, 0, m('piv')), r2 = el.ring(1, 1, m('piv') + .3);
+    hide(lab, m('div1') - .2, .3); hide(lt, m('div1') - .2, .3);
+    divLab(p, el, 0, 3, m('div1'));
+    el.to({ a00: 1, a01: 2, b0: 0 }, m('div1') + .4, 1.8);
+    hide(r1, m('div1') + 2.2, .3);
+    divLab(p, el, 1, 4, m('div2'));
+    el.to({ a11: 1, b1: -1 }, m('div2') + .4, 1.6);
+    hide(r2, m('div2') + 2, .3);
+    hide(bot1, m('ldu') - .2, .3);
+    const [Am, Lm, Dm, Um] = chain(p, [[[[3, 6], [6, 16]], { name: 'A =' }], [[[1, 0], [2, 1]], { name: '=', under: 'L' }], [[[3, 0], [0, 4]], { under: 'D' }], [[[1, 2], [0, 1]], { under: 'U' }]], 110, 640, m('ldu'), { size: 32, cw: 52, rh: 46, gap: 24, step: .4 });
+    const rl = Lm.ring(1, 0, m('mirror'), { color: COL.chalk }), ru = Um.ring(0, 1, m('mirror') + .6, { color: COL.chalk });
+    pulse(rl, m('mirror') + 2.4); pulse(ru, m('mirror') + 2.4);
+    Lm.glow(m('ldu') + 2.2); Dm.glow(m('ldu') + 3.8); Um.glow(m('ldu') + 5.6);
+    Am.glow(m('mirror') + 5, 3); Am.ring(0, 1, m('mirror') + 6.2); Am.ring(1, 0, m('mirror') + 6.6);
+    text(p, 'A is the same across its diagonal: 6 and 6', 110, 790, m('mirror') + 4, { size: 28, fill: COL.dim, weight: 600 });
+  }],
+
+  ['ex3', 'Three by three', (m) => {
+    const p = panel(0);
+    text(p, 'Three by three', 60, 110, .2, { size: 40, weight: 600 });
+    const { sys, em, V } = three(p, U3OLD, 'the lecture’s system after elimination:    x + 2y + z = 2,    2y − 2z = 6,    5z = −10', { t0: .3, names: ['old U', '', '', ''] });
+    V.sway(5, 13);
+    put(em.Eg, { o: 0 }); put(em.eqSign, { o: 0 }); tw(em.Pt.g, { o: 0 }, 0, 0);
+    [0, 1, 2].forEach(i => em.B.flash(i, m('U') + .4 + 1.2 * i));
+    const rings = [0, 1, 2].map(i => em.B.ring(i, i, m('piv') + .5 * i));
+    const lab = (i, k, at) => say(p, [`row ${i + 1} ÷ ${k}`], 70, 470 + 54 * i, at, { size: 30 });
+    lab(0, 1, m('r1'));
+    lab(1, 2, m('r2')); em.to({ a11: 1, a12: -1, b1: 3 }, m('r2') + .5, 1.8);
+    lab(2, 5, m('r3')); em.to({ a22: 1, b2: -2 }, m('r3') + .5, 1.8);
+    rings.forEach(r => hide(r, m('still') - .2, .3));
+    prog(q => em.names(q > 0 ? ['U', '', '', ''] : ['old U', '', '', '']), m('still'), 0, lin);
+    V.turn({ yaw: 10 }, m('still'), 4);
+    show(em.Eg, m('D'), .5); show(em.eqSign, m('D'), .4); show(em.Pt.g, m('D'), .5);
+    prog(q => em.names(q > 0 ? ['U', '', 'DU', ''] : ['U', '', '', '']), m('D'), 0, lin);
+    prog(q => em.setName(q > 0 ? 'D' : 'I'), m('go') + 2.6, 0, lin);
+    em.to({ e11: 2, e22: 5 }, m('go') + .4, 2.4);
+    em.Pt.flash(1, m('go') + 2.8); em.Pt.flash(2, m('go') + 2.8);
+    const Lm = mat(p, [[1, 0, 0], [3, 1, 0], [0, 2, 1]], 400, 500, m('L'), { size: 30, cw: 46, rh: 44, name: 'L =' });
+    [[1, 0], [2, 0], [2, 1]].forEach(([i, j], k) => Lm.ring(i, j, m('L') + .8 + .6 * k, { dash: true }));
+    const [A3, L3m, D3m, U3m] = chain(p, [[LEC3.A, { name: 'A =' }], [[[1, 0, 0], [3, 1, 0], [0, 2, 1]], { name: '=', under: 'L' }], [[[1, 0, 0], [0, 2, 0], [0, 0, 5]], { under: 'D' }], [[[1, 2, 1], [0, 1, -1], [0, 0, 1]], { under: 'U' }]], 110, 660, m('ldu'), { size: 26, cw: 40, rh: 36, gap: 18, step: .4 });
+    L3m.glow(m('chk') + .3, 2.5); A3.glow(m('chk') + 9, 2.5);
+    say(p, ['row 2 of A:   3 × (1, 2, 1) + (0, 2, −2) = (3, 8, 1)'], 110, 830, m('chk') + 1, { size: 30 });
+  }],
+
+  ['zero', 'A zero pivot', (m) => {
+    const p = panel(0);
+    text(p, 'A pivot of zero', 60, 110, .2, { size: 40, weight: 600 });
+    const { sys, el } = table(p, { A: [[0, 2], [3, 1]], b: [4, 5] }, 'chapter 20:    2y = 4,    3x + y = 5', { t0: .3 });
+    const r0 = el.ring(0, 0, m('div'), { color: COL.bad });
+    hide(say(p, ['row 1 ÷ 0 = ?'], 150, 520, m('div') + .6, { size: 34, fill: COL.bad }), m('swap') + 1.8, .4);
+    hide(r0, m('swap') - .2, .3);
+    el.swap(0, 1, m('swap'), 1.6);
+    el.ring(0, 0, m('swap') + 2, { color: COL.good });
+    text(p, 'PA = LU: chapter 34', 150, 620, m('next'), { size: 32, weight: 600 });
+  }],
+
+  ['q2', 'Your turn', () => {
+    const p = panel(0);
+    text(p, 'Your turn', 60, 110, .2, { size: 40, weight: 600 });
+    const t = two(p, { A: [[1, 1 / 2], [0, 1]], b: [3 / 2, 1] }, 'the new U:    x + ½y = 3/2,    y = 1');
+    S.em = t.em;
+    mat(p, [[4, 2], [0, -3]], 540, 470, .4, { size: 34, cw: 60, rh: 48, name: 'target  old U =', fill: () => COL.task });
+  }, { ask: done => quiz(CARD2, [{
+    id: 'c-d', prompt: ['Change the two numbers on D’s diagonal until D times U is the amber target.'],
+    build: emTask(S.em, (v, pr) => sameU(pr, [[4, 2], [0, -3]]), 'D = 4 and −3: row 1 × 4 = (4, 2), row 2 × (−3) = (0, −3). A pivot can be negative.',
+      (v, pr) => `Row 1 of the answer is (${num(pr.a00)}, …), row 2 is (0, ${num(pr.a11)}). Row 1 must start with 4; row 2’s pivot is −3.`, () => S.em.set({ e00: 4, e11: -3 }), { only: ['e00', 'e11'] }),
+  }], done) }],
+
+  ['q3', 'Quick check', () => {
+    const p = panel(0);
+    text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
+    const t = table(p, { A: [[2, 4], [6, 7]], b: [6, 13] }, 'A:    2x + 4y = 6,    6x + 7y = 13');
+    S.sys = t.sys;
+  }, { ask: done => quiz({ x: 40, y: 470, w: 780, cls: 'side' }, [{
+    id: 'c-piv', prompt: ['A = (2, 4), (6, 7). Which numbers go on D’s diagonal?'],
+    build: choice(['2 and −5', '2 and 7', '2 and 5', '1 and 1'], 0, 'ℓ = 6 ÷ 2 = 3, and 7 − 3 × 4 = −5. The pivots are 2 and −5.',
+      [null, '7 is A’s number before elimination. First take 3 × row 1 away from row 2.', 'Check the sign: 7 − 3 × 4 = 7 − 12.', 'Ones are L’s diagonal. D holds the pivots, from U.'],
+      () => fxp(q => S.sys.set({ a10: 6 - 6 * q, a11: 7 - 12 * q, b1: 13 - 18 * q }), 0, 1.6)),
+  }], done) }],
+
+  ['wrap', 'Summary', (m) => {
+    const p = panel(0);
+    [['Divide each row of U by its pivot: ones down the diagonal; nothing moves.', 'w1'], ['The pivots go into D. D times a matrix multiplies each row by its pivot.', 'w2'],
+     ['A = L D U: L and U have ones on the diagonal, D holds the pivots.', 'w3'], ['Check by multiplying from the right: D scales the rows, then L mixes them.', 'w4']].forEach(([str, mark], i) => {
+      const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
+      mk('circle', { cx: 120, cy: -12, r: 26, fill: COL.chalk }, g);
+      T(g, String(i + 1), { x: 120, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+      T(g, str, { x: 170, size: 34, weight: 600 });
+      tw(g, { o: 1, x: 0 }, m(mark), .6);
+    });
+  }],
+  ['final1', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-split', prompt: ['Pull the pivots out: D holds them, and the new U has ones on its diagonal. Rows are written (first number, second number, …).'],
+    build: blanks(SPLITQ),
+  }], done, 'Chapter practice · set 1 of 4') }],
+  ['final2', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
+    id: 'p-mult', prompt: ['Multiply from the right: D scales the rows of U, then each row of L mixes them. diag(3, 1) is D with 3 and 1 on its diagonal.'],
+    build: blanks(MULTQ),
+  }], done, 'Chapter practice · set 2 of 4') }],
+  ['final3', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
+    id: 'p-fact', prompt: ['Factor A = L D U: eliminate (ℓ), then pull the pivots out of U.'],
+    build: blanks(FACTQ),
+  }], done, 'Chapter practice · set 3 of 4') }],
+  ['final4', 'Chapter practice', () => {
+    const p = panel(0);
+    text(p, 'Build D', 60, 110, .2, { size: 40, weight: 600 });
+    const t = three(p, HANDS[0].sys, '');
+    S.em = t.em;
+    S.tg = G(p, {});
+  }, { ask: done => quiz(CARD3, HANDS.map((h, k) => ({
+    id: `p-hand${k + 1}`, prompt: ['Change the numbers on D’s diagonal until D times U is the amber target.'],
+    build: (body, api) => {
+      S.em.set(keysOf(h.sys)); S.tg.replaceChildren();
+      mat(S.tg, h.target, 380, 480, null, { size: 30, cw: 52, rh: 44, name: 'target =', fill: () => COL.task });
+      return emTask(S.em, (v, pr) => sameU(pr, h.target), h.why, dHint(h.target), () => S.em.set(h.ans), { only: ['e00', 'e11', 'e22'] })(body, api);
+    },
+  })), done, 'Chapter practice · set 4 of 4') }],
+  ['play', 'Playground', (m) => {
+    const p = panel(0);
+    text(p, 'Playground', 60, 110, .2, { size: 40, weight: 600 });
+    const t = two(p, { A: UNEW, b: CNEW }, '', { E: D2 });
+    S.em = t.em;
+    t.em.work(0, .3);
+    const hint = text(p, 'try: a 0 on D’s diagonal; a negative pivot; a number off the diagonal', 70, 175, m('go'), { size: 24, fill: COL.dim });
+    hide(hint, m('go') + 7, .6);
+  }, { ask: playAsk(() => S.em, { pos: { x: 40, y: 586, w: 760, cls: 'side' }, tip: 'Your matrices. Change any number of D or of the table, drag a line, or draw on the board. Nothing is marked.' }) }],
+  ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+boot();
+</script>
+</body>
+</html>

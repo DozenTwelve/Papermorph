@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A = LU</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render"><!-- hold the first frame until the player exists, so the page transition can run -->
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/math.js"></script>
+<script src="../lib/linsys.js"></script>
+<script src="../lib/space3.js"></script>
+<script src="../lib/elim.js"></script>
+<script src="../lib/emat.js"></script>
+<script src="../lib/play.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 30, title: 'A = LU', minutes: 10, language: 'en' , next: '../ch31/' };
+
+/* ---------- chapter drawing helpers ---------- */
+const BLUE = LS_ROW[0], CORAL = LS_ROW[1], YELLOW = S3_ROW[2];
+const LEC2 = { A: [[2, 1], [8, 7]], b: [3, 15] };                        // the lecture's 2 × 2 (OCW 18.06, lecture 4), b for (1, 1)
+const U2 = { A: [[2, 1], [0, 3]], b: [3, 3] }, L2 = [[1, 0], [4, 1]];     // its U | c and L
+const CH16 = { A: [[1, 2], [3, 4]], b: [5, 11] };
+const NEGL = { A: [[2, 1], [-6, 1]], b: [3, -5] };                         // a negative multiplier, meets at (1, 1)
+const OWN = { A: [[1, 1, 1], [2, 3, 1], [-1, 1, 2]], b: [3, 6, 2] };      // chapter 21's system, (1, 1, 1)
+const OWNU = { A: [[1, 1, 1], [0, 1, -1], [0, 0, 5]], b: [3, 0, 5] }, OWNL = [[1, 0, 0], [2, 1, 0], [-1, 2, 1]];
+const U3 = { A: [[1, 1, 1], [0, 1, 2], [0, 0, 1]], b: [3, 3, 1] };       // q3: L = (3, −2, 4) below the diagonal
+const AT2 = [70, 290], AT3 = [64, 262];
+const CARD2 = { x: 40, y: 600, w: 760, cls: 'side' }, CARD3 = { x: 40, y: 640, w: 800, cls: 'side' };
+const say = (p, parts, x, y, t0, { size = 40, fill = COL.chalk, anchor = 'start' } = {}) => { const e = M(p, [].concat(parts), { x, y, size, fill, anchor, o: 0 }); show(e, t0); return e; };
+const text = (p, str, x, y, t0, { size = 30, fill = COL.chalk, anchor = 'start', weight = 500 } = {}) => { const e = T(p, str, { x, y, size, fill, anchor, weight, o: 0 }); show(e, t0); return e; };
+const thick = (sys, i, t0) => { tw(sys.lines[i].l, { 'a_stroke-width': 10 }, t0, .35); tw(sys.lines[i].l, { 'a_stroke-width': 5 }, t0 + .9, .6); };
+// 2D: the plane on the right, E · [A | b] = [EA | Eb] on the left (chapter 21's layout); the product is the system drawn
+// (with E given, the lines start as E's answer).
+const two = (p, { A, b }, caption, { t0 = .1, E = null } = {}) => {
+  const sys = linsys(p, { A, b, eq: [90, 200], mat: null, sol: false, plane: { cx: 1215, u: 50 }, t0 });
+  sys.E.style.visibility = 'hidden';   // hidden, yet measured (display: none measures as 0 and replays differ)
+  if (caption) say(p, [caption], 70, 175, t0 + .1, { size: 28, fill: COL.dim });
+  const em = emat(p, sys, { A, b, E, at: AT2, size: 38, cw: 64, ecw: 56, rh: 62, gap: 66, t0 });
+  return { sys, em };
+};
+// 3D: the space on the right, three 3 × 3 tables on the left.
+const three = (p, { A, b }, caption, { t0 = .1, E = null, view = { yaw: -40, pitch: 20 } } = {}) => {
+  const sys = lin3(p, { A, b, eq: [90, 190], mat: null, sol: false, space: { cx: 1262, size: 520, ...view }, t0 });
+  sys.E.style.visibility = 'hidden';   // hidden, yet measured (display: none measures as 0 and replays differ)
+  if (caption) say(p, [caption], 64, 160, t0 + .1, { size: 26, fill: COL.dim });
+  const em = emat(p, sys, { A, b, E, at: AT3, size: 32, cw: 52, ecw: 44, rh: 54, gap: 64, t0 });
+  return { sys, em, V: sys.space };
+};
+// A matrix times a matrix with no picture (E⁻¹E = I): emat on a bare system, the b columns hidden.
+const bare = A => {
+  const v = {}, fs = [];
+  A.forEach((r, i) => { r.forEach((x, j) => { v[`a${i}${j}`] = x; }); v[`b${i}`] = 0; });
+  return { v, set(to) { Object.assign(v, to); fs.forEach(f => f(v)); }, onChange: f => fs.push(f), solve: () => ({}), live() {}, to() {} };
+};
+const mm2 = (p, Ebig, Bm, names, nameE, t0) => emat(p, bare(Bm), { A: Bm, b: [0, 0], E: Ebig, at: AT2, size: 38, cw: 64, ecw: 56, rh: 62, gap: 66, t0, noB: true, names, name: nameE });
+// The old line of row 2 (dashed): a x + b y through (sx, sy); a ring round the point that never moves (chapter 16).
+const ghost = (sys, a, b, sx, sy, t0) => { const l = sys.P.line(sx, sy, sx + b, sy - a, CORAL, t0, { dash: '10 10', w: 3, into: sys.stage }); tw(l, { o: .45 }, t0 + .6, .4); return l; };
+const pin = (sys, x, y, t0) => { const g = G(sys.stage, { x: sys.P.PX(x), y: sys.P.PY(y), o: 0 }); mk('circle', { r: 20, fill: 'none', stroke: COL.chalk, 'stroke-width': 3.5, 'stroke-dasharray': '6 5' }, g); show(g, t0, .4); return g; };
+const hinge = (sys, n, t0, dur = 1.6) => prog(q => sys.lines[n].e.setAttribute('stroke-width', 2.5 + 5 * Math.sin(Math.PI * q)), t0, dur, lin);
+const nameAt = (em, nm, at) => prog(q => { if (q > 0) em.setName(nm); }, at, 0, lin);
+const namesAt = (em, nm, at) => prog(q => { if (q > 0) em.names(nm); }, at, 0, lin);
+// Three words of a row step: "row 2", "+ 3 ×", "row 1", coloured by row.
+const stepWords = (p, i, sign, j, x, y, t0, { size = 32 } = {}) => {
+  const g = G(p, { o: 0 }), RC = [BLUE, CORAL, YELLOW];
+  M(g, [`row ${i + 1}`], { x, y, size, fill: RC[i], anchor: 'start' });
+  M(g, [sign], { x: x + size * 3.3, y, size, fill: COL.chalk, anchor: 'start' });
+  M(g, [`row ${j + 1}`], { x: x + size * 3.3 + mathW([sign], size) + size * .4, y, size, fill: RC[j], anchor: 'start' });
+  show(g, t0, .4);
+  return g;
+};
+const keysOf = ({ A, b }, E = null) => {
+  const o = {}, n = A.length;
+  A.forEach((r, i) => { r.forEach((x, j) => { o[`a${i}${j}`] = x; o[`e${i}${j}`] = E ? E[i][j] : +(i === j); }); o[`b${i}`] = b[i]; });
+  return o;
+};
+// inside a question: the answer becomes the new [A | b] at once and E the identity (em.carry without the flight)
+const carryNow = em => { const o = { ...em.prod() }; for (let i = 0; i < em.n; i++) for (let j = 0; j < em.n; j++) o[`e${i}${j}`] = +(i === j); em.set(o); };
+const same = (pr, { A, b }) => A.every((r, i) => r.every((x, j) => Math.abs(pr[`a${i}${j}`] - x) < 1e-9) && Math.abs(pr[`b${i}`] - b[i]) < 1e-9);
+const r1 = x => num(Math.round(x * 10) / 10);
+const rowTxt = (pr, i, n) => `(${[...Array(n).keys()].map(j => r1(pr[`a${i}${j}`])).join(', ')} | ${r1(pr[`b${i}`])})`;
+
+// A small matrix drawn as numbers in brackets; .at(i, j) is the centre of an entry (for rings).
+const matDraw = (p, rows, x, y, t0, { size = 34, cw = 50, rh = 46, name = '' } = {}) => {
+  const g = G(p, { o: 0 }), n = rows.length, w = rows[0].length * cw, top = y - size * .95, bot = y + (n - 1) * rh + size * .35;
+  path(g, `M${x + 12} ${top}H${x}V${bot}H${x + 12}M${x + w - 12} ${top}H${x + w}V${bot}H${x + w - 12}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' });
+  rows.forEach((r, i) => r.forEach((v, j) => M(g, [num(v)], { x: x + cw * (j + .5), y: y + i * rh, size, fill: COL.chalk, anchor: 'middle' })));
+  if (name) M(g, [].concat(name), { x: x - 18, y: y + (n - 1) * rh / 2 + 10, size: size * 1.05, fill: COL.chalk, anchor: 'end' });
+  show(g, t0, .5);
+  g.at = (i, j) => [x + cw * (j + .5), y + i * rh - size * .32];
+  g.ring = (i, j, at, { dash = false, color = COL.chalk } = {}) => { const [cx, cy] = g.at(i, j), e = mk('ellipse', { cx, cy, rx: cw * .48, ry: size * .62, fill: 'none', stroke: color, 'stroke-width': 3, ...(dash ? { 'stroke-dasharray': '7 6' } : {}) }, p); put(e, { o: 0 }); show(e, at, .35); return e; };
+  return g;
+};
+const emL = (em, Lm) => { const o = {}; Lm.forEach((r, i) => r.forEach((x, j) => { o[`e${i}${j}`] = x; })); return o; };
+
+/* ---------- practice data (every answer worked twice: by elimination, and by multiplying L U back) ---------- */
+const LU2Q = [
+  { parts: ['A = (1, 2), (4, 9):     ℓ = ', { box: '4' }, ',    U row 2 = (0, ', { box: '1' }, '),    L row 2 = (', { box: '4' }, ', 1)'], why: '4 ÷ 1 = 4; 9 − 4 × 2 = 1. L keeps the 4.', hint: 'ℓ = number to remove ÷ pivot. Then row 2 − ℓ × row 1.' },
+  { parts: ['A = (2, 4), (6, 13):     ℓ = ', { box: '3' }, ',    U row 2 = (0, ', { box: '1' }, '),    L row 2 = (', { box: '3' }, ', 1)'], why: '6 ÷ 2 = 3; 13 − 3 × 4 = 1.', hint: 'The pivot is 2.' },
+  { parts: ['A = (3, 1), (−6, 2):     ℓ = ', { box: '-2' }, ',    U row 2 = (0, ', { box: '4' }, '),    L row 2 = (', { box: '-2' }, ', 1)'], why: '−6 ÷ 3 = −2; 2 − (−2) × 1 = 4. L holds ℓ itself, −2.', hint: 'A negative number to remove gives a negative ℓ.' },
+];
+const LU2Q2 = [
+  { parts: ['A = (2, 1), (1, 3):     ℓ = ', { box: '1/2' }, ',    U row 2 = (0, ', { box: '5/2' }, '),    L row 2 = (', { box: '1/2' }, ', 1)'], why: '1 ÷ 2 = ½; 3 − ½ × 1 = 5⁄2.', hint: 'ℓ can be a fraction: 1 ÷ 2.' },
+  { parts: ['A = (1, −1), (5, −2):     ℓ = ', { box: '5' }, ',    U row 2 = (0, ', { box: '3' }, '),    L row 2 = (', { box: '5' }, ', 1)'], why: '5 ÷ 1 = 5; −2 − 5 × (−1) = 3.', hint: 'Mind the sign: −2 − 5 × (−1).' },
+];
+const LFROMQ = [
+  { parts: ['ℓ₂₁ = 2,  ℓ₃₁ = 3,  ℓ₃₂ = −1:     L row 2 = (', { box: '2' }, ', 1, 0),    L row 3 = (', { box: '3' }, ', ', { box: '-1' }, ', 1)'], why: 'Each ℓᵢⱼ goes into row i, column j.', hint: 'ℓ₃₁ sits in row 3, column 1.' },
+  { parts: ['A = (1, 2, 0), (3, 7, 1), (0, 2, 5):     L row 2 = (', { box: '3' }, ', 1, 0),   L row 3 = (', { box: '0' }, ', ', { box: '2' }, ', 1),   U row 3 = (0, 0, ', { box: '3' }, ')'],
+    why: 'ℓ₂₁ = 3 → (0, 1, 1); row 3 already starts with 0, so ℓ₃₁ = 0; ℓ₃₂ = 2 ÷ 1 = 2 → (0, 0, 3).', hint: 'Do the steps: row 2 − 3 × row 1 first. Row 3 needs no step for column 1.' },
+  { parts: ['A = (2, 1, 1), (4, 1, 0), (−2, 2, 1):     L row 3 = (', { box: '-1' }, ', ', { box: '-3' }, ', 1),    U’s pivots: 2, ', { box: '-1' }, ', ', { box: '-4' }],
+    why: 'ℓ₂₁ = 2 → (0, −1, −2); ℓ₃₁ = −1 → (0, 3, 2); ℓ₃₂ = 3 ÷ (−1) = −3 → (0, 0, −4).', hint: 'Column 1 first (ℓ₂₁ = 4 ÷ 2, ℓ₃₁ = −2 ÷ 2), then column 2 with the new rows.' },
+];
+const LUMULQ = [
+  { parts: ['L = (1, 0), (4, 1);   U = (2, 1), (0, 3):      row 2 of LU = (', { box: '8' }, ', ', { box: '7' }, ')'], why: '4 × (2, 1) + (0, 3) = (8, 7): the lecture’s A.', hint: 'Row 2 of L: 4 of row 1 of U, plus row 2 of U.' },
+  { parts: ['L = (1, 0), (−2, 1);   U = (3, 1), (0, 4):      row 2 of LU = (', { box: '-6' }, ', ', { box: '2' }, ')'], why: '−2 × (3, 1) + (0, 4) = (−6, 2).', hint: '−2 × row 1 of U is (−6, −2).' },
+  { parts: ['L row 3 = (−1, 2, 1);   U = (1, 1, 1), (0, 1, −1), (0, 0, 5):      row 3 of LU = (', { box: '-1' }, ', ', { box: '1' }, ', ', { box: '2' }, ')'], why: '(−1, −1, −1) + (0, 2, −2) + (0, 0, 5) = (−1, 1, 2).', hint: '−1 of row 1, 2 of row 2, 1 of row 3 of U.' },
+  { parts: ['L row 3 = (0, 5, 1);   U rows 2, 3 = (0, 1, 1), (0, 0, 2):      row 3 of LU = (', { box: '0' }, ', ', { box: '5' }, ', ', { box: '7' }, ')'], why: '5 × (0, 1, 1) + (0, 0, 2) = (0, 5, 7).', hint: 'Row 1 of U is not used (amount 0).' },
+];
+const TFQ = [
+  { parts: ['L is lower triangular: zeros above its diagonal.'], ans: ['t'], why: 'Each step only adds a multiple of an upper row to a lower one.' },
+  { parts: ['U has ones on its diagonal.'], ans: ['f'], why: 'U has the pivots on its diagonal; L has the ones.' },
+  { parts: ['L holds −ℓ, the numbers of E.'], ans: ['f'], why: 'E has −ℓ; L = E⁻¹ has ℓ itself.' },
+  { parts: [$m('L = E⁻¹')], ans: ['t'], why: 'From EA = U: A = E⁻¹U, and E⁻¹ is called L.' },
+  { parts: [$m('Lc = b')], ans: ['t'], why: 'Elimination turned b into c = Eb. Multiply by L = E⁻¹: Lc = b.' },
+  { parts: [$m('LU = UL')], ans: ['f'], why: 'The order matters (chapter 25): L on the left mixes the rows of U.' },
+];
+// Hands-on in 3D: L starts as I in front of U | c; its numbers below the diagonal must rebuild A | b.
+const OWN3 = { A: [[2, 1, 0], [2, 2, 1], [4, 1, 2]], b: [3, 5, 7] }, OWN3U = { A: [[2, 1, 0], [0, 1, 1], [0, 0, 3]], b: [3, 2, 3] };
+const LEC3 = { A: [[1, 2, 1], [3, 8, 1], [0, 4, 1]], b: [2, 12, 2] }, LEC3U = { A: [[1, 2, 1], [0, 2, -2], [0, 0, 5]], b: [2, 6, -10] };
+const rowsTxt = s => s.A.map((r, i) => `(${r.map(num).join(', ')} | ${num(s.b[i])})`).join(', ');
+const HANDS = [
+  { from: OWNU, to: OWN, ans: { e10: 2, e20: -1, e21: 2 } },
+  { from: LEC3U, to: LEC3, ans: { e10: 3, e20: 0, e21: 2 } },
+  { from: OWN3U, to: OWN3, ans: { e10: 1, e20: 2, e21: -1 } },
+];
+const handHint = h => (v, pr) => {
+  const to = keysOf(h.to), i = [1, 2].find(i => rowTxt(pr, i, 3) !== rowTxt(to, i, 3)) ?? 1;
+  return `Row ${i + 1} is ${rowTxt(pr, i, 3)}, not ${rowTxt(to, i, 3)}. Row ${i + 1} of L says how much of each row of U to take.`;
+};
+
+/* ---------- beats ---------- */
+const BEATS = [
+  ['intro', 'A = LU', (m, D) => {
+    const g = G(scene, { o: 0, y: 24 });
+    T(g, 'Unit 4 · Factorization into A = LU', { x: 800, y: 205, size: 24, fill: COL.faint, anchor: 'middle' });
+    T(g, 'Unit 4, Chapter 30', { x: 800, y: 250, size: 28, fill: COL.dim, anchor: 'middle' });
+    M(g, ['A = LU'], { x: 800, y: 360, size: 92, fill: COL.chalk, anchor: 'middle' });
+    tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+    const r = text(scene, 'elimination, run backwards: A is L times U', 800, 460, m('sub'), { size: 34, fill: COL.dim, anchor: 'middle' });
+    const lg = G(scene, { o: 0 });
+    const em = emat(lg, bare(U2.A), { A: U2.A, b: [0, 0], at: [460, 640], size: 36, cw: 62, ecw: 54, rh: 56, t0: 0, noB: true, name: 'L', names: ['U', '', 'LU', ''] });
+    show(lg, m('sub') + 1.2, .5);
+    em.ringE(1, 0, m('sub') + 2.5);             // "Run it backwards, and A becomes L times U": the product reads A in time to be seen
+    em.to({ e10: 4 }, m('sub') + 2.9, 1.4);
+    namesAt(em, ['U', '', 'A', ''], m('sub') + 4.4);
+    em.flashE(1, m('move') + .3, 0);
+    tw(g, { o: 0, y: -24 }, D - .9, .8); hide(r, D - .9, .8); hide(lg, D - .9, .8);
+  }],
+
+  ['recall', 'From A to U', (m) => {
+    const p = panel(0);
+    text(p, 'From A to U', 60, 110, .2, { size: 40, weight: 600 });
+    const { sys, em } = two(p, LEC2, '2x + y = 3,    8x + 7y = 15', { t0: .4 });
+    em.setName('E₂₁');
+    [0, 1].forEach(i => { em.B.flash(i, m('sys') + .6 + 2.6 * i); thick(sys, i, m('sys') + .6 + 2.6 * i); });
+    pin(sys, 1, 1, m('sys') + 5.4); pulse(sys.meet, m('sys') + 5.6);
+    em.B.ring(0, 0, m('piv')); em.B.ring(1, 0, m('piv') + 1.6, { dash: true });
+    say(p, ['ℓ = 8 ÷ 2 = 4'], 70, 640, m('l'), { size: 34 });
+    em.ringE(1, 0, m('e') + 1);
+    em.focusE(1, m('go')); em.Pt.focus(1, m('go'));
+    ghost(sys, 8, 7, 1, 1, m('go'));
+    em.to({ e10: -4 }, m('go') + .3, Math.max(1.6, m('res') - m('go')));
+    em.work(1, 0, { times: [m('go') + 1.6, m('go') + 3.4, m('res')] });
+    em.Pt.flash(1, m('res') + .2);
+    thick(sys, 1, m('flat'));
+    em.focusE(null, m('u')); em.Pt.focus(null, m('u'));
+    namesAt(em, ['A', 'b', 'U', 'Eb'], m('u') + .3);
+    em.Pt.upper(m('u') + 2);
+    text(p, 'upper triangular: zero below the diagonal', 70, 700, m('u') + 6, { size: 28, weight: 600 });
+    namesAt(em, ['A', 'b', 'U', 'c'], m('c') + 1.5);
+    em.Pt.flash(0, m('c') + .3, 2); em.Pt.flash(1, m('c') + .6, 2);
+    say(p, ['EA = U'], 70, 780, m('eau') + .3, { size: 44 });
+  }],
+
+  ['back', 'Turn it around', (m) => {
+    const p = panel(0);
+    text(p, 'Turn it around', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = linsys(p, { A: LEC2.A, b: LEC2.b, eq: [90, 200], mat: null, sol: false, plane: { cx: 1215, u: 50 } });
+    sys.E.style.visibility = 'hidden';   // hidden, yet measured (display: none measures as 0 and replays differ)
+    pin(sys, 1, 1, .6);
+    sys.set({ a10: 0, a11: 3, b1: 3 });   // the plane starts as U | c: the flat line
+    ghost(sys, 8, 7, 1, 1, .5);
+    const X = 90, NOTE = 600;
+    say(p, ['EA = U'], X, 250, m('start'), { size: 46 });
+    say(p, ['E⁻¹EA = E⁻¹U'], X, 345, m('mul'), { size: 46 });
+    text(p, 'both sides times E⁻¹, on the left', NOTE, 335, m('mul') + .6, { size: 24, fill: COL.dim, weight: 600 });
+    say(p, ['I A = E⁻¹U'], X, 440, m('left') + 1, { size: 46 });
+    text(p, 'E⁻¹E = I  (chapter 29)', NOTE, 430, m('left') + 1, { size: 24, fill: COL.dim, weight: 600 });
+    text(p, 'I A = A', NOTE, 520, m('left') + 5, { size: 24, fill: COL.dim, weight: 600 });
+    say(p, ['A = E⁻¹U'], X, 535, m('res'), { size: 46 });
+    const tag = G(p, { o: 0 }); M(tag, ['E⁻¹'], { x: 1400, y: 215, size: 34, fill: COL.chalk, anchor: 'middle' });
+    show(tag, m('pic') + 1.5, .3);
+    sys.to({ a10: 8, a11: 7, b1: 15 }, m('pic') + 1.8, 1.6);
+    thick(sys, 1, m('pic') + 3.6);
+    say(p, ['L = E⁻¹'], X, 640, m('name'), { size: 46 });
+    const lu = say(p, ['A = LU'], X, 760, m('lu'), { size: 64 });
+    pulse(lu, m('lu') + .6, 1.15);
+  }],
+
+  ['times', 'L times U', (m) => {
+    const p = panel(0);
+    text(p, 'L times U', 60, 110, .2, { size: 40, weight: 600 });
+    const { sys, em } = two(p, U2, 'U and c, from 2x + y = 3,    8x + 7y = 15', { t0: m('set') - .3 });
+    em.setName('L'); em.names(['U', 'c', 'LU', 'Lc']);
+    ghost(sys, 8, 7, 1, 1, m('set') + 1); pin(sys, 1, 1, m('set') + 1.2);
+    [0, 1].forEach(i => em.B.flash(i, m('set') + .4 + .4 * i));
+    em.ringE(1, 0, m('l') + 1.2);
+    em.to({ e10: 4 }, m('l') + 2.4, 2);
+    em.focusE(0, m('r1')); em.Pt.focus(0, m('r1'));
+    em.work(0, 0, { times: [m('r1') + 1.2, m('r1') + 1.8, m('r1') + 4.2] }); em.Pt.flash(0, m('r1') + 4.4);
+    em.focusE(1, m('r2')); em.Pt.focus(1, m('r2'));
+    em.work(1, 0, { times: [m('r2') + 1.6, m('r2') + 5.8, m('res')] }); em.Pt.flash(1, m('res') + .2);
+    em.focusE(null, m('back')); em.Pt.focus(null, m('back'));
+    namesAt(em, ['U', 'c', 'A', 'b'], m('back') + .2);
+    thick(sys, 1, m('back') + 2.4);
+    say(p, ['LU = A'], 70, 700, m('lu'), { size: 44 });
+    say(p, ['Lc = b'], 330, 700, m('lu') + 1.8, { size: 44 });
+  }],
+
+  ['shape', 'Lower and upper', (m) => {
+    const p = panel(0);
+    text(p, 'Lower and upper', 60, 110, .2, { size: 40, weight: 600 });
+    const { sys, em } = two(p, U2, '', { E: L2 });
+    em.setName('L'); em.names(['U', 'c', 'A', 'b']);
+    pin(sys, 1, 1, .5);
+    em.B.upper(m('u'));
+    text(p, 'U:  upper triangular, zero below the diagonal', 70, 470, m('u') + .3, { size: 28, weight: 600 });
+    em.B.ring(0, 0, m('piv') + 1.2); em.B.ring(1, 1, m('piv') + 2);
+    text(p, 'its diagonal holds the pivots, 2 and 3', 70, 520, m('piv') + 1.2, { size: 28, fill: COL.dim, weight: 600 });
+    em.triE(m('l'));
+    text(p, 'L:  lower triangular, zero above the diagonal', 70, 600, m('l') + .3, { size: 28, weight: 600 });
+    em.flashE(0, m('one') + 1, 0); em.flashE(1, m('one') + 1.5, 1);
+    text(p, 'ones on its diagonal', 70, 650, m('one') + .8, { size: 28, fill: COL.dim, weight: 600 });
+    em.ringE(1, 0, m('m') + 1.6); em.Pt.ring(1, 0, m('m') + 4.4, { dash: true });
+    text(p, 'the multiplier 4 below, in row 2, column 1: where the 8 was', 70, 700, m('m') + 1.6, { size: 28, fill: COL.dim, weight: 600 });
+    say(p, ['A = LU'], 70, 790, m('name'), { size: 44 });
+    text(p, '= lower triangular × upper triangular', 290, 785, m('name') + 2, { size: 28, weight: 600 });
+  }],
+
+  ['q1', 'Quick check', () => {
+    const p = panel(0);
+    text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
+    const t = two(p, { A: [[3, 1], [6, 5]], b: [4, 11] }, '3x + y = 4,    6x + 5y = 11');
+    t.em.setName('E₂₁');
+    S.em = t.em;
+  }, { ask: done => quiz({ x: 40, y: 410, w: 760, cls: 'side' }, [{
+    id: 'c-lu', prompt: ['Eliminate x from row 2. Then write U and L.'],
+    build: blanks([
+      { parts: ['the multiplier  ℓ = ', { box: '2' }], why: '6 ÷ 3 = 2.', hint: 'Number to remove ÷ pivot.', fx: () => fxp(q => S.em.set({ e10: -2 * q }), 0, 1.6) },
+      { parts: ['U = (3, 1), (', { box: '0' }, ', ', { box: '3' }, ')'], why: '(6, 5) − 2 × (3, 1) = (0, 3). U keeps row 1 as it is.', hint: 'Row 2 − 2 × row 1.' },
+      { parts: ['L = (1, 0), (', { box: '2' }, ', 1)'], why: 'L holds the multiplier 2 in row 2, column 1. Check: 2 × (3, 1) + (0, 3) = (6, 5).', hint: 'L holds ℓ itself, in the spot it was used.' },
+    ]),
+  }], done) }],
+
+  ['ex2', 'Chapter 16’s matrix', (m) => {
+    const p = panel(0);
+    text(p, 'A second example', 60, 110, .2, { size: 40, weight: 600 });
+    const { sys, em } = two(p, CH16, 'x + 2y = 5,    3x + 4y = 11', { t0: .3 });
+    em.setName('E₂₁');
+    pin(sys, 1, 2, m('sys') + 3);
+    say(p, ['ℓ = 3 ÷ 1 = 3'], 70, 680, m('l'), { size: 34 });
+    ghost(sys, 3, 4, 1, 2, m('go'));
+    em.work(1, m('go'));
+    em.to({ e10: -3 }, m('go') + .3, 2);
+    namesAt(em, ['A', 'b', 'U', 'c'], m('u'));
+    const up = em.Pt.upper(m('u') + .3); hide(up, m('carry'), .3);
+    em.work(null, m('carry') - .3, .3);
+    em.carry(m('carry'), 1.2, { names: ['U', 'c', '', ''] });
+    nameAt(em, 'L', m('lmat'));
+    em.ringE(1, 0, m('lmat') + .5);
+    em.triE(m('lmat') + 1.5);
+    em.work(1, 0, { times: [m('w'), m('w') + 3, m('res')] });
+    em.to({ e10: 3 }, m('w') + .2, Math.max(1.8, m('res') - m('w')));
+    namesAt(em, ['U', 'c', 'A', 'b'], m('res'));
+    em.Pt.flash(1, m('res') + .2);
+    thick(sys, 1, m('back') + .2);
+    say(p, ['LU = A'], 400, 680, m('back') + 1.4, { size: 34 });
+  }],
+
+  ['ex3', 'A minus sign', (m) => {
+    const p = panel(0);
+    text(p, 'A negative multiplier', 60, 110, .2, { size: 40, weight: 600 });
+    const { sys, em } = two(p, NEGL, '2x + y = 3,    −6x + y = −5', { t0: .3 });
+    em.setName('E₂₁');
+    pin(sys, 1, 1, m('sys') + 3);
+    say(p, ['ℓ = −6 ÷ 2 = −3'], 70, 680, m('l'), { size: 34 });
+    ghost(sys, -6, 1, 1, 1, m('go'));
+    em.ringE(1, 0, m('go') + .3);
+    em.work(1, m('go'));
+    em.to({ e10: 3 }, m('go') + .3, 2.4);
+    namesAt(em, ['A', 'b', 'U', 'c'], m('u'));
+    const up = em.Pt.upper(m('u') + .3); hide(up, m('carry'), .3);
+    em.work(null, m('carry') - .3, .3);
+    em.carry(m('carry'), 1, { names: ['U', 'c', '', ''] });
+    nameAt(em, 'L', m('lmat'));
+    em.ringE(1, 0, m('lmat') + .6);
+    say(p, ['E: +3'], 70, 750, m('e') + 1, { size: 34 });
+    say(p, ['L: −3 = ℓ'], 260, 750, m('e') + 2.2, { size: 34 });
+    em.to({ e10: -3 }, m('lmat') + .4, 2);
+    em.flashE(1, m('e') + 3.6, 0); em.B.flash(0, m('e') + 5);
+    em.work(1, 0, { times: [m('w'), m('w') + 2, m('res')] });
+    namesAt(em, ['U', 'c', 'A', 'b'], m('res'));
+    em.Pt.flash(1, m('res') + .2);
+    thick(sys, 1, m('back') - .6);   // within the voice: "A again" is the beat's last word
+  }],
+
+  ['q2', 'Your turn', () => {
+    const p = panel(0);
+    text(p, 'Your turn', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = linsys(p, { A: [[1, 1], [4, 6]], b: [2, 10], eq: [90, 200], mat: null, sol: false });
+    sys.E.style.visibility = 'hidden';   // hidden, yet measured (display: none measures as 0 and replays differ)
+    say(p, ['x + y = 2,    4x + 6y = 10'], 90, 182, .2, { size: 32, fill: COL.dim });
+    const el = elim(p, sys, { at: [120, 290], size: 50, cw: 92, rh: 78, labelX: 466 });
+    el.ring(0, 0, .3);
+    el.op(1, 0, 0, .3);
+    S.el = el; S.L = elL(p, el, { at: [160, 500], size: 38, cw: 60, rh: 56 });
+  }, { ask: done => quiz({ x: 40, y: 610, w: 760, cls: 'side' }, [{
+    id: 'c-flat', prompt: ['Find the multiplier that makes the coral line flat. Watch L.'],
+    build: (body, api) => { S.L.follow(true); return elTask(S.el, v => Math.abs(v.a10) < 1e-9, '4: row 2 − 4 × row 1 = (0, 2 | 2), so y = 1 and x = 1. The 4 now sits in L, row 2, column 1.',
+      v => `Row 2 still has ${r1(v.a10)}x. ℓ = 4 ÷ 1.`, () => S.el.set({ l: 4 }))(body, api); },
+  }], done) }],
+
+  ['three', 'L fills in', (m) => {
+    const p = panel(0);
+    text(p, 'Three equations: L fills in', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = lin3(p, { A: OWN.A, b: OWN.b, eq: [90, 190], mat: null, sol: false, space: { cx: 1250, size: 540, yaw: -35, pitch: 20 }, t0: .3 });
+    sys.E.style.visibility = 'hidden';   // hidden, yet measured (display: none measures as 0 and replays differ)
+    say(p, ['x + y + z = 3,    2x + 3y + z = 6,    −x + y + 2z = 2'], 90, 172, m('sys'), { size: 28, fill: COL.dim });
+    const el = elim(p, sys, { at: [120, 260], size: 44, cw: 84, rh: 66, t0: .3, labelX: 520 });
+    const L = elL(p, el, { at: [150, 590], size: 38, cw: 60, rh: 56, t0: m('l') - .2 });
+    [0, 1, 2].forEach(i => el.flash(i, m('sys') + 1 + 2.2 * i));
+    el.ring(0, 0, m('s1'));
+    const SD = 3.4, lag = (k, s) => m(k) - (m(s) + .3 + .8 + SD);   // slow steps: each row changes while the voice reads it
+    L.step(1, 0, 2, m('s1') + .3, SD, { lag: lag('w1', 's1') });
+    sys.space.turn({ yaw: -15 }, m('s1'), 8);
+    L.step(2, 0, -1, m('s2') + .3, SD, { lag: lag('w2', 's2') });
+    el.ring(1, 1, m('s3'));
+    L.step(2, 1, 2, m('s3') + .3, SD, { lag: lag('w3', 's3') });
+    sys.space.turn({ yaw: 5, pitch: 30 }, m('s3'), 6);
+    el.flash(1, m('s1') + 4.6); el.flash(2, m('s2') + 5); el.flash(2, m('s3') + 4.6);
+    el.upper(m('u'));
+    text(p, 'the table is now  U | c', 120, 450, m('u'), { size: 26, fill: COL.dim, weight: 600 });
+    L.tri(m('done'));
+    [0, 1, 2].forEach(i => L.flash(i, 0, m('done') + .8 + 1.5 * i));
+    L.flash(1, 0, m('done') + 6); L.flash(2, 0, m('done') + 6.6); L.flash(2, 1, m('done') + 7.2);
+  }],
+
+  ['check3', 'L times U, in three dimensions', (m) => {
+    const p = panel(0);
+    text(p, 'L times U gives A', 60, 110, .2, { size: 40, weight: 600 });
+    const { sys, em, V } = three(p, OWNU, 'U and c of  x + y + z = 3,   2x + 3y + z = 6,   −x + y + 2z = 2', { t0: m('set') - .3 });
+    em.setName('L'); em.names(['U', 'c', 'LU', 'Lc']);
+    em.to(emL(em, OWNL), m('go') + .2, 3);
+    hinge(sys, 0, m('go') + 3.2, 1.6);
+    V.turn({ yaw: -15 }, m('go'), 8);
+    em.focusE(1, m('r2')); em.Pt.focus(1, m('r2'));
+    em.work(1, 0, { times: [m('r2') + 1.4, m('r2') + 4.6, m('r2') + 4.9, m('res2')] }); em.Pt.flash(1, m('res2') + .2);
+    em.focusE(2, m('r3')); em.Pt.focus(2, m('r3'));
+    em.work(2, 0, { times: [m('r3') + 5, m('r3') + 9, m('r3') + 13, m('res3')] }); em.Pt.flash(2, m('res3') + .2);
+    em.focusE(null, m('lu')); em.Pt.focus(null, m('lu'));
+    namesAt(em, ['U', 'c', 'A', 'b'], m('lu'));
+    em.triE(m('lu') + .3);
+    V.turn({ yaw: -40 }, m('res3'), 5);
+  }],
+
+  ['q3', 'Quick check', () => {
+    const p = panel(0);
+    text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
+    const t = three(p, U3, 'U and c');
+    t.em.setName('L'); t.em.names(['U', 'c', 'LU', 'Lc']);
+    S.em = t.em;
+  }, { ask: done => quiz({ x: 40, y: 470, w: 800, cls: 'side' }, [{
+    id: 'c-l3', prompt: ['Elimination used ℓ₂₁ = 3, ℓ₃₁ = −2 and ℓ₃₂ = 4. Fill in L.'],
+    build: blanks([
+      { parts: ['L row 2 = (', { box: '3' }, ', 1, 0)'], why: 'ℓ₂₁ = 3 goes into row 2, column 1.', hint: 'ℓᵢⱼ sits in row i, column j.' },
+      { parts: ['L row 3 = (', { box: '-2' }, ', ', { box: '4' }, ', 1)'], why: 'ℓ₃₁ = −2 in column 1, ℓ₃₂ = 4 in column 2. The planes come back to A.', hint: 'Row 3 holds ℓ₃₁, then ℓ₃₂.',
+        fx: () => fxp(q => S.em.set({ e10: 3 * q, e20: -2 * q, e21: 4 * q }), 0, 2) },
+    ]),
+  }], done) }],
+
+  ['why', 'A record of elimination', (m) => {
+    const p = panel(0);
+    text(p, 'A record of elimination', 60, 110, .2, { size: 40, weight: 600 });
+    const { sys, em, V } = three(p, OWN, 'x + y + z = 3,    2x + 3y + z = 6,    −x + y + 2z = 2', { t0: .3 });
+    em.setName('E'); em.names(['A', 'b', 'EA', 'Eb']);
+    const Lm = matDraw(p, OWNL, 150, 650, m('rec'), { size: 32, cw: 52, rh: 48, name: 'L =' });
+    [[1, 0], [2, 0], [2, 1]].forEach(([i, j], k) => Lm.ring(i, j, m('rec') + 2 + .6 * k));
+    em.to(emL(em, [[1, 0, 0], [-2, 1, 0], [5, -2, 1]]), m('next') + 2, 3);
+    hinge(sys, 0, m('next') + 4, 1.6);
+    V.turn({ yaw: 0, pitch: 34 }, m('next') + 2, 6);
+    em.ringE(2, 0, m('e'), { dash: true });
+    em.Pt.flash(2, m('e') + 2.6); em.flashE(2, m('e') + 4.2, 0);
+    text(p, 'E = E₃₂E₃₁E₂₁: a 5 that elimination never used', 360, 700, m('e') + .6, { size: 26, weight: 600 });
+    [[1, 0], [2, 0], [2, 1]].forEach(([i, j], k) => Lm.ring(i, j, m('l') + .4 * k, { color: COL.good }));
+    text(p, 'L: just the multipliers 2, −1, 2', 360, 760, m('l') + .8, { size: 26, weight: 600 });
+    text(p, 'why: chapter 31', 360, 810, m('l') + 4, { size: 26, fill: COL.dim, weight: 600 });
+  }],
+
+  ['q4', 'Quick check', () => {
+    const p = panel(0);
+    text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
+    const t = two(p, { A: [[2, 1], [6, 8]], b: [3, 14] }, '2x + y = 3,    6x + 8y = 14');
+    t.em.setName('E₂₁');
+    S.em = t.em;
+  }, { ask: done => quiz({ x: 40, y: 540, w: 760, cls: 'side' }, [{
+    id: 'c-whichL', prompt: ['A = (2, 1), (6, 8). Which matrix is L?'],
+    build: choice(['rows (1, 0) and (3, 1)', 'rows (1, 0) and (−3, 1)', 'rows (2, 0) and (6, 1)', 'rows (1, 3) and (0, 1)'], 0,
+      'ℓ = 6 ÷ 2 = 3, and L holds it in row 2, column 1. Check: 3 × (2, 1) + (0, 5) = (6, 8).',
+      [null, 'That is E₂₁: it takes 3 × row 1 away. L puts it back: +3.', 'L has ones on its diagonal; the pivot 2 stays in U.', 'That is upper triangular. L’s number sits below the diagonal, in row 2, column 1.'],
+      () => fxp(q => S.em.set({ e10: -3 * q }), 0, 1.6)),
+  }], done) }],
+
+  ['wrap', 'Summary', (m) => {
+    const p = panel(0);
+    [['Elimination: EA = U. Undo it: A = E⁻¹U = LU.', 'w1'], ['L is lower triangular: ones on its diagonal, each multiplier ℓ below, where it was used.', 'w2'],
+     ['U is upper triangular, with the pivots on its diagonal.', 'w3'], ['LU gives back A (the lines turn back), and Lc gives back b.', 'w4']].forEach(([str, mark], i) => {
+      const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
+      mk('circle', { cx: 120, cy: -12, r: 26, fill: COL.chalk }, g);
+      T(g, String(i + 1), { x: 120, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+      T(g, str, { x: 170, size: 34, weight: 600 });
+      tw(g, { o: 1, x: 0 }, m(mark), .6);
+    });
+  }],
+  ['final1', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-lu', prompt: ['For each A: the multiplier, row 2 of U, and row 2 of L.'],
+    build: blanks(LU2Q),
+  }, {
+    id: 'p-lu2', prompt: ['Two more. A fraction is fine.'],
+    build: blanks(LU2Q2),
+  }], done, 'Chapter practice · set 1 of 4') }],
+  ['final2', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
+    id: 'p-lfrom', prompt: ['Write L from the multipliers (do the elimination where A is given).'],
+    build: blanks(LFROMQ),
+  }], done, 'Chapter practice · set 2 of 4') }],
+  ['final3', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
+    id: 'p-mul', prompt: ['Multiply L times U, one row. Each row of L mixes the rows of U.'],
+    build: blanks(LUMULQ),
+  }, {
+    id: 'p-tf', prompt: ['True or false?'],
+    build: grid(TFQ, TF, { text: true }),
+  }], done, 'Chapter practice · set 3 of 4') }],
+  ['final4', 'Chapter practice', () => {
+    const p = panel(0);
+    text(p, 'Build L', 60, 110, .2, { size: 40, weight: 600 });
+    const t = three(p, OWNU, '');
+    t.em.setName('L'); t.em.names(['U', 'c', 'LU', 'Lc']);
+    S.em = t.em;
+  }, { ask: done => quiz(CARD3, HANDS.map((h, k) => ({
+    id: `p-hand${k + 1}`, prompt: [`Change L’s numbers below the diagonal until LU | Lc is A | b: ${rowsTxt(h.to)}.`],
+    build: (body, api) => { S.em.set(keysOf(h.from)); S.em.work(2, 0); return emTask(S.em, (v, pr) => same(pr, h.to), 'L = rows (1, 0, 0), (' + [h.ans.e10, 1, 0].map(num).join(', ') + '), (' + [h.ans.e20, h.ans.e21, 1].map(num).join(', ') + '): the multipliers in their places.', handHint(h), () => S.em.set(h.ans), { only: ['e10', 'e20', 'e21'] })(body, api); },
+  })), done, 'Chapter practice · set 4 of 4') }],
+  ['play', 'Playground', (m) => {
+    const p = panel(0);
+    text(p, 'Playground', 60, 110, .2, { size: 40, weight: 600 });
+    const t = two(p, U2, '', { E: L2 });
+    t.em.setName('L'); t.em.names(['U', 'c', 'A', 'b']);
+    S.em = t.em;
+    t.em.work(1, .3);
+    text(p, 'try: put 0 in L, and A becomes U (the line goes flat);', 70, 168, m('go'), { size: 24, fill: COL.dim });
+    text(p, 'change U’s pivot 3, or drag a line, and watch U and A follow', 70, 200, m('go') + .3, { size: 24, fill: COL.dim });
+  }, { ask: playAsk(() => S.em, { pos: { x: 40, y: 586, w: 760, cls: 'side' }, tip: 'L, U and c are yours. Change any number, drag a line, or draw on the board. Nothing is marked.' }) }],
+  ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+boot();
+</script>
+</body>
+</html>

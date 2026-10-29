@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Matrices with No Inverse</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render"><!-- hold the first frame until the player exists, so the page transition can run -->
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/math.js"></script>
+<script src="../lib/grid2.js"></script>
+<script src="../lib/inv.js"></script>
+<script src="../lib/play.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 28, title: 'Matrices with No Inverse', minutes: 9, language: 'en' , next: '../ch29/' };
+
+/* ---------- layout and colours ---------- */
+const COLC = [COL.irr, COL.real, COL.rat];
+const LEFT = { x: 40, y: 430, w: 720, cls: 'side' };
+const TOPL = { x: 40, y: 190, w: 760, cls: 'side' };
+const I2 = [[1, 0], [0, 1]];
+const A1 = [[1, 3], [2, 6]], A2 = [[2, -2], [-1, 1]];
+const SHEAR = [[1, 1], [0, 1]], TURN = [[0, -1], [1, 0]], AB = [[0, -1], [1, 1]], ABI = [[1, 1], [-1, 0]];
+const ZOOM = { u: 60, x0: -5, x1: 5, y0: -5, y1: 5 };
+const INV = ['A', E('−1')], BINV = ['B', E('−1')];
+
+/* ---------- chapter drawing helpers ---------- */
+const say = (p, parts, x, y, t0, { size = 40, fill = COL.chalk, anchor = 'start' } = {}) => { const e = M(p, [].concat(parts), { x, y, size, fill, anchor, o: 0 }); show(e, t0); return e; };
+const text = (p, str, x, y, t0, { size = 30, fill = COL.chalk, anchor = 'start', weight = 500 } = {}) => { const e = T(p, str, { x, y, size, fill, anchor, weight, o: 0 }); show(e, t0); return e; };
+const title = (p, str) => text(p, str, 60, 110, .2, { size: 40, weight: 600 });
+const keysOf = (A, k = 'a') => ({ [k + '00']: A[0][0], [k + '01']: A[0][1], [k + '10']: A[1][0], [k + '11']: A[1][1] });
+const mat = (p, A, x, y, t0, { size = 44, name = 'A' } = {}) => { const m = ivMat(p, A, { x, y, size, name, fill: (i, j) => COLC[j], o: 0 }); show(m.g, t0, .4); return m; };
+const dotAt = (P2, [x, y], into, t0, { r = 9, color = COL.chalk, label = null, dx = 14, dy = -14 } = {}) => {
+  const d = G(into, { x: P2.PX(x), y: P2.PY(y), o: 0 });
+  mk('circle', { r, fill: color, stroke: COL.board, 'stroke-width': 2 }, d);
+  if (label) T(d, label, { x: dx, y: dy, size: 22, fill: color, font: MATH });
+  show(d, t0, .3); return d;
+};
+// a dot that starts at p and slides to where A sends it
+const land = (P2, A, p, into, t0, t1, opts = {}) => { const d = dotAt(P2, p, into, t0, opts); const [X, Y] = ivMul(A, [[p[0]], [p[1]]]).map(r => r[0]); tw(d, { x: P2.PX(X), y: P2.PY(Y) }, t1, 1.4); if (opts.label) hide(d.lastChild, t1 - .1, .3); return d; };   // its label (x's name) goes as it leaves for Ax
+const ringAt = (P2, [x, y], color, into, t0, label, { dx = 20, dy = -18, anchor = 'start' } = {}) => {
+  const g = G(into, { x: P2.PX(x), y: P2.PY(y), o: 0 });
+  mk('circle', { r: 17, fill: 'none', stroke: color, 'stroke-width': 3, 'stroke-dasharray': '5 5' }, g);
+  if (label) T(g, label, { x: dx, y: dy, size: 22, fill: color, font: MATH, anchor });
+  show(g, t0, .4);
+  return g;
+};
+function matEl(rows, { size = 24 } = {}) {
+  const n = rows[0].length, cw = size * 1.8, rh = size * 1.3, w = cw * n + 16, hh = rh * rows.length + size * .3;
+  const svg = mk('svg', { class: 'm', viewBox: `0 0 ${w} ${hh}`, width: w, height: hh });
+  svg.style.verticalAlign = 'middle';
+  path(svg, `M12 2H3V${hh - 2}H12M${w - 12} 2H${w - 3}V${hh - 2}H${w - 12}`, { stroke: 'currentColor', 'stroke-width': 2.5 });
+  rows.forEach((r, i) => r.forEach((v, j) => T(svg, num(v), { x: 8 + cw * (j + .5), y: rh * (i + .5) + size * .5, size, fill: COLC[j], font: MATH, anchor: 'middle' })));
+  return svg;
+}
+const rot = d => { const a = d * Math.PI / 180, k = n => Math.round(n * 1e9) / 1e9; return [[k(Math.cos(a)), k(-Math.sin(a))], [k(Math.sin(a)), k(Math.cos(a))]]; };
+const isI = T2 => Math.abs(T2[0][0] - 1) < 1e-9 && Math.abs(T2[0][1]) < 1e-9 && Math.abs(T2[1][0]) < 1e-9 && Math.abs(T2[1][1] - 1) < 1e-9;
+const flat = v => Math.abs(v.a00 * v.a11 - v.a01 * v.a10) < 1e-9 && (v.a00 || v.a01 || v.a10 || v.a11);
+
+/* ---------- practice data ---------- */
+const YESNO = [['y', 'Has an inverse', COL.good, 'Y'], ['n', 'No inverse', COL.bad, 'N']];
+const WHICHQ = [
+  { A: [[2, 4], [3, 6]], ans: ['n'], why: 'Column 2 = 2 × column 1; x = (2, −1) gives Ax = 0.' },
+  { A: [[1, 2], [2, 1]], ans: ['y'], why: 'ad − bc = 1 − 4 = −3, not zero.' },
+  { A: [[0, 0], [3, 1]], ans: ['n'], why: 'A row of zeros: x = (1, −3) gives Ax = 0.' },
+  { A: [[1, 1, 0], [0, 1, 1], [1, 2, 1]], ans: ['n'], why: 'Row 3 = row 1 + row 2: elimination gives a zero row. (x = (1, −1, 1) gives Ax = 0.)' },
+  { A: [[2, 0, 0], [0, 3, 0], [0, 0, 1]], ans: ['y'], why: 'Three pivots 2, 3, 1: divide by each.' },
+  { A: [[3, 1], [6, 2]], ans: ['n'], why: 'Row 2 = 2 × row 1: ad − bc = 6 − 6 = 0.' },
+];
+const LOSTQ = [
+  { A: [[1, 2], [3, 6]], x: [2, -1] }, { A: [[2, 6], [1, 3]], x: [3, -1] }, { A: [[4, -2], [2, -1]], x: [1, 2] },
+  { A: [[0, 1], [0, 3]], x: [1, 0] }, { A: [[1, 0, 1], [0, 1, 1], [1, 1, 2]], x: [1, 1, -1] },
+];
+const PRODQ = [
+  { Ai: [[1, 1], [0, 1]], Bi: [[2, 0], [0, 1]] },
+  { Ai: [[0, 1], [1, 0]], Bi: [[1, 0], [2, 1]] },
+];
+
+/* ---------- beats: [id, title, run(m, D), { ask }?] ---------- */
+const BEATS = [
+  ['intro', 'Matrices with no inverse', (m, D) => {
+    const g = G(scene, { o: 0, y: 24 });
+    T(g, 'Unit 3, Chapter 28', { x: 800, y: 250, size: 28, fill: COL.dim, anchor: 'middle' });
+    T(g, 'Matrices with No Inverse', { x: 800, y: 360, size: 80, weight: 600, anchor: 'middle' });
+    tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+    const r = text(scene, 'when the plane goes flat, nothing brings it back', 800, 450, m('sub'), { size: 36, fill: COL.dim, anchor: 'middle' });
+    const sm = G(scene, { o: 0 });
+    const k = grid2(sm, { A: I2, mat: null, shape: true, units: false, plane: { cx: 800, cy: 690, u: 30, x0: -5, x1: 5, y0: -3, y1: 3, labels: false } });
+    put(k.parts.cols, { o: 0 });
+    show(sm, m('sub') + .5, .6);
+    k.to(keysOf([[1, .5], [.5, .25]]), m('sub') + 1.2, 2.2);
+    k.to(keysOf(I2), m('move') + .2, .8); k.to(keysOf([[1, 1], [0, 1]]), m('move') + 1.4, 1.2); k.to(keysOf(I2), m('move') + 3, 1.2);
+    tw(g, { o: 0, y: -24 }, D - .9, .8); hide(r, D - .9, .8); hide(sm, D - .9, .8);
+  }],
+
+  ['test', 'The test: Ax = 0', (m) => {
+    const p = panel(0);
+    title(p, 'The test: some x ≠ 0 with Ax = 0');
+    const g = S.g = grid2(p, { A: I2, mat: null, shape: true });
+    g.labels(['col 1', 'col 2']);
+    put(g.parts.cols, { o: 0 }); show(g.parts.cols, m('go') + 1.6, .4);
+    const ma = mat(p, A1, 90, 250, .4);
+    ma.cells.forEach((r, i) => r.forEach(c => { put(c.g.parentNode, { o: 0 }); show(c.g.parentNode, 1.4 + i * 2, .4); }));
+    const ca = G(p, {});
+    g.P.arrow(0, 0, 1, 2, COLC[0], m('cols') + .8, { into: ca }); g.P.arrow(0, 0, 3, 6, COLC[1], m('cols') + 2.6, { into: ca });
+    draw(path(ca, `M${g.P.PX(-3)} ${g.P.PY(-6)}L${g.P.PX(3.2)} ${g.P.PY(6.4)}`, { stroke: COL.chalk, 'stroke-width': 2.5, 'stroke-dasharray': '8 8' }, { d: 0 }), m('cols') + 4.6, 1.4);
+    hide(ca, m('go') + 1.6, .3);
+    text(p, 'column 2 = 3 × column 1: one line', 90, 450, m('cols') + 2.4, { size: 28, weight: 600 });
+    g.to(keysOf(A1), m('go') + .2, 2.4);
+    const x = dotAt(g.P, [3, -1], p, m('x'), { label: 'x = (3, −1)', dx: 14, dy: 30 });
+    const ar = G(p, {});
+    g.P.arrow(0, 0, 3, 6, COLC[0], m('ax') + .6, { into: ar }); g.P.arrow(3, 6, 0, 0, COLC[1], m('ax') + 2.6, { into: ar });
+    hide(ar, m('test') - .3, .3);
+    const ax1 = say(p, ['A x = 3·(1, 2) − 1·(3, 6)'], 90, 520, m('ax') + .4, { size: 30 });
+    say(p, ['= (3 − 3, 6 − 6) = (0, 0)'], 90 + ax1._w + 12, 520, m('ax') + 5.4, { size: 30 });
+    const c = dotAt(g.P, [3, -1], p, m('ax') + 4.5, { r: 7 }); tw(c, { x: g.P.PX(0), y: g.P.PY(0) }, m('ax') + 5, 1.2);
+    const rule = G(p, { o: 0 });
+    mk('rect', { x: 70, y: 590, width: 690, height: 120, rx: 16, fill: 'none', stroke: COL.chalk, 'stroke-width': 3 }, rule);
+    M(rule, ['some x ≠ 0 with A x = 0'], { x: 100, y: 640, size: 34, anchor: 'start' });
+    M(rule, ['→  A has no inverse'], { x: 100, y: 690, size: 34, fill: COL.bad, anchor: 'start' });
+    show(rule, m('test') + .6, .5);
+  }],
+
+  ['why', 'Why there is no inverse', (m) => {
+    const p = panel(0);
+    title(p, 'Why: suppose A⁻¹ existed');
+    const g = S.g = grid2(p, { A: A1, mat: null, shape: false, lost: true });
+    put(g.parts.lost, { o: 0 }); show(g.parts.lost, m('pic'), .4);
+    text(p, 'suppose A⁻¹ exists …', 90, 220, m('sup') + .3, { size: 30, fill: COL.dim });
+    say(p, ['A x = 0'], 90, 300, m('mul') + .2, { size: 40 });
+    say(p, [...INV, ' A x = ', ...INV, ' 0'], 90, 375, m('mul') + 2.4, { size: 40 });
+    const hb = (x, w, t0, t1) => { const r = mk('rect', { x, y: 336, width: w, height: 54, rx: 10, fill: COL.chalk }, p); put(r, { o: 0 }); tw(r, { o: .14 }, t0, .3); tw(r, { o: 0 }, t1, .3); };
+    hb(80, 175, m('left') + .1, m('right')); hb(262, 120, m('right') + .1, m('so'));
+    say(p, ['x'], 90, 450, m('left') + .8, { size: 40 });
+    say(p, [' = 0'], 112, 450, m('right') + 1.4, { size: 40 });
+    const so = G(p, { o: 0 }); mk('rect', { x: 76, y: 408, width: 150, height: 60, rx: 12, fill: 'none', stroke: COL.chalk, 'stroke-width': 3 }, so); show(so, m('so') + .2, .3);
+    text(p, 'but x = (3, −1) is not 0: impossible', 90, 540, m('but') + .4, { size: 30, fill: COL.bad, weight: 600 });
+    text(p, 'so A has no inverse', 90, 600, m('but') + 4, { size: 30, weight: 600 });
+    const { PX, PY } = g.P;
+    dotAt(g.P, [0, 0], p, m('pic') + .3);
+    land(g.P, A1, [3, -1], p, m('pic') + .8, m('pic') + 1.6, { label: '(3, −1)', dx: 12, dy: 28 });
+    const q = G(p, {});
+    draw(path(q, `M${PX(0)} ${PY(0)}Q${PX(1)} ${PY(-2.6)} ${PX(2.8)} ${PY(-1.2)}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' }, { d: 0 }), m('pic') + 4, .8);
+    draw(path(q, `M${PX(0)} ${PY(0)}Q${PX(-1.4)} ${PY(-1.2)} ${PX(-.25)} ${PY(-.3)}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' }, { d: 0 }), m('pic') + 5, .8);
+    const qm = T(q, '?', { x: PX(1.2), y: PY(-2.3), size: 44, fill: COL.chalk, weight: 700, o: 0 }); show(qm, m('pic') + 5.4, .3);
+  }],
+
+  ['lost2', 'A second example', (m) => {
+    const p = panel(0);
+    title(p, 'Another one: A = [2 −2; −1 1]');
+    const g = S.g = grid2(p, { A: I2, mat: null, shape: true, lost: true });
+    g.labels(['col 1', 'col 2']);
+    put(g.parts.lost, { o: 0 });
+    mat(p, A2, 90, 250, m('A'));
+    g.to(keysOf(A2), m('A') + 1.5, 2.4);
+    text(p, 'column 2 = −1 × column 1', 90, 450, m('cols') + 1, { size: 28, weight: 600 });
+    land(g.P, A2, [1, 1], p, m('x'), m('ax') + 3.2, { label: 'x = (1, 1)', dx: 14, dy: -14 });
+    say(p, ['A x = (2 − 2, −1 + 1) = (0, 0)'], 90, 520, m('ax') + .4, { size: 30 });
+    show(g.parts.lost, m('line') + .2, .5);
+    const dots = G(p, {});
+    [[2, 2], [-1, -1], [3, 3], [-2, -2]].forEach((q, k) => land(g.P, A2, q, dots, m('line') + .8 + k * .5, m('line') + 4.4, { color: COL.bad, r: 7 }));
+    text(p, 'the red line all lands on (0, 0)', 90, 590, m('line') + 1, { size: 28, fill: COL.bad, weight: 600 });
+    text(p, 'no inverse', 90, 660, m('no') + .3, { size: 32, weight: 600 });
+  }],
+
+  ['many', 'Many points, one landing spot', (m) => {
+    const p = panel(0);
+    title(p, 'A folds whole lines onto points');
+    const g = S.g = grid2(p, { A: A2, mat: null, shape: false, units: false, lost: true });
+    g.labels(['col 1', 'col 2']);
+    mat(p, A2, 90, 250, .3);
+    const { PX, PY } = g.P;
+    const ln = path(p, `M${PX(-4)} ${PY(-5)}L${PX(6)} ${PY(5)}`, { stroke: COL.chalk, 'stroke-width': 2.5, 'stroke-dasharray': '8 8' }, { d: 0 });
+    draw(ln, m('slide'), 1.2);
+    const pts = [[1, 0], [2, 1], [3, 2]];
+    const ds = pts.map((q, k) => dotAt(g.P, q, p, k ? m('slide') + 1 + k * 1.2 : m('pt') + .3, { label: `(${q.map(num).join(', ')})`, dx: 12, dy: -14 }));
+    ringAt(g.P, [2, -1], COL.chalk, p, m('pt') + 1.6, '(2, −1)', { dx: -22, dy: 36, anchor: 'end' });
+    say(p, ['A·(1, 0) = (2, −1)'], 90, 450, m('pt') + 1.6, { size: 30 });
+    say(p, ['A·(2, 1) = (4 − 2, −2 + 1) = (2, −1)'], 90, 510, m('same') + .3, { size: 30 });
+    ds.forEach((d, k) => { hide(d.lastChild, m('same') + 1.3, .2); tw(d, { x: PX(2), y: PY(-1) }, m('same') + 1.5 + k * .4, 1.4); });
+    text(p, 'a whole line → one point', 90, 590, m('fold') + .3, { size: 30, weight: 600 });
+    text(p, 'no matrix can unfold it', 90, 640, m('fold') + 3.6, { size: 28, fill: COL.dim });
+  }],
+
+  ['missed', 'Some b are never reached', (m) => {
+    const p = panel(0);
+    title(p, 'And some points are never reached');
+    const g = S.g = grid2(p, { A: A2, mat: null, shape: false });
+    g.labels(['col 1', 'col 2']);
+    mat(p, A2, 90, 250, .3);
+    const { PX, PY } = g.P;
+    ringAt(g.P, [1, 1], COL.task, p, m('off') + .3, 'b = (1, 1)', { dx: 16, dy: -18 });
+    const im = path(p, `M${PX(-6)} ${PY(3)}L${PX(6)} ${PY(-3)}`, { stroke: COL.chalk, 'stroke-width': 6, 'stroke-opacity': .5 }, { d: 0 });
+    draw(im, m('never') + .3, 1.2);
+    text(p, 'every A x lands on this line', 90, 450, m('never') + 1, { size: 28, weight: 600 });
+    say(p, ['A x = (1, 1):  no solution'], 90, 510, m('never') + 4, { size: 30, fill: COL.bad });
+    text(p, 'can we solve for every b? (chapter 14) — no', 90, 580, m('ch14') + .3, { size: 26, fill: COL.dim });
+    [[-1, 2], [3, 2], [-2, -3], [2, 4]].forEach((q, k) => ringAt(g.P, q, COL.task, p, m('ch14') + 2 + k * 1.1));
+    const run = dotAt(g.P, [-5, 2.5], p, m('ch14') + 1, { r: 9 }); tw(run, { x: g.P.PX(5), y: g.P.PY(-2.5) }, m('ch14') + 1.2, 5.6, lin);   // A x can only run along the line
+    text(p, '1. some points collide (Ax = 0 for x ≠ 0)', 90, 660, m('both') + 2.6, { size: 28, weight: 600 });
+    text(p, '2. some points are never reached', 90, 710, m('both') + 4.4, { size: 28, weight: 600 });
+  }],
+
+  ['find', 'Finding the lost x', (m) => {
+    const p = panel(0);
+    title(p, 'How to find x: compare the columns');
+    const g = S.g = grid2(p, { A: I2, mat: null, shape: false, lost: true });
+    g.labels(['col 1', 'col 2']);
+    put(g.parts.lost, { o: 0 });
+    const F1 = [[2, 4], [1, 2]], F2 = [[3, -6], [1, -2]];
+    const m1 = mat(p, F1, 90, 250, m('look') + .3);
+    g.to(keysOf(F1), m('look') + .8, 2);
+    // example 1, then example 2 in the same places (the first clears away)
+    const e1 = G(p, {});
+    say(e1, ['column 2 = 2 × column 1'], 90, 440, m('look') + 3, { size: 30 });
+    say(e1, ['2·(2, 1) − 1·(4, 2) = (0, 0)'], 90, 500, m('mix') + .3, { size: 30 });
+    say(e1, ['x = (2, −1)'], 90, 560, m('x') + .3, { size: 30 });
+    land(g.P, F1, [2, -1], e1, m('x') + .2, m('chk') + .4, { label: 'x = (2, −1)', dx: 14, dy: 28 });
+    say(e1, ['rows:  2·2 − 4 = 0,   1·2 − 2 = 0'], 90, 620, m('chk') + .6, { size: 28, fill: COL.good });
+    hide(m1.g, m('ex2') - .2, .3); hide(e1, m('ex2') - .2, .3);
+    mat(p, F2, 90, 250, m('ex2') + .2);
+    g.to(keysOf(F2), m('ex2') + .8, 2);
+    say(p, ['column 2 = −2 × column 1'], 90, 440, m('ex2') + 4, { size: 30 });
+    say(p, ['2·(3, 1) + 1·(−6, −2) = (0, 0)'], 90, 500, m('x2') + .3, { size: 30 });
+    say(p, ['x = (2, 1)'], 90, 560, m('x2') + 4, { size: 30 });
+    land(g.P, F2, [2, 1], p, m('x2') + 4, m('chk2') + .3, { label: 'x = (2, 1)', dx: 14, dy: -14 });
+    say(p, ['rows:  3·2 − 6 = 0,   2 − 2 = 0'], 90, 620, m('chk2') + .5, { size: 28, fill: COL.good });
+    show(g.parts.lost, m('any') + .3, .5);
+    text(p, 'any multiple: the whole red line is lost', 90, 700, m('any') + .8, { size: 28, fill: COL.bad, weight: 600 });
+  }],
+
+  ['q1', 'Quick check', () => {
+    const p = panel(0);
+    title(p, 'Quick check');
+    const g = S.g = grid2(p, { A: [[1, 1], [2, -1]], mat: [90, 250], size: 46, shape: true, lost: true });
+    g.labels(['col 1', 'col 2']);
+  }, { ask: done => quiz(LEFT, [{
+    id: 'c-flat', prompt: ['Drag a column tip so that the whole plane goes flat (ad − bc = 0).'],
+    build: g2Task(S.g, flat, 'Both columns on one line: the plane falls onto it, and the red line of points lands on (0, 0).',
+      'Put column 2 on the line through (0, 0) and column 1, (1, 2): at (2, 4), (−1, −2) or (0, 0) …', () => S.g.set({ a01: -1, a11: -2 }), ['A', 'cols']),
+  }], done) }],
+
+  ['q2', 'Quick check', () => {
+    const p = panel(0);
+    title(p, 'Quick check');
+    const g = S.g = grid2(p, { A: [[1, 2], [2, 4]], mat: [90, 250], size: 46, shape: false });
+    g.labels(['col 1', 'col 2']);
+  }, { ask: done => quiz(LEFT, [{
+    id: 'c-lost', prompt: ['Click a point ', $m('x'), ', not ', $m('(0, 0)'), ', that ', $m('A'), ' sends to ', $m('(0, 0)'), '.'],
+    build: pickPoint(S.g.P, [2, -1], (x, y) => `A·(${num(x)}, ${num(y)}) = (${num(x + 2 * y)}, ${num(2 * x + 4 * y)}). Every multiple of (2, −1) works.`,
+      (x, y) => !x && !y ? 'Not (0, 0) itself: we want x ≠ 0.' : `A·(${num(x)}, ${num(y)}) = (${num(x + 2 * y)}, ${num(2 * x + 4 * y)}), not (0, 0). Try x + 2y = 0, like (2, −1).`,
+      null, (x, y) => (x || y) && x + 2 * y === 0),
+  }], done) }],
+
+  ['elim', 'Elimination finds it too', (m) => {
+    const p = panel(0);
+    title(p, 'Gauss–Jordan gets stuck');
+    const g = grid2(p, { A: A1, mat: null, shape: true });
+    g.labels(['col 1', 'col 2']);
+    const t = gj(p, A1, { at: [120, 270], size: 42, link: g, t0: m('A') - .3 });
+    t.sub(1, 0, 2, m('step') + 1.6, 2, { lead: 1.4 });
+    t.ring(1, 0, m('zero') + .3, undefined, { color: COL.bad }); t.ring(1, 1, m('zero') + .6, undefined, { color: COL.bad });
+    text(p, 'no second pivot, no row to swap in', 90, 460, m('pivot') + .3, { size: 28, weight: 600 });
+    text(p, 'the left half can never become I', 90, 510, m('stuck') + .3, { size: 28, fill: COL.bad, weight: 600 });
+    t.block(0, m('stuck') + 1, m('three'), COL.bad);
+    say(p, ['1.  ad − bc = 6 − 6 = 0'], 90, 600, m('three') + 1.5, { size: 30 });
+    say(p, ['2.  A·(3, −1) = (0, 0)'], 90, 655, m('t2') + .2, { size: 30 });
+    say(p, ['3.  elimination: zero row'], 90, 710, m('t3') + .2, { size: 30 });
+  }],
+
+  ['three', 'Three by three', (m) => {
+    const p = panel(0);
+    title(p, 'The same in 3 × 3');
+    const A = [[1, 0, 1], [2, 1, 3], [0, 1, 1]];
+    const t = gj(p, A, { at: [200, 290], size: 46, right: false, t0: m('A') - .3 });
+    t.cells.forEach((r, i) => r.forEach(c => { put(c.g.parentNode, { o: 0 }); show(c.g.parentNode, m('A') + .8 + i * 1.6, .4); }));
+    [0, 1, 2].forEach(j => { const r = mk('rect', { x: t.cx(j) - 40, y: t.top - 4, width: 80, height: t.bot - t.top + 8, rx: 12, fill: COLC[j] }, p); p.insertBefore(r, p.firstChild); put(r, { o: 0 }); tw(r, { o: .2 }, m('cols') + .4 + j * .8, .3); tw(r, { o: 0 }, m('x'), .3); });
+    say(p, ['column 3 = column 1 + column 2'], 640, 300, m('cols') + 2.6, { size: 30 });
+    say(p, ['x = (1, 1, −1):   A x = 0'], 640, 370, m('x') + .3, { size: 30 });
+    const span = (m('elim') - m('ax')) / 3;
+    ['row 1:  1 + 0 − 1 = 0', 'row 2:  2 + 1 − 3 = 0', 'row 3:  0 + 1 − 1 = 0'].forEach((s, k) => say(p, [s], 640, 440 + k * 50, m('ax') + .3 + k * span, { size: 28 }));
+    t.sub(1, 0, 2, m('elim') + 2.2, 1.4, { lead: 1.4 });
+    t.sub(2, 1, 1, m('elim2') + 1.4, 1.4, { lead: 1.1 });
+    t.done(m('no'));
+    const bad = mk('rect', { x: t.cx(0) - 44, y: t.ry(2) - 48, width: t.cx(2) - t.cx(0) + 88, height: 64, rx: 12, fill: 'none', stroke: COL.bad, 'stroke-width': 3 }, p); put(bad, { o: 0 }); show(bad, m('no') + .2, .3);
+    text(p, 'only two pivots: no inverse', 200, 600, m('no') + .5, { size: 30, fill: COL.bad, weight: 600 });
+    text(p, 'in space: everything lands on one plane', 200, 650, m('no') + 3.5, { size: 26, fill: COL.dim });
+  }],
+
+  ['q3', 'Quick check', () => {
+    const p = panel(0);
+    title(p, 'Quick check');
+    text(p, 'tests: some x ≠ 0 with Ax = 0 · a zero row · ad − bc = 0', 60, 160, .3, { size: 26, fill: COL.dim });
+  }, { ask: done => quiz(TOPL, [{
+    id: 'c-which', prompt: ['Which have an inverse?'],
+    build: grid([
+      { parts: [matEl([[1, 2], [3, 6]])], ans: ['n'], why: 'Column 2 = 2 × column 1.' },
+      { parts: [matEl([[2, 1], [1, 1]])], ans: ['y'], why: 'ad − bc = 2 − 1 = 1.' },
+      { parts: [matEl([[1, 0, 1], [0, 1, 1], [1, 1, 2]])], ans: ['n'], why: 'Column 3 = column 1 + column 2: x = (1, 1, −1) gives Ax = 0.' },
+      { parts: [matEl([[1, 0, 0], [0, 2, 0], [0, 0, 3]])], ans: ['y'], why: 'Three pivots, 1, 2 and 3.' },
+    ], YESNO, { multi: false, text: true }),
+  }], done) }],
+
+  ['prod', 'Socks and shoes', (m) => {
+    const p = panel(0);
+    title(p, 'Undoing two moves: socks and shoes');
+    const g = S.g = grid2(p, { A: I2, pre: I2, mat: null, shape: true, plane: ZOOM });
+    put(g.parts.cols, { o: 0 });
+    text(p, 'on: socks, then shoes', 90, 200, m('socks') + .5, { size: 30, weight: 600 });
+    text(p, 'off: shoes first, then socks', 90, 250, m('off') + .5, { size: 30, weight: 600 });
+    mat(p, SHEAR, 90, 370, m('B') + .2, { size: 40, name: 'B: shear (socks)' });
+    g.to({ p01: 1 }, m('B') + .8, 1.6);
+    mat(p, TURN, 380, 370, m('A') + .2, { size: 40, name: 'A: turn (shoes)' });
+    g.turn(0, 90, m('A') + .8, 1.6);
+    say(p, ['together: A B   (B first, on the right)'], 90, 540, m('A') + 3, { size: 28 });
+    mat(p, [[0, 1], [-1, 0]], 90, 640, m('undoA') + .2, { size: 40, name: [...INV, ': turn back'] });
+    g.turn(90, 0, m('undoA') + .9, 1.6);
+    mat(p, [[1, -1], [0, 1]], 380, 640, m('undoB') + .2, { size: 40, name: [...BINV, ': shear back'] });
+    g.to({ p01: 0 }, m('undoB') + .9, 1.6);
+    say(p, ['(A B)', E('−1'), '  =  ', ...BINV, ' ', ...INV], 90, 840, m('rule') + .6, { size: 44, fill: COL.chalk });
+    text(p, 'reverse order', 520, 840, m('rule') + 6, { size: 28, fill: COL.dim });
+  }],
+
+  ['wrong', 'The wrong order', (m) => {
+    const p = panel(0);
+    title(p, 'The wrong order does not undo');
+    const g = S.g = grid2(p, { A: TURN, pre: SHEAR, mat: null, shape: true, plane: ZOOM });
+    put(g.parts.cols, { o: 0 });
+    say(p, ['start:  A B'], 90, 230, m('start') + .3, { size: 34 });
+    g.to({ ...keysOf(AB, 'p'), ...keysOf(I2) }, m('ub') - .1, .05);   // the same plane, held as pre = AB (no jump)
+    mat(p, [[1, -1], [0, 1]], 90, 380, m('ub') + .2, { size: 40, name: [...BINV, ' first'] });
+    g.to(keysOf([[1, -1], [0, 1]]), m('ub') + .8, 1.6);
+    mat(p, [[0, 1], [-1, 0]], 380, 380, m('ua') + .2, { size: 40, name: [...INV, ' second'] });
+    const Bi = [[1, -1], [0, 1]];
+    prog(q => g.set(keysOf(ivMul(rot(-90 * q), Bi))), m('ua') + .8, 1.6);   // A⁻¹ turns the plane back on top of B⁻¹
+    text(p, 'not home: the flag is somewhere else', 90, 560, m('look') + .3, { size: 30, fill: COL.bad, weight: 600 });
+    say(p, [...INV, ' ', ...BINV, ' (A B)  =  [1 1; 1 2]  ≠  I'], 90, 630, m('look') + 3.4, { size: 30 });
+    text(p, 'order matters, as AB ≠ BA', 90, 700, m('look') + 7, { size: 26, fill: COL.dim });
+  }],
+
+  ['alg', 'Check with algebra', (m) => {
+    const p = panel(0);
+    title(p, 'Check: (AB)(B⁻¹A⁻¹) = I');
+    const s = 40;
+    say(p, ['(A B)(', ...BINV, ' ', ...INV, ')'], 90, 230, m('mul') + .3, { size: s });
+    say(p, ['= A (B ', ...BINV, ') ', ...INV], 90, 310, m('inner') + .3, { size: s });
+    say(p, ['= A  I  ', ...INV], 90, 390, m('inner') + 2.6, { size: s });
+    say(p, ['= A ', ...INV], 90, 470, m('gone') + .3, { size: s });
+    say(p, ['= I'], 90, 550, m('last') + .3, { size: s, fill: COL.good });
+    const pr = ivProd(p, AB, ABI, { at: [820, 330], size: 42, names: ['A B', [...BINV, ' ', ...INV], 'I'], work: [820, 540], o: 0 });
+    show(pr.g, m('nums') + .3, .5);
+    [[pr.A, m('nums') + .6, m('nums') + 4.4], [pr.B, m('nums') + 4.6, m('e1')]].forEach(([q, t0, t1]) => { const r = mk('rect', { x: q.x - 10, y: q.top - 8, width: q.w + 20, height: q.bot - q.top + 16, rx: 12, fill: COL.chalk }, pr.g); pr.g.insertBefore(r, pr.g.firstChild); put(r, { o: 0 }); tw(r, { o: .13 }, t0, .3); tw(r, { o: 0 }, t1, .3); });
+    pr.entry(0, 0, m('e1'), m('e2') - m('e1') - .2); pr.entry(0, 1, m('e2'), m('e3') - m('e2') - .2);
+    pr.entry(1, 0, m('e3'), m('e4') - m('e3') - .2); pr.entry(1, 1, m('e4'), m('I') - m('e4') + 1);
+    text(p, 'reverse order works', 820, 640, m('I') + .6, { size: 30, fill: COL.good, weight: 600 });
+  }],
+
+  ['q4', 'Quick check', () => {
+    const p = panel(0);
+    title(p, 'Quick check');
+    mat(p, [[1, 2], [0, 1]], 90, 250, .3, { size: 40, name: INV });
+    mat(p, [[1, 0], [3, 1]], 380, 250, .4, { size: 40, name: BINV });
+  }, { ask: done => quiz(LEFT, [{
+    id: 'c-prod', prompt: ['Find ', $m('(AB)', E('−1')), '.'],
+    build: blanks([
+      { parts: ['first row:  (', { box: '1' }, ', ', { box: '2' }, ')'], why: '(AB)⁻¹ = B⁻¹A⁻¹: row 1 of B⁻¹, (1, 0), times the columns of A⁻¹.', hint: 'Reverse order: B⁻¹ on the left, A⁻¹ on the right. (A⁻¹B⁻¹ is the wrong order.)' },
+      { parts: ['second row:  (', { box: '3' }, ', ', { box: '7' }, ')'], why: '(3, 1)·(1, 0) = 3 and (3, 1)·(2, 1) = 7. (AB)⁻¹ = [1 2; 3 7].', hint: 'Row 2 of B⁻¹ is (3, 1). Times column 1 of A⁻¹, (1, 0); times column 2, (2, 1).' },
+    ]),
+  }], done) }],
+
+  ['wrap', 'Summary', (m) => {
+    const p = panel(0);
+    [['No inverse when some x ≠ 0 has Ax = 0.', 'w1'], ['Then the columns lie on one line (or one plane): the grid goes flat.', 'w2'],
+     ['Elimination: a zero row. 2 × 2: ad − bc = 0.', 'w3'], ['(AB)⁻¹ = B⁻¹A⁻¹: socks and shoes.', 'w4']].forEach(([str, mark], i) => {
+      const g = G(p, { x: -16, y: 150 + i * 95, o: 0 });
+      mk('circle', { cx: 150, cy: -12, r: 26, fill: COL.chalk }, g);
+      T(g, String(i + 1), { x: 150, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+      T(g, str, { x: 210, size: 32, weight: 600 });
+      tw(g, { o: 1, x: 0 }, m(mark), .6);
+    });
+    const sm = G(p, { o: 0 });
+    const k = grid2(sm, { A: I2, pre: I2, mat: null, shape: true, units: false, plane: { cx: 1180, cy: 680, u: 30, x0: -5, x1: 5, y0: -5, y1: 5, labels: false } });
+    put(k.parts.cols, { o: 0 });
+    show(sm, .3, .6);
+    k.to(keysOf(A1), m('w2') + .3, 1.6); k.to(keysOf(I2), m('w4') - .5, .4);
+    k.to({ p01: 1 }, m('w4') + .4, 1); k.turn(0, 90, m('w4') + 1.6, 1);
+    k.turn(90, 0, m('w4') + 3, 1); k.to({ p01: 0 }, m('w4') + 4.2, 1);
+  }],
+
+  ['final1', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [0, 1].map(k => ({   // two cards of three: six matrices do not fit one
+    id: k ? 'p-which2' : 'p-which', prompt: ['Which matrices have an inverse? Use any test.'],
+    build: grid(WHICHQ.slice(3 * k, 3 * k + 3).map(q => ({ parts: [matEl(q.A)], ans: q.ans, why: q.why })), YESNO, { multi: false, text: true }),
+  })), done, 'Chapter practice · set 1 of 4') }],
+  ['final2', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, LOSTQ.map((q, k) => ({
+    id: `p-lost${k + 1}`, prompt: ['Find an ', $m('x ≠ 0'), ' with ', $m('A x = 0'), ' for ', $m('A'), ' = ', matEl(q.A), '. (Any multiple is fine.)'],
+    build: blanks([{
+      parts: ['x  =  (', ...q.x.flatMap((v, i) => [...(i ? [', '] : []), { box: String(v) }]), ')'],
+      test: v => v.some(Boolean) && q.A.every(r => Math.abs(r.reduce((s, a, j) => s + a * v[j], 0)) < 1e-9),
+      why: `For example x = (${q.x.map(num).join(', ')}): each row of A times x gives 0.`,
+      hint: q.x.length === 3 ? 'Look for one column that is a mix of the others: column 3 = column 1 + column 2.' : 'Find how column 2 compares with column 1, and take that mix with a minus sign.',
+    }]),
+  })), done, 'Chapter practice · set 2 of 4') }],
+  ['final3', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [...PRODQ.map((q, k) => {
+    const C = ivMul(q.Bi, q.Ai);
+    return {
+      id: `p-prod${k + 1}`, prompt: [$m('A', E('−1')), ' = ', matEl(q.Ai), ' and ', $m('B', E('−1')), ' = ', matEl(q.Bi), '. Find ', $m('(AB)', E('−1')), '.'],
+      build: blanks([
+        { parts: ['first row:  (', { box: String(C[0][0]) }, ', ', { box: String(C[0][1]) }, ')'], why: 'B⁻¹ on the left, A⁻¹ on the right.', hint: 'Reverse order: (AB)⁻¹ = B⁻¹A⁻¹. Row 1 of B⁻¹ times each column of A⁻¹.' },
+        { parts: ['second row:  (', { box: String(C[1][0]) }, ', ', { box: String(C[1][1]) }, ')'], why: `(AB)⁻¹ = [${C[0].map(num).join(' ')}; ${C[1].map(num).join(' ')}].`, hint: 'Row 2 of B⁻¹ times each column of A⁻¹.' },
+      ]),
+    };
+  }), {
+    id: 'p-abc', prompt: ['Three moves: first ', $m('C'), ', then ', $m('B'), ', then ', $m('A'), ' (that is ', $m('ABC'), '). What undoes them?'],
+    build: choice(['C⁻¹ B⁻¹ A⁻¹', 'A⁻¹ B⁻¹ C⁻¹', 'B⁻¹ A⁻¹ C⁻¹'], 0, 'Undo the last move first: A⁻¹ acts first, so it stands on the right: C⁻¹B⁻¹A⁻¹.',
+      [null, 'That undoes C first, but C was put on first: it must come off last.', 'A⁻¹ first is right, but then B⁻¹, and C⁻¹ last.']),
+  }, {
+    id: 'p-flat', prompt: [$m('A'), ' has no inverse (it squashes the plane flat). Can ', $m('AB'), ' have one?'],
+    build: choice(['No: after B, A still squashes the plane flat', 'Yes, if B has an inverse'], 0, 'AB means B, then A; A flattens whatever B gives it, and nothing undoes a flat plane.',
+      [null, 'B acts first; A acts last and flattens the plane. No inverse can follow that.']),
+  }], done, 'Chapter practice · set 3 of 4') }],
+  ['final4', 'Chapter practice', () => {
+    const p = panel(0);
+    title(p, 'With your hands');
+    S.g = grid2(p, { A: [[2, 0], [1, 1]], pre: I2, x: [1, 0], mat: [90, 250], size: 44, shape: true, lost: true, name: 'M', brackets: true });
+    S.g.labels(['col 1', 'col 2']);
+  }, { ask: done => quiz(LEFT, [{
+    id: 'p-squash', prompt: ['Drag column 2 of ', $m('M'), ' so the plane goes flat, keeping column 1 at ', $m('(2, 1)'), '.'],
+    build: (body, api) => { S.g.set({ ...keysOf([[2, 0], [1, 1]]), ...keysOf(I2, 'p') }); put(S.g.parts.x, { o: 0 }); return g2Task(S.g, v => flat(v) && v.a00 === 2 && v.a10 === 1, 'Column 2 on the line through (2, 1): the plane is flat.', 'Column 2 must lie on the line through (0, 0) and (2, 1): at (4, 2), (−2, −1), (0, 0) …', () => S.g.set({ a01: 4, a11: 2 }), ['cols'])(body, api); },
+  }, {
+    id: 'p-lostx', prompt: ['Now ', $m('M'), ' = [1 −1; 2 −2]. Drag ', $m('x'), ' to a point, not ', $m('(0, 0)'), ', that ', $m('M'), ' sends to ', $m('(0, 0)'), '.'],
+    build: (body, api) => { S.g.set({ ...keysOf([[1, -1], [2, -2]]), ...keysOf(I2, 'p'), x0: 1, x1: 0 }); put(S.g.parts.x, { o: 1 }); return g2Task(S.g, v => (v.x0 || v.x1) && v.x0 === v.x1, 'x on the red line: Mx = (0, 0).', 'Mx = (x − y, 2x − 2y). Both are 0 when x = y: try (1, 1).', () => S.g.set({ x0: 1, x1: 1 }), ['x'])(body, api); },
+  }, {
+    id: 'p-undoab', prompt: ['The plane was moved by ', $m('B'), ' = shear, then ', $m('A'), ' = turn (', $m('AB'), ' = [0 −1; 1 1]). Drag the tips of ', $m('M'), ' until the grid is home.'],
+    build: (body, api) => { S.g.set({ ...keysOf(I2), ...keysOf(AB, 'p') }); put(S.g.parts.x, { o: 0 }); return g2Task(S.g, () => isI(S.g.total()), 'M = (AB)⁻¹ = B⁻¹A⁻¹ = [1 1; −1 0]: turn back, then shear back.', '(AB)⁻¹ = B⁻¹A⁻¹ = [1 −1; 0 1][0 1; −1 0]. Column 1 is (1, −1), column 2 is (1, 0).', () => S.g.set(keysOf(ABI)), ['cols'])(body, api); },
+  }], done, 'Chapter practice · set 4 of 4') }],
+  ['play', 'Playground', (m, D) => {
+    const p = panel(0);
+    title(p, 'Playground');
+    S.sys = grid2(p, { A: [[2, 1], [1, 1]], x: [1, 1], mat: [90, 225], size: 40, shape: true, lost: true, brackets: true });
+    S.sys.labels(['col 1', 'col 2']);
+    S.sys.inverse({ at: [90, 370], size: 32 });
+    const hint = text(p, 'try: make it flat · then put x on the red line · watch Ax', 1160, 870, m('go'), { size: 24, fill: COL.dim, anchor: 'middle' });
+    hide(hint, Math.min(m('go') + 9, D - .7), .6);
+  }, { ask: playAsk(() => S.sys, { pos: { x: 40, y: 560, w: 720, cls: 'side' }, tip: 'A, x, A x and A⁻¹, live. Drag a column tip, x, or a number, or draw on the board. Nothing is marked.' }) }],
+  ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+boot();
+</script>
+</body>
+</html>

@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Back Substitution</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render"><!-- hold the first frame until the player exists, so the page transition can run -->
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/math.js"></script>
+<script src="../lib/linsys.js"></script>
+<script src="../lib/space3.js"></script>
+<script src="../lib/play.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 19, title: 'Back Substitution', minutes: 11, language: 'en', next: '../ch20/' };
+
+/* ---------- chapter drawing helpers ---------- */
+const LEC = { A: [[1, 2, 1], [3, 8, 1], [0, 4, 1]], b: [2, 12, 2] };    // the lecture's system (OCW 18.06, lecture 2)
+const U_ = { A: [[1, 2, 1], [0, 2, -2], [0, 0, 5]], b: [2, 6, -10] };   // its triangle U and c (chapter 18)
+const VIEW = { yaw: -30, pitch: 24 };
+const CARD = { x: 40, y: 390, w: 720, cls: 'side' };                   // under the three equations, beside the space
+const BLUE = S3_ROW[0], CORAL = S3_ROW[1], YELLOW = S3_ROW[2];
+const say = (p, parts, x, y, t0, { size = 40, fill = COL.chalk, anchor = 'start' } = {}) => { const e = M(p, [].concat(parts), { x, y, size, fill, anchor, o: 0 }); show(e, t0); return e; };
+const text = (p, str, x, y, t0, { size = 30, fill = COL.chalk, anchor = 'start', weight = 500 } = {}) => { const e = T(p, str, { x, y, size, fill, anchor, weight, o: 0 }); show(e, t0); return e; };
+const okMark = (p, x, y, t0, size = 32) => text(p, '✓', x, y, t0, { size, fill: COL.good, weight: 700 });
+// Three equations top left, their planes on the right; the meeting point hidden until a beat finds it.
+const three = (p, { A, b }, { t0 = .1, view = VIEW, meet = false } = {}) => {
+  const sys = lin3(p, { A, b, eq: [90, 190], mat: null, sol: false, space: { cx: 1185, size: 600, ...view }, t0 });
+  if (!meet) tw(sys.meet.e, { o: 0 }, 0, 0);
+  return sys;
+};
+// The meeting line of planes 2 and 3 (lin3's lines[2]), thickened for a moment.
+const lineOf23 = (sys, t0, dur = 1.6) => prog(q => sys.lines[2].e.setAttribute('stroke-width', 2.5 + 6 * Math.sin(Math.PI * q)), t0, dur, lin);
+// A box round a term of lin3's equations: row i (0–2), term j (0: x, 1: y, 2: z).
+const termBox = (p, i, j, t0, t1, color = COL.task) => {
+  const r = mk('rect', { x: 136 + 135 * j, y: 190 + 70 * i - 42, width: 80, height: 56, rx: 10, fill: 'none', stroke: color, 'stroke-width': 3 }, p);
+  put(r, { o: 0 }); show(r, t0, .3); if (t1) hide(r, t1, .3);
+  return r;
+};
+// A dashed ring in space: the target of a hands-on question.
+const ring3 = (V, q, label) => {
+  const d = V.point(q, { color: COL.task, r: 15, label, size: 24 });
+  const c = d.e.firstChild; c.setAttribute('fill', 'none'); c.setAttribute('stroke', COL.task); c.setAttribute('stroke-dasharray', '4 4'); c.setAttribute('stroke-width', 3);
+  return d;
+};
+const thick2 = (sys, i, t0) => { tw(sys.lines[i].l, { 'a_stroke-width': 10 }, t0, .35); tw(sys.lines[i].l, { 'a_stroke-width': 5 }, t0 + .9, .6); };
+const tri = q => `(${q.map(num).join(', ')})`;
+const at3 = (s, q) => s.x !== undefined && Math.abs(s.x - q[0]) < 1e-9 && Math.abs(s.y - q[1]) < 1e-9 && Math.abs(s.z - q[2]) < 1e-9;
+
+/* ---------- practice data (every answer worked twice: back substitution, then the original rows) ---------- */
+const TWOQ = [
+  { parts: ['x + 3y = 7,   2y = 4:        y = ', { box: '2' }, ',   x = ', { box: '1' }], why: 'y = 4 ÷ 2 = 2; x + 6 = 7, x = 1.', hint: 'Bottom first: 2y = 4. Then put y into x + 3y = 7.' },
+  { parts: ['2x − y = 5,   3y = −3:        y = ', { box: '-1' }, ',   x = ', { box: '2' }], why: 'y = −1; 2x + 1 = 5, 2x = 4, x = 2.', hint: 'y = −1, so −y = +1.' },
+  { parts: ['x + 4y = 2,   −y = 1:        y = ', { box: '-1' }, ',   x = ', { box: '6' }], why: 'y = −1; x − 4 = 2, x = 6.', hint: '−y = 1 means y = −1.' },
+  { parts: ['3x + 2y = 1,   5y = 10:        y = ', { box: '2' }, ',   x = ', { box: '-1' }], why: 'y = 2; 3x + 4 = 1, 3x = −3, x = −1.', hint: 'After y = 2: 3x + 4 = 1.' },
+  { parts: ['4x − 3y = 2,   2y = 2:        y = ', { box: '1' }, ',   x = ', { box: '5/4' }], why: 'y = 1; 4x − 3 = 2, 4x = 5, x = 5/4.', hint: 'After y = 1: 4x − 3 = 2, so 4x = 5.' },
+];
+const TRIQ = [
+  { parts: ['x + y + z = 6,   y + 2z = 7,   3z = 9:        z = ', { box: '3' }, ',  y = ', { box: '1' }, ',  x = ', { box: '2' }], why: 'z = 3; y + 6 = 7, y = 1; x + 1 + 3 = 6, x = 2.', hint: 'Bottom: 3z = 9. Middle: y + 2·3 = 7.' },
+  { parts: ['2x − y + z = 3,   3y − z = 7,   2z = −2:        z = ', { box: '-1' }, ',  y = ', { box: '2' }, ',  x = ', { box: '3' }], why: 'z = −1; 3y + 1 = 7, y = 2; 2x − 2 − 1 = 3, x = 3.', hint: 'z = −1, so −z = +1: 3y + 1 = 7.' },
+  { parts: ['x + 2y − z = 0,   −y + 4z = 9,   −2z = −4:        z = ', { box: '2' }, ',  y = ', { box: '-1' }, ',  x = ', { box: '4' }], why: 'z = 2; −y + 8 = 9, y = −1; x − 2 − 2 = 0, x = 4.', hint: '−y + 8 = 9 gives −y = 1.' },
+  { parts: ['5x + z = 4,   2y + z = 1,   4z = −4:        z = ', { box: '-1' }, ',  y = ', { box: '1' }, ',  x = ', { box: '1' }], why: 'z = −1; 2y − 1 = 1, y = 1; 5x − 1 = 4, x = 1.', hint: 'Row 1 has no y: 5x + z = 4.' },
+];
+const FULLQ = [
+  { parts: ['x + y + z = 6,   2x + 3y + z = 11,   x + 3y + 4z = 19:        x = ', { box: '1' }, ',  y = ', { box: '2' }, ',  z = ', { box: '3' }], why: 'U: (1, 1, 1 | 6), (0, 1, −1 | −1), (0, 0, 5 | 15). z = 3, y = 2, x = 1. Check: 2 + 6 + 3 = 11, 1 + 6 + 12 = 19.', hint: 'ℓ = 2 and 1 for column 1, then ℓ = 2 for column 2; 5z = 15.' },
+  { parts: ['x + y + 2z = 2,   2x + 3y + 5z = 4,   −x + y + z = −1:        x = ', { box: '1' }, ',  y = ', { box: '-1' }, ',  z = ', { box: '1' }], why: 'U: (0, 1, 1 | 0), (0, 0, 1 | 1) under row 1. z = 1, y = −1, x = 1. Check: 2 − 3 + 5 = 4, −1 − 1 + 1 = −1.', hint: 'ℓ = 2 and −1 for column 1, then ℓ = 2: z = 1.' },
+  { parts: ['2x + y + z = 5,   4x + 3y + 3z = 13,   2x + 3y + 4z = 13:        x = ', { box: '1' }, ',  y = ', { box: '1' }, ',  z = ', { box: '2' }], why: 'U: (0, 1, 1 | 3), (0, 0, 1 | 2). z = 2, y = 1, x = 1. Check: 4 + 3 + 6 = 13, 2 + 3 + 8 = 13.', hint: 'ℓ = 2 and 1, then ℓ = 2: the last row is z = 2.' },
+];
+// Hands-on: the triangle stays, the reader picks c so that the planes meet on the ring.
+const AIMS = [
+  { A: U_.A, b: [0, 0, 0], q: [1, 1, 1], c: [4, 0, 5] },
+  { A: [[2, 1, 1], [0, -1, 1], [0, 0, 5]], b: [0, 0, 0], q: [1, -1, 2], c: [3, 3, 10] },
+  { A: [[1, 1, 2], [0, 2, 4], [0, 0, 4]], b: [0, 0, 0], q: [0, 2, -1], c: [0, 0, -4] },
+];
+const keys3 = ({ A, b }) => Object.fromEntries([...A.flatMap((r, i) => r.map((x, j) => [`a${i}${j}`, x])), ...b.map((x, i) => [`b${i}`, x])]);
+const aimTask = h => (body, api) => {
+  const sys = S.sys;
+  sys.set(keys3(h));
+  S.ring?.set(null);
+  S.ring = ring3(sys.space, h.q, tri(h.q));
+  return lin3Task(sys, (v, s) => at3(s, h.q), `Right sides ${tri(h.c)}: from the bottom, z = ${num(h.q[2])}, then y, then x land on the ring.`,
+    'Work from the bottom row up: put the ring’s z into row 3 to get its right side, then y and z into row 2, then all three into row 1.',
+    () => sys.set({ b0: h.c[0], b1: h.c[1], b2: h.c[2] }), ['b0', 'b1', 'b2'])(body, api);
+};
+
+/* ---------- beats ---------- */
+const BEATS = [
+  ['intro', 'Back substitution', (m, D) => {
+    const g = G(scene, { o: 0, y: 24 });
+    T(g, 'Unit 2, Chapter 19', { x: 800, y: 300, size: 28, fill: COL.dim, anchor: 'middle' });
+    T(g, 'Back Substitution', { x: 800, y: 410, size: 88, weight: 600, anchor: 'middle' });
+    tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+    const r = text(scene, 'the triangle gives the answer, from the bottom row up', 800, 520, m('sub'), { size: 36, fill: COL.dim, anchor: 'middle' });
+    const steps = G(scene, { o: 0 });
+    ['z', 'y', 'x'].forEach((n, i) => {
+      const s = say(steps, [n], 700 + 100 * i, 760 - 70 * i, m('sub') + 2 + 1.4 * i, { size: 56, fill: COL.task, anchor: 'middle' });
+      pulse(s, m('move') + .2 + .7 * i, 1.4);
+      if (i) say(steps, ['↗'], 650 + 100 * i, 800 - 70 * i, m('sub') + 1.8 + 1.4 * i, { size: 40, fill: COL.dim, anchor: 'middle' });
+    });
+    show(steps, m('sub') + 1.5, .3);
+    tw(g, { o: 0, y: -24 }, D - .9, .8); hide(r, D - .9, .8); hide(steps, D - .9, .8);
+  }],
+
+  ['two', 'Two equations again', (m) => {
+    const p = panel(0);
+    text(p, 'Two equations, from the bottom up', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = linsys(p, { A: [[1, 2], [0, -2]], b: [5, -4], eq: [90, 200], mat: null, sol: false, t0: m('eq') - .3 });
+    sys.lines.forEach(({ l }) => put(l, { o: 0 })); put(sys.meetBox, { o: 0 });
+    sys.focus(0, m('eq') + 1.2); sys.focus(1, m('eq') + 4.5);
+    sys.focus(1, m('y'));
+    say(p, ['−2y = −4,   y = 2'], 90, 420, m('y') + 1, { size: 40, fill: COL.task });
+    show(sys.lines[1].l, m('flat'), .8);
+    sys.focus(0, m('up'));
+    say(p, ['x + 2·2 = 5'], 90, 500, m('up') + 2, { size: 40 });
+    say(p, ['x + 4 = 5,   x = 1'], 90, 570, m('x'), { size: 40, fill: COL.task });
+    show(sys.lines[0].l, m('pt') - .5, .8);
+    sys.focus(null, m('pt'));
+    show(sys.meetBox, m('pt') + 1.5, .5); pulse(sys.meet, m('pt') + 1.8);
+    text(p, 'back substitution:', 90, 680, m('name'), { size: 32, fill: COL.chalk, weight: 600 });
+    text(p, 'solve the bottom row, put it in the row above', 90, 730, m('name') + 1, { size: 30, fill: COL.dim, weight: 600 });
+    thick2(sys, 1, m('name') + 3); thick2(sys, 0, m('name') + 5);
+  }],
+
+  ['bottom', 'The bottom row', (m) => {
+    const p = S.p = panel(0);
+    text(p, 'Three equations: start at the bottom', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = three(p, U_, { t0: m('eq') - .3 });
+    const V = sys.space;
+    V.sway(5, 13);
+    sys.focus(2, m('row'));
+    termBox(p, 2, 2, m('row') + .8, m('div') + 3);
+    say(p, ['5z = −10'], 90, 440, m('div'), { size: 40, fill: YELLOW });
+    say(p, ['z = −10 ÷ 5 = −2'], 330, 440, m('div') + 2.6, { size: 40, fill: COL.task });
+    V.turn({ yaw: VIEW.yaw + 15, pitch: 34 }, m('floor'), 2.5);
+    text(p, 'every point on the yellow plane has z = −2', 90, 490, m('floor') + 1, { size: 26, fill: YELLOW, weight: 600 });
+  }],
+
+  ['middle', 'The middle row', (m) => {
+    const sys = S.sys, p = S.p, V = sys.space;
+    V.sway(5, 13);
+    const w = G(p, {});
+    sys.focus([1, 2], m('eq'));
+    termBox(p, 1, 1, m('eq') + .5, m('div') + 3);
+    say(w, ['2y − 2·(−2) = 6'], 90, 560, m('put') + 1.4, { size: 38 });
+    say(w, ['2y + 4 = 6'], 90, 615, m('sign') + 2.4, { size: 38 });
+    say(w, ['2y = 2'], 90, 670, m('sub4'), { size: 38 });
+    say(w, ['y = 1'], 330, 670, m('div') + 1.4, { size: 38, fill: COL.task });
+    lineOf23(sys, m('line') + .4, 2); lineOf23(sys, m('line') + 3, 2);
+    V.turn({ yaw: VIEW.yaw - 10, pitch: 28 }, m('line'), 3);
+    S.w = w;
+  }],
+
+  ['top', 'The top row', (m) => {
+    const sys = S.sys, p = S.p, V = sys.space;
+    V.sway(5, 13);
+    sys.focus(null, m('eq'));
+    termBox(p, 0, 0, m('eq') + .5, m('pt'));
+    say(p, ['x + 2·1 + (−2) = 2'], 90, 750, m('put') + 1.6, { size: 38 });
+    say(p, ['x = 2'], 470, 750, m('x'), { size: 38, fill: COL.task });
+    show(sys.meet.e, m('pt'), .4); pulse(sys.meet.e, m('pt') + .4); pulse(sys.meet.e, m('pt') + 1.6);
+    V.turn({ yaw: VIEW.yaw + 20 }, m('pt'), 4);
+    const a = chip(p, ['(2, 1, −2)'], COL.task, { x: 690, y: 738, size: 34 });
+    put(a, { o: 0, s: .6 }); tw(a, { o: 1, s: 1 }, m('ans'), .5, back);
+  }],
+
+  ['why', 'Why it is easy', (m) => {
+    const p = panel(0);
+    text(p, 'One new unknown in each row', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = three(p, U_, { meet: true });
+    sys.space.sway(5, 13);
+    const sh = path(p, 'M106 140H500V354H374V284H239V214H106Z', { fill: COL.task, 'fill-opacity': .1, stroke: COL.task, 'stroke-width': 2, 'stroke-linejoin': 'round' }, { o: 0 });
+    show(sh, m('look'), .5); hide(sh, m('r3') + .5, .4);
+    termBox(p, 2, 2, m('r3'));
+    termBox(p, 1, 1, m('r2')); termBox(p, 1, 2, m('r2') + 1.2, null, COL.dim);
+    termBox(p, 0, 0, m('r1')); termBox(p, 0, 1, m('r1') + 1.2, null, COL.dim); termBox(p, 0, 2, m('r1') + 1.2, null, COL.dim);
+    text(p, 'amber: the new unknown     grey: already known', 90, 420, m('r1') + 2.2, { size: 26, fill: COL.dim, weight: 600 });
+    say(p, ['new unknown  =  (what is left) ÷ (pivot)'], 90, 490, m('new'), { size: 34, fill: COL.task });
+    say(p, ['pivot 0:   ÷ 0 ✗'], 90, 560, m('zero'), { size: 34, fill: COL.bad });
+    say(p, ['3x + 8y + z = 12'], 90, 660, m('orig'), { size: 40, fill: CORAL });
+    text(p, 'three unknowns at once, none known', 90, 720, m('orig') + 2.5, { size: 28, fill: COL.dim, weight: 600 });
+    const ob = mk('rect', { x: 80, y: 618, width: mathW(['3x + 8y + z'], 40) + 6, height: 58, rx: 10, fill: 'none', stroke: COL.bad, 'stroke-width': 3 }, p);
+    put(ob, { o: 0 }); show(ob, m('orig') + 4, .3); pulse(ob, m('orig') + 5, 1.08);
+  }],
+
+  ['q1', 'Quick check', () => {
+    const p = panel(0);
+    text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
+    S.sys = three(p, { A: [[1, 1, 1], [0, 2, 1], [0, 0, 3]], b: [6, 7, 9] });
+  }, { ask: done => quiz(CARD, [{
+    id: 'c-back', prompt: ['Bottom row first.'],
+    build: blanks([
+      { parts: ['3z = 9:      z = ', { box: '3' }], why: 'z = 9 ÷ 3 = 3.', hint: 'Divide by the pivot, 3.', fx: () => fxp(q => S.sys.planes[2].width(3 + 5 * Math.sin(Math.PI * q)), 0, 1.6, lin) },
+      { parts: ['2y + z = 7:      y = ', { box: '2' }], why: '2y + 3 = 7, 2y = 4, y = 2.', hint: 'Put z = 3 in: 2y + 3 = 7.',
+        fx: () => { fxp(q => S.sys.lines[2].e.setAttribute('stroke-width', 2.5 + 6 * Math.sin(Math.PI * q)), 0, 1.6, lin); } },
+      { parts: ['x + y + z = 6:      x = ', { box: '1' }], why: 'x + 2 + 3 = 6, x = 1. The planes meet at (1, 2, 3).', hint: 'Put y = 2 and z = 3 in: x + 5 = 6.', fx: () => fx(S.sys.meet.e, { o: 1 }, 0, .4) },
+    ]),
+  }], done) }],
+
+  ['check', 'Check the originals', (m) => {
+    const p = panel(0);
+    text(p, 'Check in the original equations', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = three(p, LEC, { meet: true, t0: m('orig') - .3 });
+    sys.space.sway(5, 13);
+    text(p, 'not in the triangle', 90, 420, m('orig') + 2, { size: 30, fill: COL.task, weight: 600 });
+    text(p, 'a slip in elimination gives a wrong triangle', 90, 470, m('why') + 2, { size: 26, fill: COL.dim, weight: 600 });
+    const rows = [['2 + 2 − 2 = 2', 'c1'], ['6 + 8 − 2 = 12', 'c2'], ['4 − 2 = 2', 'c3']];
+    rows.forEach(([s, k], i) => { sys.focus(i, m(k)); say(p, [`row ${i + 1}:   ${s}`], 90, 560 + 64 * i, m(k) + .4, { size: 36, fill: S3_ROW[i] }); okMark(p, 440, 560 + 64 * i, m(k) + 2.4); });
+    sys.focus(null, m('ok'));
+    pulse(sys.meet.e, m('ok') + .3); pulse(sys.meet.e, m('ok') + 1.4);
+    sys.space.turn({ yaw: VIEW.yaw + 25 }, m('c1'), 10);
+  }],
+
+  ['ex2', 'Our own system', (m) => {
+    const p = panel(0);
+    text(p, 'Our own system from chapter 18', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = three(p, { A: [[2, 1, 1], [0, -1, 1], [0, 0, 5]], b: [3, -3, -5] }, { t0: m('eq') - .3, view: { yaw: -15, pitch: 26 } });
+    sys.space.sway(5, 13);
+    sys.focus(0, m('eq') + 1); sys.focus(1, m('eq') + 4); sys.focus(2, m('eq') + 7);
+    sys.focus(2, m('z'));
+    say(p, ['5z = −5,   z = −1'], 90, 430, m('z') + .4, { size: 36, fill: COL.task });
+    sys.focus([1, 2], m('y'));
+    say(p, ['−y − 1 = −3,   −y = −2'], 90, 490, m('y') + .4, { size: 36 });
+    say(p, ['y = 2'], 520, 490, m('y2'), { size: 36, fill: COL.task });
+    lineOf23(sys, m('y2') + .4);
+    sys.focus(null, m('x'));
+    say(p, ['2x + 2 − 1 = 3,   2x = 2'], 90, 550, m('x') + .4, { size: 36 });
+    say(p, ['x = 1'], 520, 550, m('x2'), { size: 36, fill: COL.task });
+    show(sys.meet.e, m('x2') + .4, .4);
+    text(p, 'check in the original equations:', 90, 620, m('chk'), { size: 26, fill: COL.dim, weight: 600 });
+    [['2x + y + z = 3:       2 + 2 − 1 = 3', 'c1'], ['4x + y + 3z = 3:      4 + 2 − 3 = 3', 'c2'], ['−2x + 2y + z = 1:    −2 + 4 − 1 = 1', 'c3']].forEach(([s, k], i) => {
+      say(p, [s], 90, 670 + 50 * i, m(k), { size: 30, fill: S3_ROW[i] }); okMark(p, 620, 670 + 50 * i, m(k) + 2, 28);
+    });
+    pulse(sys.meet.e, m('ok') + .3);
+    sys.space.turn({ yaw: 25 }, m('y'), 12);
+  }],
+
+  ['frac', 'A fraction', (m) => {
+    const p = panel(0);
+    text(p, 'Fractions change nothing', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = three(p, { A: [[1, 1, 2], [0, 2, 4], [0, 0, 4]], b: [4, 4, 2] }, { t0: m('eq') - .3, view: { yaw: -40, pitch: 46 } });
+    sys.meet.label('(2, 1, ½)');
+    sys.space.sway(5, 13);
+    sys.focus(0, m('eq') + .8); sys.focus(1, m('eq') + 3); sys.focus(2, m('eq') + 5.4);
+    sys.focus(2, m('z'));
+    say(p, ['4z = 2,   z = ', F(1, 2)], 90, 440, m('z') + .4, { size: 38, fill: COL.task });
+    sys.focus([1, 2], m('y'));
+    say(p, ['2y + 4·', F(1, 2), ' = 4,   2y + 2 = 4'], 90, 520, m('y') + .6, { size: 38 });
+    say(p, ['2y = 2,   y = 1'], 90, 600, m('y2'), { size: 38, fill: COL.task });
+    sys.focus(null, m('x'));
+    say(p, ['x + 1 + 2·', F(1, 2), ' = 4,   x + 2 = 4'], 90, 680, m('x') + .6, { size: 38 });
+    say(p, ['x = 2'], 90, 760, m('x2'), { size: 38, fill: COL.task });
+    show(sys.meet.e, m('pt'), .4); pulse(sys.meet.e, m('pt') + .4);
+    sys.space.turn({ yaw: -10, pitch: 40 }, m('z'), 14);
+  }],
+
+  ['q2', 'Your turn', () => {
+    const p = panel(0);
+    text(p, 'Your turn', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = three(p, U_, { meet: true });
+    S.ring = ring3(sys.space, [0, 2, 1], '(0, 2, 1)');
+  }, { ask: done => quiz(CARD, [{
+    id: 'c-aim', prompt: ['Change only the right sides so the planes meet on the ring ', $m('(0, 2, 1)'), '.'],
+    build: lin3Task(S.sys, (v, s) => at3(s, [0, 2, 1]), 'Right sides 5, 2, 5: z = 1 gives 5z = 5; y = 2, z = 1 give 2·2 − 2·1 = 2; then 0 + 4 + 1 = 5.',
+      'Bottom row first: with z = 1, 5z is 5. Then 2y − 2z with y = 2, z = 1. Then x + 2y + z with all three.',
+      () => S.sys.set({ b0: 5, b1: 2, b2: 5 }), ['b0', 'b1', 'b2']),
+  }], done) }],
+
+  ['slip', 'A slip, caught', (m) => {
+    const p = panel(0);
+    text(p, 'A slip, caught by the check', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = three(p, { A: U_.A, b: [2, 6, -5] }, { t0: .2, view: { yaw: -35, pitch: 26 } });
+    sys.space.sway(5, 13);
+    termBox(p, 2, 3, m('eq') + .3, m('z') - .2, COL.bad).setAttribute('x', 562);   // the right side of row 3
+    say(p, ['2 − 12 = −5 ✗     (it is −10)'], 90, 430, m('eq') + 1.2, { size: 32, fill: COL.bad });
+    sys.focus(2, m('z'));
+    say(p, ['5z = −5,   z = −1'], 90, 490, m('z') + .4, { size: 34 });
+    sys.focus([1, 2], m('y'));
+    say(p, ['2y + 2 = 6,   y = 2'], 90, 545, m('y') + .4, { size: 34 });
+    sys.focus(null, m('x'));
+    say(p, ['x + 4 − 1 = 2,   x = −1'], 90, 600, m('x') + .4, { size: 34 });
+    // the slipped answer, ringed; then the original system: its planes meet somewhere else
+    const r = ring3(sys.space, [-1, 2, -1], '(−1, 2, −1)?');
+    put(r.e, { o: 0 }); show(r.e, m('x') + 2, .4);
+    sys.to(keys3(LEC), m('orig') + .4, 1.2);
+    show(sys.meet.e, m('orig') + 1.6, .4);
+    [['row 1:   −1 + 4 − 1 = 2', 'c1', true], ['row 2:   −3 + 16 − 1 = 12', 'c2', true], ['row 3:   8 − 1 = 7, not 2', 'c3', false]].forEach(([str, k, ok], i) => {
+      sys.focus(i, m(k));
+      say(p, [str], 90, 670 + 50 * i, m(k) + .3, { size: 30, fill: S3_ROW[i] });
+      text(p, ok ? '✓' : '✗', 470, 670 + 50 * i, m(k) + 2, { size: 30, fill: ok ? COL.good : COL.bad, weight: 700 });
+    });
+    sys.focus(null, m('bad'));
+    pulse(r.e, m('bad') + .5, 1.5); pulse(sys.meet.e, m('bad') + 2, 1.4);
+    sys.space.turn({ yaw: -5, pitch: 26 }, m('orig'), 12);
+  }],
+
+  ['q3', 'Quick check', () => {
+    const p = panel(0);
+    text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
+    S.sys = three(p, { A: [[1, -1, 1], [0, 3, 2], [0, 0, 1]], b: [1, 1, 2] });
+  }, { ask: done => quiz(CARD, [{
+    id: 'c-sign', prompt: ['z = 2. Then row 2, ', $m('3y + 2z = 1'), ', gives:'],
+    build: choice([[$m('y = −1')], [$m('y = 5/3')], [$m('y = −3')], [$m('y = 1')]], 0, '3y + 4 = 1, so 3y = −3 and y = −1.',
+      [null, 'That adds 4 to the right side. Take it away: 3y = 1 − 4.', '3y = −3: now divide by the pivot, 3.', 'Check the sign: 1 − 4 is −3, not 3.'],
+      () => fx(S.sys.meet.e, { o: 1 }, 0, .4)),
+  }], done) }],
+
+  ['wrap', 'Summary', (m) => {
+    const p = panel(0);
+    [['Back substitution: solve the bottom row first, then go up.', 'w1'], ['Each row has one new unknown: put in what you know, divide by the pivot.', 'w2'],
+     ['Picture: the bottom row is a flat plane, the next cuts it in a line, the top picks the point.', 'w3'], ['Check the answer in the original equations.', 'w4']].forEach(([str, mark], i) => {
+      const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
+      mk('circle', { cx: 120, cy: -12, r: 26, fill: COL.task }, g);
+      T(g, String(i + 1), { x: 120, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+      T(g, str, { x: 170, size: 33, weight: 600 });
+      tw(g, { o: 1, x: 0 }, m(mark), .6);
+    });
+  }],
+  ['final1', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-two', prompt: ['Bottom row first: y, then x.'],
+    build: blanks(TWOQ),
+  }], done, 'Chapter practice · set 1 of 4') }],
+  ['final2', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
+    id: 'p-tri', prompt: ['Solve each triangle from the bottom up: z, then y, then x.'],
+    build: blanks(TRIQ),
+  }], done, 'Chapter practice · set 2 of 4') }],
+  ['final3', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
+    id: 'p-full', prompt: ['Eliminate to a triangle, substitute back, and check in the original equations.'],
+    build: blanks(FULLQ),
+  }], done, 'Chapter practice · set 3 of 4') }],
+  ['final4', 'Chapter practice', () => {
+    const p = panel(0);
+    text(p, 'Aim the planes', 60, 110, .2, { size: 40, weight: 600 });
+    S.sys = three(p, AIMS[0], { meet: true });
+  }, { ask: done => quiz(CARD, AIMS.map((h, k) => ({
+    id: `p-aim${k + 1}`, prompt: ['Change only the right sides so the planes meet on the ring ', $m(tri(h.q)), '.'],
+    build: aimTask(h),
+  })), done, 'Chapter practice · set 4 of 4') }],
+  ['play', 'Playground', (m) => {
+    const p = panel(0);
+    text(p, 'Playground', 60, 110, .2, { size: 40, weight: 600 });
+    S.sys = three(p, U_, { meet: true });
+    const hint = text(p, 'try: move the bottom right side and watch the floor; then row 2', 90, 400, m('go'), { size: 24, fill: COL.dim });
+    hide(hint, m('go') + 8, .6);
+  }, { ask: playAsk(() => S.sys, { pos: { x: 40, y: 440, w: 720, cls: 'side' }, tip: 'Your triangle. Change any number, drag a plane by its edge, turn the space, or draw on the board. Nothing is marked.' }) }],
+  ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+boot();
+</script>
+</body>
+</html>

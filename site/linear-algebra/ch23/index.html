@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Matrix Times Matrix</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render"><!-- hold the first frame until the player exists, so the page transition can run -->
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/math.js"></script>
+<script src="../lib/grid2.js"></script>
+<script src="../lib/mm.js"></script>
+<script src="../lib/play.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 23, title: 'Matrix Times Matrix', minutes: 10, language: 'en', next: '../ch24/' };
+
+/* ---------- chapter drawing helpers ---------- */
+const GREEN = MM_COL[0], VIOLET = MM_COL[1];
+const A1 = [[2, 1], [1, 3]], B1 = [[1, 2], [1, -1]];               // the first pair: AB = [[3, 3], [4, −1]]
+const A2 = [[1, -1], [2, 1]], B2 = [[1, 2, 0], [1, 1, 2]];         // three columns: AB = [[0, 1, −2], [3, 5, 2]]
+const AT = [70, 260];                                              // where A B = AB starts beside the plane
+const PLANE = { cx: 1190, cy: 450, u: 50 };
+const CARD = { x: 40, y: 610, w: 780, cls: 'side' };
+const say = (p, parts, x, y, t0, { size = 40, fill = COL.chalk, anchor = 'start' } = {}) => { const e = M(p, [].concat(parts), { x, y, size, fill, anchor, o: 0 }); show(e, t0); return e; };
+const text = (p, str, x, y, t0, { size = 30, fill = COL.chalk, anchor = 'start', weight = 500 } = {}) => { const e = T(p, str, { x, y, size, fill, anchor, weight, o: 0 }); show(e, t0); return e; };
+const title = (p, str) => text(p, str, 60, 110, .2, { size: 40, weight: 600 });
+// The plane of chapter 9: A's columns as green and violet arrows, x as a ring, Ax as the amber arrow (no grid).
+const plane2 = (p, A, x, o = {}) => {
+  const g = grid2(p, { A, x, mat: null, grid: false, square: false, units: false, brackets: true, plane: PLANE, ...o });
+  g.labels(['col 1', 'col 2']);
+  return g;
+};
+// A B = AB beside the plane, linked: the plane's x is a column of B, its Ax that column of AB.
+const pair = (p, A, B, { col = 0, dots = true, hideC = false, t0 = .1, at = AT, x = null } = {}) => {
+  const g = plane2(p, A, x || B.map(r => r[col]), { t0 });
+  const P_ = mm(p, { A, B, at, tintA: 'cols', hideC, t0 });
+  P_.link(g, { col, dots });
+  return { g, P: P_ };
+};
+// A line of vectors and words, each piece arriving on its own time: items are [t, parts] or [t, { v: [..], fill }].
+const vline = (p, x, y, items, { size = 38 } = {}) => {
+  items.forEach(([t, it]) => {
+    const e = G(p, { o: 0 });
+    if (it.v) x += mmSmall(e, it.v.map(q => [q]), x, y, { size, fill: () => it.fill || COL.chalk }) + 10;
+    else { const w = M(e, [].concat(it), { x, y: y + size * .36, size, fill: COL.chalk, anchor: 'start' }); x += (w._w || 20) + 10; }
+    show(e, t, .35);
+  });
+};
+const target = (P2, [x, y], into, t0 = .3) => {
+  const g = G(into, { x: P2.PX(x), y: P2.PY(y), o: 0 });
+  mk('circle', { r: 17, fill: 'none', stroke: COL.task, 'stroke-width': 3, 'stroke-dasharray': '5 5' }, g);
+  const left = P2.PX(x) > 1380;   // near the right edge the label goes on the left
+  T(g, `target (${num(x)}, ${num(y)})`, { x: left ? -22 : 22, y: 40, size: 22, fill: COL.task, font: MATH, anchor: left ? 'end' : 'start' });
+  show(g, t0, .4);
+  return g;
+};
+// A stroke that swells for a moment: the arrow the voice names.
+const thick = (e, t0, w = 5) => { tw(e, { 'a_stroke-width': w + 5 }, t0, .3); tw(e, { 'a_stroke-width': w }, t0 + 1.2, .6); };
+const flashEl = (e, t0, col = COL.task) => { const c0 = e.getAttribute('fill'); tw(e, { c_fill: col }, t0, .25); tw(e, { c_fill: c0 }, t0 + 1.2, .6); };
+const ruleCard = (p, x, y, t0, size = 40) => {
+  const g = G(p, { o: 0 });
+  M(g, ['(m × n)(n × p) = m × p'], { x, y, size, fill: COL.chalk, anchor: 'start' });
+  show(g, t0, .5);
+  return g;
+};
+const pairEl = (A, B) => ['A = ', mmEl(A, { fill: (i, j) => MM_COL[j] }), '      B = ', mmEl(B)];
+const sizeEq = (a, b) => `${a[0]} × ${a[1]}  times  ${b[0]} × ${b[1]}`;
+
+/* ---------- practice data (every answer worked twice: by columns and by entries) ---------- */
+const COLQ = [
+  { A: [[1, 1], [0, 2]], B: [[2, 1], [3, -1]], C: [[5, 0], [6, -2]] },
+  { A: [[3, 0], [1, 1]], B: [[1, 2], [2, 0]], C: [[3, 6], [3, 2]] },
+  { A: [[2, -1], [1, 0]], B: [[1, 0, 2], [1, 1, 1]], C: [[1, -1, 3], [1, 0, 2]] },
+  { A: [[1, 2], [-1, 1]], B: [[0, 1], [1, 1]], C: [[2, 3], [1, 0]] },
+];
+const colRows = ({ A, B, C }) => C[0].map((_, j) => ({
+  parts: [`column ${j + 1} of AB  =  (`, { box: String(C[0][j]) }, ', ', { box: String(C[1][j]) }, ')'],
+  why: `${B[0][j] < 0 ? '(' + num(B[0][j]) + ')' : num(B[0][j])}·(${num(A[0][0])}, ${num(A[1][0])}) + ${B[1][j] < 0 ? '(' + num(B[1][j]) + ')' : num(B[1][j])}·(${num(A[0][1])}, ${num(A[1][1])}) = (${num(C[0][j])}, ${num(C[1][j])}).`,
+  hint: `Column ${j + 1} of B is (${num(B[0][j])}, ${num(B[1][j])}): that much of column 1 of A, plus that much of column 2.`,
+}));
+const ENTQ = [
+  { A: [[1, 2], [3, 4]], B: [[2, 0], [1, 3]], C: [[4, 6], [10, 12]] },
+  { A: [[2, -1], [0, 3]], B: [[1, 4], [2, -2]], C: [[0, 10], [6, -6]] },
+  { A: [[1, 0, 2], [3, 1, -1]], B: [[2, 1], [0, 4], [1, -2]], C: [[4, -3], [5, 9]] },
+];
+const dotStr = (r, c) => r.map((v, k) => `${v < 0 ? '(' + num(v) + ')' : num(v)}·${c[k] < 0 ? '(' + num(c[k]) + ')' : num(c[k])}`).join(' + ');
+const entRows = ({ A, B, C }) => C.map((r, i) => ({
+  parts: [`row ${i + 1} of AB  =  (`, ...r.flatMap((v, j) => [...(j ? [', '] : []), { box: String(v) }]), ')'],
+  why: r.map((v, j) => `entry (${i + 1}, ${j + 1}): ${dotStr(A[i], B.map(q => q[j]))} = ${num(v)}`).join(';   ') + '.',
+  hint: `Row ${i + 1} of A times each column of B: multiply number by number, then add.`,
+}));
+const FITQ = [
+  { s: [[2, 3], [3, 5]], ok: true }, { s: [[3, 2], [3, 2]], ok: false }, { s: [[1, 4], [4, 1]], ok: true },
+  { s: [[4, 1], [1, 4]], ok: true }, { s: [[2, 2], [3, 3]], ok: false }, { s: [[3, 3], [3, 1]], ok: true },
+].map(({ s, ok }) => ({ parts: [sizeEq(...s)], ans: [ok ? 'y' : 'n'],
+  why: ok ? `Inside numbers ${s[0][1]} and ${s[1][0]} match: the answer is ${s[0][0]} × ${s[1][1]}.` : `Inside numbers ${s[0][1]} and ${s[1][0]} differ: a row of the first has ${s[0][1]} numbers, a column of the second ${s[1][0]}.` }));
+const SIZEQ = [
+  { s: [[2, 3], [3, 5]], r: [2, 5] }, { s: [[1, 4], [4, 1]], r: [1, 1] }, { s: [[4, 1], [1, 4]], r: [4, 4] }, { s: [[3, 3], [3, 1]], r: [3, 1] },
+].map(({ s, r }) => ({ parts: [sizeEq(...s) + '   gives   ', { box: String(r[0]) }, ' × ', { box: String(r[1]) }],
+  why: `The outside numbers: ${r[0]} rows (from the first), ${r[1]} columns (from the second).`, hint: 'Rows from the first matrix, columns from the second.' }));
+const HANDS = [
+  { A: [[1, 1], [0, 1]], B: [[0, 0], [-1, 0]], col: 0, tgt: [3, 1], ans: { b00: 2, b10: 1 }, prompt: 'Move column 1 of B (the ring x) until column 1 of AB lands on the target.',
+    why: 'Column 1 of B = (2, 1): 2·(1, 0) + 1·(1, 1) = (3, 1).' },
+  { A: [[2, 0], [0, 1]], B: [[1, 1], [1, -1]], col: 1, tgt: [-2, 3], ans: { b01: -1, b11: 3 }, prompt: 'Now column 2: make column 2 of AB land on the target.',
+    why: 'Column 2 of B = (−1, 3): −1·(2, 0) + 3·(0, 1) = (−2, 3).' },
+  { A: [[1, 0], [0, 1]], B: [[1, 0], [0, 1]], col: 0, tgt: null, ans: { a00: 2, a01: 1, a10: 1, a11: 2 }, prompt: 'B is the identity. Change A (its numbers or its arrows) until AB = [2 1; 1 2].',
+    why: 'B = I, so AB = A: A must be [2 1; 1 2] itself. Each column of I picks one column of A.' },
+];
+
+/* ---------- beats ---------- */
+const BEATS = [
+  ['intro', 'Matrix times matrix', (m, D) => {
+    const g = G(scene, { o: 0, y: 24 });
+    T(g, 'Unit 3, Chapter 23', { x: 800, y: 250, size: 28, fill: COL.dim, anchor: 'middle' });
+    T(g, 'Unit 3 · Multiplication and inverse matrices', { x: 800, y: 205, size: 24, fill: COL.faint, anchor: 'middle' });
+    T(g, 'Matrix Times Matrix', { x: 800, y: 360, size: 88, weight: 600, anchor: 'middle' });
+    tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+    const r = text(scene, 'A multiplies each column of B, one after another', 800, 460, m('sub'), { size: 34, fill: COL.dim, anchor: 'middle' });
+    const lg = G(scene, { o: 0 });
+    const P_ = mm(lg, { A: A1, B: B1, at: [530, 600], size: 36, cw: 56, tintA: 'cols', hideC: true, sizes: false, t0: 0 });
+    show(lg, m('sub') + 1, .5);
+    put(P_.W, { o: 0 });
+    P_.show('cols', 0, m('move') + .3); P_.reveal({ col: 0 }, m('move') + 1.3);
+    P_.show('cols', 1, m('move') + 2.6); P_.reveal({ col: 1 }, m('move') + 3.6);
+    P_.show(null, null, m('move') + 5);
+    tw(g, { o: 0, y: -24 }, D - .9, .8); hide(r, D - .9, .8); hide(lg, D - .9, .8);
+  }],
+
+  ['recall', 'A times x', (m) => {
+    const p = panel(0);
+    title(p, 'Chapter 9 again: A times x');
+    const g = grid2(p, { A: A1, x: [1, 1], mat: [90, 250], grid: false, square: false, units: false, brackets: true, plane: PLANE, t0: m('A') - .4 });
+    g.labels(['col 1', 'col 2']);
+    const res = [0, 1].map(i => g.res(i));
+    res.forEach(e => { put(e, { o: 0 }); show(e, m('land'), .4); });
+    put(g.parts.x, { o: 0 }); show(g.parts.x, m('x'), .4);
+    ['x0', 'x1'].forEach(k => g.num(k).forEach(e => { put(e, { o: 0 }); show(e, m('x'), .4); }));
+    [0, 1].forEach(j => { put(g.cols[j], { o: 0 }); show(g.cols[j], m('A') + 2.2 + j * 2, .5); put(g.tipLabels[j], { o: 0 }); show(g.tipLabels[j], m('A') + 2.2 + j * 2, .5); });
+    vline(p, 90, 520, [[m('o1'), ['1·']], [m('o1'), { v: [2, 1], fill: GREEN }], [m('o2'), ['+ 1·']], [m('o2'), { v: [1, 3], fill: VIOLET }], [m('land'), ['=']], [m('land'), { v: [3, 4], fill: COL.task }]]);
+    g.to({ x0: 2, x1: -1 }, m('x2'), 1.6);
+    vline(p, 90, 660, [[m('mix2'), ['2·']], [m('mix2'), { v: [2, 1], fill: GREEN }], [m('mn'), ['+ (−1)·']], [m('mn'), { v: [1, 3], fill: VIOLET }], [m('land2'), ['=']], [m('land2'), { v: [3, -1], fill: COL.task }]]);
+    pulse(g.axDot, m('land') + .4); pulse(g.axDot, m('land2') + .4);
+    thick(g.cols[0], m('g1')); thick(g.cols[1], m('v1'));
+    thick(g.cols[0], m('mix') + 2.2); thick(g.cols[1], m('mix') + 2.2);
+    ['x0', 'x1'].forEach((k, i) => g.num(k).forEach(e => flashEl(e, m(i ? 'o2' : 'o1'))));
+    thick(g.combo[0], m('st1'), 4); thick(g.combo[1], m('st2'), 4); thick(g.combo[0], m('st3'), 4); thick(g.combo[1], m('st4'), 4);
+    // the picture gives each answer when the voice does: the steps on "one of column one", the landing on "three, four";
+    // the second x hides them again while it moves, and its own steps come on "two of column one" and "minus one"
+    const ax = [g.axArrow, g.axDot, g.axLab];
+    [...ax, ...g.combo].forEach(e => { put(e, { o: 0 }); hide(e, m('x2') - .2, .3); });
+    ax.forEach(e => { show(e, m('land'), .4); show(e, m('land2'), .4); });
+    show(g.combo[0], m('o1'), .4); show(g.combo[1], m('o2'), .4); show(g.combo[0], m('mix2'), .4); show(g.combo[1], m('mn'), .4);
+    res.forEach(e => { hide(e, m('x2') - .2, .3); show(e, m('land2'), .4); });
+    ['x0', 'x1'].forEach((k, i) => g.num(k).forEach(e => flashEl(e, m(i ? 'mn' : 'mix2'))));
+  }],
+
+  ['side', 'Side by side', (m) => {
+    const p = panel(0);
+    title(p, 'Two columns side by side: a matrix B');
+    const { g, P: P_ } = pair(p, A1, B1, { hideC: true, t0: m('side') - .3 });
+    put(P_.g, { o: 0 }); show(P_.g, m('side'), .5);
+    put(g.parts.cols, { o: 1 });
+    P_.flash('b', { col: 0 }, m('side') + .6); P_.flash('b', { col: 1 }, m('side') + 3);
+    P_.flash('b', 'all', m('B') + .3);
+    put(P_.L.c.g, { o: 0 }); show(P_.L.c.g, m('ask'), .4);
+    const rl = text(p, 'A B  =  A times each column of B', 70, 720, m('rule'), { size: 32, weight: 600 });
+    P_.linkCol(0, m('c1')); P_.show('cols', 0, m('c1'), { times: [m('c1'), m('c1') + 1.4, m('c1') + 2.4] });
+    P_.reveal({ col: 0 }, m('put1'));
+    P_.linkCol(1, m('c2')); P_.show('cols', 1, m('c2'), { times: [m('c2'), m('c2') + 1.4, m('c2') + 2.6] });
+    P_.reveal({ col: 1 }, m('put2'));
+    P_.show(null, null, m('ab')); P_.flash('c', { row: 0 }, m('r1')); P_.flash('c', { row: 1 }, m('r2'));
+    hide(rl, m('ab'), .3);
+    text(p, 'each column of B is a point;  A carries it to the same column of AB', 70, 720, m('pic') + .3, { size: 26, fill: COL.dim, weight: 600 });
+    pulse(g.axDot, m('pic') + 1.5);
+    P_.linkCol(0, m('pic') + 3); P_.linkCol(1, m('pic') + 5.5);
+  }],
+
+  ['cols2', 'Three columns', (m) => {
+    const p = panel(0);
+    title(p, 'B with three columns');
+    const { g, P: P_ } = pair(p, A2, B2, { hideC: true, t0: m('A') - .3 });
+    put(P_.L.b.g, { o: 0 }); show(P_.L.b.g, m('B'), .5);
+    put(P_.L.c.g, { o: 0 }); show(P_.L.c.g, m('n'), .5);
+    put(g.parts.x, { o: 0 }); show(g.parts.x, m('c1'), .4);
+    P_.flash('a', { row: 0 }, m('a1')); P_.flash('a', { row: 1 }, m('a2'));
+    [0, 1, 2].forEach(j => P_.flash('b', { col: j }, m('B') + .8 + j * 1.1));
+    P_.flash('c', 'all', m('n') + .5);
+    // the scaled columns come as the voice adds them, the column of AB as it says the answer
+    [['c1', 0, 4, 6], ['c2', 1, 4.6, 6.6], ['c3', 2, 3.4, 5]].forEach(([k, j, t2, t3]) => {
+      P_.linkCol(j, m(k)); P_.show('cols', j, m(k), { times: [m(k) + .5, m(k) + t2, m(k) + t3] });
+      P_.reveal({ col: j }, m(k) + t3);
+    });
+    P_.show(null, null, m('ab')); P_.flash('c', { row: 0 }, m('r1')); P_.flash('c', { row: 1 }, m('r2'));
+    P_.show('cols', 2, m('change'));
+    P_.to({ b12: 4 }, m('change') + 2.6, 1.8);
+    P_.flash('c', { col: 2 }, m('only') + .2);
+    P_.flash('c', { col: 0 }, m('only') + 2.6); P_.flash('c', { col: 1 }, m('only') + 2.9);
+    text(p, 'column j of AB uses only column j of B', 70, 740, m('why'), { size: 30, weight: 600 });
+    P_.flash('b', { col: 2 }, m('why') + .3); P_.flash('c', { col: 2 }, m('why') + 1.6);
+  }],
+
+  ['q1', 'Quick check', () => {
+    const p = panel(0);
+    title(p, 'Quick check');
+    const t = pair(p, [[1, 2], [0, 1]], [[3, 1], [1, 2]], { hideC: true });
+    S.P = t.P;
+  }, { ask: done => quiz({ ...CARD, y: 470 }, [{
+    id: 'c-cols', prompt: ['Work out AB one column at a time: A times each column of B.'],
+    build: blanks([
+      { parts: ['column 1 of AB  =  (', { box: '5' }, ', ', { box: '1' }, ')'], why: '3·(1, 0) + 1·(2, 1) = (5, 1).', hint: 'Column 1 of B is (3, 1): 3 of column 1 of A, plus 1 of column 2.',
+        fx: () => fxp(q => { if (q > 0) S.P.uncover({ col: 0 }); }, 0, .1) },
+      { parts: ['column 2 of AB  =  (', { box: '5' }, ', ', { box: '2' }, ')'], why: '1·(1, 0) + 2·(2, 1) = (5, 2).', hint: 'Column 2 of B is (1, 2): 1 of column 1 of A, plus 2 of column 2.',
+        fx: () => fxp(q => { if (q > 0) S.P.uncover({ col: 1 }); }, 0, .1) },
+    ]),
+  }], done) }],
+
+  ['entry', 'One entry at a time', (m) => {
+    const p = panel(0);
+    title(p, 'One number at a time: row times column');
+    const { P: P_ } = pair(p, A1, B1);
+    P_.flash('c', 'all', .6); P_.flash('c', { cell: [0, 0] }, m('top') + .2); P_.flash('c', { cell: [0, 0] }, m('top') + 2.4);
+    P_.flash('a', { row: 0 }, m('rx')); P_.flash('b', { col: 0 }, m('rx') + 1.2); P_.flash('a', { row: 1 }, m('mx')); P_.flash('b', { col: 0 }, m('mx') + 1);
+    P_.flash('a', { row: 0 }, m('ra')); P_.flash('b', { col: 0 }, m('cb'));
+    text(p, 'chapter 9:  each number of Ax = a row of A times x', 70, 720, m('ch9'), { size: 26, fill: COL.dim, weight: 600 });
+    P_.show('entry', [0, 0], m('e11'), { times: [m('m11'), m('s11'), m('s11') + 1.2] });
+    P_.show('entry', [1, 0], m('e21'), { times: [m('e21') + 1.2, m('e21') + 3.4, m('e21') + 4.4] });
+    P_.linkCol(1, m('e12'));
+    P_.show('entry', [0, 1], m('e12'), { times: [m('e12') + 1.2, m('e12') + 4, m('e12') + 4.9] });
+    P_.show('entry', [1, 1], m('e22'), { times: [m('e22') + 1.2, m('e22') + 4.2, m('e22') + 5.1] });
+    P_.show(null, null, m('rule'));
+    const rg = G(p, { o: 0 });
+    M(rg, ['entry (i, j) of AB  =  row i of A  ·  column j of B'], { x: 70, y: 790, size: 32, fill: COL.chalk, anchor: 'start' });
+    show(rg, m('rule') + .3, .5);
+    P_.flash('a', { row: 1 }, m('ri')); P_.flash('b', { col: 0 }, m('cj'));
+    P_.show('entry', [1, 0], m('name') + .2);
+  }],
+
+  ['entry2', 'Bigger numbers', (m) => {
+    const p = panel(0);
+    title(p, 'The rule on bigger numbers');
+    const P_ = mm(p, { A: [[1, 2], [3, 4]], B: [[5, 6], [7, 8]], at: [380, 270], size: 46, cw: 70, cwC: 92, rh: 68, hideC: true, t0: .6, wsize: 44 });
+    put(P_.L.c.g, { o: 0 }); show(P_.L.c.g, m('B') + .8, .5);
+    put(P_.L.b.g, { o: 0 }); show(P_.L.b.g, m('B'), .5);
+    P_.flash('a', 'all', m('A') + .3); P_.flash('b', 'all', m('B') + .3);
+    [['e11', [0, 0]], ['e12', [0, 1]], ['e21', [1, 0]], ['e22', [1, 1]]].forEach(([k, c]) => {
+      P_.show('entry', c, m(k), { times: [m(k) + 1.5, m(k) + 4.6, m(k) + 5.3] });
+      P_.reveal({ cell: c }, m(k) + 5.3);
+    });
+    P_.show(null, null, m('ab')); P_.flash('c', 'all', m('ab') + .3);
+    text(p, 'four entries, each one a row times a column', 380, 720, m('four'), { size: 30, weight: 600 });
+  }],
+
+  ['q2', 'Your turn', () => {
+    const p = panel(0);
+    title(p, 'Your turn');
+    const t = pair(p, A2, [[1, 1], [1, 0]], { col: 1 });
+    S.P = t.P; S.g = t.g;
+    target(t.g.P, [1, 5], p, .3);
+    t.P.show('cols', 1, .4);
+  }, { ask: done => quiz(CARD, [{
+    id: 'c-land', prompt: ['Change column 2 of B (drag the ring x, or its numbers) until column 2 of AB lands on the target.'],
+    build: mmTask(S.P, (v, C) => C[0][1] === 1 && C[1][1] === 5, 'Column 2 of B = (2, 1): 2·(1, 2) + 1·(−1, 1) = (1, 5).',
+      (v, C) => `Column 2 of AB is (${num(Math.round(C[0][1] * 10) / 10)}, ${num(Math.round(C[1][1] * 10) / 10)}). It is ${num(Math.round(v.b01))} of column 1 of A plus ${num(Math.round(v.b11))} of column 2.`,
+      () => S.P.set({ b01: 2, b11: 1 }), { only: ['b01', 'b11'] }),
+  }], done) }],
+
+  ['sizes', 'Sizes', (m) => {
+    const p = panel(0);
+    title(p, 'Sizes: two by three times three by two');
+    const P_ = S.P = mm(p, { A: [[1, 2, 0], [0, 1, 1]], B: [[1, 1], [2, 0], [0, 3]], at: [300, 260], hideC: true, t0: m('A') - .3 });
+    put(P_.L.b.g, { o: 0 }); show(P_.L.b.g, m('B'), .5);
+    put(P_.L.sa.g, { o: 0 }); show(P_.L.sa.g, m('A') + 1.5, .5);
+    put(P_.L.c.g, { o: 0 }); show(P_.L.c.g, m('inner'), .5);
+    P_.flash('a', { row: 0 }, m('A') + 1.5); P_.flash('a', { col: 2 }, m('A') + 3);
+    P_.inner(m('inner'));
+    P_.show('entry', [0, 0], m('inner') + .3);
+    P_.flash('a', { row: 0 }, m('inner') + 1); P_.flash('b', { col: 0 }, m('inner') + 3); P_.flash('a', { row: 0 }, m('pair')); P_.flash('b', { col: 0 }, m('pair'));
+    [['e11', [0, 0]], ['e12', [0, 1]], ['e21', [1, 0]], ['e22', [1, 1]]].forEach(([k, c], i) => {
+      const long = i === 0;
+      P_.show('entry', c, m(k), { times: [m(k) + (long ? 1 : 1.1), m(k) + (long ? 5.6 : 4), m(k) + (long ? 7 : 4.6)] });
+      P_.reveal({ cell: c }, m(k) + (long ? 7 : 4.6));
+    });
+    P_.show(null, null, m('outer'));
+    P_.outer(m('outer'));
+    ruleCard(p, 300, 720, m('rule'), 44);
+    P_.inner(m('in2') - .2, false); P_.inner(m('in2') + .4); P_.outer(m('out2') - .2, false); P_.outer(m('out2') + .4);
+    text(p, 'inside numbers must match;  outside numbers give the size of the answer', 300, 790, m('rule') + 5, { size: 26, fill: COL.dim, weight: 600 });
+  }],
+
+  ['nomatch', 'No product', (m, D) => {
+    const p = panel(0);
+    title(p, 'When the inside numbers differ');
+    const top = G(p, {});
+    const P_ = mm(top, { A: [[1, 2, 0], [0, 1, 1]], B: [[1, 1], [2, 0], [0, 3]], at: [300, 260], t0: 0 });
+    P_.inner(0);
+    P_.flash('b', { row: 2 }, m('drop'), { color: COL.bad });
+    P_.to({ nB: 2 }, m('drop') + 1.3, .1);
+    P_.flash('a', { row: 0 }, m('row') + .2); P_.flash('b', { col: 0 }, m('cb'));
+    P_.flash('a', { cell: [0, 2] }, m('no'), { color: COL.bad }); P_.flash('a', { cell: [1, 2] }, m('no') + 1, { color: COL.bad });
+    P_.flash('b', 'all', m('nd'), { color: COL.bad });
+    hide(top, m('flip'), .5);
+    const bot = G(p, { o: 0 }); show(bot, m('flip') + .6, .5);
+    const Q = mm(bot, { A: [[1, 1], [2, 0], [0, 3]], B: [[1, 2, 0], [0, 1, 1]], names: ['B', 'A', 'BA'], at: [240, 260], hideC: true, t0: 0 });
+    Q.inner(m('sz'));
+    Q.flash('a', 'all', m('flip') + 1.5); Q.flash('b', 'all', m('flip') + 3);
+    Q.outer(m('big')); Q.reveal('all', m('big') + .3);
+    Q.flash('c', 'all', m('mat'));
+    text(p, 'AB was 2 × 2,   BA is 3 × 3:  the order matters (chapter 25)', 240, 780, m('order'), { size: 28, weight: 600 });
+  }],
+
+  ['q3', 'Quick check', () => {
+    const p = panel(0);
+    title(p, 'Quick check');
+    ruleCard(p, 70, 220, .3, 40);
+  }, { ask: done => quiz({ x: 40, y: 300, w: 900, cls: 'side' }, [{
+    id: 'c-fit', prompt: ['A is 3 × 2 and B is 3 × 2. What is AB?'],
+    build: choice([['a 3 × 2 matrix'], ['a 2 × 2 matrix'], ['not defined']], 2, 'A row of A has 2 numbers, a column of B has 3: the inside numbers 2 and 3 differ, so AB is not defined.',
+      ['That would need the inside numbers to match. A row of A has 2 numbers; a column of B has 3.', 'Look at the inside numbers: 3 × 2 times 3 × 2. Do 2 and 3 match?']),
+  }, {
+    id: 'c-size', prompt: ['A is 2 × 3 and B is 3 × 4.'],
+    build: blanks([{ parts: ['AB is  ', { box: '2' }, ' × ', { box: '4' }], why: 'Inside 3 and 3 match; outside 2 and 4 give the size.', hint: 'Rows from A, columns from B.' }]),
+  }], done) }],
+
+  ['wrap', 'Summary', (m) => {
+    const p = panel(0);
+    [['A B = A times each column of B: column j of AB is A times column j of B.', 'w1'], ['Each column of AB mixes the columns of A: A carries B’s columns to AB’s.', 'w2'],
+     ['Entry (i, j) of AB is row i of A times column j of B.', 'w3'], ['(m × n)(n × p) = m × p: the inside numbers must match.', 'w4']].forEach(([str, mark], i) => {
+      const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
+      mk('circle', { cx: 120, cy: -12, r: 26, fill: COL.chalk }, g);
+      T(g, String(i + 1), { x: 120, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+      T(g, str, { x: 170, size: 34, weight: 600 });
+      tw(g, { o: 1, x: 0 }, m(mark), .6);
+    });
+  }],
+  ['final1', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, COLQ.map((q, k) => ({
+    id: `p-col${k + 1}`, prompt: ['Work out AB one column at a time.   ', ...pairEl(q.A, q.B)],
+    build: blanks(colRows(q)),
+  })), done, 'Chapter practice · set 1 of 4') }],
+  ['final2', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [...ENTQ.map((q, k) => ({
+    id: `p-ent${k + 1}`, prompt: ['Each entry: a row of A times a column of B.   ', ...pairEl(q.A, q.B)],
+    build: blanks(entRows(q)),
+  })), {
+    id: 'p-ent4', prompt: ['Just one entry.   ', ...pairEl([[5, 1], [2, 3]], [[1, 7], [4, 2]])],
+    build: blanks([{ parts: ['entry (2, 1) of AB  =  ', { box: '14' }], why: 'Row 2 of A times column 1 of B: 2·1 + 3·4 = 2 + 12 = 14.', hint: 'Entry (2, 1): row 2 of A, column 1 of B.' }]),
+  }, {
+    id: 'p-ent5', prompt: ['A 1 × 2 times a 2 × 3.   ', ...pairEl([[1, 1]], [[1, 2, 3], [4, 5, 6]])],
+    build: blanks([{ parts: ['AB  =  (', { box: '5' }, ', ', { box: '7' }, ', ', { box: '9' }, ')'], why: '(1, 1) times each column adds its two numbers: 1 + 4, 2 + 5, 3 + 6.', hint: 'AB is 1 × 3: one row, three entries, each row 1 of A times a column of B.' }]),
+  }], done, 'Chapter practice · set 2 of 4') }],
+  ['final3', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-fit', prompt: ['Is the product defined?'],
+    build: grid(FITQ, [['y', 'Yes', COL.good, 'Y'], ['n', 'No', COL.bad, 'N']], { multi: false, text: true }),
+  }, {
+    id: 'p-size', prompt: ['How big is the answer?'],
+    build: blanks(SIZEQ),
+  }], done, 'Chapter practice · set 3 of 4') }],
+  ['final4', 'Chapter practice', () => {
+    const p = panel(0);
+    title(p, 'Hit the targets');
+    const t = pair(p, HANDS[0].A, HANDS[0].B, { col: 0 });
+    S.P = t.P; S.g = t.g; S.tg = G(p, {});
+  }, { ask: done => quiz(CARD, HANDS.map((h, k) => ({
+    id: `p-hand${k + 1}`, prompt: [h.prompt],
+    build: (body, api) => {
+      const B = h.B, A = h.A;
+      S.P.set({ a00: A[0][0], a01: A[0][1], a10: A[1][0], a11: A[1][1], b00: B[0][0], b01: B[0][1], b10: B[1][0], b11: B[1][1] });
+      S.tg.replaceChildren();
+      if (h.tgt) { target(S.g.P, h.tgt, S.tg, 0); put(S.tg.lastChild, { o: 1 }); }
+      const only = h.tgt ? [`b0${h.col}`, `b1${h.col}`] : ['a00', 'a01', 'a10', 'a11'];
+      S.P.show('cols', h.col, 0);
+      const test = h.tgt ? (v, C) => C[0][h.col] === h.tgt[0] && C[1][h.col] === h.tgt[1] : (v, C) => C[0][0] === 2 && C[0][1] === 1 && C[1][0] === 1 && C[1][1] === 2;
+      const hint = h.tgt ? (v, C) => `Column ${h.col + 1} of AB is (${num(Math.round(C[0][h.col] * 10) / 10)}, ${num(Math.round(C[1][h.col] * 10) / 10)}). Which mix of A’s columns gives (${num(h.tgt[0])}, ${num(h.tgt[1])})?`
+        : (v, C) => `AB is [${num(C[0][0])} ${num(C[0][1])}; ${num(C[1][0])} ${num(C[1][1])}]. With B = I, AB is just A.`;
+      return mmTask(S.P, test, h.why, hint, () => S.P.set(h.ans), { only })(body, api);
+    },
+  })), done, 'Chapter practice · set 4 of 4') }],
+  ['play', 'Playground', (m, D) => {
+    const p = panel(0);
+    title(p, 'Playground');
+    const t = pair(p, A1, B1);
+    S.P = t.P;
+    const hint = text(p, 'try: B = the identity · two equal columns in B · a size of 3', 70, 170, m('go'), { size: 24, fill: COL.dim });
+    hide(hint, Math.min(m('go') + 9, D - .7), .6);
+  }, { ask: playAsk(() => S.P, { pos: { ...CARD, y: 470 }, live: { sizes: true }, tip: 'Your A and B. Change any number or size, drag the ring x or the arrows, or draw on the board. Nothing is marked.' }) }],
+  ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+boot();
+</script>
+</body>
+</html>

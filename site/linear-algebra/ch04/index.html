@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vectors: Arrows and Columns of Numbers</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render"><!-- hold the first frame until the player exists, so the page transition can run -->
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/math.js"></script>
+<script src="../lib/linsys.js"></script>
+<script src="../lib/vecs.js"></script>
+<script src="../lib/play.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 4, title: 'Vectors: Arrows and Columns of Numbers', minutes: 9, language: 'en', next: '../ch05/' };
+
+/* ---------- chapter drawing helpers ---------- */
+const [GREEN, VIOLET, PINK] = VS_COL;                          // v, w, u: their colours everywhere in the book
+const CARD = { x: 40, y: 320, w: 720, cls: 'side' };           // question card under the column, beside the plane
+const say = (p, parts, x, y, t0, { size = 40, fill = COL.chalk, anchor = 'start' } = {}) => { const e = M(p, [].concat(parts), { x, y, size, fill, anchor, o: 0 }); show(e, t0); return e; };
+const text = (p, str, x, y, t0, { size = 30, fill = COL.chalk, anchor = 'start', weight = 500 } = {}) => { const e = T(p, str, { x, y, size, fill, anchor, weight, o: 0 }); show(e, t0); return e; };
+// Math whose colour can be tweened (c_color), for numbers that flash.
+const inkM = (p, parts, { x, y, size = 46, fill = COL.chalk, anchor = 'middle', o = 1 } = {}) => {
+  const g = G(p, { o }); g.setAttribute('color', fill);
+  M(g, [].concat(parts), { x, y, size, fill: 'currentColor', anchor });
+  return g;
+};
+const lightUp = (e, t0, base) => { tw(e, { c_color: COL.task }, t0, .25); tw(e, { c_color: base }, t0 + 1.2, .6); };
+// A fixed column in brackets centred on x, on the same grid as vecs rows (baseline y of the line it sits in).
+const colm = (p, top, bot, x, y, { size = 46, fill = COL.chalk, o = 1 } = {}) => {
+  const g = G(p, { o }), mid = y - size * .32, w = size * 1.9, x0 = x - w / 2, t = mid - size * 1.32, b = mid + size * 1.32;
+  path(g, `M${x0 + 14} ${t}H${x0}V${b}H${x0 + 14}M${x0 + w - 14} ${t}H${x0 + w}V${b}H${x0 + w - 14}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' });
+  const f = n => typeof n === 'string' ? n : num(n);
+  g.top = inkM(g, [f(top)], { x, y: mid - size * .31, size, fill });
+  g.bot = inkM(g, [f(bot)], { x, y: mid + size * .99, size, fill });
+  return g;
+};
+const showRow = (r, t0, dur = .5) => r.parts.forEach(e => show(e, t0, dur));
+// The walk to a vector's tip: across, then up (or down), each step labelled with its number.
+const walk = (vs, x, y, color, t0, into) => {
+  const g = G(into, {});
+  if (x) vs.P.arrow(0, 0, x, 0, color, t0, { label: num(x), into: g });
+  if (y) vs.P.arrow(x, 0, x, y, color, t0 + (x ? 1 : 0), { label: num(y), into: g });
+  return g;
+};
+// A step-by-step walk along one axis direction: the line grows and each step's count pops up as it passes.
+// Up/down counts sit inside the corner (towards the y-axis) unless out: then beyond the leg, clear of a steep arrow.
+const countWalk = (P, [xa, ya], [xb, yb], color, t0, dur, into, below = false, out = false) => {
+  const g = G(into, {}); g.below = below;
+  const n = Math.abs(xb - xa) + Math.abs(yb - ya), ln = path(g, '', { stroke: color, 'stroke-width': 5, 'stroke-linecap': 'round' });
+  const vert = xa === xb;
+  const marks = Array.from({ length: n }, (_, k) => {
+    const q = (k + 1) / n, x = xa + (xb - xa) * q, y = ya + (yb - ya) * q;
+    const t = T(g, String(k + 1), { x: P.PX(x) + (vert ? ((xb < 0) === out ? -22 : 22) : 0), y: P.PY(y) + (vert ? 8 : (g.below ? 48 : -16)), size: 24, fill: color, anchor: 'middle', weight: 700, o: 0 });
+    tw(t, { o: 1 }, t0 + dur * q - .1, .2);
+    return t;
+  });
+  prog(q => ln.setAttribute('d', `M${P.PX(xa)} ${P.PY(ya)}L${P.PX(xa + (xb - xa) * q)} ${P.PY(ya + (yb - ya) * q)}`), t0, dur, lin);
+  g.marks = marks;
+  return g;
+};
+// Move vector n to (x, y) on the beat clock in whole steps, one grid point per `gap` seconds, like a reader's drag.
+const stepTo = (vs, n, [x0, y0], [x1, y1], t0, gap = .3) => {
+  const k = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+  for (let i = 1; i <= k; i++) vs.to({ [n + '0']: Math.round(x0 + (x1 - x0) * i / k), [n + '1']: Math.round(y0 + (y1 - y0) * i / k) }, t0 + (i - 1) * gap, .01);
+};
+const across = (x, y) => [x ? `${Math.abs(x)} ${x > 0 ? 'right' : 'left'}` : '', y ? `${Math.abs(y)} ${y > 0 ? 'up' : 'down'}` : ''].filter(Boolean).join(' and ') || 'nowhere';
+
+/* ---------- practice data ---------- */
+const READQ = [[2, 5], [-4, -1], [5, -3], [0, -4], [-6, 2]];
+const DIRS = [['ru', 'right, up', null, '1'], ['lu', 'left, up', null, '2'], ['ld', 'left, down', null, '3'], ['rd', 'right, down', null, '4']];
+const dirOf = (x, y) => (x > 0 ? 'r' : 'l') + (y > 0 ? 'u' : 'd');
+const DIRQ = [[-3, 2], [5, 1], [-1, -6], [2, -4], [-7, 3], [4, 4]].map(([x, y]) => ({
+  parts: [hcol(x, y)], ans: [dirOf(x, y)], why: `The top number ${num(x)} says ${x > 0 ? 'right' : 'left'}; the bottom number ${num(y)} says ${y > 0 ? 'up' : 'down'}.`,
+}));
+const EQQ = [[[2, 5], [5, 2]], [[-1, 3], [-1, 3]], [[0, 4], [4, 0]], [[3, -2], [3, -2]], [[6, 1], [6, -1]]].map(([a, b]) => {
+  const same = a[0] === b[0] && a[1] === b[1];
+  return { parts: [hcol(...a), ' and ', hcol(...b)], ans: [same ? 'y' : 'n'],
+    why: same ? 'Top matches top, bottom matches bottom: equal.' : a[0] !== b[0] && a[1] !== b[1] ? 'Neither number matches its partner.' : 'One number matches, the other does not: not equal.' };
+});
+const MATCHQ = [
+  { goal: [2, -3], arrows: [[2, -3], [-3, 2], [-2, 3]], right: 0 },
+  { goal: [-4, -1], arrows: [[4, 1], [-1, -4], [-4, -1]], right: 2 },
+  { goal: [0, 5], arrows: [[5, 0], [0, 5], [0, -5]], right: 1 },
+  { goal: [-5, 2], arrows: [[5, -2], [-5, 2], [2, 5]], right: 1 },
+];
+const MAKEQ = [
+  { prompt: ['Make ', $m('v'), ' = ', hcol(2, -3, GREEN), '.'], goal: [2, -3] },
+  { prompt: ['Make ', $m('v'), ' = ', hcol(-5, 0, GREEN), '.'], goal: [-5, 0] },
+  { prompt: ['Make ', $m('v'), ' the arrow from the origin to the point ', $m('(−1, −4)'), '.'], goal: [-1, -4] },
+  { prompt: ['Make ', $m('v'), ' point straight down, 3 steps long.'], goal: [0, -3] },
+  { prompt: ['Make ', $m('v'), ' the swap of ', hcol(4, 1), ': the same two numbers in the other order.'], goal: [1, 4] },
+];
+// The hint for a make-the-vector task, aimed at what the reader has now.
+const makeHint = (gx, gy) => v => {
+  const x = v.v0, y = v.v1;
+  if (x === gy && y === gx && gx !== gy) return 'Your numbers are swapped: the top number is how far right, the bottom number how far up.';
+  if (x === -gx && y === gy) return `The top number has the wrong sign: ${gx < 0 ? 'left is negative' : 'right is positive'}.`;
+  if (x === gx && y === -gy) return `The bottom number has the wrong sign: ${gy < 0 ? 'down is negative' : 'up is positive'}.`;
+  return `You have ${across(x, y)}. The goal is ${across(gx, gy)}.`;
+};
+
+/* ---------- beats: [id, title, run(m, D), { ask }?] ---------- */
+const BEATS = [
+  ['intro', 'Vectors: arrows and columns', (m, D) => {
+    const g = G(scene, { o: 0, y: 24 });
+    T(g, 'Unit 1, Chapter 4', { x: 800, y: 300, size: 28, fill: COL.dim, anchor: 'middle' });
+    T(g, 'Vectors: Arrows and Columns of Numbers', { x: 800, y: 410, size: 64, weight: 600, anchor: 'middle' });
+    tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+    const r = text(scene, 'two numbers in a column, and the arrow they make', 800, 510, m('sub'), { size: 36, fill: COL.dim, anchor: 'middle' });
+    const pic = G(scene, { o: 0 });
+    const c = colm(pic, 3, 2, 640, 720, { size: 44, fill: GREEN });
+    const a = path(pic, 'M820 760L955 670', { stroke: GREEN, 'stroke-width': 6, 'stroke-linecap': 'round' }, { d: 0 });
+    const head = path(pic, 'M934 668L962 665L951 692Z', { fill: GREEN, stroke: GREEN, 'stroke-width': 4, 'stroke-linejoin': 'round' }, { o: 0 });
+    mk('circle', { cx: 820, cy: 760, r: 7, fill: COL.chalk }, pic);
+    show(pic, m('sub') + .6, .5); draw(a, m('arrow'), .9); show(head, m('arrow') + .8, .2);
+    lightUp(c.top, m('arrow') + .2, GREEN); lightUp(c.bot, m('arrow') + .6, GREEN);
+    tw(g, { o: 0, y: -24 }, D - .9, .8); hide(r, D - .9, .8); hide(pic, D - .9, .8);
+  }],
+
+  ['column', 'A column of numbers', (m) => {
+    const p = panel(0);
+    text(p, 'A vector: two numbers in a column', 60, 110, .2, { size: 40, weight: 600 });
+    // the point (3, 2): its two numbers stand up into a column
+    const y = 330, sz = 54, mid = y - sz * .32;
+    const paren = G(p, { o: 0 });
+    M(paren, ['(          )'], { x: 300, y, size: sz, anchor: 'middle' });
+    M(paren, [','], { x: 300, y, size: sz, anchor: 'middle' });
+    show(paren, .4);
+    const three = inkM(p, ['3'], { x: 0, y: 0, size: sz, o: 0 }), two = inkM(p, ['2'], { x: 0, y: 0, size: sz, o: 0 });
+    put(three, { x: 268, y }); put(two, { x: 332, y });
+    show(three, .4); show(two, .4);
+    const pt = text(p, 'a point', 300, y + 60, .6, { size: 28, fill: COL.dim, anchor: 'middle' });
+    hide(paren, m('stand'), .4); hide(pt, m('stand'), .4);
+    tw(three, { x: 300, y: mid - sz * .31 }, m('stand') + .2, 1);
+    tw(two, { x: 300, y: mid + sz * .99 }, m('stand') + .5, 1);
+    const w = sz * 1.9, x0 = 300 - w / 2, t = mid - sz * 1.32, b = mid + sz * 1.32;
+    const br = path(p, `M${x0 + 16} ${t}H${x0}V${b}H${x0 + 16}M${x0 + w - 16} ${t}H${x0 + w}V${b}H${x0 + w - 16}`, { stroke: COL.chalk, 'stroke-width': 3.5, fill: 'none' }, { d: 0 });
+    draw(br, m('br'), .8);
+    text(p, 'a vector', 300, b + 52, m('name'), { size: 32, fill: COL.chalk, anchor: 'middle', weight: 600 });
+    say(p, ['v'], 170, y, m('v'), { size: sz, fill: GREEN, anchor: 'end' });
+    say(p, ['='], 232, y, m('v') + .1, { size: sz, anchor: 'end' });
+    [three, two].forEach(e => tw(e, { c_color: GREEN }, m('v') + .3, .6));
+    text(p, '←  top: the first number', 400, mid - sz * .31 - 8, m('top'), { size: 28, fill: COL.dim });
+    lightUp(three, m('top'), GREEN);
+    text(p, '←  bottom: the second number', 400, mid + sz * .99 - 8, m('bot'), { size: 28, fill: COL.dim });
+    lightUp(two, m('bot'), GREEN);
+    // a map on the right: 3 steps east, then 2 steps north, each step counted as it is said
+    const cap = text(p, 'like 3 steps east and 2 steps north on a map', 90, 505, m('apples'), { size: 28, fill: COL.dim });
+    const mp = G(p, { o: 0 }), MP = { PX: x => 1000 + 80 * x, PY: y => 600 - 80 * y };
+    let gd = '';
+    for (let i = 0; i <= 4; i++) gd += `M${MP.PX(i)} ${MP.PY(0)}V${MP.PY(3)}`;
+    for (let j = 0; j <= 3; j++) gd += `M${MP.PX(0)} ${MP.PY(j)}H${MP.PX(4)}`;
+    path(mp, gd, { stroke: COL.faint, 'stroke-width': 1.5, fill: 'none' });
+    mk('circle', { cx: MP.PX(0), cy: MP.PY(0), r: 9, fill: COL.chalk }, mp);
+    T(mp, 'start', { x: MP.PX(0), y: MP.PY(0) + 40, size: 24, fill: COL.dim, anchor: 'middle' });
+    const rose = G(mp, { x: 1400, y: 420 });   // the compass: north up, east right
+    path(rose, 'M0 30V-30M-8 -18L0 -32L8 -18M-30 0H30M18 -8L32 0L18 8', { stroke: COL.dim, 'stroke-width': 3, fill: 'none', 'stroke-linecap': 'round' });
+    T(rose, 'N', { x: 0, y: -42, size: 24, fill: COL.dim, anchor: 'middle', weight: 600 });
+    T(rose, 'E', { x: 46, y: 8, size: 24, fill: COL.dim, anchor: 'middle', weight: 600 });
+    show(mp, m('apples') + .4, .5);
+    countWalk(MP, [0, 0], [3, 0], GREEN, m('east') + .2, 1.5, mp, true);
+    countWalk(MP, [3, 0], [3, 2], GREEN, m('north') + .2, 1.1, mp, false, true);
+    lightUp(three, m('east'), GREEN); lightUp(two, m('north'), GREEN);
+    hide(mp, m('more') - .3, .4); hide(cap, m('more') - .3, .4);
+    // more vectors, and the order
+    const r2 = 610;
+    show(colm(p, -1, 5, 150, r2, { o: 0 }), m('more'));
+    show(colm(p, 0, 4, 300, r2, { o: 0 }), m('more2'));
+    const ord = G(p, { o: 0 });
+    colm(ord, 3, 2, 500, r2);
+    M(ord, ['≠'], { x: 590, y: r2 - 4, size: 54, fill: COL.bad, anchor: 'middle' });
+    colm(ord, 2, 3, 680, r2);
+    show(ord, m('order'));
+    text(p, 'order matters', 590, r2 + 112, m('order') + .6, { size: 28, fill: COL.bad, anchor: 'middle', weight: 600 });
+    // preview: the numbers of chapter 2's system stand in columns
+    const pv = G(p, { o: 0 }), px = 1010;
+    T(pv, 'coming in chapter 7', { x: 1180, y: 250, size: 26, fill: COL.dim, anchor: 'middle' });
+    [['2x', '−', 'y', '= 0', 340], ['−x', '+', '2y', '= 3', 420]].forEach(([a, sg, b, r, yy]) => {
+      M(pv, [a], { x: px + 90, y: yy, size: 46, anchor: 'end' });
+      M(pv, [sg], { x: px + 130, y: yy, size: 46, anchor: 'middle' });
+      M(pv, [b], { x: px + 230, y: yy, size: 46, anchor: 'end' });
+      M(pv, [r], { x: px + 250, y: yy, size: 46, anchor: 'start' });
+    });
+    mk('rect', { x: px + 22, y: 290, width: 82, height: 150, rx: 12, fill: 'none', stroke: GREEN, 'stroke-width': 3 }, pv);
+    mk('rect', { x: px + 112, y: 290, width: 132, height: 150, rx: 12, fill: 'none', stroke: VIOLET, 'stroke-width': 3 }, pv);
+    colm(pv, 2, -1, px + 63, 620, { fill: GREEN });
+    colm(pv, -1, 2, px + 202, 620, { fill: VIOLET });
+    path(pv, `M${px + 63} 450V520M${px + 55} 508L${px + 63} 522L${px + 71} 508M${px + 202} 450V520M${px + 194} 508L${px + 202} 522L${px + 210} 508`, { stroke: COL.dim, 'stroke-width': 3, fill: 'none' });
+    show(pv, m('why'), .7);
+    pv.querySelectorAll('rect').forEach((r, i) => { put(r, { o: 0 }); show(r, m('why') + 2 + i * 2.6, .5); });
+    [...pv.children].slice(-3).forEach((e, i) => put(e, { o: 0 }));
+    const cols = [...pv.children].slice(-3);
+    show(cols[2], m('why') + 2.6, .6);   // the arrows
+    show(cols[0], m('why') + 3.2, .6); show(cols[1], m('why') + 5.8, .6);
+  }],
+
+  ['arrow', 'Every vector is an arrow', (m) => {
+    const p = panel(0);
+    text(p, 'Every vector is an arrow', 60, 110, .2, { size: 40, weight: 600 });
+    const vs = vecs(p, { vecs: { v: [3, 2], w: [1, 4], u: [2, 3] }, show: [], hidePlane: true });
+    const r1 = vs.row([{ t: 'v', fill: GREEN }, '=', { col: 'v' }], { x: 90, y: 250, o: 0 });
+    showRow(r1, .4);
+    show(vs.stage, m('axes') - .3, .6);
+    const wv = G(p, {});
+    countWalk(vs.P, [0, 0], [3, 0], GREEN, m('right') + .8, 2.4, wv);
+    countWalk(vs.P, [3, 0], [3, 2], GREEN, m('up') + .8, 1.6, wv);
+    const trav = G(p, { o: 0 });
+    mk('circle', { r: 9, fill: COL.chalk }, trav);
+    show(trav, m('tip') + 1.2, .3);
+    prog(q => put(trav, { x: vs.P.PX(3 * q), y: vs.P.PY(2 * q) }), m('tip') + 1.6, 3.2, io);
+    hide(trav, m('same') - .2, .3);
+    vs.flash('v0', m('right')); vs.flash('v1', m('up') - .4);
+    vs.P.dot(0, 0, COL.chalk, m('tip'), { r: 8, label: '(0, 0)', dx: -84, dy: -14 });
+    vs.show('v', m('tip') + 4.4, .6);
+    const pd = G(p, {}); vs.P.dot(3, 2, COL.chalk, m('same'), { r: 8, label: '(3, 2)', dx: 16, dy: 36, into: pd });
+    const note = G(p, { o: 0 });
+    T(note, 'the point (3, 2) is where the arrow ends', { x: 90, y: 720, size: 28, fill: COL.dim });
+    show(note, m('same') + .4);
+    hide(wv, m('w') - .3, .4); hide(note, m('w') - .3, .4);
+    const r2 = vs.row([{ t: 'w', fill: VIOLET }, '=', { col: 'w' }], { x: 90, y: 430, o: 0 });
+    showRow(r2, m('w'));
+    const ww = G(p, {}), ww2 = G(p, {});
+    countWalk(vs.P, [0, 0], [1, 0], VIOLET, m('w1'), .5, ww, true);
+    countWalk(vs.P, [1, 0], [1, 4], VIOLET, m('w4'), 1.2, ww2);
+    vs.flash('w0', m('w1')); vs.flash('w1', m('w4'));
+    vs.show('w', m('wtip'), .6);
+    const pw = G(p, {}); vs.P.dot(1, 4, COL.chalk, m('wtip') + .3, { r: 7, label: '(1, 4)', dx: 16, dy: 14, into: pw });
+    hide(ww, m('swap') - .3, .4); hide(ww2, m('swap') - .3, .4); hide(pd, m('swap') - .3, .4); hide(pw, m('swap') - .3, .4);
+    const r3 = vs.row([{ t: 'u', fill: PINK }, '=', { col: 'u' }], { x: 90, y: 610, o: 0 });
+    showRow(r3, m('swap'));
+    vs.show('u', m('swap') + 1, .6);
+    say(p, ['u ≠ v'], 330, 610, m('diff'), { size: 40, fill: COL.bad });
+    text(p, '2 right, 3 up — not 3 right, 2 up', 330, 660, m('diff') + .6, { size: 26, fill: COL.dim });
+    [['u', 'diff'], ['v', 'diff']].forEach(([id], i) => { const t0 = m('diff') + i * .5; tw(vs.A[id].path, { 'a_stroke-width': 9 }, t0, .3); tw(vs.A[id].path, { 'a_stroke-width': 5 }, t0 + .8, .5); });
+  }],
+
+  ['neg', 'Negative numbers', (m) => {
+    const p = panel(0);
+    text(p, 'Negative numbers point left or down', 60, 110, .2, { size: 40, weight: 600 });
+    const vs = vecs(p, { vecs: { v: [-2, 3], w: [4, -1], u: [-3, -2] }, show: [] });
+    const rows = [['v', GREEN, 250, 'n1'], ['w', VIOLET, 430, 'n2'], ['u', PINK, 610, 'n3']].map(([n, fill, y, mk_]) => {
+      const r = vs.row([{ t: n, fill }, '=', { col: n }], { x: 90, y, o: 0 });
+      showRow(r, m(mk_));
+      return r;
+    });
+    // v: left, then up
+    const wv = G(p, {});
+    countWalk(vs.P, [0, 0], [-2, 0], GREEN, m('left') + .3, 1.2, wv);
+    countWalk(vs.P, [-2, 0], [-2, 3], GREEN, m('up') + .2, 1.4, wv);
+    vs.flash('v0', m('left')); vs.flash('v1', m('up'));
+    vs.show('v', m('up') + .9, .6);
+    text(p, '−2: 2 left', 330, 230, m('left') + .3, { size: 28, fill: COL.dim });
+    text(p, '3: 3 up', 330, 272, m('up') + .2, { size: 28, fill: COL.dim });
+    hide(wv, m('n2'), .4);
+    const ww = G(p, {});
+    countWalk(vs.P, [0, 0], [4, 0], VIOLET, m('four'), 1.2, ww);
+    countWalk(vs.P, [4, 0], [4, -1], VIOLET, m('down') + .2, .6, ww);
+    vs.flash('w0', m('four')); vs.flash('w1', m('down'));
+    vs.show('w', m('down') + .8, .6);
+    text(p, '4: 4 right', 330, 410, m('four'), { size: 28, fill: COL.dim });
+    text(p, '−1: 1 down', 330, 452, m('down') + .3, { size: 28, fill: COL.dim });
+    hide(ww, m('n3'), .4);
+    const wu = G(p, {});
+    countWalk(vs.P, [0, 0], [-3, 0], PINK, m('ld'), 1.2, wu);
+    countWalk(vs.P, [-3, 0], [-3, -2], PINK, m('ld') + 1.3, 1, wu);
+    vs.flash('u0', m('ld')); vs.flash('u1', m('ld') + 1.2);
+    vs.show('u', m('ld') + 2.2, .6);
+    text(p, '−3: 3 left', 330, 590, m('ld'), { size: 28, fill: COL.dim });
+    text(p, '−2: 2 down', 330, 632, m('ld') + 1.2, { size: 28, fill: COL.dim });
+    hide(wu, m('sum') - .2, .4);
+    const s = G(p, { o: 0 });
+    T(s, 'top number:     −  left,    +  right', { x: 90, y: 740, size: 30, weight: 600, fill: COL.chalk });
+    T(s, 'bottom number:  −  down,   +  up', { x: 90, y: 790, size: 30, weight: 600, fill: COL.chalk });
+    show(s, m('sum'));
+    ['v0', 'w0', 'u0'].forEach((k, i) => vs.flash(k, m('sum') + 2.2 + i * .35));
+    ['v1', 'w1', 'u1'].forEach((k, i) => vs.flash(k, m('sum') + 4.8 + i * .35));
+    [['v', 2.2], ['u', 2.9], ['w', 4.8], ['u', 5.5]].forEach(([id, dt]) => { tw(vs.A[id].path, { 'a_stroke-width': 9 }, m('sum') + dt, .3); tw(vs.A[id].path, { 'a_stroke-width': 5 }, m('sum') + dt + .6, .4); });
+  }],
+
+  ['zero', 'The zero vector', (m) => {
+    const p = panel(0);
+    text(p, 'The zero vector', 60, 110, .2, { size: 40, weight: 600 });
+    const vs = vecs(p, { vecs: { v: [0, 0], w: [2, 1], u: [4, 0] }, show: [] });
+    const r1 = vs.row([{ col: 'v' }], { x: 90, y: 250, o: 0 });
+    showRow(r1, m('z'));
+    const o = vs.P.dot(0, 0, GREEN, m('stay'), { r: 11 });
+    pulse(o, m('stay') + .6); pulse(o, m('stay') + 1.6);
+    text(p, '0 right, 0 up: it stays at the origin', 240, 236, m('stay') + .3, { size: 28, fill: COL.dim });
+    text(p, 'the zero vector: a dot, not an arrow', 240, 280, m('name'), { size: 28, fill: GREEN, weight: 600 });
+    vs.P.dot(0, 0, GREEN, m('name') + .3, { r: 0, label: 'zero vector', dx: -186, dy: -18 });
+    // a short arrow, shrinking: at length zero only the dot is left
+    vs.label('w', []);
+    show(vs.A.w.g, m('name') + 2.2, .3);
+    vs.to({ w0: 0, w1: 0 }, m('name') + 2.6, 3, lin);
+    hide(vs.A.w.g, m('name') + 5.8, .3);
+    vs.to({ w0: 0, w1: 3 }, m('one') - .3, .1);
+    vs.label('w', ['w']);
+    const r2 = vs.row([{ t: 'w', fill: VIOLET }, '=', { col: 'w' }], { x: 90, y: 450, o: 0 });
+    showRow(r2, m('one'));
+    const zw = G(p, {}); countWalk(vs.P, [0, 0], [0, 3], VIOLET, m('one') + 1.8, 1.4, zw, false, true); hide(zw, m('flat'), .4);
+    vs.show('w', m('one') + 3.4, .6);
+    text(p, 'straight up, on the y-axis', 330, 450, m('yaxis'), { size: 28, fill: VIOLET, weight: 600 });
+    const r3 = vs.row([{ t: 'u', fill: PINK }, '=', { col: 'u' }], { x: 90, y: 640, o: 0 });
+    showRow(r3, m('flat'));
+    const zu = G(p, {}); countWalk(vs.P, [0, 0], [4, 0], PINK, m('flat') + .4, 1.4, zu, true); hide(zu, m('flat') + 3, .4);
+    vs.show('u', m('flat') + 1.9, .6);
+    text(p, 'flat, on the x-axis', 330, 640, m('flat') + 1.2, { size: 28, fill: PINK, weight: 600 });
+  }],
+
+  ['every', 'Points and vectors', (m) => {
+    const p = panel(0);
+    text(p, 'Every point: one vector', 60, 110, .2, { size: 40, weight: 600 });
+    const vs = vecs(p, { vecs: { v: [-5, 2] }, show: [] });
+    vs.label('v', []);
+    const P2 = vs.P;
+    P2.dot(-5, 2, COL.chalk, m('pts'), { r: 10, label: '(−5, 2)', dx: -40, dy: -24 });
+    vs.show('v', m('vec'), .6);
+    const ex = G(p, { o: 0 });
+    M(ex, ['(−5, 2)'], { x: 90, y: 330, size: 44, anchor: 'start', fill: COL.chalk });
+    M(ex, ['↔'], { x: 290, y: 330, size: 44, fill: COL.chalk, anchor: 'middle' });
+    colm(ex, -5, 2, 400, 330, { fill: GREEN });
+    show(ex, m('vec') + .6, .6); hide(ex, m('so') - .3, .4);
+    // "same numbers": the trip to (−5, 2) counted, 5 left and 2 up
+    const ew = G(p, {});
+    countWalk(P2, [0, 0], [-5, 0], GREEN, m('vec') + 2.4, 2, ew, true);
+    countWalk(P2, [-5, 0], [-5, 2], GREEN, m('vec') + 4.6, 1, ew, false, true);
+    hide(ew, m('fan') - .3, .4);
+    const fanPts = [[4, 1], [2, -3], [-3, -4], [-1, 5], [5, 4], [-6, -1], [3, 6], [-4, 3], [0, -5], [6, -2], [-2, -2], [1, 3]];
+    const fan = G(p, {});
+    fanPts.forEach(([x, y], i) => {
+      const t = m('fan') + 1.6 + i * .28;
+      P2.dot(x, y, COL.chalk, t, { r: 6, into: fan });
+      P2.arrow(0, 0, x, y, COL.dim, t + .1, { into: fan });
+    });
+    const tips = G(p, { o: 0 });
+    fanPts.forEach(([x, y]) => mk('circle', { cx: P2.PX(x), cy: P2.PY(y), r: 9, fill: COL.chalk }, tips));
+    show(tips, m('back'), .4); hide(tips, m('so'), .6);
+    const eq = G(p, { o: 0 });
+    M(eq, ['point  (x, y)'], { x: 90, y: 330, size: 44, anchor: 'start' });
+    M(eq, ['↔'], { x: 400, y: 330, size: 44, fill: COL.chalk, anchor: 'middle' });
+    M(eq, ['vector'], { x: 460, y: 330, size: 44, anchor: 'start' });
+    colm(eq, 'x', 'y', 660, 330, { fill: GREEN });
+    show(eq, m('so'), .6);
+    const d2 = G(p, { o: 0 });
+    T(d2, 'a point: a place', { x: 90, y: 520, size: 32, weight: 600 });
+    T(d2, 'a vector: the trip from the origin to that place', { x: 90, y: 575, size: 32, weight: 600, fill: GREEN });
+    show(d2, m('diff'), .6);
+    const trav = G(p, { o: 0 });
+    mk('circle', { r: 10, fill: COL.chalk }, trav);
+    show(trav, m('diff') + 2.4, .3);
+    prog(q => put(trav, { x: P2.PX(-5 * q), y: P2.PY(2 * q) }), m('diff') + 2.6, 3, io);
+  }],
+
+  ['read', 'From arrow to numbers', (m) => {
+    const p = panel(0);
+    text(p, 'Reading a vector off its arrow', 60, 110, .2, { size: 40, weight: 600 });
+    const vs = vecs(p, { vecs: { v: [-4, 1] }, show: [] });
+    vs.show('v', m('a1'), .6);
+    const w1 = G(p, {});
+    countWalk(vs.P, [0, 0], [-4, 0], GREEN, m('count1') + 1.3, 2.2, w1, true);
+    countWalk(vs.P, [-4, 0], [-4, 1], GREEN, m('count2') + .6, .6, w1);
+    const c1 = colm(p, -4, 1, 150, 330, { fill: GREEN, o: 0 });
+    put(c1.top, { o: 0 }); put(c1.bot, { o: 0 });
+    show(c1, m('top1')); show(c1.top, m('top1') + .8); lightUp(c1.top, m('top1') + 1.4, GREEN);
+    text(p, '4 steps left  →  −4', 260, 300, m('top1') + .4, { size: 28, fill: COL.dim });
+    show(c1.bot, m('bot1')); lightUp(c1.bot, m('bot1') + .2, GREEN);
+    text(p, '1 step up  →  1', 260, 380, m('bot1'), { size: 28, fill: COL.dim });
+    const b1 = G(p, {}); mk('rect', { x: 94, y: 244, width: 112, height: 144, rx: 12, fill: 'none', stroke: COL.chalk, 'stroke-width': 3 }, b1);
+    put(b1, { o: 0 }); show(b1, m('col1'), .4); hide(b1, m('a2'), .4);
+    hide(w1, m('a2'), .4);
+    vs.to({ v0: 2, v1: -5 }, m('a2') + .2, 1.4);
+    const w2 = G(p, {});
+    countWalk(vs.P, [0, 0], [2, 0], GREEN, m('count3'), 1, w2);
+    countWalk(vs.P, [2, 0], [2, -5], GREEN, m('count4') + .2, 1.8, w2, false, true);
+    const c2 = colm(p, 2, -5, 150, 620, { fill: GREEN, o: 0 });
+    put(c2.bot, { o: 0 });
+    show(c2, m('count3') + .8); lightUp(c2.top, m('count3') + 1, GREEN);
+    text(p, '2 steps right  →  2', 260, 590, m('count3') + 1, { size: 28, fill: COL.dim });
+    show(c2.bot, m('bot2')); lightUp(c2.bot, m('bot2') + .2, GREEN);
+    text(p, '5 steps down  →  −5', 260, 670, m('bot2'), { size: 28, fill: COL.dim });
+    const b2 = G(p, {}); mk('rect', { x: 94, y: 534, width: 112, height: 144, rx: 12, fill: 'none', stroke: COL.chalk, 'stroke-width': 3 }, b2);
+    put(b2, { o: 0 }); show(b2, m('col2'), .4);
+    tw(vs.A.v.path, { 'a_stroke-width': 9 }, m('col2'), .3); tw(vs.A.v.path, { 'a_stroke-width': 5 }, m('col2') + .8, .5);
+  }],
+
+  ['q1', 'Quick check', () => {
+    const p = panel(0);
+    text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
+    S.vs = vecs(p, { vecs: { v: [-3, 2] } });
+  }, { ask: done => quiz(CARD, [{
+    id: 'c-read', prompt: ['Write the arrow ', $m('v'), ' as a column of two numbers.'],
+    build: blanks([
+      { parts: ['top number (right +, left −):   ', { box: '-3' }], why: 'The tip is 3 steps left of the origin: −3.', hint: 'Count across from the origin to the tip. Steps to the left count as negative.',
+        fx: () => fx(S.vs.A.v.leg, { o: 1 }, 0, .6) },
+      { parts: ['bottom number (up +, down −):   ', { box: '2' }], why: 'The tip is 2 steps above the x-axis: 2. So v = [−3, 2] as a column.', hint: 'Count up from the x-axis to the tip.' },
+    ]),
+  }], done) }],
+
+  ['link', 'Numbers and arrow, linked', (m) => {
+    const p = panel(0);
+    text(p, 'Change one, the other follows', 60, 110, .2, { size: 40, weight: 600 });
+    const vs = vecs(p, { vecs: { v: [3, 2] } });
+    vs.row([{ t: 'v', fill: GREEN }, '=', { col: 'v' }], { x: 90, y: 250 });
+    vs.legs('v', .6);
+    tw(vs.A.v.path, { 'a_stroke-width': 8 }, m('nums'), .3); tw(vs.A.v.path, { 'a_stroke-width': 5 }, m('nums') + .8, .5);
+    vs.flash('v0', m('nums')); vs.flash('v1', m('nums'));
+    stepTo(vs, 'v', [3, 2], [5, 2], m('five') + .6, .5); vs.flash('v0', m('five') + .6);
+    stepTo(vs, 'v', [5, 2], [5, -1], m('minus') + .9, .5); vs.flash('v1', m('minus') + .9);
+    // a hand takes the tip and pulls it; the tip jumps from grid point to grid point, as it does for the reader
+    const hand = G(p, { o: 0 }), { PX, PY } = vs.P;
+    mk('circle', { r: 20, fill: COL.chalk, 'fill-opacity': .25, stroke: COL.chalk, 'stroke-width': 3 }, hand);
+    put(hand, { x: PX(5), y: PY(-1) });
+    show(hand, m('drag') + 1, .4);
+    const t0 = m('pull'), dur = 2.4;
+    prog(q => {
+      const x = 5 + (-2 - 5) * q, y = -1 + (4 + 1) * q;
+      put(hand, { x: PX(x), y: PY(y) });
+      vs.set({ v0: Math.round(x), v1: Math.round(y) });
+    }, t0, dur, io);
+    hide(hand, t0 + dur + .4, .4);
+    vs.flash('v0', m('read')); vs.flash('v1', m('read') + .6);
+    show(hand, m('again') - .2, .3);
+    prog(q => {
+      const x = -2 + (3 + 2) * q, y = 4 + (-3 - 4) * q;
+      put(hand, { x: PX(x), y: PY(y) });
+      vs.set({ v0: Math.round(x), v1: Math.round(y) });
+    }, m('again') + .4, 2, io);
+    hide(hand, m('again') + 2.8, .4);
+    vs.flash('v0', m('again2')); vs.flash('v1', m('again2'));
+    const n = G(p, { o: 0 });
+    T(n, 'change a number  →  the arrow moves', { x: 90, y: 450, size: 32, weight: 600, fill: COL.chalk });
+    T(n, 'move the arrow  →  the numbers change', { x: 90, y: 505, size: 32, weight: 600, fill: GREEN });
+    show(n, m('always'));
+  }],
+
+  ['q2', 'Your turn', () => {
+    const p = panel(0);
+    text(p, 'Your turn', 60, 110, .2, { size: 40, weight: 600 });
+    S.vs = vecs(p, { vecs: { v: [1, 1] } });
+    S.vs.row([{ t: 'v', fill: GREEN }, '=', { col: 'v' }], { x: 90, y: 230 });
+  }, { ask: done => quiz(CARD, [{
+    id: 'c-make', prompt: ['Make ', $m('v'), ' = ', hcol(-4, 3, GREEN), '. Change the numbers, or drag the tip of the arrow.'],
+    build: vsTask(S.vs, v => v.v0 === -4 && v.v1 === 3, 'Four steps left, three steps up.', makeHint(-4, 3), () => S.vs.set({ v0: -4, v1: 3 })),
+  }], done) }],
+
+  ['same', 'Equal vectors', (m) => {
+    const p = panel(0);
+    text(p, 'Many vectors, and when two are equal', 60, 110, .2, { size: 40, weight: 600 });
+    const vs = vecs(p, { vecs: { v: [2, 1], w: [-3, 2], u: [1, -3] }, show: [] });
+    const eqv = () => vs.v.v0 === vs.v.w0 && vs.v.v1 === vs.v.w1;
+    vs.label('v', () => eqv() ? [] : ['v']);
+    vs.label('w', () => eqv() ? ['v = w'] : ['w']);
+    [['v', GREEN, 250], ['w', VIOLET, 430], ['u', PINK, 610]].forEach(([n, fill, y]) => {
+      const r = vs.row([{ t: n, fill }, '=', { col: n }], { x: 90, y, o: 0 });
+      showRow(r, m(n)); vs.show(n, m(n) + .3, .6);
+    });
+    const e = G(p, { o: 0 });
+    T(e, 'equal:  top = top  and  bottom = bottom', { x: 90, y: 760, size: 30, weight: 600, fill: COL.chalk });
+    show(e, m('eq'));
+    ['v', 'w', 'u'].forEach((id, i) => [2, 3.6].forEach(dt => { tw(vs.A[id].path, { 'a_stroke-width': 9 }, m('eq') + dt + i * .15, .3); tw(vs.A[id].path, { 'a_stroke-width': 5 }, m('eq') + dt + i * .15 + .6, .4); }));
+    ['v0', 'w0', 'u0'].forEach(k => vs.flash(k, m('eq') + 2));
+    ['v1', 'w1', 'u1'].forEach(k => vs.flash(k, m('eq') + 3.6));
+    vs.flash('v0', m('ex1')); vs.flash('v1', m('ex1'));
+    stepTo(vs, 'w', [-3, 2], [2, 1], m('ex2') + .4, .3); vs.flash('w0', m('ex2') + .4); vs.flash('w1', m('ex2') + .4);
+    say(p, ['w = v'], 330, 430, m('one'), { size: 40, fill: COL.good });
+    stepTo(vs, 'u', [1, -3], [1, 2], m('ex3') + .3, .3); vs.flash('u0', m('ex3') + .3); vs.flash('u1', m('ex3') + .3);
+    const ne = say(p, ['u ≠ v'], 330, 610, m('mirror'), { size: 40, fill: COL.bad });
+    const sw = text(p, 'swapped: 1 right, 2 up', 330, 660, m('mirror') + .5, { size: 26, fill: COL.dim });
+    hide(sw, m('half'), .3);
+    stepTo(vs, 'u', [1, 2], [2, -1], m('half') + .2, .3); vs.flash('u0', m('half') + 1.6); vs.flash('v0', m('half') + 1.6);
+    vs.flash('u1', m('half') + 3.6); vs.flash('v1', m('half') + 3.6);
+    text(p, 'top 2 = 2, but bottom −1 ≠ 1', 330, 660, m('half') + 1.4, { size: 26, fill: COL.dim });
+    pulse(ne, m('half2'), 1.3);
+  }],
+
+  ['q3', 'Quick check', () => {
+    const p = panel(0);
+    text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
+    S.vs = vecs(p, { vecs: { v: [3, -1], w: [-1, 3], u: [1, 3] } });
+    S.vs.names.forEach(n => S.vs.label(n, []));
+  }, { ask: done => quiz(CARD, [matchQ('c-match', { goal: [-1, 3], arrows: [[3, -1], [-1, 3], [1, 3]], right: 1 })], done) }],
+
+  ['wrap', 'Summary', (m) => {
+    const p = panel(0);
+    [['A vector is two numbers in a column, named by one letter.', 'w1'], ['Its arrow starts at the origin: top number right, bottom number up.', 'w2'],
+     ['Negative numbers point left or down; zero on top and below is the zero vector, a dot.', 'w3'], ['Change the numbers, the arrow moves; move the arrow, the numbers change.', 'w4']].forEach(([str, mark], i) => {
+      const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
+      const dg = G(g, { x: 150, y: -12 });
+      mk('circle', { r: 26, fill: COL.chalk }, dg);
+      T(dg, String(i + 1), { x: 0, y: 11, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+      T(g, str, { x: 210, size: 34, weight: 600 });
+      tw(g, { o: 1, x: 0 }, m(mark), .6);
+      pulse(dg, m('end') + i * .3, 1.25);
+    });
+  }],
+  ['final1', 'Chapter practice', () => {
+    const p = panel(0);
+    text(p, 'Read the arrow', 60, 110, .2, { size: 40, weight: 600 });
+    S.vs = vecs(p, { vecs: { v: READQ[0] } });
+  }, { ask: done => quiz(CARD, READQ.map(([x, y], i) => ({
+    id: `p-read${i + 1}`, prompt: ['Write ', $m('v'), ' as a column: its top number, then its bottom number.'],
+    build: (body, api) => { S.vs.set({ v0: x, v1: y }); fx(S.vs.A.v.leg, { o: 0 }, 0, .01); return blanks([{ parts: ['top   ', { box: String(x) }, '        bottom   ', { box: String(y) }],
+      why: `${across(x, y)}: top ${num(x)}, bottom ${num(y)}.`, hint: 'Top: steps across from the origin (left is negative). Bottom: steps up from the x-axis (down is negative).',
+      fx: () => fx(S.vs.A.v.leg, { o: 1 }, 0, .6) }])(body, api); },
+  })), done, 'Chapter practice · set 1 of 4') }],
+  ['final2', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-dir', prompt: ['Which way does each arrow go from the origin?'],
+    build: grid(DIRQ, DIRS, { multi: false, text: true }),
+  }, {
+    id: 'p-equal', prompt: ['Are the two vectors equal?'],
+    build: grid(EQQ, [['y', 'Equal', null, 'Y'], ['n', 'Not equal', null, 'N']], { multi: false, text: true }),
+  }], done, 'Chapter practice · set 2 of 4') }],
+  ['final3', 'Chapter practice', () => {
+    const p = panel(0);
+    text(p, 'Find the arrow', 60, 110, .2, { size: 40, weight: 600 });
+    S.vs = vecs(p, { vecs: { v: [1, 1], w: [2, 2], u: [3, 3] } });
+    S.vs.names.forEach(n => S.vs.label(n, []));
+  }, { ask: done => quiz(CARD, MATCHQ.map((q, i) => matchQ(`p-match${i + 1}`, q)), done, 'Chapter practice · set 3 of 4') }],
+  ['final4', 'Chapter practice', () => {
+    const p = panel(0);
+    text(p, 'Make the vector', 60, 110, .2, { size: 40, weight: 600 });
+    S.vs = vecs(p, { vecs: { v: [1, 1] } });
+    S.vs.row([{ t: 'v', fill: GREEN }, '=', { col: 'v' }], { x: 90, y: 230 });
+  }, { ask: done => quiz(CARD, MAKEQ.map((q, i) => ({
+    id: `p-make${i + 1}`, prompt: q.prompt,
+    build: (body, api) => { S.vs.set({ v0: 1, v1: 1 }); return vsTask(S.vs, v => v.v0 === q.goal[0] && v.v1 === q.goal[1], `${across(...q.goal)}.`, makeHint(...q.goal), () => S.vs.set({ v0: q.goal[0], v1: q.goal[1] }))(body, api); },
+  })), done, 'Chapter practice · set 4 of 4') }],
+  ['play', 'Playground', (m) => {
+    const p = panel(0);
+    text(p, 'Playground', 60, 110, .2, { size: 40, weight: 600 });
+    S.vs = vecs(p, { vecs: { v: [3, 2], w: [-2, 1] } });
+    S.vs.row([{ t: 'v', fill: GREEN }, '=', { col: 'v' }], { x: 90, y: 230 });
+    S.vs.row([{ t: 'w', fill: VIOLET }, '=', { col: 'w' }], { x: 330, y: 230 });
+    const hint = G(p, { o: 0 });
+    ['try: make v point down and to the left', 'try: make w equal to v', 'try: make v the zero vector'].forEach((str, i) => T(hint, str, { x: 90, y: 336 + i * 36, size: 26, fill: COL.dim }));
+    show(hint, m('go'), .6);
+  }, { ask: playAsk(() => S.vs, { tip: 'Your two vectors. Change any number, drag either tip, or draw on the board. Nothing is marked.' }) }],
+  ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+// Which of three arrows is this column? The arrows are S.vs's v, w, u; the tips are the targets.
+function matchQ(id, { goal, arrows, right }) {
+  return {
+    id, prompt: ['Which arrow is ', hcol(...goal), '? Click its tip.'],
+    build: (body, api) => {
+      const vs = S.vs, ns = vs.names;
+      arrows.forEach(([x, y], i) => vs.set({ [ns[i] + '0']: x, [ns[i] + '1']: y }));
+      const { PX, PY } = vs.P;
+      return pickEls(arrows.map(([x, y], i) => ({ el: vs.A[ns[i]].g, box: [PX(x) - 36, PY(y) - 36, 72, 72], label: `(${num(x)}, ${num(y)})` })), right,
+        [hcol(...goal), ': ', across(...goal), '.'],
+        i => { const [x, y] = arrows[i]; return ['That arrow goes ', across(x, y), ': it is ', hcol(x, y), '. Read the top number as right or left, the bottom as up or down.']; })(body, api);
+    },
+  };
+}
+
+boot();
+</script>
+</body>
+</html>

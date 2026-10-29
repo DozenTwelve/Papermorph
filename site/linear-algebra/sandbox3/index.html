@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sandbox: Space in 3D</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render"><!-- hold the first frame until the player exists, so the page transition can run -->
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/math.js"></script>
+<script src="../lib/linsys.js"></script>
+<script src="../lib/space3.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+// SANDBOX: silent beats to try space3.js and lin3 (the 3 × 3 system) before a chapter uses them.
+const CHAPTER = { number: 99, title: 'Sandbox: Space in 3D', minutes: 2, language: 'en' };
+const CARD = { x: 40, y: 430, w: 720, cls: 'side' };   // under the equations and their readout; the try beats drop the matrix
+const title = (p, str, t0) => { const e = T(p, str, { x: 60, y: 110, size: 40, weight: 600, o: 0 }); show(e, t0); return e; };
+const sys3 = (p, view, mat) => lin3(p, { view, ...(mat === false ? { mat: null } : {}) });
+const TARGET = (v, s) => s.x === 1 && s.y === 1 && s.z === 1;
+
+const BEATS = [
+  ['plane', 'One plane', (m, D) => {
+    const p = panel(0);
+    title(p, 'One equation in x, y, z is a plane', .1);
+    const V = space3(p);
+    const pl = V.plane(1, 1, 1, 3, { color: S3_ROW[0] });
+    V.drift(8);
+    const eqG = G(p, { o: 0 });
+    show(eqG, .4);
+    let shown = '';
+    const setD = d => {
+      pl.set(1, 1, 1, d);
+      const s = num(Math.round(d * 10) / 10);
+      if (s !== shown) { shown = s; eqG.replaceChildren(); M(eqG, ['x + y + z = ', s], { x: 90, y: 280, size: 56, fill: S3_ROW[0], anchor: 'start' }); }
+    };
+    setD(3);
+    prog(q => setD(3 - 5 * q), 3, 2.2);    // the right side changes: the plane slides, its tilt stays
+    prog(q => setD(-2 + 5 * q), 6, 2);
+  }, { dur: 9 }],
+  ['rows', 'The row picture', (m, D) => {
+    const p = panel(0);
+    title(p, 'Three planes meet in a point', .1);
+    const sys = S.sys = sys3(p, 'row');
+    sys.space.turn({ yaw: 25, pitch: 30 }, 1.5, 3.5);
+    sys.space.drift(5, 5);
+    pulse(sys.meet.e, 5.5);
+  }, { dur: 9 }],
+  ['cols', 'The column picture', (m, D) => {
+    const p = panel(0);
+    title(p, 'Or: a mix of the columns', .1);
+    const sys = S.sys = sys3(p, 'col');
+    sys.labels(['col 1', 'col 2', 'col 3', 'b']);
+    sys.space.drift(6);
+    sys.to({ b0: 1, b1: 1, b2: 1 }, 4, 1.6);   // a new b needs a new mix
+  }, { dur: 9 }],
+  ['try1', 'Your turn: planes', () => {
+    const p = panel(0);
+    title(p, 'Your turn', .1);
+    S.sys = sys3(p, 'row', false);
+  }, { dur: 1.5, ask: done => quiz(CARD, [{
+    id: 'p-meet', prompt: ['Make the three planes meet at ', $m('(1, 1, 1)'), ': drag a plane by its edge, or scrub a number.'],
+    build: lsTask(S.sys, TARGET, 'All three planes pass through (1, 1, 1): the right sides are 1, 0 and 1.',
+      'Put x = 1, y = 1, z = 1 into each equation: that is the right side it needs.', () => S.sys.set({ b0: 1, b1: 0, b2: 1 })),
+  }], done) }],
+  ['try2', 'Your turn: columns', () => {
+    const p = panel(0);
+    title(p, 'Your turn', .1);
+    S.sys = sys3(p, 'col', false);
+    S.sys.labels(['col 1', 'col 2', 'col 3', 'b']);
+  }, { dur: 1.5, ask: done => quiz(CARD, [{
+    id: 'c-mix', prompt: ['Drag the tip of ', $m('b'), ' until the mix is ', $m('1·col 1 + 1·col 2 + 1·col 3'), '.'],
+    build: lsTask(S.sys, TARGET, 'col 1 + col 2 + col 3 = (1, 0, 1): b sits at the end of the three columns laid tip to tail.',
+      'Add the three columns one after another: where do you end up?', () => S.sys.set({ b0: 1, b1: 0, b2: 1 })),
+  }], done) }],
+  ['finish', 'Finished', () => { panel(0); }, { dur: .5, ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+boot();
+</script>
+</body>
+</html>

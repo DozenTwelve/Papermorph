@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>One Equation, One Line</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render"><!-- hold the first frame until the player exists, so the page transition can run -->
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/math.js"></script>
+<script src="../lib/linsys.js"></script>
+<script src="../lib/play.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 1, title: 'One Equation, One Line', minutes: 10, language: 'en', next: '../ch02/' };
+
+/* ---------- chapter drawing helpers ---------- */
+const LINE = LS_ROW[0];                                        // the one equation's line: blue, as row 1 everywhere in the book
+const CARD = { x: 40, y: 290, w: 720, cls: 'side' };           // question card under the equation, beside the plane
+const say = (p, parts, x, y, t0, { size = 40, fill = COL.chalk, anchor = 'start' } = {}) => { const e = M(p, [].concat(parts), { x, y, size, fill, anchor, o: 0 }); show(e, t0); return e; };
+const text = (p, str, x, y, t0, { size = 30, fill = COL.chalk, anchor = 'start', weight = 500 } = {}) => { const e = T(p, str, { x, y, size, fill, anchor, weight, o: 0 }); show(e, t0); return e; };
+// One equation a·x + b·y = c in the top left, the plane on the right; the line hidden until a beat shows it.
+const oneLine = (p, a, b, c, { t0 = .1, hidden = false, hidePlane = false } = {}) => {
+  const sys = linsys(p, { rows: 1, A: [[a, b], [0, 0]], b: [c, 0], eq: [90, 200], t0, hidePlane });
+  if (hidden) put(sys.lines[0].l, { o: 0 });
+  return sys;
+};
+const flash = (sys, key, t0) => sys.num(key).forEach(e => { tw(e, { c_fill: COL.task }, t0, .25); tw(e, { c_fill: COL.chalk }, t0 + 1.2, .6); });
+const pairStr = (x, y) => `(${num(x)}, ${num(y)})`;
+// A point of the plane with its label, dropped in; dot and label share one group, so hiding it hides both
+// (the dot itself is g.firstChild, for a pulse).
+const drop = (sys, x, y, t0, color = COL.chalk, label = pairStr(x, y), dx = 16, dy = -16, into = sys.stage, anchor = 'start') => {
+  const g = G(into, {});
+  sys.P.dot(x, y, color, t0, { label, dx, dy, anchor, into: g });
+  return g;
+};
+// Walk from the origin to (x, y): along x from ta, then up or down from tb, each leg in its own time.
+const walk = (sys, x, y, ta, tb, into) => {
+  const { PX, PY } = sys.P;
+  const a = path(into, `M${PX(0)} ${PY(0)}H${PX(x)}`, { stroke: COL.whole, 'stroke-width': 5 }, { d: 0 });
+  tw(a, { d: 1 }, ta, .3 + Math.abs(x) * .1, lin);
+  if (y) { const b = path(into, `M${PX(x)} ${PY(0)}V${PY(y)}`, { stroke: COL.nat, 'stroke-width': 5 }, { d: 0 }); tw(b, { d: 1 }, tb, .3 + Math.abs(y) * .15, lin); }
+};
+// Target points of a hands-on question, on the question's own layer (cleared with the question).
+const targets = pts => { const L = qlayer(); pts.forEach(([x, y, dx = 16, dy = -16]) => S.sys.P.dot(x, y, COL.task, 0, { run: fx, into: L, label: pairStr(x, y), dx, dy })); };
+// Two dashed guide lines from the axes to a point (or one, on an axis).
+const guides = (sys, x, y, t0, into) => {
+  const { PX, PY } = sys.P, g = G(into, { o: 0 });
+  path(g, `M${PX(x)} ${PY(0)}V${PY(y)}M${PX(0)} ${PY(y)}H${PX(x)}`, { stroke: COL.dim, 'stroke-width': 2, 'stroke-dasharray': '6 7', fill: 'none' });
+  show(g, t0, .4);
+  return g;
+};
+
+/* ---------- practice data ---------- */
+const YN = [['y', 'Yes', null, 'Y'], ['n', 'No', null, 'N']];
+const SOLQ = [
+  { parts: ['Is ', $m('(2, 1)'), ' a solution of ', $m('x + 3y = 5'), '?'], ans: ['y'], why: '2 + 3·1 = 5. Yes.' },
+  { parts: ['Is ', $m('(1, 2)'), ' a solution of ', $m('x + 3y = 5'), '?'], ans: ['n'], why: '1 + 3·2 = 7, not 5. Order matters: x comes first.' },
+  { parts: ['Is ', $m('(−1, 2)'), ' a solution of ', $m('2x + y = 0'), '?'], ans: ['y'], why: '2·(−1) + 2 = −2 + 2 = 0. Yes.' },
+  { parts: ['Is ', $m('(3, 1)'), ' a solution of ', $m('x − y = 4'), '?'], ans: ['n'], why: '3 − 1 = 2, not 4.' },
+  { parts: ['Is ', $m('(0, −3)'), ' a solution of ', $m('4x − y = 3'), '?'], ans: ['y'], why: '4·0 − (−3) = 0 + 3 = 3. Yes.' },
+  { parts: ['Is ', $m('(5, 5)'), ' a solution of ', $m('x + y = 5'), '?'], ans: ['n'], why: '5 + 5 = 10, not 5.' },
+];
+const MISSQ = [
+  { parts: ['x + y = 7,   x = 3:      y = ', { box: '4' }], why: '3 + y = 7, so y = 4.', hint: 'Put 3 in place of x. What must y be?' },
+  { parts: ['2x + y = 10,   x = 4:      y = ', { box: '2' }], why: '8 + y = 10, so y = 2.', hint: '2 times 4 is 8. What makes 8 + y equal 10?' },
+  { parts: ['x − y = 5,   y = 2:      x = ', { box: '7' }], why: 'x − 2 = 5, so x = 7.', hint: 'Put 2 in place of y. What minus 2 is 5?' },
+  { parts: ['3x + 2y = 12,   x = 0:      y = ', { box: '6' }], why: '0 + 2y = 12, so y = 6.', hint: 'With x = 0 the 3x part is 0. Then 2y = 12.' },
+  { parts: ['x + 4y = 2,   y = −1:      x = ', { box: '6' }], why: 'x − 4 = 2, so x = 6.', hint: '4 times −1 is −4. What minus 4 is 2?' },
+  { parts: ['−x + y = 3,   x = −2:      y = ', { box: '1' }], why: '2 + y = 3, so y = 1. (Minus negative two is plus two.)', hint: '−x with x = −2 is +2.' },
+];
+const CROSSQ = [
+  { parts: ['x + 2y = 8:      x-axis at (', { box: '8' }, ', 0),   y-axis at (0, ', { box: '4' }, ')'], why: 'y = 0 gives x = 8;  x = 0 gives 2y = 8, y = 4.',
+    hint: 'On the x-axis y = 0, so x = 8. On the y-axis x = 0, so 2y = 8.' },
+  { parts: ['3x + y = 6:      x-axis at (', { box: '2' }, ', 0),   y-axis at (0, ', { box: '6' }, ')'], why: 'y = 0 gives 3x = 6, x = 2;  x = 0 gives y = 6.',
+    hint: 'On the x-axis y = 0, so 3x = 6. On the y-axis x = 0, so y = 6.' },
+  { parts: ['4x − 2y = 8:      x-axis at (', { box: '2' }, ', 0),   y-axis at (0, ', { box: '-4' }, ')'], why: 'y = 0 gives 4x = 8, x = 2;  x = 0 gives −2y = 8, y = −4.',
+    hint: 'On the y-axis x = 0, so −2y = 8. Divide by −2: the answer is negative.' },
+  { parts: ['−x + 3y = 6:      x-axis at (', { box: '-6' }, ', 0),   y-axis at (0, ', { box: '2' }, ')'], why: 'y = 0 gives −x = 6, x = −6;  x = 0 gives 3y = 6, y = 2.',
+    hint: 'On the x-axis y = 0, so −x = 6. If minus x is 6, x is −6.' },
+];
+const TURNQ = [
+  { parts: ['x + y = 4  becomes  x + y = 9'], ans: ['s'], why: 'Only the right side changed: the line slides.' },
+  { parts: ['x + y = 4  becomes  3x + y = 4'], ans: ['t'], why: 'The number in front of x changed: the line turns.' },
+  { parts: ['2x − y = 1  becomes  2x − y = −5'], ans: ['s'], why: 'Only the right side changed.' },
+  { parts: ['2x − y = 1  becomes  2x + y = 1'], ans: ['t'], why: 'The number in front of y changed from −1 to 1: the line turns.' },
+];
+
+/* ---------- beats: [id, title, run(m, D), { ask }?] ---------- */
+const BEATS = [
+  ['intro', 'One equation, one line', (m, D) => {
+    const g = G(scene, { o: 0, y: 24 });
+    T(g, 'Unit 1, Chapter 1', { x: 800, y: 320, size: 28, fill: COL.dim, anchor: 'middle' });
+    T(g, 'One Equation, One Line', { x: 800, y: 430, size: 88, weight: 600, anchor: 'middle' });
+    tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+    const r = text(scene, 'an equation in x and y is a picture', 800, 560, m('sub'), { size: 36, fill: COL.dim, anchor: 'middle' });
+    // a small line that turns as the narration says the numbers move it
+    const lg = G(scene, { x: 800, y: 680, o: 0 });
+    path(lg, 'M-160 0H160', { stroke: LINE, 'stroke-width': 6, 'stroke-linecap': 'round' });
+    show(lg, m('move'), .4); tw(lg, { r: -18 }, m('move') + .5, 1.2); tw(lg, { y: 650 }, m('move') + 1.8, .8);
+    tw(g, { o: 0, y: -24 }, D - .9, .8); hide(r, D - .9, .8); hide(lg, D - .9, .8);
+  }],
+
+  ['unknowns', 'Two unknowns', (m) => {
+    const p = S.p = panel(0);
+    text(p, 'One equation, two unknowns', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = oneLine(p, 1, 1, 4, { t0: .4, hidden: true, hidePlane: true });
+    const q = text(p, 'an unknown = a number we have not found yet', 90, 300, m('q'), { size: 28, fill: COL.dim });
+    hide(q, m('x1') - .4, .4);
+    // the table of tries: x, y, x + y
+    const tx = [130, 250, 420], ty = 330, rh = 64;
+    const head = G(p, { o: 0 });
+    ['x', 'y', 'x + y'].forEach((h, j) => M(head, [h], { x: tx[j], y: ty, size: 34, fill: COL.dim, anchor: 'middle' }));
+    path(head, `M70 ${ty + 18}H560`, { stroke: COL.faint, 'stroke-width': 2 });
+    show(head, m('x1'));
+    const rows = [[1, 3], [2, 2], [4, 0], [-1, 5]];
+    const at = [[m('x1'), m('y3'), m('ok1')], [m('r2'), m('r2') + 1.9, m('r2') + 2.4], [m('r3'), m('r3') + 1.9, m('r3') + 2.4], [m('r4') + 2, m('r4') + 3.2, m('r4') + 3.9]];
+    // "Then one plus y has to be four": the unknown y, before it is found
+    hide(say(p, ['1 + y = 4'], tx[2], ty + 66, m('x1') + 2, { size: 34, anchor: 'middle', fill: COL.dim }), m('ok1') - .2, .2);
+    hide(say(p, ['?'], tx[1], ty + 66, m('x1') + 2.6, { size: 38, anchor: 'middle', fill: COL.nat }), m('y3') - .2, .2);
+    rows.forEach(([x, y], i) => {
+      const yy = ty + 66 + i * rh;
+      say(p, [num(x)], tx[0], yy, at[i][0], { size: 38, anchor: 'middle', fill: COL.whole });
+      say(p, [num(y)], tx[1], yy, at[i][1], { size: 38, anchor: 'middle', fill: COL.nat });
+      say(p, [`${num(x)} + ${y} = 4`], tx[2], yy, at[i][2], { size: 34, anchor: 'middle' });
+      text(p, '✓', 540, yy, at[i][2] + .3, { size: 34, fill: COL.good, anchor: 'middle', weight: 700 });
+    });
+    // each solution becomes a chip on the right: a pair (x, y)
+    const lab = text(p, 'solutions', 1160, 260, m('pair1') - .3, { size: 30, fill: COL.dim, anchor: 'middle' });
+    S.chips = rows.map(([x, y], i) => {
+      const c = chip(p, [pairStr(x, y)], COL.chalk, { x: 1040 + (i % 2) * 240, y: 340 + Math.floor(i / 2) * 100, size: 38 });
+      put(c, { o: 0, s: .6 });
+      tw(c, { o: 1, s: 1 }, i ? at[i][2] + .5 : m('pair1') + .4, .5, back);
+      return c;
+    });
+    [[1, tx[0], COL.whole, -34], [3, tx[1], COL.nat, 34]].forEach(([n, x, fill, dx]) => {
+      const f = M(p, [String(n)], { x, y: ty + 66, size: 38, fill, anchor: 'middle', o: 0 });
+      tw(f, { o: 1 }, m('pair1'), .1);
+      tw(f, { x: 1040 + dx * .65, y: 353 }, m('pair1'), .9);   // into the chip (1, 3)
+      hide(f, m('pair1') + .9, .2);
+    });
+    const order = text(p, 'x first, then y', 1040, 404, m('pair1') + 9.8, { size: 28, fill: COL.chalk, anchor: 'middle', weight: 600 });
+    hide(order, m('r2') + .5, .4);
+    const extra = [[0, 4], [3, 1], [6, -2], [0.5, 3.5], [-3, 7], [10, -6]].map(([x, y], i) => {
+      const c = chip(p, [pairStr(x, y)], COL.dim, { x: 980 + (i % 3) * 180, y: 520 + Math.floor(i / 3) * 70, size: 28 });
+      put(c, { o: 0, s: .5 }); tw(c, { o: .8, s: 1 }, m('many') + 1 + i * .55, .4, back);
+      return c;
+    });
+    const more = text(p, '… and endlessly many more', 1160, 690, m('many') + 4.6, { size: 30, fill: COL.chalk, anchor: 'middle', weight: 600 });
+    pulse(S.chips[0], m('pair1') + 7.4, 1.3);   // "We write it as a pair"
+    S.unk = [lab, more, ...extra];
+  }],
+
+  ['points', 'Pairs are points', (m) => {
+    const p = S.p, sys = S.sys, { PX, PY } = sys.P;
+    S.unk.forEach(e => hide(e, .1, .4));
+    // the four pairs line up beside their rows of the table, off the plane, until each is placed
+    S.chips.forEach((c, i) => tw(c, { x: 680, y: 384 + i * 64, s: .8 }, .3, .8));
+    show(sys.stage, m('axes') - .4, .6);
+    // the origin, and where x and y are negative
+    const o = drop(sys, 0, 0, m('mid') + 1.6, COL.chalk, '(0, 0)', -82, -14);
+    const negX = G(p, { o: 0 }), negY = G(p, { o: 0 });
+    path(negX, `M${PX(0)} ${PY(0)}H${PX(-6)}`, { stroke: COL.chalk, 'stroke-width': 6 });
+    T(negX, 'x negative', { x: PX(-3.5), y: PY(0) - 16, size: 26, fill: COL.chalk, anchor: 'middle', weight: 600 });
+    path(negY, `M${PX(0)} ${PY(0)}V${PY(-6)}`, { stroke: COL.chalk, 'stroke-width': 6 });
+    T(negY, 'y negative', { x: PX(0) + 18, y: PY(-3.5), size: 26, fill: COL.chalk, weight: 600 });
+    show(negX, m('neg') + .2, .5); show(negY, m('neg') + 2.5, .5);
+    [negX, negY, o].forEach(e => hide(e, m('p1') - .4, .4));
+    // each pair flies to its place; the walk from the origin follows the words ("one step right, then three steps up")
+    const W = G(p, {});
+    [[1, 3, 'p1', 3.5, 4.6, 5.6], [2, 2, 'p2', .5, 1, 1.5], [4, 0, 'p3', 1.1, 0, 1.9], [-1, 5, 'p4', 1.8, 2.6, 3.4]].forEach(([x, y, mk_, a, b, d], i) => {
+      const t = m(mk_);
+      tw(S.chips[i], { x: PX(x) + (x < 0 ? -78 : 78), y: PY(y) - (y ? 4 : 34), s: .62 }, t, 1.1);   // (4, 0) sits above the axis
+      walk(sys, x, y, t + a, t + b, W);
+      drop(sys, x, y, t + d, COL.chalk, '');
+    });
+    hide(W, m('look'), .6);
+    show(sys.lines[0].l, m('line'), 1);
+    drop(sys, 1.5, 2.5, m('halfp'), COL.chalk, '');
+    // the numbers of the point the voice names, and then of a point running along the line, under the table
+    const hl = say(p, ['(1.5, 2.5):   1.5 + 2.5 = 4'], 90, 750, m('half') + 1.8, { size: 34, fill: COL.chalk });
+    hide(hl, m('rule') - .3, .3);
+    const probe = G(p, { o: 0 }), pr = mk('circle', { r: 12, fill: COL.chalk, stroke: COL.board, 'stroke-width': 3 }, probe);
+    const pt = T(p, '', { x: 90, y: 750, size: 34, fill: COL.chalk, font: MATH, o: 0 });
+    show(probe, m('rule') - .2, .3); show(pt, m('rule'), .3);
+    prog(q => {
+      const x = -1.5 + q * 7, y = 4 - x;
+      put(probe, { x: PX(x), y: PY(y) });
+      const rx = Math.round(x * 10) / 10, ry = Math.round(y * 10) / 10, s = `(${num(rx)}, ${num(ry)}):   ${num(rx)} + ${ry < 0 ? `(${num(ry)})` : num(ry)} = 4`;
+      if (pt.textContent !== s) pt.textContent = s;
+    }, m('rule') - .2, m('name') - m('rule') + .2, io);
+    hide(probe, m('name') + .2, .4); hide(pt, m('name') + .2, .4);
+    S.rule = G(p, { o: 0 });
+    T(S.rule, 'on the line  =  a solution', { x: 90, y: 680, size: 36, weight: 600, fill: LINE });
+    show(S.rule, m('rule'));
+    tw(sys.lines[0].l, { 'a_stroke-width': 10 }, m('name'), .35); tw(sys.lines[0].l, { 'a_stroke-width': 5 }, m('name') + .9, .6);
+    flash(sys, 'b0', m('name')); flash(sys, 'a00', m('name')); flash(sys, 'a01', m('name'));
+  }],
+
+  ['off', 'Off the line', (m) => {
+    const p = S.p, sys = S.sys;
+    hide(S.rule, .1, .4);
+    drop(sys, 3, 3, m('p'), COL.bad);
+    say(p, ['3 + 3 = 6'], 90, 680, m('sum'), { size: 38, fill: COL.bad });
+    const no = text(p, 'not 4: not a solution', 300, 680, m('no'), { size: 30, fill: COL.bad, weight: 600 });
+    sys.P.half(1, 1, 4, COL.bad, m('above'), { o: .09 });
+    text(p, 'sum too big', 1330, 200, m('above') + .3, { size: 28, fill: COL.bad, weight: 600, anchor: 'middle' });
+    drop(sys, 1, 1, m('p2'), COL.bad, '(1, 1)', 16, 30);
+    say(p, ['1 + 1 = 2'], 90, 750, m('p2') + .6, { size: 38, fill: COL.bad });
+    text(p, 'not 4 either', 300, 750, m('p2') + 1.6, { size: 30, fill: COL.bad, weight: 600 });
+    sys.P.half(-1, -1, -4, COL.chalk, m('below'), { o: .07 });
+    text(p, 'sum too small', 960, 720, m('below') + .3, { size: 28, fill: COL.dim, weight: 600, anchor: 'middle' });
+    tw(sys.lines[0].l, { 'a_stroke-width': 10 }, m('end'), .35); tw(sys.lines[0].l, { 'a_stroke-width': 5 }, m('end') + .9, .6);
+    hide(no, m('end') + 2, .5);
+  }],
+
+  ['q1', 'Quick check', () => {
+    const p = panel(0);
+    text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
+    S.sys = oneLine(p, 1, -1, 2, { hidden: true });
+  }, { ask: done => quiz(CARD, [{
+    id: 'c-point', prompt: ['Click any point that solves ', $m('x − y = 2'), '.'],
+    build: pickPoint(S.sys.P, [2, 0], (x, y) => `${pairStr(x, y)} works: ${num(x)} − ${y < 0 ? `(${num(y)})` : num(y)} = 2. Every point on the line does too.`,
+      (x, y) => `${num(x)} − ${y < 0 ? `(${num(y)})` : num(y)} = ${num(x - y)}, not 2. Try a pair where x is 2 more than y, like (3, 1).`,
+      () => fx(S.sys.lines[0].l, { o: 1 }, .3, .8), (x, y) => x - y === 2),
+  }], done) }],
+
+  ['slide', 'The right side slides it', (m) => {
+    const p = panel(0);
+    text(p, 'Change the right side', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = oneLine(p, 1, 1, 4);
+    const ghost = S.ghost = G(p, {});
+    const keep = (c, t) => { const l = sys.P.line(0, c, 1, c - 1, LINE, t, { into: ghost, dash: '10 10', w: 3 }); tw(l, { o: .35 }, t + .6, .4); };
+    keep(4, m('six'));
+    sys.to({ b0: 6 }, m('six'), 1.4); flash(sys, 'b0', m('six'));
+    const six = [drop(sys, 2, 4, m('up') + 1.4, COL.chalk, '(2, 4)', 16, -16), say(p, ['2 + 4 = 6'], 90, 330, m('up') + 1.6, { size: 38, fill: COL.chalk })];
+    six.forEach(e => hide(e, m('zero') - .3, .3));
+    keep(6, m('zero'));
+    sys.to({ b0: 0 }, m('zero'), 1.6); flash(sys, 'b0', m('zero'));
+    const zero = [drop(sys, 0, 0, m('origin') + 1.2, COL.chalk, '(0, 0)', 16, -16), say(p, ['0 + 0 = 0'], 90, 330, m('origin') + 4.4, { size: 38, fill: COL.chalk })];
+    zero.forEach(e => hide(e, m('neg') - .3, .3));
+    keep(0, m('neg'));
+    sys.to({ b0: -3 }, m('neg'), 1.4); flash(sys, 'b0', m('neg'));
+    const n = G(p, { o: 0 });
+    T(n, 'right side changes:', { x: 90, y: 460, size: 32, fill: COL.dim });
+    T(n, 'the line slides, never turns', { x: 90, y: 510, size: 36, weight: 600, fill: COL.chalk });
+    show(n, m('par'));
+    S.slideNote = n;
+  }],
+
+  ['tilt', 'The other numbers turn it', (m) => {
+    const p = S.p = panel(0);   // a fresh picture: the ghosts and notes of 'slide' go
+    text(p, 'Change the numbers in front of x and y', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = oneLine(p, 1, 1, 4);
+    sys.to({ a00: 2 }, m('two'), 1.6); flash(sys, 'a00', m('two'));
+    const old = sys.P.line(0, 4, 4, 0, LINE, m('two'), { dash: '10 10', w: 3 }); tw(old, { o: .35 }, m('two') + .6, .4);
+    // where it crosses the x axis
+    const work = G(p, {});
+    say(work, ['on the x-axis,  y = 0:'], 90, 330, m('why'), { size: 32, fill: COL.dim });
+    const w1 = say(work, ['2x = 4,   x = 2'], 90, 385, m('xa'), { size: 40 });
+    const g1 = guides(sys, 2, 0, m('cross'), p);
+    const c2 = drop(sys, 2, 0, m('cross'), COL.chalk, '(2, 0)', 44, 56);
+    const was = drop(sys, 4, 0, m('cross') + .8, COL.faint, '', 10, 36);
+    say(work, ['on the y-axis,  x = 0:'], 90, 460, m('ya'), { size: 32, fill: COL.dim });
+    say(work, ['y = 4'], 90, 515, m('ya') + 1.2, { size: 40 });
+    const same = drop(sys, 0, 4, m('four'), COL.chalk, '(0, 4)  same', 16, -10);
+    hide(same, m('minus') - .3, .4);
+    [g1, was, c2].forEach(e => hide(e, m('three') - .3, .3));
+    sys.to({ a00: 4 }, m('three'), 1.4); flash(sys, 'a00', m('three'));
+    hide(w1, m('three') - .3, .3);
+    say(work, ['4x = 4,   x = 1'], 90, 385, m('three') + 4.7, { size: 40 });
+    const c1 = drop(sys, 1, 0, m('three') + 5.6, COL.chalk, '(1, 0)', 44, 56);
+    hide(work, m('minus') - .3, .4); hide(c1, m('minus') - .3, .4);
+    sys.to({ a00: -1 }, m('minus'), 1.8); flash(sys, 'a00', m('minus'));
+    const n = G(p, { o: 0 });
+    T(n, 'right side: slides the line', { x: 90, y: 630, size: 34, weight: 600, fill: COL.chalk });
+    T(n, 'numbers in front of x, y: turn it', { x: 90, y: 682, size: 34, weight: 600, fill: COL.whole });
+    show(n, m('sum'));
+  }],
+
+  ['draw', 'Draw it from two points', (m) => {
+    const p = panel(0);
+    text(p, 'Drawing a line: find two points', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = oneLine(p, 2, 3, 6, { t0: .4, hidden: true });
+    const l = sys.lines[0].l;
+    const steps = G(p, {});
+    say(steps, ['x = 0:'], 90, 330, m('x0'), { size: 32, fill: COL.dim });
+    say(steps, ['3y = 6,'], 220, 330, m('x0') + 2.3, { size: 38 });
+    say(steps, ['y = 2'], 360, 330, m('y2'), { size: 38 });
+    drop(sys, 0, 2, m('p1'), COL.chalk, '(0, 2)', 16, -16, steps);
+    say(steps, ['y = 0:'], 90, 400, m('y0'), { size: 32, fill: COL.dim });
+    say(steps, ['2x = 6,'], 220, 400, m('y0') + 2.3, { size: 38 });
+    say(steps, ['x = 3'], 360, 400, m('x3'), { size: 38 });
+    drop(sys, 3, 0, m('p2'), COL.chalk, '(3, 0)', -14, 56, steps, 'end');
+    show(l, m('line'), .9);
+    say(steps, ['check (6, −2):'], 90, 480, m('check'), { size: 32, fill: COL.dim });
+    say(steps, ['2·6'], 90, 535, m('check') + 3, { size: 36 });
+    say(steps, ['+ 3·(−2)'], 150, 535, m('check') + 5.2, { size: 36 });
+    say(steps, ['= 12 − 6'], 300, 535, m('check') + 8, { size: 36 });
+    say(steps, ['= 6  ✓'], 455, 535, m('check') + 10.6, { size: 36, fill: COL.good });
+    drop(sys, 6, -2, m('check') + 1, COL.good, '(6, −2)', -96, 10, steps);
+    // second example: the same plane, a new equation
+    hide(steps, m('ex2') - .5, .4);
+    hide(l, m('ex2') - .5, .3);
+    sys.to({ a00: 1, a01: -2, b0: 4 }, m('ex2'), .1);
+    const s2 = G(p, {});
+    say(s2, ['x = 0:'], 90, 330, m('a'), { size: 32, fill: COL.dim });
+    say(s2, ['−2y = 4,'], 220, 330, m('a') + .9, { size: 38 });
+    say(s2, ['y = −2'], 385, 330, m('a') + 3.5, { size: 38 });
+    drop(sys, 0, -2, m('a') + 4, COL.chalk, '(0, −2)', 16, 34, s2);
+    say(s2, ['y = 0:'], 90, 400, m('b'), { size: 32, fill: COL.dim });
+    say(s2, ['x = 4'], 220, 400, m('b') + 1.4, { size: 38 });
+    drop(sys, 4, 0, m('b') + 2, COL.chalk, '(4, 0)', 14, 56, s2);
+    show(l, m('line2'), .9);
+  }],
+
+  ['q2', 'Quick check', () => {
+    const p = panel(0);
+    text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
+    S.sys = oneLine(p, 3, 2, 6, { hidden: true });   // drawn once both crossings are found, so the picture does not give them away
+    S.found = 0;
+  }, { ask: done => quiz(CARD, [{
+    id: 'c-cross', prompt: ['Where does ', $m('3x + 2y = 6'), ' cross the axes?'],
+    build: blanks([
+      { parts: ['x-axis (y = 0):   (', { box: '2' }, ', 0)'], why: 'y = 0 gives 3x = 6, so x = 2.', hint: 'On the x-axis y = 0. Then 3x = 6.',
+        fx: () => { S.sys.P.dot(2, 0, COL.good, 0, { run: fx }); if (++S.found === 2) fx(S.sys.lines[0].l, { o: 1 }, .3, .8); } },
+      { parts: ['y-axis (x = 0):   (0, ', { box: '3' }, ')'], why: 'x = 0 gives 2y = 6, so y = 3.', hint: 'On the y-axis x = 0. Then 2y = 6.',
+        fx: () => { S.sys.P.dot(0, 3, COL.good, 0, { run: fx }); if (++S.found === 2) fx(S.sys.lines[0].l, { o: 1 }, .3, .8); } },
+    ]),
+  }], done) }],
+
+  ['origin', 'When the right side is zero', (m) => {
+    const p = panel(0);
+    text(p, 'When the right side is zero', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = oneLine(p, 2, -1, 0, { t0: m('eq') - .3, hidden: true });
+    say(p, ['x = 0:'], 90, 330, m('x0'), { size: 32, fill: COL.dim });
+    say(p, ['−y = 0,   y = 0'], 220, 330, m('x0') + 1, { size: 38 });
+    say(p, ['y = 0:'], 90, 400, m('y0'), { size: 32, fill: COL.dim });
+    say(p, ['2x = 0,   x = 0'], 220, 400, m('y0') + 1, { size: 38 });
+    const o = drop(sys, 0, 0, m('x0') + 2, COL.chalk, '(0, 0)', -82, -14).firstChild;
+    pulse(o, m('same')); pulse(o, m('same') + 1.2);
+    text(p, 'the same point twice: not enough for a line', 90, 470, m('same') + .6, { size: 30, fill: COL.bad, weight: 600 });
+    say(p, ['x = 1:'], 90, 550, m('x1'), { size: 32, fill: COL.dim });
+    say(p, ['2 − y = 0,   y = 2'], 220, 550, m('x1') + 2, { size: 38 });
+    drop(sys, 1, 2, m('p'), COL.chalk, '(1, 2)', 18, 10);
+    show(sys.lines[0].l, m('line'), .9);
+    const n = G(p, { o: 0 });
+    T(n, 'right side 0  →  the line passes through (0, 0)', { x: 90, y: 650, size: 32, weight: 600, fill: COL.chalk });
+    show(n, m('note'));
+  }],
+
+  ['flat', 'A missing letter', (m) => {
+    const p = panel(0);
+    text(p, 'When a letter is missing', 60, 110, .2, { size: 40, weight: 600 });
+    const big = say(p, ['y = 2'], 90, 330, m('eq1') - .2, { size: 54 });
+    const sys = S.sys = oneLine(p, 0, 1, 2, { t0: m('zero') - .2, hidden: true });
+    flash(sys, 'a00', m('zero') + .4);
+    const l = sys.lines[0].l;
+    // "x can be anything, and y must be two": points at height 2, then the line through all of them
+    const hd = G(p, {});
+    [-3, 0, 3].forEach((x, i) => drop(sys, x, 2, m('zero') + 3 + i * .35, COL.chalk, '', 0, 0, hd));
+    const fr = text(p, 'x is free,  y must be 2', 90, 400, m('zero') + 3, { size: 32, fill: COL.chalk, weight: 600 });
+    show(l, m('h') + .6, .9);
+    [big, hd, fr, l].forEach(e => hide(e, m('eq2') - .3, .3));
+    // x = 3: a new equation, not a turn of the old line, so it is set while the line is away
+    const big2 = say(p, ['x = 3'], 90, 330, m('eq2'), { size: 54 });
+    sys.to({ a00: 1, a01: 0, b0: 3 }, m('eq2') + 1.4, .05);
+    flash(sys, 'a01', m('eq2') + 2.6);
+    const vd = G(p, {});
+    [-3, 0, 3].forEach((y, i) => drop(sys, 3, y, m('v') + .1 + i * .35, COL.chalk, '', 0, 0, vd));
+    text(p, 'y is free,  x must be 3', 90, 400, m('v') + .1, { size: 32, fill: COL.chalk, weight: 600 });
+    show(l, m('v') + 2.7, .9);
+    text(p, '0 in front of a letter  =  that letter is free', 90, 690, m('sum'), { size: 32, weight: 600 });
+  }],
+
+  ['q3', 'Your turn', () => {
+    const p = panel(0);
+    text(p, 'Your turn', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = oneLine(p, 1, 2, 2);
+    drop(sys, 0, 3, .5, COL.task); drop(sys, 3, 0, .7, COL.task, '(3, 0)', -14, 56, undefined, 'end');
+  }, { ask: done => quiz(CARD, [{
+    id: 'c-make', prompt: ['Make the line pass through ', $m('(0, 3)'), ' and ', $m('(3, 0)'), '. Drag a number sideways, drag the line to slide it, or drag one of its dots to turn it.'],
+    build: lsTask(S.sys, v => (v.a00 || v.a01) && v.a01 * 3 === v.b0 && v.a00 * 3 === v.b0,
+      'x + y = 3 (or any multiple, like 2x + 2y = 6): both points add up to 3.',
+      'Put each point into your equation. Both must give the right side exactly. Try equal numbers in front of x and y.',
+      () => S.sys.set({ a00: 1, a01: 1, b0: 3 })),
+  }], done) }],
+
+  ['wrap', 'Summary', (m) => {
+    const p = panel(0);
+    [['An equation in x and y has many solutions: pairs (x, y).', 'w1'], ['Drawn as points, the solutions make a straight line.', 'w2'],
+     ['The right side slides the line; the numbers in front of x and y turn it.', 'w3'], ['To draw it: set x = 0, then y = 0, and connect the points.', 'w4']].forEach(([str, mark], i) => {
+      const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
+      mk('circle', { cx: 150, cy: -12, r: 26, fill: COL.chalk }, g);
+      T(g, String(i + 1), { x: 150, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+      T(g, str, { x: 210, size: 36, weight: 600 });
+      tw(g, { o: 1, x: 0 }, m(mark), .6);
+    });
+  }],
+  ['final1', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-sol', prompt: ['Is the point a solution? Put x and y into the equation and check.'],
+    build: grid(SOLQ, YN, { multi: false, text: true }),
+  }], done, 'Chapter practice · set 1 of 4') }],
+  ['final2', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
+    id: 'p-miss', prompt: ['Find the missing number so that the pair is a solution.'],
+    build: blanks(MISSQ),
+  }], done, 'Chapter practice · set 2 of 4') }],
+  ['final3', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
+    id: 'p-cross', prompt: ['Where does each line cross the axes?'],
+    build: blanks(CROSSQ),
+  }, {
+    id: 'p-turn', prompt: ['Does the change slide the line or turn it?'],
+    build: grid(TURNQ, [['s', 'Slides', COL.chalk, 'S'], ['t', 'Turns', COL.whole, 'T']], { multi: false, text: true }),
+  }], done, 'Chapter practice · set 3 of 4') }],
+  ['final4', 'Chapter practice', () => {
+    const p = panel(0);
+    text(p, 'Make the line', 60, 110, .2, { size: 40, weight: 600 });
+    S.sys = oneLine(p, 1, 1, 1);
+  }, { ask: done => quiz(CARD, [{
+    id: 'p-flat', prompt: ['Make a flat line through every point at height ', $m('y = −2'), '.'],
+    build: lsTask(S.sys, v => v.a00 === 0 && v.a01 !== 0 && v.b0 === -2 * v.a01, 'y = −2: a 0 in front of x leaves x free.',
+      'Put 0 in front of x. Then make the right side say y = −2.', () => S.sys.set({ a00: 0, a01: 1, b0: -2 })),
+  }, {
+    id: 'p-thru', prompt: ['Make a line through ', $m('(0, 0)'), ' and ', $m('(2, 1)'), '.'],
+    build: (body, api) => { targets([[0, 0, -82, -14], [2, 1]]); return lsTask(S.sys, v => (v.a00 || v.a01) && v.b0 === 0 && 2 * v.a00 + v.a01 === 0, 'x − 2y = 0: (2, 1) gives 2 − 2 = 0.',
+      'Through (0, 0) means the right side is 0. Then (2, 1) must give 0 too.', () => S.sys.set({ a00: 1, a01: -2, b0: 0 }))(body, api); },
+  }, {
+    id: 'p-int', prompt: ['Make a line that crosses the x\u2011axis at ', $m('(3, 0)'), ' and the y\u2011axis at ', $m('(0, −1)'), '.'],   // no break inside "y-axis"
+    build: (body, api) => { targets([[3, 0, 14, 56], [0, -1, 16, 34]]); return lsTask(S.sys, v => v.b0 !== 0 && 3 * v.a00 === v.b0 && -v.a01 === v.b0, 'x − 3y = 3: (3, 0) gives 3, and (0, −1) gives 3.',
+      'Both points must give the same right side. (3, 0) gives 3 times the x number; (0, −1) gives minus the y number.', () => S.sys.set({ a00: 1, a01: -3, b0: 3 }))(body, api); },
+  }], done, 'Chapter practice · set 4 of 4') }],
+  ['play', 'Playground', (m) => {
+    const p = panel(0);
+    text(p, 'Playground', 60, 110, .2, { size: 40, weight: 600 });
+    S.sys = oneLine(p, 2, -1, 0);
+    const hint = text(p, 'try: make it flat, make it pass through (0, 0), make it steep', 90, 330, m('go'), { size: 28, fill: COL.dim });
+    hide(hint, m('go') + 6, .6);
+  }, { ask: playAsk(() => S.sys, { tip: 'Your line. Change any number, slide the line, turn it by its dots, or draw on the board. Nothing is marked.' }) }],
+  ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+boot();
+</script>
+</body>
+</html>

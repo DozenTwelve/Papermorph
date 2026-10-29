@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Three Unknowns: A Plane in Space</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render"><!-- hold the first frame until the player exists, so the page transition can run -->
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/math.js"></script>
+<script src="../lib/linsys.js"></script>
+<script src="../lib/space3.js"></script>
+<script src="../lib/play.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 11, title: 'Three Unknowns: A Plane in Space', minutes: 12, language: 'en' , next: '../ch12/' };
+
+/* ---------- chapter drawing helpers ---------- */
+const BLUE = S3_ROW[0];                                         // the one equation's plane: blue, as row 1 everywhere in the book
+const AXC = [COL.whole, COL.nat, COL.int];                      // the steps along x, y, z (as chapter 1's walk: x blue, y coral)
+const VIEW = { yaw: 30, pitch: 24 };                            // x runs right and back, y left and back, z up: the origin's corner faces us
+const CARD = { x: 40, y: 290, w: 720, cls: 'side' };            // question card under the one equation, beside the space
+const say = (p, parts, x, y, t0, { size = 40, fill = COL.chalk, anchor = 'start' } = {}) => { const e = M(p, [].concat(parts), { x, y, size, fill, anchor, o: 0 }); show(e, t0); return e; };
+const text = (p, str, x, y, t0, { size = 30, fill = COL.chalk, anchor = 'start', weight = 500 } = {}) => { const e = T(p, str, { x, y, size, fill, anchor, weight, o: 0 }); show(e, t0); return e; };
+const r1 = n => Math.round(n * 10) / 10;
+const tri = q => `(${q.map(c => num(r1(c))).join(', ')})`;
+// One equation a·x + b·y + c·z = d, top left, and its plane in space on the right.
+const onePlane = (p, a, b, c, d, { t0 = .1, view = VIEW } = {}) => lin3(p, { rows: 1, A: [[a, b, c], [0, 0, 0], [0, 0, 0]], b: [d, 0, 0], eq: [90, 200], size: 50, space: { ...view }, t0 });
+const flash = (sys, key, t0) => sys.num(key).forEach(e => { tw(e, { c_fill: COL.task }, t0, .25); tw(e, { c_fill: COL.chalk }, t0 + 1.2, .6); });
+const glowPl = (pl, t0) => { prog(q => pl.width(3 + 5 * Math.sin(Math.PI * q)), t0, 1.2, lin); };
+// Chalk dots where the plane crosses the three axes, following the numbers; labels keep tick numbers away.
+const crossings = (sys, t0 = 0, { labels = true } = {}) => {
+  const V = sys.space, g = G(V.content, { o: 0 });
+  const dots = [0, 1, 2].map(() => V.point(null, { color: COL.chalk, r: 8, size: 24, into: g }));
+  sys.onChange(v => [0, 1, 2].forEach(j => {
+    const a = v[`a0${j}`], c = Math.abs(a) > 1e-6 ? v.b0 / a : null, ok = c !== null && Math.abs(c) <= V.R + 1e-6, q = [0, 0, 0];
+    if (ok) q[j] = c;
+    dots[j].set(ok ? q : null);
+    if (ok && labels) dots[j].label(tri(q));
+  }));
+  V.avoid(proj => dots.filter(d => d.pos && labels).flatMap(d => { const q = proj(d.pos); return [[q[0] + 30, q[1] - 22], [q[0] + 75, q[1] - 22]]; }));
+  show(g, t0, .4);
+  return g;
+};
+const legend = (p, t0s, y0 = 610) => [['x', 'to the right'], ['y', 'away from you'], ['z', 'up']].map(([n, s], j) => {
+  const g = G(p, { o: 0 });
+  M(g, [n], { x: 90, y: y0 + j * 52, size: 36, fill: AXC[j], anchor: 'start' });
+  T(g, s, { x: 130, y: y0 + j * 52, size: 28, fill: COL.dim });
+  show(g, t0s[j]);
+  return g;
+});
+
+/* ---------- practice data ---------- */
+const YN = [['y', 'Yes', null, 'Y'], ['n', 'No', null, 'N']];
+const ONQ = [
+  { parts: ['Is ', $m('(4, 0, 0)'), ' on ', $m('x + 2y − z = 4'), '?'], ans: ['y'], why: '4 + 0 − 0 = 4. Yes: it is where the plane crosses the x-axis.' },
+  { parts: ['Is ', $m('(1, 1, −1)'), ' on ', $m('x + 2y − z = 4'), '?'], ans: ['y'], why: '1 + 2 − (−1) = 1 + 2 + 1 = 4. Yes.' },
+  { parts: ['Is ', $m('(2, 1, 1)'), ' on ', $m('x + 2y − z = 4'), '?'], ans: ['n'], why: '2 + 2 − 1 = 3, not 4.' },
+  { parts: ['Is ', $m('(0, 0, 4)'), ' on ', $m('x + 2y − z = 4'), '?'], ans: ['n'], why: '0 + 0 − 4 = −4, not 4. Watch the minus in front of z.' },
+  { parts: ['Is ', $m('(3, 1, 1)'), ' on ', $m('x + 2y − z = 4'), '?'], ans: ['y'], why: '3 + 2 − 1 = 4. Yes.' },
+  { parts: ['Is ', $m('(1, 2, 0)'), ' on ', $m('x + 2y − z = 4'), '?'], ans: ['n'], why: '1 + 4 − 0 = 5, not 4. Order matters: the second number is y, and y is doubled.' },
+];
+const MISSQ = [
+  { parts: ['x + y + z = 5,   x = 1,  y = 3:      z = ', { box: '1' }], why: '1 + 3 + z = 5, so z = 1.', hint: 'Put in x = 1 and y = 3: 4 + z = 5.' },
+  { parts: ['2x + y + z = 6,   y = 0,  z = 0:      x = ', { box: '3' }], why: '2x = 6, so x = 3.', hint: 'With y and z both 0, only 2x is left: 2x = 6.' },
+  { parts: ['x − y + z = 2,   x = 4,  z = 0:      y = ', { box: '2' }], why: '4 − y + 0 = 2, so y = 2.', hint: '4 − y = 2. What do you take away from 4 to leave 2?' },
+  { parts: ['x + 2y + 3z = 6,   x = 0,  y = 0:      z = ', { box: '2' }], why: '3z = 6, so z = 2.', hint: 'Only 3z is left: 3z = 6.' },
+  { parts: ['x + y − z = 0,   x = 2,  y = 1:      z = ', { box: '3' }], why: '2 + 1 − z = 0, so z = 3.', hint: '3 − z = 0. What must z be?' },
+  { parts: ['3x − y + 2z = 1,   x = 1,  z = −1:      y = ', { box: '0' }], why: '3 − y − 2 = 1, so 1 − y = 1 and y = 0.', hint: '2 times −1 is −2. Then 3 − y − 2 = 1.' },
+];
+const CROSSQ = [
+  { parts: ['2x + y + z = 4:     (', { box: '2' }, ', 0, 0),   (0, ', { box: '4' }, ', 0),   (0, 0, ', { box: '4' }, ')'], why: '2x = 4 gives x = 2;  y = 4;  z = 4.', hint: 'On each axis the other two letters are 0. On the x-axis: 2x = 4.' },
+  { parts: ['x + 3y + 3z = 3:     (', { box: '3' }, ', 0, 0),   (0, ', { box: '1' }, ', 0),   (0, 0, ', { box: '1' }, ')'], why: 'x = 3;  3y = 3 gives y = 1;  3z = 3 gives z = 1.', hint: 'On the y-axis, x and z are 0: 3y = 3.' },
+  { parts: ['−x + 2y + z = 2:     (', { box: '-2' }, ', 0, 0),   (0, ', { box: '1' }, ', 0),   (0, 0, ', { box: '2' }, ')'], why: '−x = 2 gives x = −2;  2y = 2 gives y = 1;  z = 2.', hint: 'On the x-axis: −x = 2. So x is negative.' },
+];
+const KINDQ = [
+  { parts: [$m('z = −1')], ans: ['f'], why: 'Only z is there: x and y are free. A floor at height −1.' },
+  { parts: [$m('x = 2')], ans: ['w'], why: 'z is missing, so z is free: the plane stands upright.' },
+  { parts: [$m('x + y = 1')], ans: ['w'], why: 'No z: it is the floor line x + y = 1, stood up into a wall.' },
+  { parts: [$m('x + z = 2')], ans: ['t'], why: 'z is there, and so is x: the plane leans, like a ramp. (It runs along y, the missing letter.)' },
+  { parts: [$m('2z = 6')], ans: ['f'], why: 'Only z: z = 3, a floor at height 3.' },
+  { parts: [$m('y − 2z = 0')], ans: ['t'], why: 'Both y and z are there: a tilted plane, running along x.' },
+];
+const KINDS = [['f', 'Floor', null, 'F'], ['w', 'Wall', null, 'W'], ['t', 'Tilted', null, 'T']];
+
+/* ---------- beats: [id, title, run(m, D), { ask }?] ---------- */
+const BEATS = [
+  ['intro', 'Three unknowns: a plane in space', (m, D) => {
+    const g = G(scene, { o: 0, y: 24 });
+    T(g, 'Unit 1, Chapter 11', { x: 800, y: 320, size: 28, fill: COL.dim, anchor: 'middle' });
+    T(g, 'Three Unknowns: A Plane in Space', { x: 800, y: 430, size: 80, weight: 600, anchor: 'middle' });
+    tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+    const r = text(scene, 'one equation in x, y and z is a flat sheet in space', 800, 560, m('sub'), { size: 36, fill: COL.dim, anchor: 'middle' });
+    // a line (two unknowns) that opens into a tilted sheet (three)
+    const lg = G(scene, { x: 800, y: 690, o: 0 }), sh = path(lg, '', { stroke: BLUE, 'stroke-width': 5, fill: BLUE, 'fill-opacity': .22, 'stroke-linejoin': 'round' });
+    const sheet = q => { const w = 160, h = 70 * q, sk = 60 * q; return `M${-w + sk} ${-h}L${w + sk} ${-h}L${w - sk} ${h}L${-w - sk} ${h}Z`; };
+    sh.setAttribute('d', sheet(0));
+    show(lg, m('sub') + 1.5, .4); tw(lg, { r: 8 }, m('sub') + 1.5, m('move') - m('sub') - 1, soft);
+    prog(q => sh.setAttribute('d', sheet(q)), m('move') + .6, 1.4, io);
+    tw(lg, { r: -8 }, m('move') + 2, 2.2, soft);
+    tw(g, { o: 0, y: -24 }, D - .9, .8); hide(r, D - .9, .8); hide(lg, D - .9, .8);
+  }],
+
+  ['third', 'A third unknown', (m) => {
+    const p = S.p = panel(0);
+    text(p, 'One equation, three unknowns', 60, 110, .2, { size: 40, weight: 600 });
+    const recap = G(p, {});
+    say(recap, ['x + y = 4'], 90, 200, m('r0'), { size: 34, fill: COL.dim });
+    say(recap, ['→  pairs  (1, 3), (2, 2), (4, 0) …'], 250, 200, m('rp'), { size: 34, fill: COL.dim });
+    const rl = G(recap, { x: 300, y: 280 });
+    const ld = path(rl, 'M-180 60L180 -60', { stroke: COL.whole, 'stroke-width': 5, 'stroke-linecap': 'round' }, { d: 0 });
+    draw(ld, m('rl'), 1);
+    [-120, -40, 40, 120].forEach((x, i) => { const c = mk('circle', { cx: x, cy: -x / 3, r: 8, fill: COL.chalk }, rl); put(c, { o: 0 }); show(c, m('rp') + .4 + i * .3, .3); });
+    say(recap, ['→  a line'], 520, 290, m('rl') + .3, { size: 34, fill: COL.whole });
+    hide(recap, m('eq') - .4, .4);
+    say(p, ['x + y + z = 3'], 90, 200, m('eq'), { size: 54, fill: BLUE });
+    const un = G(p, {});
+    text(un, 'three unknowns:', 420, 196, m('eq') + 2.2, { size: 28, fill: COL.dim });
+    ['x', 'y', 'z'].forEach((n, j) => { const e = say(un, [n], 668 + j * 44, 198, m('eq') + 2.8 + j * .5, { size: 36, fill: AXC[j], anchor: 'middle' }); pulse(e, m('eq') + 2.8 + j * .5); });
+    hide(un, m('q') + 2, .5);
+    const q = text(p, 'a solution gives a number to each letter', 90, 254, m('q'), { size: 28, fill: COL.dim });
+    hide(q, m('x1') - .4, .4);
+    const tx = [130, 230, 330, 500], ty = 300, rh = 64;
+    const head = G(p, { o: 0 });
+    ['x', 'y', 'z', 'x + y + z'].forEach((h, j) => M(head, [h], { x: tx[j], y: ty, size: 34, fill: j < 3 ? AXC[j] : COL.dim, anchor: 'middle' }));
+    path(head, `M70 ${ty + 18}H660`, { stroke: COL.faint, 'stroke-width': 2 });
+    show(head, m('q'));
+    const qs = G(p, {});
+    [0, 1, 2].forEach(j => { const e = M(qs, ['?'], { x: tx[j], y: ty + 66, size: 38, fill: COL.dim, anchor: 'middle', o: 0 }); show(e, m('q') + .5 + j * .3, .3); pulse(e, m('q') + 2 + j * .4); });
+    hide(qs, m('x1') - .2, .2);
+    const rows = [[1, 1, 1], [3, 0, 0], [0, 2, 1], [2, 2, -1]];
+    const at = [[m('x1'), m('x1') + .8, m('z1'), m('ok1')], ...[m('r2'), m('r3'), m('r4')].map(t => [t, t + .5, t + 1, t + 2])];
+    rows.forEach((r, i) => {
+      const yy = ty + 66 + i * rh;
+      r.forEach((c, j) => say(p, [num(c)], tx[j], yy, at[i][j], { size: 38, anchor: 'middle', fill: AXC[j] }));
+      say(p, [`${r.map((c, j) => j && c < 0 ? `(${num(c)})` : num(c)).join(' + ')} = 3`], tx[3], yy, at[i][3], { size: 32, anchor: 'middle' });
+      if (!i) { const w = say(p, ['1 + 1 + z = 3'], tx[3], yy, m('x1') + 3.2, { size: 32, anchor: 'middle', fill: COL.dim }); hide(w, at[0][3] - .2, .2); }
+      text(p, '✓', 640, yy, at[i][3] + .3, { size: 34, fill: COL.good, anchor: 'middle', weight: 700 });
+    });
+    // while the first row is worked out, its triple builds large on the right: x, then y, then the z it forces
+    const big = G(p, {}), bigX = [1035, 1085, 1120, 1170, 1205, 1255, 1295];
+    ['(', '1', ',', '1', ',', '', ')'].forEach((c, k) => { if (c) say(big, [c], bigX[k], 420, k === 1 ? m('x1') : k === 3 ? m('x1') + .8 : m('x1'), { size: 72, fill: k % 2 ? AXC[(k - 1) / 2] : COL.chalk, anchor: 'middle' }); });
+    const zq = say(big, ['?'], bigX[5], 420, m('x1') + 1.2, { size: 72, fill: COL.dim, anchor: 'middle' }); hide(zq, m('z1') + .2, .3);
+    say(big, ['1'], bigX[5], 420, m('z1') + .3, { size: 72, fill: AXC[2], anchor: 'middle' });
+    hide(big, m('tri') - .4, .4);
+    text(p, 'solutions: triples', 1160, 250, m('tri') - .3, { size: 30, fill: COL.dim, anchor: 'middle' });
+    // each row's numbers fly into its chip as the row is checked
+    rows.forEach((r, i) => r.forEach((c, j) => {
+      const t = i ? at[i][3] + .2 : m('tri'), cx_ = 1030 + (i % 2) * 260, cy_ = 343 + Math.floor(i / 2) * 100;
+      const f = M(p, [num(c)], { x: tx[j], y: ty + 66 + i * rh, size: 38, fill: AXC[j], anchor: 'middle', o: 0 });
+      tw(f, { o: 1 }, t, .1); tw(f, { x: cx_ + (j - 1) * 34, y: cy_ }, t + .1 * j, .9); hide(f, t + 1.1, .2);
+    }));
+    rows.forEach((r, i) => {
+      const c = chip(p, [tri(r)], COL.chalk, { x: 1030 + (i % 2) * 260, y: 330 + Math.floor(i / 2) * 100, size: 38 });
+      put(c, { o: 0, s: .6 });
+      tw(c, { o: 1, s: 1 }, (i ? at[i][3] + .2 : m('tri')) + 1.1, .5, back);
+    });
+    text(p, 'x first, then y, then z', 1160, 486, m('tri') + 3, { size: 24, fill: COL.dim, anchor: 'middle' });
+    const tl = text(p, 'a triple', 1030, 400, m('r2') - 2.2, { size: 26, fill: COL.chalk, anchor: 'middle', weight: 600 });
+    hide(tl, m('r2') + 1.5, .4);
+    [[0, 0, 1], [1, 0, 2], [3, 1, -1], [5, -1, -1], [-1, 2, 2], [4, -2, 1]].forEach((r, i) => {
+      const c = chip(p, [tri(r)], COL.dim, { x: 990 + (i % 3) * 190, y: 580 + Math.floor(i / 3) * 66, size: 26 });
+      put(c, { o: 0, s: .5 }); tw(c, { o: .8, s: 1 }, m('many') + .6 + i * .45, .4, back);
+    });
+    text(p, '… and endlessly many more', 1180, 730, m('many') + 3.6, { size: 30, fill: COL.chalk, anchor: 'middle', weight: 600 });
+    text(p, 'a pair is a point on a flat plane. A triple?', 1180, 805, m('many') + 7, { size: 30, fill: COL.chalk, anchor: 'middle', weight: 600 });
+  }],
+
+  ['space', 'Space has three directions', (m) => {
+    const p = panel(0);
+    text(p, 'A third direction: up', 60, 110, .2, { size: 40, weight: 600 });
+    const V = S.V = space3(p, { yaw: 0, pitch: 90, t0: .1 });
+    put(V.axes[2], { o: 0 }); put(V.cube, { o: 0 });
+    V.poly([[-4, -4, 0], [4, -4, 0], [4, 4, 0], [-4, 4, 0]], { color: COL.chalk, fo: .06, w: 0 });   // the sheet of paper that is laid down
+    const pt = V.point([2, 1, 0], { color: COL.chalk, label: '(2, 1)' });
+    // the walk of chapter 1, on the flat plane seen from above
+    V.walk([2, 1, 0], m('pt'), { dur: 1.4, dot: false, w: 4 });
+    const p2 = say(p, ['(2, 1)'], 90, 210, m('pt') + .6, { size: 46, fill: COL.chalk });
+    hide(p2, m('floor') + .3, .3); say(p, ['(2, 1, 0)'], 90, 210, m('floor') + .5, { size: 46, fill: COL.chalk });
+    put(pt.e, { o: 0 }); show(pt.e, m('pt') + 1.3, .3);
+    [[0, 'xr'], [1, 'yu']].forEach(([j, mk_]) => {
+      const a = V.line(null, null, { color: AXC[j], w: 7, into: V.content, head: true }), e = [0, 0, 0];
+      prog(q => { e[j] = 4.6 * q; a.set([0, 0, 0], [...e]); }, m(mk_), .9, io);
+      tw(a.e, { o: 0 }, m(mk_) + 1.6, .5);
+    });
+    V.turn({ pitch: VIEW.pitch, yaw: VIEW.yaw }, m('lay'), 2.6);   // straight from above to the chapter's view: y and z never overlap on screen
+    const yl = V.line(null, null, { color: AXC[1], w: 7, into: V.content, head: true });
+    prog(q => yl.set([0, 0, 0], [0, 4.6 * q, 0]), m('back'), 1, io);
+    tw(yl.e, { o: 0 }, m('up') + 2, .6);
+    show(V.axes[2], m('up'), .5); show(V.cube, m('up') + .4, .8);
+    const zl = V.line(null, null, { color: AXC[2], w: 7, into: V.content, head: true });
+    prog(q => zl.set([0, 0, 0], [0, 0, 4.6 * q]), m('up'), 1.1, io);
+    tw(zl.e, { o: 0 }, m('floor') + 1.5, .6);
+    legend(p, [m('lay') + 1.4, m('back'), m('up')], 330);
+    const fl = G(p, { o: 0 });
+    T(fl, 'the floor:  z = 0', { x: 90, y: 540, size: 34, weight: 600, fill: COL.chalk });
+    show(fl, m('floor'));
+    tw(V.floor, { 'a_stroke-opacity': .35 }, m('floor'), .4); tw(V.floor, { 'a_stroke-opacity': .09 }, m('floor') + 1.4, .8);
+    prog(() => { pt.label('(2, 1, 0)'); }, m('floor') + .5, 0, lin);
+    V.sway(4, 9, m('lay') + 2.6);
+    V.turn({ yaw: VIEW.yaw - 15, pitch: VIEW.pitch }, m('turn'), 3.2);   // not below 15: y would run up the z axis
+    V.turn({ yaw: VIEW.yaw + 20 }, m('turn') + 3.2, 3.6);
+    V.turn({ yaw: VIEW.yaw }, m('turn') + 6.8, 2.4);
+  }],
+
+  ['point', 'Finding a point in space', (m) => {
+    const p = panel(0);
+    text(p, 'A point in space: three numbers', 60, 110, .2, { size: 40, weight: 600 });
+    const V = space3(p, { ...VIEW, t0: .1 });
+    V.sway(5, 11);
+    const c1 = say(p, ['(2, 1, 3)'], 90, 210, .4, { size: 54, fill: COL.chalk });
+    const O = V.point(null, { color: COL.chalk, r: 7 });
+    prog(() => O.set([0, 0, 0]), m('o'), 0, lin); pulse(O.e, m('o'));
+    const w1 = V.walk([2, 1, 3], 0, { at: [m('x'), m('y'), m('z')], dur: 3, label: '(2, 1, 3)', color: COL.chalk, w: 8 });
+    const steps = [['2', 'steps along x'], ['1', 'step along y, away'], ['3', 'steps up']];
+    const st1 = G(p, {});
+    steps.forEach(([n, s], j) => { say(st1, [n], 110, 300 + j * 56, m(['x', 'y', 'z'][j]), { size: 40, fill: AXC[j], anchor: 'middle' }); text(st1, s, 150, 300 + j * 56, m(['x', 'y', 'z'][j]) + .2, { size: 28, fill: COL.dim }); });
+    const shd = V.point(null, { color: COL.dim, r: 7, label: '(2, 1, 0)', size: 22, dy: 26 });
+    prog(() => shd.set([2, 1, 0]), m('shadow'), 0, lin);
+    const sn = text(p, 'its shadow on the floor: (2, 1, 0)', 90, 500, m('shadow') + .4, { size: 28, fill: COL.dim });
+    pulse(w1.dot.e, m('here'));
+    V.turn({ yaw: VIEW.yaw + 55, pitch: 12 }, m('turn'), 3);
+    V.turn({ yaw: VIEW.yaw - 10, pitch: VIEW.pitch }, m('ex2') - .2, 2.2);
+    [st1, sn].forEach(e => hide(e, m('ex2') - .4, .4));
+    tw(w1.dot.e, { o: .5 }, m('ex2'), .4); tw(c1, { o: .5 }, m('ex2'), .4);   // the first point steps back for the second
+    say(p, ['(−1, 2, −2)'], 360, 210, m('ex2'), { size: 54, fill: COL.chalk });
+    const w2 = V.walk([-1, 2, -2], 0, { at: [m('x2'), m('y2'), m('z2')], dur: 3, label: '(−1, 2, −2)', color: COL.chalk, w: 8 });
+    const steps2 = [['−1', 'step along x: to the left'], ['2', 'steps along y, away'], ['−2', 'steps: down, below the floor']];
+    steps2.forEach(([n, s], j) => { say(p, [n], 110, 300 + j * 56, m(['x2', 'y2', 'z2'][j]), { size: 40, fill: AXC[j], anchor: 'middle' }); text(p, s, 150, 300 + j * 56, m(['x2', 'y2', 'z2'][j]) + .2, { size: 28, fill: COL.dim }); });
+    pulse(w2.dot.e, m('here2'));
+    text(p, 'one triple  =  one point in space', 90, 560, m('here2'), { size: 34, weight: 600, fill: COL.chalk });
+    V.sway(8, 12, m('here2'));
+  }],
+
+  ['cloud', 'The solutions make a plane', (m) => {
+    const p = panel(0);
+    text(p, 'The solutions make a flat sheet', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = onePlane(p, 1, 1, 1, 3);
+    const V = sys.space, pl = sys.planes[0];
+    V.sway(5, 12);
+    pl.fade(0, 0, 0); pl.fade(1, m('plane') + .3, 1.2);
+    const cl = G(V.content, {});
+    const sols = [[1, 1, 1, 'p1'], [3, 0, 0, 'p2'], [0, 2, 1, 'p3'], [2, 2, -1, 'p4']];
+    sols.forEach(([x, y, z, mk_]) => { const d = V.point(null, { color: COL.chalk, label: tri([x, y, z]), size: 24, into: cl }); prog(() => d.set([x, y, z]), m(mk_), 0, lin); pulse(d.e, m(mk_)); hide(d.t, m('more'), .5); });
+    [[0, 3, 0], [0, 0, 3], [2, 1, 0], [1, 0, 2], [0, 1, 2], [2, 0, 1], [1, 2, 0], [-1, 2, 2], [3, 1, -1], [1, -1, 3], [2, -1, 2], [-1, 1, 3], [4, 0, -1], [0, 4, -1]].forEach((q, i) => {
+      const d = V.point(null, { color: COL.chalk, r: 7, into: cl });
+      prog(() => d.set(q), m('more') + i * .12, 0, lin);
+    });
+    // edge-on: the view direction (sin yaw, cos yaw, −tan pitch) lies in the plane when tan pitch = sin yaw + cos yaw
+    const edge = Math.atan(Math.sin(VIEW.yaw * Math.PI / 180) + Math.cos(VIEW.yaw * Math.PI / 180)) * 180 / Math.PI;
+    V.turn({ pitch: edge }, m('edge'), 2.4);
+    const ln = text(p, 'all in one line: a flat sheet seen edge-on', 90, 330, m('line'), { size: 30, fill: COL.chalk, weight: 600 });
+    hide(ln, m('plane'), .4);
+    V.turn({ pitch: VIEW.pitch }, m('plane'), 2.4);
+    tw(cl, { o: .55 }, m('rule') - .5, .5);
+    // a probe that wanders on the plane, adding up its coordinates
+    const probe = V.point(null, { color: COL.chalk, r: 10 });
+    const sum = G(p, { o: 0 }), st_ = T(sum, '', { x: 90, y: 400, size: 36, fill: COL.chalk, font: MATH });
+    T(sum, 'on the plane  =  a solution', { x: 90, y: 470, size: 34, weight: 600, fill: BLUE });
+    show(sum, m('rule'));
+    prog(q => {
+      const a = q * Math.PI * 2, x = r1(1 + 1.6 * Math.cos(a)), y = r1(1 + 1.6 * Math.sin(a)), z = r1(3 - x - y);
+      probe.set([x, y, z]);
+      const s = `${num(x)} + ${y < 0 ? `(${num(y)})` : num(y)} + ${z < 0 ? `(${num(z)})` : num(z)} = 3`;
+      if (st_.textContent !== s) st_.textContent = s;
+    }, m('rule'), m('name') - m('rule') + 1.5, lin);
+    glowPl(pl, m('name')); flash(sys, 'b0', m('name')); ['a00', 'a01', 'a02'].forEach(k => flash(sys, k, m('name')));
+  }],
+
+  ['off', 'Off the plane', (m) => {
+    const p = panel(0);
+    text(p, 'Off the plane', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = onePlane(p, 1, 1, 1, 3);
+    const V = sys.space;
+    V.sway(5, 12);
+    const a = V.point(null, { color: COL.nat, label: '(2, 2, 2)', stem: true });
+    prog(() => a.set([2, 2, 2]), m('p'), 0, lin); pulse(a.e, m('p'));
+    say(p, ['2 + 2 + 2 = 6'], 90, 330, m('sum'), { size: 38, fill: COL.nat });
+    text(p, 'not 3: not a solution', 360, 330, m('no'), { size: 28, fill: COL.nat, weight: 600 });
+    text(p, 'above the plane: sum too big', 90, 390, m('above'), { size: 28, fill: COL.nat, weight: 600 });
+    const o = V.point(null, { color: COL.whole, label: '(0, 0, 0)', dy: 32 });
+    prog(() => o.set([0, 0, 0]), m('o'), 0, lin); pulse(o.e, m('o'));
+    say(p, ['0 + 0 + 0 = 0'], 90, 480, m('o2'), { size: 38, fill: COL.whole });
+    text(p, 'below the plane: sum too small', 90, 540, m('below'), { size: 28, fill: COL.whole, weight: 600 });
+    // turn side-on, so the plane is a line and the two points sit on either side of it
+    const edge = Math.atan(Math.sin(VIEW.yaw * Math.PI / 180) + Math.cos(VIEW.yaw * Math.PI / 180)) * 180 / Math.PI;
+    V.turn({ pitch: edge - 6 }, m('above'), 2.4);
+    V.turn({ pitch: VIEW.pitch }, m('end'), 2.4);
+    glowPl(sys.planes[0], m('end') + .4);
+  }],
+
+  ['q1', 'Quick check', () => {
+    const p = panel(0);
+    text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
+    S.sys = onePlane(p, 1, 1, 1, 3);
+    S.sys.space.sway(6, 14);
+  }, { ask: done => quiz(CARD, [{
+    id: 'c-miss', prompt: ['Find the missing number so that the point lies on ', $m('x + y + z = 3'), '.'],
+    build: blanks([
+      { parts: ['(2, 0, ', { box: '1' }, ')'], why: '2 + 0 + z = 3, so z = 1.', hint: 'Put x = 2 and y = 0 in: 2 + z = 3.',
+        fx: () => S.sys.space.point([2, 0, 1], { color: COL.good, label: '(2, 0, 1)', size: 24 }) },
+      { parts: ['(0, 4, ', { box: '-1' }, ')'], why: '0 + 4 + z = 3, so z = −1: a little below the floor.', hint: '4 + z = 3. z must be negative.',
+        fx: () => S.sys.space.point([0, 4, -1], { color: COL.good, label: '(0, 4, −1)', size: 24 }) },
+      { parts: ['(−1, ', { box: '1' }, ', 3)'], why: '−1 + y + 3 = 3, so y = 1.', hint: '−1 + 3 is 2. Then 2 + y = 3.',
+        fx: () => S.sys.space.point([-1, 1, 3], { color: COL.good, label: '(−1, 1, 3)', size: 24 }) },
+    ]),
+  }], done) }],
+
+  ['cross', 'Three points pin down a plane', (m) => {
+    const p = panel(0);
+    text(p, 'Drawing a plane: where it crosses the axes', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = onePlane(p, 1, 1, 1, 3);
+    const V = sys.space, pl = sys.planes[0];
+    V.sway(9, 16);
+    hide(sys.E, .3, 0); show(sys.E, m('eq') - .2, .5);
+    const rc = G(p, {});
+    text(rc, 'a line: 2 points', 90, 330, .5, { size: 32, fill: COL.dim });
+    text(rc, 'a plane: 3 points', 90, 390, 3.2, { size: 32, fill: BLUE, weight: 600 });
+    hide(rc, m('eq') - .4, .4);
+    pl.fade(.25, 0, 0);
+    const steps = G(p, {});
+    const cr = (lab, res, y, t, q, mk_) => {
+      say(steps, [lab], 90, y, t, { size: 30, fill: COL.dim });
+      say(steps, [res], 470, y, t + 1.2, { size: 36 });
+      const d = V.point(null, { color: COL.chalk, label: tri(q), size: 24, into: steps });
+      prog(() => d.set(q), m(mk_), 0, lin); pulse(d.e, m(mk_));
+    };
+    cr('on the x-axis, y = z = 0:', 'x = 3', 330, m('xa'), [3, 0, 0], 'px');
+    cr('on the y-axis, x = z = 0:', 'y = 3', 390, m('ya'), [0, 3, 0], 'py');
+    cr('on the z-axis, x = y = 0:', 'z = 3', 450, m('za'), [0, 0, 3], 'pz');
+    const t1 = V.poly([[3, 0, 0], [0, 3, 0], [0, 0, 3]], { color: COL.chalk, fo: .28, w: 4, into: steps });
+    tw(t1.e, { o: 0 }, 0, 0); show(t1.e, m('tri'), .8);
+    text(steps, 'the corner where x, y, z are all positive', 90, 520, m('tri') + 1.5, { size: 26, fill: COL.chalk });
+    pl.fade(.9, m('tri') + 3, 1.2);
+    hide(steps, m('ex2') - .5, .4);
+    pl.fade(.25, m('ex2') - .5, .4);
+    sys.to({ a00: 3, a01: 2, a02: 2, b0: 6 }, m('ex2'), 1.4);
+    ['a00', 'a01', 'a02', 'b0'].forEach(k => flash(sys, k, m('ex2') + .6));
+    const s2 = G(p, {});
+    const cr2 = (lab, res, y, t, q, dx, dy) => {
+      say(s2, [lab], 90, y, t, { size: 30, fill: COL.dim });
+      say(s2, [res], 470, y, t + 1.4, { size: 36 });
+      const d = V.point(null, { color: COL.irr, label: tri(q), size: 24, into: s2, dx, dy });
+      prog(() => d.set(q), t + 1.8, 0, lin); pulse(d.e, t + 1.8);
+    };
+    cr2('x-axis:  3x = 6', 'x = 2', 330, m('a'), [2, 0, 0], 14, 34);
+    cr2('y-axis:  2y = 6', 'y = 3', 390, m('b'), [0, 3, 0], -112, 30);
+    cr2('z-axis:  2z = 6', 'z = 3', 450, m('c'), [0, 0, 3], 14, -18);
+    const t2 = V.poly([[2, 0, 0], [0, 3, 0], [0, 0, 3]], { color: COL.irr, fo: .3, w: 4, into: s2 });
+    tw(t2.e, { o: 0 }, 0, 0); show(t2.e, m('tri2'), .6);
+    pl.fade(.9, m('tri2') + 1.5, 1.2);
+  }],
+
+  ['slide', 'The right side slides it', (m) => {
+    const p = panel(0);
+    text(p, 'Change the right side', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = onePlane(p, 1, 1, 1, 3);
+    const V = sys.space;
+    crossings(sys, m('three'), { labels: false });
+    const rd = G(p, { o: 0 }), rdT = T(rd, '', { x: 90, y: 400, size: 34, fill: COL.chalk, font: MATH });
+    T(rd, 'where it crosses the axes:', { x: 90, y: 350, size: 28, fill: COL.dim });
+    sys.onChange(v => { const c = r1(v.b0); const s = `(${num(c)}, 0, 0),   (0, ${num(c)}, 0),   (0, 0, ${num(c)})`; if (rdT.textContent !== s) rdT.textContent = s; });
+    show(rd, m('three'));
+    const ghost = V.poly(null, { color: BLUE, fo: 0, w: 2, into: V.content });
+    ghost.e.setAttribute('stroke-dasharray', '8 8'); ghost.e.setAttribute('stroke-opacity', .5);
+    const keep = (d, t) => prog(() => ghost.set(S3_cut(1, 1, 1, d, V.R)), t, 0, lin);
+    keep(3, m('one'));
+    sys.to({ b0: 1 }, m('one'), 1.6); flash(sys, 'b0', m('one'));
+    keep(1, m('zero'));
+    sys.to({ b0: 0 }, m('zero'), 1.4); flash(sys, 'b0', m('zero'));
+    const zz = say(p, ['0 + 0 + 0 = 0'], 90, 460, m('origin'), { size: 38, fill: COL.chalk }); hide(zz, m('neg'), .3);
+    keep(0, m('neg'));
+    sys.to({ b0: -2 }, m('neg'), 1.4); flash(sys, 'b0', m('neg'));
+    const n = G(p, { o: 0 });
+    T(n, 'right side changes:', { x: 90, y: 500, size: 32, fill: COL.dim });
+    T(n, 'the plane slides, never tilts', { x: 90, y: 550, size: 36, weight: 600, fill: COL.chalk });
+    show(n, m('par'));
+    V.sway(10, 14, 0);
+  }],
+
+  ['tilt', 'The other numbers tilt it', (m) => {
+    const p = panel(0);
+    text(p, 'Change the numbers in front of x, y, z', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = onePlane(p, 1, 1, 1, 3);
+    const V = sys.space;
+    crossings(sys, .3);
+    const old = V.poly(S3_cut(1, 1, 1, 3, V.R), { color: BLUE, fo: 0, w: 2, into: V.content });
+    old.e.setAttribute('stroke-dasharray', '8 8'); tw(old.e, { o: 0 }, 0, 0); tw(old.e, { o: .5 }, m('three') + .4, .4);
+    sys.to({ a00: 3 }, m('three'), 1.6); flash(sys, 'a00', m('three'));
+    const w = G(p, {});
+    say(w, ['on the x-axis,  y = z = 0:'], 90, 330, m('why'), { size: 30, fill: COL.dim });
+    say(w, ['3x = 3,   x = 1'], 90, 385, m('xa'), { size: 40 });
+    const hinge = V.line(null, null, { color: COL.chalk, w: 5, into: V.content });
+    prog(() => hinge.set([0, 3, 0], [0, 0, 3]), m('same'), 0, lin);
+    text(w, 'y and z crossings stay: the hinge', 90, 450, m('same') + .5, { size: 28, fill: COL.chalk, weight: 600 });
+    hide(w, m('zc') - .3, .3); hide(hinge.e, m('zc') - .3, .3);
+    sys.to({ a00: 1, a02: 3 }, m('zc'), 1.8); flash(sys, 'a00', m('zc')); flash(sys, 'a02', m('zc'));
+    const w2 = say(p, ['on the z-axis:   3z = 3,   z = 1'], 90, 385, m('zt'), { size: 36 });
+    hide(w2, m('minus') - .3, .3);
+    sys.to({ a00: -1, a02: 1 }, m('minus'), 1.8); flash(sys, 'a00', m('minus')); flash(sys, 'a02', m('minus'));
+    say(p, ['on the x-axis:   −x = 3,   x = −3'], 90, 385, m('neg'), { size: 36 });
+    const n = G(p, { o: 0 });
+    T(n, 'right side: slides the plane', { x: 90, y: 630, size: 34, weight: 600, fill: COL.chalk });
+    T(n, 'numbers in front of x, y, z: tilt it', { x: 90, y: 682, size: 34, weight: 600, fill: BLUE });
+    show(n, m('sum'));
+    V.turn({ pitch: 50 }, m('zc'), 2);                    // x + y + 3z = 3 is edge-on at pitch 24
+    V.turn({ yaw: -20, pitch: 26 }, m('minus'), 2.2);      // −x + y + z = 3 is edge-on at yaw 30
+    V.turn({ yaw: VIEW.yaw, pitch: VIEW.pitch }, m('sum') + 1, 2.4);
+    V.sway(6, 15, 0);
+  }],
+
+  ['q2', 'Quick check', () => {
+    const p = panel(0);
+    text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
+    S.sys = onePlane(p, 1, 2, 4, 4, { view: { yaw: 30, pitch: 45 } });   // at the base pitch this plane is nearly edge-on
+    S.sys.space.sway(6, 14);
+  }, { ask: done => quiz(CARD, [{
+    id: 'c-cross', prompt: ['Where does ', $m('x + 2y + 4z = 4'), ' cross the three axes?'],
+    build: blanks([
+      { parts: ['x-axis (y = z = 0):   (', { box: '4' }, ', 0, 0)'], why: 'x = 4.', hint: 'Put y = 0 and z = 0. What is left?',
+        fx: () => S.sys.space.point([4, 0, 0], { color: COL.good, label: '(4, 0, 0)', size: 24 }) },
+      { parts: ['y-axis (x = z = 0):   (0, ', { box: '2' }, ', 0)'], why: '2y = 4, so y = 2.', hint: 'Put x = 0 and z = 0: 2y = 4.',
+        fx: () => S.sys.space.point([0, 2, 0], { color: COL.good, label: '(0, 2, 0)', size: 24 }) },
+      { parts: ['z-axis (x = y = 0):   (0, 0, ', { box: '1' }, ')'], why: '4z = 4, so z = 1.', hint: 'Put x = 0 and y = 0: 4z = 4.',
+        fx: () => S.sys.space.point([0, 0, 1], { color: COL.good, label: '(0, 0, 1)', size: 24 }) },
+    ]),
+  }], done) }],
+
+  ['missing', 'A missing letter', (m) => {
+    const p = panel(0);
+    text(p, 'When a letter is missing', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = onePlane(p, 0, 0, 1, 2, { t0: m('eq1') });
+    const V = sys.space, pl = sys.planes[0];
+    V.sway(6, 13);
+    pl.fade(0, 0, 0); pl.fade(1, m('floor'), 1);
+    ['a00', 'a01'].forEach(k => flash(sys, k, m('zero') + .4));
+    const f1 = text(p, 'x and y free,  z must be 2', 90, 300, m('zero') + 1.5, { size: 32, fill: COL.chalk, weight: 600 });
+    const fl = G(V.content, {});
+    [[-3, -2], [0, 0], [3, 1], [-1, 3]].forEach(([x, y], i) => { const d = V.point(null, { color: COL.chalk, r: 7, into: fl, stem: true }); prog(() => d.set([x, y, 2]), m('floor') + .5 + i * .25, 0, lin); });
+    V.turn({ pitch: 8 }, m('floor') + .4, 2); V.turn({ pitch: VIEW.pitch }, m('eq2') - .5, 1.5);
+    [f1, fl].forEach(e => hide(e, m('eq2') - .4, .3));
+    sys.to({ a00: 1, a02: 0, b0: 1 }, m('eq2'), 1.8);
+    ['a00', 'a02', 'b0'].forEach(k => flash(sys, k, m('eq2') + .8));
+    const f2 = text(p, 'y and z free,  x must be 1', 90, 300, m('wall') - .4, { size: 32, fill: COL.chalk, weight: 600 });
+    V.turn({ yaw: VIEW.yaw + 40 }, m('wall'), 2.4);   // nearer face-on to the wall x = 1
+    hide(f2, m('eq3') - .4, .3);
+    // x + y = 2: first the line on the floor, then the wall that rises from it
+    prog(() => { pl.visible = false; V.redraw(); }, m('eq3') - .3, 0, lin);
+    V.turn({ yaw: VIEW.yaw, pitch: 34 }, m('eq3'), 1.8);
+    sys.to({ a01: 1, b0: 2 }, m('eq3'), .1);
+    flash(sys, 'a02', m('eq3') + .5);
+    const ln = V.line(null, null, { color: BLUE, w: 6, into: V.content });
+    prog(q => ln.set([4, -2, 0], [4 - 6 * q, -2 + 6 * q, 0]), m('line'), 1.2, io);
+    text(p, 'on the floor: the line x + y = 2', 90, 300, m('line'), { size: 30, fill: BLUE, weight: 600 });
+    text(p, 'z is free: up and down', 90, 350, m('free'), { size: 30, fill: COL.chalk, weight: 600 });
+    const wl = V.poly(null, { color: BLUE, fo: .22, w: 3, into: V.polys });
+    prog(q => { const h = V.R * q; wl.set(q ? [[4, -2, -h], [-2, 4, -h], [-2, 4, h], [4, -2, h]] : null); }, m('rise'), 2.2, io);
+    [-1, 1, 3].forEach((x, i) => { const d = V.point(null, { color: COL.chalk, r: 7, into: V.content }); prog(() => d.set([x, 2 - x, [3, -2, 1.5][i]]), m('free') + 1 + i * .3, 0, lin); });
+    V.turn({ yaw: -15, pitch: 18 }, m('rise'), 3);   // the wall x + y = 2 from 60° off face-on: it reads as standing
+    text(p, 'a missing letter  =  a free letter', 90, 690, m('sum'), { size: 32, weight: 600 });
+  }],
+
+  ['q3', 'Your turn', () => {
+    const p = panel(0);
+    text(p, 'Your turn', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = onePlane(p, 1, 2, 1, 4);
+    crossings(sys, .4, { labels: false });
+    [[2, 0, 0], [0, 2, 0], [0, 0, 2]].forEach(q => { const d = sys.space.point(q, { color: COL.task, r: 13, label: tri(q), size: 24 }); d.e.firstChild.setAttribute('fill', 'none'); d.e.firstChild.setAttribute('stroke', COL.task); d.e.firstChild.setAttribute('stroke-dasharray', '4 4'); });
+    sys.space.sway(5, 16);
+  }, { ask: done => quiz(CARD, [{
+    id: 'c-make', prompt: ['Make the plane cross the axes at ', $m('(2, 0, 0)'), ', ', $m('(0, 2, 0)'), ' and ', $m('(0, 0, 2)'), '. Drag a number sideways, or drag the plane by its edge.'],
+    build: lin3Task(S.sys, v => v.a00 !== 0 && v.a00 === v.a01 && v.a01 === v.a02 && v.b0 === 2 * v.a00,
+      'x + y + z = 2 (or any multiple, like 2x + 2y + 2z = 4): each crossing point adds up to 2.',
+      'Put each marked point into your equation: each must give the right side. (2, 0, 0) gives 2 times the x number. Try the same number in front of x, y and z.',
+      () => S.sys.set({ a00: 1, a01: 1, a02: 1, b0: 2 })),
+  }], done) }],
+
+  ['wrap', 'Summary', (m) => {
+    const p = panel(0);
+    [['A point in space is a triple (x, y, z): along x, back along y, up z.', 'w1'], ['The solutions of one equation in x, y, z make a flat plane.', 'w2'],
+     ['Where it crosses the three axes: three points pin it down.', 'w3'], ['Right side slides it; the numbers tilt it; a missing letter is free.', 'w4']].forEach(([str, mark], i) => {
+      const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
+      mk('circle', { cx: 150, cy: -12, r: 26, fill: COL.chalk }, g);
+      T(g, String(i + 1), { x: 150, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+      T(g, str, { x: 210, size: 34, weight: 600 });
+      tw(g, { o: 1, x: 0 }, m(mark), .6);
+    });
+  }],
+  ['final1', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-on', prompt: ['Is the point on the plane? Put x, y and z into the equation and check.'],
+    build: grid(ONQ, YN, { multi: false, text: true }),
+  }], done, 'Chapter practice · set 1 of 4') }],
+  ['final2', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
+    id: 'p-miss', prompt: ['Find the missing number so that the point is a solution.'],
+    build: blanks(MISSQ),
+  }], done, 'Chapter practice · set 2 of 4') }],
+  ['final3', 'Chapter practice', () => {}, { ask: done => quiz(SCREEN, [{
+    id: 'p-cross', prompt: ['Where does each plane cross the x-, y- and z-axes?'],
+    build: blanks(CROSSQ),
+  }, {
+    id: 'p-kind', prompt: ['A floor (flat), a wall (upright) or tilted? Look at which letters are there.'],
+    build: grid(KINDQ, KINDS, { multi: false, text: true }),
+  }], done, 'Chapter practice · set 3 of 4') }],
+  ['final4', 'Chapter practice', () => {
+    const p = panel(0);
+    text(p, 'Make the plane', 60, 110, .2, { size: 40, weight: 600 });
+    S.sys = onePlane(p, 1, 1, 1, 1);
+    crossings(S.sys, .3, { labels: false });
+    S.sys.space.sway(5, 16);
+  }, { ask: done => quiz(CARD, [{
+    id: 'p-floor', prompt: ['Make a flat floor at height ', $m('z = −1'), ': every point on it has z = −1, whatever x and y are.'],
+    build: lin3Task(S.sys, v => v.a00 === 0 && v.a01 === 0 && v.a02 !== 0 && v.b0 === -v.a02, 'z = −1: 0 in front of x and y leaves them free.',
+      'Put 0 in front of x and of y. Then make the right side say z = −1.', () => S.sys.set({ a00: 0, a01: 0, a02: 1, b0: -1 })),
+  }, {
+    id: 'p-cross', prompt: ['Make a plane that crosses the axes at ', $m('(4, 0, 0)'), ', ', $m('(0, 2, 0)'), ' and ', $m('(0, 0, 4)'), '.'],
+    build: lin3Task(S.sys, v => v.b0 !== 0 && 4 * v.a00 === v.b0 && 2 * v.a01 === v.b0 && 4 * v.a02 === v.b0, 'x + 2y + z = 4: (4, 0, 0) gives 4, (0, 2, 0) gives 2·2 = 4, (0, 0, 4) gives 4.',
+      'All three points must give the same right side. (0, 2, 0) gives 2 times the y number, so y needs half of what x and z need.', () => S.sys.set({ a00: 1, a01: 2, a02: 1, b0: 4 })),
+  }, {
+    id: 'p-wall', prompt: ['Make an upright wall that stands on the floor line ', $m('x − y = 1'), '.'],
+    build: lin3Task(S.sys, v => v.a02 === 0 && v.a00 !== 0 && v.a01 === -v.a00 && v.b0 === v.a00, 'x − y + 0z = 1: z is missing, so z is free and the line stands up.',
+      'A wall has no z: put 0 in front of z. Then the rest is the line x − y = 1.', () => S.sys.set({ a00: 1, a01: -1, a02: 0, b0: 1 })),
+  }], done, 'Chapter practice · set 4 of 4') }],
+  ['play', 'Playground', (m) => {
+    const p = panel(0);
+    text(p, 'Playground', 60, 110, .2, { size: 40, weight: 600 });
+    S.sys = onePlane(p, 1, 1, 1, 3);
+    crossings(S.sys, .3);
+    S.sys.space.sway(5, 16);
+    const hint = text(p, 'try: make a floor, make it pass through (0, 0, 0), make a wall', 90, 330, m('go'), { size: 28, fill: COL.dim });
+    hide(hint, m('go') + 7, .6);
+  }, { ask: playAsk(() => S.sys, { tip: 'Your plane. Change any number, drag the plane by its edge, turn the space, or draw on the board. Nothing is marked.' }) }],
+  ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+boot();
+</script>
+</body>
+</html>

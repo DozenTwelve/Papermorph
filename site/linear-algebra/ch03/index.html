@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crossing, Parallel or the Same Line</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render"><!-- hold the first frame until the player exists, so the page transition can run -->
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/math.js"></script>
+<script src="../lib/linsys.js"></script>
+<script src="../lib/play.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 3, title: 'Crossing, Parallel or the Same Line', minutes: 10, language: 'en', next: '../ch04/' };
+
+/* ---------- chapter drawing helpers (chapter 2's, plus the same-line dash and the off-grid marker) ---------- */
+const BLUE = LS_ROW[0], CORAL = LS_ROW[1];
+const CARD = { x: 40, y: 345, w: 720, cls: 'side' };
+const RCARD = { x: 790, y: 150, w: 770, cls: 'side' };
+const say = (p, parts, x, y, t0, { size = 40, fill = COL.chalk, anchor = 'start' } = {}) => { const e = M(p, [].concat(parts), { x, y, size, fill, anchor, o: 0 }); show(e, t0); return e; };
+const text = (p, str, x, y, t0, { size = 30, fill = COL.chalk, anchor = 'start', weight = 500 } = {}) => { const e = T(p, str, { x, y, size, fill, anchor, weight, o: 0 }); show(e, t0); return e; };
+const flash = (sys, key, t0) => sys.num(key).forEach(e => { tw(e, { c_fill: COL.task }, t0, .25); tw(e, { c_fill: COL.chalk }, t0 + 1.2, .6); });
+const pairStr = (x, y) => `(${num(x)}, ${num(y)})`;
+const drop = (sys, x, y, t0, color = COL.chalk, label = pairStr(x, y), dx = 16, dy = -16, into) => sys.P.dot(x, y, color, t0, { label, dx, dy, into });
+const okMark = (p, ok, x, y, t0, size = 34) => text(p, ok ? '✓' : '✗', x, y, t0, { size, fill: ok ? COL.good : COL.bad, weight: 700, anchor: 'middle' });
+const near = (s, x, y) => s.x !== undefined && Math.abs(s.x - x) < 1e-9 && Math.abs(s.y - y) < 1e-9;
+const eqStr = (a, bb, c) => {
+  const t = (k, s) => (k === 1 ? '' : k === -1 ? '−' : num(k)) + s;
+  const L = a === 0 ? t(bb, 'y') : bb === 0 ? t(a, 'x') : `${t(a, 'x')} ${bb < 0 ? '−' : '+'} ${t(Math.abs(bb), 'y')}`;
+  return `${L} = ${num(c)}`;
+};
+// Two equations in the top left, the plane on the right. When the two lines are one line, the coral one is drawn
+// dashed so the blue one shows through it. When the lines meet off the picture, an arrow at the edge points there.
+const twoLines = (p, A, b, { t0 = .1, lines = true, meet = true, readout = true, hidePlane = false, offMark = false, exact = true } = {}) => {
+  const sys = linsys(p, { A, b, eq: [90, 200], mat: null, t0, hidePlane, exact });
+  if (!lines) sys.lines.forEach(({ l }) => put(l, { o: 0 }));
+  if (!meet) put(sys.meetBox, { o: 0 });
+  if (!readout) put(sys.readout, { o: 0 });
+  const l2 = sys.lines[1].l;
+  const { PX, PY, x1 } = sys.P, mark = G(sys.P.g, { o: 0 });
+  const arr = path(mark, '', { stroke: COL.chalk, fill: COL.chalk, 'stroke-width': 4, 'stroke-linejoin': 'round' });
+  const lab = T(mark, '', { size: 26, fill: COL.chalk, font: MATH, weight: 600 });
+  const fmt1 = n => num(Math.round(n * 10) / 10);
+  const onChange = (v, s) => {
+    const dash = s.many ? '22 16' : '';
+    if ((l2.getAttribute('stroke-dasharray') || '') !== dash) dash ? l2.setAttribute('stroke-dasharray', dash) : l2.removeAttribute('stroke-dasharray');
+    const out = offMark && s.x !== undefined && Math.max(Math.abs(s.x), Math.abs(s.y)) > x1;
+    put(mark, { o: out ? 1 : 0 });
+    if (!out) { arr.setAttribute('d', ''); lab.textContent = ''; put(lab, { x: 0, y: 0 }); return; }   // nothing left over, so a seek shows the same page
+    // The arrow sits where a line leaves the picture nearest the meeting point, and points along that line toward it.
+    let ex, ey, best = Infinity;
+    for (const i of [0, 1]) {
+      const a = v[`a${i}0`], b = v[`a${i}1`], c = v[`b${i}`], ends = [];
+      if (b) [-x1, x1].forEach(x => ends.push([x, (c - a * x) / b]));
+      if (a) [-x1, x1].forEach(y => ends.push([(c - b * y) / a, y]));
+      ends.filter(([x, y]) => Math.abs(x) <= x1 + 1e-9 && Math.abs(y) <= x1 + 1e-9).forEach(([x, y]) => {
+        const d = Math.hypot(s.x - x, s.y - y); if (d < best) { best = d; ex = x; ey = y; }
+      });
+    }
+    const ux = (s.x - ex) / best, uy = (s.y - ey) / best;
+    const a = [PX(ex - ux * 1.1), PY(ey - uy * 1.1)], c = [PX(ex), PY(ey)];
+    arr.setAttribute('d', `M${a[0]} ${a[1]}L${c[0]} ${c[1]}M${c[0] - 16 * ux - 9 * uy} ${c[1] + 16 * uy - 9 * ux}L${c[0]} ${c[1]}L${c[0] - 16 * ux + 9 * uy} ${c[1] + 16 * uy + 9 * ux}Z`);
+    lab.textContent = Math.max(Math.abs(s.x), Math.abs(s.y)) > 99 ? 'meets very far away' : `meets at (${fmt1(s.x)}, ${fmt1(s.y)})`;   // no five-digit numbers flashing by on the way to parallel
+    put(lab, { x: c[0] + (ux > 0 ? -30 : 30), y: c[1] + (uy < 0 ? 44 : -26) });   // beside the arrow's tip, outside the grid's numbers
+    lab.setAttribute('text-anchor', ux > 0 ? 'end' : 'start');
+  };
+  sys.onChange(onChange);
+  onChange(sys.v, sys.solve());
+  return sys;
+};
+// A small framed picture of two lines, for comparing the three cases side by side.
+const mini = (p, cx, cy, l1, l2, t0, caption, sub, tPlane = t0) => {
+  const P = plane(p, { cx, cy, u: 30, x0: -5, x1: 5, y0: -5, y1: 5, labels: false, t0: tPlane });
+  P.line(...l1, BLUE, t0 + .4, { w: 5 });
+  P.line(...l2, CORAL, t0 + .8, { w: 5, dash: l2.dash });
+  text(p, caption, cx, cy + 225, t0 + .6, { size: 32, weight: 600, anchor: 'middle' });
+  return { P, sub: sub ? T(p, sub, { x: cx, y: cy + 270, size: 28, fill: COL.chalk, weight: 600, anchor: 'middle', o: 0 }) : null };
+};
+
+/* ---------- practice data ---------- */
+const KINDS = [['one', 'One', null, 'O'], ['none', 'None', null, 'N'], ['many', 'Endlessly many', null, 'E']];
+const CLASSQ = [
+  { sys: [[1, 1, 4], [1, 1, 1]], ans: ['none'], why: 'Same left side, different right sides: parallel. No pair adds up to 4 and to 1.' },
+  { sys: [[1, -1, 2], [3, -3, 6]], ans: ['many'], why: 'The second is the first times 3, both sides: the same line.' },
+  { sys: [[1, 1, 4], [1, -1, 2]], ans: ['one'], why: 'x − y is not a multiple of x + y (1·1 = 1, but 1·1 ≠ −1): they cross, at (3, 1).' },
+  { sys: [[2, 1, 3], [6, 3, 3]], ans: ['none'], why: 'Left side times 3, but 3·3 = 9, not 3: parallel.' },
+  { sys: [[1, 3, 2], [2, 5, 4]], ans: ['one'], why: '1·2 = 2, but 3·2 = 6, not 5: not a multiple, so they cross.' },
+  { sys: [[-1, 2, 5], [2, -4, -10]], ans: ['many'], why: 'Times −2: −1 → 2, 2 → −4, 5 → −10. The same line.' },
+  { sys: [[0, 1, 2], [0, 1, 5]], ans: ['none'], why: 'y = 2 and y = 5: two flat lines, one above the other. Parallel.' },
+  { sys: [[1, 0, 1], [0, 1, 3]], ans: ['one'], why: 'x = 1 stands up, y = 3 lies flat: they cross at (1, 3).' },
+].map(q => ({ ...q, parts: [$m(eqStr(...q.sys[0])), '   and   ', $m(eqStr(...q.sys[1]))] }));
+const PARQ = [
+  { parts: ['x + 2y = 3,      2x + ', { box: '4' }, 'y = 1'], why: '2x is twice x, so the y number must be twice 2: 4. Then 2·3 = 6 ≠ 1, so they are parallel.', hint: 'The second x number is twice the first. Make the y number twice as well.' },
+  { parts: ['3x − y = 2,      ', { box: '6' }, 'x − 2y = 5'], why: '−2y is twice −y, so the x number must be twice 3: 6. And 2·2 = 4 ≠ 5: parallel.', hint: 'Compare the y numbers: −2 is twice −1. So the x number is twice 3.' },
+];
+const SAMEQ = [
+  { parts: ['x + y = 4,      5x + 5y = ', { box: '20' }], why: 'Both sides times 5: 4·5 = 20.', hint: 'The left side is 5 times. Multiply the right side by 5 too.' },
+  { parts: ['2x − y = 1,      −4x + ', { box: '2' }, 'y = −2'], why: 'Times −2: 2 → −4, −1 → 2, 1 → −2.', hint: '−4 is 2 times −2. What is −1 times −2?' },
+  { parts: ['4x + 2y = 6,      2x + y = ', { box: '3' }], why: 'The second is the first halved: 6 halved is 3.', hint: 'The second left side is half of the first. Halve the right side too.' },
+];
+const NONEQ = [
+  { parts: ['x + 3y = 2,      2x + 6y = ', { box: '5' }], test: ([v]) => v !== 4, why: 'Any number except 4. With 4 it would be the same line (2·2 = 4); anything else makes the lines parallel.', hint: 'Left side times 2. The same multiple of the right side, 4, would give the same line, so pick anything else.' },
+];
+const THINKQ = [
+  { prompt: ['Can one pair ', $m('(x, y)'), ' make both ', $m('x + y = 3'), ' and ', $m('x + y = 8'), ' true?'],
+    opts: ['Yes, exactly one pair', 'No, never', 'Yes, endlessly many'], right: 1,
+    why: 'x + y is one number. It cannot be 3 and 8 at the same time: parallel lines, no solution.',
+    no: ['There is no crossing: the lines have the same tilt. Try a pair: if x + y = 3, it is not 8.', '', 'Only if 3 and 8 were the same number.'] },
+  { prompt: ['Two different points both solve a system of two equations. How many solutions does it have?'],
+    opts: ['Exactly two', 'Endlessly many', 'None'], right: 1,
+    why: 'Two different lines share at most one point. Sharing two means they are the same line, and every point on it is a solution.',
+    no: ['Two straight lines cannot meet at exactly two points. If they share two, they are the same line.', '', 'The two points do solve it, so there are solutions.'] },
+  { prompt: ['The lines of a system cross at ', $m('(2, 1)'), '. Can ', $m('(5, 0)'), ' also solve both equations?'],
+    opts: ['Yes', 'No', 'Only if the right sides are 0'], right: 1,
+    why: 'Crossing lines meet at exactly one point. (2, 1) is that point, so no other pair solves both.',
+    no: ['Lines that cross share one point only.', '', 'The right sides do not matter: crossing lines share one point only.'] },
+  { prompt: ['Multiply both sides of ', $m('x − 2y = 4'), ' by 3. What happens to its line?'],
+    opts: ['It slides', 'It turns', 'It stays where it is'], right: 2,
+    why: '3x − 6y = 12 has exactly the same solutions, for example (4, 0) and (0, −2): the same line.',
+    no: ['Changing only the right side slides a line. Here every number is multiplied, so every solution still works.', 'Every point that solved x − 2y = 4 still solves 3x − 6y = 12. Check (4, 0).', ''] },
+];
+const BUILDQ = [
+  { start: { a00: 1, a01: -2, b0: 2, a10: 1, a11: 1, b1: 1 }, only: ['a10', 'a11'], test: (s, v) => !!s.none && !!(v.a10 || v.a11),   // 0x + 0y = 1 is no line at all
+    prompt: ['Change only the ', $m('x'), ' and ', $m('y'), ' numbers of the second equation so the lines never meet.'],
+    why: 'For example x − 2y = 1: the same tilt as x − 2y = 2, with a different right side. Parallel, no solution.',
+    hint: 'Copy the tilt: make the second left side a multiple of x − 2y, such as x − 2y or 2x − 4y.', answer: { a10: 1, a11: -2 } },
+  { start: { a00: 1, a01: 2, b0: 3, a10: 2, a11: 4, b1: 1 }, only: ['b1'], test: s => !!s.many,
+    prompt: ['Change only the second right side so the two lines become one line.'],
+    why: '2x + 4y = 6: the whole second equation is now twice x + 2y = 3.',
+    hint: 'The left side is twice x + 2y. Make the right side twice 3.', answer: { b1: 6 } },
+  { start: { a00: 1, a01: 1, b0: 1, a10: 1, a11: 1, b1: 4 }, only: ['a10', 'a11'], test: s => near(s, -1, 2),
+    prompt: ['These lines are parallel. Change only the ', $m('x'), ' and ', $m('y'), ' numbers of the second equation so they cross at ', $m('(−1, 2)'), '.'],
+    why: 'For example 2y = 4 (0x + 2y), or 2x + 3y = 4: −1 times the x number plus 2 times the y number must make 4.',
+    hint: '(−1, 2) is already on the blue line. Turn the coral line until it passes through (−1, 2) too: −1 times the x number plus 2 times the y number must make 4.', answer: { a10: 0, a11: 2 } },
+];
+
+/* ---------- beats ---------- */
+const BEATS = [
+  ['intro', 'Crossing, parallel or the same line', (m, D) => {
+    const g = G(scene, { o: 0, y: 24 });
+    T(g, 'Unit 1, Chapter 3', { x: 800, y: 300, size: 28, fill: COL.dim, anchor: 'middle' });
+    T(g, 'Crossing, Parallel or the Same Line', { x: 800, y: 410, size: 80, weight: 600, anchor: 'middle' });
+    tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+    const r = text(scene, 'two lines meet once, never, or everywhere', 800, 540, m('sub'), { size: 36, fill: COL.dim, anchor: 'middle' });
+    const pics = G(scene, { y: 690 });
+    [[-1, 1, 1, -1, 1, 1, -1, -1], [-1, .4, 1, .4, -1, -.4, 1, -.4], [-1, 0, 1, 0, -1, 0, 1, 0]].forEach((s, i) => {
+      const g2 = G(pics, { x: 470 + i * 330 }), k = 110;
+      const a = path(g2, `M${s[0] * k} ${-s[1] * 60}L${s[2] * k} ${-s[3] * 60}`, { stroke: BLUE, 'stroke-width': 6, 'stroke-linecap': 'round' }, { d: 0 });
+      const b = path(g2, `M${s[4] * k} ${-s[5] * 60}L${s[6] * k} ${-s[7] * 60}`, { stroke: CORAL, 'stroke-width': 6, 'stroke-linecap': 'round', ...(i === 2 ? { 'stroke-dasharray': '18 14' } : {}) }, { d: 0 });
+      draw(a, m('three') + i * .9, .6); draw(b, m('three') + i * .9 + .3, .6);
+      hide(g2, D - .9, .8);
+    });
+    tw(g, { o: 0, y: -24 }, D - .9, .8); hide(r, D - .9, .8);
+  }],
+
+  ['three', 'Three ways', (m) => {
+    const p = panel(0);
+    text(p, 'Two lines can sit together in three ways', 60, 110, .2, { size: 40, weight: 600 });
+    const a = mini(p, 300, 420, [-4, -2, 4, 2], [-4, 3, 4, -1], .4, 'they cross', 'one solution');
+    const b = mini(p, 800, 420, [-4, -3, 4, 1], [-4, 0, 4, 4], m('par'), 'parallel', 'no solution', m('but') + .3);
+    const l2 = [-4, 4, 4, -4]; l2.dash = '18 14';
+    const c = mini(p, 1300, 420, [-4, 4, 4, -4], l2, m('same'), 'the same line', 'endlessly many', m('but') + .7);
+    const d1 = a.P.dot(1, .5, COL.chalk, 2);   // where y = x/2 and y = 1 − x/2 cross
+    pulse(d1, m('one')); pulse(d1, m('cross') + .3); show(a.sub, m('one') + .4);
+    pulse(d1, m('sizes')); show(b.sub, m('none')); show(c.sub, m('inf'));
+    const gap = G(p, {}), { PX, PY } = b.P;
+    path(gap, `M${PX(0)} ${PY(-1)}V${PY(2)}`, { stroke: COL.dim, 'stroke-width': 2.5, 'stroke-dasharray': '5 6' }, { o: 0 });
+    show(gap.firstChild, m('par') + 1.6, .4);
+    [-3, 0, 3].forEach((x, i) => c.P.dot(x, -x, COL.chalk, m('same') + 1.5 + i * .3, { r: 8 }));
+  }],
+
+  ['parallel', 'Lines that never meet', (m) => {
+    const p = panel(0);
+    text(p, 'Parallel lines: no solution', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = twoLines(p, [[1, 1], [1, 1]], [2, 5], { t0: m('eq') - .3, lines: false, readout: false });
+    say(p, ['x + y = 2   and   x + y = 5 ?'], 90, 470, m('ask'), { size: 38 });
+    say(p, ['1 + 1 = 2'], 90, 545, m('try'), { size: 36, fill: BLUE });
+    say(p, ['1 + 1 ≠ 5'], 90, 600, m('sum'), { size: 36, fill: CORAL });
+    text(p, 'x + y is one number: it cannot be 2 and 5 at once', 90, 670, m('never'), { size: 28, fill: COL.chalk, weight: 600 });
+    const { PX, PY } = sys.P;
+    show(sys.lines[0].l, m('l1'), .9); show(sys.lines[1].l, m('l2'), .9);
+    // a probe walks along each line: its sum never changes
+    const probe = (row, c, t, dur) => {
+      const g = G(p, { o: 0 }); mk('circle', { r: 11, fill: LS_ROW[row], stroke: COL.board, 'stroke-width': 3 }, g);
+      const lb = T(g, '', { x: 18, y: -16, size: 24, fill: LS_ROW[row], font: MATH, weight: 600 });
+      show(g, t, .3);
+      prog(q => {
+        const x = -1 + q * 5, xs = Math.round(x * 10) / 10, ys = Math.round((c - xs) * 10) / 10;   // the label reads a point a hair away whose sum is exact
+        put(g, { x: PX(x), y: PY(c - x) });
+        const s = `${num(xs)} + ${ys < 0 ? `(${num(ys)})` : num(ys)} = ${c}`; if (lb.textContent !== s) lb.textContent = s;
+      }, t, dur, io);
+      hide(g, t + dur + .3, .4);
+    };
+    probe(0, 2, m('l1') + .9, 3); probe(1, 5, m('l2') + .9, 3);
+    // a dashed copy of the blue line slides onto the coral one (x + y = c, c from 2 to 5), kept inside the grid
+    const gd = c => { const a = Math.max(-6, c - 6), b = Math.min(6, c + 6); return `M${PX(a)} ${PY(c - a)}L${PX(b)} ${PY(c - b)}`; };
+    const ghost = path(p, gd(2), { stroke: BLUE, 'stroke-width': 3, 'stroke-dasharray': '10 10', fill: 'none' }, { o: 0 });
+    tw(ghost, { o: .6 }, m('slid'), .5);
+    prog(q => ghost.setAttribute('d', gd(2 + 3 * q)), m('slid') + .8, 2.2, io);
+    hide(ghost, m('tilt') + 1.6, .4);
+    // the gap stays the same: two equal gaps marked
+    const gaps = G(p, { o: 0 });
+    put(gaps, { o: 1 });
+    [[-2.5, 4.5, -1, 6], [-1, 3, .5, 4.5], [.5, 1.5, 2, 3], [2, 0, 3.5, 1.5], [3.5, -1.5, 5, 0]].forEach(([x1, y1, x2, y2], i) =>
+      draw(path(gaps, `M${PX(x1)} ${PY(y1)}L${PX(x2)} ${PY(y2)}`, { stroke: COL.dim, 'stroke-width': 3 }, { d: 0 }), m('tilt') + .5 + i * .5, .4));
+    text(p, 'always the same gap', PX(-5.8), PY(-4.4), m('gap'), { size: 26, fill: COL.dim });
+    show(sys.readout, m('none'));
+  }],
+
+  ['parallel2', 'Twice the left side', (m) => {
+    const p = panel(0);
+    text(p, 'A hidden pair of parallel lines', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = twoLines(p, [[2, 1], [4, 2]], [1, 6], { t0: m('eq') - .3, readout: false });
+    sys.lines.forEach(({ l }, i) => { put(l, { o: 0 }); show(l, m('eq') + 1 + i * .5, .8); });
+    const w = G(p, {});
+    say(w, ['4x = 2 · 2x'], 90, 470, m('twice'), { size: 36, fill: CORAL });
+    say(w, ['2y = 2 · y'], 90, 525, m('twice') + 1.6, { size: 36, fill: CORAL });
+    say(w, ['halve both sides:   ÷ 2'], 90, 600, m('half'), { size: 32, fill: COL.dim });
+    flash(sys, 'a10', m('after')); flash(sys, 'a11', m('after')); flash(sys, 'b1', m('after'));
+    sys.to({ a10: 2, a11: 1, b1: 3 }, m('after'), 1.6);
+    tw(sys.lines[1].l, { 'a_stroke-width': 9 }, m('still'), .3); tw(sys.lines[1].l, { 'a_stroke-width': 5 }, m('still') + 1.2, .5);
+    text(w, 'the coral line did not move', 90, 660, m('still') + .5, { size: 28, fill: CORAL, weight: 600 });
+    hide(w, m('now') - .3, .4);
+    say(p, ['2x + y = 1'], 90, 470, m('now'), { size: 38, fill: BLUE });
+    say(p, ['2x + y = 3'], 90, 535, m('and'), { size: 38, fill: CORAL });
+    text(p, '1 or 3? impossible', 90, 600, m('no'), { size: 30, fill: COL.bad, weight: 600 });
+    show(sys.readout, m('none'));
+  }],
+
+  ['q1', 'Quick check', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'c-par', prompt: ['Do the two lines cross, or are they parallel? Compare the left sides first.'],
+    build: grid([
+      { parts: [$m('x + y = 3'), '   and   ', $m('x + y = 7')], ans: ['p'], why: 'The same left side, different right sides: parallel.' },
+      { parts: [$m('x + 2y = 1'), '   and   ', $m('2x + 4y = 5')], ans: ['p'], why: 'Left side times 2, but 1·2 = 2, not 5: parallel.' },
+      { parts: [$m('x + y = 3'), '   and   ', $m('x − y = 3')], ans: ['c'], why: 'x − y is not a multiple of x + y: they cross (at (3, 0)).' },
+      { parts: [$m('3x − y = 2'), '   and   ', $m('6x − 2y = 1')], ans: ['p'], why: 'Left side times 2, but 2·2 = 4, not 1: parallel.' },
+      { parts: [$m('2x + y = 4'), '   and   ', $m('x + 2y = 4')], ans: ['c'], why: '2 → 1 is halving, but 1 → 2 is doubling: not one multiple. They cross.' },
+    ], [['c', 'Cross', null, 'C'], ['p', 'Parallel', null, 'P']], { multi: false, text: true }),
+  }], done) }],
+
+  ['same', 'The same line twice', (m) => {
+    const p = panel(0);
+    text(p, 'The same line: endlessly many solutions', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = twoLines(p, [[1, 2], [2, 4]], [3, 6], { t0: m('eq') - .3, lines: false, readout: false });
+    const w = G(p, {});
+    say(w, ['2 · (x + 2y) = 2x + 4y'], 90, 470, m('twice'), { size: 36, fill: CORAL });
+    say(w, ['2 · 3 = 6'], 90, 525, m('six'), { size: 36, fill: CORAL });
+    [['a00', 'a10', 2.5], ['a01', 'a11', 4.5], ['b0', 'b1', 8]].forEach(([k1, k2, d]) => { flash(sys, k1, m('twice') + d); flash(sys, k2, m('twice') + d + .6); });
+    sys.to({ a10: 1, a11: 2, b1: 3 }, m('after'), 1.4);
+    ['a10', 'a11', 'b1'].forEach(k => flash(sys, k, m('after')));
+    show(sys.lines[0].l, m('draw') - .6, .6); show(sys.lines[1].l, m('draw') + .4, .9);
+    hide(w, m('p1') - .3, .3);
+    sys.to({ a10: 2, a11: 4, b1: 6 }, m('p1') + .3, 1.2); ['a10', 'a11', 'b1'].forEach(k => flash(sys, k, m('p1') + .3));   // check in the equations as first written
+    drop(sys, 3, 0, m('p1a'), COL.chalk, '(3, 0)', 12, -18);
+    say(p, ['3 + 2·0 = 3'], 90, 470, m('p1a') + .4, { size: 34, fill: BLUE }); okMark(p, true, 310, 470, m('p1a') + 1.6);
+    say(p, ['2·3 + 4·0 = 6'], 370, 470, m('p1b'), { size: 34, fill: CORAL }); okMark(p, true, 620, 470, m('p1b') + 2.5);
+    drop(sys, 1, 1, m('p2'), COL.chalk, '(1, 1)');
+    say(p, ['1 + 2·1 = 3'], 90, 535, m('p2') + .6, { size: 34, fill: BLUE }); okMark(p, true, 310, 535, m('p2') + 2);
+    say(p, ['2·1 + 4·1 = 6'], 370, 535, m('p2b'), { size: 34, fill: CORAL }); okMark(p, true, 620, 535, m('p2b') + 1);
+    [-5, -3, 5].forEach((x, i) => drop(sys, x, (3 - x) / 2, m('all') + i * .4, COL.chalk, ''));
+    show(sys.readout, m('inf'));
+  }],
+
+  ['same2', 'Any multiple', (m) => {
+    const p = panel(0);
+    text(p, 'Times any number but zero', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = twoLines(p, [[1, -1], [-2, 2]], [1, -2], { t0: m('eq') - .3, readout: false });
+    put(sys.eqRows[1].g, { o: 0 }); show(sys.eqRows[1].g, m('eq') + 2.2);
+    ['a00', 'a01', 'b0'].forEach((k, i) => flash(sys, k, m('times') + .4 + i * .3));
+    sys.lines.forEach(({ l }, i) => { put(l, { o: 0 }); show(l, m('draw') + i * .7, .9); });
+    say(p, ['−2 · (x − y = 1)'], 90, 470, m('times'), { size: 36, fill: BLUE });
+    say(p, ['−2x'], 90, 540, m('a'), { size: 38, fill: CORAL });
+    say(p, ['+ 2y'], 190, 540, m('b'), { size: 38, fill: CORAL });
+    say(p, ['= −2'], 310, 540, m('c'), { size: 38, fill: CORAL });
+    ['a10', 'a11', 'b1'].forEach((k, i) => flash(sys, k, m('match') + i * .25));
+    okMark(p, true, 450, 540, m('match') + .5);
+    show(sys.readout, m('inf'));
+    const n = G(p, { o: 0 });
+    T(n, 'both sides times the same number (not 0):', { x: 90, y: 720, size: 30, weight: 600, fill: COL.chalk });
+    T(n, 'the line does not move', { x: 90, y: 762, size: 30, weight: 600, fill: COL.chalk });
+    show(n, m('say'));
+    sys.focus(0, m('say') + 2);
+    sys.to({ a00: 3, a01: -3, b0: 3 }, m('say') + 2.5, 2.5); ['a00', 'a01', 'b0'].forEach(k => flash(sys, k, m('say') + 2.5));
+    text(p, '×3: still the same line', 90, 640, m('say') + 3, { size: 28, fill: BLUE, weight: 600 });
+    sys.focus(null, m('say') + 5.5);
+  }],
+
+  ['q2', 'Quick check', () => {
+    const p = panel(0);
+    text(p, 'Quick check', 60, 110, .2, { size: 40, weight: 600 });
+    S.sys = twoLines(p, [[1, -3], [2, -6]], [2, 4], { lines: false, meet: false, readout: false });
+  }, { ask: done => quiz(CARD, [{
+    id: 'c-many', prompt: ['How many solutions does ', $m('x − 3y = 2'), ', ', $m('2x − 6y = 4'), ' have?'],
+    build: choice(['One', 'None', 'Endlessly many'], 2, 'Both sides of the second are twice the first: the same line, so every point on it is a solution.',
+      ['The lines do not cross at one point: 2x − 6y is exactly twice x − 3y, so they have the same tilt.',
+       'Compare the right sides with the same multiple: 2 · 2 = 4. They match, so it is the same line, not parallel.'],
+      () => S.sys.lines.forEach(({ l }) => fx(l, { o: 1 }, 0, .6))),
+  }], done) }],
+
+  ['rule', 'Read it from the numbers', (m) => {
+    const p = panel(0);
+    text(p, 'How to tell from the numbers', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = twoLines(p, [[1, 2], [3, 6]], [4, 12], { t0: m('ex') - .3, readout: false });
+    put(sys.E, { o: 0 }); put(sys.stage, { o: 0 }); show(sys.stage, m('ex'), .6);
+    // the two questions, as a little flow, under where the equations will be
+    const F0 = G(p, {}), steps = [];
+    const st_ = (str, x, y, mk_, fill = COL.chalk, size = 30) => { const e = text(F0, str, x, y, m(mk_), { size, fill, weight: 600 }); steps.push(e); return e; };
+    const q1 = st_('1   Is the second left side a multiple of the first?', 90, 250, 's1');
+    const no1 = st_('no   →   they cross: one solution', 150, 305, 's2', COL.dim);
+    const q2 = st_('2   yes   →   compare the right sides (same multiple)', 90, 375, 's3');
+    const y2 = st_('the same   →   the same line: endlessly many', 150, 430, 's4', COL.dim);
+    const n2 = st_('different   →   parallel: no solution', 150, 485, 's5', COL.dim);
+    const ex1 = say(p, ['2x + 3y   →   ×2   →   4x + 6y'], 150, 620, m('s1') + 5, { size: 34, fill: COL.dim });
+    hide(ex1, m('s2') - .3, .3);
+    tw(F0, { y: 250 }, m('ex') - .2, .8);   // the steps move down under the equations
+    const hl = (e, t, t2) => { tw(e, { c_fill: COL.chalk }, t, .3); tw(e, { c_fill: COL.dim }, t2, .3); };
+    // example 1: times 3 on both sides
+    const l1 = say(p, ['left:   1·3 = 3,   2·3 = 6:   times 3'], 90, 395, m('e1a'), { size: 30, fill: CORAL });
+    [['a00', 'a10', 1.2], ['a01', 'a11', 3.4]].forEach(([k1, k2, d]) => { flash(sys, k1, m('e1a') + d); flash(sys, k2, m('e1a') + d + .6); });
+    tw(sys.lines[1].l, { 'a_stroke-width': 9 }, m('e1a') + 5, .3); tw(sys.lines[1].l, { 'a_stroke-width': 5 }, m('e1a') + 6.2, .5);
+    const r1 = say(p, ['right:   4·3 = 12:   the same multiple'], 90, 445, m('e1b'), { size: 30, fill: COL.good });
+    hl(y2, m('e1c'), m('e2') + .2);
+    // example 2: the twelve becomes ten
+    sys.to({ b1: 10 }, m('e2'), 1.2); flash(sys, 'b1', m('e2'));
+    hide(r1, m('e2'), .3);
+    const r2 = say(p, ['right:   4·3 = 12,  not 10'], 90, 445, m('e2b'), { size: 30, fill: COL.bad });
+    hl(n2, m('e2c'), m('e3') + .2);
+    // example 3: the six becomes five
+    sys.to({ b1: 12, a11: 5 }, m('e3'), 1.4); flash(sys, 'a11', m('e3'));
+    hide(r2, m('e3'), .3); hide(l1, m('e3'), .3);
+    say(p, ['left:   1·3 = 3,  but  2·3 = 6,  not 5'], 90, 395, m('e3a'), { size: 30, fill: COL.bad });
+    flash(sys, 'a01', m('e3a') + 2); flash(sys, 'a11', m('e3a') + 3.6);
+    tw(sys.lines[1].l, { 'a_stroke-width': 9 }, m('e3a') + 4, .3); tw(sys.lines[1].l, { 'a_stroke-width': 5 }, m('e3b'), .5);
+    tw(no1, { c_fill: COL.chalk }, m('e3c'), .3);
+    pulse(sys.meet, m('e3c') + .6); pulse(sys.meet, m('e3c') + 1.8);
+    void q1; void q2;
+  }],
+
+  ['runaway', 'On the way to parallel', (m) => {
+    const p = panel(0);
+    text(p, 'Turning toward parallel', 60, 110, .2, { size: 40, weight: 600 });
+    const sys = S.sys = twoLines(p, [[1, 1], [2, 1]], [2, 5], { t0: m('eq') - .3, offMark: true, exact: false });   // the voice and the table say 1.5, 1.2, 1.1
+    pulse(sys.meet, m('meet'));
+    sys.focus(1, m('turn'));
+    const steps = [['six', 1.5], ['off', 1.2], ['far', 1.1], ['gone', 1]];
+    const trails = [sys.to({ a10: 1.5 }, m('six') - 1.2, 1.4, io, { trail: true })];
+    steps.slice(1).forEach(([mk_, a]) => sys.to({ a10: a }, m(mk_) - .6, 1.2));
+    steps.forEach(([mk_]) => flash(sys, 'a10', m(mk_) - .6));
+    tw(sys.readout, { o: 0 }, m('gone') - .7, .2); tw(sys.readout, { o: 1 }, m('gone') + .7, .3);
+    tw(sys.readout, { o: 0 }, m('back') - .2, .15); tw(sys.readout, { o: 1 }, m('back') + .6, .3);   // the readout's runaway numbers stay out of sight
+    sys.focus(null, m('run') - .5);
+    // where they meet, step by step, under the readout
+    text(p, 'x number', 90, 470, m('meet'), { size: 26, fill: COL.dim }); text(p, 'they meet at', 260, 470, m('meet'), { size: 26, fill: COL.dim });
+    [['meet', '2', '(3, −1)'], ['six', '1.5', '(6, −4)'], ['off', '1.2', '(15, −13)'], ['far', '1.1', '(30, −28)']].forEach(([mk_, a, at], i) => {
+      say(p, [a], 90, 520 + i * 50, m(mk_), { size: 32, fill: CORAL }); say(p, [at], 260, 520 + i * 50, m(mk_) + .3, { size: 32 });
+    });
+    say(p, ['1'], 90, 720, m('gone'), { size: 32, fill: CORAL }); text(p, 'parallel: they never meet', 260, 720, m('gone') + .3, { size: 30, fill: COL.bad, weight: 600 });
+    tw(sys.lines[0].l, { 'a_stroke-width': 9 }, m('run'), .3); tw(sys.lines[0].l, { 'a_stroke-width': 5 }, m('run') + 1.2, .5);
+    trails.forEach(t => hide(t, m('back') - .2, .3));
+    sys.focus(null, m('back'));
+    sys.to({ a10: 2 }, m('back'), 2.4, io);
+    flash(sys, 'a10', m('back'));
+    pulse(sys.meet, m('home'));
+  }],
+
+  ['q3', 'Your turn', () => {
+    const p = panel(0);
+    text(p, 'Your turn', 60, 110, .2, { size: 40, weight: 600 });
+    S.sys = twoLines(p, [[1, 1], [1, -1]], [2, 0], { readout: false, offMark: true });
+  }, { ask: done => quiz(CARD, [{
+    id: 'c-none', prompt: ['Make a system with no solution. Change any numbers.'],
+    build: (body, api) => { S.sys.set({ a00: 1, a01: 1, b0: 2, a10: 1, a11: -1, b1: 0 }); return lsTask(S.sys, (v, s) => !!s.none,
+      'No solution: your second left side is a multiple of the first, and the right side is not the same multiple. Parallel lines.',
+      'Make the second left side a copy (or a multiple) of the first, for example x + y. Then give it a different right side.',
+      () => S.sys.set({ a10: 1, a11: 1, b1: 5 }))(body, api); },
+  }, {
+    id: 'c-many', prompt: ['Now make a system with endlessly many solutions.'],
+    build: (body, api) => { S.sys.set({ a00: 1, a01: 1, b0: 2, a10: 1, a11: -1, b1: 0 }); return lsTask(S.sys, (v, s) => !!s.many,
+      'The same line: the whole second equation is a multiple of the first, both sides.',
+      'Make the second equation a multiple of the first on both sides, for example 2x + 2y = 4. The coral line will lie on the blue one.',
+      () => S.sys.set({ a10: 2, a11: 2, b1: 4 }))(body, api); },
+  }], done) }],
+
+  ['wrap', 'Summary', (m) => {
+    const p = panel(0);
+    [['Two lines cross once, never meet, or are one line: one solution, none, or endlessly many.', 'w1'],
+     ['Left sides not multiples of each other: the lines cross at one point.', 'w2'],
+     ['Multiples: compare the right sides. Same multiple: one line. Not: parallel.', 'w3'],
+     ['Both sides times the same number (not 0): the line stays put.', 'w4']].forEach(([str, mark], i) => {
+      const g = G(p, { x: -16, y: 230 + i * 130, o: 0 });
+      mk('circle', { cx: 150, cy: -12, r: 26, fill: COL.chalk }, g);
+      T(g, String(i + 1), { x: 150, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+      T(g, str, { x: 210, size: 32, weight: 600 });
+      tw(g, { o: 1, x: 0 }, m(mark), .6);
+    });
+  }],
+  ['final1', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-kind', prompt: ['How many solutions? Compare the left sides, then the right sides.'],
+    build: grid(CLASSQ, KINDS, { multi: false, text: true }),
+  }], done, 'Chapter practice · set 1 of 4') }],
+  ['final2', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, [
+    { id: 'p-par', prompt: ['Find the missing number that makes the two lines parallel.'], build: blanks(PARQ) },
+    { id: 'p-same', prompt: ['Find the missing number that makes the two equations the same line.'], build: blanks(SAMEQ) },
+    { id: 'p-none', prompt: ['Find a number that makes the system have no solution.'], build: blanks(NONEQ) },
+  ], done, 'Chapter practice · set 2 of 4') }],
+  ['final3', 'Chapter practice', () => { panel(0); }, { ask: done => quiz(SCREEN, THINKQ.map((q, k) => ({
+    id: 'p-think' + (k + 1), prompt: q.prompt, build: choice(q.opts, q.right, q.why, q.no),
+  })), done, 'Chapter practice · set 3 of 4') }],
+  ['final4', 'Chapter practice', () => {
+    const p = panel(0);
+    text(p, 'Build the system', 60, 110, .2, { size: 40, weight: 600 });
+    S.sys = twoLines(p, [[1, -2], [1, 1]], [2, 1], { readout: false, offMark: true });
+  }, { ask: done => quiz(CARD, BUILDQ.map((q, k) => ({
+    id: 'p-build' + (k + 1), prompt: q.prompt,
+    build: (body, api) => { S.sys.set(q.start); return lsTask(S.sys, (v, s) => q.test(s, v), q.why, q.hint, () => S.sys.set(q.answer), { only: q.only })(body, api); },
+  })), done, 'Chapter practice · set 4 of 4') }],
+  ['play', 'Playground', (m) => {
+    const p = panel(0);
+    text(p, 'Playground', 60, 110, .2, { size: 40, weight: 600 });
+    S.sys = twoLines(p, [[1, 1], [2, 1]], [2, 5], { offMark: true });
+    text(p, 'try: make them parallel, then make them one line', 60, 800, m('go'), { size: 26, fill: COL.dim });   // under the card, beside nothing it could cover
+  }, { ask: playAsk(() => S.sys, { tip: 'Your two lines. Change any number, drag a line, or draw on the board. Nothing is marked.' }) }],
+  ['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+boot();
+</script>
+</body>
+</html>
