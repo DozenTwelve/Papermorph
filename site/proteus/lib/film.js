@@ -273,6 +273,10 @@ const SHAPES = {
       [40, -432], [45, -300], [50, -288], [330, -332], [332, -310], [55, -256], [60, -40], [98, 0]] },
 };
 for (const k in SHAPES) SHAPES[k].pts = resample(SHAPES[k].pts);
+// the upright stage: Proteus stands in the middle of the lower half (his cards and words go above him), and every
+// change is a hop in place rather than a leap across
+const GROUND = PORTRAIT ? 1250 : 770;
+if (PORTRAIT) for (const k in SHAPES) Object.assign(SHAPES[k], { x: 450, y: GROUND + SHAPES[k].y - 760 });
 // what each animal does once it has its shape (u: seconds since it settled): a move of the whole body, and a bend of
 // its outline; each comes with its sound in the chapter
 const bump = (u, a, b) => Math.sin(Math.PI * span01(u, a, b));
@@ -311,9 +315,10 @@ const DECOR = {
 function proteus() {
   const back = G(scene, {});
   const disc = mk('circle', { r: 300, fill: WATER }, back);
-  put(disc, { x: 1130, y: 410, o: .16 });
-  path(back, 'M-20 770L120 764L300 772L520 762L760 770L980 763L1220 771L1440 764L1620 770V920H-20Z', { fill: '#e8d9b8' });
-  const waves = [['#9cc6d8', 852, 0], ['#6fb3c8', 876, 60]].map(([fill, y, dx]) => {
+  put(disc, PORTRAIT ? { x: 450, y: 480, o: .16 } : { x: 1130, y: 410, o: .16 });
+  path(back, PORTRAIT ? 'M-20 1250L140 1244L330 1252L520 1243L700 1251L920 1245V1620H-20Z'
+    : 'M-20 770L120 764L300 772L520 762L760 770L980 763L1220 771L1440 764L1620 770V920H-20Z', { fill: '#e8d9b8' });
+  const waves = [['#9cc6d8', SH - 48, 0], ['#6fb3c8', SH - 24, 60]].map(([fill, y, dx]) => {
     const w = G(scene, {});
     path(w, 'M-200 0' + Array.from({ length: 22 }, (_, i) => `q50 -26 100 0`).join('') + 'V60H-200Z', { fill, transform: `translate(${dx} ${y})` });
     return w;
@@ -364,7 +369,7 @@ function drawPro(a, b, q, t, u = -1) {
   }).join('') + 'Z';
   const col = q < .5 ? tint(A.col, WATER, q * 2) : tint(WATER, B.col, q * 2 - 1);
   pr.body.setAttribute('d', d); pr.shadow.setAttribute('d', d); setOnce(pr.body, 'fill', col);
-  const gx = A.x + (B.x - A.x) * q, gy = A.y + (B.y - A.y) * q - (Math.abs(B.x - A.x) > 100 ? 160 * k : 0);   // a leap across
+  const gx = A.x + (B.x - A.x) * q, gy = A.y + (B.y - A.y) * q - (Math.abs(B.x - A.x) > 100 || PORTRAIT && a !== b ? 160 * k : 0);   // a leap
   const act = q === 1 && B.act ? B.act(u) : {};
   put(pr.g, { x: gx + (act.x || 0), y: gy + (act.y || 0), s: A.s + (B.s - A.s) * q, r: act.r || 0 });
   for (const n in pr.decor) {
