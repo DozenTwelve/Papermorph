@@ -13,7 +13,7 @@
   ·
   <a href=".claude/skills/papermorph/SKILL.md">Read the Skill →</a>
   ·
-  <a href="https://papermorph.diamonddoge.org/work/">Work with us →</a>
+  <a href="https://papermorph.diamonddoge.org/work/">Work with us</a>
 </p>
 
 > **1,000 stars.** Thank you to everyone who starred Papermorph, tried the Skill, filed issues and sent pull requests. The first roadmap is done; the next is [below](#roadmap).

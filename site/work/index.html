@@ -145,12 +145,12 @@
   .foot a:hover { color: var(--red); text-decoration: underline; }
   .foot button.about-open { font: inherit; color: var(--soft); background: none; border: 0; padding: 0; cursor: pointer; }
   .foot button.about-open:hover { color: var(--red); text-decoration: underline; }
-  .about { max-width: 580px; width: calc(100% - 32px); padding: 38px 42px; border: 1px solid #a08760; border-radius: 3px; background: #f6efdf; color: #403527; box-shadow: 0 20px 80px #291b1455; }
-  .about::backdrop { background: #20180fc4; backdrop-filter: blur(4px); }
-  .about h2 { margin: 0 0 18px; font-size: 30px; font-weight: 400; text-align: left; }
-  .about p { font-size: 15px; line-height: 1.7; margin: 0 0 12px; }
+  .about-dialog { max-width: 580px; width: calc(100% - 32px); padding: 38px 42px; border: 1px solid #a08760; border-radius: 3px; background: #f6efdf; color: #403527; box-shadow: 0 20px 80px #291b1455; }
+  .about-dialog::backdrop { background: #20180fc4; backdrop-filter: blur(4px); }
+  .about-dialog h2 { margin: 0 0 18px; font-size: 30px; font-weight: 400; text-align: left; }
+  .about-dialog p { font-size: 15px; line-height: 1.7; margin: 0 0 12px; }
   .about-close { position: absolute; right: 16px; top: 12px; padding: 0 7px; background: transparent; border: 0; color: #675542; font: 26px var(--ui); cursor: pointer; }
-  @media (max-width: 720px) { .about { padding: 30px 22px; } }
+  @media (max-width: 720px) { .about-dialog { padding: 30px 22px; } }
   [hidden] { display: none !important; }
 
   @media (max-width: 720px) {
@@ -466,7 +466,7 @@
   <span>© 2026 Papermorph · <span data-t="place">Fukuoka, Japan</span></span>
   <nav aria-label="Elsewhere"><button type="button" class="about-open" data-t="about" aria-haspopup="dialog">About Papermorph</button><a href="/" data-t="shelf">Bookshelf</a><a href="https://github.com/DozenTwelve/Papermorph" target="_blank" rel="noopener noreferrer">GitHub</a><a href="https://www.youtube.com/@AnotherGameDoge" target="_blank" rel="noopener noreferrer">YouTube</a></nav>
 </footer>
-<dialog class="about" id="about" aria-labelledby="about-title">
+<dialog class="about-dialog" id="about" aria-labelledby="about-title">
   <form method="dialog"><button class="about-close" aria-label="Close">×</button></form>
   <h2 id="about-title" data-t="aboutTitle">About Papermorph</h2>
   <p data-t="a1"></p>
