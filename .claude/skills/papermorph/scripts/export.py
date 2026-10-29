@@ -213,8 +213,15 @@ async def main(a):
         codec, opts = encoder()
         print(f'encoder {codec}, {a.jobs} browsers', flush=True)
         enc = subprocess.Popen(['ffmpeg', '-v', 'error', '-y', '-f', 'image2pipe', '-framerate', str(a.fps), '-c:v', 'mjpeg',
-                                '-i', '-', '-i', str(wav), '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2',   # H.264 wants even sizes
-                                '-c:v', codec, '-pix_fmt', 'yuv420p'] + opts +
+                                '-i', '-', '-i', str(wav),
+                                # H.264 wants even sizes; the JPEG frames are full range, and a full-range MP4 plays too
+                                # bright in some browsers: convert to limited range BT.709 and tag it so
+                                '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2:in_range=pc:in_color_matrix=bt601'
+                                ':out_range=tv:out_color_matrix=bt709,format=yuv420p',
+                                '-c:v', codec, '-pix_fmt', 'yuv420p', '-color_range', 'tv', '-colorspace', 'bt709',
+                                '-color_primaries', 'bt709', '-color_trc', 'bt709',   # hardware encoders drop these, so also:
+                                '-bsf:v', 'h264_metadata=colour_primaries=1:transfer_characteristics=1:matrix_coefficients=1'
+                                ':video_full_range_flag=0'] + opts +
                                ['-c:a', 'aac', '-b:a', '160k', '-shortest', str(part)],
                                stdin=subprocess.PIPE)
         pages, more = [pg], []
