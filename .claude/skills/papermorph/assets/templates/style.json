@@ -14,7 +14,7 @@
   },
   "voice": { "engine": "edge", "voice": "en-US-AndrewNeural", "rate": "-4%" },
   "pacing": { "minutes": [6, 10], "checks": "one or two quick checks inside the lesson, practice at the end" },
-  "engine": { "source": "DozenTwelve/Papermorph", "ref": "engine-v2.7" },
+  "engine": { "source": "DozenTwelve/Papermorph", "ref": "engine-v2.8" },
   "models": { "extract": "haiku", "narration": "sonnet", "picture": "opus", "checks": "haiku", "review": "sonnet", "rework": "opus", "register": "haiku" },
   "scenes": {
     "art": "pixel scenes on a dark board, characters about a third of the stage tall",
