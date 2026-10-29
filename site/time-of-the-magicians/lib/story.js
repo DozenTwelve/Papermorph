@@ -46,6 +46,16 @@ const SEAS = [
   ['Black Sea', 33.6, 43.4], ['Tyrrhenian Sea', 11.4, 40.2],
 ];
 
+// the two times two of the four meet: one card for both, whichever is clicked (its clip audio/en/<year>-hc.mp3,
+// books/time-of-the-magicians/voice/meetings); at, where the walk stops for it; line, the caption there; pic, the
+// picture from img/cards
+const MEETINGS = {
+  1923: { who: ['h', 'c'], at: 'hamburg', pic: '1922-c', title: 'Heidegger meets Cassirer', place: 'Hamburg', line: 'Hamburg: Heidegger meets Cassirer',
+    text: "Hamburg, December 1923. Cassirer, whose first volume of The Philosophy of Symbolic Forms has just come out, heads the city's Kant Society, and he invites the young Heidegger, made a professor at Marburg that summer, to lecture. The next day he shows him Aby Warburg's library, and they talk about myth. It is the first meeting of two future rivals." },
+  1929: { who: ['h', 'c'], at: 'davos', pic: '1929-c', title: 'The Davos Debate', place: 'Davos', line: 'Davos: Cassirer meets Heidegger again',
+    text: "Davos, March 1929. At the university courses in the Swiss resort the two spend two weeks in the same hotel, and on 26 March they debate before students from all over Europe, among them Carnap, Levinas and Norbert Elias. Cassirer, ill and courteous, speaks for reason and culture: through the forms it makes, the human mind reaches beyond its limits. Heidegger answers that we are finite, thrown into a world, and that philosophy must shake us out of our comforts. Many feel the younger man has won. That summer Heidegger takes up Husserl's chair in Freiburg, and Hamburg makes Cassirer its rector." },
+};
+
 const YEARS = {
   1919: {
     europe: [
