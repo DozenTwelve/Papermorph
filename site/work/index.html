@@ -79,6 +79,8 @@
   .morph { font-weight: inherit; display: inline-block; text-align: center; color: var(--red); transition: opacity .35s cubic-bezier(.2, .8, .2, 1), transform .35s cubic-bezier(.2, .8, .2, 1), filter .35s; }
   .js .morph.out { opacity: 0; transform: translateY(.18em) scale(.96); filter: blur(6px); }
   .hero .actions { justify-content: center; }
+.reel { max-width: 960px; margin: 0 auto 56px; }
+.reel video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; background: var(--paper); box-shadow: 0 10px 32px var(--shade-2); }
   .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; }
   /* The one button: a flat red label, like the shelf's cards, not a raised key. */
   .cta { display: inline-block; background: var(--red); color: var(--on-color); text-decoration: none; padding: 12px 28px; border-radius: 2px; font-weight: 600; letter-spacing: .01em; box-shadow: 0 1px 2px var(--shade-2); transition: background-color .15s, transform .15s cubic-bezier(.2, .8, .2, 1); }
@@ -218,6 +220,7 @@
     <p class="lede">Lessons, picture books, films and pages to explore, in your own style.</p>
     <div class="actions"><a class="cta" data-mail href="mailto:a972848363@gmail.com?subject=Papermorph">Ask for a trial sample</a></div>
   </div>
+  <figure class="reel"><video id="reel" src="img/proteus-loop.mp4" poster="img/proteus-poster.webp" width="1280" height="720" muted loop playsinline controls preload="metadata" aria-label="Proteus, made with Papermorph: one page turns into a lesson, a picture book, a film, a short and a map, then into a tree that holds them all."></video></figure>
 
   <section class="samples">
     <h2 class="visually-hidden">What your material can become</h2>
@@ -482,9 +485,22 @@
       a2: '课程可能有错误，欢迎指正。阅读进度只保存在你的浏览器里；网站匿名统计访问量（Cloudflare Web Analytics，不使用 Cookie）。标为“制作中”的书暂未上线。' },
   };
   document.documentElement.classList.add('js');
+  const REEL = {
+    en: 'Proteus, made with Papermorph: one page turns into a lesson, a picture book, a film, a short and a map, then into a tree that holds them all.',
+    ja: 'Papermorph で作った「プロテウス」：一枚のページが授業、絵本、映画、ショート、地図に姿を変え、最後はそのすべてを抱く一本の木になります。',
+    zh: '用 Papermorph 做的《普罗透斯》：一页纸变成课程、绘本、影片、短片和地图，最后变成一棵把它们都托住的树。',
+  };
+  // the reel plays itself, muted, unless the reader asked for less motion; then it waits on its last picture, with controls
+  const reelV = document.getElementById('reel');
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    reelV.controls = false; reelV.autoplay = true; reelV.play().catch(() => { reelV.controls = true; });
+  }
   const langs = ['en', 'ja', 'zh'];
   const pick = (l) => {
     document.querySelectorAll('main[data-lang]').forEach(m => { m.hidden = m.dataset.lang !== l; });
+    const reel = document.querySelector('.reel');   // one video for all three languages: it sits under the shown hero
+    document.querySelector(`main[data-lang="${l}"] .hero`).after(reel);
+    reel.querySelector('video').setAttribute('aria-label', REEL[l] || REEL.en);
     document.querySelectorAll('.langs button').forEach(b => {
       if (b.dataset.set === l) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
     });
