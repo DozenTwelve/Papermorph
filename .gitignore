@@ -14,10 +14,7 @@ __pycache__/
 /img/readme/*
 !/img/readme/logo.png
 !/img/readme/logo_light.png
-!/img/readme/papermorph-preview.webp
-!/img/readme/papermorph-preview.mp4
-!/img/readme/physics-pulleys.webp
-!/img/readme/joke-collection.webp
+!/img/readme/*.webp
 /books/
 /content/
 /tools/
