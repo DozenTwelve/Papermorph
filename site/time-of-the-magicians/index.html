@@ -15,40 +15,53 @@
       <h1 id="year" aria-live="polite">1919</h1>
       <button id="next" class="step" aria-label="Next year" title="Next year (→)">›</button>
     </div>
-    <p id="title">Time of the Magicians <span>Europe 1919–1929</span></p>
-    <p id="hint">Click a philosopher to hear his year. Click the right of the map, or press →, for the next year.</p>
+    <p id="hint">Click a philosopher to hear his year. → for the next year.</p>
+    <button id="replay" class="link" hidden>▶ Europe in <span>1919</span></button>
   </header>
+  <p id="title">Time of the Magicians <span>Europe 1919–1929</span></p>
 
   <svg id="map" role="group" tabindex="-1" aria-label="Map of Europe" preserveAspectRatio="xMidYMid slice"></svg>
 
   <nav id="people" aria-label="The four philosophers"></nav>
 
-  <section id="europe" class="card" role="dialog" aria-labelledby="europe-h" hidden>
-    <button class="close" aria-label="Close">×</button>
-    <h2 id="europe-h">Europe in <span></span></h2>
-    <ul></ul>
-    <div class="row">
-      <button class="play" hidden>▶ Listen</button>
-      <button class="go">See where they go →</button>
-    </div>
-    <audio preload="none"></audio>
+  <section id="event" class="card" aria-live="polite" hidden>
+    <h2></h2>
+    <figure><img alt=""><figcaption></figcaption></figure>
+    <p class="text"></p>
+  </section>
+  <p id="move" aria-live="polite" hidden><b></b> <span></span></p>
+  <div id="filmbar" hidden><button id="skip">Skip to the four ▸▸</button></div>
+  <audio id="voice" preload="auto"></audio>
+
+  <section id="intro" class="card" role="dialog" aria-labelledby="intro-h">
+    <h2 id="intro-h">Time of the Magicians</h2>
+    <p>Europe, 1919 to 1929: a ruined continent, and four philosophers who changed how we think. Each year the map
+      plays what happened in Europe; then Wittgenstein, Heidegger, Benjamin and Cassirer walk to where that year took
+      them. Click one to hear his year.</p>
+    <div class="row"><button class="go" id="begin">▶ Begin in 1919</button></div>
   </section>
 
   <section id="person" class="card" role="dialog" aria-labelledby="person-h" hidden>
     <button class="close" aria-label="Close">×</button>
     <div class="head">
       <img alt="">
+      <img alt="" class="two" hidden>
       <div>
         <h2 id="person-h"></h2>
         <p class="where"></p>
       </div>
     </div>
+    <figure hidden><img alt=""></figure>
     <p class="text"></p>
     <div class="row"><button class="play" hidden>▶ Listen</button></div>
     <audio preload="none"></audio>
   </section>
 
-  <button id="credits-open" class="link">Sources and credits</button>
+  <div id="corner">
+    <button id="music" class="link" aria-pressed="true" title="Music on or off">♪ Music</button>
+    <button id="credits-open" class="link">Sources and credits</button>
+  </div>
+  <audio id="bgm" preload="none"></audio>
   <section id="credits" class="card" role="dialog" aria-labelledby="credits-h" hidden>
     <button class="close" aria-label="Close">×</button>
     <h2 id="credits-h">Sources and credits</h2>
@@ -61,12 +74,126 @@
       snapshot for 1 July of each year, under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a>
       (<a href="LICENSE-borders.txt">notice</a>). The Saar, the Memel territory and the 1922 split of Upper Silesia are not
       in the data.</p>
+    <!-- credits:start -->
+    <p>Music: dance records of the 1920s from Wikimedia Commons, public domain:</p>
+    <ul>
+      <li><a href="https://commons.wikimedia.org/wiki/File:%22The_Japanese_Sandman%22_(1920),_by_Paul_Whiteman_and_His_Ambassador_Orchestra.oga">The Japanese Sandman (fox-trot)</a>, Paul Whiteman and His Ambassador Orchestra (Victor 18690, rec. 1920-08-19); music by Richard A. Whiting (d. 1938); public domain</li>
+      <li><a href="https://commons.wikimedia.org/wiki/File:Limehouse_Blues_-_Arthur_Lange_and_his_Orchestra_(1924).mp3">Limehouse Blues (fox-trot)</a>, Arthur Lange and His Orchestra (Cameo 545, rec. 1924-04-22); music by Philip Braham (d. 1934); public domain</li>
+      <li><a href="https://commons.wikimedia.org/wiki/File:April_Showers_(1921,_Paul_Whiteman).mp3">April Showers (fox-trot)</a>, Paul Whiteman and His Orchestra (Victor 18825, rec. 1921-10-27); music by Louis Silvers (d. 1954); public domain</li>
+    </ul>
+    <details><summary>Event pictures: period photographs and prints from Wikimedia Commons, public domain, toned for the page</summary>
+    <ul>
+      <li>1919, The Spartacist Rising: <a href="https://commons.wikimedia.org/wiki/File:Armed_workers_during_the_Spartacist_uprising,_5_January_1919.jpg">Armed workers during the Spartacist uprising, 5 January 1919.jpg</a>, Unknown author Unknown author, public domain</li>
+      <li>1919, The Treaty of Versailles: <a href="https://commons.wikimedia.org/wiki/File:Dignitaries_gathering_in_the_Hall_of_Mirrors_at_the_Palace_of_Versailles,_France,_to_sign_the_Treaty_of_Versailles.jpg">Dignitaries gathering in the Hall of Mirrors at the Palace of Versailles, France, to sign the Treaty of Versailles.jpg</a>, Encyclopædia Britannica, public domain</li>
+      <li>1919, A Republic at Weimar: <a href="https://commons.wikimedia.org/wiki/File:Enemy_Activities_-_German_Republic_-_German_congress_in_session_at_Weimar_-_President_Ebert_presiding_-_NARA_-_31478647.jpg">Enemy Activities - German Republic - German congress in session at Weimar - President Ebert presiding - NARA - 31478647.jpg</a>, Unknown author Unknown author or not provided, public domain</li>
+      <li>1919, The Treaty of Saint-Germain: <a href="https://commons.wikimedia.org/wiki/File:TratadoDeSaintGermainRenner1.png">TratadoDeSaintGermainRenner1.png</a>, Unknown author Unknown author, public domain</li>
+      <li>1920, The League of Nations: <a href="https://commons.wikimedia.org/wiki/File:Eerste_zitting_van_de_Volkenbond_Gen%C3%A8ve_1920,_SFA001004095.jpg">Eerste zitting van de Volkenbond Genève 1920, SFA001004095.jpg</a>, Unknown author Unknown author, public domain</li>
+      <li>1920, The Kapp Putsch: <a href="https://commons.wikimedia.org/wiki/File:17-3-20,_la_r%C3%A9volution_%C3%A0_Berlin,_troupes_r%C3%A9volutionnaires_mettant_leurs_mitrailleuses_en_batterie_-_btv1b53036506s.jpg">17-3-20, la révolution à Berlin, troupes révolutionnaires mettant leurs mitrailleuses en batterie - btv1b53036506s.jpg</a>, Agence Rol. Agence photographique (commanditaire), public domain</li>
+      <li>1920, The Treaty of Trianon: <a href="https://commons.wikimedia.org/wiki/File:4-6-1920,_signature_de_la_Paix_avec_la_Hongrie,_d%C3%A9part_des_d%C3%A9l%C3%A9gu%C3%A9s_hongrois_(sur_les_marches_du_perron)_-_full.jpg">4-6-1920, signature de la Paix avec la Hongrie, départ des délégués hongrois (sur les marches du perron) - full.jpg</a>, Agence Rol, public domain</li>
+      <li>1920, The Miracle on the Vistula: <a href="https://commons.wikimedia.org/wiki/File:Polish-soviet_war_1920_Polish_defences_near_Milosna,_August.jpg">Polish-soviet war 1920 Polish defences near Milosna, August.jpg</a>, Unknown author Unknown author, public domain</li>
+      <li>1920, The Free City of Danzig: <a href="https://commons.wikimedia.org/wiki/File:Danzig_-_Langebrucke._1921_(68902307).jpg">Danzig - Langebrucke. 1921 (68902307).jpg</a>, Unknown author Unknown author, public domain</li>
+      <li>1921, The Upper Silesia Plebiscite: <a href="https://commons.wikimedia.org/wiki/File:Kattowitz_(Katowice_en_Pologne),_sentinelles_fran%C3%A7aises_assurant_l%27ordre_pendant_le_vote_(lors_du_pl%C3%A9biscite_de_la_Haute-Sil%C3%A9sie_du_20_mars_1921)_-_btv1b530500982.jpg">Kattowitz (Katowice en Pologne), sentinelles françaises assurant l&#x27;ordre pendant le vote (lors du plébiscite de la Haute-Silésie du 20 mars 1921) - btv1b530500982.jpg</a>, Agence Rol. Agence photographique (commanditaire), public domain</li>
+      <li>1921, The Peace of Riga: <a href="https://commons.wikimedia.org/wiki/File:Delegaci_Polski_na_rokowania_pokojowe_Ryga_1921.jpg">Delegaci Polski na rokowania pokojowe Ryga 1921.jpg</a>, unknown-anonymous, public domain</li>
+      <li>1921, Kronstadt and the New Economic Policy: <a href="https://commons.wikimedia.org/wiki/File:Kronstadt_attack.JPG">Kronstadt attack.JPG</a>, Unknown author Unknown author, public domain</li>
+      <li>1921, The Bill for the War: <a href="https://commons.wikimedia.org/wiki/File:MM._Briand,_Loucheur,_Jaspar_%C3%A0_la_conf%C3%A9rence_de_Londres_-_btv1b53067543c.jpg">MM. Briand, Loucheur, Jaspar à la conférence de Londres - btv1b53067543c.jpg</a>, Agence Rol, public domain</li>
+      <li>1921, Erzberger Murdered: <a href="https://commons.wikimedia.org/wiki/File:Op_31_augustus_1921_wordt_Matthias_Erzberger_in_Biberach_begraven,_SFA005001641.jpg">Op 31 augustus 1921 wordt Matthias Erzberger in Biberach begraven, SFA005001641.jpg</a>, Unknown author Unknown author, public domain</li>
+      <li>1921, The Anglo-Irish Treaty: <a href="https://commons.wikimedia.org/wiki/File:Ierse_Vrijstaat,_SFA022823707.jpg">Ierse Vrijstaat, SFA022823707.jpg</a>, Unknown author Unknown author, public domain</li>
+      <li>1922, The Treaty of Rapallo: <a href="https://commons.wikimedia.org/wiki/File:G%C3%AAnes_(conf%C3%A9rence_%C3%A9conomique_internationale),_la_d%C3%A9l%C3%A9gation_allemande,_M._(Joseph)_Wirth_(1er_rang,_3e_%C3%A0_partir_de_la_droite),_M._(Walther)_Rathenau_(1er_rang,_2e_%C3%A0_partir_de_la_gauche),_clich%C3%A9_Vianello_-..._-_btv1b53078422c.jpg">Gênes (conférence économique internationale), la délégation allemande, M. (Joseph) Wirth (1er rang, 3e à partir de la droite), M. (Walther) Rathenau (1er rang, 2e à partir de la gauche), cliché Vianello -... - btv1b53078422c.jpg</a>, Agence Rol. Agence photographique (commanditaire), public domain</li>
+      <li>1922, Rathenau Assassinated: <a href="https://commons.wikimedia.org/wiki/File:Het_stoffelijk_overschot_van_de_vermoorde_Duitse_minister_van_Buitenlandse_Zaken,_Dr,_SFA022003692.jpg">Het stoffelijk overschot van de vermoorde Duitse minister van Buitenlandse Zaken, Dr, SFA022003692.jpg</a>, Unknown author Unknown author, public domain</li>
+      <li>1922, The March on Rome: <a href="https://commons.wikimedia.org/wiki/File:March_on_Rome_1922_-_Quirinale.jpg">March on Rome 1922 - Quirinale.jpg</a>, Unknown author Unknown author, public domain</li>
+      <li>1922, A Free State and a Union: <a href="https://commons.wikimedia.org/wiki/File:Tim_Healy,_December_1922.jpg">Tim Healy, December 1922.jpg</a>, Unknown author Unknown author, public domain</li>
+      <li>1922, The Falling Mark: <a href="https://commons.wikimedia.org/wiki/File:10000Reichsmark1922v.jpg">10000Reichsmark1922v.jpg</a>, Unknown author Unknown author, public domain</li>
+      <li>1923, The Occupation of the Ruhr: <a href="https://commons.wikimedia.org/wiki/File:French_enter_Essen_LCCN2014715614.jpg">French enter Essen LCCN2014715614.jpg</a>, Bain News Service, publisher, public domain</li>
+      <li>1923, Memel Seized: <a href="https://commons.wikimedia.org/wiki/File:Soldiers_of_the_Lithuanian_Army_enters_Klaip%C4%97da_(Memel),_1923.jpg">Soldiers of the Lithuanian Army enters Klaipėda (Memel), 1923.jpg</a>, Unknown author Unknown author, public domain</li>
+      <li>1923, The Great Inflation: <a href="https://commons.wikimedia.org/wiki/File:In_a_Berlin_Bank_LCCN2014716642.jpg">In a Berlin Bank LCCN2014716642.jpg</a>, Bain News Service, publisher, public domain</li>
+      <li>1923, The Beer Hall Putsch: <a href="https://commons.wikimedia.org/wiki/File:Hitlerputsch,_barricade_in_Munich_(1923).jpg">Hitlerputsch, barricade in Munich (1923).jpg</a>, unknown, public domain</li>
+      <li>1923, The Rentenmark: <a href="https://commons.wikimedia.org/wiki/File:1_rentenmark_1.11.1923_xx.jpg">1 rentenmark 1.11.1923 xx.jpg</a>, Deutsche Rentenbank, public domain</li>
+      <li>1923, The Republic of Turkey: <a href="https://commons.wikimedia.org/wiki/File:M%C3%BC%C5%9Fir_Gazi_Mustafa_Kemal_Pa%C5%9Fa,_Bal%C4%B1kesir,_1923.png">Müşir Gazi Mustafa Kemal Paşa, Balıkesir, 1923.png</a>, Unknown author Unknown author, public domain</li>
+      <li>1924, Lenin Is Dead: <a href="https://commons.wikimedia.org/wiki/File:Iljitsj_Oeljanov_Lenin_Het_opgebaarde_gebalsemde_lijk_van_de_communistische_revolutionaire_en,_SFA001007963.jpg">Iljitsj Oeljanov Lenin Het opgebaarde gebalsemde lijk van de communistische revolutionaire en, SFA001007963.jpg</a>, Unknown author Unknown author, public domain</li>
+      <li>1924, Labour in Power: <a href="https://commons.wikimedia.org/wiki/File:F%C3%B8rste_Labour-regering_(besk%C3%A5ret).jpg">Første Labour-regering (beskåret).jpg</a>, The National Archives (United Kingdom), public domain</li>
+      <li>1924, The Matteotti Murder: <a href="https://commons.wikimedia.org/wiki/File:Delitto_Matteotti_-_Trasporto_della_salma.jpg">Delitto Matteotti - Trasporto della salma.jpg</a>, Unknown author Unknown author, public domain</li>
+      <li>1924, The Dawes Plan: <a href="https://commons.wikimedia.org/wiki/File:Charles_G._Dawes_cph.3a38653.jpg">Charles G. Dawes cph.3a38653.jpg</a>, Underwood &amp; Underwood, public domain</li>
+      <li>1924, The Magic Mountain: <a href="https://commons.wikimedia.org/wiki/File:Thomas_Mann_by_Emil_Stumpp,_1924.jpg">Thomas Mann by Emil Stumpp, 1924.jpg</a>, Emil Stumpp, public domain</li>
+      <li>1924, A Prisoner at Landsberg: <a href="https://commons.wikimedia.org/wiki/File:Hitler,_Maurice,_Kriebel,_Hess,_Weber,_prison_de_Landsberg_en_1924.jpg">Hitler, Maurice, Kriebel, Hess, Weber, prison de Landsberg en 1924.jpg</a>, Unknown author Unknown author, public domain</li>
+      <li>1925, A Field Marshal for President: <a href="https://commons.wikimedia.org/wiki/File:Intocht_in_april_1925_van_de_Rijkspresident_Paul_von_Hindenburg,_SFA022001433.jpg">Intocht in april 1925 van de Rijkspresident Paul von Hindenburg, SFA022001433.jpg</a>, Unknown author Unknown author, public domain</li>
+      <li>1925, The Hebrew University: <a href="https://commons.wikimedia.org/wiki/File:Hebrew_University_and_Lord_Balfour%27s_visit._Lord_Balfour_declaring_university_open_LOC_matpc.05815.jpg">Hebrew University and Lord Balfour&#x27;s visit. Lord Balfour declaring university open LOC matpc.05815.jpg</a>, Matson Collection, public domain</li>
+      <li>1925, Mein Kampf: <a href="https://commons.wikimedia.org/wiki/File:Erstausgabe_von_Mein_Kampf.jpg">Erstausgabe von Mein Kampf.jpg</a>, Anton Huttenlocher, public domain</li>
+      <li>1925, The Spirit of Locarno: <a href="https://commons.wikimedia.org/wiki/File:Conferenza_di_Locarno_1925.JPG">Conferenza di Locarno 1925.JPG</a>, Unknown author Unknown author, public domain</li>
+      <li>1926, The General Strike: <a href="https://commons.wikimedia.org/wiki/File:Algemene_staking_in_Engeland_1926,_SFA022820540.jpg">Algemene staking in Engeland 1926, SFA022820540.jpg</a>, Unknown author Unknown author, public domain</li>
+      <li>1926, The May Coup: <a href="https://commons.wikimedia.org/wiki/File:Pi%C5%82sudski_on_Poniatowski%27s_Bridge.jpg">Piłsudski on Poniatowski&#x27;s Bridge.jpg</a>, Marian Fuks, public domain</li>
+      <li>1926, Germany in the League: <a href="https://commons.wikimedia.org/wiki/File:Gen%C3%A8ve,_10-9-26,_S._des_N.,_discours_de_M._Stresemann_-_btv1b531679168.jpg">Genève, 10-9-26, S. des N., discours de M. Stresemann - btv1b531679168.jpg</a>, Agence Rol, public domain</li>
+      <li>1926, Trotsky Pushed Out: <a href="https://commons.wikimedia.org/wiki/File:Joseph_Stalin_and_Leon_Trotsky_at_Felix_Dzerzhinsky_funeral.jpg">Joseph Stalin and Leon Trotsky at Felix Dzerzhinsky funeral.jpg</a>, Unknown author Unknown author, public domain</li>
+      <li>1927, Metropolis: <a href="https://commons.wikimedia.org/wiki/File:1927_Boris_Bilinski_(1900-1948)_Plakat_f%C3%BCr_den_Film_Metropolis,_Staatliche_Museen_zu_Berlin.jpg">1927 Boris Bilinski (1900-1948) Plakat für den Film Metropolis, Staatliche Museen zu Berlin.jpg</a>, Boris Konstantinovitch Bilinsky (1900–1948), public domain</li>
+      <li>1927, Lindbergh Lands in Paris: <a href="https://commons.wikimedia.org/wiki/File:Een_meningte_heeft_zich_verzameld_op_luchthaven_Le_Bourget_om_de_landing_van_Charles_Lindbergh_af,_SFA022002332.jpg">Een meningte heeft zich verzameld op luchthaven Le Bourget om de landing van Charles Lindbergh af, SFA022002332.jpg</a>, Unknown author Unknown author, public domain</li>
+      <li>1927, The Palace of Justice Burns: <a href="https://commons.wikimedia.org/wiki/File:Gerlach_justizpalastbrand_2.jpg">Gerlach justizpalastbrand 2.jpg</a>, Martin Gerlach, public domain</li>
+      <li>1927, Trotsky Expelled: <a href="https://commons.wikimedia.org/wiki/File:Trotskigroup640.jpg">Trotskigroup640.jpg</a>, Unknown author Unknown author, public domain</li>
+      <li>1928, The Reichstag Election: <a href="https://commons.wikimedia.org/wiki/File:Theo_Matejko_Saeubert_das_Reich!_Plakat_DDP_1928.jpg">Theo Matejko Saeubert das Reich! Plakat DDP 1928.jpg</a>, Theo Matejko, public domain</li>
+      <li>1928, The Threepenny Opera: <a href="https://commons.wikimedia.org/wiki/File:Dreigroschenoper_Theaterzettel_1928_Seite_1.jpg">Dreigroschenoper Theaterzettel 1928 Seite 1.jpg</a>, Unknown author Unknown author, public domain</li>
+      <li>1928, The Pact Against War: <a href="https://commons.wikimedia.org/wiki/File:27-8-28_(signature_du)_Pacte_(Briand)_Kellogg_(vue_d%27ensemble_des_signataires_et_du_public_au_minist%C3%A8re_des_affaires_%C3%A9trang%C3%A8res),_discours_de_M._Briand_-_btv1b532046709.jpg">27-8-28 (signature du) Pacte (Briand) Kellogg (vue d&#x27;ensemble des signataires et du public au ministère des affaires étrangères), discours de M. Briand - btv1b532046709.jpg</a>, Agence Rol. Agence photographique (commanditaire), public domain</li>
+      <li>1928, Penicillin: <a href="https://commons.wikimedia.org/wiki/File:Alexander_fleming,_SFA222006537.jpg">Alexander fleming, SFA222006537.jpg</a>, Unknown author Unknown author, public domain</li>
+      <li>1928, Trotsky in Exile: <a href="https://commons.wikimedia.org/wiki/File:%D0%9B.%D0%94._%D0%A2%D1%80%D0%BE%D1%86%D0%BA%D0%B8%D0%B9_%D1%81_%D0%B6%D0%B5%D0%BD%D0%BE%D0%B9_%D0%B8_%D1%81%D1%8B%D0%BD%D0%BE%D0%BC_%D0%9B%D1%8C%D0%B2%D0%BE%D0%BC_%D0%B2_%D1%81%D1%81%D1%8B%D0%BB%D0%BA%D0%B5.jpg">Л.Д. Троцкий с женой и сыном Львом в ссылке.jpg</a>, unknown; photo retake by George Shuklin ( talk ), public domain</li>
+      <li>1929, The Lateran Treaty: <a href="https://commons.wikimedia.org/wiki/File:Firma_dei_Patti_Lateranensi_1929.jpg">Firma dei Patti Lateranensi 1929.jpg</a>, Istituto Luce, public domain</li>
+      <li>1929, Bloody May: <a href="https://commons.wikimedia.org/wiki/File:Communistische_manifestaties,_SFA022825069.jpg">Communistische manifestaties, SFA022825069.jpg</a>, Unknown author Unknown author, public domain</li>
+      <li>1929, The Young Plan: <a href="https://commons.wikimedia.org/wiki/File:7-5-29_(de_gauche_%C3%A0_droite)_Young,_P._Moreau_(experts_pour_le_r%C3%A8glement_de_la_dette_allemande_sortant_du_George_V)_-_btv1b53214756v.jpg">7-5-29 (de gauche à droite) Young, P. Moreau (experts pour le règlement de la dette allemande sortant du George V) - btv1b53214756v.jpg</a>, Agence Rol. Agence photographique (commanditaire), public domain</li>
+      <li>1929, Stresemann Is Dead: <a href="https://commons.wikimedia.org/wiki/File:De_lijkstoet_van_de_politicus_Gustav_Stresemann(1878-1929)_trekt_onder_grote_belangstelling_door,_SFA022004600.jpg">De lijkstoet van de politicus Gustav Stresemann(1878-1929) trekt onder grote belangstelling door, SFA022004600.jpg</a>, Unknown author Unknown author, public domain</li>
+      <li>1929, The Crash: <a href="https://commons.wikimedia.org/wiki/File:Crowds_gathering_outside_New_York_Stock_Exchange_(3).jpg">Crowds gathering outside New York Stock Exchange (3).jpg</a>, Associated Press, public domain</li>
+    </ul></details>
+    <details><summary>Pictures on the philosophers' cards: Wikimedia Commons, public domain</summary>
+    <ul>
+      <li>1919, Wittgenstein: <a href="https://commons.wikimedia.org/wiki/File:Bertrand_Russell,_from_The_Story_of_Philosophy.jpg">Bertrand Russell, from The Story of Philosophy.jpg</a>, Unknown author Unknown author, public domain</li>
+      <li>1920, Wittgenstein: <a href="https://commons.wikimedia.org/wiki/File:Erwin_Spindler_Ansichtskarte_Trattenbach.jpg">Erwin Spindler Ansichtskarte Trattenbach.jpg</a>, Erwin Spindler, public domain</li>
+      <li>1921, Wittgenstein: <a href="https://commons.wikimedia.org/wiki/File:Wittgenstein_Tractatus_Annalen_der_Naturphilosophie.png">Wittgenstein Tractatus Annalen der Naturphilosophie.png</a>, L. Wittgenstein, public domain</li>
+      <li>1922, Wittgenstein: <a href="https://commons.wikimedia.org/wiki/File:Tractatus_title_page_1922_Harcourt.png">Tractatus title page 1922 Harcourt.png</a>, Title etc. uncopyrightable; layout by Harcourt Brace., public domain</li>
+      <li>1923, Wittgenstein: <a href="https://commons.wikimedia.org/wiki/File:Puchberg_historische_Ansicht_um_1900.jpg">Puchberg historische Ansicht um 1900.jpg</a>, Unknown author Unknown author, public domain</li>
+      <li>1924, Wittgenstein: <a href="https://commons.wikimedia.org/wiki/File:John_Maynard_Keynes_(1929).jpg">John Maynard Keynes (1929).jpg</a>, Unknown, dedicated to Bettmann Archive, public domain</li>
+      <li>1925, Wittgenstein: <a href="https://commons.wikimedia.org/wiki/File:Wittgenstein_with_his_pupils,_1925.jpg">Wittgenstein with his pupils, 1925.jpg</a>, Unknown author Unknown author, public domain</li>
+      <li>1926, Wittgenstein: <a href="https://commons.wikimedia.org/wiki/File:Wittgenstein_family_Vienna_1917.jpg">Wittgenstein family Vienna 1917.jpg</a>, Anonymous Unknown author, public domain</li>
+      <li>1927, Wittgenstein: <a href="https://commons.wikimedia.org/wiki/File:Moritz_Schlick_(1882%E2%80%931936)_1927_%C2%A9_Georg_Fayer_(1892%E2%80%931950)_OeNB_10452162.jpg">Moritz Schlick (1882–1936) 1927 © Georg Fayer (1892–1950) OeNB 10452162.jpg</a>, Georg Fayer, public domain</li>
+      <li>1928, Wittgenstein: <a href="https://commons.wikimedia.org/wiki/File:Wittgenstein_haus.jpg">Wittgenstein haus.jpg</a>, ?, public domain</li>
+      <li>1929, Wittgenstein: <a href="https://commons.wikimedia.org/wiki/File:Ludwig_Wittgenstein_1929.jpg">Ludwig Wittgenstein 1929.jpg</a>, Moritz Nähr, public domain</li>
+      <li>1919, Heidegger: <a href="https://commons.wikimedia.org/wiki/File:Freiburg_i._Br.,_Baden-W%C3%BCrttemberg_-_Stadtansicht_mit_M%C3%BCnster_(Zeno_Ansichtskarten).jpg">Freiburg i. Br., Baden-Württemberg - Stadtansicht mit Münster (Zeno Ansichtskarten).jpg</a>, Gebrüder Metz, public domain</li>
+      <li>1920, Heidegger: <a href="https://commons.wikimedia.org/wiki/File:Messkirch,_Ortspartie_an_der_Handlung_von_Fritz_Nober,_H%C3%BCte,_M%C3%BCtzen,_Pelz-,_Schuhwaren.jpg">Messkirch, Ortspartie an der Handlung von Fritz Nober, Hüte, Mützen, Pelz-, Schuhwaren.jpg</a>, Unknown author Unknown author, public domain</li>
+      <li>1921, Heidegger: <a href="https://commons.wikimedia.org/wiki/File:Karl_Jaspers_1910.jpg">Karl Jaspers 1910.jpg</a>, Unknown (Mondadori Publishers), public domain</li>
+      <li>1922, Heidegger: <a href="https://commons.wikimedia.org/wiki/File:Pension_Kaiser_und_Ennerbach_bei_Todtnauberg_um_1930.jpg">Pension Kaiser und Ennerbach bei Todtnauberg um 1930.jpg</a>, R. A. Brender, public domain</li>
+      <li>1923, Heidegger: <a href="https://commons.wikimedia.org/wiki/File:Marburg_-_Universit%C3%A4t.jpg">Marburg - Universität.jpg</a>, Anonymous Unknown author, public domain</li>
+      <li>1924, Heidegger: <a href="https://commons.wikimedia.org/wiki/File:Hannah_Arendt_1924.jpg">Hannah Arendt 1924.jpg</a>, Unknown author Unknown author, public domain</li>
+      <li>1925, Heidegger: <a href="https://commons.wikimedia.org/wiki/File:Pension_Kaiser_in_Todtnauberg_um_1930.jpg">Pension Kaiser in Todtnauberg um 1930.jpg</a>, R. A. Brender, public domain</li>
+      <li>1926, Heidegger: <a href="https://commons.wikimedia.org/wiki/File:Heidelberg,_Baden-W%C3%BCrttemberg_-_Alte_Br%C3%BCcke_mit_Schloss_(Zeno_Ansichtskarten).jpg">Heidelberg, Baden-Württemberg - Alte Brücke mit Schloss (Zeno Ansichtskarten).jpg</a>, Raphael Tuck &amp; Sons, public domain</li>
+      <li>1927, Heidegger: <a href="https://commons.wikimedia.org/wiki/File:1920%E5%B9%B4%E4%BB%A3%E7%9A%84%E6%B5%B7%E5%BE%B7%E6%A0%BC%E5%B0%94.jpg">1920年代的海德格尔.jpg</a>, Unknown author Unknown author, public domain</li>
+      <li>1928, Heidegger: <a href="https://commons.wikimedia.org/wiki/File:Edmund_Husserl_c._1930.webp">Edmund Husserl c. 1930.webp</a>, Unknown author Unknown author, public domain</li>
+      <li>1929, Heidegger: <a href="https://commons.wikimedia.org/wiki/File:Kirchner_-_Davos_im_Winter._Davos_im_Schnee,_1923,_Inv._1931.jpg">Kirchner - Davos im Winter. Davos im Schnee, 1923, Inv. 1931.jpg</a>, Ernst Ludwig Kirchner, public domain</li>
+      <li>1919, Benjamin: <a href="https://commons.wikimedia.org/wiki/File:Semmering_Railway,_Breitenstein,_Styria,_Austro-Hungary-LCCN2002710981.jpg">Semmering Railway, Breitenstein, Styria, Austro-Hungary-LCCN2002710981.jpg</a>, Photochrom Print Collection, public domain</li>
+      <li>1920, Benjamin: <a href="https://commons.wikimedia.org/wiki/File:Berlin,_Wilmersdorf,_Berlin_-_Grunewald,_Taubertstra%C3%9Fe_5,_Grunewald-Villa_(Zeno_Ansichtskarten).jpg">Berlin, Wilmersdorf, Berlin - Grunewald, Taubertstraße 5, Grunewald-Villa (Zeno Ansichtskarten).jpg</a>, Voremberg, Berlin, public domain</li>
+      <li>1921, Benjamin: <a href="https://commons.wikimedia.org/wiki/File:Paul_Klee_~_Angelus_Novus_~_1920.jpg">Paul Klee ~ Angelus Novus ~ 1920.jpg</a>, Christian Mantey ( photographer ), Kulturagent, public domain</li>
+      <li>1922, Benjamin: <a href="https://commons.wikimedia.org/wiki/File:Heidelberg_-_Schloss.jpg">Heidelberg - Schloss.jpg</a>, Anonymous Unknown author, public domain</li>
+      <li>1923, Benjamin: <a href="https://commons.wikimedia.org/wiki/File:Zwanzig_Millionen_Mark_1923.jpg">Zwanzig Millionen Mark 1923.jpg</a>, Issued by the Reichsbank in Berlin, reproduced by ThoBel-0043 from an original banknote., public domain</li>
+      <li>1924, Benjamin: <a href="https://commons.wikimedia.org/wiki/File:The_town,_Capri_Island,_Italy-LCCN2001700771.jpg">The town, Capri Island, Italy-LCCN2001700771.jpg</a>, Photochrom Print Collection, public domain</li>
+      <li>1925, Benjamin: <a href="https://commons.wikimedia.org/wiki/File:Asja_Lacis.jpg">Asja Lacis.jpg</a>, Unknown author Unknown author, public domain</li>
+      <li>1926, Benjamin: <a href="https://commons.wikimedia.org/wiki/File:1920s-moscow-1.jpg">1920s-moscow-1.jpg</a>, С. С. Ильин, public domain</li>
+      <li>1927, Benjamin: <a href="https://commons.wikimedia.org/wiki/File:Atget_-_2e_arr._Galerie_Vivienne,_btv1b105163675.jpeg">Atget - 2e arr. Galerie Vivienne, btv1b105163675.jpeg</a>, Eugène Atget, public domain</li>
+      <li>1928, Benjamin: <a href="https://commons.wikimedia.org/wiki/File:Full_cover_of_Walter_Benjamin%27s_%22Einbahnstra%C3%9Fe%22_(1928),_designed_by_Sasha_Stone.jpg">Full cover of Walter Benjamin&#x27;s &quot;Einbahnstraße&quot; (1928), designed by Sasha Stone.jpg</a>, Sasha Stone, public domain</li>
+      <li>1929, Benjamin: <a href="https://commons.wikimedia.org/wiki/File:Walter_Benjamin_vers_1928.jpg">Walter Benjamin vers 1928.jpg</a>, Photo d&#x27;identité sans auteur, 1928, public domain</li>
+      <li>1919, Cassirer: <a href="https://commons.wikimedia.org/wiki/File:Bahnhof_Hamburg_Dammtor_NARA-68154981.jpg">Bahnhof Hamburg Dammtor NARA-68154981.jpg</a>, Unknown author Unknown author or not provided, public domain</li>
+      <li>1920, Cassirer: <a href="https://commons.wikimedia.org/wiki/File:Aby_Warburg.jpg">Aby Warburg.jpg</a>, Aby Warburg Institut, London, public domain</li>
+      <li>1921, Cassirer: <a href="https://commons.wikimedia.org/wiki/File:Einstein_1921_by_F_Schmutzer_-_restoration.jpg">Einstein 1921 by F Schmutzer - restoration.jpg</a>, Ferdinand Schmutzer / Adam Cuerden, public domain</li>
+      <li>1922, Cassirer: <a href="https://commons.wikimedia.org/wiki/File:Cassirer_Begriffsform_im_myth_Denken_title_1922.jpg">Cassirer Begriffsform im myth Denken title 1922.jpg</a>, Ernst Cassirer / Kulturwissenschaftliche Bibliothek Warburg, public domain</li>
+      <li>1923, Cassirer: <a href="https://commons.wikimedia.org/wiki/File:Philosophie_der_symbolischen_Formen_erster_Teil.djvu">Philosophie der symbolischen Formen erster Teil.djvu (page 7)</a>, Ernst Cassirer, public domain</li>
+      <li>1924, Cassirer: <a href="https://commons.wikimedia.org/wiki/File:CH-NB_Photoglob-Wehrli_EAD-WEHR-17061-B.tif">CH-NB Photoglob-Wehrli EAD-WEHR-17061-B.tif</a>, Bruno Wehrli, public domain</li>
+      <li>1925, Cassirer: <a href="https://commons.wikimedia.org/wiki/File:Ernst_Cassirer.jpg">Ernst Cassirer.jpg</a>, Center for Advanced Research in Phenomenology - CARP http://www.phenomenologycenter.org, public domain</li>
+      <li>1926, Cassirer: <a href="https://commons.wikimedia.org/wiki/File:Aby_Warburg_1925.jpg">Aby Warburg 1925.jpg</a>, Kunsthistorisches Institut in Florenz, Max-Planck-Institut, public domain</li>
+      <li>1927, Cassirer: <a href="https://commons.wikimedia.org/wiki/File:SS_Mongolia_at_St._Pauli_Landungsbr%C3%BCcken,_Germany,_between_1920_and_1923_(NH_105919).jpg">SS Mongolia at St. Pauli Landungsbrücken, Germany, between 1920 and 1923 (NH 105919).jpg</a>, Unknown author Unknown author, public domain</li>
+      <li>1928, Cassirer: <a href="https://commons.wikimedia.org/wiki/File:Hoffmanns_St%C3%A4rkefabriken_-_Postkarte_Hamburg,_Rathaus.jpg">Hoffmanns Stärkefabriken - Postkarte Hamburg, Rathaus.jpg</a>, ehemalige Hoffmann&#x27;s Stärkefabriken, Bad Salzuflen, public domain</li>
+      <li>1929, Cassirer: <a href="https://commons.wikimedia.org/wiki/File:CH-NB_Photoglob-Wehrli_EAD-WEHR-32206-B.tif">CH-NB Photoglob-Wehrli EAD-WEHR-32206-B.tif</a>, P. Bösch, public domain</li>
+    </ul></details>
+    <!-- credits:end -->
     <p>The four figures were drawn for this page by an image model from descriptions of how the men looked in the 1920s;
       they are not photographs. Voice: ElevenLabs v4. Fonts: Oswald and EB Garamond (SIL Open Font License).</p>
   </section>
 </main>
 <script src="lib/borders.js"></script>
 <script src="lib/story.js"></script>
+<script src="lib/events.js"></script>
+<script src="img/cards/pictures.js"></script>
 <script src="audio/voiced.js"></script>
 <script src="lib/app.js"></script>
 </body>
