@@ -12,8 +12,6 @@
   };
   legacyBook();
   addEventListener('hashchange', legacyBook);
-  const about = document.getElementById('shelf-about');
-  document.getElementById('shelf-about-button').addEventListener('click', () => about.showModal());
   const books = [
     { id: 'elementary-algebra', key: 'progress', chapterBase: 'elementary-algebra/', chapters: 68 },
     { id: 'math-notebook', key: 'animebook:progress:' + new URL('math-notebook/', location.href).pathname,

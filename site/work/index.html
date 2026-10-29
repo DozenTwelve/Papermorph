@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Work with Papermorph</title>
+<meta name="description" content="A small team of web developers in Fukuoka makes your books and stories into narrated, animated lessons, picture books, films and pages to explore, or builds the pipeline for your team.">
+<link rel="canonical" href="https://papermorph.diamonddoge.org/work/">
+<link rel="alternate" hreflang="en" href="https://papermorph.diamonddoge.org/work/?lang=en">
+<link rel="alternate" hreflang="ja" href="https://papermorph.diamonddoge.org/work/?lang=ja">
+<link rel="alternate" hreflang="zh" href="https://papermorph.diamonddoge.org/work/?lang=zh">
+<link rel="alternate" hreflang="x-default" href="https://papermorph.diamonddoge.org/work/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Papermorph">
+<meta property="og:title" content="Work with Papermorph">
+<meta property="og:description" content="Your titles, narrated and animated: lessons, picture books, films and pages to explore, in your own style.">
+<meta property="og:url" content="https://papermorph.diamonddoge.org/work/">
+<meta property="og:image" content="https://papermorph.diamonddoge.org/assets/bookshelf.webp">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231d2b27'/%3E%3Ctext x='32' y='45' text-anchor='middle' font-size='48' fill='%23f0b45a'%3E∞%3C/text%3E%3C/svg%3E">
+<style>
+  /* The bookshelf's world carried over: its cloth banner, its coloured label cards (one colour per shelf), its paper. */
+  @font-face { font-family: Oswald; font-weight: 600; font-display: swap; src: url(../lib/fonts/Oswald-latin.woff2) format('woff2'); }
+  :root {
+    --ui: "Avenir Next", "Segoe UI", "Helvetica Neue", "Hiragino Sans", "PingFang SC", "Noto Sans JP", Arial, sans-serif;
+    --book: "Iowan Old Style", Palatino, Georgia, "Hiragino Mincho ProN", "Songti SC", serif;
+    --paper: #f3ecdc; --sheet: #fbf7ee; --ink: #26231f; --soft: #5d564c; --line: #dcd2be; --cloth: #1c1f1d;
+    --red: #b5383c; --blue: #2b78a6; --purple: #6a3f9c; --brown: #5b3c2d; --gold: #f6b741;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--paper); }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 17px/1.6 var(--ui); }
+  ::selection { background: #b5383c33; }
+  a { color: var(--red); text-underline-offset: .18em; text-decoration-thickness: 1px; }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; border-radius: 2px; }
+  :lang(ja) h1, :lang(ja) h2, :lang(ja) h3, :lang(ja) p, :lang(ja) li, :lang(ja) summary { word-break: auto-phrase; }
+  h1, h2, h3 { font-family: var(--book); line-height: 1.15; margin: 0; text-wrap: balance; }
+  :lang(zh-CN) h1, :lang(zh-CN) h2, :lang(zh-CN) h3, :lang(zh-CN) .why b, :lang(zh-CN) .faq summary, :lang(zh-CN) ol.steps li::before { font-family: "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif; font-weight: 600; line-height: 1.3; }
+  :lang(zh-CN) .hero h1 { font-weight: 700; }
+  :lang(zh-CN) body, :lang(zh-CN) .langs, :lang(zh-CN) .cta { font-family: "Avenir Next", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif; }
+  p { text-wrap: pretty; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+
+  /* Top: the shelf's banner as the mark, the language choice kept quiet beside it. */
+  header.top { display: flex; flex-direction: column; gap: 10px; padding: 10px 0 0; }
+  .mark { display: block; order: 2; width: 100%; line-height: 0; filter: drop-shadow(2px 4px 4px #0003); transition: transform .2s cubic-bezier(.2, .8, .2, 1); }
+  .mark:hover { transform: translateY(-2px); }
+  .mark svg { width: 100%; height: auto; }
+  .langs { order: 1; align-self: flex-end; display: flex; align-items: center; gap: 2px; font-size: 14px; color: var(--soft); white-space: nowrap; }
+  .langs button { font: inherit; color: var(--soft); background: none; border: 0; padding: 6px 6px; cursor: pointer; text-decoration: underline; text-decoration-color: transparent; text-underline-offset: .3em; }
+  .langs button:hover { color: var(--ink); text-decoration-color: currentColor; }
+  .langs button[aria-current="true"] { color: var(--ink); font-weight: 700; cursor: default; }
+  .langs span { opacity: .5; }
+
+  /* Hero. The Proteus film goes here later, as a muted loop with a poster frame. */
+  .hero { padding: 56px 0 52px; text-align: center; }
+  .hero h1 { font-size: clamp(40px, 6.4vw, 76px); letter-spacing: -.015em; max-width: 16ch; margin: 0 auto; }
+  :lang(ja) .hero h1, :lang(zh-CN) .hero h1 { max-width: none; font-size: clamp(32px, 5.4vw, 64px); letter-spacing: 0; }
+  .hero h1 span { display: inline-block; }
+  @media (min-width: 900px) { .hero h1, :lang(ja) .hero h1, :lang(zh-CN) .hero h1 { max-width: none; white-space: nowrap; font-size: min(4.9vw, 60px); } }
+  @media (min-width: 900px) { .hero .lede { max-width: none; white-space: nowrap; } }
+  @media (min-width: 900px) { div.contact p, section .measure { max-width: none; white-space: nowrap; } }
+  @media (min-width: 900px) { :lang(en) .hero h1 { font-size: min(4.3vw, 52px); } }
+  .hero .lede { max-width: 52ch; font-size: 20px; color: var(--soft); margin: 22px auto 10px; }
+  .hero .lede { margin-bottom: 30px; max-width: 62ch; text-wrap: balance; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  section.samples { padding-top: 8px; }
+  /* The word that changes shape: each one in the next shelf's colour. */
+  .morph { font-weight: inherit; display: inline-block; text-align: center; color: var(--red); transition: opacity .35s cubic-bezier(.2, .8, .2, 1), transform .35s cubic-bezier(.2, .8, .2, 1), filter .35s; }
+  .morph.out { opacity: 0; transform: translateY(.18em) scale(.96); filter: blur(6px); }
+  .hero .actions { justify-content: center; }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 22px; }
+  .cta { display: inline-block; background: var(--red); color: #fff; text-decoration: none; padding: 12px 22px; border-radius: 4px; font-weight: 700; box-shadow: 0 2px 0 #7d2326, 0 6px 14px #b5383c33; transition: transform .15s, box-shadow .15s; }
+  .cta:hover { transform: translateY(-1px); box-shadow: 0 3px 0 #7d2326, 0 10px 18px #b5383c40; }
+  .cta:active { transform: translateY(1px); box-shadow: 0 1px 0 #7d2326; }
+
+  section { padding: 56px 0 8px; }
+  section > h2, .contact h2 { font-size: clamp(28px, 3.6vw, 38px); margin-bottom: 22px; text-align: center; }
+  .measure { max-width: 64ch; color: var(--soft); margin: -6px auto 28px; text-align: center; }
+
+  /* Samples: books face out with the shelf's label cards. */
+  .bento { display: grid; gap: 18px; grid-template-columns: repeat(3, 1fr); grid-template-areas: "big big tall" "pic map tall"; }
+  .bento .big { grid-area: big; } .bento .tall { grid-area: tall; } .bento .pic { grid-area: pic; } .bento .map { grid-area: map; }
+  .book { display: flex; flex-direction: column; text-decoration: none; color: #fff; background: var(--c); box-shadow: 1px 1px 1px #0002, 5px 7px 14px #0002; transition: transform .25s cubic-bezier(.2, .8, .2, 1), box-shadow .25s; }
+  .book:hover { transform: translateY(-4px); box-shadow: 1px 1px 1px #0002, 8px 14px 22px #0003; }
+  .book img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: cover; background: #ddd3bf; }
+  .bento .big img { aspect-ratio: 16 / 9; }
+  .bento .tall img { flex: 1 1 0; height: 0; min-height: 0; aspect-ratio: auto; object-position: left 30%; }
+  .tag { position: relative; padding: 12px 16px 14px; }
+  .tag::after { content: ""; position: absolute; inset: 0; background: linear-gradient(170deg, #ffffff1a, #fff0 40%); pointer-events: none; }
+  .tag b { display: block; font: italic 700 20px/1.2 var(--ui); }
+  .bento .big .tag b { font-size: 24px; }
+  .tag em { display: block; font-style: normal; font-size: 14px; }
+  .tag span { display: block; margin-top: 6px; font-size: 15px; line-height: 1.45; }
+  .tag i { display: block; margin-top: 8px; font-style: normal; font-size: 14px; font-weight: 700; }
+  .lessons { --c: var(--red); } .pictures { --c: var(--blue); } .films { --c: var(--purple); } .pages { --c: var(--brown); }
+
+  /* Why us */
+  .why { display: grid; gap: 28px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin: 0; padding: 0; list-style: none; }
+  .why li { border-top: 3px solid var(--ink); padding-top: 12px; }
+  .why b { display: block; font: 700 20px/1.25 var(--book); margin-bottom: 6px; }
+  .why p { margin: 0; color: var(--soft); }
+
+  /* Offers: two sheets of paper */
+  .two { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .offer { background: var(--sheet); padding: 24px 26px; box-shadow: 0 1px 0 var(--line), 3px 6px 14px #0000000f; }
+  .offer h3 { font-size: 25px; margin-bottom: 6px; }
+  .offer p { margin: 0 0 12px; color: var(--soft); }
+  ul { margin: 0; padding-left: 1.2em; }
+  li { margin: 5px 0; }
+
+  ol.steps { list-style: none; padding: 0; margin: 0; counter-reset: s; display: grid; gap: 22px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+  ol.steps li { counter-increment: s; margin: 0; }
+  ol.steps li::before { content: counter(s); display: block; font: 700 40px/1 var(--book); color: var(--red); margin-bottom: 8px; }
+  ol.steps b { display: block; font-size: 18px; margin-bottom: 4px; }
+  ol.steps p { margin: 0; color: var(--soft); }
+
+  .actions.mid { justify-content: center; margin-top: 36px; }
+  .incl { display: grid; gap: 18px 56px; grid-template-columns: repeat(auto-fit, minmax(280px, max-content)); justify-content: center; }
+  .incl h3 { font: 700 15px/1.3 var(--ui); margin-bottom: 8px; }
+
+  /* FAQ */
+  .faq { max-width: 760px; margin: 0 auto; border-top: 1px solid var(--line); }
+  .faq details { border-bottom: 1px solid var(--line); }
+  .faq summary { cursor: pointer; padding: 16px 32px 16px 0; font: 700 19px/1.35 var(--book); list-style: none; position: relative; }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after { content: ""; position: absolute; right: 6px; top: 50%; width: 10px; height: 10px; border: solid var(--soft); border-width: 0 2px 2px 0; transform: translateY(-70%) rotate(45deg); transition: transform .2s; }
+  .faq details[open] summary::after { transform: translateY(-30%) rotate(-135deg); }
+  .faq details p { margin: 0 0 18px; color: var(--soft); max-width: 64ch; }
+
+  .about p { max-width: 820px; margin: 0 auto 10px; text-align: center; text-wrap: balance; }
+
+  /* Contact: the end of the page is a dark cloth panel, like the banner. */
+  .contact { margin: 64px 0 0; background: var(--cloth); color: #f3efe3; padding: 56px 24px; text-align: center; }
+  .contact h2 { margin-bottom: 12px; }
+  .contact p { max-width: 54ch; margin: 0 auto 10px; color: #d8d2c4; }
+  .contact .actions { justify-content: center; margin-top: 24px; }
+  .copy { font: 600 15px var(--ui); color: #f3efe3; background: none; border: 1px solid #f3efe366; border-radius: 4px; padding: 11px 16px; cursor: pointer; }
+  .copy:hover { border-color: #f3efe3; }
+  .copied { display: block; min-height: 1.6em; margin-top: 10px; font-size: 14px; color: var(--gold); }
+  .foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px 24px; margin-top: 40px; padding: 20px 0 28px; border-top: 1px solid var(--line); font-size: 14px; color: var(--soft); }
+  .foot nav { display: flex; gap: 20px; }
+  .foot a { color: var(--soft); text-decoration: none; }
+  .foot a:hover { color: var(--red); text-decoration: underline; }
+  .foot button.about-open { font: inherit; color: var(--soft); background: none; border: 0; padding: 0; cursor: pointer; }
+  .foot button.about-open:hover { color: var(--red); text-decoration: underline; }
+  .about { max-width: 580px; width: calc(100% - 32px); padding: 38px 42px; border: 1px solid #a08760; border-radius: 3px; background: #f6efdf; color: #403527; box-shadow: 0 20px 80px #291b1455; }
+  .about::backdrop { background: #20180fc4; backdrop-filter: blur(4px); }
+  .about h2 { margin: 0 0 18px; font-size: 30px; font-weight: 400; text-align: left; }
+  .about p { font-size: 15px; line-height: 1.7; margin: 0 0 12px; }
+  .about-close { position: absolute; right: 16px; top: 12px; padding: 0 7px; background: transparent; border: 0; color: #675542; font: 26px var(--ui); cursor: pointer; }
+  @media (max-width: 720px) { .about { padding: 30px 22px; } }
+  [hidden] { display: none !important; }
+
+  @media (max-width: 720px) {
+    .hero { padding: 32px 0 28px; }
+    .hero .lede { font-size: 18px; }
+    .langs button { padding: 6px 4px; }
+    .bento { grid-template-columns: 1fr; grid-template-areas: "big" "tall" "pic" "map"; }
+    .bento .tall img { flex: none; height: auto; aspect-ratio: 1; }
+    .about p, section .measure { text-align: left; }
+    section { padding-top: 44px; }
+    .contact { margin-left: -16px; margin-right: -16px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <a class="mark" href="/" aria-label="Papermorph: the bookshelf">
+      <svg viewBox="0 0 1000 176" aria-hidden="true">
+        <defs>
+          <pattern id="cloth" width="28" height="28" patternUnits="userSpaceOnUse"><rect width="28" height="28" fill="#1c1f1d"/><path d="M0 28 14 4 28 28M0 0l14 24L28 0" fill="none" stroke="#e9e4d6" stroke-opacity=".16" stroke-width="1.2"/><circle cx="14" cy="14" r="1.6" fill="#e9e4d6" fill-opacity=".3"/></pattern>
+          <pattern id="trim" width="22" height="16" patternUnits="userSpaceOnUse"><rect width="22" height="16" fill="#131514"/><circle cx="11" cy="8" r="4.5" fill="none" stroke="#e9e4d6" stroke-opacity=".7" stroke-width="1.4"/></pattern>
+          <pattern id="w1" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="#f3efe3"/><circle cx="5" cy="5" r="1.2" fill="#2a2a26"/></pattern>
+          <pattern id="w2" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><rect width="12" height="12" fill="#f3efe3"/><path d="M0 6h12" stroke="#2a2a26" stroke-width="1.3"/></pattern>
+          <pattern id="w3" width="16" height="16" patternUnits="userSpaceOnUse"><rect width="16" height="16" fill="#efeadc"/><path d="M8 2 14 14H2Z" fill="none" stroke="#2a2a26" stroke-width="1.1"/></pattern>
+          <pattern id="b1" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#1a8ce8"/><circle cx="3" cy="3" r="1.6" fill="#a6dcff"/><circle cx="9" cy="9" r="1.1" fill="#0b4fa8"/></pattern>
+          <pattern id="b2" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(-25)"><rect width="14" height="14" fill="#0f6fd6"/><path d="M0 7q3.5-5 7 0t7 0" fill="none" stroke="#9fd6ff" stroke-width="1.2"/></pattern>
+          <filter id="cut" x="-5%" y="-10%" width="110%" height="125%">
+            <feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="1" seed="4"/>
+            <feDisplacementMap in="SourceGraphic" scale="3.2"/>
+            <feDropShadow dx="2" dy="4" stdDeviation="2.2" flood-color="#000" flood-opacity=".55"/>
+          </filter>
+        </defs>
+        <rect width="1000" height="176" fill="url(#cloth)"/>
+        <text x="30 122.8 213.4 306.2 381.8 479.2 593.5 689.8 787.2 880" y="146" filter="url(#cut)"
+              font-family="Oswald, 'Arial Narrow', sans-serif" font-weight="600" font-size="150"><tspan fill="url(#w1)">P</tspan><tspan fill="url(#b1)">A</tspan><tspan fill="url(#w2)">P</tspan><tspan fill="url(#w3)">E</tspan><tspan fill="url(#b2)">R</tspan><tspan fill="url(#w1)">M</tspan><tspan fill="url(#w3)">O</tspan><tspan fill="url(#b1)">R</tspan><tspan fill="url(#w2)">P</tspan><tspan fill="url(#b2)">H</tspan></text>
+        <rect y="160" width="1000" height="16" fill="url(#trim)"/>
+      </svg>
+  </a>
+  <nav class="langs" aria-label="Language">
+    <button type="button" data-set="en" lang="en">EN</button><span aria-hidden="true">·</span>
+    <button type="button" data-set="ja" lang="ja">日本語</button><span aria-hidden="true">·</span>
+    <button type="button" data-set="zh" lang="zh-CN">中文</button>
+  </nav>
+</header>
+
+<!-- English -->
+<main data-lang="en">
+  <div class="hero">
+    <h1><span>Your <b class="morph" data-words="textbooks|stories|articles|courses">textbooks</b>,</span> <span>narrated and animated.</span></h1>
+    <p class="lede">Lessons, picture books, films and pages to explore, in your own style.</p>
+    <div class="actions"><a class="cta" data-mail href="mailto:a972848363@gmail.com?subject=Papermorph">Ask for a trial sample</a></div>
+  </div>
+
+  <section class="samples">
+    <h2 class="visually-hidden">What your material can become</h2>
+    <div class="bento">
+      <a class="book big lessons" href="/linear-algebra/"><img src="img/linear-algebra.webp" width="800" height="450" alt="A linear algebra lesson: three equations drawn as three planes in 3D" loading="lazy"><span class="tag"><b>Lessons</b><em>Linear Algebra · 40 chapters</em><span>Each step animates in time with the voice; quick checks grade the answer by what it means, not how it is typed.</span><i>Open the sample →</i></span></a>
+      <a class="book tall films" href="/pandemic/"><img src="img/pandemic-short.webp" width="270" height="480" alt="An upright short: a map of Wuhan with a clock at 02:00" loading="lazy"><span class="tag"><b>Films and shorts</b><em>The Pandemic · a film and 6 shorts</em><span>One documentary, also cut as upright shorts for a phone feed and told as a scroll story.</span><i>Open the sample →</i></span></a>
+      <a class="book pic pictures" href="/little-red-riding-hood/"><img src="img/red-riding-hood.webp" width="800" height="450" alt="Little Red Riding Hood, a paper cut-out film in a meadow" loading="lazy"><span class="tag"><b>Picture books</b><em>Little Red Riding Hood</em><span>Paper-puppet films with voices and music; children tap the picture to hear words.</span><i>Open the sample →</i></span></a>
+      <a class="book map pages" href="/time-of-the-magicians/"><img src="img/magicians.webp" width="800" height="488" alt="A map of Europe in 1919 with four philosophers on it" loading="lazy"><span class="tag"><b>Pages to explore</b><em>Time of the Magicians</em><span>Maps and scenes the reader plays; the story waits for their move.</span><i>Open the sample →</i></span></a>
+    </div>
+  </section>
+
+  <section>
+    <h2>The tool is open. The standard is ours.</h2>
+    <p class="measure">Papermorph is open source, with 1,000+ GitHub stars. You hire the team behind every book on the shelf:</p>
+    <ul class="why">
+      <li><b>Direction</b><p>We plan each chapter as a script and a storyboard before anything moves, and you approve the script.</p></li>
+      <li><b>Review rounds</b><p>Every chapter is watched against the approved ones and reworked until it matches them.</p></li>
+      <li><b>Checks</b><p>Tests play every step and answer every question, so voice, picture and subtitles never drift.</p></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Two ways to work</h2>
+    <div class="two">
+      <div class="offer">
+        <h3>We make it</h3>
+        <p>Quoted for each project, by chapter, episode or film.</p>
+        <ul><li>A folder of web pages you host anywhere, or embed in your own site or app</li><li>Optional 1080p video with subtitles, or a SCORM package for your LMS</li><li>You approve the script before any picture is drawn</li></ul>
+      </div>
+      <div class="offer">
+        <h3>We set it up for your team</h3>
+        <p>A one-off technical service.</p>
+        <ul><li>The production kit set up in your style: type, colours, voices, templates</li><li>The first chapters made together, as the standard for the rest</li><li>A handbook and training; afterwards your team runs it on its own AI service accounts</li></ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>How it starts</h2>
+    <ol class="steps">
+      <li><b>Send your material</b><p>A PDF, a story or a link, and a short call: who reads it, and where.</p></li>
+      <li><b>A paid trial</b><p>One chapter or episode of about three minutes, made from your own material, within a week. Its fee counts toward the order.</p></li>
+      <li><b>A quote from the sample</b><p>The sample settles the shape, the style and the quality; the quote covers the rest.</p></li>
+      <li><b>Production</b><p>We make the rest to the sample's standard, in rounds you review. One-off, with no subscription.</p></li>
+    </ol>
+    <div class="actions mid"><a class="cta" data-mail href="mailto:a972848363@gmail.com?subject=Papermorph">Ask for a trial sample</a></div>
+  </section>
+
+  <section>
+    <h2>What every job includes</h2>
+    <div class="incl">
+      <div><h3>Always</h3><ul><li>Static files: no server, database or accounts to run</li><li>Voice, picture and subtitles in step through pause, step back and replay</li><li>What we deliver belongs to you</li><li>Voices licensed for commercial use</li><li>A set number of revision rounds, agreed up front</li></ul></div>
+      <div><h3>Not offered</h3><ul><li>Hosting</li><li>Subscriptions</li><li>Apps with logins</li><li>Live-action filming</li></ul></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Questions</h2>
+    <div class="faq">
+      <details><summary>How long does a chapter take?</summary><p>It depends on its length and shape. The trial shows how much work your material needs, and the quote comes with dates.</p></details>
+      <details><summary>Which languages can the narration be in?</summary><p>English, Japanese, Chinese and most other major languages. The player itself speaks English, Japanese, Chinese and Russian, and lines in another language are subtitled.</p></details>
+      <details><summary>Can it go inside our own site, app or LMS?</summary><p>Yes. A book is plain static files you can host, link or embed, and it can also be packaged as SCORM or rendered to video. We test on the browsers and devices you name.</p></details>
+      <details><summary>How is the content checked?</summary><p>You approve the script first. Answers are graded by meaning, every step is played through by tests, and each chapter goes through review rounds before you see it.</p></details>
+      <details><summary>Is our material kept confidential?</summary><p>Yes. We can sign an NDA before you send anything, and your material is used only for your project.</p></details>
+      <details><summary>Who owns the result?</summary><p>You do. Public-domain pictures and data keep their own licences, which we list beside them.</p></details>
+    </div>
+  </section>
+
+  <section class="about">
+    <h2>Who we are</h2>
+    <p>A small team of web developers in Fukuoka, Japan. Years of building web products mean what we make fits into your own site or app. We made Papermorph and every book on its shelf.</p>
+  </section>
+
+  <div class="contact">
+    <h2>Tell us about your titles</h2>
+    <p>Tell us what the titles are, who reads them, and how many you have in mind.</p>
+    <div class="actions"><a class="cta" data-mail href="mailto:a972848363@gmail.com?subject=Papermorph">a972848363@gmail.com</a><button type="button" class="copy">Copy address</button></div>
+    <span class="copied" role="status" aria-live="polite" data-done="Address copied"></span>
+  </div>
+</main>
+
+<!-- 日本語 -->
+<main data-lang="ja" lang="ja" hidden>
+  <div class="hero">
+    <h1><span>お手持ちの<b class="morph" data-words="教科書|物語|記事|教材">教科書</b>に、</span><span>声と動きを。</span></h1>
+    <p class="lede">教材、絵本、映像、遊べるページを、御社のスタイルで。</p>
+    <div class="actions"><a class="cta" data-mail href="mailto:a972848363@gmail.com?subject=Papermorph">試作を依頼する</a></div>
+  </div>
+
+  <section class="samples">
+    <h2 class="visually-hidden">素材は、こんな形になります</h2>
+    <div class="bento">
+      <a class="book big lessons" href="/linear-algebra/"><img src="img/linear-algebra.webp" width="800" height="450" alt="線形代数の教材：3つの方程式を3Dの3つの平面で表示" loading="lazy"><span class="tag"><b>教材</b><em>線形代数・全40章</em><span>ナレーションに合わせて一歩ずつ図が動き、確認問題は書き方ではなく意味で採点します。</span><i>見本を開く →</i></span></a>
+      <a class="book tall films" href="/pandemic/"><img src="img/pandemic-short.webp" width="270" height="480" alt="縦型ショート：武漢の地図と午前2時の時計" loading="lazy"><span class="tag"><b>映像とショート</b><em>The Pandemic・本編とショート6本</em><span>1本のドキュメンタリーを、縦型ショートやスクロールで読むページにも。</span><i>見本を開く →</i></span></a>
+      <a class="book pic pictures" href="/little-red-riding-hood/"><img src="img/red-riding-hood.webp" width="800" height="450" alt="切り絵の映像『赤ずきん』、草原の場面" loading="lazy"><span class="tag"><b>絵本</b><em>赤ずきん</em><span>声と音楽のついた切り絵人形の映像。絵に触ると、ことばが聞こえます。</span><i>見本を開く →</i></span></a>
+      <a class="book map pages" href="/time-of-the-magicians/"><img src="img/magicians.webp" width="800" height="488" alt="1919年のヨーロッパ地図と4人の哲学者" loading="lazy"><span class="tag"><b>遊べるページ</b><em>Time of the Magicians</em><span>読者が操作する地図や場面。物語は読者の一手を待ちます。</span><i>見本を開く →</i></span></a>
+    </div>
+  </section>
+
+  <section>
+    <h2>道具はオープン、品質は私たちが担います。</h2>
+    <p class="measure">Papermorph はオープンソース、GitHub のスターは1,000超。ご依頼いただくのは、本棚を作ったチームです。</p>
+    <ul class="why">
+      <li><b>演出</b><p>動かす前に、章ごとに脚本と絵コンテを作ります。脚本はお客様にご承認いただきます。</p></li>
+      <li><b>レビュー</b><p>各章を承認済みの章と見比べ、基準に届くまで直します。</p></li>
+      <li><b>検証</b><p>テストが全ステップを再生し、全問に答えます。音声・映像・字幕はずれません。</p></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>2つのご依頼方法</h2>
+    <div class="two">
+      <div class="offer">
+        <h3>制作を任せる</h3>
+        <p>章・話・本数に応じて、案件ごとにお見積もりします。</p>
+        <ul><li>どこにでも置けて、既存のサイトやアプリにも組み込めるウェブページ</li><li>字幕付き 1080p 動画、LMS 用の SCORM パッケージも可</li><li>絵を描く前に、脚本をご承認いただきます</li></ul>
+      </div>
+      <div class="offer">
+        <h3>社内の制作体制をつくる</h3>
+        <p>一回きりの技術サービスです。</p>
+        <ul><li>書体・色・声・テンプレートを、御社のスタイルで設定</li><li>最初の数章を一緒に制作し、以後の基準にします</li><li>手順書とトレーニング。以後は御社の AI サービスのアカウントで運用できます</li></ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>はじめ方</h2>
+    <ol class="steps">
+      <li><b>素材を送る</b><p>PDF、物語、リンクと、短い打ち合わせ。誰が、どこで読むのか。</p></li>
+      <li><b>有料の試作</b><p>お客様の素材で、約3分の1章（1話）分の見本を1週間以内にお届けします。費用は本発注に充当します。</p></li>
+      <li><b>見本をもとにお見積もり</b><p>形・スタイル・品質は見本で決まり、残りを見積もります。</p></li>
+      <li><b>制作</b><p>見本と同じ水準で残りを制作し、各段階でご確認いただきます。単発のご契約で、サブスクはありません。</p></li>
+    </ol>
+    <div class="actions mid"><a class="cta" data-mail href="mailto:a972848363@gmail.com?subject=Papermorph">試作を依頼する</a></div>
+  </section>
+
+  <section>
+    <h2>すべてのご依頼に含まれるもの</h2>
+    <div class="incl">
+      <div><h3>含まれるもの</h3><ul><li>静的ファイルのみ。サーバー、データベース、アカウント管理は不要</li><li>一時停止、戻る、再生し直しても、音声・映像・字幕はずれません</li><li>納品物はお客様のものです</li><li>商用利用できる音声</li><li>修正回数は事前に取り決めます</li></ul></div>
+      <div><h3>お受けしていないもの</h3><ul><li>ホスティング</li><li>サブスクリプション</li><li>ログイン付きアプリ</li><li>実写撮影</li></ul></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>よくあるご質問</h2>
+    <div class="faq">
+      <details><summary>1章にどのくらいかかりますか？</summary><p>長さと形によります。試作で素材に必要な作業量がわかり、お見積もりに日程を添えます。</p></details>
+      <details><summary>ナレーションは何語に対応していますか？</summary><p>日本語、英語、中国語をはじめ、主要な言語に対応します。プレーヤーの表示は日本語・英語・中国語・ロシア語で、ほかの言語の台詞には字幕を付けます。</p></details>
+      <details><summary>自社のサイト、アプリ、LMS に組み込めますか？</summary><p>はい。作品は静的ファイルなので、置く・リンクする・埋め込むのいずれも可能です。SCORM パッケージや動画にもできます。ご指定のブラウザと端末で確認します。</p></details>
+      <details><summary>内容の正確さはどう確認しますか？</summary><p>まず脚本をご承認いただきます。解答は意味で採点し、全ステップをテストで再生し、各章はお客様にお見せする前にレビューを重ねます。</p></details>
+      <details><summary>素材の機密は守られますか？</summary><p>はい。素材をお送りいただく前に NDA を締結できます。お預かりした素材は、お客様の案件にのみ使います。</p></details>
+      <details><summary>納品物の権利は誰のものですか？</summary><p>お客様のものです。パブリックドメインの図版やデータは、それぞれのライセンスのままで、出典を明記します。</p></details>
+    </div>
+  </section>
+
+  <section class="about">
+    <h2>私たちについて</h2>
+    <p>福岡の少人数のウェブ開発チームです。長年の開発経験から、納品物は既存のサイトやアプリにもそのまま組み込めます。Papermorph と本棚の作品は、私たちが作りました。</p>
+  </section>
+
+  <div class="contact">
+    <h2>お手持ちのタイトルについて、お聞かせください</h2>
+    <p>どんなタイトルか、どなた向けか、何点ほどお考えかをお書き添えください。</p>
+    <div class="actions"><a class="cta" data-mail href="mailto:a972848363@gmail.com?subject=Papermorph">a972848363@gmail.com</a><button type="button" class="copy">アドレスをコピー</button></div>
+    <span class="copied" role="status" aria-live="polite" data-done="コピーしました"></span>
+  </div>
+</main>
+
+<!-- 中文 -->
+<main data-lang="zh" lang="zh-CN" hidden>
+  <div class="hero">
+    <h1><span>让你们的<b class="morph" data-words="教材|故事|文章|课程">教材</b>，</span><span>开口讲，动起来。</span></h1>
+    <p class="lede">课程、绘本、影片、可交互的页面，按你们的风格来做。</p>
+    <div class="actions"><a class="cta" data-mail href="mailto:a972848363@gmail.com?subject=Papermorph">申请试做</a></div>
+  </div>
+
+  <section class="samples">
+    <h2 class="visually-hidden">你们的素材可以变成</h2>
+    <div class="bento">
+      <a class="book big lessons" href="/linear-algebra/"><img src="img/linear-algebra.webp" width="800" height="450" alt="线性代数课：三个方程画成 3D 里的三个平面" loading="lazy"><span class="tag"><b>课程</b><em>线性代数 · 40 章</em><span>画面随讲解一步步变化，小测按含义判分，不按写法。</span><i>打开样品 →</i></span></a>
+      <a class="book tall films" href="/pandemic/"><img src="img/pandemic-short.webp" width="270" height="480" alt="竖屏短视频：武汉地图和凌晨两点的时钟" loading="lazy"><span class="tag"><b>影片与短视频</b><em>The Pandemic · 正片和 6 集短视频</em><span>一部纪录片，也剪成竖屏短视频，还做成滚动阅读页。</span><i>打开样品 →</i></span></a>
+      <a class="book pic pictures" href="/little-red-riding-hood/"><img src="img/red-riding-hood.webp" width="800" height="450" alt="剪纸动画《小红帽》，草地一场" loading="lazy"><span class="tag"><b>绘本</b><em>小红帽</em><span>有配音和音乐的剪纸木偶片，孩子点画面就能听到单词。</span><i>打开样品 →</i></span></a>
+      <a class="book map pages" href="/time-of-the-magicians/"><img src="img/magicians.webp" width="800" height="488" alt="1919 年的欧洲地图和四位哲学家" loading="lazy"><span class="tag"><b>可交互的页面</b><em>Time of the Magicians</em><span>读者亲手操作的地图和场景，故事等读者走下一步。</span><i>打开样品 →</i></span></a>
+    </div>
+  </section>
+
+  <section>
+    <h2>工具是开源的，标准由我们把关。</h2>
+    <p class="measure">Papermorph 是开源项目，GitHub 上已有一千多颗星，谁都能用。你们请的，是做出书架上每一本书的这支团队：</p>
+    <ul class="why">
+      <li><b>导演</b><p>动画开工前，每章先有脚本和分镜，脚本由你们批准。</p></li>
+      <li><b>审片</b><p>每章都对照已批准的章节看一遍，改到达标为止。</p></li>
+      <li><b>检查</b><p>测试会播放每一步、答完每道题，声音、画面、字幕不会错位。</p></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>两种合作方式</h2>
+    <div class="two">
+      <div class="offer">
+        <h3>我们来做</h3>
+        <p>按章、按集或按部，每个项目单独报价。</p>
+        <ul><li>一套网页文件，放在哪里都能用，也能嵌进你们现有的网站或 App</li><li>可选字幕版 1080p 视频，或给 LMS 用的 SCORM 包</li><li>画面开工前，脚本先由你们批准</li></ul>
+      </div>
+      <div class="offer">
+        <h3>帮你们的团队搭起来</h3>
+        <p>一次性的技术服务。</p>
+        <ul><li>按你们的风格配好字体、配色、配音和模板</li><li>头几章一起做，作为之后的标准</li><li>操作手册和培训，之后团队用自己的 AI 服务账号运行</li></ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>怎么开始</h2>
+    <ol class="steps">
+      <li><b>发来素材</b><p>PDF、故事或链接，再简单聊一次：给谁看，在哪里用。</p></li>
+      <li><b>付费试做</b><p>用你们自己的素材做一章或一集，约三分钟，一周内交付。费用抵扣正式订单。</p></li>
+      <li><b>按小样报价</b><p>小样定下形态、风格和质量，其余按它报价。</p></li>
+      <li><b>正式制作</b><p>按小样的标准做完其余部分，每一轮都由你们审。一次性合作，不订阅。</p></li>
+    </ol>
+    <div class="actions mid"><a class="cta" data-mail href="mailto:a972848363@gmail.com?subject=Papermorph">申请试做</a></div>
+  </section>
+
+  <section>
+    <h2>每单都包括</h2>
+    <div class="incl">
+      <div><h3>包括</h3><ul><li>纯静态文件：不用服务器、数据库，也不用管账号</li><li>暂停、后退、重播，声音、画面、字幕始终同步</li><li>交付的内容归你们所有</li><li>可商用的配音</li><li>修改轮数事先约定</li></ul></div>
+      <div><h3>不提供</h3><ul><li>托管</li><li>订阅</li><li>带登录的应用</li><li>真人实拍</li></ul></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>常见问题</h2>
+    <div class="faq">
+      <details><summary>一章要做多久？</summary><p>看长度和形态。试做之后就知道你们的素材要多少工作量，报价会附上日期。</p></details>
+      <details><summary>配音支持哪些语言？</summary><p>中文、日语、英语以及大多数主要语言。播放器界面支持中、日、英、俄四种，其他语言的台词配字幕。</p></details>
+      <details><summary>能放进我们自己的网站、App 或 LMS 吗？</summary><p>能。成品是纯静态文件，可以托管、链接或嵌入，也能打包成 SCORM 或导出视频。我们会在你们指定的浏览器和设备上测试。</p></details>
+      <details><summary>内容的准确性怎么保证？</summary><p>脚本先由你们批准。答案按含义判分，每一步都有测试播放，每章交给你们之前都要经过几轮审片。</p></details>
+      <details><summary>素材会保密吗？</summary><p>会。发素材之前可以先签 NDA，素材只用于你们的项目。</p></details>
+      <details><summary>成品归谁？</summary><p>归你们。公版图片和数据保留各自的许可，我们会注明出处。</p></details>
+    </div>
+  </section>
+
+  <section class="about">
+    <h2>关于我们</h2>
+    <p>我们是几位常驻日本福冈的 Web 开发者，多年做 Web 产品，交付的东西能直接嵌进你们现有的网站或 App，不只是一个单独的页面。Papermorph 和书架上的每一本书都出自我们之手。</p>
+  </section>
+
+  <div class="contact">
+    <h2>说说你们的书</h2>
+    <p>来信请写明是什么书、给谁看、大概有多少。</p>
+    <div class="actions"><a class="cta" data-mail href="mailto:a972848363@gmail.com?subject=Papermorph">a972848363@gmail.com</a><button type="button" class="copy">复制邮箱</button></div>
+    <span class="copied" role="status" aria-live="polite" data-done="已复制"></span>
+  </div>
+</main>
+
+<footer class="foot">
+  <span>© 2026 Papermorph · <span data-t="place">Fukuoka, Japan</span></span>
+  <nav aria-label="Elsewhere"><button type="button" class="about-open" data-t="about" aria-haspopup="dialog">About Papermorph</button><a href="/" data-t="shelf">Bookshelf</a><a href="https://github.com/DozenTwelve/Papermorph" target="_blank" rel="noopener noreferrer">GitHub</a><a href="https://www.youtube.com/@AnotherGameDoge" target="_blank" rel="noopener noreferrer">YouTube</a></nav>
+</footer>
+<dialog class="about" id="about" aria-labelledby="about-title">
+  <form method="dialog"><button class="about-close" aria-label="Close">×</button></form>
+  <h2 id="about-title" data-t="aboutTitle">About Papermorph</h2>
+  <p data-t="a1"></p>
+  <p data-t="a2"></p>
+</dialog>
+</div>
+<script>
+(() => {
+  const EMAIL = 'a972848363@gmail.com';
+  const BODY = {
+    en: 'Titles:\nWho reads them:\nHow many:\n',
+    ja: 'タイトル：\n対象読者：\n点数：\n',
+    zh: '是什么书：\n给谁看：\n大概多少：\n',
+  };
+  const FOOT = {
+    en: { shelf: 'Bookshelf', place: 'Fukuoka, Japan', about: 'About', aboutTitle: 'About Papermorph',
+      a1: 'The books on the bookshelf are free samples. They are not affiliated with the authors or publishers of the reference books; book titles and original materials belong to their respective owners.',
+      a2: 'Lessons may contain errors; corrections are welcome. Reading progress stays in your browser; the site counts visits anonymously (Cloudflare Web Analytics, no cookies). Books marked “In the works” are not available yet.' },
+    ja: { shelf: '本棚', place: '福岡', about: 'Papermorph について', aboutTitle: 'Papermorph について',
+      a1: '本棚の作品は、無料でご覧いただける見本です。参考にした書籍の著者や出版社とは関係ありません。書名と原著の資料は、それぞれの権利者に帰属します。',
+      a2: '教材に誤りが含まれる場合があります。ご指摘を歓迎します。学習の進み具合はお使いのブラウザにのみ保存されます。訪問数は匿名で集計しています（Cloudflare Web Analytics、Cookie なし）。「制作中」の作品はまだ公開していません。' },
+    zh: { shelf: '书架', place: '日本福冈', about: '关于 Papermorph', aboutTitle: '关于 Papermorph',
+      a1: '书架上的书是免费的样品，与所参考书籍的作者和出版社无关；书名和原始资料归各自的权利人所有。',
+      a2: '课程可能有错误，欢迎指正。阅读进度只保存在你的浏览器里；网站匿名统计访问量（Cloudflare Web Analytics，不使用 Cookie）。标为“制作中”的书暂未上线。' },
+  };
+  const langs = ['en', 'ja', 'zh'];
+  const pick = (l) => {
+    document.querySelectorAll('main[data-lang]').forEach(m => { m.hidden = m.dataset.lang !== l; });
+    document.querySelectorAll('.langs button').forEach(b => {
+      if (b.dataset.set === l) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
+    });
+    document.documentElement.lang = l === 'zh' ? 'zh-CN' : l;
+    document.querySelectorAll('.foot [data-t], #about [data-t]').forEach(e => { e.textContent = (FOOT[l] || FOOT.en)[e.dataset.t]; });
+    document.querySelectorAll(`main[data-lang="${l}"] [data-mail]`).forEach(a => {
+      a.href = `mailto:${EMAIL}?subject=Papermorph&body=${encodeURIComponent(BODY[l])}`;
+    });
+    try { localStorage.setItem('pm-work-lang', l); } catch (e) {}
+  };
+  document.querySelectorAll('.langs button').forEach(b => b.addEventListener('click', () => {
+    pick(b.dataset.set);
+    history.replaceState(null, '', '?lang=' + b.dataset.set);
+  }));
+  document.querySelector('.about-open').addEventListener('click', () => document.getElementById('about').showModal());
+  document.querySelectorAll('.copy').forEach(b => b.addEventListener('click', async () => {
+    const out = b.closest('.contact').querySelector('.copied');
+    try { await navigator.clipboard.writeText(EMAIL); out.textContent = out.dataset.done; }
+    catch (e) { out.textContent = EMAIL; }
+  }));
+  // Chinese gets Chinese, Japanese gets Japanese, everything else English: the first of the browser's languages that we have.
+  const fromBrowser = () => {
+    for (const l of navigator.languages || [navigator.language || 'en']) {
+      const p = l.slice(0, 2).toLowerCase();
+      if (langs.includes(p)) return p;
+    }
+    return 'en';
+  };
+  let saved = null;
+  try { saved = localStorage.getItem('pm-work-lang'); } catch (e) {}
+  const q = new URLSearchParams(location.search).get('lang');
+  pick([q, saved].find(l => langs.includes(l)) || fromBrowser());
+  // Every changing word gets the width of the longest, in em, so the line never shifts off centre.
+  const fit = () => document.querySelectorAll('.morph').forEach(m => {
+    const now = m.textContent, fs = parseFloat(getComputedStyle(m).fontSize);
+    m.style.width = 'auto';
+    let max = 0;
+    for (const w of m.dataset.words.split('|')) { m.textContent = w; max = Math.max(max, m.getBoundingClientRect().width); }
+    m.textContent = now;
+    if (max) m.style.width = (max / fs).toFixed(3) + 'em';
+  });
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(fit);
+  document.querySelectorAll('.langs button').forEach(b => b.addEventListener('click', fit));
+  const COLORS = ['var(--red)', 'var(--blue)', 'var(--purple)', 'var(--brown)'];
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    let n = 0;
+    setInterval(() => {
+      n++;
+      document.querySelectorAll('.morph').forEach(m => {
+        m.classList.add('out');
+        setTimeout(() => {
+          const w = m.dataset.words.split('|');
+          m.textContent = w[n % w.length];
+          m.style.color = COLORS[n % COLORS.length];
+          m.classList.remove('out');
+        }, 350);
+      });
+    }, 2400);
+  }
+})();
+</script>
+</body>
+</html>

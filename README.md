@@ -11,10 +11,12 @@
 <p align="center">
   <a href="https://papermorph.diamonddoge.org/">Open the live bookshelf →</a>
   ·
-  <a href=".claude/skills/papermorph/SKILL.md">Read the Skill</a>
+  <a href=".claude/skills/papermorph/SKILL.md">Read the Skill →</a>
+  ·
+  <a href="https://papermorph.diamonddoge.org/work/">Work with us →</a>
 </p>
 
-> **1,000 stars.** Papermorph passed a thousand stars this week. Thank you to everyone who starred it, tried the Skill on their own books, filed issues and sent pull requests. The first roadmap is done, and the next one is [below](#roadmap).
+> **1,000 stars.** Thank you to everyone who starred Papermorph, tried the Skill, filed issues and sent pull requests. The first roadmap is done; the next is [below](#roadmap).
 
 Everything is a static web page: no server, no database, no account. A book is a folder you can host anywhere.
 
@@ -94,7 +96,7 @@ The first roadmap is done: maths books, science books, picture books, a model of
 
 ## Working with us
 
-The shelf is a set of examples: the shapes that suit a maths book, a language course, a picture book or a documentary, and one source can take several of them (*The Pandemic* is a film, six shorts and a scroll story). For publishers, schools and studios we build the pipeline around your own titles and your own style. Write to [a972848363@gmail.com](mailto:a972848363@gmail.com) with what the titles are, who they are for, and how many you have in mind.
+The shelf is a set of examples: the shapes that suit a maths book, a language course, a picture book or a documentary, and one source can take several of them (*The Pandemic* is a film, six shorts and a scroll story). For publishers, schools and studios we build the pipeline around your own titles and your own style. See [the work page](https://papermorph.diamonddoge.org/work/), or write to [a972848363@gmail.com](mailto:a972848363@gmail.com) with what the titles are, who they are for, and how many you have in mind.
 
 ## FAQ
 

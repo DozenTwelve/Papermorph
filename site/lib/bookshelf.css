@@ -25,8 +25,8 @@ a { color: inherit; }
 .scene { position: relative; width: 100%; aspect-ratio: 1024 / 1536; margin: 0 auto; container-type: inline-size; background: url(../assets/shelf/wall.webp) 0 0 / 100% 100%; }
 .scene > * { position: absolute; left: 8.008cqw; width: 84.375cqw; }
 .banner { top: 1.37cqw; margin: 0; line-height: 0; filter: drop-shadow(3px 6px 6px #0004); }
-.banner button { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; transition: transform .15s; }
-.banner button:hover { transform: translateY(-2px); }
+.banner a { display: block; width: 100%; transition: transform .15s; }
+.banner a:hover { transform: translateY(-2px); }
 .banner svg { display: block; width: 100%; height: auto; }
 .case { --s: calc(84.375cqw / 864); top: 17.09cqw; }
 .cap, .lip { background: 0 0 / 100% 100% no-repeat; }
@@ -100,12 +100,6 @@ a.book:hover .tag { transform: translateY(-2px); }
 .drawer:nth-child(2) { left: 50.9%; width: 46.7%; }
 .drawer:hover { background: #ffffff1f; box-shadow: 0 0 0 2px #ffffff55; }
 
-.shelf-about { max-width: 580px; padding: 38px 42px; border: 1px solid #a08760; border-radius: 3px; background: #f6efdf; color: #403527; box-shadow: 0 20px 80px #291b1455; }
-.shelf-about::backdrop { background: #20180fc4; backdrop-filter: blur(4px); }
-.shelf-about h2 { margin: 12px 0 20px; font: 400 32px var(--book); }
-.shelf-about p { font: 15px/1.7 var(--ui); }
-.shelf-about .about-kicker { margin: 0; color: #826545; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
-.about-close { position: absolute; right: 16px; top: 12px; padding: 0 7px; background: transparent; border: 0; color: #675542; font: 26px var(--ui); cursor: pointer; }
 
 /* A phone: too narrow for four books a shelf. The photo goes; the strips stack down the page, two books to a row,
    each bay's panel stretched to hold both rows and a second lip under the first. */
