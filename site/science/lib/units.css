@@ -6,7 +6,7 @@
 .unit .grid { position: relative; }
 .unit::before { content: ""; position: absolute; inset: 0 16px auto; height: 208px; border-radius: 22px; pointer-events: none;
   background: radial-gradient(ellipse 46% 90% at 74% 55%, color-mix(in srgb, var(--c) 11%, transparent), transparent 70%); }
-.unit-art { position: absolute; top: 20px; right: 28px; width: min(580px, 56%); height: auto; overflow: visible; pointer-events: none;
+.unit-art { position: absolute; top: 20px; inset-inline-end: 28px; width: min(580px, 56%); height: auto; overflow: visible; pointer-events: none;
   color: var(--c); fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; opacity: .78; }
 .unit-art text { fill: currentColor; stroke: none; font-family: var(--book); font-style: italic; }
 .unit-art .a { color: var(--chalk); opacity: .55; }
@@ -66,7 +66,7 @@
 .unit-art { will-change: transform; contain: layout style; }
 .unit:not(.live) .unit-art, .unit:not(.live) .unit-art * { animation-play-state: paused; }
 @media (max-width: 560px) {
-  .unit-art { width: calc(100% - 32px); right: 16px; opacity: .32; }
+  .unit-art { width: calc(100% - 32px); inset-inline-end: 16px; opacity: .32; }
   .unit h2 { min-height: 0; padding-top: 104px; font-size: 24px; }
 }
 @media (prefers-reduced-motion: reduce) {

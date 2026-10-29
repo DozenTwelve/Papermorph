@@ -16,6 +16,8 @@ jobs:
       - uses: actions/checkout@v5
       - name: Skill docs agree with its files
         run: python3 .github/scripts/check_skill.py
+      - name: Narration captions and marks (no voice needed)
+        run: python3 .github/scripts/check_tts_text.py
       - name: Python scripts (pyflakes errors, no unused-import noise)
         run: pipx run ruff check --select F,E9 --ignore F401 --output-format concise .claude/skills/papermorph/scripts .github engine
 
