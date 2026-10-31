@@ -41,7 +41,7 @@ const s2_PUFF = '<g filter="url(#paper)"><circle r="16" fill="#dccaa0"/><circle 
 function scene2(p, D) {
   const at = t => PRE2 + t;   // clip time -> beat clock
   // ---- sound: beds, a hoof on every diagonal pair's landing, the skid
-  sfx('scene2', 0, 'birds', .45); sfx('scene2', 0, 'wind', .25); sfx('scene2', s2_T.cut, 'river', .5);
+  sfx('scene2', 0, 'birds', .45, { loop: true }); sfx('scene2', 0, 'wind', .25, { loop: true }); sfx('scene2', s2_T.cut, 'river', .5, { loop: true });
   for (const [cyc, t0, t1, vol] of [[s2_roadCyc, 0, s2_T.cut, .22], [s2_rivCyc, s2_T.cut, s2_T.ride, .3]]) {
     let last = Math.floor(cyc(t0) * 2);
     for (let t = t0; t < t1; t += 1 / 120) { const k = Math.floor(cyc(t) * 2); if (k > last) { sfx('scene2', +t.toFixed(3), 'hoof', vol); last = k; } }

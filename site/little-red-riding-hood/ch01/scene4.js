@@ -41,8 +41,8 @@ function scene4(p, D) {
     step: C('s04b', 1.42), F: C('s04b', 2.47), G: C('s04b', 6.72), H: C('run4', .53),
   };
   const PICKS = [C('s04b', 3.6), C('s04b', 4.65), C('s04b', 5.7), C('run4', .8)], PICK = 1.05;
-  // ---- sound: the meadow bed (shared.js's BED_STEP lays it again every 9.5 s), feet where they are seen
-  sfx('scene4', 0, 'meadow', .6);
+  // ---- sound: the meadow bed (it repeats to the end of the scene), feet where they are seen
+  sfx('scene4', 0, 'meadow', .6, { loop: true });
   sfx('scene4', T.step + .5, 'step1', 1.6);
   [.35, .7, 1.05].forEach((t, i) => sfx('scene4', T.F + t, 'step' + (2 + i % 2), 1.1));
   PICKS.forEach(t => sfx('scene4', t + .4, 'pop', .45));

@@ -52,9 +52,3 @@ function millWheel(parent, x = 1340, y = 650, r = 150) {
   const g = prop(parent, `<g filter="url(#paper)">${paddles}<circle r="${r}" fill="none" stroke="#7a5236" stroke-width="14"/><circle r="${r * .62}" fill="none" stroke="#7a5236" stroke-width="8"/>${spokes}<circle r="22" fill="#5a3b24"/></g>`);
   return q => tf(g, `translate(${x},${y}) rotate(${(q * 24 % 360).toFixed(1)})`);
 }
-
-// Beds (river, birds, wind, mill) are files of about 10 s with soft ends; a scene calls sfx() for one once, and it is
-// laid again every BED_STEP s so it runs to the scene's end (effects past a beat's end never play, and export.py
-// leaves them out too). The page waiting at a point-and-read stop plays no effects; the music carries the wait.
-const BED_STEP = { river: 9.5, mill: 9.5, birds: 9.6, wind: 7.5 };
-{ const once = window.sfx; window.sfx = (beat, t, name, vol) => { once(beat, t, name, vol); if (BED_STEP[name]) for (let k = 1; k * BED_STEP[name] < 60; k++) once(beat, +(t + k * BED_STEP[name]).toFixed(2), name, vol); }; }

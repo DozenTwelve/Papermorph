@@ -57,7 +57,7 @@ function scene1(p, D) {
     .to({ x: 1130, y: 600, z: 2.0 }, PROUD - .2, D + .6 - PROUD + .2);                                                  // then him, setting off
   cam.soft(T('n01', 10.65), true).soft(M01 - .1, false).soft(BIG - .06, true).soft(HALF - .05, false).soft(MILL - .02, true).soft(FETCH, false);
 
-  sfx('scene1', 0, 'birds', .5); sfx('scene1', 0, 'wind', .25);
+  sfx('scene1', 0, 'birds', .5, { loop: true }); sfx('scene1', 0, 'wind', .25, { loop: true });
   sfx('scene1', GAG + .45, 'hoof', .25); sfx('scene1', GAG + .95, 'hoof', .2);
   sfx('scene1', H01 + .78, 'hoof', .45);
   sfx('scene1', FETCH + .6, 'hoof', .2); sfx('scene1', FETCH + 1.05, 'hoof', .2);

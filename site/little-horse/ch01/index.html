@@ -19,7 +19,6 @@
 <script src="audio/en/mouths.js"></script>
 <script src="audio/en/shots.js"></script>
 <script src="../lib/shared.js"></script>
-<script src="../lib/find.js"></script>
 <script src="scene1.js"></script>
 <script src="scene2.js"></script>
 <script src="scene3.js"></script>
@@ -36,7 +35,7 @@
 const CHAPTER = { number: 1, title: 'The Little Horse Crosses the River', minutes: 4, language: 'en', film: true, questionKeys: false };
 try { if (localStorage.getItem('captions') === null) setCaptions(true, false); } catch {}   // captions on at the first visit; the reader's own choice is kept
 
-// The two stops are "listen and find" (lib/find.js): Little Horse asks for one thing at a time; every thing in the
+// The two stops are "listen and find" (the engine's findWords): Little Horse asks for one thing at a time; every thing in the
 // picture answers a tap with its name. Only things that move are asked for, so their hop and wiggle can be seen.
 // At the river he is looking for help: the ox comes last, and finding him leads into scene 4 ("There's Uncle Ox!").
 const FIND_RIVER = ['bird', 'flower', 'butterfly', 'ox'].map((w, i) => ({ word: w, clip: 'q-' + w + (i ? '' : '1') }));
@@ -59,7 +58,6 @@ music('audio/bgm/theme.mp3', undefined, +(new URLSearchParams(location.search).g
 window.MUSIC_UP_IN_PRE = true;
 window.MUSIC_OFF = { scene7: t => t > PRE7 + 32.7,   // faded out by the stare (33.47): "deep!" ends at 32.7
   scene9: t => t > PRE9 + TIMINGS.scene9.dur - 2 };    // the film fades out under the last picture
-SFX_BED.river = 10; SFX_BED.birds = 10; SFX_BED.mill = 10; SFX_BED.wind = 8;
 // Build every puppet and prop once at load, off screen, so their bitmaps are ready before the first beat needs them.
 paperWarm(g => { horsePuppet(g); motherPuppet(g); oxPuppet(g); squirrelPuppet(g); rabbitPuppet(g); prop(g, SACK); millWheel(g); });
 boot();

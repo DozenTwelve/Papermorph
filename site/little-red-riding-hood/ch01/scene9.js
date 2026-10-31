@@ -15,7 +15,7 @@ const s9_T = (() => {
     WOOD: C('bonk9', .6), SHOO: C('s09b', 1.0), LEAP, CRASH: LEAP + .8 };
 })();
 { const C = s9_C, T = s9_T;
-  sfx('scene9', 0, 'room', .4, 10);   // BED_STEP (shared.js) lays it again every 9.5 s
+  sfx('scene9', 0, 'room', .4, { loop: true });   // a bed: it repeats to the end of the scene
   const fx = (t, n, v) => sfx('scene9', +t.toFixed(2), n, v);
   fx(T.HIT, 'thud', 2); fx(T.LAND, 'thud', 1.2);
   fx(T.BANG - .38, 'knock', .8); fx(T.BANG - .2, 'knock', .9); fx(T.BANG, 'bang', 2); fx(T.LANDG, 'hop', 1.4);

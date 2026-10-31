@@ -28,7 +28,7 @@ const S6 = {
 S6.vig1 = S6.uncle - .05; S6.vig2 = S6.squirrel - .05; S6.vigOff = S6.it + .55;
 
 /* ---------- sounds ---------- */
-sfx('scene6', 0, 'birds', .5);
+sfx('scene6', 0, 'birds', .5, { loop: true });
 // hooves: one soft knock every half stride of the walk (d in the puppet's own units, a stride is 74)
 function s6_steps(keys, s, t0, t1, vol) {
   let last = null;

@@ -63,7 +63,7 @@ function scene11(p, D) {
     [C('better11', .2), { ua: -90, fa: -60 }], [C('better11', .5), { ua: -92, fa: -25 }], [C('better11', .8), { ua: -90, fa: -65 }], [C('better11', 1.1), { ua: -92, fa: -25 }], [C('better11', 1.4), { ua: -90, fa: -60 }], [C('s11b', .1), DOWN]];
   const reach1 = s11_hand({ x: 2330, y: 655, s: .55, ...REACH, lean: 10 }), reach2 = s11_hand({ x: 2330, y: 655, s: .55, ...REACH2, lean: 10 });
 
-  sfx('scene11', 0, 'room', .4, 10);   // relaid every 9.5 s by shared.js (BED_STEP)
+  sfx('scene11', 0, 'room', .4, { loop: true });   // a bed: it repeats to the end of the scene
   sfx('scene11', C('better11', .2), 'pop', 1.2); sfx('scene11', C('better11', .2), 'hop', 1.4); sfx('scene11', C('wink11', .25), 'chime', .8);
 
   stopClock(D, (q, f) => {

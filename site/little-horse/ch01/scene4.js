@@ -49,8 +49,8 @@ function scene4(p, D) {
   const lhRoute = [[0, 400], [W('n04', 6.3), 400], [W('n04', 7.6), 470], [W('n04b', .45), 470], [W('n04b', 1.75), 560]];
   const tLift = W('n04b', 2.65);
 
-  sfx('scene4', 0, 'river', .5);
-  sfx('scene4', 0, 'birds', .35);
+  sfx('scene4', 0, 'river', .5, { loop: true });
+  sfx('scene4', 0, 'birds', .35, { loop: true });
   sfx('scene4', lhRoute[1][0], 'trot', .45);
   sfx('scene4', lhRoute[3][0], 'trot', .4);
   sfx('scene4', lhRoute[4][0], 'skid', .25);

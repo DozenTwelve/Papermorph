@@ -31,8 +31,8 @@ const s7_chopAt = q => { for (const [a, b] of s7_CHOPPING) if (q >= a && q < a +
 const s7_WALK_IN = [.7, -80, .95, 24, 4], s7_WALK_ON = [s7_CUT.E + .12, 244, .8, 24.4, 7], s7_STEP_IN = [s7_C('door7', .1), 262, .95, 20, 2];
 const s7_falls = ([t0, , period, , steps]) => Array.from({ length: steps }, (_, k) => +(t0 + period * (.25 + k / 2)).toFixed(2));
 
-sfx('scene7', 0, 'forest', .5);
-sfx('scene7', s7_CUT.H, 'room', .4);
+sfx('scene7', 0, 'forest', .5, { loop: true });
+sfx('scene7', s7_CUT.H, 'room', .4, { loop: true });
 for (const [a, b] of s7_CHOPPING) for (let k = 0; a + (k + .85) * s7_CHOP < Math.min(a + Math.ceil((b - a) / s7_CHOP) * s7_CHOP, s7_END); k++) {
   const t = +(Math.ceil((a + (k + .85) * s7_CHOP) * FPS - 1e-6) / FPS).toFixed(3);   // on the frame the blade lands
   sfx('scene7', t, t >= s7_CUT.H ? 'chopin' : 'chop', t >= s7_CUT.H ? 1 : t >= s7_CUT.F || between(t, s7_CUT.B, s7_CUT.T) ? .9 : 1.4);   // softer under her line

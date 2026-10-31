@@ -12,7 +12,7 @@ This file covers the story, the shots, the sound and the team; [puppets.md](pupp
 - The script comes first
 - Scenes, shots, cuts
 - Sound
-- Point and read
+- Listen and find
 - Team
 - Review rounds
 - Delivering
@@ -51,7 +51,7 @@ uv run --with edge-tts python "$SKILL/scripts/tts.py" "$N" "$A"
 python3 "$SKILL/scripts/level.py" "$A"/*.mp3
 python3 "$SKILL/scripts/mouths.py" "$N" "$A"
 python3 "$SKILL/scripts/join.py" "$A" scene1=s01,s02,s02b,s03 --words "$N"
-uv run --with numpy python "$SKILL/scripts/sfx.py" "site/$BOOK/ch01/audio/sfx" knock
+uv run --with numpy python "$SKILL/scripts/sfx.py" "site/$BOOK/ch01/audio/sfx" knock chime
 ```
 
 Keep these commands in `tools/<book>/audio.sh` and rerun it after any narration change ([Sound](#sound)). As copied they voice the kit's sample episode, a check that the folder works; the episode's script then replaces the narration file, and its scenes the `join.py` list.
@@ -100,35 +100,42 @@ Voices, levels, effects and music work as in [core/sound.md](../core/sound.md); 
 - **Effects and music** go on the scene clock (`sfx(scene, t, …)`, `music(…, [scene ids], …)`). When silence is the joke, `window.MUSIC_OFF = { scene: t => … }` fades the music out for the stare.
 - **Captions** are on at a reader's first visit (`chapter.html` does this); after that the reader's own choice is remembered. A caption ends at the first real pause after its words; a hole inside a sentence keeps it up. When that gives words away before they are said (a punchline after a pause), split the caption at the hole in `shots.js` and hold a punchline's caption into the silence after it; do it in the audio script after `join.py`, so a rerun keeps it.
 
-## Point and read
+## Listen and find
 
-A picture book for young children learning a language can stop once and let the child touch the things in the picture to hear their names, as a point-and-read pen does: Little Red Riding Hood stops in the woods, and a tap on the basket shows **basket** in big letters and says it. It suits a story read to children of about four to seven who are learning the words; it is a pause in the film, so one per episode is plenty, at a moment where the story rests (Red in the meadow once the wolf has gone), never inside a joke's timing. Offer it when the user's readers are young language learners; most picture books have none.
+A picture book for young children learning a language can stop and play a finding game in the picture: the character asks for one thing at a time ("Can you find the bird? Touch it!"), the child touches it, and it hops, shows **bird** in big letters and says it. *The Little Horse Crosses the River* stops twice (by the river, at the mill), *Little Red Riding Hood* once (in the meadow, after the wolf has gone). It suits a story read to children of about four to seven who are learning the words; each stop is a pause in the film, so one or two per episode, at a moment where the story rests, never inside a joke's timing. Offer it when the user's readers are young language learners; most picture books have none.
 
-**The words.** Six to eight concrete nouns the child can see in that one picture and probably half knows: tree, flower, basket, bird, mushroom, butterfly. Each should be a whole thing drawn clearly apart from the others, so the child finds it and the word plainly belongs to it; a part too small to find (a coat's button) or an idea (*quiet*) has nothing to point at. The word is the whole lesson: a tap shows the word and says it once, with no sentence and no translation. The beat's narration is one prompt line in the narrator's voice that tells the child what to do ("Little Red Riding Hood saw so many things in the woods. Touch them to hear their names!").
+**The words.** Three or four things to ask for, and every other thing the child can see in that picture listed too, because a child taps what catches the eye: six to eight concrete nouns in all, things the child probably half knows (tree, flower, basket, bird, butterfly, sun). Each should be a whole thing drawn clearly apart from the others, so the child finds it and the word plainly belongs to it; a part too small to find (a coat's button) or an idea (*quiet*) has nothing to point at. The word is the whole lesson: no translation, no sentence beyond the ask. The beat's narration is one line in the narrator's voice that tells the child what to do ("Help her look! Listen, and touch what she asks for."); then the character speaks.
 
-**The beat.** It is the episode's one `ask` beat, with `tapWords(things, done)` as its ask, so the chapter is a film with a question: `film: true` in `CHAPTER` keeps its music and effects, and `questionKeys: false` keeps a lesson's question keys out of the help ([core/engine.md](../core/engine.md#player)). The scene fills the list each time it builds the picture; `g` is what the child taps: a puppet's `g`, a `prop()`, or, for something painted into a baked set, a transparent shape laid over it (a rectangle, or a path traced round an odd outline such as a winding path or a pond):
+**The beat.** It is an `ask` beat with `findWords(things, asks, done)` as its ask, so the chapter is a film with a question: `film: true` in `CHAPTER` keeps its music and effects, and `questionKeys: false` keeps a lesson's question keys out of the help ([core/engine.md](../core/engine.md#player)); the kit's `chapter.html` has both. The scene fills the things each time it builds the picture; `g` is what the child taps: a puppet's `g`, a `prop()`, or, for something painted into a baked set, a transparent shape laid over it (a rectangle, or a path traced round an odd outline such as a winding path or a pond). The asks are in order, the last one found leads on (Little Horse's last ask is the ox, and the next scene opens on "There's Uncle Ox!"):
 
 ```js
-let WOODS = [];   // the things to tap, filled by scene4w
+let MEADOW = [];   // the things, filled by scene4w
 function scene4w(p, D) {
-  const cam = paperCam(p, 'woods');
-  const basket = prop(cam.stage, BASKET, { transform: 'translate(640 700)' });
+  const cam = paperCam(p, 'meadow');
   const tree = mk('rect', { x: 90, y: 120, width: 260, height: 560, fill: 'transparent' }, cam.stage);   // painted into the set
-  const red = kidPuppet(cam.stage, { coat: '#c94a3c' });
-  WOODS = [{ g: tree, word: 'tree' }, { g: basket, word: 'basket' }, { g: red.g, word: 'girl' }];
-  stopClock(D, (q, f) => { cam.apply(q, f); red.pose({ x: 900, y: 800, shut: q % 4 > 3.85 }, f); });   // blinks every 4 s, while it waits too
+  const basket = prop(cam.stage, BASKET), red = kidPuppet(cam.stage, { coat: '#c94a3c' });
+  MEADOW = [{ g: basket, word: 'basket', side: 'right' }, { g: tree, word: 'tree' }, { g: red.g, word: 'Red Riding Hood', clip: 'q-me', talk: true }];
+  stopClock(D, (q, f) => {
+    cam.apply(q, f);
+    tf(basket, 'translate(640 700)');
+    // in the game (q > D) she says the lines findWords gives her, and blinks only between them
+    red.pose({ x: 900, y: 800, mouth: q > D ? findMouth() : 'X', shut: !FIND.saying && q % 4 > 3.85 }, f);
+  });
 }
 // in BEATS:
-['scene4w', 'In the woods', (m, D) => scene4w(panel(0), D), { lead: false, pre: PRE4W, ask: done => tapWords(WOODS, done) }],
+const FIND_MEADOW = [{ word: 'tree', clip: 'q-tree' }, { word: 'basket', clip: 'q-basket' }];
+['scene4w', 'In the meadow', (m, D) => scene4w(panel(0), D), { lead: false, pre: PRE4W, ask: done => findWords(MEADOW, FIND_MEADOW, done), video: false }],
 ```
 
-Once the prompt's narration is over the things turn tappable, each with a hit box at least 120 px square (a child's finger on a phone; smaller boxes lie on top of bigger ones) that follows its thing every frame, so a target may be a puppet that walks about or a bird that flies. A tap hops the thing (the hop adds to the transform the scene sets every frame, so a prop or puppet posed every frame hops in place), shows its word beside it, above where there is room, and says the word with the music ducked; tapping again says it again. Where the word would cover something the child should see, a face above the basket Red holds, give the thing a side: `{ g: basket, word: 'basket', side: 'below' }` (or `'left'`, `'right'`, `'above'`), and the word goes there, kept on the stage. A counter and Continue (Enter) wait in the corner, and Continue lights up with a short praise once every thing has been heard; the child can go on at any time. ← and → move between the things and Enter or Space taps, and each thing is named by its word for a screen reader. While the page waits, the scene's `stopClock` runs on past the beat's end, so pose the puppets as a function of `q` that keeps living there: a breath, a blink every few seconds, a glance. A book with its own early-reader typeface sets `--word-font` in `lib/book.css`.
+Once the narration is over the character asks for the first thing. Every thing answers a tap, with a hit box at least 120 px square (a child's finger on a phone; smaller boxes lie on top of bigger ones) that follows its thing every frame, so a target may be a puppet that walks or a bird that flies. A wrong thing hops, shows its word and says its own name, then the short ask comes again ("Where's the bird?"); nothing is ever called wrong. Each miss helps more: at the second the thing asked for shakes, from the third paper stars circle it; a tap on nothing leaves a ripple, and two of those count as a miss. A tap anywhere inside the asked thing's box finds it, even where a smaller thing lies on top. With no tap for 5 s it shakes, and if nobody finds it in 20 s the character says "Look! There it is!" and it counts as found, so a child who never taps is never stuck. A found thing hops, shows its word, says it and chimes; after the last one comes the praise and the film goes on by itself. A new tap cuts off whatever was being said, so lines never pile up. Tab or ← → reach the things from the keyboard and Enter or Space taps; Enter otherwise skips the stop. Where the word would cover something the child should see, give the thing a side: `{ g: basket, word: 'basket', side: 'right' }` (or `'left'`, `'above'`, `'below'`). A book with its own early-reader typeface sets `--word-font` in `lib/book.css`.
 
-**The word clips** are plain narration entries, voiced by `tts.py` with the rest and in the same voice: `"w-basket": "basket"` in `narration.<lang>.json` makes `audio/<lang>/w-basket.mp3`. A thing's clip is `'w-' + its word` (lower case, spaces as hyphens: *ice cream* says `w-ice-cream`); `clip: 'w-red'` names another. They stay out of `join.py`'s list, since each plays alone; run `level.py` on them with the other clips.
+**The character acts it.** While the page waits, the scene's `stopClock` runs on past the beat's end (q > D), so pose everyone as a function of `q` that keeps living there: a breath, a blink every few seconds, a bird pecking along a branch. While the character speaks, `FIND.saying` names the clip and `findMouth()` gives its mouth for this frame; turn the eyes to the child while it asks, to `FIND.target` (the thing asked for) while it waits, and to `findSaw()` (the thing just found, for a moment after). A scene can do more with a found thing by watching `FIND.found`: Red's flower flies into her bouquet, and any flower in the meadow counts as the flower, because the scene wraps the one the child touches into the single `g` it gave `findWords` (`site/little-red-riding-hood/ch01/scene4w.js`). The hop and the shake are the CSS `translate` property, which adds to the transform the scene sets every frame; a thing the scene moves through a parent can copy it (`getComputedStyle(g).translate`, as the mill's wheel does in Little Horse's `scene8.js`).
 
-**The video.** `export.py` cannot tap, so it shows and says the words in turn, as if a child were tapping them ([core/publish.md](../core/publish.md#video-export)).
+**The clips** are plain narration entries, voiced with the rest (`tts.py` or `eleven.py`), each played alone and left out of `join.py`'s list; run `level.py` on them with the other clips. The things' names in the narrator's voice: `"w-bird": "bird"` makes `audio/<lang>/w-bird.mp3` (a thing's clip is `'w-' + its word`, lower case, spaces as hyphens; `clip:` names another). In the character's voice: each ask (`clip:` of the ask, "Can you find the bird? Touch it!"), its short ask again (`r-bird`, "Where's the bird?"; `again:` names another), the praise (`q-done`, "You found them all!"), the give-up line (`q-there`, "Look! There it is!"), and the character's own answer when tapped (`q-me`, "That's me!", with `talk: true`, so the mouth moves). `findWords(things, asks, done, { end, there })` names other praise and give-up clips (Little Horse's river stop ends on `q-uncle`). The character's lines are captioned from their timings when captions are on, so their entries need cues as every clip's do. The chime is `audio/sfx/chime.mp3` (`sfx.py chime`).
 
-**Check it** as a child would. `?beat=N` opens the beat; play its prompt and wait: nothing is tappable until the narration ends. Then tap every thing in the browser, by mouse and with the arrows and Enter: is every word beside its thing and not over it, does every word sound, does the counter count, does Continue light up and go on once? Step back into the beat and out of it mid-wait and replay it: no box, card or word may stay behind. `lint.py` names a word whose clip file is missing (it reads the `word: '…'` written in the scene, so write words as literals), and the page warns in the console about a thing with no word, an element that is not on the stage or not in the picture, a clip that will not load, and a thing a finger cannot reach because something lies over it (naming what: the counter's card in the bottom right corner, say), which `check.py` lists.
+**The video.** `export.py` cannot tap, and a game is no fun to watch: give the stop's beat `video: false`, or `video: S` to keep its lead-in line and cut there, and the video goes straight on to the next scene ([core/publish.md](../core/publish.md#video-export)).
+
+**Check it** as a child would. `?beat=N` opens the beat; play its narration and wait: nothing is tappable until it ends. Then play the game in the browser by mouse and by keys: a wrong thing, nothing, the right thing; miss three times and watch the help grow; wait out a give-up. Does every word sit beside its thing and not over it, does every clip sound, does the character's mouth move with its lines and its eyes go where they should, does the film go on after the praise? Seek out of the beat in the middle of a line and back: no box, word or caption may stay behind. `lint.py` names a clip that is missing, and the page warns in the console about a thing with no word, an element that is not on the stage or not in the picture, a clip that will not load and a side it does not know, which `check.py` lists.
 
 ## Team
 

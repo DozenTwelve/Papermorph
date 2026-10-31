@@ -11,7 +11,7 @@
 const PRE3 = 2.2;
 const s3_C = (c, t = 0) => clipAt('scene3', PRE3, c, t);
 const s3_BX = 1180, s3_BY = 742, s3_POP = .35, s3_HOP = .8, s3_LAND = 1.2;
-sfx('scene3', 0, 'forest', .5, 10);   // the bed: shared.js lays it again every 9.5 s; 10 s long, so a seek joins it part-way
+sfx('scene3', 0, 'forest', .5, { loop: true });   // a bed: it repeats to the end of the scene
 sfx('scene3', .3, 'rustle', 1.6);
 sfx('scene3', s3_HOP, 'whoosh', .8); sfx('scene3', s3_LAND, 'pad', 1.6);
 [[.24, 'step1'], [.71, 'step2'], [1.42, 'step3'], [2.05, 'step1']].forEach(([t, n]) => sfx('scene3', t, n, 1.2));

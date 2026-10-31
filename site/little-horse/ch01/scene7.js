@@ -179,7 +179,7 @@ function scene7(p, D) {
   [[T(2.2), true], [T(8.75), false], [T(10.5), true], [T(12.45), false], [T(17.65), true]].forEach(([t, on]) => cam.soft(t, on));
 
   /* ---------- sound ---------- */
-  sfx('scene7', 0, 'river', .5); sfx('scene7', 0, 'birds', .4);
+  sfx('scene7', 0, 'river', .5, { loop: true }); sfx('scene7', 0, 'birds', .4, { loop: true });
   sfx('scene7', .05, 'trot', .4);
   sfx('scene7', T(4.88), 'squeak', .35);
   sfx('scene7', T(13.75), 'hop', .25); sfx('scene7', T(25.95), 'hop', .22);

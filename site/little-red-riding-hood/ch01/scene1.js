@@ -79,7 +79,7 @@ function scene1(p, D) {
   const puffs = smoke(cam.stage, 932, 84), theDoor = door(cam.stage, DOOR), mom = motherPuppet(cam.stage), red = redPuppet(cam.stage);
 
   // ---- sound ----
-  sfx('scene1', 0, 'forest', .4);   // the garden's birds and leaves (shared.js lays it again every 9.5 s)
+  sfx('scene1', 0, 'forest', .4, { loop: true });   // a bed: it repeats to the end of the scene
   sfx('scene1', DOOR, 'creak', 1.1); sfx('scene1', OUT + .25, 'whoosh', .5); sfx('scene1', LAND, 'step2', .7);
   sfx('scene1', CAKE + .2, 'whoosh', .3);
   for (let k = 0, t; (t = WALK + WP * (.25 + .5 * k)) < WIPE + .2; k++) sfx('scene1', +t.toFixed(2), 'step' + (1 + k % 3), .7 - .05 * k);

@@ -1,18 +1,18 @@
-/* scene4w.js — in the meadow: listen and find (lib/find.js, as Little Horse's scenes 3 and 8).
+/* scene4w.js — in the meadow: listen and find (the engine's findWords, as Little Horse's scenes 3 and 8).
    s04w "Little Red Riding Hood wanted flowers for Grandma. Help her look! Listen, and touch what she asks for."
    Shot 1 (0 – "Help"): medium close, Red bent over one flower, picks it on "flowers", holds it up, and it goes into
    her bouquet on "Grandma". Shot 2 (cut on "Help", a little wide): she looks about the meadow in profile, turns round
    to us on "Listen", her eyes on the butterfly, while the camera eases in to the game's frame (still from D on). The game: she asks for a flower, the butterfly, the bird
-   (find.js speaks; her mouth follows findMouth(), her eyes go to FIND.target while she waits, to us while she asks).
+   (findWords speaks; her mouth follows findMouth(), her eyes go to FIND.target while she waits, to us while she asks).
    Every flower in the frame is a flower: the set's big fore flowers are drawn live here (the baked fore layer is
    hidden), the small painted ones get a live copy the moment one is touched. The flower the child touches, wherever
-   it is, is wrapped into the one "flower" thing find.js knows (s4w_wrap), so it is the one that hops, is found and
+   it is, is wrapped into the one "flower" thing findWords knows (s4w_wrap), so it is the one that hops, is found and
    flies into her bunch, and keeps its colour there. The bird pecks and hops along the tree top, the butterfly loops
    over the grass, the sun's rays turn, the cloud drifts. Every visible thing answers a tap with its name. */
 'use strict';
 const PRE4W = 1.0;
-let MEADOW_THINGS = [];   // filled by scene4w each time it builds; findWords (lib/find.js) reads it
-sfx('scene4w', 0, 'meadow', .6);
+let MEADOW_THINGS = [];   // filled by scene4w each time it builds; findWords reads it
+sfx('scene4w', 0, 'meadow', .6, { loop: true });
 sfx('scene4w', PRE4W + 1.55, 'rustle', .5);   // the stem snaps
 
 const s4w_RX = 2300, s4w_GY = 795, s4w_S = .6, s4w_B0 = 5;   // Red on the grass; flowers in her bunch from scene 4 (5; 7 by scene 7)
@@ -86,7 +86,7 @@ function scene4w(p, D) {
   const headF = red.g.querySelector('[data-p="headF"]'), eyes = [...headF.querySelectorAll('.eyeO, .eyeC')];
   const basket = red.g.querySelector('[data-p="basketF"]');
 
-  // the one "flower" thing find.js knows: it wraps whichever flower was touched last (the big white one at first)
+  // the one "flower" thing findWords knows: it wraps whichever flower was touched last (the big white one at first)
   const fG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   let held = null;
   const wrap = f => { if (held === f) return; if (held) fG.replaceWith(held.el); f.el.replaceWith(fG); fG.append(f.el); held = f; };
@@ -120,7 +120,7 @@ function scene4w(p, D) {
     smallRecs.set(key, f); flowers.push(f);
     return f;
   };
-  // inside the asked thing's tap box (find.js's hitBox: its box, at least minBox 120 stage px): find.js finds it
+  // inside the asked thing's tap box (findWords's hitBox: its box, at least minBox 120 stage px): findWords finds it
   const inAsked = (cx, cy) => {
     if (!FIND.target || FIND.target === fG) return false;
     const s = $('stage').getBoundingClientRect(), r = FIND.target.getBoundingClientRect(), k = s.width / SW, m = 120 * k;
@@ -132,7 +132,7 @@ function scene4w(p, D) {
     const f = flowerAt(e.clientX, e.clientY);
     if (!f) return;
     wrap(f);
-    if (FIND.target === fG) return;   // asked for a flower: find.js finds it in fG's box
+    if (FIND.target === fG) return;   // asked for a flower: findWords finds it in fG's box
     // asked for something else: the flower answers "flower" and hops, as every wrong thing does
     const hit = [...document.querySelectorAll('.findw rect')].find(r => r.getAttribute('aria-label') === 'flower');
     if (!hit) return;
@@ -155,7 +155,7 @@ function scene4w(p, D) {
     cam.apply(q, f);
     const v = cam.at(q); OX = -.3 * (v.x - 800); OY = -.3 * (v.y - 450);
     const wait = q > D, saying = wait && FIND.saying, breathe = Math.sin(q * 2.3);
-    // what find.js has just done: the flower found (it flies), the bird or the butterfly found (they show off)
+    // what findWords has just done: the flower found (it flies), the bird or the butterfly found (they show off)
     if (FIND.found === fG && gotQ === null) {
       gotQ = q; got = held; got.picked = true; got.from = headAt(got);
       wrap(foreRecs[s4w_HERO].picked ? foreRecs.find(r => !r.picked && r.x > 2600 && r.x < 3300) : foreRecs[s4w_HERO]);
