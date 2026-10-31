@@ -48,18 +48,28 @@ function stopClock(D, draw) { let last = null; clockRun(t => { const f = Math.fl
    A view {x, y, z} is the world point at the frame's centre and the zoom. Moves: to(view, t0, dur) eases each given
    key from where the camera is at t0 (zooms keep one world point still, as the engine's camera does); cut(view, t0).
    Layers slide by their parallax factor k against the base view. soft(t0, on) swaps the far layers (k < 1) for their
-   blurred copies: shallow focus on close shots (on = 'all' blurs the puppets' plane too, for a set seen behind a close-up). Puppets go in cam.stage, on the k = 1 plane in front of `after`. */
+   blurred copies: shallow focus on close shots (on = 'all' blurs the puppets' plane too, for a set seen behind a close-up).
+   Puppets go in cam.stage, a k = 1 plane drawn just after the layer named `after`. Without one it is the set's layer
+   marked stage: true in sets.js (bake_sets.py and painted.py keep the mark), else the first layer with k 1, so a set
+   that always needs the same place for its puppets says so once (a river's tree in front of the bank, a house whose
+   front hides whoever is inside). stages: [layer names] adds a plane after each of those layers too, cam.stageAt[name],
+   for things that stand further back: ducks on a pond in front of its water, a grandmother at the window of a house
+   layer drawn over cam.stage. */
 function paperCam(p, setName, v0 = {}, { after = null, stages = [] } = {}) {
   const root = mk('g', {}, p), view = mk('g', {}, root), world = mk('g', {}, view), layers = [], ops = [], softs = [], shakes = [];
-  let stage = null; const stageAt = {};
-  for (const L of SETS[setName]) {
+  let stage = null; const stageAt = {}, set = SETS[setName];
+  if (!set) throw new Error(`paperCam: no set '${setName}' in img/sets/sets.js (${Object.keys(SETS).join(', ')})`);
+  after ??= (set.find(L => L.stage) || set.find(L => L.k === 1) || set[set.length - 1]).name;
+  for (const n of [after, ...stages]) if (!set.some(L => L.name === n)) console.warn(`paperCam: set '${setName}' has no layer '${n}' (${set.map(L => L.name).join(', ')})`);
+  for (const L of set) {
     const g = mk('g', {}, world), [x, y, width, height] = L.box, img = { x, y, width, height, preserveAspectRatio: 'none' };
     const sharp = mk('image', { href: `../img/sets/${setName}/${L.name}.webp`, ...img }, g);
     const blur = L.soft ? mk('image', { href: `../img/sets/${setName}/${L.name}-soft.webp`, ...img, visibility: 'hidden' }, g) : null;
     layers.push({ g, k: L.k, sharp, blur, name: L.name });
     if (stages.includes(L.name)) layers.push({ g: stageAt[L.name] = mk('g', {}, world), k: L.k });
-    if (L.name === after || (!after && L.k === 1 && !stage)) layers.push({ g: stage = mk('g', {}, world), k: 1 });
+    if (L.name === after) layers.push({ g: stage = mk('g', {}, world), k: 1 });
   }
+  if (!stage) layers.push({ g: stage = mk('g', {}, world), k: 1 });   // an unknown `after` (warned above): in front of everything
   mk('rect', { width: 1600, height: 900, fill: 'url(#vignette)', 'pointer-events': 'none' }, root);   // a tap goes through to the picture
   // Parallax is measured from the set's own framing (base), wherever the beat's first view is.
   const base = { x: 800, y: 450, z: 1 }, start = { ...base, ...v0 };
