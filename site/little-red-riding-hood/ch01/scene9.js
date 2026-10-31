@@ -1,5 +1,6 @@
 /* scene9.js — out! It starts mid-lunge on scene 8's last frame (s8_flight, s8_redDuck): the wolf's face goes into
-   the bouquet; the wardrobe bursts open; Grandma's close-up, her run and the umbrella on his head; he gallops for the
+   the bouquet; the wardrobe bursts open; Grandma's close-up; a medium that runs with her from the wardrobe, past Red,
+   onto the wolf getting up dazed with his back to her; cut closer as he turns and meets the umbrella; he gallops for the
    door and skids before the woodcutter; a cut on each mark of "Grandma … the woodcutter … one way out", his eyes go
    to the window; the leap, followed, through the glass. */
 'use strict';
@@ -57,13 +58,16 @@ function scene9(p, D) {
   const red = redPuppet(R.front), wolf = wolfPuppet(R.front), gran = grandmaPuppet(R.front);
   // his close-up when his eyes find the window: the room behind him, out of focus
   const W = paperCam(p, 'room', { x: 820, y: 450, z: 1.4 }).soft(0, 'all'), wolfW = wolfPuppet(W.stage);
-  // shots: A the lunge (two-shot), B the wardrobe, C Grandma's close-up, D wide (her run, the bonk), E the door,
+  // shots: A the lunge (two-shot), B the wardrobe, C Grandma's close-up, D her run (a medium that follows her onto
+  // the wolf), D2 closer: he turns to her, the bonk, he bolts out of frame left; E the door,
   // F [gran], G [wood], H his eyes to the window (W), I the window, J the leap
   const SH = [[0, 'A'], [C('burst9', -.05), 'B'], [C('s09', -.15), 'C'], [C('s09', 1.1), 'D'], [C('s09', 2.6), 'D2'], [C('bonk9', 1.4), 'E'],
     [s9_M('gran') - .05, 'F'], [s9_M('wood') - .05, 'G'], [s9_M('way') - .05, 'H'], [C('s09c', 5.35), 'I'], [C('leap9', .05), 'J']];
   const at = n => SH.find(s => s[1] === n)[0];
+  const gxAt = q => 1880 - 180 * span(q, T.BANG, T.LANDG) - 795 * span(q, T.RUNG, T.ATG);   // Grandma's x
   const wolfX = q => q < T.LEAP ? 530 : 530 + 1010 * Math.min(1, (q - T.LEAP) / .8);
-  cam.to({ x: 1030 }, T.HIT, .6).cut({ x: 1820, y: 590, z: 2.1 }, at('B')).cut({ x: 1700, y: 580, z: 3.5 }, at('C')).cut({ x: 1250, y: 520, z: 1.15 }, at('D')).cut({ x: 850, y: 580, z: 2.0 }, at('D2'))
+  cam.to({ x: 1030 }, T.HIT, .6).cut({ x: 1820, y: 590, z: 2.1 }, at('B')).cut({ x: 1700, y: 580, z: 3.5 }, at('C')).cut({ x: 1480, y: 600, z: 1.9 }, at('D')).to({ x: t => Math.max(1060, Math.min(1480, gxAt(t) - 200)) }, at('D'), .001)
+    .cut({ x: 900, y: 635, z: 2.5 }, at('D2'))
     .cut({ x: 380, y: 590, z: 2.0 }, at('E')).to({ x: 330, y: 545, z: 2.3 }, T.SHOO - .2, .6)
     .cut({ x: 925, y: 560, z: 2.6 }, at('F')).cut({ x: 290, y: 595, z: 2.3 }, at('G'))
     .cut({ x: 1540, y: 430, z: 1.7 }, at('I')).to({ z: 2.4 }, at('I') + .05, .85)
@@ -90,11 +94,11 @@ function scene9(p, D) {
     if (q < T.HIT) o = s8_flight(s9_F0 + q);
     else if (q < T.LAND) { const u = (q - T.HIT) / (T.LAND - T.HIT), a = s8_flight(s9_F0 + T.HIT);
       o = { ...a, x: a.x + (800 - a.x) * ease(u), y: a.y + (floor4 + 30 - a.y) * u * u - 150 * Math.sin(Math.PI * u), stretch: 1 - u, crouch: u, headR: 30 * u, jaw: 0, mouth: 'X', shut: true, tail: 30 - 50 * u }; }
-    else if (q < C('s09', 1.55)) o = { x: 800, y: floor4 + 34, s, turn: -1, run: 0, crouch: 1, headR: 42, shut: true, tail: -20 + 6 * onTwos(q) * (q > 1.2 && q < 1.5 ? 1 : 0), night: true, cap: 'off' };
-    else if (q < T.GO) {   // up, dazed; turns to her "rascal!"; the bonk; clutches his head; turns for the door
-      const up = span(q, C('s09', 1.55), C('s09', 1.9)), tr = q < T.TURN ? 1 - 2 * (1 - span(q, C('s09', 2.0), C('s09', 2.3))) : 1 - 2 * span(q, T.TURN, T.TURN + .3);
+    else if (q < C('s09', 1.85)) o = { x: 800, y: floor4 + 34, s, turn: -1, run: 0, crouch: 1, headR: 42, shut: true, tail: -20 + 6 * onTwos(q) * (q > 1.2 && q < 1.5 ? 1 : 0), night: true, cap: 'off' };
+    else if (q < T.GO) {   // up, dazed, his back to her as she comes; turned to her on the cut (D2); the bonk; clutches his head; turns for the door
+      const up = span(q, C('s09', 1.85), C('s09', 2.2)), tr = q < at('D2') ? -1 : q < T.TURN ? 1 : 1 - 2 * span(q, T.TURN, T.TURN + .3);
       const hit = q >= T.WHACK + .1, bump = between(q, T.WHACK + .1, T.WHACK + .4) ? 30 * Math.sin(Math.PI * (q - T.WHACK - .1) / .3) : 0;
-      o = { x: 800, y: floor4 - bump, s, turn: tr, lean: 40 * (1 - up), headR: q < C('s09', 2.0) ? 8 * Math.sin(q * 6) : 0, ua: hit ? -165 : -20, fa: hit ? -30 : -40,
+      o = { x: 800, y: floor4 - bump, s, turn: tr, lean: 40 * (1 - up), headR: q < at('D2') ? 8 * Math.sin(q * 6) : 0, ua: hit ? -165 : -20, fa: hit ? -30 : -40,
         brow: -1, ear: hit && q < T.WHACK + .6 ? onTwos(q) : 0, shut: hit && q < T.WHACK + .7, mouth: hit && q < T.WHACK + .5 ? 'D' : 'X', tail: -10 };
     } else if (q < T.SHOO) {   // gallop to the door, skid before the woodcutter
       const g = gallop(q), sk = span(q, T.AT_DOOR - .25, T.AT_DOOR);

@@ -41,12 +41,14 @@ const OPENING = [1, .75, .45, .15, -.15, -.35];
 const opening = (q, t0, steps = OPENING) => q < t0 ? steps[0] : steps[Math.min(steps.length - 1, Math.floor((q - t0) * FPS))];
 const quiltSVG = `<g filter="url(#paper)"><path d="M736,646 C800,630 900,640 1000,628 C1100,620 1200,632 1344,640 L1350,764 L730,764 Z" fill="#b5523b"/>
   ${[0, 1, 2, 3, 4].map(i => `<rect x="${770 + i * 112}" y="${660 + (i % 2) * 34}" width="70" height="44" fill="${i % 2 ? '#e8c4a0' : '#c8704a'}"/>`).join('')}</g>`;
+const ROOM_DOOR = 'M176,800 L176,520 Q270,352 364,520 L364,800 Z';   // the doorway's arch in the room set (sets.js)
 function roomProps(cam, order) {
   // order: puppet slots between the room's pieces, back to front. Returns the pieces' controls.
   const st = cam.stage, slot = n => mk('g', {}, st), r = {};
-  r.daylight = prop(st, `<g filter="url(#paper)"><rect x="176" y="436" width="188" height="364" fill="#f6e7b8"/><rect x="176" y="690" width="188" height="110" fill="#8db35b"/></g>`);
+  // the front door: blue, arched and hinged at its left like the outside one (grandmaOut); daylight in its arch when open
+  r.daylight = prop(st, `<g filter="url(#paper)"><path d="${ROOM_DOOR}" fill="#f6e7b8"/><rect x="176" y="690" width="188" height="110" fill="#8db35b"/></g>`);
   r.atDoor = slot();
-  r.door = doorLeaf(st, 'M176,436 H364 V800 H176 Z', '#8a5a32', 176, '<path d="M220,436 V800 M270,436 V800 M320,436 V800" stroke="#6e4426" stroke-width="3"/><rect x="330" y="600" width="22" height="8" fill="#3b2a1e"/>');
+  r.door = doorLeaf(st, ROOM_DOOR, '#3f5f8a', 176, '<path d="M220,468 V800 M270,444 V800 M320,468 V800" stroke="#2f4a6e" stroke-width="3"/><circle cx="344" cy="620" r="7" fill="#caa24c"/>');
   r.inWardrobe = slot();
   r.wardrobe = doorLeaf(st, 'M1790,410 H1932 V790 H1790 Z', '#8a5a32', 1790, '<circle cx="1918" cy="600" r="6" fill="#caa24c"/><path d="M1810,430 h102 v160 h-102 Z" fill="none" stroke="#6e4426" stroke-width="4"/>');
   r.inBed = slot();

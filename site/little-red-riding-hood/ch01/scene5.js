@@ -47,7 +47,7 @@ function scene5(p, D) {
   s5_woodPile(cam.stage, true);
   const puff = smoke(cam.stage, ...s5_CHIMNEY);
   const wolf = wolfPuppet(cam.stage);
-  cam.to({ x: 950, y: 432, z: .9 }, 0, 3.2).to({ x: 930, y: 500, z: 1.15 }, 3.2, 1.2);   // A: in with him as he creeps up
+  cam.to({ x: 950, y: 432, z: .9 }, 1.9, 1.3).to({ x: 930, y: 500, z: 1.15 }, 3.2, 1.2);   // hold the wide (three whole oaks) ~2.5 s, then A: in with him as he creeps up
   cam.cut({ x: 975, y: 590, z: 2.6 }, 4.4);         // B: the door
   // inside: Grandma in bed; then the door from inside
   const inn = paperCam(p, 'room', { x: 1252, y: 536, z: 3 }), R = roomProps(inn, []), gran = grandmaPuppet(R.inBed), wolfIn = wolfPuppet(R.atDoor);

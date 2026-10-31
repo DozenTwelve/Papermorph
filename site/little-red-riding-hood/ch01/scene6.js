@@ -1,10 +1,10 @@
 /* scene6.js — the wardrobe. Times are on the beat clock; C(t) is t s into the narrator's s06.
      A  0         – C 0      wide: the wolf leaning in at the open door, Grandma in bed sees him (scene 5's last frame)
      B  C 0       – C 3.45   medium, Grandma to us: a start, eyes wide behind her glasses; then a set jaw ("quick!")
-     C  C 3.45    – C 4.5    bed to wardrobe: she hops out of bed in an arc, flings the wardrobe open, lands inside;
-                             her nightcap and glasses fly off onto the pillow
-     I  C 4.5     – C 5.2    insert: the pillow, the cap lying there, the glasses landing and rocking
-     D  C 5.2     – C 10.25  the wardrobe: she pulls it shut (slam, shake, wobble); in the silence the camera pans left
+     C  C 3.45    – C 4.88   medium, following her: she hops out of bed in a long arc, arms going, flings the wardrobe
+                             open and lands inside with a squash; her nightcap and glasses fly off behind her
+     I  C 4.88    – C 5.38   insert: the pillow, the cap lying there, the glasses coming down, landing and rocking
+     D  C 5.38    – C 10.25  the wardrobe: she pulls it shut (slam, shake, wobble); in the silence the camera pans left
                              with the wolf creeping in to the head of the bed, his back to the wardrobe; he finds the
                              cap and glasses and puts them on ("The wolf put on her nightcap and glasses")
      G  C 10.25   – C 12.6   the bed: he climbs in, pulls the quilt to his chin and waits (push in)
@@ -13,10 +13,11 @@
 const PRE6 = 1.2;
 const s6_C = t => clipAt('scene6', PRE6, 's06', t);
 const s6_WALK = { t0: s6_C(2.2), period: .88, steps: 11, x0: 262 };   // the wolf's creep from the door to the bed's head
-const s6_SHUT0 = Math.round(s6_C(5.25) * FPS) / FPS, s6_SLAM = s6_SHUT0 + 5 / FPS;   // the wardrobe door pulled to, on a frame
+const s6_SHUT0 = Math.round(s6_C(5.38) * FPS) / FPS, s6_SLAM = s6_SHUT0 + 5 / FPS;   // the wardrobe door pulled to, on a frame
 sfx('scene6', 0, 'room', .4, 10);   // the room bed (shared.js relays it every 9.5 s)
-sfx('scene6', s6_C(3.56), 'hop', 1.4); sfx('scene6', s6_C(3.68), 'whoosh', 1); sfx('scene6', s6_C(3.95), 'creak', .8);
-sfx('scene6', s6_C(4.62), 'pad', .9);                                  // the glasses land on the pillow (in the insert)
+sfx('scene6', s6_C(3.52), 'hop', 1.4); sfx('scene6', s6_C(3.64), 'whoosh', 1); sfx('scene6', s6_C(4.3), 'creak', .8);
+sfx('scene6', s6_C(4.65), 'hop', 1);                                   // she lands in the wardrobe
+sfx('scene6', s6_C(5.02), 'pad', .9);                                  // the glasses land on the pillow (in the insert)
 sfx('scene6', s6_SLAM, 'slam', 2); sfx('scene6', s6_SLAM, 'bang', .9);
 for (let j = 1; j <= s6_WALK.steps; j++) {                              // his paws, once he is in the picture
   const t = s6_WALK.t0 + (j - .5) * s6_WALK.period / 2;
@@ -24,8 +25,10 @@ for (let j = 1; j <= s6_WALK.steps; j++) {                              // his p
 }
 sfx('scene6', s6_C(10.8), 'creak', .5);                                 // the bed takes his weight
 sfx('scene6', s6_C(12.85), 'creak', .7);                                // the wardrobe door, just a crack
+// The hop's follow: a medium that travels with her from the bed to the wardrobe and rises a little with her arc.
+const s6_follow = (a, b) => ({ x: t => 1330 + 500 * span(t, a, b + .1), y: t => 598 - 50 * Math.sin(Math.PI * Math.min(1, Math.max(0, (t - a) / (b - a)))), z: 2.3 });
 function scene6(p, D) {
-  const C = s6_C, SLAM = s6_SLAM, HOP0 = C(3.56), HOP1 = C(4.2), OPEN = C(3.95), SHUT0 = s6_SHUT0;
+  const C = s6_C, SLAM = s6_SLAM, HOP0 = C(3.52), HOP1 = C(4.65), OPEN = C(4.3), SHUT0 = s6_SHUT0;
   const cam = paperCam(p, 'room', { x: 800, y: 560, z: 1.15 }), R = roomProps(cam, []);
   // inside the wardrobe: dark; Grandma; and, for the last shot, her face close behind the crack (clipped to the door)
   mk('rect', { x: 1792, y: 412, width: 140, height: 378, fill: '#2a1a10' }, R.inWardrobe);
@@ -41,8 +44,8 @@ function scene6(p, D) {
   const flap = mk('g', {}, R.front);
   const cloth = prop(flap, `<g filter="url(#paper)"><path d="M-190,8 C-130,6 -110,-60 -64,-66 Q0,-74 64,-66 C86,-60 92,-14 100,8 Z" fill="#b5523b"/><path d="M-112,-40 C-96,-58 -84,-64 -64,-66 Q0,-74 64,-66 C76,-64 84,-56 88,-44" stroke="#c8704a" stroke-width="8" fill="none"/></g>`);
   const paws = prop(flap, `<g filter="url(#paper)"><circle cx="-30" cy="0" r="12" fill="${FUR2}"/><circle cx="30" cy="0" r="12" fill="${FUR2}"/></g>`);
-  cam.cut({ x: 1200, y: 585, z: 2.9 }, C(0)).to({ x: 1235, y: 585, z: 3.4 }, C(1.84), 1.2).cut({ x: 1580, y: 600, z: 1.7 }, C(3.45)).cut({ x: 1300, y: 625, z: 3.3 }, C(4.5))
-    .cut({ x: 1800, y: 590, z: 1.9 }, C(5.2)).to({ x: 1500, y: 590, z: 1.85 }, C(6.0), 1.0).to({ x: 1470, y: 585, z: 2.0 }, C(7.8), 1.6)
+  cam.cut({ x: 1200, y: 585, z: 2.9 }, C(0)).to({ x: 1235, y: 585, z: 3.4 }, C(1.84), 1.2).cut(s6_follow(HOP0, HOP1), C(3.45)).cut({ x: 1300, y: 625, z: 3.3 }, C(4.88))
+    .cut({ x: 1800, y: 590, z: 1.9 }, SHUT0).to({ x: 1500, y: 590, z: 1.85 }, C(6.0), 1.0).to({ x: 1470, y: 585, z: 2.0 }, C(7.8), 1.6)
     .cut({ x: 1290, y: 580, z: 2.0 }, C(10.25)).to({ x: 1250, y: 545, z: 2.6 }, C(11.0), 1.6)
     .cut({ x: 1916, y: 580, z: 3.4 }, C(12.6)).shake(SLAM, 2 / FPS, 8);
   const wipe = trunkWipe(p, D - .1, .6);   // scene 7 opens on the trunk
@@ -53,7 +56,7 @@ function scene6(p, D) {
   const creep = walker(s6_WALK.x0, .6, { period: s6_WALK.period, A: 30, knee: 50 }, 1, s6_WALK.steps), WX = creep(1e9).x;
   const STOP = s6_WALK.t0 + s6_WALK.steps * s6_WALK.period / 2, WY = hipOn(800, .6, 200);
   // the cap and glasses: off her head as she leaves the bed, onto the pillow; then up to the wolf's head
-  const CAPOFF = C(3.6), CAPREST = C(4.1), SPOFF = C(3.64), SPREST = C(4.62);
+  const CAPOFF = C(3.62), CAPREST = C(4.15), SPOFF = C(3.7), SPREST = C(5.02);
   const GRAB = C(8.45), CAPON = C(8.85), GRAB2 = C(9.05), SPON = C(9.45), CLIMB0 = C(10.35), CLIMB1 = C(10.85);
   const c0 = hop(CAPOFF), s0 = hop(SPOFF), capFrom = [c0.x + 5, c0.y - 132], spFrom = [s0.x + 18, s0.y - 113];
   const capRest = [1282, 628], spRest = [1306, 645], capTo = [WX - 3, WY - 150], spTo = [WX - 26, WY - 130];
@@ -71,11 +74,14 @@ function scene6(p, D) {
       nod: breath(q) + (between(q, C(2.36), C(2.36) + 2 / FPS) ? 6 : 0),
       rua: between(q, jolt, set) ? -150 : 6, rfa: between(q, jolt, set) ? -110 : -4, lua: between(q, jolt, set) ? 150 : -6, lfa: between(q, jolt, set) ? 110 : 4,
       shut: blinking(q, [C(1.6), C(3.0)]) }, f);
-    else gran.pose({ x: h.x, y: h.y, s: .55, turn: 1, crouch: q < HOP0 ? .6 : 0, lean: h.u > 0 ? 25 : 0, ua: h.u > 0 ? -100 : -20, fa: -20,
-      cap: q < CAPOFF, glasses: q < SPOFF }, f);
+    else {   // in the air: leaning into it, arms going on twos; the near arm out to the wardrobe's knob as she comes down
+      const pump = h.u > 0 && q < OPEN - .15 ? 30 * onTwos(q) : 0, grab = span(q, OPEN - .2, OPEN);
+      gran.pose({ x: h.x, y: h.y, s: .55, turn: 1, crouch: q < HOP0 ? .6 : 0, lean: h.u > 0 ? 25 - 15 * grab : 0, ua: h.u > 0 ? lerp(-70 + pump, -95, grab) : -20,
+        fa: h.u > 0 ? lerp(-50 - pump, -5, grab) : -20, headR: h.u > 0 ? -6 : 0, brow: -1, mouth: h.u > 0 && q < OPEN ? 'C' : 'X', cap: q < CAPOFF, glasses: q < SPOFF }, f);
+    }
     // in the wardrobe: lands, then (front, after the cut) pulls the door to
     vis(granIn.g, q >= HOP1 && q < C(12.6));
-    if (q < C(5.2)) granIn.pose({ x: 1858, y: 680, s: .55, turn: 1, crouch: .6 * (1 - span(q, HOP1, HOP1 + .25)), cap: false, glasses: false, ua: -40, fa: -20 }, f);
+    if (q < SHUT0) granIn.pose({ x: 1858, y: 680, s: .55, turn: 1, crouch: .6 * (1 - span(q, HOP1, HOP1 + .3)), cap: false, glasses: false, ua: -40, fa: -20, brow: -1, nod: 4 * span(q, HOP1, HOP1 + .15) }, f);
     else granIn.pose({ x: 1858, y: 680, s: .55, head: 'F', cap: false, glasses: false, brow: -1, lua: q < SHUT0 + 2 / FPS ? 80 : 30, lfa: q < SHUT0 + 2 / FPS ? 20 : 10, shut: blinking(q, [SLAM + .1]) }, f);
     // her eye at the crack: the face slides in from behind the right-hand door
     vis(eyeG, q >= C(12.6)); const ex = 1938 + 40 * (1 - span(q, C(13.3), C(13.65)));
@@ -87,7 +93,7 @@ function scene6(p, D) {
     else { const u = span(q, GRAB, CAPON); cap.pose(lerp(capRest[0], capTo[0], u), lerp(capRest[1], capTo[1], u) - 30 * Math.sin(Math.PI * u), .55 + .07 * u, -12 * (1 - u)); }
     // the glasses: higher, spinning, they land in the insert and rock still
     vis(specs.g, q >= SPOFF && q < SPON);
-    if (q < SPREST) { const u = lin(q, SPOFF, SPREST); specs.pose(lerp(spFrom[0], spRest[0], u), lerp(spFrom[1], spRest[1], u) - 4 * 150 * u * (1 - u), .55, 360 * u); }
+    if (q < SPREST) { const u = lin(q, SPOFF, SPREST); specs.pose(lerp(spFrom[0], spRest[0], u), lerp(spFrom[1], spRest[1], u) - 4 * 260 * u * (1 - u), .55, 720 * u); }
     else if (q < GRAB2) { const t = q - SPREST; specs.pose(spRest[0], spRest[1] - (t < .17 ? 12 * Math.sin(Math.PI * t / .17) : 0), .55, 8 + (t < .6 ? 10 * Math.cos(t * 18) * (1 - t / .6) : 0)); }
     else { const u = span(q, GRAB2, SPON); specs.pose(lerp(spRest[0], spTo[0], u), lerp(spRest[1], spTo[1], u) - 20 * Math.sin(Math.PI * u), .55 + .05 * u, 8 * (1 - u)); }
     // the wolf

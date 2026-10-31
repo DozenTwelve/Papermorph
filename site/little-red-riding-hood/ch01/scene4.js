@@ -160,9 +160,11 @@ function scene4(p, D) {
     }
   });
 }
-// The wolf's x on the run, from a crouch at t0 at x 2100: 330 a second (2.5 strides), faster once the camera lets him go.
+// The wolf's x on the run, from a crouch at t0 at x 2100: 330 a second (2.5 strides), faster once the camera lets him go,
+// up to 455 a second. The rig sets his paws by distance (a stride per 220 units, 132 px at s .6), so at 455 px/s the gait
+// moves 0.29 of a stride per 12 fps frame; nearer 0.5 the legs flick between two mirror poses (a wagon-wheel strobe).
 function s4_wolfX(q, t0) {
-  const t = Math.max(0, q - t0 - .25), a = .35, v = 330;
+  const t = Math.max(0, q - t0 - .25), a = .35, v = 330, u = Math.max(0, t - 2.05), U = (455 - v) / 280;
   const x = 2100 + (t < a ? v * t * t / (2 * a) : v * (t - a / 2));
-  return x + Math.max(0, t - 2.05) ** 2 * 140;
+  return x + (u < U ? 140 * u * u : 140 * U * U + (455 - v) * (u - U));
 }

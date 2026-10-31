@@ -1,7 +1,10 @@
 /* scene3.js — the wolf meets Red on the path (storyboard v2, scene 3).
    Shots (beat clock): 1 two-shot, the wolf pops out of scene 2's bush, Red startles and turns (0 – s03 -.05);
-   2 the wolf's close-up bow, cap off ("Good morning, Little Red Riding Hood!"); 3 two-shot, "Where are you off to?",
-   Red listening; 4 Red's medium close-up over the wolf's blurred head and ear, she points ahead (s03b);
+   2 her view of him, close: he faces her, lifts the cap high off his head, sweeps it out to his side at chest height
+   and bows deep, paw on his heart, peeks up, then puts the cap back ("Good morning, Little Red Riding Hood!"), her
+   hood soft at the right edge; 3 two-shot, "Where are you off to?", Red listening; 4 Red's medium close-up over the
+   wolf's blurred head and ear, she points ahead (s03b), and a torn-paper picture of the three oaks over Grandma's
+   house pops up where she points (grandmaOut's wide, "It's under the three big oaks");
    5 insert: his paw lifts the cloth off her basket, the cake ("Cake…"); 6 the wolf front, rubbing paws, Red blurred
    behind and unaware, a slow push in and the hold on the rub (to the end). */
 'use strict';
@@ -12,7 +15,18 @@ sfx('scene3', 0, 'forest', .5, 10);   // the bed: shared.js lays it again every 
 sfx('scene3', .3, 'rustle', 1.6);
 sfx('scene3', s3_HOP, 'whoosh', .8); sfx('scene3', s3_LAND, 'pad', 1.6);
 [[.24, 'step1'], [.71, 'step2'], [1.42, 'step3'], [2.05, 'step1']].forEach(([t, n]) => sfx('scene3', t, n, 1.2));
-sfx('scene3', s3_C('s03', .12), 'whoosh', .5);   // the cap swept off
+sfx('scene3', s3_C('s03', .32), 'whoosh', .6);   // the cap swept off and out
+
+// A torn paper rectangle w × h round (0, 0), for the oaks picture's frame and clip (scene 4's thought picture).
+function s3_torn(w, h, seed) {
+  const pts = [], n = 9;
+  const side = (x0, y0, x1, y1, k) => { for (let i = 0; i < n; i++) { const u = i / n; pts.push([x0 + (x1 - x0) * u + 9 * jit(seed, k + i), y0 + (y1 - y0) * u + 9 * jit(seed, k + 40 + i)]); } };
+  side(-w / 2, -h / 2, w / 2, -h / 2, 0); side(w / 2, -h / 2, w / 2, h / 2, 100); side(w / 2, h / 2, -w / 2, h / 2, 200); side(-w / 2, h / 2, -w / 2, -h / 2, 300);
+  return 'M' + pts.map(p => p.map(v => v.toFixed(1)).join(',')).join(' L') + ' Z';
+}
+// The oaks picture flickers in on paper (on twos) and fades out: 0 hidden … 1 full.
+const s3_pop = (q, t0, t1) => q < t0 || q >= t1 + .5 ? 0 : q >= t1 ? [.7, .45, .2, .08, 0, 0][Math.floor((q - t1) * FPS)] : [.5, .15, .8, .4, 1][Math.min(4, Math.floor((q - t0) * FPS))];
+const s3_OAKS_VIEW = { x: 960, y: 420, z: .85 };   // grandmaOut's wide that counts the three oaks (sets report)
 
 function scene3(p, D) {
   const C = s3_C, k01 = (q, a, d) => Math.min(1, Math.max(0, (q - a) / d)), arc = (q, a, d) => Math.sin(Math.PI * k01(q, a, d));
@@ -29,10 +43,23 @@ function scene3(p, D) {
   const red = redPuppet(A.stage), go = walker(1560, .6, { period: .95, A: 24 }, 1, 2);
   A.to({ x: 1490, z: 2 }, s3_HOP, 1.2).cut({ x: 1470, y: 565, z: 3.4 }, S1).cut({ x: 1570, y: 610, z: 2.15 }, S2);
 
+  // B: her view of him for the bow: the wolf to us (to her), close; the bush soft behind him, her hood soft at the right
+  const B = paperCam(p, 'forest', { x: 1425, y: 572, z: 2.7 }).soft(0, 'all'), backB = mk('g', { filter: 'url(#s3_blurC)' }, B.stage);
+  prop(backB, bushBackSVG(s3_BX, s3_BY)); prop(backB, bushFrontSVG(s3_BX, s3_BY));
+  const bowG = mk('g', {}, B.stage), wolfB = wolfPuppet(bowG), redB = redPuppet(mk('g', { filter: 'url(#s3_blurR)' }, B.stage));
+  B.to({ x: 1415, y: 580, z: 2.8 }, S1, S2 - S1);
+
   // R: the wolf's view of her (forestRev), his head and ear big and soft at the left.
   const R = paperCam(p, 'forestRev', { x: 820, y: 450, z: 1 }).soft(0, 'all'), redR = redPuppet(R.stage);
   const wolfR = wolfPuppet(mk('g', { filter: 'url(#s3_blurR)' }, R.stage));
   R.to({ x: 870, y: 430, z: 1.12 }, S3 + .2, 3.2);
+
+  // the oaks picture over R: grandmaOut's wide in a torn paper frame, up where her arm points
+  const OK0 = C('s03b', 1.15), OK1 = C('s03b', 2.85), oaks = mk('g', {}, p), oaksIn = mk('g', {}, oaks);
+  prop(oaksIn, `<g filter="url(#paper)"><path d="${s3_torn(1640, 940, 311)}" fill="#2a1c12" opacity=".25" transform="translate(22,26)"/><path d="${s3_torn(1640, 940, 312)}" fill="#f6efe0"/></g>`);
+  mk('path', { d: s3_torn(1540, 840, 313) }, mk('clipPath', { id: 's3_oaksClip' }, defs));
+  const OV = paperCam(mk('g', { transform: 'translate(-800,-450)' }, mk('g', { 'clip-path': 'url(#s3_oaksClip)' }, oaksIn)), 'grandmaOut', s3_OAKS_VIEW, { after: 'house', stages: ['inside'] });
+  OV.to({ ...s3_OAKS_VIEW, z: s3_OAKS_VIEW.z * 1.06 }, OK0, OK1 - OK0 + .5);
 
   // I: insert of her basket, his paw lifting the cloth (the soft woods behind).
   const I = paperCam(p, 'forest', { x: 1700, y: 600, z: 2.2 }).soft(0, 'all'), bWrap = mk('g', {}, I.stage), basket = basketProp(bWrap);
@@ -49,8 +76,8 @@ function scene3(p, D) {
   Cm.to({ x: 1460, y: 578, z: 2.85 }, S5 + .1, 4.4);
 
   stopClock(D, (q, f) => {
-    const shot = q < S3 ? 'A' : q < S4 ? 'R' : q < S5 ? 'I' : 'C';
-    vis(A.root, shot === 'A'); vis(R.root, shot === 'R'); vis(I.root, shot === 'I'); vis(Cm.root, shot === 'C');
+    const shot = q < S1 ? 'A' : q < S2 ? 'B' : q < S3 ? 'A' : q < S4 ? 'R' : q < S5 ? 'I' : 'C', pop = shot === 'R' ? s3_pop(q, OK0, OK1) : 0;
+    vis(A.root, shot === 'A'); vis(B.root, shot === 'B'); vis(R.root, shot === 'R'); vis(oaks, pop > 0); vis(I.root, shot === 'I'); vis(Cm.root, shot === 'C');
     const wag = 8 * Math.sin(q * 5);
 
     if (shot === 'A') {
@@ -61,14 +88,10 @@ function scene3(p, D) {
       eyes(q < s3_POP ? 1 : 0, 1);
       const rise = 220 - 180 * span(q, s3_POP, s3_POP + .15), u = k01(q, s3_HOP, s3_LAND - s3_HOP), air = arc(q, s3_HOP, s3_LAND - s3_HOP);
       const land = between(q, s3_LAND, s3_LAND + 2 / FPS) ? 8 : 0, s = .6;
-      const bow = span(q, C('s03', .05), C('s03', .45)) * (1 - span(q, C('s03', 1.95), C('s03', 2.3)));
-      const capOff = between(q, C('s03', .1), C('s03', 2.3)), capOn = between(q, C('s03', 2.3), C('s03', 2.5));
       const preen = between(q, 1.5, 1.95), ask = between(q, C('s03', 2.6), C('s03', 4.1));
       wolf.pose({ x: s3_BX + (1400 - s3_BX) * ease(u), y: hipOn(WOODS, s, 200) + rise * (1 - ease(u)) - 80 * air + land, s, turn: 1,
         near: -25 * air, far: 25 * air, kNear: 55 * air, kFar: 55 * air,
-        lean: 28 * bow + (ask ? 8 : 0), cap: capOff ? 'hand' : 'on',
-        ua: capOff ? 5 : capOn ? -150 : preen ? -20 : ask ? -46 : 6, fa: capOff ? -85 * bow : capOn ? -30 : preen ? -100 : ask ? -20 : -6,
-        headR: -10 * bow + (ask ? -4 : 0), tail: q < s3_LAND ? 30 * air : wag, look: 1, ear: between(q, .55, .7) ? 1 : 0,
+        lean: ask ? 8 : 0, cap: 'on', ua: preen ? -20 : ask ? -46 : 6, fa: preen ? -100 : ask ? -20 : -6, headR: ask ? -4 : 0, tail: q < s3_LAND ? 30 * air : wag, look: 1, ear: between(q, .55, .7) ? 1 : 0,
         brow: between(q, .5, s3_HOP) ? -1 : 0, mouth: lips(q, 'scene3', PRE3, 's03'),
         shut: blinking(q, [.65, C('s03', 1.2), C('s03', 3.5)]) }, f);
       // Red: two steps on, the hop of fright, the whole-body turn to him, a hop back; then she listens
@@ -83,8 +106,32 @@ function scene3(p, D) {
       return;
     }
 
+    if (shot === 'B') {
+      B.apply(q, f);
+      // the paw goes up the outside to the cap, takes it off, sweeps it out to his side (never across his face);
+      // the bow: head down, eyes shut, the other paw on his heart, a dip; he peeks up on "Hood!"; the cap goes back on
+      const up = span(q, C('s03', .0), C('s03', .25)), out = span(q, C('s03', .3), C('s03', .65));
+      const back = span(q, C('s03', 2.08), C('s03', 2.28)), down = span(q, C('s03', 2.32), C('s03', 2.55));
+      const bow = span(q, C('s03', .35), C('s03', .75)) * (1 - span(q, C('s03', 1.85), C('s03', 2.1)));
+      const rua = q < C('s03', .3) ? 6 - 190 * up : q < C('s03', 2.08) ? -184 + 89 * out : q < C('s03', 2.32) ? -95 - 89 * back : -184 + 190 * down;
+      const rfa = q < C('s03', .3) ? -4 - 6 * up : q < C('s03', 2.08) ? -10 + 50 * out : q < C('s03', 2.32) ? 40 - 50 * back : -10 + 6 * down;
+      const capOff = between(q, C('s03', .25), C('s03', 2.28)), X = 1400, FEET = 760 + 200 * 1.15;
+      tf(bowG, `translate(${X},${FEET}) scale(${(1 + .03 * bow).toFixed(3)},${(1 - .1 * bow).toFixed(3)}) translate(${-X},${-FEET})`);
+      wolfB.pose({ x: X, y: 760 + 3 * Math.sin(q * 2.4), s: 1.15, turn: 0, head: 'F', cap: capOff ? 'hand' : 'on', rua, rfa,
+        lua: -6 - 16 * bow, lfa: 4 - 114 * bow, nod: 52 * bow, headR: 7 * bow + 2 * Math.sin(q * 1.5), look: bow > .5 ? .4 : 0,
+        brow: bow > .5 && q > C('s03', 1.3) ? -.6 : 0, ear: between(q, C('s03', .3), C('s03', .45)) ? 1 : 0,
+        mouth: lips(q, 'scene3', PRE3, 's03'), shut: between(q, C('s03', .7), C('s03', 1.3)) || blinking(q, [C('s03', 2.4)]) }, f);
+      redB.pose({ x: 1795, y: 990 + 3 * Math.sin(q * 2.2 + 1), s: 2.2, turn: -1, headR: 3 * Math.sin(q * 1.3), cape: 3 + 2 * Math.sin(q * 1.4),
+        brow: 1, shut: blinking(q, [C('s03', 1.0)]) }, f);
+      return;
+    }
+
     if (shot === 'R') {
       R.apply(q, f);
+      if (pop > 0) {   // the oaks picture: up at the left, where her hand points
+        OV.apply(q, f); oaks.setAttribute('opacity', Math.min(1, pop * 1.4).toFixed(2));
+        tf(oaksIn, `translate(385,212) scale(${(.38 * (.85 + .15 * Math.min(1, pop))).toFixed(4)}) rotate(${(-2 + .6 * jit(f, 47)).toFixed(2)})`);
+      }
       const lift = span(q, C('s03b', 0), C('s03b', .3)) * (1 - span(q, C('s03b', 1.0), C('s03b', 1.3)));
       const pt = span(q, C('s03b', 1.15), C('s03b', 1.45)) * (1 - span(q, C('s03b', 2.9), C('s03b', 3.25)));
       redR.pose({ x: 880, y: 430 + 194 * 2, s: 2, head: 'F', mouth: lips(q, 'scene3', PRE3, 's03b'),
