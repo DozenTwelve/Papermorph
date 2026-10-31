@@ -27,6 +27,11 @@ function s3_torn(w, h, seed) {
 // The oaks picture flickers in on paper (on twos) and fades out: 0 hidden … 1 full.
 const s3_pop = (q, t0, t1) => q < t0 || q >= t1 + .5 ? 0 : q >= t1 ? [.7, .45, .2, .08, 0, 0][Math.floor((q - t1) * FPS)] : [.5, .15, .8, .4, 1][Math.min(4, Math.floor((q - t0) * FPS))];
 const s3_OAKS_VIEW = { x: 960, y: 420, z: .85 };   // grandmaOut's wide that counts the three oaks (sets report)
+// The front right arm's joints (cast.js: shoulder 38,-140, elbow 38,-82, hand 38,-26) and the lift to the cap: the paw
+// goes up the outside, elbow out (a quadratic in joint angles through LIFT_MID), to the cap's right brim at LIFT_END.
+const s3_LIFT_MID = [-60, -140], s3_LIFT_END = [-156.5, -36];   // rua, rfa; LIFT_END puts the paw at (49, -248), on the brim's tip
+const s3_rot = (x, y, cx, cy, a) => { const r = a * Math.PI / 180, c = Math.cos(r), s = Math.sin(r); return [cx + (x - cx) * c - (y - cy) * s, cy + (x - cx) * s + (y - cy) * c]; };
+const s3_hand = (ua, fa) => s3_rot(...s3_rot(38, -26, 38, -82, fa), 38, -140, ua);   // the paw's centre in the puppet's frame
 
 function scene3(p, D) {
   const C = s3_C, k01 = (q, a, d) => Math.min(1, Math.max(0, (q - a) / d)), arc = (q, a, d) => Math.sin(Math.PI * k01(q, a, d));
@@ -47,6 +52,11 @@ function scene3(p, D) {
   const B = paperCam(p, 'forest', { x: 1425, y: 572, z: 2.7 }).soft(0, 'all'), backB = mk('g', { filter: 'url(#s3_blurC)' }, B.stage);
   prop(backB, bushBackSVG(s3_BX, s3_BY)); prop(backB, bushFrontSVG(s3_BX, s3_BY));
   const bowG = mk('g', {}, B.stage), wolfB = wolfPuppet(bowG), redB = redPuppet(mk('g', { filter: 'url(#s3_blurR)' }, B.stage));
+  // the cap in his paw from the frame they touch: the head's cap (cast.js capF), drawn over the head (the puppet's arm is
+  // under it), held on the forearm; on the sweep out it settles into the puppet's own cap-in-hand, which takes over
+  const capT = mk('g', {}, wolfB.g);
+  prop(capT, `<g filter="url(#paper)"><path d="M-46,-248 C-44,-288 44,-288 46,-248 Q0,-238 -46,-248 Z" fill="#6e4a30"/></g>`);
+  const capBrim = prop(capT, `<g filter="url(#paper)"><path d="M-40,-246 Q0,-232 40,-246 L44,-240 Q0,-226 -44,-240 Z" fill="#5a3b24"/></g>`);
   B.to({ x: 1415, y: 580, z: 2.8 }, S1, S2 - S1);
 
   // R: the wolf's view of her (forestRev), his head and ear big and soft at the left.
@@ -110,15 +120,29 @@ function scene3(p, D) {
       B.apply(q, f);
       // the paw goes up the outside to the cap, takes it off, sweeps it out to his side (never across his face);
       // the bow: head down, eyes shut, the other paw on his heart, a dip; he peeks up on "Hood!"; the cap goes back on
-      const up = span(q, C('s03', .0), C('s03', .25)), out = span(q, C('s03', .3), C('s03', .65));
+      const TOUCH = C('s03', .3), HELD = C('s03', .65), up = span(q, C('s03', .0), TOUCH), out = span(q, TOUCH, HELD);
       const back = span(q, C('s03', 2.08), C('s03', 2.28)), down = span(q, C('s03', 2.32), C('s03', 2.55));
       const bow = span(q, C('s03', .35), C('s03', .75)) * (1 - span(q, C('s03', 1.85), C('s03', 2.1)));
-      const rua = q < C('s03', .3) ? 6 - 190 * up : q < C('s03', 2.08) ? -184 + 89 * out : q < C('s03', 2.32) ? -95 - 89 * back : -184 + 190 * down;
-      const rfa = q < C('s03', .3) ? -4 - 6 * up : q < C('s03', 2.08) ? -10 + 50 * out : q < C('s03', 2.32) ? 40 - 50 * back : -10 + 6 * down;
-      const capOff = between(q, C('s03', .25), C('s03', 2.28)), X = 1400, FEET = 760 + 200 * 1.15;
+      const [MU, MF] = s3_LIFT_MID, [EU, EF] = s3_LIFT_END, lift = (a, m, e) => (1 - up) * (1 - up) * a + 2 * up * (1 - up) * m + up * up * e;
+      const rua = q < TOUCH ? lift(6, MU, EU) : q < C('s03', 2.08) ? EU + (-95 - EU) * out : q < C('s03', 2.32) ? -95 - 89 * back : -184 + 190 * down;
+      const rfa = q < TOUCH ? lift(-4, MF, EF) : q < C('s03', 2.08) ? EF + (40 - EF) * out : q < C('s03', 2.32) ? 40 - 50 * back : -10 + 6 * down;
+      const headR = 7 * bow + 2 * Math.sin(q * 1.5), nod = 52 * bow, X = 1400, FEET = 760 + 200 * 1.15;
+      const grip = q >= TOUCH - 1e-3 && q < HELD - 1e-3, cap = q < TOUCH - 1e-3 || q >= C('s03', 2.28) ? 'on' : grip ? 'off' : 'hand';
       tf(bowG, `translate(${X},${FEET}) scale(${(1 + .03 * bow).toFixed(3)},${(1 - .1 * bow).toFixed(3)}) translate(${-X},${-FEET})`);
-      wolfB.pose({ x: X, y: 760 + 3 * Math.sin(q * 2.4), s: 1.15, turn: 0, head: 'F', cap: capOff ? 'hand' : 'on', rua, rfa,
-        lua: -6 - 16 * bow, lfa: 4 - 114 * bow, nod: 52 * bow, headR: 7 * bow + 2 * Math.sin(q * 1.5), look: bow > .5 ? .4 : 0,
+      vis(capT, grip);
+      if (grip) {   // the cap goes with the paw from where it sat on his head at the touch (offset v0 from the paw), sliding
+        // into the paw's grip as it sweeps out, where it matches the puppet's cap-in-hand (cast.js capInHand: 60 wide, centred
+        // 10 below the paw's centre along the forearm), which takes over at HELD
+        const fT = Math.round(TOUCH * FPS), hT = 7 * span(TOUCH, C('s03', .35), C('s03', .75)) + 2 * Math.sin(TOUCH * 1.5) + jit(fT, 9) * .7;
+        const onHead = s3_rot(0, -248, 8, -160, hT), pT = s3_hand(EU + jit(fT, 21) * .6, EF + jit(fT, 22) * .6);
+        const u = out, ua = rua + jit(f, 21) * .6, fa = rfa + jit(f, 22) * .6, h = s3_hand(ua, fa), v1 = s3_rot(0, 10, 0, 0, ua + fa);
+        const x = h[0] + (onHead[0] - pT[0]) * (1 - u) + v1[0] * u, y = h[1] + (onHead[1] - pT[1]) * (1 - u) + v1[1] * u;
+        const r = hT * (1 - u) + (ua + fa - (EU + EF + 55) * (1 - u)) * u,   /* the forearm's angle when held (-95 + 40), eased to from upright */ sx = 1 + (.652 - 1) * u, sy = 1 + (.6 - 1) * u;
+        tf(capT, `translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${r.toFixed(2)}) scale(${sx.toFixed(3)},${sy.toFixed(3)}) translate(0,248)`);
+        capBrim.setAttribute('opacity', (1 - u).toFixed(2));
+      }
+      wolfB.pose({ x: X, y: 760 + 3 * Math.sin(q * 2.4), s: 1.15, turn: 0, head: 'F', cap, rua, rfa,
+        lua: -6 - 16 * bow, lfa: 4 - 114 * bow, nod, headR, look: bow > .5 ? .4 : 0,
         brow: bow > .5 && q > C('s03', 1.3) ? -.6 : 0, ear: between(q, C('s03', .3), C('s03', .45)) ? 1 : 0,
         mouth: lips(q, 'scene3', PRE3, 's03'), shut: between(q, C('s03', .7), C('s03', 1.3)) || blinking(q, [C('s03', 2.4)]) }, f);
       redB.pose({ x: 1795, y: 990 + 3 * Math.sin(q * 2.2 + 1), s: 2.2, turn: -1, headR: 3 * Math.sin(q * 1.3), cape: 3 + 2 * Math.sin(q * 1.4),
