@@ -47,7 +47,7 @@ h1 i { color: var(--task); font-style: italic; }
 .btn.quiet { border: 1.5px solid var(--edge); color: var(--chalk); }
 .btn.quiet:hover { border-color: var(--dim); }
 .btn svg { width: 15px; height: 15px; fill: currentColor; }
-.meta { margin: 30px 0 0; color: var(--faint); font-size: 15px; letter-spacing: .04em; }
+.meta { margin: 30px 0 0; color: var(--dim); font-size: 15px; letter-spacing: .04em; }   /* --faint read below 3:1 */
 /* Faint chalk notes around the edges of the board. */
 .chalk { position: absolute; inset: 0; z-index: -1; pointer-events: none; animation: none !important; }
 .chalk span { position: absolute; font: italic 400 clamp(22px, 3vw, 38px) var(--book); color: var(--chalk); opacity: 0; white-space: nowrap;

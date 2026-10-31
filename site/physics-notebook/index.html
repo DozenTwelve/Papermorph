@@ -38,6 +38,8 @@
 body::before { background: linear-gradient(90deg, transparent 56px, #f2a7b5 56px 58px, transparent 58px),
     repeating-linear-gradient(180deg, transparent 0 34px, #bfe0ef 34px 35px); }
 h1 i { font-style: normal; }
+/* The marker colours are too light for small text on paper: darken them toward the ink. */
+.kicker, .unit h2 .label { color: color-mix(in srgb, var(--c, var(--quiz)) 78%, var(--chalk)); }
 </style>
 </head>
 <body>

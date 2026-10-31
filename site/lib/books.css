@@ -1,12 +1,17 @@
 /* Website-only additions to the books' cover and contents (not part of the Papermorph template):
    the links back to the bookshelf and the "Inspired by" line. Loaded after lib/contents.css. */
-.back-shelf { color: var(--dim); font: 13px var(--ui); text-decoration: none; white-space: nowrap; }
+.back-shelf { color: var(--dim); font: 13px var(--ui); text-decoration: none; white-space: nowrap; border-radius: 8px; }
 .back-shelf:hover { color: var(--chalk); }
-.cover-back { position: absolute; top: 24px; left: 24px; }
-.contents-back { margin-left: 16px; }
+/* The padding makes the small link a full-size target; the offsets keep the text where it was. */
+.cover-back { position: absolute; top: 10px; inset-inline-start: 14px; padding: 14px 10px; }
+.contents-back { padding: 13px 10px; margin: -13px -10px -13px 6px; }
 .inspiration { max-width: 48em; margin: 22px 0 0; color: var(--dim); font-size: 14px; line-height: 1.6; text-wrap: balance; }
 .inspiration a { text-decoration-color: var(--faint); text-underline-offset: 3px; }
 .inspiration a:hover { color: var(--chalk); text-decoration-color: currentColor; }
+/* Phones: the title takes the first row of the contents header, the way back and the chapter count share the second. */
 @media (max-width: 560px) {
-  .contents-back { margin-left: 0; font-size: 11px; }
+  #contents .top:has(.contents-back) { display: grid; grid-template-columns: auto 1fr; }
+  #contents .top:has(.contents-back) .home { grid-column: 1 / -1; justify-self: start; }
+  .contents-back { grid-row: 2; margin: -13px 0 -13px -10px; }
+  #contents .top:has(.contents-back) .prog { grid-row: 2; grid-column: 2; justify-self: end; }
 }
