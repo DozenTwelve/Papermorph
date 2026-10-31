@@ -60,9 +60,6 @@ function scene4(p, D) {
   const edge = [[1150, 935, 1.3, 4], [1262, 950, 1.5, 1]].map(([x, y, k, c]) => [flowerProp(cam.stage, FLOWER_COLS[c]), x, y, k]);   // the insert's foreground
   const near = [1530, 1610, 1700, 1790].map((x, i) => [flowerProp(cam.stage, FLOWER_COLS[(i + 2) % 7]), x]);   // not picked
 
-  // flowerProp draws its stem over its head (seen at insert size): put each head back on top
-  for (const fl of [...flowers, ...edge.map(e => e[0]), ...near.map(e => e[0])]) fl.g.appendChild(fl.g.firstChild);
-
   // ---- the thought picture (screen space, over everything): Mother, finger raised
   const th = mk('g', {}, p), thIn = mk('g', {}, th);
   prop(th, `<g filter="url(#paper)">${[[948, 404, 10], [985, 372, 16]].map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="#f6efe0"/>`).join('')}</g>`);
@@ -118,9 +115,7 @@ function scene4(p, D) {
         kNear: w.kNear, kFar: w.kFar, headR: q > T.E ? 6 : 1, shut: blinking(q, [T.walk + .9]) }, f);
     } else if (q < T.F) {
       const u = Math.min(1, (q - T.step) / .6), b = bigStep(u), x0 = 1060 + STEP;
-      // the kit's step keeps the hip up: drop it so the reaching foot lands, and bend the back knee to keep that foot down
-      const drop = 166 * (1 - Math.cos(b.near * Math.PI / 180)), k = 30 * ease(u);
-      red.pose({ x: x0 + b.d * s, y: hipOn(795 + 5 * ease(u), s) + drop * s, s, near: b.near, far: b.far, kNear: b.kNear, kFar: b.kFar + k, headR: 6 }, f);
+      red.pose({ x: x0 + b.d * s, y: hipOn(795 + 5 * ease(u), s) + b.drop * s, s, near: b.near, far: b.far, kNear: b.kNear, kFar: b.kFar, headR: 6 }, f);
     } else {
       // skip in (three steps), then a pick at each PICKS time, with one step forward before each one after the first
       const skip = walk(Math.min(q - T.F, 1.05), { period: .7, A: 26, knee: 50 }), inSkip = q - T.F < 1.05;

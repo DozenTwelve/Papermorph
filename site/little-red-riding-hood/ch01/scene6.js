@@ -32,9 +32,6 @@ function scene6(p, D) {
   const granIn = grandmaPuppet(R.inWardrobe);
   mk('rect', { x: 1792, y: 412, width: 140, height: 378 }, mk('clipPath', { id: 'crack6' }, R.inWardrobe));
   const eyeG = mk('g', { 'clip-path': 'url(#crack6)' }, R.inWardrobe), granEye = grandmaPuppet(eyeG);
-  // Grandma without her cap, to us: the puppet's front head has only a fringe, so her grey hair is a prop here
-  const HAIR = `<g filter="url(#paper)"><path d="M-44,-194 C-50,-254 50,-254 44,-194 Q24,-226 0,-220 Q-24,-226 -44,-194 Z" fill="#cfc8be"/><circle cy="-252" r="15" fill="#cfc8be"/></g>`;
-  const hairIn = prop(R.inWardrobe, HAIR), hairEye = prop(eyeG, HAIR);
   // in bed the quilt hides her lower half: clipped at the quilt's lower edge (off once she hops)
   mk('rect', { x: -500, y: -500, width: 4000, height: 1264 }, mk('clipPath', { id: 'bed6' }, R.inBed));
   const bedClip = mk('g', { 'clip-path': 'url(#bed6)' }, R.inBed);
@@ -81,9 +78,7 @@ function scene6(p, D) {
     if (q < C(5.2)) granIn.pose({ x: 1858, y: 680, s: .55, turn: 1, crouch: .6 * (1 - span(q, HOP1, HOP1 + .25)), cap: false, glasses: false, ua: -40, fa: -20 }, f);
     else granIn.pose({ x: 1858, y: 680, s: .55, head: 'F', cap: false, glasses: false, brow: -1, lua: q < SHUT0 + 2 / FPS ? 80 : 30, lfa: q < SHUT0 + 2 / FPS ? 20 : 10, shut: blinking(q, [SLAM + .1]) }, f);
     // her eye at the crack: the face slides in from behind the right-hand door
-    vis(hairIn, q >= C(5.2) && q < C(12.6)); tf(hairIn, 'translate(1858,680) scale(.55)');
     vis(eyeG, q >= C(12.6)); const ex = 1938 + 40 * (1 - span(q, C(13.3), C(13.65)));
-    tf(hairEye, `translate(${ex.toFixed(1)},911) scale(1.6)`);
     granEye.pose({ x: ex, y: 911, s: 1.6, head: 'F', cap: false, glasses: false,
       brow: q > C(13.95) ? .8 : 0, shut: blinking(q, [C(13.75), C(14.35)]) }, f);
     // the cap: off, onto the pillow, then up onto the wolf

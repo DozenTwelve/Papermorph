@@ -270,7 +270,7 @@ const wolfHeadP = `<g data-p="headP">
     <g filter="url(#paper)"><path d="M-36,-228 C-32,-278 34,-288 54,-236 Z" fill="#f6efe0"/><path d="M-38,-230 Q8,-222 56,-236" stroke="#e8b4a6" stroke-width="6" fill="none"/></g></g>
   <g data-p="earP" filter="url(#paper)"><path d="M-16,-236 L-8,-294 L24,-240 Z" fill="${FUR}"/><path d="M-8,-244 L-3,-280 L14,-246 Z" fill="#e8b4a6"/></g>
   <g data-p="capP" filter="url(#paper)"><path d="M-34,-238 C-22,-264 42,-266 54,-238 L80,-234 C76,-226 54,-226 42,-228 L-34,-228 Z" fill="#6e4a30"/><path d="M-30,-236 h76" stroke="#5a3b24" stroke-width="3"/></g>
-  <g data-p="glassesP"><circle cx="44" cy="-216" r="13" fill="#ffffff" fill-opacity=".18" stroke="#3a2a1a" stroke-width="3"/><path d="M31,-218 L-4,-224" stroke="#3a2a1a" stroke-width="3"/></g>
+  <g data-p="glassesP"><circle cx="44" cy="-216" r="14" fill="#ffffff" fill-opacity=".22" stroke="#3a2412" stroke-width="5.2"/><path d="M30,-218 L-4,-224" stroke="#3a2412" stroke-width="4.6" stroke-linecap="round"/></g>
   ${pinAt(8, -160)}</g>`;
 const wolfHeadF = `<g data-p="headF">
   <g filter="url(#paper)">
@@ -288,7 +288,7 @@ const wolfHeadF = `<g data-p="headF">
     <g filter="url(#paper)"><path d="M-50,-236 C-48,-300 48,-300 50,-236 Q0,-252 -50,-236 Z" fill="#f6efe0"/><path d="M-50,-238 Q0,-254 50,-238" stroke="#e8b4a6" stroke-width="6" fill="none"/></g></g>
   <g data-p="earsF" filter="url(#paper)"><path d="M-46,-238 L-36,-302 L-8,-252 Z M46,-238 L36,-302 L8,-252 Z" fill="${FUR}"/><path d="M-38,-246 L-34,-288 L-18,-254 Z M38,-246 L34,-288 L18,-254 Z" fill="#e8b4a6"/></g>
   <g data-p="capF" filter="url(#paper)"><path d="M-46,-248 C-44,-288 44,-288 46,-248 Q0,-238 -46,-248 Z" fill="#6e4a30"/><path d="M-40,-246 Q0,-232 40,-246 L44,-240 Q0,-226 -44,-240 Z" fill="#5a3b24"/></g>
-  <g data-p="glassesF"><circle cx="-19" cy="-222" r="14" fill="#ffffff" fill-opacity=".18" stroke="#3a2a1a" stroke-width="3"/><circle cx="19" cy="-222" r="14" fill="#ffffff" fill-opacity=".18" stroke="#3a2a1a" stroke-width="3"/><path d="M-5,-222 h10" stroke="#3a2a1a" stroke-width="3"/></g>
+  <g data-p="glassesF"><circle cx="-19" cy="-222" r="15" fill="#ffffff" fill-opacity=".22" stroke="#3a2412" stroke-width="5.2"/><circle cx="19" cy="-222" r="15" fill="#ffffff" fill-opacity=".22" stroke="#3a2412" stroke-width="5.2"/><path d="M-5,-224 q5,-4 10,0" stroke="#3a2412" stroke-width="4.6" fill="none" stroke-linecap="round"/></g>
   </g>`;
 const bowTie = (x, y) => `<g filter="url(#paper)"><path d="M${x},${y} l-14,-9 v18 Z M${x},${y} l14,-9 v18 Z" fill="#c8322f"/><circle cx="${x}" cy="${y}" r="4.5" fill="#a82626"/></g>`;
 const capInHand = (x, y, id) => `<g data-p="${id}" filter="url(#paper)"><path d="M${x - 30},${y + 10} C${x - 22},${y - 14} ${x + 22},${y - 14} ${x + 30},${y + 10} Z" fill="#6e4a30"/></g>`;
@@ -383,12 +383,14 @@ function wolfPuppet(parent) {
 
 /* ---------- Grandma: small and round, nightcap, glasses and a lilac shawl ----------
    Feet at y 196 (hipOn(gy, s, 196)). Keys besides the common ones:
-   cap, glasses   on her head (true/false); off, they are granCapProp / granGlassesProp in shared.js
+   cap, glasses   on her head (true/false); off, they are granCapProp / granGlassesProp in shared.js (with the cap off,
+                  her grey hair and bun show on the front head; the profile has its own)
    umbrella       held in her near hand, along the forearm (raise it: ua -150, fa -30)
    blush          0 … 1, pink cheeks (her recovery at the table)
    crouch         0 … 1, a squash: the gown folds down, everything above sinks (before a hop and on landing);
                   the hop itself is her x, y on an arc, e.g. y - 130 * Math.sin(Math.PI * u)
-   lean           bends her forward at the waist (profile) */
+   lean           bends her forward at the waist (profile)
+   brow           like the others': > 0 worried (inner ends up), < 0 cross; the profile brow too */
 const SKIN_G = '#f2cfb4', GOWN = '#f1ece0', SHAWL = '#8a6a9a', HAIR_G = '#cfc8be';
 const umbrellaSVG = (x, y, id) => `<g data-p="${id}" filter="url(#paper)"><rect x="${x - 2.5}" y="${y - 6}" width="5" height="118" fill="#5a3b24"/>
   <path d="M${x},${y + 24} L${x + 15},${y + 92} L${x},${y + 112} L${x - 15},${y + 92} Z" fill="#3f5f8a"/><path d="M${x},${y - 6} q-14,-4 -14,10" stroke="#5a3b24" stroke-width="5" fill="none"/></g>`;
@@ -408,9 +410,9 @@ function grandmaPuppet(parent) {
       <circle data-p="blushP" cx="32" cy="-184" r="9" fill="#ef8a7a"/>
       <g class="eyeO"><ellipse cx="36" cy="-206" rx="4" ry="5.5" fill="${ink}"/></g>
       <g class="eyeC"><path d="M31,-205 Q36,-201 41,-205" fill="none" stroke="${ink}" stroke-width="2.4" stroke-linecap="round"/></g>
-      <path data-p="browP" d="M28,-220 L44,-218" stroke="#a9a196" stroke-width="3.5" stroke-linecap="round"/>
+      <path data-p="browP" d="M27,-224.5 L44,-222.5" stroke="#6a6258" stroke-width="4" stroke-linecap="round"/>
       <use class="mouth" href="#mX" transform="translate(42,-180) scale(.8)"/>
-      <g data-p="glassesP"><circle cx="37" cy="-205" r="11" fill="#ffffff" fill-opacity=".15" stroke="#7a5a2a" stroke-width="2.6"/><path d="M26,-207 L-4,-212" stroke="#7a5a2a" stroke-width="2.6"/></g>
+      <g data-p="glassesP"><circle cx="37" cy="-205" r="11.5" fill="#ffffff" fill-opacity=".22" stroke="#3a2412" stroke-width="4.4"/><path d="M25,-207 L-4,-212" stroke="#3a2412" stroke-width="4.2" stroke-linecap="round"/></g>
       <g data-p="capP" filter="url(#paper)"><path d="M-42,-212 C-42,-264 52,-268 60,-216 Q10,-234 -42,-212 Z" fill="#f6efe0"/>
         <path d="M-42,-212 Q10,-234 60,-216" stroke="#e8c4d0" stroke-width="7" fill="none" stroke-dasharray="7 5"/></g>
       ${pinAt(0, -162)}</g>
@@ -430,21 +432,25 @@ function grandmaPuppet(parent) {
   <g data-p="headF">
     <g filter="url(#paper)"><circle cx="-38" cy="-206" r="16" fill="${HAIR_G}"/><circle cx="38" cy="-206" r="16" fill="${HAIR_G}"/><circle cx="0" cy="-200" r="42" fill="${SKIN_G}"/>
       <path d="M-40,-206 Q0,-246 40,-206 Q20,-222 0,-218 Q-20,-222 -40,-206 Z" fill="${HAIR_G}"/></g>
+    <g data-p="hairF" filter="url(#paper)"><circle cy="-252" r="16" fill="${HAIR_G}"/><path d="M-45,-196 C-51,-256 51,-256 45,-196 Q25,-227 0,-221 Q-25,-227 -45,-196 Z" fill="${HAIR_G}"/>
+      <path d="M-24,-232 Q-8,-244 6,-238 M8,-236 Q22,-240 30,-228" stroke="#b5ada2" stroke-width="3" fill="none" stroke-linecap="round"/></g>
     <circle data-p="blushF1" cx="-24" cy="-184" r="8.5" fill="#ef8a7a"/><circle data-p="blushF2" cx="24" cy="-184" r="8.5" fill="#ef8a7a"/>
     <g class="eyeO"><ellipse cx="-14" cy="-204" rx="4" ry="5.5" fill="${ink}"/><ellipse cx="14" cy="-204" rx="4" ry="5.5" fill="${ink}"/></g>
     <g class="eyeC"><path d="M-19,-203 Q-14,-199 -9,-203 M9,-203 Q14,-199 19,-203" fill="none" stroke="${ink}" stroke-width="2.4" stroke-linecap="round"/></g>
-    <path data-p="browL" d="M-22,-218 L-8,-217" stroke="#a9a196" stroke-width="3.5" stroke-linecap="round"/>
-    <path data-p="browR" d="M8,-217 L22,-218" stroke="#a9a196" stroke-width="3.5" stroke-linecap="round"/>
+    <path data-p="browL" d="M-23,-223 L-8,-222" stroke="#6a6258" stroke-width="4" stroke-linecap="round"/>
+    <path data-p="browR" d="M8,-222 L23,-223" stroke="#6a6258" stroke-width="4" stroke-linecap="round"/>
     <use class="mouth" href="#mX" transform="translate(0,-178)"/>
-    <g data-p="glassesF"><circle cx="-14" cy="-204" r="12" fill="#ffffff" fill-opacity=".15" stroke="#7a5a2a" stroke-width="2.6"/><circle cx="14" cy="-204" r="12" fill="#ffffff" fill-opacity=".15" stroke="#7a5a2a" stroke-width="2.6"/><path d="M-2,-204 h4" stroke="#7a5a2a" stroke-width="2.6"/></g>
+    <g data-p="glassesF"><circle cx="-15" cy="-204" r="12.5" fill="#ffffff" fill-opacity=".22" stroke="#3a2412" stroke-width="4.6"/><circle cx="15" cy="-204" r="12.5" fill="#ffffff" fill-opacity=".22" stroke="#3a2412" stroke-width="4.6"/><path d="M-3,-206 q3,-3 6,0 M-27,-206 l-14,-3 M27,-206 l14,-3" stroke="#3a2412" stroke-width="4.2" fill="none" stroke-linecap="round"/></g>
     <g data-p="capF" filter="url(#paper)"><path d="M-54,-206 C-54,-276 54,-276 54,-206 Q0,-232 -54,-206 Z" fill="#f6efe0"/><path d="M-54,-206 Q0,-232 54,-206" stroke="#e8c4d0" stroke-width="7" fill="none" stroke-dasharray="7 5"/></g>
   </g>`, REST_GRAN, (P, o, j, g) => {
     common(P, o, j, g, { neck: [0, -162], sh: [16, -134], el: [16, -84], fsh: [34, -136], fup: 52, knee: 0 });
     const sq = .22 * o.crouch, dy = 204 * sq, fold = `translate(0,190) scale(1,${(1 - sq).toFixed(3)}) translate(0,-190)`;
     tf(P.skirt, fold); tf(P.skirtF, fold); tf(P.upper, `translate(0,${dy.toFixed(1)}) rotate(${o.lean.toFixed(2)})`); tf(P.upperF, `translate(0,${dy.toFixed(1)})`);
     tf(P.headF, `translate(0,${(o.nod + dy).toFixed(1)}) rotate(${(o.headR + j(9) * .7).toFixed(2)},0,-162)`);
-    tf(P.browL, `translate(0,${(-4 * Math.max(0, o.brow)).toFixed(1)}) rotate(${(-12 * o.brow).toFixed(1)},-8,-217)`);
-    tf(P.browR, `translate(0,${(-4 * Math.max(0, o.brow)).toFixed(1)}) rotate(${(12 * o.brow).toFixed(1)},8,-217)`);
+    tf(P.browL, `translate(0,${(-4 * Math.max(0, o.brow)).toFixed(1)}) rotate(${(-12 * o.brow).toFixed(1)},-8,-222)`);
+    tf(P.browR, `translate(0,${(-4 * Math.max(0, o.brow)).toFixed(1)}) rotate(${(12 * o.brow).toFixed(1)},8,-222)`);
+    tf(P.browP, `translate(0,${(-4 * Math.max(0, o.brow)).toFixed(1)}) rotate(${(-14 * o.brow).toFixed(1)},44,-222.5)`);   // pivots at its nose end
+    vis(P.hairF, !o.cap);
     for (const k of ['blushP', 'blushF1', 'blushF2']) P[k].setAttribute('opacity', (.35 + .5 * o.blush).toFixed(2));
     both(P, 'cap', o.cap); both(P, 'glasses', o.glasses); vis(P.umbP, o.umbrella); vis(P.umbF, o.umbrella);
   });

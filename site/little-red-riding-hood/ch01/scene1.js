@@ -73,8 +73,7 @@ function scene1(p, D) {
   const momFgG = mk('g', { filter: 'url(#s1_blur)' }, out.stage), momFg = motherPuppet(momFgG);
   const fg = mk('g', { filter: 'url(#s1_blur)' }, p), redFg = redPuppet(fg);
   // The insert: the basket between Mother's hand (left) and Red's (right), in frame coordinates over the blurred wall.
-  const ins = mk('g', {}, p), bw = mk('g', {}, ins), bk = basketProp(bw), cloth = bk.g.firstChild;
-  bk.g.appendChild(cloth);   // the prop draws its cloth behind the cake and bottle; here it lies over them until lifted
+  const ins = mk('g', {}, p), bw = mk('g', {}, ins), bk = basketProp(bw), cloth = bk.cloth;
   const momHand = s1_arm(ins, '#f4efe2', '#f2c9a6'), redHand = s1_arm(ins, '#f4efe2', '#f6d2b5', '#c8322f');
   const wipe = trunkWipe(p, WIPE, D - WIPE - .05);
   const puffs = smoke(cam.stage, 932, 84), theDoor = door(cam.stage, DOOR), mom = motherPuppet(cam.stage), red = redPuppet(cam.stage);

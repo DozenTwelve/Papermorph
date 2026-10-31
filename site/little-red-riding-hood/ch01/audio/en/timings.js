@@ -424,12 +424,12 @@ window.TIMINGS = {
   ]
  },
  "s08b": {
-  "dur": 2.88,
+  "dur": 2.96,
   "marks": {},
   "cues": [
    [
-    0.0,
-    "All the better to hear you with, my dear."
+    0.1,
+    "All the better to hear you with, my dear!"
    ]
   ]
  },

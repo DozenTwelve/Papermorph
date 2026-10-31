@@ -87,9 +87,10 @@ function butterflyProp(parent) {
 // at (0, 0), its head at (0, -h). col: a FLOWER_COLS colour (cast.js), so it matches the bouquet it goes into.
 // pose(x, y, s, { sway: degrees, on: true }); picked flowers: vis(f.g, false) and show Red's `held`.
 function flowerProp(parent, col = '#d6493f', h = 70) {
-  const g = mk('g', {}, parent), head = mk('g', {}, g);
+  const g = mk('g', {}, parent);
   prop(g, `<g filter="url(#paper)"><path d="M0,0 C-4,${-h * .4} 4,${-h * .7} 0,${-h}" stroke="#4f7a34" stroke-width="4" fill="none"/>
     <path d="M0,${-h * .3} q-14,-4 -18,-14 q12,0 18,14 Z M0,${-h * .5} q14,-4 17,-13 q-12,0 -17,13 Z" fill="#5b8a3e"/></g>`);
+  const head = mk('g', {}, g);   // after the stem: the head is on top
   prop(head, `<g filter="url(#paper)">${[0, 1, 2, 3, 4].map(i => { const a = i * 1.2566 - 1.57; return `<circle cx="${(12 * Math.cos(a)).toFixed(1)}" cy="${(-h + 12 * Math.sin(a)).toFixed(1)}" r="9.5" fill="${col}"/>`; }).join('')}
     <circle cx="0" cy="${-h}" r="7" fill="#efae48"/></g>`);
   mk('circle', { cy: -h, r: 30, fill: 'transparent' }, g);   // a finger-sized target
@@ -119,13 +120,14 @@ function granCapProp(parent) {
 }
 function granGlassesProp(parent) {
   const g = mk('g', {}, parent), c = mk('g', {}, g);
-  c.innerHTML = '<circle cx="-14" r="12" fill="#ffffff" fill-opacity=".15" stroke="#7a5a2a" stroke-width="2.6"/><circle cx="14" r="12" fill="#ffffff" fill-opacity=".15" stroke="#7a5a2a" stroke-width="2.6"/><path d="M-2,0 h4 M-26,-2 l-10,-4 M26,-2 l10,-4" stroke="#7a5a2a" stroke-width="2.6"/>';
+  c.innerHTML = '<circle cx="-15" r="12.5" fill="#ffffff" fill-opacity=".22" stroke="#3a2412" stroke-width="4.6"/><circle cx="15" r="12.5" fill="#ffffff" fill-opacity=".22" stroke="#3a2412" stroke-width="4.6"/><path d="M-3,-2 q3,-3 6,0 M-27,-2 l-14,-3 M27,-2 l14,-3" stroke="#3a2412" stroke-width="4.2" fill="none" stroke-linecap="round"/>';
   return { g, pose(x, y, s = .55, rot = 0) { tf(g, `translate(${x.toFixed(1)},${y.toFixed(1)}) scale(${s})`); tf(c, `rotate(${rot.toFixed(1)})`); } };
 }
 // The basket for the insert in scene 1 ("cake and apple juice"): the cloth folded back on the cake and the bottle.
 // About 300 wide at s 1, its foot at (0, 0); open 0 (the checked cloth over everything) … 1 (cloth off to the left).
+// .cloth is the cloth's group, for a scene that moves it its own way (pose with open 0, then transform .cloth).
 function basketProp(parent) {
-  const g = mk('g', {}, parent), cloth = mk('g', {}, g);
+  const g = mk('g', {}, parent);
   prop(g, `<g filter="url(#paper)"><path d="M-110,-150 Q0,-330 110,-150" fill="none" stroke="#8a5a2a" stroke-width="16"/></g>
     <g filter="url(#paper)"><rect x="18" y="-250" width="44" height="120" rx="10" fill="#e9a43a"/><rect x="28" y="-282" width="24" height="40" rx="6" fill="#e9a43a"/>
       <rect x="26" y="-292" width="28" height="14" rx="4" fill="#c8322f"/><rect x="22" y="-210" width="36" height="40" fill="#f6efe0"/><circle cx="40" cy="-190" r="11" fill="#d6493f"/><path d="M40,-201 q4,-8 10,-8" stroke="#4f7a34" stroke-width="3" fill="none"/></g>
@@ -133,8 +135,9 @@ function basketProp(parent) {
       <path d="M-90,-186 h90" stroke="#c8322f" stroke-width="5" stroke-dasharray="10 7"/><circle cx="-45" cy="-208" r="9" fill="#c8322f"/></g>
     <g filter="url(#paper)"><path d="M-130,-160 L130,-160 L108,0 L-108,0 Z" fill="#b07a3e"/><path d="M-124,-112 L124,-112 M-116,-58 L116,-58" stroke="#8a5a2a" stroke-width="6"/>
       <path d="M-70,-160 L-64,0 M0,-160 L0,0 M70,-160 L64,0" stroke="#8a5a2a" stroke-width="4"/></g>`);
+  const cloth = mk('g', {}, g);   // last: it lies over the cake and the bottle
   prop(cloth, `<g filter="url(#paper)"><path d="M-138,-150 Q-128,-262 0,-272 Q128,-262 138,-150 L124,-118 Q0,-138 -124,-118 Z" fill="url(#check)"/></g>`);
-  return { g, pose(x, y, s = 1, open = 1) { tf(g, `translate(${x.toFixed(1)},${y.toFixed(1)}) scale(${s})`);
+  return { g, cloth, pose(x, y, s = 1, open = 1) { tf(g, `translate(${x.toFixed(1)},${y.toFixed(1)}) scale(${s})`);
     tf(cloth, open > 0 ? `translate(${(-190 * open).toFixed(1)},${(120 * open).toFixed(1)}) rotate(${(-28 * open).toFixed(1)},-138,-150)` : ''); } };
 }
 
@@ -155,11 +158,15 @@ function route(q, keys, s = 1) {
   return { x, d, stand };
 }
 // One big, deliberate step forward (Red stepping off the path onto the grass), u 0 … 1 over the step: the near knee
-// lifts high, the foot comes down ahead and the hip follows. Spread it into a pose: red.pose({ ...bigStep(u), x: x0 + s * bigStep(u).d, … }).
+// lifts high, the foot comes down ahead and the hip follows, sinking into the stride (drop) while the back knee bends so
+// the back foot stays on the ground; at u 1 both feet are down. Like walk(): const b = bigStep(u);
+// red.pose({ ...b, x: x0 + b.d * s, y: hipOn(gy, s) + b.drop * s, … }).
 function bigStep(u, L = 166, reach = 30) {
-  const e = ease(u), lift = Math.sin(Math.PI * Math.min(1, u * 1.25));
+  const e = ease(u), lift = Math.sin(Math.PI * Math.min(1, u * 1.25)), r = Math.PI / 180;
   const near = -reach * Math.sin(Math.PI * e / 2) - 40 * lift * (1 - e), far = reach * e * .7;
-  return { near, far, kNear: 75 * lift, kFar: 0, d: 2 * L * Math.sin(reach * Math.PI / 360) * e * 1.6, drop: 0 };
+  // hip height h·L: down to the stride's (cos reach) as the step lands; the back leg (thigh ≈ shin ≈ L/2) bends to reach it
+  const h = Math.cos(reach * e * r), kFar = Math.max(0, Math.acos(Math.min(1, 2 * h - Math.cos(far * r))) / r - far);
+  return { near, far, kNear: 75 * lift, kFar, d: 2 * L * Math.sin(reach * Math.PI / 360) * e * 1.6, drop: L * (1 - h) };
 }
 
 // Beds (forest, meadow, room) are 10 s files with soft ends that tile every 9.5 s (SOUND.md): a scene calls sfx() for
