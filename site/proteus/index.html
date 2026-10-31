@@ -8,44 +8,65 @@
 <link rel="stylesheet" href="lib/book.css"><!-- only for --progress-key, if the book sets one -->
 <style>
   :root { --ink: #2f2418; --soft: #6b5a46; --paper: #f3ecdc; --card: #fffaf0; --line: #e4d6bb; --accent: #2b6f8f;
+    --on-ink: #fff6e0; --ink-hover: #4a3826; --shadow: #4a33182e; --select: #2b6f8f33;
     --ui: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif; --serif: "Iowan Old Style", Palatino, Georgia, serif; color-scheme: light; }
   * { box-sizing: border-box; }
-  ::selection { background: #2b6f8f33; }
-  h1 { text-wrap: balance; } .lede { text-wrap: pretty; }
-  .episodes a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  html, body { overflow-x: clip; }
   body { margin: 0; background: var(--paper); color: var(--ink); font: 18px/1.6 var(--ui); }
-  header { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 40px; align-items: center; max-width: 1180px; margin: 0 auto; padding: 48px 24px 24px; }
-  header img { width: 100%; height: auto; border-radius: 10px; box-shadow: 0 14px 40px #4a33182e; }
+  ::selection { background: var(--select); }
+  a { color: var(--accent); }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+  h1, h2 { text-wrap: balance; overflow-wrap: break-word; min-width: 0; } p { text-wrap: pretty; }
+  .hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 40px; align-items: center; max-width: 1180px; margin: 0 auto; padding: 48px 24px 40px; }
+  .cover { display: block; border-radius: 10px; }
+  .cover img { display: block; width: 100%; height: auto; border-radius: 10px; box-shadow: 0 14px 40px var(--shadow); }
   .back { display: inline-block; margin: -10px 0 8px; padding: 10px 0; font-size: 15px; color: var(--soft); text-decoration: none; }
-  .back:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+  .back:hover { color: var(--ink); }
   h1 { margin: 0 0 8px; font: 700 clamp(34px, 4.6vw, 56px)/1.05 var(--serif); }
-  .lede { font-size: 20px; color: var(--soft); }
+  .lede { margin: 0; font-size: 20px; color: var(--soft); }
+  .action { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 24px 0 0; color: var(--soft); font-size: 16px; }
+  .watch { display: inline-flex; align-items: center; gap: 10px; padding: 14px 26px; border-radius: 99px; background: var(--ink); color: var(--on-ink); font-weight: 600; text-decoration: none; white-space: nowrap; }
+  .watch:hover { background: var(--ink-hover); }
+  .watch:active { transform: translateY(1px); }
+  .watch:focus-visible { border-radius: 99px; }
+  .watch svg { width: 11px; height: 13px; fill: currentColor; }
+  .seen { color: var(--accent); font-style: normal; }
   main { max-width: 1180px; margin: 0 auto; padding: 8px 24px 80px; }
-  .episodes { list-style: none; padding: 0; margin: 18px 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-  .episodes a { display: flex; flex-direction: column; height: 100%; background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+  h2 { margin: 40px 0 16px; font: 700 32px/1.2 var(--serif); }
+  .episodes { list-style: none; padding: 0; margin: 0; display: grid; gap: 16px; }
+  .episodes a { display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr); align-items: center; gap: 0 28px; background: var(--card); border: 1px solid var(--line); border-radius: 10px;
     overflow: hidden; color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; }
   .episodes a:hover, .episodes a:focus-visible { border-color: var(--accent); transform: translateY(-2px); }
+  .episodes a:active { transform: translateY(0); }
+  .episodes a:focus-visible { border-radius: 10px; }
   .episodes img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
-  .episodes small { margin: 12px 16px 0; color: var(--soft); font-size: 13px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; }
-  .episodes b { margin: 2px 16px 4px; font: 700 21px/1.25 var(--serif); text-wrap: balance; }
-  .episodes span { margin: 0 16px 16px; color: var(--soft); font-size: 15px; line-height: 1.5; }
-  .watched small::after { content: " · ✓ watched"; color: var(--accent); }
-  .credits { margin-top: 48px; color: var(--soft); font-size: 15px; } .credits h2 { font: 700 22px/1.2 var(--serif); color: var(--ink); }
-  .credits a { color: var(--accent); }
-  @media (max-width: 760px) { header { grid-template-columns: 1fr; padding-top: 28px; } .episodes { grid-template-columns: 1fr; } }
+  .episodes div { padding: 16px 24px 16px 0; }
+  .episodes small, .episodes b, .episodes span, .episodes .seen { display: block; }
+  .episodes small { color: var(--soft); font-size: 15px; }
+  .episodes b { margin: 2px 0 4px; font: 700 24px/1.25 var(--serif); text-wrap: balance; }
+  .episodes span { max-width: 60ch; color: var(--soft); font-size: 16px; line-height: 1.5; }
+  .episodes .seen { margin-top: 6px; font-size: 15px; }
+  .credits { margin-top: 64px; color: var(--soft); font-size: 15px; } .credits ul { max-width: 70ch; padding-left: 20px; }
+  @media (prefers-reduced-motion: reduce) { .episodes a, .watch { transition: none; } .episodes a:hover, .episodes a:focus-visible, .episodes a:active, .watch:active { transform: none; } }
+  @media (max-width: 760px) { .hero { grid-template-columns: minmax(0, 1fr); padding-top: 28px; gap: 24px; } .episodes a { grid-template-columns: minmax(0, 1fr); } .episodes div { padding: 12px 16px 16px; } }
 </style>
 </head>
 <body>
-<header>
-  <img src="img/cover.webp" width="1400" height="788" alt="A paper tree whose branches hold five small cards: a lesson, a picture book, a film, a short and a map, beside the words One source, many shapes, Papermorph.">
+<header class="hero">
+  <a class="cover" href="ch01/" tabindex="-1"><img src="img/cover.webp" width="1400" height="788" alt="A paper tree whose branches hold five small cards: a lesson, a picture book, a film, a short and a map, beside the words One source, many shapes, Papermorph."></a>
   <div>
     <a class="back" href="../">← Back to the bookshelf</a>
     <h1>Proteus</h1>
     <p class="lede">Homer’s old man of the sea changes shape in your hands, and so does a source in Papermorph: a lesson, a picture book, a film, a short, a map.</p>
+    <p class="action"><a class="watch" href="ch01/"><svg viewBox="0 0 11 13" aria-hidden="true"><path d="M0 0l11 6.5L0 13z"/></svg>Watch the film</a>
+      <span>1 minute</span> <em class="seen" id="seen" hidden>✓ Watched</em></p>
   </div>
 </header>
 <main>
-  <ul class="episodes" id="episodes"></ul>
+  <section id="list" hidden>
+    <h2>Episodes</h2>
+    <ol class="episodes" id="episodes"></ol>
+  </section>
   <section class="credits">
     <h2>Sources</h2>
     <ul>
@@ -63,7 +84,7 @@
 'use strict';
 // One entry per finished episode, in order: its folder, title, a still (16:9) with alt text, and one line.
 const EPISODES = [
-  { ch: 'ch01', title: 'One source, many shapes', minutes: 1, still: 'img/cover.webp', alt: 'The paper tree holding five shapes.', line: 'A lion, a dragon, a leopard, a wild boar, running water: five shapes of one source, gathered on a tree.' },
+  { ch: 'ch01', title: 'One source, many shapes', minutes: 1, still: 'img/still-ch01.webp', alt: 'A red paper lion beside a circle holding a lesson’s graph, under the words A lesson.', line: 'A lion, a dragon, a leopard, a wild boar, running water: five shapes of one source, gathered on a tree.' },
   { ch: 'ch02', title: 'One source, many shapes, upright', minutes: 1, still: 'img/still-ch02.webp', alt: 'The upright cut: One source, many shapes, Papermorph above the paper tree.', line: 'The same film on a phone’s upright screen, for Shorts, Reels and TikTok.' },
 ];
 // The player records finished episodes under the same key as here (engine progress(): lib/book.css --progress-key,
@@ -72,10 +93,13 @@ const key = getComputedStyle(document.documentElement).getPropertyValue('--progr
   || 'animebook:progress:' + new URL('.', location.href).pathname;
 let done = [];
 try { done = JSON.parse(localStorage.getItem(key) || '{}').done || []; } catch {}
+const seen = e => done.includes(+e.ch.slice(2));
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-document.getElementById('episodes').innerHTML = EPISODES.map((e, i) => `<li${done.includes(+e.ch.slice(2)) ? ' class="watched"' : ''}>
-  <a href="${e.ch}/"><img src="${esc(e.still)}" alt="${esc(e.alt)}" loading="lazy">
-  <small>Episode ${i + 1} · ${e.minutes} minute${e.minutes == 1 ? "" : "s"}</small><b>${esc(e.title)}</b><span>${esc(e.line)}</span></a></li>`).join('');
+if (EPISODES.length > 1) {
+  document.getElementById('episodes').innerHTML = EPISODES.map((e, i) => `<li><a href="${e.ch}/"><img src="${esc(e.still)}" alt="${esc(e.alt)}" loading="lazy">
+    <div><small>Episode ${i + 1}, ${e.minutes} minute${e.minutes == 1 ? '' : 's'}</small><b>${esc(e.title)}</b><span>${esc(e.line)}</span>${seen(e) ? '<em class="seen">✓ Watched</em>' : ''}</div></a></li>`).join('');
+  document.getElementById('list').hidden = false;
+} else if (EPISODES[0] && seen(EPISODES[0])) document.getElementById('seen').hidden = false;
 </script>
 </body>
 </html>

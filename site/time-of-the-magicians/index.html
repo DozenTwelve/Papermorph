@@ -10,6 +10,9 @@
   /* chrome only, over the map: the subtitle dark enough to read on the sea (4.5:1), and buttons a finger can hit on a touch screen */
   #title span { color: #574c3d; }
   @media (pointer: coarse) { #people button, .link { min-height: 32px; } }
+  /* the one way back to the shelf: quiet, on the first card, beside the action */
+  .card .row .shelf { align-self: center; margin-left: auto; padding: 10px 0; color: var(--ink); font: 400 16px/1.2 var(--serif); text-decoration: underline; text-underline-offset: 3px; }
+  .card .row .shelf:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
 </style>
 </head>
 <body>
@@ -43,7 +46,7 @@
     <p>Europe, 1919 to 1929: a ruined continent, and four philosophers who changed how we think. Each year the map
       plays what happened in Europe; then Wittgenstein, Heidegger, Benjamin and Cassirer walk to where that year took
       them. Click one to hear his year.</p>
-    <div class="row"><button class="go" id="begin">▶ Begin in 1919</button></div>
+    <div class="row"><button class="go" id="begin">▶ Begin in 1919</button><a class="shelf" href="../">← Back to the bookshelf</a></div>
   </section>
 
   <section id="person" class="card" role="dialog" aria-labelledby="person-h" hidden>

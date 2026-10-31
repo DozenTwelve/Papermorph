@@ -29,7 +29,7 @@
     if (!saved || !Number.isInteger(saved.last) || saved.last < 1 || saved.last > book.chapters) continue;
     const resume = document.createElement('a');
     resume.className = 'resume-label';
-    resume.textContent = `Continue · Chapter ${saved.last} →`;
+    resume.textContent = `Continue: Chapter ${saved.last}`;
     resume.href = `${book.chapterBase}ch${String(saved.last).padStart(2, '0')}/`;
     const slot = document.createElement('div');   // a link can't hold a link: the note sits beside the cover, over it
     slot.className = 'book-slot';

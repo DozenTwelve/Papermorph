@@ -12,7 +12,7 @@ const Contents = (() => {
   const TRANSLATIONS = {
     en: {
       open: 'Open the book', toCover: 'Back to the cover', resume: 'Continue · Chapter {n}', unit: 'Unit {n}', minutes: '{n} min',
-      meta: '{chapters}{samples} · {units} · with sound', metaChapters: { one: '{n} chapter', other: '{n} chapters' },
+      meta: '{chapters}{samples}, {units}, with sound', metaChapters: { one: '{n} chapter', other: '{n} chapters' },
       metaUnits: { one: '{n} unit', other: '{n} units' }, metaSamples: { one: ' + {n} sample', other: ' + {n} samples' }, samples: 'Sample chapters, another look',
       chapterCount: { one: '{n} chapter', other: '{n} chapters' }, finished: '{done} of {n} finished',
       doneMark: '✓ Finished · ', lastMark: ' · Last opened',
@@ -23,7 +23,7 @@ const Contents = (() => {
     },
     ru: {
       open: 'Открыть книгу', toCover: 'К обложке', resume: 'Продолжить · Глава {n}', unit: 'Раздел {n}', minutes: '{n} мин',
-      meta: '{chapters}{samples} · {units} · со звуком',
+      meta: '{chapters}{samples}, {units}, со звуком',
       metaChapters: { one: '{n} глава', few: '{n} главы', many: '{n} глав', other: '{n} главы' },
       metaUnits: { one: '{n} раздел', few: '{n} раздела', many: '{n} разделов', other: '{n} раздела' },
       metaSamples: { one: ' + {n} пробная', few: ' + {n} пробные', many: ' + {n} пробных', other: ' + {n} пробной' },
@@ -37,7 +37,7 @@ const Contents = (() => {
     },
     zh: {
       open: '打开这本书', toCover: '返回封面', resume: '继续 · 第 {n} 章', unit: '第 {n} 单元', minutes: '{n} 分钟',
-      meta: '{chapters}{samples} · {units} · 有配音', metaChapters: '{n} 章', metaUnits: '{n} 个单元',
+      meta: '{chapters}{samples}，{units}，有配音', metaChapters: '{n} 章', metaUnits: '{n} 个单元',
       metaSamples: ' + {n} 个示例章', samples: '示例章，另一种风格',
       chapterCount: '{n} 章', finished: '已完成 {done} / {n}',
       doneMark: '✓ 已完成 · ', lastMark: ' · 上次打开',
@@ -47,7 +47,7 @@ const Contents = (() => {
     },
     ja: {
       open: '本を開く', toCover: '表紙に戻る', resume: '続きから · 第{n}章', unit: '単元 {n}', minutes: '{n}分',
-      meta: '{chapters}{samples} · {units} · 音声つき', metaChapters: '{n}章', metaUnits: '{n}単元',
+      meta: '{chapters}{samples}、{units}、音声つき', metaChapters: '{n}章', metaUnits: '{n}単元',
       metaSamples: ' + サンプル{n}章', samples: 'サンプル章（別のスタイル）',
       chapterCount: '{n}章', finished: '{n}章中 {done}章 完了',
       doneMark: '✓ 完了 · ', lastMark: ' · 最後に開いた章',
@@ -59,7 +59,7 @@ const Contents = (() => {
     ar: {
       open: 'افتح الكتاب', toCover: 'العودة إلى الغلاف', resume: 'تابع · الفصل {n}', unit: 'الوحدة {n}',
       minutes: { one: 'دقيقة', two: 'دقيقتان', few: '{n} دقائق', many: '{n} دقيقة', other: '{n} دقيقة' },
-      meta: '{chapters}{samples} · {units} · مع الصوت',
+      meta: '{chapters}{samples}، {units}، مع الصوت',
       metaChapters: { one: 'فصل واحد', two: 'فصلان', few: '{n} فصول', many: '{n} فصلاً', other: '{n} فصل' },
       metaUnits: { one: 'وحدة واحدة', two: 'وحدتان', few: '{n} وحدات', many: '{n} وحدة', other: '{n} وحدة' },
       metaSamples: { one: ' + فصل تجريبي واحد', two: ' + فصلان تجريبيان', few: ' + {n} فصول تجريبية', many: ' + {n} فصلاً تجريبياً', other: ' + {n} فصل تجريبي' },

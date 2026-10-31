@@ -13,6 +13,7 @@
 }
 * { box-sizing: border-box; }
 html { scroll-padding-top: 90px; }
+html, body { overflow-x: clip; }
 body { margin: 0; min-height: 100svh; background: var(--board); color: var(--chalk); font: 18px/1.5 var(--ui); }
 /* Chalkboard: the same grain and vignette as the lesson stage. */
 body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
@@ -20,7 +21,7 @@ body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-even
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 .92 0 0 0 0 .95 0 0 0 0 .9 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23g)'/%3E%3C/svg%3E"); }
 a { color: inherit; }
 a:focus-visible { outline: 3px solid var(--task); outline-offset: 3px; }
-.kicker { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--quiz); }
+.kicker { margin: -6px 0 24px; font-size: 18px; font-weight: 600; color: var(--quiz); }   /* under the title, a subtitle */
 
 /* ---------- cover ---------- */
 #cover { position: relative; min-height: 100svh; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -30,16 +31,16 @@ a:focus-visible { outline: 3px solid var(--task); outline-offset: 3px; }
 body:not(.refsview) #refpage, .refsview #cover, .refsview #contents { display: none; }
 #cover > * { animation: rise .8s var(--ease) backwards; }
 #cover .mascot { animation: none; margin-bottom: 26px; view-transition-name: guide; }
-#cover .kicker { animation-delay: .9s; }
 #cover h1 { animation-delay: 1s; }
+#cover .kicker { animation-delay: 1.06s; }
 #cover .lede { animation-delay: 1.12s; }
 #cover .acts { animation-delay: 1.24s; }
 #cover .meta { animation-delay: 1.36s; }
 h1 { margin: 14px 0 18px; font: 500 clamp(44px, 8.4vw, 92px)/1.02 var(--book); letter-spacing: -.01em; view-transition-name: book; }
-h1 i { color: var(--task); font-style: italic; }
+h1 i, .home strong i { font-style: normal; }   /* the whole title one face and one colour; <i> left in older covers */
 .lede { max-width: 34em; margin: 0 0 34px; color: var(--dim); font-size: clamp(17px, 2.2vw, 20px); text-wrap: balance; }
 .acts { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
-.btn { display: inline-flex; align-items: center; gap: 12px; padding: 14px 30px; border-radius: 999px; font-weight: 600; font-size: 19px; text-decoration: none;
+.btn { display: inline-flex; align-items: center; gap: 12px; padding: 12px 28px; border-radius: 999px; font-weight: 600; font-size: 19px; text-decoration: none;
   transition: transform .25s var(--ease), background-color .25s, border-color .25s; }
 .btn[hidden] { display: none; }
 .btn:hover { transform: translateY(-2px); }
@@ -47,7 +48,7 @@ h1 i { color: var(--task); font-style: italic; }
 .btn.quiet { border: 1.5px solid var(--edge); color: var(--chalk); }
 .btn.quiet:hover { border-color: var(--dim); }
 .btn svg { width: 15px; height: 15px; fill: currentColor; }
-.meta { margin: 30px 0 0; color: var(--dim); font-size: 15px; letter-spacing: .04em; }   /* --faint read below 3:1 */
+.meta { margin: 30px 0 0; color: var(--dim); font-size: 15px; }   /* --faint read below 3:1 */
 /* Faint chalk notes around the edges of the board. */
 .chalk { position: absolute; inset: 0; z-index: -1; pointer-events: none; animation: none !important; }
 .chalk span { position: absolute; font: italic 400 clamp(22px, 3vw, 38px) var(--book); color: var(--chalk); opacity: 0; white-space: nowrap;
@@ -77,7 +78,6 @@ h1 i { color: var(--task); font-style: italic; }
 .home { display: flex; align-items: center; gap: 12px; text-decoration: none; border-radius: 10px; }
 .home .mascot { view-transition-name: guide; }
 .home strong { font: 500 22px/1.1 var(--book); view-transition-name: book; }
-.home strong i { color: var(--task); }
 .prog { margin-inline-start: auto; color: var(--dim); font-size: 15px; white-space: nowrap; }
 .prog b { color: var(--good); font-weight: 600; }
 main#contents { padding-bottom: 80px; }

@@ -17,6 +17,8 @@
 <style>
   :root { --ink: #2f2418; --soft: #6b5a46; --paper: #fbf5e8; --card: #fffaf0; --line: #e4d6bb; --accent: #2f5aa8; --ui: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif; --serif: "Iowan Old Style", Palatino, Georgia, serif; color-scheme: light; }
   * { box-sizing: border-box; }
+  html, body { overflow-x: clip; }
+  @media (prefers-reduced-motion: reduce) { .episodes a, .thumb::after { transition: none !important; } .episodes a:hover, .episodes a:focus-visible { transform: none !important; } }
   ::selection { background: #2f5aa833; }
   a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
   h1, h2 { text-wrap: balance; } p, li, dd { text-wrap: pretty; }
@@ -26,17 +28,17 @@
   .hero img { width: 100%; height: auto; border-radius: 10px; box-shadow: 0 14px 40px #4a33182e; }
   .back { display: inline-block; margin: -10px 0 8px; padding: 10px 0; font-size: 15px; color: var(--soft); text-decoration: none; }
   h1 { margin: 0 0 8px; font: 700 clamp(34px, 4.6vw, 56px)/1.05 var(--serif); }
-  .tag { display: inline-block; margin-bottom: 18px; padding: 2px 12px; border: 1.5px solid var(--accent); border-radius: 99px; color: var(--accent); font-size: 14px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+  .tag { display: block; margin: 0 0 14px; color: var(--accent); font-size: 18px; font-weight: 600; }   /* a subtitle under the title */
   .lede { font-size: 20px; color: #4a3b2a; }
   main { max-width: 900px; margin: 0 auto; padding: 8px 24px 80px; }
   h2 { margin: 64px 0 8px; font: 700 32px/1.2 var(--serif); }
   h3 { margin: 32px 0 4px; font: 700 21px/1.3 var(--ui); }
   figure { margin: 18px 0 26px; }
-  figure img { display: block; width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--line); background: #fff; }
+  figure img { display: block; width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--line); background: #fffdf8; }
   figcaption { margin-top: 8px; font-size: 15px; color: var(--soft); }
-  .stills { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 18px 0; }
+  .stills { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 18px 0; }
   .stills img { width: 100%; height: auto; border-radius: 6px; display: block; }
-  .episodes { list-style: none; padding: 0; margin: 18px 0 10px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .episodes { list-style: none; padding: 0; margin: 18px 0 10px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
   .episodes a { display: flex; flex-direction: column; height: 100%; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; }
   .episodes a:hover, .episodes a:focus-visible { border-color: var(--accent); transform: translateY(-2px); }
   .episodes a:focus-visible { border-radius: 10px; }
@@ -44,20 +46,20 @@
   .thumb img { display: block; width: 100%; height: auto; }
   .thumb::after { content: "▶"; position: absolute; left: 10px; bottom: 10px; width: 38px; height: 38px; border-radius: 50%; background: #2f2418d0; color: #fff6e0; font-size: 15px; line-height: 38px; text-align: center; text-indent: 3px; opacity: .85; transition: opacity .15s; }
   .episodes a:hover .thumb::after, .episodes a:focus-visible .thumb::after { opacity: 1; }
-  .episodes small { margin: 12px 16px 0; color: var(--soft); font-size: 13px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; }
+  .episodes small { margin: 12px 16px 0; color: var(--soft); font-size: 15px; }
   .episodes b { margin: 2px 16px 4px; font: 700 21px/1.25 var(--serif); text-wrap: balance; }
   .episodes span:last-child { margin: 0 16px 16px; color: var(--soft); font-size: 15px; line-height: 1.5; }
   .soon { margin: 0 0 18px; color: var(--soft); font-size: 15px; }
   .verdict { margin: 18px 0; padding: 4px 22px; border-left: 4px solid var(--accent); background: var(--card); border-radius: 0 8px 8px 0; }
-  .numbers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 18px 0; }
+  .numbers { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
   .numbers div { padding: 14px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; text-align: center; }
   .numbers b { display: block; font: 700 28px/1.1 var(--serif); }
   .numbers span { font-size: 14px; color: var(--soft); }
   footer { max-width: 900px; margin: 0 auto; padding: 0 24px 60px; color: var(--soft); font-size: 15px; }
   @media (max-width: 760px) {
-    header.hero { grid-template-columns: 1fr; padding-top: 28px; }
-    .numbers, .stills { grid-template-columns: 1fr 1fr; }
-    .episodes { grid-template-columns: 1fr; }
+    header.hero { grid-template-columns: minmax(0, 1fr); padding-top: 28px; }
+    .numbers, .stills { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .episodes { grid-template-columns: minmax(0, 1fr); }
   }
 </style>
 </head>
@@ -66,8 +68,8 @@
   <img src="making/cover.webp" width="1400" height="788" alt="Bo, with a bun sitting on a toilet in his thought bubble, about to ask his question; Me beside him and the class behind.">
   <div>
     <a class="back" href="../">← Back to the bookshelf</a><br>
-    <span class="tag">Short animated jokes</span>
     <h1>Joke Collection</h1>
+    <span class="tag">Short animated jokes</span>
     <p class="lede">Little jokes, a couple of minutes each. The third way we've tried to make picture books, and the one we're keeping: an image model paints every set and everything that stays still, and paper puppets drawn in code do all the moving.</p>
   </div>
 </header>
@@ -75,13 +77,13 @@
 <main>
   <h2>Episodes</h2>
   <ul class="episodes" id="episodes">
-    <li><a href="ch01/"><span class="thumb"><img src="making/still-stall.webp" width="800" height="450" alt="Me and Bo at the bun stall."></span><small>Episode 1 · 2 minutes</small><b>Breakfast in the Bathroom</b><span>Seventh grade. My deskmate had two questions for me, and one morning he asked them both at once. A true story.</span></a></li>
-    <li><a href="ch02/"><span class="thumb"><img src="making/ep2-veggie.webp" width="800" height="450" alt="The customer hears “reji” as “veggie”."></span><small>Episode 2 · 2 minutes</small><b>Do You Need a Bag?</b><span>A convenience store in Fukuoka. A clerk who speaks no English, a customer who speaks no Japanese, and me in line behind them with a hundred-yen coffee. Also true.</span></a></li>
-    <li><a href="ch03/"><span class="thumb"><img src="making/ep3-hay.webp" width="800" height="450" alt="The cow walks after hay hung from a rod on its own back."></span><small>Episode 3 · 2 minutes</small><b>How to Move a Cow</b><span>A Chinese man, an Indian man and an American are stuck behind a cow that won’t budge. Each has his own way to make it walk. An old joke, with a newer ending.</span></a></li>
-    <li><a href="ch04/"><span class="thumb"><img src="making/ep4-glasses.webp" width="800" height="450" alt="The dog on the desk between Me and Bo, in glasses, a pencil in its mouth."></span><small>Episode 4 · 2 minutes</small><b>The Dog Ate My Homework</b><span>My deskmate Bo never did his homework, but he always had an excuse. Then he rented a dog to prove one. I did my homework every morning, at breakfast.</span></a></li>
-    <li><a href="ch05/"><span class="thumb"><img src="making/ep5-photo.webp" width="800" height="450" alt="The man shows the policeman a photo from the zoo, the penguin beside him."></span><small>Episode 5 · 2 minutes</small><b>The Penguin and the Zoo</b><span>A man buys a fish at the harbour, and a penguin follows it. A policeman tells him to take it to the zoo. The next day, there they are again.</span></a></li>
-    <li><a href="ch06/"><span class="thumb"><img src="making/ep6-box.webp" width="800" height="450" alt="Eight eyes in the slot of a cardboard box, one mouth open to bark."></span><small>Episode 6 · 2 minutes</small><b>Four Dogs</b><span>An American dog, a Polish dog and a Soviet dog meet in an alley behind a kitchen to compare notes on a dog’s life. Somebody in a box has been listening.</span></a></li>
-    <li id="ep-baka"><a href="ch07/"><span class="thumb"><img src="making/ep7-baka.webp" width="800" height="450" alt="Luna the cow under a speech bubble that says バカ — Yui hears “vaca” as something worse."></span><small>Episode 7 · 2 minutes</small><b>Baka Means Cow</b><span>My cousin Yui visits her uncle Pedro’s farm in southern Spain, and Spain’s everyday word for a cow sounds, to Osaka-school ears, like the last thing you may call your aunt. Nobody insults anybody. It just sounds that way.</span></a></li>
+    <li><a href="ch01/"><span class="thumb"><img src="making/still-stall.webp" width="800" height="450" alt="Me and Bo at the bun stall."></span><small>Episode 1, 2 minutes</small><b>Breakfast in the Bathroom</b><span>Seventh grade. My deskmate had two questions for me, and one morning he asked them both at once. A true story.</span></a></li>
+    <li><a href="ch02/"><span class="thumb"><img src="making/ep2-veggie.webp" width="800" height="450" alt="The customer hears “reji” as “veggie”."></span><small>Episode 2, 2 minutes</small><b>Do You Need a Bag?</b><span>A convenience store in Fukuoka. A clerk who speaks no English, a customer who speaks no Japanese, and me in line behind them with a hundred-yen coffee. Also true.</span></a></li>
+    <li><a href="ch03/"><span class="thumb"><img src="making/ep3-hay.webp" width="800" height="450" alt="The cow walks after hay hung from a rod on its own back."></span><small>Episode 3, 2 minutes</small><b>How to Move a Cow</b><span>A Chinese man, an Indian man and an American are stuck behind a cow that won’t budge. Each has his own way to make it walk. An old joke, with a newer ending.</span></a></li>
+    <li><a href="ch04/"><span class="thumb"><img src="making/ep4-glasses.webp" width="800" height="450" alt="The dog on the desk between Me and Bo, in glasses, a pencil in its mouth."></span><small>Episode 4, 2 minutes</small><b>The Dog Ate My Homework</b><span>My deskmate Bo never did his homework, but he always had an excuse. Then he rented a dog to prove one. I did my homework every morning, at breakfast.</span></a></li>
+    <li><a href="ch05/"><span class="thumb"><img src="making/ep5-photo.webp" width="800" height="450" alt="The man shows the policeman a photo from the zoo, the penguin beside him."></span><small>Episode 5, 2 minutes</small><b>The Penguin and the Zoo</b><span>A man buys a fish at the harbour, and a penguin follows it. A policeman tells him to take it to the zoo. The next day, there they are again.</span></a></li>
+    <li><a href="ch06/"><span class="thumb"><img src="making/ep6-box.webp" width="800" height="450" alt="Eight eyes in the slot of a cardboard box, one mouth open to bark."></span><small>Episode 6, 2 minutes</small><b>Four Dogs</b><span>An American dog, a Polish dog and a Soviet dog meet in an alley behind a kitchen to compare notes on a dog’s life. Somebody in a box has been listening.</span></a></li>
+    <li id="ep-baka"><a href="ch07/"><span class="thumb"><img src="making/ep7-baka.webp" width="800" height="450" alt="Luna the cow under a speech bubble that says バカ — Yui hears “vaca” as something worse."></span><small>Episode 7, 2 minutes</small><b>Baka Means Cow</b><span>My cousin Yui visits her uncle Pedro’s farm in southern Spain, and Spain’s everyday word for a cow sounds, to Osaka-school ears, like the last thing you may call your aunt. Nobody insults anybody. It just sounds that way.</span></a></li>
   </ul>
   <p class="soon">More jokes coming.</p>
 

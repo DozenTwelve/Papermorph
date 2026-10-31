@@ -6,61 +6,61 @@
 <title>The Little Horse Crosses the River</title>
 <meta name="description" content="A Chinese folk tale (小马过河) as a paper cut-out film, all drawn in code, with English voices and two stops where a child touches the picture to hear its words.">
 <link rel="stylesheet" href="lib/book.css"><!-- only for --progress-key, if the book sets one -->
-<!-- A picture book's cover and episode list. A starting point, not a design: give it the book's own look. -->
 <style>
   :root { --ink: #2f2418; --soft: #6b5a46; --paper: #fbf5e8; --card: #fffaf0; --line: #e4d6bb; --accent: #2f5aa8;
+    --on-ink: #fff6e0; --ink-hover: #4a3826; --shadow: #4a33182e; --select: #2f5aa833; --frame: #fffdf8;
     --ui: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif; --serif: "Iowan Old Style", Palatino, Georgia, serif; color-scheme: light; }
   * { box-sizing: border-box; }
-  ::selection { background: #2f5aa833; }
-  h1, h2 { text-wrap: balance; } .lede, main p, main li { text-wrap: pretty; }
+  html, body { overflow-x: clip; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 18px/1.6 var(--ui); }
+  ::selection { background: var(--select); }
   a { color: var(--accent); }
   a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
-  body { margin: 0; background: var(--paper); color: var(--ink); font: 18px/1.6 var(--ui); }
-  header { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 40px; align-items: center; max-width: 1180px; margin: 0 auto; padding: 48px 24px 24px; }
-  header img { width: 100%; height: auto; border-radius: 10px; box-shadow: 0 14px 40px #4a33182e; }
+  h1, h2 { text-wrap: balance; overflow-wrap: break-word; min-width: 0; } p, li { text-wrap: pretty; }
+  .hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 40px; align-items: center; max-width: 1180px; margin: 0 auto; padding: 48px 24px 40px; }
+  .cover { display: block; border-radius: 10px; }
+  .cover img { display: block; width: 100%; height: auto; border-radius: 10px; box-shadow: 0 14px 40px var(--shadow); }
   .back { display: inline-block; margin: -10px 0 8px; padding: 10px 0; font-size: 15px; color: var(--soft); text-decoration: none; }
+  .back:hover { color: var(--ink); }
   h1 { margin: 0 0 8px; font: 700 clamp(34px, 4.6vw, 56px)/1.05 var(--serif); }
-  .lede { font-size: 20px; color: var(--soft); }
+  .lede { margin: 0; font-size: 20px; color: var(--soft); }
+  .action { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 24px 0 0; color: var(--soft); font-size: 16px; }
+  .watch { display: inline-flex; align-items: center; gap: 10px; padding: 14px 26px; border-radius: 99px; background: var(--ink); color: var(--on-ink); font-weight: 600; text-decoration: none; white-space: nowrap; }
+  .watch:hover { background: var(--ink-hover); }
+  .watch:active { transform: translateY(1px); }
+  .watch:focus-visible { border-radius: 99px; }
+  .watch svg { width: 11px; height: 13px; fill: currentColor; }
+  .seen { color: var(--accent); font-style: normal; }
   main { max-width: 900px; margin: 0 auto; padding: 8px 24px 80px; }
+  .intro { font-size: 20px; }
   h2 { margin: 64px 0 8px; font: 700 32px/1.2 var(--serif); }
   figure { margin: 18px 0 26px; }
-  figure img { display: block; width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--line); background: #fff; }
+  figure img { display: block; width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--line); background: var(--frame); }
   figcaption { margin-top: 8px; font-size: 15px; color: var(--soft); }
-  .stills { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 32px 0 18px; }
+  .stills { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 32px 0 18px; }
   .stills img { width: 100%; height: auto; border-radius: 6px; display: block; }
-  .numbers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 18px 0; }
+  .numbers { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 18px 0; }
   .numbers div { padding: 14px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; text-align: center; }
   .numbers b { display: block; font: 700 28px/1.1 var(--serif); }
   .numbers span { font-size: 14px; color: var(--soft); }
-  .watch { display: inline-flex; align-items: center; margin-top: 10px; padding: 14px 26px; border-radius: 99px; background: var(--ink); color: #fff6e0; font-weight: 600; text-decoration: none; white-space: nowrap; }
-  .watch:hover { background: #4a3826; }
-  .watch:focus-visible { border-radius: 99px; }
   footer { max-width: 900px; margin: 0 auto; padding: 0 24px 60px; color: var(--soft); font-size: 15px; }
-  .episodes { list-style: none; padding: 0; margin: 18px 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-  .episodes a { display: flex; flex-direction: column; height: 100%; background: var(--card); border: 1px solid var(--line); border-radius: 10px;
-    overflow: hidden; color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; }
-  .episodes a:focus-visible { border-radius: 10px; }
-  .episodes a:hover, .episodes a:focus-visible { border-color: var(--accent); transform: translateY(-2px); }
-  .episodes img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
-  .episodes small { margin: 12px 16px 0; color: var(--soft); font-size: 13px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; }
-  .episodes b { margin: 2px 16px 4px; font: 700 21px/1.25 var(--serif); text-wrap: balance; }
-  .episodes span { margin: 0 16px 16px; color: var(--soft); font-size: 15px; line-height: 1.5; }
-  .watched small::after { content: " · ✓ watched"; color: var(--accent); }
-  @media (max-width: 760px) { header { grid-template-columns: 1fr; padding-top: 28px; } .episodes { grid-template-columns: 1fr; } .numbers, .stills { grid-template-columns: 1fr 1fr; } }
+  @media (prefers-reduced-motion: reduce) { .watch { transition: none; } .watch:active { transform: none; } }
+  @media (max-width: 760px) { .hero { grid-template-columns: minmax(0, 1fr); padding-top: 28px; gap: 24px; } .stills { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 </style>
 </head>
 <body>
-<header>
-  <img src="img/cover.webp" width="1400" height="788" alt="Little Horse, a chestnut paper foal with a red saddle cloth, standing in the river with the water at his knees.">
+<header class="hero">
+  <a class="cover" href="ch01/" tabindex="-1"><img src="img/cover.webp" width="1400" height="788" alt="Little Horse, a chestnut paper foal with a red saddle cloth, standing in the river with the water at his knees."></a>
   <div>
     <a class="back" href="../">← Back to the bookshelf</a>
     <h1>The Little Horse Crosses the River</h1>
-    <p class="lede">小马过河 — a Chinese folk tale for young children learning English. Uncle Ox says the river is shallow; Squirrel says it is deep. Little Horse has to find out for himself.</p>
-    <p class="lede">Paper puppets in a layered spring valley, all drawn in code. Twice the film stops so a child can touch the picture and hear the words.</p>
+    <p class="lede">小马过河: a Chinese folk tale for young children learning English. Is the river deep or shallow? It depends on who is asking.</p>
+    <p class="action"><a class="watch" href="ch01/"><svg viewBox="0 0 11 13" aria-hidden="true"><path d="M0 0l11 6.5L0 13z"/></svg>Watch the film</a>
+      <span>4 minutes</span> <em class="seen" id="seen" hidden>✓ Watched</em></p>
   </div>
 </header>
 <main>
-  <ul class="episodes" id="episodes"></ul>
+  <p class="intro">Uncle Ox says the river is shallow; Squirrel says it is deep. Little Horse has to find out for himself. Paper puppets in a layered spring valley, all drawn in code. Twice the film stops so a child can touch the picture and hear the words.</p>
 
   <div class="stills">
     <img src="making/still-home.webp" width="800" height="450" alt="Mother and Little Horse side by side at the stable door, the half sack of wheat waiting beside them." loading="lazy">
@@ -107,12 +107,13 @@
   <h2>The numbers</h2>
   <div class="numbers">
     <div><b>~4 min</b><span>9 scenes</span></div>
-    <div><b>5 · 4</b><span>puppets · sets</span></div>
+    <div><b>5</b><span>puppets</span></div>
+    <div><b>4</b><span>sets</span></div>
     <div><b>2</b><span>listen-and-find games</span></div>
     <div><b>~$0.31</b><span>for voices, $0 for pictures</span></div>
   </div>
 
-  <p><a class="watch" href="ch01/">▶ Watch the film</a></p>
+  <p><a class="watch" href="ch01/"><svg viewBox="0 0 11 13" aria-hidden="true"><path d="M0 0l11 6.5L0 13z"/></svg>Watch the film</a></p>
 </main>
 <footer>Story: 小马过河 (The Little Horse Crosses the River), a Chinese folk tale, retold in English for this film. No image model: everything you see is drawn in code. Voices by ElevenLabs (v4), music composed in code for this film, sound effects synthesized. Part of <a href="../">Papermorph</a>.</footer>
 <script>
@@ -127,10 +128,7 @@ const key = getComputedStyle(document.documentElement).getPropertyValue('--progr
   || 'animebook:progress:' + new URL('.', location.href).pathname;
 let done = [];
 try { done = JSON.parse(localStorage.getItem(key) || '{}').done || []; } catch {}
-const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-document.getElementById('episodes').innerHTML = EPISODES.map((e, i) => `<li${done.includes(+e.ch.slice(2)) ? ' class="watched"' : ''}>
-  <a href="${e.ch}/"><img src="${esc(e.still)}" alt="${esc(e.alt)}" loading="lazy">
-  <small>Film · ${e.minutes} minute${e.minutes == 1 ? "" : "s"}</small><b>${esc(e.title)}</b><span>${esc(e.line)}</span></a></li>`).join('');
+if (EPISODES.some(e => done.includes(+e.ch.slice(2)))) document.getElementById('seen').hidden = false;
 </script>
 </body>
 </html>

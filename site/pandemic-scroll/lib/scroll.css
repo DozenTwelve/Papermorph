@@ -11,6 +11,8 @@
 }
 * { box-sizing: border-box; }
 html { background: var(--paper); }
+html, body { overflow-x: clip; }
+a:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 2px; }
 body { margin: 0; background: var(--paper); color: var(--ink); font: 400 19px/1.5 "EB Garamond", Georgia, serif; }
 a { color: inherit; text-decoration-color: var(--red); text-underline-offset: .15em; }
 b { font-weight: 500; }
@@ -19,8 +21,12 @@ b { font-weight: 500; }
 .progress { position: fixed; inset: 0 0 auto; height: 3px; z-index: 5; pointer-events: none; }
 .progress i { display: block; height: 100%; background: var(--red); transform-origin: 0 0; transform: scaleX(0); }
 
+/* the way back to the shelf: one quiet line above the story, out of its flow */
+.shelf { position: absolute; top: 12px; left: max(16px, env(safe-area-inset-left)); font-size: 17px; }
+.shelf a { display: inline-block; padding: 10px 0; color: var(--soft); text-decoration: none; }
+.shelf a:hover { color: var(--ink); }
 .hero { min-height: 92svh; padding: 18svh 16px 8svh; max-width: 40rem; margin: 0 auto; display: flex; flex-direction: column; justify-content: center; }
-.kicker { font: 500 14px/1.2 "Oswald", "Arial Narrow", sans-serif; letter-spacing: .2em; text-transform: uppercase; color: var(--red); margin: 0 0 12px; }
+.kicker { font: 500 17px/1.2 "Oswald", "Arial Narrow", sans-serif; color: var(--red); margin: -8px 0 20px; }
 h1 { font: 600 clamp(56px, 16vw, 120px)/.95 "Oswald", "Arial Narrow", sans-serif; text-transform: uppercase; letter-spacing: .02em; margin: 0 0 20px; }
 .dek { font-size: 23px; line-height: 1.35; margin: 0 0 16px; }
 .more { color: var(--soft); font-size: 17px; margin: 0; }
@@ -44,7 +50,7 @@ h1 { font: 600 clamp(56px, 16vw, 120px)/.95 "Oswald", "Arial Narrow", sans-serif
 .step .src { font-size: 15px; color: var(--soft); }
 
 .credits { max-width: 40rem; margin: 0 auto; padding: 12svh 16px 20svh; font-size: 16px; color: var(--soft); }
-.credits h2 { font: 500 15px/1.2 "Oswald", sans-serif; letter-spacing: .2em; text-transform: uppercase; color: var(--ink); }
+.credits h2 { font: 500 15px/1.2 "Oswald", sans-serif; letter-spacing: .04em; text-transform: uppercase; color: var(--ink); }
 .credits li { margin-bottom: .4em; }
 .credits code { font-size: .9em; }
 
