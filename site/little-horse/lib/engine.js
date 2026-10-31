@@ -161,6 +161,49 @@ const TRANSLATIONS = {
     watchAgain: 'もう一度見る', nextChapter: '次の章へ',
     wordsHeard: '{k} / {n}', allWordsHeard: 'ぜんぶ見つけたね！',
   },
+  // Arabic plurals (Intl.PluralRules 'ar'): one 1, two 2, few 3–10, many 11–99, other 100+ (zero falls back to other).
+  // The timeline keeps its left-to-right geometry in Arabic (see RTL below), so ← stays "previous step".
+  ar: {
+    decimalSign: '.', stageLabel: 'رسوم الدرس المتحركة', stageLabelTitled: 'رسوم الدرس المتحركة: {title}',
+    shortcuts: 'اختصارات لوحة المفاتيح', lesson: 'الدرس', questions: 'الأسئلة',
+    helpPlay: 'تشغيل أو إيقاف مؤقت', helpStep: 'الخطوة السابقة أو التالية', helpStepInQuestion: 'تغيير الخطوة أثناء السؤال', helpRestart: 'البدء من جديد',
+    helpCaptions: 'إظهار الترجمة النصية أو إخفاؤها', helpSpeed: 'أبطأ أو أسرع', helpFullScreen: 'ملء الشاشة', helpList: 'عرض هذه القائمة',
+    helpChoose: 'اختيار إجابة أو دائرة', helpTrueFalse: 'صواب أو خطأ', helpRows: 'التنقل بين الصفوف',
+    helpNumberLine: 'التحرك على خط الأعداد، أو اختيار عدد لتصنيفه', helpEnter: 'تحقّق، ثم تابع',
+    helpShowAnswer: 'عرض الإجابة', helpLeaveBox: 'الخروج من خانة الإجابة', helpClose: 'اضغط {key} للإغلاق.',
+    paused: 'متوقف مؤقتاً. اضغط مفتاح المسافة أو انقر للمتابعة.',
+    soundFailed: 'تعذّر تشغيل الصوت. يستمر الدرس بالنص المعروض على الشاشة.',
+    startLesson: 'ابدأ الدرس', startFilm: 'تشغيل',
+    aboutMinutesFilm: { one: 'نحو دقيقة، مع الصوت.', two: 'نحو دقيقتين، مع الصوت.', few: 'نحو {n} دقائق، مع الصوت.',
+      many: 'نحو {n} دقيقة، مع الصوت.', other: 'نحو {n} دقيقة، مع الصوت.' },
+    coverKeys: 'اضغط {space} للبدء، و{help} للاختصارات.', spaceKey: 'المسافة',
+    chapterNumber: 'الفصل {n}',
+    aboutMinutes: { one: 'نحو دقيقة، مع الصوت وأسئلة قصيرة.', two: 'نحو دقيقتين، مع الصوت وأسئلة قصيرة.',
+      few: 'نحو {n} دقائق، مع الصوت وأسئلة قصيرة.', many: 'نحو {n} دقيقة، مع الصوت وأسئلة قصيرة.', other: 'نحو {n} دقيقة، مع الصوت وأسئلة قصيرة.' },
+    allChapters: 'كل الفصول', playLabel: 'تشغيل أو إيقاف مؤقت (المسافة)', backLabel: 'الخطوة السابقة (السهم الأيسر)', restartLabel: 'إعادة الدرس',
+    checksInLesson: 'الأسئلة القصيرة والتمارين موجودة في الدرس التفاعلي.',
+    volumeLabel: 'ضبط مستوى الصوت', volumeTitle: 'مستوى الصوت (0 = صامت)', volumeSlider: 'مستوى الصوت',
+    helpLabel: 'اختصارات لوحة المفاتيح (?)', speedLabel: 'سرعة التشغيل (< و >)', captionsLabel: 'الترجمة النصية (C)', fullScreenLabel: 'ملء الشاشة', goToStep: 'الانتقال إلى الخطوة {n}: {title}',
+    quickCheck: 'تحقّق سريع', countOf: 'السؤال {k} من {n}', check: 'تحقّق', showAnswer: 'أظهر الإجابة', nextQuestion: 'السؤال التالي', continue: 'تابع',
+    correct: 'صحيح. ', notQuite: 'ليس تماماً. ', answerPrefix: 'الإجابة: ', keysPrefix: 'المفاتيح: ',
+    hintMove: ' للتحرك، ', hintChoose: ' للاختيار', hintChooseOrClickGrid: ' للاختيار، أو انقر على الشبكة', hintMoveAlongLine: ' للتحرك على الخط، ',
+    hintChooseOrClick: ' للاختيار، أو انقر', hintRow: ' للصف، ', hintTypeFraction: 'اكتب أعداداً مثل 3/4 أو −2 1/4، ', hintTypeNumber: 'اكتب العدد، ',
+    hintTypeDecimal: 'اكتب العدد، ', hintNextBox: ' للخانة التالية، ', hintCheck: ' للتحقق، ', hintLeaveBox: ' للخروج من الخانة',
+    hintPickNumber: ' لاختيار عدد، ', hintPickRing: ' لاختيار دائرته',
+    rowsRight: '{r} من {n} صحيحة. صحّح الصفوف المعلّمة بـ ✗ ثم تحقّق مرة أخرى.',
+    choicesShown: 'حُدّدت الخيارات الصحيحة الآن.', numbersShown: 'كُتبت الأعداد الصحيحة.',
+    notPlacedYet: 'لم يوضع {x} بعد.',
+    realRingIsEmpty: '{x}: كل عدد حقيقي إما نسبي أو غير نسبي، لذلك لا توجد أعداد خاصة بهذه المنطقة.',
+    ringsRight: '{r} من {n} في الدائرة الصحيحة.', ringsShown: 'كل عدد الآن في أصغر دائرة تحتويه.',
+    chipPlaced: '{x}، موضوع في {ring}', chipNotPlaced: '{x}، لم يوضع', pointLabel: 'النقطة {v}', answerBox: 'الإجابة',
+    stepsLeftOfZero: { one: 'خطوة واحدة يسار 0', two: 'خطوتان يسار 0', few: '{n} خطوات يسار 0', many: '{n} خطوة يسار 0', other: '{n} خطوة يسار 0' },
+    natural: 'الطبيعية', whole: 'الكلية', integers: 'الصحيحة', rational: 'النسبية', irrational: 'غير النسبية', real: 'الحقيقية', integerColumn: 'صحيح',
+    trueLabel: 'صواب', falseLabel: 'خطأ',
+    chapterComplete: 'اكتمل الفصل {n}', quickChecks: 'الأسئلة القصيرة', chapterPractice: 'تمارين الفصل', sources: 'مصادر هذا الفصل', opensSource: '{label}، يفتح المصدر في علامة تبويب جديدة',
+    firstTryScore: '{name}: {r} من {t} صحيحة من المحاولة الأولى.', notAttempted: '{name}: لم تُحاوَل.',
+    watchAgain: 'شاهد مرة أخرى', nextChapter: 'الفصل التالي',
+    wordsHeard: '{k} / {n}', allWordsHeard: 'وجدتها كلها!',
+  },
 };
 // <html data-stage="portrait"> turns the stage upright: 900 wide, 1600 tall. Landscape (1600×900) otherwise.
 const PORTRAIT = document.documentElement.dataset.stage === 'portrait';
@@ -168,6 +211,11 @@ const SW = PORTRAIT ? 900 : 1600, SH = PORTRAIT ? 1600 : 900;
 document.documentElement.style.setProperty('--sw', SW + 'px');
 document.documentElement.style.setProperty('--sh', SH + 'px');
 const LANGUAGE = (document.documentElement.lang || 'en').toLowerCase().split('-')[0];
+// Interface languages written right to left. Their text reads from the right while the stage and the timeline keep
+// their left-to-right geometry (engine.css), so drawings, seeking and the arrow keys mean the same in every language.
+// A page that sets <html dir> itself keeps it. contents.js has the same list: keep the two in step.
+const RTL_LANGUAGES = ['ar'];
+if (!document.documentElement.dir && RTL_LANGUAGES.includes(LANGUAGE)) document.documentElement.dir = 'rtl';
 const pluralRules = {};
 // Interface text in LANGUAGE: translate('chapterNumber', { n: 3 }) → 'Chapter 3'. Chapters may use it too, e.g. for practice labels.
 // contents.js has its own copy for the contents page: keep the two in step.
@@ -266,11 +314,12 @@ document.body.insertAdjacentHTML('afterbegin', `<div id="frame">
 
 /* ---------- drawing helpers ---------- */
 const NS = 'http://www.w3.org/2000/svg';
-const UI = '"Avenir Next","Segoe UI","Helvetica Neue",Arial,sans-serif';
 // Book settings (lib/book.css, next to engine.css and imported by it): --math-font for numbers and formulas,
 // --progress-key for the localStorage key the cover and chapters share.
 const BOOK = getComputedStyle(document.documentElement);
 const bookSetting = name => BOOK.getPropertyValue(name).trim().replace(/^(["'])([^"']*)\1$/, '$2');   // unquote a lone string only
+// The interface face, for measuring text on the canvas: engine.css's --ui (an Arabic page has its own), or a book's.
+const UI = bookSetting('--ui').replace(/,\s+/g, ',') || '"Avenir Next","Segoe UI","Helvetica Neue",Arial,sans-serif';
 // The board and ink colours come from the palette in engine.css, which lib/book.css may redefine (a light board):
 // the picture, the cards and the player bar then agree. The six hues are the chapters' meanings, set in JS.
 const COL = { nat: '#f4a48c', whole: '#86c9e8', int: '#f3c95c', rat: '#e8a0c8', irr: '#8fd6b0', real: '#bba8ee',
