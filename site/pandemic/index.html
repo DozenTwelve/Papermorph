@@ -8,25 +8,28 @@
 <link rel="stylesheet" href="lib/fonts.css">
 <link rel="stylesheet" href="lib/book.css"><!-- only for --progress-key, if the book sets one -->
 <style>
-  :root { --ink: #2b2520; --soft: #6a6258; --paper: #ece3cd; --card: #f6f1e4; --line: #d8ccb2; --accent: #e5402f; --night: #15171c;
+  :root { --ink: #2b2520; --soft: #6a6258; --paper: #ece3cd; --card: #f6f1e4; --line: #d8ccb2; --accent: #e5402f; --accent-text: #b8301f; --accent-on-night: #f0563f; --night: #15171c;
     --ui: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif; --serif: "EB Garamond", "Iowan Old Style", Palatino, Georgia, serif;
     --key: "Oswald", "Avenir Next Condensed", "Arial Narrow", sans-serif; color-scheme: light; }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--paper); color: var(--ink); font: 19px/1.62 var(--serif); }
   a { color: inherit; }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+  ::selection { background: var(--accent); color: #fff; }
   .top { background: var(--night); color: #f3ede0; }
-  .top nav { max-width: 1180px; margin: 0 auto; padding: 18px 24px 0; font: 500 14px/1 var(--key); letter-spacing: .14em; text-transform: uppercase; }
-  .top nav a { color: #d9b9b0; text-decoration: none; }
+  .top nav { max-width: 1180px; margin: 0 auto; padding: 10px 24px 0; font: 500 14px/1 var(--key); letter-spacing: .14em; text-transform: uppercase; }
+  .top nav a { color: #d9b9b0; text-decoration: none; display: inline-block; padding: 8px 0; }
+  .top nav a:hover { color: #f3ede0; }
   header { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 40px; align-items: center; max-width: 1180px; margin: 0 auto; padding: 28px 24px 52px; }
   header .film { position: relative; display: block; border-radius: 6px; overflow: hidden; box-shadow: 0 18px 50px #0008; }
   header .film img { display: block; width: 100%; height: auto; }
-  header .film span { position: absolute; left: 18px; bottom: 16px; padding: 10px 18px; background: var(--accent); color: #fff; font: 600 16px/1 var(--key); letter-spacing: .12em; text-transform: uppercase; }
-  header .film:hover span, header .film:focus-visible span { background: #c8301f; }
-  .kicker { margin: 0 0 6px; color: var(--accent); font: 500 14px/1.2 var(--key); letter-spacing: .16em; text-transform: uppercase; }
+  header .film span { position: absolute; left: 18px; bottom: 16px; padding: 10px 18px; background: #c8301f; color: #fff; font: 600 16px/1 var(--key); letter-spacing: .12em; text-transform: uppercase; white-space: nowrap; }
+  header .film:hover span, header .film:focus-visible span { background: #a8271a; }
+  .kicker { margin: 0 0 6px; color: var(--accent-on-night); font: 500 14px/1.2 var(--key); letter-spacing: .16em; text-transform: uppercase; }
   h1 { margin: 0 0 10px; font: 600 clamp(40px, 5.4vw, 66px)/1 var(--key); letter-spacing: .02em; text-transform: uppercase; }
   .lede { margin: 0 0 14px; font-size: 21px; color: #e6dccb; }
   .meta { margin: 0; color: #b3a99a; font: 15px/1.5 var(--ui); }
-  .watched .meta::after { content: " · ✓ watched"; color: var(--accent); }
+  .watched .meta::after { content: " · ✓ watched"; color: var(--accent-on-night); }
   main { max-width: 760px; margin: 0 auto; padding: 24px 24px 40px; }
   main h2 { margin: 56px 0 8px; font: 600 26px/1.2 var(--key); letter-spacing: .06em; text-transform: uppercase; }
   main h2:first-child { margin-top: 32px; }
@@ -41,7 +44,7 @@
   .numbers div { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; }
   .numbers b { display: block; font: 600 30px/1.1 var(--key); color: var(--accent); }
   .numbers span { font: 14px/1.4 var(--ui); color: var(--soft); }
-  code { font-size: .86em; background: #e2d7bd; padding: 1px 5px; border-radius: 3px; }
+  code { font-size: .86em; color: var(--ink); background: #e2d7bd; padding: 1px 5px; border-radius: 3px; }
   .credits { max-width: 1000px; margin: 20px auto 70px; padding: 0 24px; color: var(--soft); font: 14px/1.6 var(--ui); }
   .credits h2 { font: 600 20px/1.3 var(--key); letter-spacing: .06em; text-transform: uppercase; color: var(--ink); }
   .credits h3 { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; margin: 18px 0 6px; color: var(--ink); }
@@ -56,14 +59,14 @@
   .shorts small { margin: 10px 12px 0; color: var(--soft); font: 600 12px/1.3 var(--ui); letter-spacing: .04em; text-transform: uppercase; }
   .shorts b { margin: 2px 12px 4px; font: 600 19px/1.2 var(--key); letter-spacing: .03em; text-transform: uppercase; }
   .shorts span { margin: 0 12px 12px; color: var(--soft); font: 14px/1.45 var(--ui); }
-  .shorts .watched small::after { content: " · ✓ watched"; color: var(--accent); }
+  .shorts .watched small::after { content: " · ✓ watched"; color: var(--accent-text); }
   .shorts .story { display: grid; grid-template-columns: 3fr 2fr; margin-top: 18px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; text-decoration: none; color: inherit; transition: border-color .15s, transform .15s; }
   .shorts .story:hover, .shorts .story:focus-visible { border-color: var(--accent); transform: translateY(-2px); }
   .shorts .story img { display: block; width: 100%; height: 100%; aspect-ratio: 1000 / 625; object-fit: cover; }
   .shorts .story div { display: flex; flex-direction: column; justify-content: center; padding: 20px 24px; }
   .shorts .story b { margin: 0; font: 600 22px/1.2 var(--key); letter-spacing: .03em; text-transform: uppercase; }
   .shorts .story span { margin: 6px 0 0; color: var(--soft); font: 15px/1.5 var(--ui); }
-  .shorts .story i { margin-top: 12px; color: var(--accent); font: 600 14px/1.3 var(--ui); font-style: normal; }
+  .shorts .story i { margin-top: 12px; color: var(--accent-text); font: 600 14px/1.3 var(--ui); font-style: normal; }
   @media (max-width: 1000px) { .shorts ul { grid-template-columns: repeat(3, 1fr); } }
   @media (max-width: 860px) { figure { margin: 22px 0; } figcaption { margin: 8px 0 0; } }
   @media (max-width: 760px) { header { grid-template-columns: 1fr; gap: 24px; } header .film span { left: 10px; bottom: 10px; padding: 7px 11px; font-size: 13px; } .pair, .numbers { grid-template-columns: 1fr; } .shorts ul { grid-template-columns: 1fr 1fr; } .shorts .story { grid-template-columns: 1fr; } }
