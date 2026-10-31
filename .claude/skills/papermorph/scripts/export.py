@@ -11,7 +11,9 @@ of their scene, as a scene change stops them) and the BGM tracks with their cros
 checks and practice) are left out, and then the video ends on a card saying they are in the interactive lesson
 (--link adds its address); in a film with interactive moments (CHAPTER.film, e.g. the reader fires a rifle) they stay in,
 each holding its last picture for its `hold` seconds (1.5 by default, the music up at 70 % as the page plays it while
-it waits) before the next beat plays as if the reader had acted. A point-and-read beat (tapWords) holds while it shows
+it waits) before the next beat plays as if the reader had acted. A beat with `video: false` in its fourth slot is left
+out, and `video: S` ends it S seconds into its clock, sound and captions cut there, with no wait: a game that only
+works on the page (a listen-and-find stop) stays out of the video. A point-and-read beat (tapWords) holds while it shows
 and says each word in turn, 2 s apart (its `hold`, if set, still wins); a word clip that is missing is named and
 left silent. With --link and no question beats left out, the end
 card shows the title and the link only. A mix that would clip is turned down as a whole (the run prints by how much).
@@ -122,14 +124,18 @@ async def main(a):
         if errs:
             sys.exit(f'page errors: {errs}')
         info = await pg.evaluate("""({lang: CHAPTER.language || 'en', film: !!CHAPTER.film,
-          beats: BEATS.map(b => ({id: b.id, ask: !!b.ask, pre: b.pre || 0, hold: b.hold ?? null})),
+          beats: BEATS.map(b => ({id: b.id, ask: !!b.ask, pre: b.pre || 0, hold: b.hold ?? null, video: b.video ?? null})),
           bgm: typeof BGM === 'undefined' ? [] : BGM.map(m => ({src: m.a.src, beats: m.beats, gain: m.gain, fade: m.fade ?? .8})),
           upInPre: window.MUSIC_UP_IN_PRE || false})""")
         # a film's question beats (CHAPTER.film: the reader acts, e.g. fires) stay in the video: their picture holds `hold` s
         # (BEATS[i].hold, 1.5 by default) where the page waits for the reader, then the next beat plays as if they had acted
-        beats = [(i, x['id']) for i, x in enumerate(info['beats']) if not x['ask'] or info['film']]
+        beats = [(i, x['id']) for i, x in enumerate(info['beats']) if (not x['ask'] or info['film']) and x['video'] is not False]
+        # `video` in a beat's fourth slot: false leaves it out of the video; a number (seconds on its clock) ends it
+        # there, its sound and captions cut, with no wait (a point-and-read game that only works on the page)
+        skipped = [x['id'] for x in info['beats'] if x['video'] is False]
+        if skipped: print(f'left out of the video (video: false): {", ".join(skipped)}')
         info['sfx'] = []
-        asks = len(beats) < len(info['beats'])
+        asks = not info['film'] and any(x['ask'] for x in info['beats'])   # a lesson's questions, left out: the end card says where they are
         box = await pg.locator('#stage').bounding_box()
         clip = {k: box[k] for k in ('x', 'y', 'width', 'height')}
         audio_dir = Path(tempfile.mkdtemp(prefix='export-'))
@@ -142,7 +148,9 @@ async def main(a):
             await open_beat(pg, base, i)
             end, T = await pg.evaluate('[P.end, TIMINGS[BEATS[P.i].id]]')
             if T.get('silent'): silent.add(bid)   # { dur } in the beat's fourth slot: no clip, its sound is silence
-            if info['beats'][i]['ask']:   # from P.end the page waits
+            cut = info['beats'][i]['video']
+            if isinstance(cut, (int, float)) and not isinstance(cut, bool): end = min(end, cut)
+            elif info['beats'][i]['ask']:   # from P.end the page waits
                 waits[bid], hold = end, info['beats'][i]['hold']
                 if demo := await pg.evaluate('P.tapDemo ? [P.tapDemo.clips, P.tapDemo.step] : null'):
                     words[bid] = demo
@@ -160,7 +168,7 @@ async def main(a):
                                                [bid, count, a.fps]))
             for k, c in enumerate(T['cues']):   # [t, text, end?]: the page shows it at pre + t
                 stop = c[2] if len(c) > 2 else T['cues'][k + 1][0] if k + 1 < len(T['cues']) else T['dur']
-                cues.append((offset + pre + c[0], offset + pre + stop, c[1]))
+                if pre + c[0] < end: cues.append((offset + pre + c[0], offset + pre + min(stop, end - pre), c[1]))
             offset += end
         total = offset + end_s
         track = np.zeros((round(total * RATE) + 1, 2), np.float32)
@@ -269,6 +277,7 @@ async def main(a):
             await x.close()
     with open(out / f'{a.chapter}.srt', 'w', encoding='utf-8') as f:
         for k, (t0, t1, line) in enumerate(cues, 1):
+            if k < len(cues): t1 = min(t1, cues[k][0])   # a cue ends where the next begins: video sites stack overlaps
             f.write(f'{k}\n{srt_time(t0)} --> {srt_time(t1)}\n{line}\n\n')
     if errs or enc.returncode:
         part.unlink(missing_ok=True)
