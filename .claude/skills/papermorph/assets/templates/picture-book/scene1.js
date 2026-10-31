@@ -17,6 +17,8 @@ function scene1(p, D) {
   // The listen-and-find stop after the scene (chapter.html's FIND1): every thing a child might tap says its name
   // (audio/en/w-<word>.mp3), so list the background's people too, not only what is asked for.
   THINGS1 = [{ g: cat.g, word: 'cat' }, { g: dad.g, word: 'dad' }, { g: kid.g, word: 'kid' }];
+  sfx('scene1', 0, 'room', .4, { loop: true });          // a bed: room tone laid again and again to the scene's end,
+                                                         // through the find stop's wait too (sound.md)
   sfx('scene1', .3, 'knock');                            // audio/sfx/knock.mp3 (SKILL/scripts/sfx.py)
   const enter = clipAt('scene1', PRE1, 's02');           // when the kid's first line starts
   // the kid side-steps in from the left with planted feet (spStep, cast.js): whole steps (2/3 s each) that end at x 580
