@@ -3,20 +3,28 @@
 
     uv run --with playwright --with numpy export.py ch12 --url http://localhost:8765/<book>/ --out OUT
     ... --fps 30 --height 1080 --link https://example.org/<book>/ch12/
+    ... --lufs -14 (the sound's loudness; default -16, off: as mixed) --to scene1 (stop after that beat)
 
 The engine draws every frame as a pure function of the beat time, so frames are rendered by seeking, not by
 recording playback: the video is exact and the same on every run. The sound is mixed the way the page plays it:
 each beat's clip from its `pre` on, and in a film (a picture book or a documentary) the sfx() effects (cut at the end
-of their scene, as a scene change stops them) and the BGM tracks with their crossfades, ducking and MUSIC_OFF. Question beats (quick
+of their scene, as a scene change stops them; a bed, { loop: true }, laid again and again to its `to` or the beat's end) and the BGM tracks with their crossfades, ducking and MUSIC_OFF. Question beats (quick
 checks and practice) are left out, and then the video ends on a card saying they are in the interactive lesson
 (--link adds its address); in a film with interactive moments (CHAPTER.film, e.g. the reader fires a rifle) they stay in,
-each holding its last picture for its `hold` seconds (1.5 by default, the music up at 70 % as the page plays it while
-it waits) before the next beat plays as if the reader had acted. A beat with `video: false` in its fourth slot is left
+each holding its picture for its `hold` seconds (1.5 by default; the scene's breathing and blinking go on and its beds
+play, the music up at 70 %, as the page plays it while it waits) before the next beat plays as if the reader had acted. A beat with `video: false` in its fourth slot is left
 out, and `video: S` ends it S seconds into its clock, sound and captions cut there, with no wait: a game that only
-works on the page (a listen-and-find stop) stays out of the video. A point-and-read beat (tapWords) holds while it shows
-and says each word in turn, 2 s apart (its `hold`, if set, still wins); a word clip that is missing is named and
-left silent. With --link and no question beats left out, the end
-card shows the title and the link only. A mix that would clip is turned down as a whole (the run prints by how much).
+works on the page (a listen-and-find stop, findWords) stays out of the video. With --link and no question beats left
+out, the end card shows the title and the link only.
+
+Loudness: the mix is levelled to --lufs integrated (default -16, a level video sites and phones play without turning
+it up much; YouTube plays louder ones at -14) with its true peak under -1.5 dBTP, by a gain and a limiter as level.py
+levels a clip; the run prints the loudness before and after, and of the finished MP4. --lufs off keeps the mix as the
+page plays it (a picture book's comes out near -19), turned down as a whole only if it would clip.
+
+The sound comes from the engine's own lists (sfx(), music(), MUSIC_OFF and MUSIC_UP_IN_PRE as window properties). A
+page that declares its own SFX, BGM, sfx(), music() or MUSIC_OFF (an older book's sound player) hides them from the
+engine: the run names each such global and says that sound is not in the video.
 Odd sizes (an upright --height 720 is 405 wide) are cut to even ones, as H.264 needs. The video is written to
 OUT/chNN.tmp.mp4 and renamed when done, so a failed run leaves an earlier OUT/chNN.mp4 alone. Captions are not burned
 in: upload OUT/chNN.srt with the video. Needs ffmpeg; serve the site over HTTP first.
@@ -34,8 +42,11 @@ import numpy as np
 from pathlib import Path
 from playwright.async_api import async_playwright
 from browsers import exe
+import level as lv
 
 END_SECONDS = 4
+PEAK = -1.5   # true-peak ceiling of a levelled mix, dBTP
+BED_OVERLAP = .5   # as the engine's: a looping bed's next lay starts this long before the last one ends
 FLAT = '#frame { border-radius: 0 !important; box-shadow: none !important; }'   # square corners in the video
 
 END_CARD = """([link, asks]) => {
@@ -89,7 +100,20 @@ def srt_time(t):
     return f'{ms // 3600000:02d}:{ms // 60000 % 60:02d}:{ms // 1000 % 60:02d},{ms % 1000:03d}'
 
 
-SFX_JS = "typeof SFX === 'undefined' ? [] : SFX.map(e => ({...e, src: new URL(`audio/sfx/${e.name}.mp3`, location.href).href}))"
+SFX_JS = "SND.sfx.map(e => ({...e, src: new URL(`audio/sfx/${e.name}.mp3`, location.href).href}))"
+
+# A page's own sound globals (an older book's player, or a const the engine cannot see): each hides its sound from the
+# engine's lists, which are what the video mixes. Indirect eval reads a page's const/let as the page's code does.
+CLASH_JS = """(() => {
+  const own = n => { try { return (0, eval)(n); } catch { return undefined; } }, out = [];
+  for (const [n, v] of [['SFX', SND.sfx], ['SFX_BED', SND.bed], ['BGM', SND.bgm]])
+    if (own(n) !== undefined && own(n) !== v) out.push(`${n} (the page's own, not the engine's sfx()/music() list)`);
+  for (const [n, k] of [['sfx', 'SND.sfx'], ['music', 'SND.bgm']])
+    if (typeof own(n) === 'function' && !String(own(n)).includes(k)) out.push(`${n}() (the page's own, replacing the engine's)`);
+  for (const n of ['MUSIC_OFF', 'MUSIC_UP_IN_PRE'])
+    if (own(n) !== undefined && own(n) !== window[n]) out.push(`${n} (a const or let: the engine reads window.${n})`);
+  return out;
+})()"""
 
 
 QUERY = ''   # extra page query (--query), e.g. 'tags&'
@@ -123,16 +147,25 @@ async def main(a):
         await pg.goto(base + f'?{QUERY}beat=0&t=0'); await pg.wait_for_timeout(500)
         if errs:
             sys.exit(f'page errors: {errs}')
+        if clash := await pg.evaluate(CLASH_JS):
+            print('warning: the page declares sound globals of its own, which the engine does not play and the video leaves out:\n  '
+                  + '\n  '.join(clash) + '\n  move that sound to the engine\'s sfx() and music(), or set window.MUSIC_OFF', flush=True)
         info = await pg.evaluate("""({lang: CHAPTER.language || 'en', film: !!CHAPTER.film,
           beats: BEATS.map(b => ({id: b.id, ask: !!b.ask, pre: b.pre || 0, hold: b.hold ?? null, video: b.video ?? null})),
-          bgm: typeof BGM === 'undefined' ? [] : BGM.map(m => ({src: m.a.src, beats: m.beats, gain: m.gain, fade: m.fade ?? .8})),
+          bgm: SND.bgm.map(m => ({src: m.a.src, beats: m.beats, gain: m.gain, fade: m.fade ?? .8})),
           upInPre: window.MUSIC_UP_IN_PRE || false})""")
         # a film's question beats (CHAPTER.film: the reader acts, e.g. fires) stay in the video: their picture holds `hold` s
         # (BEATS[i].hold, 1.5 by default) where the page waits for the reader, then the next beat plays as if they had acted
         beats = [(i, x['id']) for i, x in enumerate(info['beats']) if (not x['ask'] or info['film']) and x['video'] is not False]
         # `video` in a beat's fourth slot: false leaves it out of the video; a number (seconds on its clock) ends it
         # there, its sound and captions cut, with no wait (a point-and-read game that only works on the page)
-        skipped = [x['id'] for x in info['beats'] if x['video'] is False]
+        if a.to:   # a first part of the film: every beat up to this one, so the music stands where the film has it
+            ids = [x['id'] for x in info['beats']]
+            if a.to not in ids: sys.exit(f'--to {a.to}: no such beat; the beats are {", ".join(ids)}')
+            beats = [(i, bid) for i, bid in beats if i <= ids.index(a.to)]
+            print(f'up to {a.to}: {len(beats)} beats')
+        last = beats[-1][0] if beats else -1
+        skipped = [x['id'] for i, x in enumerate(info['beats']) if x['video'] is False and i <= last]
         if skipped: print(f'left out of the video (video: false): {", ".join(skipped)}')
         info['sfx'] = []
         asks = not info['film'] and any(x['ask'] for x in info['beats'])   # a lesson's questions, left out: the end card says where they are
@@ -143,7 +176,6 @@ async def main(a):
         # Pass 1: the sound track and the captions, beat by beat at the beat's length on screen.
         end_s = END_SECONDS if asks or a.link else 0   # a picture book ends on its own last scene
         lengths, starts, counts, music_off, cues, offset, waits, silent = [], [], [], [], [], 0.0, {}, set()
-        words, spoken = {}, []   # a point-and-read beat (tapWords): its word clips and the seconds between them; when each is said
         for i, bid in beats:
             await open_beat(pg, base, i)
             end, T = await pg.evaluate('[P.end, TIMINGS[BEATS[P.i].id]]')
@@ -152,9 +184,6 @@ async def main(a):
             if isinstance(cut, (int, float)) and not isinstance(cut, bool): end = min(end, cut)
             elif info['beats'][i]['ask']:   # from P.end the page waits
                 waits[bid], hold = end, info['beats'][i]['hold']
-                if demo := await pg.evaluate('P.tapDemo ? [P.tapDemo.clips, P.tapDemo.step] : null'):
-                    words[bid] = demo
-                    if hold is None: hold = len(demo[0]) * demo[1] + 1
                 end += 1.5 if hold is None else hold
             # a scene lists its sfx() when its beat is built, so they are collected beat by beat
             for e in await pg.evaluate(SFX_JS):
@@ -175,14 +204,16 @@ async def main(a):
         for k, (i, bid) in enumerate(beats):
             o, pre = starts[k], info['beats'][i]['pre']
             if bid not in silent: put(track, o + pre, decode(f'{a.url}{a.chapter}/audio/{info["lang"]}/{bid}.mp3'), 1, o + lengths[k])
-            for n, name in enumerate(words.get(bid, [[]])[0]):   # the words, said in turn while the picture holds
-                src, at = f'{a.url}{a.chapter}/audio/{info["lang"]}/{name}.mp3', waits[bid] + n * words[bid][1]
-                try: said = decode(src)
-                except subprocess.CalledProcessError: print(f'{bid}: no word clip {src}: that word is silent'); continue
-                put(track, o + at, said, 1, o + lengths[k]); spoken.append((bid, at, at + len(said) / RATE))
             for e in info['sfx']:   # effects sit at half volume under the voices; a new scene stops them
-                if e['beat'] == bid and 0 <= e['at'] < lengths[k]:
-                    put(track, o + e['at'], decode(e['src']), .5 * e['vol'], o + lengths[k])
+                if e['beat'] != bid: continue
+                fx = decode(e['src'])
+                if e.get('loop'):   # a bed: laid again every (its length - BED_OVERLAP) s to `to`, else the beat's end and its hold
+                    stop = lengths[k] if e.get('to') is None else min(lengths[k], e['to'])
+                    step, at = max(.5, len(fx) / RATE - BED_OVERLAP), e['at']
+                    while 0 <= at < stop:
+                        put(track, o + at, fx, .5 * e['vol'], o + stop); at += step
+                elif 0 <= e['at'] < waits.get(bid, lengths[k]):   # a one-shot due past the beat's own end never plays
+                    put(track, o + e['at'], fx, .5 * e['vol'], o + lengths[k])
         # music: the engine's music player (soundTick), frame by frame: crossfades of the track's `fade` (0.8 s by default), ducked to 30 % in a
         # scene with voices; with MUSIC_UP_IN_PRE (true, or a list of beat ids) the music comes up to 70 % while a beat's
         # picture runs before its narration, and in a film while the page waits for the reader (the hold)
@@ -192,8 +223,6 @@ async def main(a):
         frames_off = [x for m in music_off for x in m]
         beat_len = {bid: lengths[k] for k, (_, bid) in enumerate(beats)}
         beat_pre = {x['id']: x['pre'] for x in info['beats']}
-        # a word said while the picture holds ducks the music at once, as the page ducks it under a tapped word
-        saying = lambda bid, t: any(b == bid and t0 <= t < t1 for b, t0, t1 in spoken)
         for m in info['bgm']:
             song, v, duck, pos = decode(m['src']), 0.0, .3, 0.0
             gain = np.zeros(n); at = np.zeros(n, int)
@@ -202,8 +231,8 @@ async def main(a):
                 current = bid in m['beats'] and not frames_off[f]
                 v = max(0.0, min(1.0, v + (1 if current else -1) / fps / m['fade'])) if m['fade'] > 0 else float(current)   # 0: a cut
                 up = info['upInPre']
-                want = .7 if (up and (up is True or bid in up) and t < beat_pre[bid]) or t >= waits.get(bid, 1e9) and not saying(bid, t) else .3
-                duck += max(-(4 if want < duck and saying(bid, t) else 1) / fps, min(1 / fps, want - duck))
+                want = .7 if (up and (up is True or bid in up) and t < beat_pre[bid]) or t >= waits.get(bid, 1e9) else .3
+                duck += max(-1 / fps, min(1 / fps, want - duck))
                 if current: pos = sum(beat_len.get(b, 0) for b in m['beats'][:m['beats'].index(bid)]) + t
                 else: pos += 1 / fps
                 gain[f], at[f] = v * m['gain'] * duck, round(pos * RATE) % len(song)
@@ -213,10 +242,23 @@ async def main(a):
                 put(track, i / RATE, seg, gain[f])
         peak = float(np.abs(track).max())
         if peak > 1: track *= .98 / peak   # a mix that would clip, turned down as a whole
-        wav = audio_dir / 'track.wav'
-        with wave.open(str(wav), 'wb') as w:
+        wav = mix = audio_dir / 'mix.wav'
+        with wave.open(str(mix), 'wb') as w:
             w.setnchannels(2); w.setsampwidth(2); w.setframerate(RATE)
             w.writeframes((np.clip(track, -1, 1) * 32767).astype('<i2').tobytes())
+        if a.lufs is not None:   # levelled as level.py levels a clip: a gain, a limiter, measured and redone
+            wav, (i0, tp0) = audio_dir / 'track.wav', lv.measure(mix)[:2]
+            g, lim = a.lufs - i0, PEAK - .3
+            for _ in range(5):
+                subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', str(mix), '-af',
+                                f'volume={g:.2f}dB,alimiter=limit={10 ** (lim / 20):.4f}:level=0:latency=1', '-c:a', 'pcm_s16le', str(wav)], check=True)
+                i1, tp1 = lv.measure(wav)[:2]
+                if tp1 <= PEAK and abs(a.lufs - i1) <= .3: break
+                if tp1 > PEAK: lim -= tp1 - PEAK + .2
+                if abs(a.lufs - i1) > .3: g += a.lufs - i1   # the limiter took some of the loudness
+            print(f'loudness {i0:.1f} LUFS, {tp0:.1f} dBTP as the page mixes it; levelled to {i1:.1f} LUFS, {tp1:.1f} dBTP '
+                  f'({g:+.1f} dB, limiter at {lim:.1f} dBFS; --lufs {a.lufs:g})'
+                  + ('' if abs(a.lufs - i1) <= .5 else f': WARNING {a.lufs - i1:+.1f} LU from the target, the limiter holds it back'), flush=True)
         # Pass 2: frames, shot by --jobs browsers at once and piped in order into the encoder with the audio track.
         codec, opts = encoder()
         print(f'encoder {codec}, {a.jobs} browsers', flush=True)
@@ -245,11 +287,10 @@ async def main(a):
                 await open_beat(w, base, i); opened[w], last[w] = i, -1
             # evalTo only runs forward and a tween takes its start value when first reached, so overlapping tweens
             # depend on the frames before: each browser steps every frame since its last shot, as one browser would
-            await w.evaluate('ts => { for (const t of ts) { P.t = t; evalTo(t); } }',
-                             [g / a.fps for g in range(last[w] + 1, f + 1)])
-            bid = info['beats'][i]['id']
-            if bid in words and f / a.fps >= waits[bid]:   # the words in turn, as if tapped
-                await w.evaluate('s => P.tapDemo?.at(s)', f / a.fps - waits[bid])
+            # past a film ask's wait start the beat's clock stays at its end and the engine draws the wait (P.idleAt), so
+            # the puppets breathe and blink through the hold as on the page
+            await w.evaluate('([ts, wait]) => { for (const t of ts) { if (wait !== null && t > wait && P.idleAt) { P.t = wait; evalTo(wait); P.idleAt(t - wait); } else { P.t = t; evalTo(t); } } }',
+                             [[g / a.fps for g in range(last[w] + 1, f + 1)], waits.get(info['beats'][i]['id'])])
             last[w] = f
             return await w.screenshot(clip=clip, type='jpeg', quality=92)
 
@@ -283,6 +324,9 @@ async def main(a):
         part.unlink(missing_ok=True)
         sys.exit(f'failed: {errs[:3]} encoder {enc.returncode}')
     part.replace(video)
+    if a.lufs is not None:
+        i2, tp2 = lv.measure(video)[:2]
+        print(f'{video}: {i2:.1f} LUFS, {tp2:.1f} dBTP after the AAC encode')
     print(f'{video} ({total / 60:.1f} min, {frames} frames, {len(beats)} beats{"; question beats left out" if asks else ""}; '
           f'sound peak {peak:.2f}{f" turned down to 0.98 (x{.98 / peak:.2f}) so as not to clip" if peak > 1 else ""}) and {a.chapter}.srt')
 
@@ -300,6 +344,9 @@ if __name__ == '__main__':
     ap.add_argument('--height', type=int, help='video height (default 1080 landscape, 1920 portrait)')
     ap.add_argument('--link', help='address of the interactive lesson, shown on the end card')
     ap.add_argument('--query', default='', help='extra page query, e.g. tags (the source and AI-illustration tags)')
+    ap.add_argument('--lufs', default=-16.0, type=lambda v: None if v == 'off' else float(v),
+                    help="integrated loudness of the video's sound (default -16; off: as the page mixes it)")
+    ap.add_argument('--to', metavar='BEAT', help='stop after this beat (its id): a first part of the film, e.g. one scene to check')
     ap.add_argument('--no-tags', action='store_true', help="an upright film without its source and AI tags (shown by default)")
     args = ap.parse_args()
     QUERY = args.query + '&' if args.query else ''

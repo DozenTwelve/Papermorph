@@ -22,7 +22,7 @@ from pathlib import Path
 
 def measure(f):
     """Integrated loudness (LUFS), true peak (dBTP), duration (s) and bit rate of a clip."""
-    r = subprocess.run(["ffmpeg", "-hide_banner", "-nostats", "-i", str(f), "-af", "loudnorm=print_format=json",
+    r = subprocess.run(["ffmpeg", "-hide_banner", "-nostats", "-i", str(f), "-vn", "-af", "loudnorm=print_format=json",
                         "-f", "null", "-"], capture_output=True, text=True, check=True)
     m = json.loads(re.search(r"\{[^{}]*\"input_i\"[^{}]*\}", r.stderr).group(0))
     p = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration,bit_rate", "-of", "json", str(f)],

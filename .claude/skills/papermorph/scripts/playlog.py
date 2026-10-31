@@ -14,8 +14,14 @@ time with its label (four a row):
     scene1     1.12  line   Every afternoon, the old man plays chess in the park.
     scene1     8.41  sfx    clack   vol 0.50
 
+    scene1     0.00  music  theme in   gain 0.40
+    scene7    33.20  music  theme out (MUSIC_OFF)   gain 0.40
+
 voice/sfx/bgm: an audio file started playing (its folder under audio/ names the kind; vol is the element's volume
-when it started, the slider at 1). line: the caption changed (captions are switched on for the run). An effect
+when it started, the slider at 1). music: a track of the engine's music() came in under the film or went out (a beat
+outside its list, or a MUSIC_OFF moment), with its music() gain; the engine ducks it to 30 % under a beat, 70 % in a
+MUSIC_UP_IN_PRE lead-in and while a film waits for the reader. line: the caption changed (captions are switched on for
+the run). An effect
 listed twice at one moment plays twice. Look at each frame: is the clack on the frame where the piece lands, the
 slurp where the cup is at the mouth, the line where that character's mouth moves? Effects fire only in normal
 playback, never on a seek, which is why this plays the chapter instead of seeking it. Chromium; if it cannot play
@@ -33,7 +39,8 @@ try { localStorage.setItem('captions', '1'); } catch {}
 const play0 = HTMLMediaElement.prototype.play;
 HTMLMediaElement.prototype.play = function () {
   try {
-    if (this.paused && !this.muted && typeof P !== 'undefined' && P.playing) {   // a real start (not a resume of a playing clip, not the silent unlock)
+    const engineMusic = typeof SND !== 'undefined' && SND.bgm.some(m => m.a === this);   // logged below, from its state
+    if (this.paused && !this.muted && !engineMusic && typeof P !== 'undefined' && P.playing) {   // a real start (not a resume of a playing clip, not the silent unlock)
       const src = decodeURI(new URL(this.currentSrc || this.src, location.href).pathname).replace(/^.*?\/audio\//, '');
       __log.push({ kind: /^sfx\//.test(src) ? 'sfx' : /^bgm\//.test(src) ? 'bgm' : 'voice', what: src.replace(/^(sfx|bgm)\//, '').replace(/\.mp3$/, ''),
                    i: P.i, t: P.t, vol: this.volume });
@@ -47,6 +54,22 @@ AudioBufferSourceNode.prototype.start = function () {
   try { if (this._sfx && P.playing) __log.push({ kind: 'sfx', what: this._sfx, i: P.i, t: P.t, vol: this._vol }); } catch {}
   return start0.apply(this, arguments);
 };
+// the engine's music (music()): its element starts once and plays on (the first, muted play() unlocks it), so each
+// track is logged when it comes in under the film or goes out, a MUSIC_OFF moment included
+const musicWas = new Map();
+setInterval(() => {
+  try {
+    if (typeof SND === 'undefined' || !P.playing) return;
+    const id = BEATS[P.i]?.id, off = !!window.MUSIC_OFF?.[id]?.(P.t);
+    for (const m of SND.bgm) {
+      const on = !!m.cur;
+      if (on === (musicWas.get(m) || false)) continue;
+      musicWas.set(m, on);
+      const name = decodeURI(new URL(m.n, location.href).pathname).replace(/^.*\//, '').replace(/\.mp3$/, '');
+      __log.push({ kind: 'music', what: `${name} ${on ? 'in' : 'out'}${!on && off ? ' (MUSIC_OFF)' : ''}`, i: P.i, t: P.t, vol: m.gain });
+    }
+  } catch {}
+}, 40);
 addEventListener('DOMContentLoaded', () => {
   const c = document.getElementById('caption'); if (!c) return;
   let last = '';
@@ -95,7 +118,7 @@ async def main(a):
             r = await pg.evaluate("(() => { const r = document.getElementById('stage').getBoundingClientRect(); return {x: r.x, y: r.y, width: r.width, height: r.height}; })()")
             shots.append((e, Image.open(io.BytesIO(await pg.screenshot(clip=r))).convert("RGB").resize((cw, ch))))
         await b.close()
-    lines = [f"{ids[e['i']]:10} {e['t']:6.2f}  {e['kind']:5}  {e['what']}" + (f"   vol {e['vol']:.2f}" if e['kind'] == 'sfx' else '') for e, _ in shots]
+    lines = [f"{ids[e['i']]:10} {e['t']:6.2f}  {e['kind']:5}  {e['what']}" + (f"   vol {e['vol']:.2f}" if e['kind'] == 'sfx' else f"   gain {e['vol']:.2f}" if e['kind'] == 'music' else '') for e, _ in shots]
     if afail: lines.append("note: sound did not play in this browser; the clock ran on wall time")
     (a.out / f"{a.chapter}_playlog.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("\n".join(lines))
