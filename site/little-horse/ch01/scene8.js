@@ -1,4 +1,4 @@
-/* scene8.js — At the mill, the second "listen and find" stop (lib/find.js). Little Horse walks up to the mill door,
+/* scene8.js — At the mill, the second "listen and find" stop (the engine's findWords). Little Horse walks up to the mill door,
    kneels so the sack slides off his back, catches its tie in his teeth and sets it down by the door with a thud, then
    stands proud by it ("Little Horse brought the wheat to the mill." — the video keeps the beat to PRE8 + 3.6, this
    proud hold with a small nod). On "Let's play again! Listen, and touch what he asks for." he steps back and the camera
@@ -64,7 +64,7 @@ function scene8(p, D) {
   ];
 
   // sound: the mill race under the whole scene, a hoof at every other footfall, the thud, a quack as the ducks come in
-  sfx('scene8', 0, 'mill', .5);
+  sfx('scene8', 0, 'mill', .5, { loop: true });
   for (const keys of [s8_IN, s8_BACK]) {
     let last = null;
     for (let t = Math.max(0, keys[0][0]); t <= keys[1][0] + .2; t += 1 / 24) {
@@ -87,7 +87,7 @@ function scene8(p, D) {
   stopClock(D, (q, f) => {
     cam.apply(q, f);
     wheel(q);
-    const hop = getComputedStyle(wheelHit).translate;   // the hop and the hint's shake find.js gives the wheel's circle
+    const hop = getComputedStyle(wheelHit).translate;   // the hop and the hint's shake findWords gives the wheel's circle
     tf(wheelWrap, hop === 'none' ? '' : `translate(${hop.split(' ').map(parseFloat).map(v => v || 0).join(',')})`);
 
     // Little Horse

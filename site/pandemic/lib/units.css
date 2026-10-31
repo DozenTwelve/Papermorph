@@ -60,7 +60,7 @@
 @keyframes breathe { from { transform: scaleY(1); } to { transform: scaleY(.35); } }
 /* The label and the title share a line when they fit; a long title wraps below the label instead of running off. */
 .unit h2 .title { min-width: 0; text-wrap: balance; }
-.unit h2 .label { font: 600 14px var(--ui); letter-spacing: .14em; text-transform: uppercase; color: var(--c); white-space: nowrap; }
+.unit h2 .label { font: 600 16px var(--ui); color: var(--c); white-space: nowrap; }
 /* Keep the sketches cheap: each is its own layer, so its loop repaints only itself, and loops pause while their unit is
    off screen or under the sticky bar (units.js toggles .live), so the bar's blur is not redrawn every frame. */
 .unit-art { will-change: transform; contain: layout style; }

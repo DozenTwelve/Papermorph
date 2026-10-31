@@ -170,9 +170,3 @@ function bigStep(u, L = 166, reach = 30) {
   const h = Math.cos(reach * e * r), kFar = Math.max(0, Math.acos(Math.min(1, 2 * h - Math.cos(far * r))) / r - far);
   return { near, far, kNear: 75 * lift, kFar, d: 2 * L * Math.sin(reach * Math.PI / 360) * e * 1.6, drop: L * (1 - h) };
 }
-
-// Beds (forest, meadow, room) are 10 s files with soft ends that tile every 9.5 s (SOUND.md): a scene calls sfx() for
-// one once, at its start, and it is laid again every BED_STEP s so it runs to the scene's end (effects past a beat's
-// end never play, and export.py leaves them out too). The page waiting at the meadow stop plays no effects.
-const BED_STEP = { forest: 9.5, meadow: 9.5, room: 9.5 };
-{ const once = window.sfx; window.sfx = (beat, t, name, vol, ...more) => { once(beat, t, name, vol, ...more); if (BED_STEP[name]) for (let k = 1; k * BED_STEP[name] < 60; k++) once(beat, +(t + k * BED_STEP[name]).toFixed(2), name, vol, ...more); }; }

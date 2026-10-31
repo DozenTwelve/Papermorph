@@ -30,8 +30,9 @@ document.body.insertAdjacentHTML('beforeend', `<svg width="0" height="0" style="
   ${[30, 55, 80].map(k => `<filter id="s5_dark${k}" color-interpolation-filters="sRGB"><feComponentTransfer><feFuncR type="linear" slope="${k / 100}"/><feFuncG type="linear" slope="${k / 100}"/><feFuncB type="linear" slope="${(k + 6) / 100}"/></feComponentTransfer></filter>`).join('')}
 </defs></svg>`);
 
-sfx('scene5', 0, 'forest', .5);
-sfx('scene5', s5_IN, 'room', .4);
+// the beds follow the cuts: the forest outside (A, B, D), the room inside (C, E)
+sfx('scene5', 0, 'forest', .5, { loop: true, to: s5_IN }); sfx('scene5', s5_OUT, 'forest', .5, { loop: true, to: s5_DOOR });
+sfx('scene5', s5_IN, 'room', .4, { loop: true, to: s5_OUT }); sfx('scene5', s5_DOOR, 'room', .4, { loop: true });
 [1.0, 1.44].forEach(t => sfx('scene5', t, 'run', 1.3));
 sfx('scene5', 1.9, 'skid', 1.3);
 [0, 1, 2].forEach(k => sfx('scene5', +(s5_TIP + s5_TIPP * (.25 + k / 2)).toFixed(2), 'pad', 1));

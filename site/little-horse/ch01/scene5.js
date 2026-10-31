@@ -102,7 +102,7 @@ function scene5(p, D) {
     g: prop(cam.stage, `<g filter="url(#paper)"><path d="M0,-9 C7,-6 8,4 0,9 C-8,4 -7,-6 0,-9 Z" fill="${['#71a056', '#83b264', '#5f8e48', '#94bb7c'][i]}"/><path d="M0,-8 L0,8" stroke="#4f7c3e" stroke-width="1.6"/></g>`) }));
   const picture = s5_picture(cam.stage);
 
-  sfx('scene5', 0, 'river', .45); sfx('scene5', 0, 'birds', .35);
+  sfx('scene5', 0, 'river', .45, { loop: true }); sfx('scene5', 0, 'birds', .35, { loop: true });
   sfx('scene5', .15, 'squeak', .35); sfx('scene5', s5_UP, 'whoosh', .7); sfx('scene5', s5_LAND, 'hop', .7);
   sfx('scene5', T(1.24), 'sting', .35);                 // "Stop!"
   sfx('scene5', tPic, 'pop', .4);                       // the picture opens

@@ -21,3 +21,9 @@ def speech_end(f):
 def pauses(f):
     """The start of every pause of 0.45 s or more inside a clip."""
     return _detect(f, .45)[0]
+
+
+def silences(f, d=.15):
+    """Every silence of d seconds or more inside a clip, as (start, end) pairs (a trailing one without an end is left out)."""
+    starts, ends = _detect(f, d)
+    return list(zip(starts, ends))

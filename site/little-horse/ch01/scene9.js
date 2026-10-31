@@ -68,7 +68,7 @@ function scene9(p, D) {
   const card = endCard(p, tCard, 'The End', { x: 800, y: 150, size: 72 });
 
   // sound: beds, hooves in, the hops, the wade, the climb
-  sfx('scene9', 0, 'river', .5); sfx('scene9', 0, 'birds', .4);
+  sfx('scene9', 0, 'river', .5, { loop: true }); sfx('scene9', 0, 'birds', .4, { loop: true });
   [.3, .95, 1.6, 2.3, 3.0, 3.8].forEach(t => sfx('scene9', t, 'hoof', .25));
   sfx('scene9', tJump, 'hop', .5); sfx('scene9', tLand, 'pop', .3);
   let tWet = tGo, tDry = tGo; while (wade(tWet).x > 1320) tWet += .02; while (wade(tDry).x > 690) tDry += .02;   // into and out of the water

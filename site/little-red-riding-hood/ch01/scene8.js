@@ -28,7 +28,7 @@ document.body.insertAdjacentHTML('beforeend', `<svg width="0" height="0" style="
 const s8_FEAR = [{ X: 'A', C: 'H', D: 'E', G: 'B' }, { X: 's8W', C: 'H', D: 'E', G: 'B' },
   { X: 's8W', A: 's8W', B: 's8sB', C: 's8sH', D: 's8sE', E: 's8sE', F: 's8sF', G: 's8sB', H: 's8sH' }];
 { const C = (c, t = 0) => clipAt('scene8', PRE8, c, t);
-  sfx('scene8', 0, 'room', .4, 10);   // BED_STEP (shared.js) lays it again every 9.5 s
+  sfx('scene8', 0, 'room', .4, { loop: true });   // a bed: it repeats to the end of the scene
   // the woodcutter still chopping outside, through the wall, in the gaps; quiet from the umbrella on
   [.35, C('s08', 2.75), C('s08c', -.6), C('s08d', -.55), C('umbrella8', .2), C('umbrella8', 1.05)].forEach(t => sfx('scene8', +t.toFixed(2), 'chopin', .9));
   sfx('scene8', +(C('s08f', 1.8) - .34).toFixed(2), 'sting', 2);   // its chord lands on "EAT"

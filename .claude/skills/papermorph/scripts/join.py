@@ -77,7 +77,7 @@ for arg in args:
             mine = [w for w in said if t <= w < lim]
             stop = min([last] + ([nxt] + [h for h, _ in holes[b] if t < h < nxt] if nxt is not None else [])
                        + [x for x in ps if t + .15 < x < lim and mine and x > max(mine) + .2])
-            cues.append([round(shift(b, t) + at + LAG, 3), c, round(shift(b, stop - 1e-3) + at + .3, 3)] + [1] * bool(T[b].get('forced')))
+            cues.append([round(shift(b, t) + at + (WB.get(b) or {}).get('lag', LAG), 3), c, round(shift(b, stop - 1e-3) + at + .3, 3)] + [1] * bool(T[b].get('forced')))
         marks.update({f'{b}.{k}': round(shift(b, v) + at, 3) for k, v in T[b]['marks'].items()})
         at += T[b]['dur'] + sum(sec for _, sec in holes[b]) + GAP
     dur = float(subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', str(d / f'{shot}.mp3')], capture_output=True, text=True).stdout)
@@ -96,6 +96,6 @@ if words:   # every word where it is heard in its scene clip
         for b, p in v['parts'].items():
             hs = ' '.join(f'[hole {round(p + sh(b, at - 1e-6), 2)}…{round(p + sh(b, at - 1e-6) + sec, 2)}]' for at, sec in H.get(b, []))
             ws = W.get(b, {}).get('words', [])
-            lines.append(f"   {b} @{p} {hs} | " + (' '.join(f'{w}@{round(p + sh(b, t) + LAG, 2)}' for t, w in ws) or '(silence)'))
+            lines.append(f"   {b} @{p} {hs} | " + (' '.join(f'{w}@{round(p + sh(b, t) + W.get(b, {}).get("lag", LAG), 2)}' for t, w in ws) or '(silence)'))
     words.with_suffix('.words.txt').write_text('\n'.join(lines) + '\n', encoding='utf-8')
 print({k: (v['dur'], v['parts']) for k, v in out.items()})

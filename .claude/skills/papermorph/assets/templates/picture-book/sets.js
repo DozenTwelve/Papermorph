@@ -6,7 +6,10 @@
 //   scale  bitmap pixels per world px (1.2 is plenty for a 1600 x 900 frame; raise it for layers a close-up fills).
 //   soft   false skips the blurred -soft copy (use it for small foreground pieces); the camera swaps the copy in for
 //          shallow focus on close shots.
-// The puppets stand on the first k = 1 layer ('floor' below) and in front of it; layers after it hide them (the table).
+//   stage  true: the puppets stand in front of this layer (paperCam's default `after`).
+// Without a stage mark the puppets stand on the first k = 1 layer ('floor' below) and in front of it; layers after it
+// hide them (the table). Mark another layer when the puppets belong further forward, e.g. in front of a tree that is
+// itself in front of the bank, with the water and the near bank still over them.
 // Give a layer more room than the 1600 x 900 frame (here -100 … 1700) so a pan or shake never shows its edge.
 // These sketches are a finished look on their own (free) and the composition reference an image model repaints:
 // bake one, give the picture to paint.py as a reference, and put the result in with painted.py.

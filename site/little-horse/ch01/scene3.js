@@ -1,17 +1,17 @@
-/* scene3.js — By the river: the first stop, a "listen and find" game (lib/find.js).
+/* scene3.js — By the river: the first stop, a "listen and find" game (the engine's findWords).
    n03 "Little Horse looked all around. Who could help him? Help him look! Listen, and touch what he asks for."
    Wide river shot; on "looked all around" Little Horse turns round to the tree and the flowers and back to the river,
    worried; the camera eases in to the game's frame (every thing in, none under another's word). Then he asks for one
-   thing at a time (bird, flower, butterfly, ox; find.js speaks and moves his mouth through findMouth()), with his
+   thing at a time (bird, flower, butterfly, ox; findWords speaks and moves his mouth through findMouth()), with his
    chin up and eyes to us while he asks, searching about between asks, glancing at each thing as it is found; finding
    Uncle Ox ends it ("There's Uncle Ox! Let's ask him!"). The picture lives on meanwhile: the ox chews in the river
    facing him, a kingfisher hops along the branch, a butterfly flutters over the flowers.
    Squirrel is hidden in the crown (not built) until scene 5. */
 'use strict';
 const PRE3 = 1.0;
-let RIVER_THINGS = [];   // filled by scene3 each time it builds; findWords (lib/find.js) reads it
-sfx('scene3', 0, 'river', .5);
-sfx('scene3', 0, 'birds', .4);
+let RIVER_THINGS = [];   // filled by scene3 each time it builds; findWords reads it
+sfx('scene3', 0, 'river', .5, { loop: true });
+sfx('scene3', 0, 'birds', .4, { loop: true });
 sfx('scene3', 1.8, 'hoof', .25);   // the turn round, and back
 sfx('scene3', 3.05, 'hoof', .25);
 
@@ -109,7 +109,7 @@ function scene3(p, D) {
   // searches about between asks (worried, not playing), and glances at each thing as it is found.
   const turns = [[1.75, -1], [3.0, 1]];
   const faceAt = q => { let a = 1, f = 1; for (const [t0, to] of turns) { if (t0 > q) break; f = s3_turn(q, t0, a, to); a = to; } return f; };
-  let saw = null, sawQ = -1e9;   // the thing just found (find.js) and when, on the beat clock
+  let saw = null, sawQ = -1e9;   // the thing just found (findWords) and when, on the beat clock
 
   stopClock(D, (q, f) => {
     cam.apply(q, f);
@@ -134,7 +134,7 @@ function scene3(p, D) {
       tail: 6 * Math.sin(q * 1.3) + 10 * s3_bump(q % 6.1, 4.8, .5),
       shut: blinking(q, [.9, 3.6, 6.2]) || (wait && !asking && q % 3.7 < 2 / FPS) }, f);
     // Uncle Ox chews in the river facing Little Horse, a short rest every 5 s; slow blinks, a tail flick. Found, he
-    // stops chewing and lifts his head (find.js hops and shakes his g itself, on top of this pose).
+    // stops chewing and lifts his head (findWords hops and shakes his g itself, on top of this pose).
     const rest = Math.min(.8, Math.max(0, q % 5 - 4.2)), chewing = 1.4 * (q - .8 * Math.floor(q / 5) - rest);
     const oxSeen = saw === ox.g ? q - sawQ : 1e9;
     ox.pose({ x: s3_OX, y: s3_OXY, s: 1.4, turn: -1, grass: true, chew: (rest > 0 && rest < .8) || oxSeen < 2 ? 0 : chewing,

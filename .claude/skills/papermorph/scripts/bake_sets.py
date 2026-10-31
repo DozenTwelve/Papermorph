@@ -5,8 +5,8 @@
 
 SETS.JS (template: assets/templates/picture-book/sets.js) defines window.SETS = {setName: () => [layer, ...]} and
 window.SET_DEFS (an SVG <defs> string with the paper filters). A layer is {name, k, box: [x, y, w, h] in world px,
-scale, svg, soft?}: k is the parallax factor (1 = the puppets' plane), scale the bitmap's pixels per world px, soft:
-false skips the blurred copy. Writes SITE/img/sets/<set>/<layer>.webp, <layer>-soft.webp and the placement manifest
+scale, svg, soft?, stage?}: k is the parallax factor (1 = the puppets' plane), scale the bitmap's pixels per world px, soft:
+false skips the blurred copy, stage: true makes it the layer the puppets stand in front of (paperCam's default `after`). Writes SITE/img/sets/<set>/<layer>.webp, <layer>-soft.webp and the placement manifest
 SITE/img/sets/sets.js that paper.js reads. The manifest keeps every set it already lists: without SET names only the
 sets it does not list yet are baked (one that is there may have been painted since), and with SET names those are baked
 again. --ref DIR also writes each baked set's layers as one 1600x900 picture, DIR/ref-<set>.png.
@@ -42,7 +42,7 @@ async def main(sets_js, site, only, ref):
         if not names: print('every set is in the manifest already: name the ones to bake again')
         for n in names:
             frame = Image.new('RGBA', (1600, 900))
-            layers = await pg.evaluate(f'SETS[{json.dumps(n)}]().map(l => ({{name: l.name, k: l.k, box: l.box, soft: l.soft !== false}}))')
+            layers = await pg.evaluate(f'SETS[{json.dumps(n)}]().map(l => ({{name: l.name, k: l.k, box: l.box, soft: l.soft !== false, ...(l.stage ? {{stage: true}} : {{}})}}))')
             (out / n).mkdir(parents=True, exist_ok=True)
             for i, L in enumerate(layers):
                 for soft in ([False, True] if L['soft'] else [False]):

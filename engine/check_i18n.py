@@ -256,7 +256,7 @@ async def check_russian_book(browser, errors):
     page = await open_page(browser, "ru/", errors)
     text = lambda selector: page.locator(selector).first.text_content()   # as written, before CSS case and spacing
     assert (await text("#cover .btn.go")).startswith("Открыть книгу")
-    assert await text("#meta") == "1 глава · 1 раздел · со звуком"
+    assert await text("#meta") == "1 глава, 1 раздел, со звуком"
     assert await text("#prog") == "1 глава"
     assert await text(".unit h2 span") == "Раздел 1"
     assert await text(".ch small") == "8 мин"
@@ -274,8 +274,8 @@ async def check_russian_book(browser, errors):
 
 async def check_cjk(browser, errors):
     expect = {
-        "zh": ("第 1 章", "开始上课", "打开这本书", "1 章 · 1 个单元 · 有配音", "第 1 单元", "8 分钟"),
-        "ja": ("第1章", "授業を始める", "本を開く", "1章 · 1単元 · 音声つき", "単元 1", "8分"),
+        "zh": ("第 1 章", "开始上课", "打开这本书", "1 章，1 个单元，有配音", "第 1 单元", "8 分钟"),
+        "ja": ("第1章", "授業を始める", "本を開く", "1章、1単元、音声つき", "単元 1", "8分"),
     }
     for language, (chapter, start, open_book, meta, unit, minutes) in expect.items():
         page = await open_lesson(browser, language, errors)
@@ -350,7 +350,7 @@ async def check_arabic_book(browser, errors):
     assert (await text("#cover .btn.go")).startswith("افتح الكتاب")
     # Its arrow points the way the page reads: to the left.
     assert await page.locator("#cover .btn.go svg").evaluate("e => getComputedStyle(e).transform") == "matrix(-1, 0, 0, 1, 0, 0)"
-    assert await text("#meta") == "فصل واحد · وحدة واحدة · مع الصوت", await text("#meta")
+    assert await text("#meta") == "فصل واحد، وحدة واحدة، مع الصوت", await text("#meta")
     assert await text("#prog") == "فصل واحد"
     assert await text(".unit h2 span") == "الوحدة 1"
     assert await text(".ch small") == "8 دقائق"

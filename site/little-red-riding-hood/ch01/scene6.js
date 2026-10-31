@@ -14,7 +14,7 @@ const PRE6 = 1.2;
 const s6_C = t => clipAt('scene6', PRE6, 's06', t);
 const s6_WALK = { t0: s6_C(2.2), period: .88, steps: 11, x0: 262 };   // the wolf's creep from the door to the bed's head
 const s6_SHUT0 = Math.round(s6_C(5.38) * FPS) / FPS, s6_SLAM = s6_SHUT0 + 5 / FPS;   // the wardrobe door pulled to, on a frame
-sfx('scene6', 0, 'room', .4, 10);   // the room bed (shared.js relays it every 9.5 s)
+sfx('scene6', 0, 'room', .4, { loop: true });   // a bed: it repeats to the end of the scene
 sfx('scene6', s6_C(3.52), 'hop', 1.4); sfx('scene6', s6_C(3.64), 'whoosh', 1); sfx('scene6', s6_C(4.3), 'creak', .8);
 sfx('scene6', s6_C(4.65), 'hop', 1);                                   // she lands in the wardrobe
 sfx('scene6', s6_C(5.02), 'pad', .9);                                  // the glasses land on the pillow (in the insert)

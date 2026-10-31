@@ -19,7 +19,6 @@
 <script src="audio/en/mouths.js"></script>
 <script src="audio/en/shots.js"></script>
 <script src="../lib/shared.js"></script>
-<script src="../lib/find.js"></script>
 <script src="scene1.js"></script>
 <script src="scene2.js"></script>
 <script src="scene3.js"></script>
@@ -39,7 +38,7 @@ const CHAPTER = { number: 1, title: 'Little Red Riding Hood', minutes: 4, langua
 // A picture book: captions are on unless the reader turned them off.
 try { if (localStorage.getItem('captions') === null) setCaptions(true, false); } catch {}
 
-// The meadow stop is "listen and find" (lib/find.js): Red asks for one thing at a time; every thing in the picture
+// The meadow stop is "listen and find" (the engine's findWords): Red asks for one thing at a time; every thing in the picture
 // answers a tap with its name. Only things that move are asked for; a found flower flies into her bouquet.
 const FIND_MEADOW = ['flower', 'butterfly', 'bird'].map((w, i) => ({ word: w, clip: 'q-' + w + (i ? '' : '1') }));
 /* ---------- beats: [id, title, run(m, D), extra] ---------- */

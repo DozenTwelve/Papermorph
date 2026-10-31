@@ -31,7 +31,7 @@ function scene10(p, D) {
   const wipe = trunkWipe(p, D - .4, .5);   // time passes: to the table
   const backPath = x => 808 - (x - 1380) * 116 / 1620, far = x => .6 * (1 - .78 * Math.min(1, (x - 1380) / 1620));
 
-  sfx('scene10', 0, 'forest', .5, 10);
+  sfx('scene10', 0, 'forest', .5, { loop: true });
   sfx('scene10', .05, 'tinkle', 1.4); sfx('scene10', LAND, 'thud', 1.2); sfx('scene10', LAND + .02, 'tinkle', .7);
   for (let t = LAND + .3; t < C('s10', .8); t += .44) sfx('scene10', +t.toFixed(2), 'run', 1.1 - .25 * (t - LAND));
   sfx('scene10', FOLLOW, 'whoosh', 1.4);

@@ -8,65 +8,70 @@
 <link rel="stylesheet" href="lib/fonts.css">
 <link rel="stylesheet" href="lib/book.css"><!-- only for --progress-key, if the book sets one -->
 <style>
-  :root { --ink: #2b2520; --soft: #6a6258; --paper: #ece3cd; --card: #f6f1e4; --line: #d8ccb2; --accent: #e5402f; --night: #15171c;
+  :root { --ink: #2b2520; --soft: #6a6258; --paper: #ece3cd; --card: #f6f1e4; --line: #d8ccb2; --accent: #e5402f; --accent-text: #b8301f; --accent-on-night: #f0563f; --night: #15171c;
     --ui: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif; --serif: "EB Garamond", "Iowan Old Style", Palatino, Georgia, serif;
     --key: "Oswald", "Avenir Next Condensed", "Arial Narrow", sans-serif; color-scheme: light; }
   * { box-sizing: border-box; }
+  html, body { overflow-x: clip; }
+  @media (prefers-reduced-motion: reduce) { *, ::after { transition: none !important; } a:hover, a:focus-visible { transform: none !important; } }
   body { margin: 0; background: var(--paper); color: var(--ink); font: 19px/1.62 var(--serif); }
   a { color: inherit; }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+  ::selection { background: var(--accent); color: #fffaf0; }
   .top { background: var(--night); color: #f3ede0; }
-  .top nav { max-width: 1180px; margin: 0 auto; padding: 18px 24px 0; font: 500 14px/1 var(--key); letter-spacing: .14em; text-transform: uppercase; }
-  .top nav a { color: #d9b9b0; text-decoration: none; }
+  .top nav { max-width: 1180px; margin: 0 auto; padding: 10px 24px 0; font: 500 14px/1 var(--key); }
+  .top nav a { color: #d9b9b0; text-decoration: none; display: inline-block; padding: 8px 0; }
+  .top nav a:hover { color: #f3ede0; }
   header { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 40px; align-items: center; max-width: 1180px; margin: 0 auto; padding: 28px 24px 52px; }
   header .film { position: relative; display: block; border-radius: 6px; overflow: hidden; box-shadow: 0 18px 50px #0008; }
   header .film img { display: block; width: 100%; height: auto; }
-  header .film span { position: absolute; left: 18px; bottom: 16px; padding: 10px 18px; background: var(--accent); color: #fff; font: 600 16px/1 var(--key); letter-spacing: .12em; text-transform: uppercase; }
-  header .film:hover span, header .film:focus-visible span { background: #c8301f; }
-  .kicker { margin: 0 0 6px; color: var(--accent); font: 500 14px/1.2 var(--key); letter-spacing: .16em; text-transform: uppercase; }
+  header .film span { position: absolute; left: 18px; bottom: 16px; padding: 10px 18px; background: #c8301f; color: #fffaf0; font: 600 16px/1 var(--key); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+  header .film:hover span, header .film:focus-visible span { background: #a8271a; }
+  .kicker { margin: 0 0 6px; color: var(--accent-on-night); font: 500 14px/1.2 var(--key); }
   h1 { margin: 0 0 10px; font: 600 clamp(40px, 5.4vw, 66px)/1 var(--key); letter-spacing: .02em; text-transform: uppercase; }
   .lede { margin: 0 0 14px; font-size: 21px; color: #e6dccb; }
   .meta { margin: 0; color: #b3a99a; font: 15px/1.5 var(--ui); }
-  .watched .meta::after { content: " · ✓ watched"; color: var(--accent); }
+  .watched .meta::after { display: block; content: "✓ Watched"; color: var(--accent-on-night); }
   main { max-width: 760px; margin: 0 auto; padding: 24px 24px 40px; }
-  main h2 { margin: 56px 0 8px; font: 600 26px/1.2 var(--key); letter-spacing: .06em; text-transform: uppercase; }
+  main h2 { margin: 56px 0 8px; font: 600 26px/1.2 var(--key); letter-spacing: .04em; text-transform: uppercase; }
   main h2:first-child { margin-top: 32px; }
   main p { margin: 0 0 16px; }
   figure { margin: 26px -60px; }
   figure img { display: block; width: 100%; height: auto; border-radius: 4px; box-shadow: 0 8px 26px #4a33182e; }
   figcaption { margin: 8px 60px 0; color: var(--soft); font: 15px/1.5 var(--ui); }
-  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; } .pair figcaption { grid-column: 1 / -1; margin-top: -6px; }
+  .pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; } .pair figcaption { grid-column: 1 / -1; margin-top: -6px; }
   ol.steps { padding-left: 22px; } ol.steps li { margin-bottom: 8px; }
   blockquote { margin: 18px 0; padding: 4px 0 4px 18px; border-left: 4px solid var(--accent); font-style: italic; }
-  .numbers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 18px 0; }
+  .numbers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
   .numbers div { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; }
   .numbers b { display: block; font: 600 30px/1.1 var(--key); color: var(--accent); }
   .numbers span { font: 14px/1.4 var(--ui); color: var(--soft); }
-  code { font-size: .86em; background: #e2d7bd; padding: 1px 5px; border-radius: 3px; }
+  code { font-size: .86em; color: var(--ink); background: #e2d7bd; padding: 1px 5px; border-radius: 3px; }
   .credits { max-width: 1000px; margin: 20px auto 70px; padding: 0 24px; color: var(--soft); font: 14px/1.6 var(--ui); }
-  .credits h2 { font: 600 20px/1.3 var(--key); letter-spacing: .06em; text-transform: uppercase; color: var(--ink); }
-  .credits h3 { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; margin: 18px 0 6px; color: var(--ink); }
+  .credits h2 { font: 600 20px/1.3 var(--key); letter-spacing: .04em; text-transform: uppercase; color: var(--ink); }
+  .credits h3 { font-size: 13px; letter-spacing: .04em; text-transform: uppercase; margin: 18px 0 6px; color: var(--ink); }
   .credits ul { margin: 0; padding-left: 18px; columns: 2 340px; }
   .shorts { max-width: 1180px; margin: 0 auto; padding: 36px 24px 8px; }
-  .shorts h2 { margin: 0; font: 600 26px/1.2 var(--key); letter-spacing: .06em; text-transform: uppercase; }
+  .shorts h2 { margin: 0; font: 600 26px/1.2 var(--key); letter-spacing: .04em; text-transform: uppercase; }
   .shorts > p { margin: 4px 0 0; color: var(--soft); font: 16px/1.5 var(--ui); }
-  .shorts ul { list-style: none; padding: 0; margin: 18px 0 0; display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+  .shorts ul { list-style: none; padding: 0; margin: 18px 0 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; }
   .shorts a { display: flex; flex-direction: column; height: 100%; background: var(--card); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; text-decoration: none; transition: border-color .15s, transform .15s; }
   .shorts a:hover, .shorts a:focus-visible { border-color: var(--accent); transform: translateY(-2px); }
   .shorts img { display: block; width: 100%; height: auto; aspect-ratio: 9 / 16; object-fit: cover; }
-  .shorts small { margin: 10px 12px 0; color: var(--soft); font: 600 12px/1.3 var(--ui); letter-spacing: .04em; text-transform: uppercase; }
+  .shorts small { margin: 10px 12px 0; color: var(--soft); font: 600 12px/1.3 var(--ui); }
   .shorts b { margin: 2px 12px 4px; font: 600 19px/1.2 var(--key); letter-spacing: .03em; text-transform: uppercase; }
   .shorts span { margin: 0 12px 12px; color: var(--soft); font: 14px/1.45 var(--ui); }
-  .shorts .watched small::after { content: " · ✓ watched"; color: var(--accent); }
-  .shorts .story { display: grid; grid-template-columns: 3fr 2fr; margin-top: 18px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; text-decoration: none; color: inherit; transition: border-color .15s, transform .15s; }
+  .shorts .watched small::after { display: block; content: "✓ Watched"; color: var(--accent-text); }
+  .shorts .story { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); margin-top: 18px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; text-decoration: none; color: inherit; transition: border-color .15s, transform .15s; }
   .shorts .story:hover, .shorts .story:focus-visible { border-color: var(--accent); transform: translateY(-2px); }
   .shorts .story img { display: block; width: 100%; height: 100%; aspect-ratio: 1000 / 625; object-fit: cover; }
   .shorts .story div { display: flex; flex-direction: column; justify-content: center; padding: 20px 24px; }
   .shorts .story b { margin: 0; font: 600 22px/1.2 var(--key); letter-spacing: .03em; text-transform: uppercase; }
   .shorts .story span { margin: 6px 0 0; color: var(--soft); font: 15px/1.5 var(--ui); }
-  .shorts .story i { margin-top: 12px; color: var(--accent); font: 600 14px/1.3 var(--ui); font-style: normal; }
-  @media (max-width: 1000px) { .shorts ul { grid-template-columns: repeat(3, 1fr); } }
+  .shorts .story i { margin-top: 12px; color: var(--accent-text); font: 600 14px/1.3 var(--ui); font-style: normal; }
+  @media (max-width: 1000px) { .shorts ul { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
   @media (max-width: 860px) { figure { margin: 22px 0; } figcaption { margin: 8px 0 0; } }
-  @media (max-width: 760px) { header { grid-template-columns: 1fr; gap: 24px; } header .film span { left: 10px; bottom: 10px; padding: 7px 11px; font-size: 13px; } .pair, .numbers { grid-template-columns: 1fr; } .shorts ul { grid-template-columns: 1fr 1fr; } .shorts .story { grid-template-columns: 1fr; } }
+  @media (max-width: 760px) { header { grid-template-columns: minmax(0, 1fr); gap: 24px; } header .film span { left: 10px; bottom: 10px; padding: 7px 11px; font-size: 13px; } .pair, .numbers { grid-template-columns: minmax(0, 1fr); } .shorts ul { grid-template-columns: repeat(2, minmax(0, 1fr)); } .shorts .story { grid-template-columns: minmax(0, 1fr); } }
 </style>
 </head>
 <body>
@@ -75,10 +80,10 @@
   <header id="film">
     <a class="film" href="ch01/"><img src="img/cover.webp" width="1400" height="788" alt="The night globe behind two numbers: 7,115,706 confirmed COVID-19 deaths, and 27,000,000 estimated from excess deaths."><span>▶ Watch the film</span></a>
     <div>
-      <p class="kicker">A documentary · COVID-19</p>
+      <p class="kicker">A documentary: COVID-19</p>
       <h1>The Pandemic</h1>
       <p class="lede">From a market in Wuhan to a world that stopped, the waves, the count of the dead, and the question nobody has answered: where it came from.</p>
-      <p class="meta">7 minutes · English with subtitles · made with the Papermorph Skill</p>
+      <p class="meta">7 minutes, English with subtitles, made with the Papermorph Skill</p>
     </div>
   </header>
 </div>
@@ -169,31 +174,31 @@
   <p>The shorts reuse the film’s pictures, maps and music, with a new script and voice for each episode. Pictures marked “AI illustration” on screen were made with an image model (gpt-image via OpenRouter); the breadline photograph is from the U.S. National Archives (public domain); the estimate of 27 million deaths is The Economist’s excess-death model. Every file of the shorts is listed with its source in <a href="../pandemic-shorts/img/SOURCES.md">SOURCES.md</a>.</p>
   <h3>Pictures</h3>
   <ul>
-    <li><a href="https://commons.wikimedia.org/wiki/File:Novel_Coronavirus_SARS-CoV-2_(49597020718).jpg">Novel Coronavirus SARS-CoV-2</a>, NIAID · Public domain</li>
-    <li>Empty Beijing airport, Mx. Granger · CC0</li>
-    <li><a href="https://commons.wikimedia.org/wiki/File:Glenview_March_2020_24.jpg">Glenview March 2020</a> 05 and 24, C. E. Miller · Public domain</li>
-    <li><a href="https://commons.wikimedia.org/wiki/File:EmptyHwy407.jpg">Empty Highway 407</a>, Raysonho · CC0</li>
-    <li>School closed banner, Cyan&amp;Orange · CC0</li>
-    <li>Empty classroom, U.S. Army, Pfc. Kaden Pitt · Public domain</li>
-    <li>Masked officer, U.S. Customs and Border Protection · Public domain</li>
-    <li><a href="https://www.dvidshub.net/image/6178786/">Hawaii National Guard</a>, Sgt. John Schoebel · Public domain</li>
-    <li>Nurses in face shields, U.S. Navy, PO3 Jacob L. Greenberg · Public domain</li>
-    <li><a href="https://www.flickr.com/photos/184594136@N08/49703752138/">Closed signs</a>, Alabama Extension · CC0</li>
-    <li><a href="https://earthobservatory.nasa.gov/features/NightLights/page3.php">Black Marble 2016</a>, NASA Earth Observatory · Public domain</li>
-    <li><a href="https://commons.wikimedia.org/wiki/File:COVID-19_Pneumonie_-_74m_CTax_-_002.jpg">COVID-19 pneumonia CT</a>, Hellerhoff · <a href="https://creativecommons.org/licenses/by-sa/3.0/">CC BY-SA 3.0</a>, toned</li>
-    <li><a href="https://commons.wikimedia.org/wiki/File:Roadblock_in_Wuhan_on_January_29th,_2020_-_2.jpg">Roadblock in Wuhan, 29 January 2020</a>, 汮汐 · <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>, toned</li>
-    <li>Li Wenliang's own selfie, posted on Weibo · fair use, for commentary</li>
-    <li><a href="https://commons.wikimedia.org/wiki/File:USNS_Comfort_New_York_City_2020.jpg">USNS Comfort in New York</a>, U.S. Navy · Public domain</li>
-    <li><a href="https://commons.wikimedia.org/wiki/File:Mortuary_Trucks_in_New_York_City_by_Archer_West.jpg">Mortuary trucks in New York City</a>, Archer West · <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></li>
-    <li><a href="https://commons.wikimedia.org/wiki/File:Nitrogen_dioxide_Density_Change_In_China_Due_To_Coronavirus.png">Nitrogen dioxide over China</a>, NASA Earth Observatory, ESA Sentinel-5P data · Public domain</li>
-    <li><a href="https://commons.wikimedia.org/wiki/File:Empty_toilet_paper_shelves_(49665873706).jpg">Empty shelves</a>, Dan Keck · CC0</li>
+    <li><a href="https://commons.wikimedia.org/wiki/File:Novel_Coronavirus_SARS-CoV-2_(49597020718).jpg">Novel Coronavirus SARS-CoV-2</a>, NIAID, Public domain</li>
+    <li>Empty Beijing airport, Mx. Granger, CC0</li>
+    <li><a href="https://commons.wikimedia.org/wiki/File:Glenview_March_2020_24.jpg">Glenview March 2020</a> 05 and 24, C. E. Miller, Public domain</li>
+    <li><a href="https://commons.wikimedia.org/wiki/File:EmptyHwy407.jpg">Empty Highway 407</a>, Raysonho, CC0</li>
+    <li>School closed banner, Cyan&amp;Orange, CC0</li>
+    <li>Empty classroom, U.S. Army, Pfc. Kaden Pitt, Public domain</li>
+    <li>Masked officer, U.S. Customs and Border Protection, Public domain</li>
+    <li><a href="https://www.dvidshub.net/image/6178786/">Hawaii National Guard</a>, Sgt. John Schoebel, Public domain</li>
+    <li>Nurses in face shields, U.S. Navy, PO3 Jacob L. Greenberg, Public domain</li>
+    <li><a href="https://www.flickr.com/photos/184594136@N08/49703752138/">Closed signs</a>, Alabama Extension, CC0</li>
+    <li><a href="https://earthobservatory.nasa.gov/features/NightLights/page3.php">Black Marble 2016</a>, NASA Earth Observatory, Public domain</li>
+    <li><a href="https://commons.wikimedia.org/wiki/File:COVID-19_Pneumonie_-_74m_CTax_-_002.jpg">COVID-19 pneumonia CT</a>, Hellerhoff, <a href="https://creativecommons.org/licenses/by-sa/3.0/">CC BY-SA 3.0</a>, toned</li>
+    <li><a href="https://commons.wikimedia.org/wiki/File:Roadblock_in_Wuhan_on_January_29th,_2020_-_2.jpg">Roadblock in Wuhan, 29 January 2020</a>, 汮汐, <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>, toned</li>
+    <li>Li Wenliang's own selfie, posted on Weibo, fair use, for commentary</li>
+    <li><a href="https://commons.wikimedia.org/wiki/File:USNS_Comfort_New_York_City_2020.jpg">USNS Comfort in New York</a>, U.S. Navy, Public domain</li>
+    <li><a href="https://commons.wikimedia.org/wiki/File:Mortuary_Trucks_in_New_York_City_by_Archer_West.jpg">Mortuary trucks in New York City</a>, Archer West, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></li>
+    <li><a href="https://commons.wikimedia.org/wiki/File:Nitrogen_dioxide_Density_Change_In_China_Due_To_Coronavirus.png">Nitrogen dioxide over China</a>, NASA Earth Observatory, ESA Sentinel-5P data, Public domain</li>
+    <li><a href="https://commons.wikimedia.org/wiki/File:Empty_toilet_paper_shelves_(49665873706).jpg">Empty shelves</a>, Dan Keck, CC0</li>
   </ul>
   <h3>Maps and data</h3>
   <ul>
-    <li><a href="https://www.naturalearthdata.com/">Natural Earth</a> countries, provinces and places · Public domain</li>
-    <li><a href="https://ourworldindata.org/coronavirus">Our World in Data</a>: cases, deaths, vaccinations, first cases, reporting · CC BY 4.0</li>
-    <li><a href="https://ourworldindata.org/covid-stay-home-covid">Our World in Data</a>: stay-at-home requirements (Oxford COVID-19 Government Response Tracker) · CC BY 4.0</li>
-    <li>SARS-CoV-2 reference sequence <a href="https://www.ncbi.nlm.nih.gov/nuccore/NC_045512.2">NC_045512.2</a>, NCBI · Public domain</li>
+    <li><a href="https://www.naturalearthdata.com/">Natural Earth</a> countries, provinces and places, Public domain</li>
+    <li><a href="https://ourworldindata.org/coronavirus">Our World in Data</a>: cases, deaths, vaccinations, first cases, reporting, CC BY 4.0</li>
+    <li><a href="https://ourworldindata.org/covid-stay-home-covid">Our World in Data</a>: stay-at-home requirements (Oxford COVID-19 Government Response Tracker), CC BY 4.0</li>
+    <li>SARS-CoV-2 reference sequence <a href="https://www.ncbi.nlm.nih.gov/nuccore/NC_045512.2">NC_045512.2</a>, NCBI, Public domain</li>
   </ul>
 </section>
 

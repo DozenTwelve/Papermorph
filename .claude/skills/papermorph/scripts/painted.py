@@ -28,7 +28,8 @@ first (it rewrites sets.js); run this again after any change. Paths in the manif
       "props": {"bun": "p-bun.png"}                                  (largest side 800 px)
     }
 
-A layer with neither `cut` nor `box` is a full frame. `font` names an entry of `fonts` or is a path; without one the
+A layer with neither `cut` nor `box` is a full frame. "stage": true on a layer puts the puppets in front of it by
+default (paperCam's `after`); without one they stand in front of the first layer with k 1. `font` names an entry of `fonts` or is a path; without one the
 first CJK-capable system font found is used (macOS Hiragino/PingFang/STHeiti, Windows YaHei, Noto/WenQuanYi on Linux).
 """
 import json, pathlib, sys
@@ -106,7 +107,7 @@ def main(manifest, site):
                 im = im.resize((W, H), Image.LANCZOS); words(im, L.get('words', []), 0, 0, fonts, base)
                 im = padded(im, pad, L.get('edge', 'mirror')); b = [-pad[0], -pad[1], W + 2 * pad[0], H + 2 * pad[1]]
             made.append((L['name'], im))
-            entry.append({'name': L['name'], 'k': L.get('k', 1), 'box': b, 'soft': True})
+            entry.append({'name': L['name'], 'k': L.get('k', 1), 'box': b, 'soft': True, **({'stage': True} if L.get('stage') else {})})
             print(name, L['name'], b)
         out.mkdir(parents=True, exist_ok=True)
         for f in out.glob('*.webp'): f.unlink()

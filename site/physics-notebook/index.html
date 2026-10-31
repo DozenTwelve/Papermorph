@@ -38,6 +38,8 @@
 body::before { background: linear-gradient(90deg, transparent 56px, #f2a7b5 56px 58px, transparent 58px),
     repeating-linear-gradient(180deg, transparent 0 34px, #bfe0ef 34px 35px); }
 h1 i { font-style: normal; }
+/* The marker colours are too light for small text on paper: darken them toward the ink. */
+.kicker, .unit h2 .label { color: color-mix(in srgb, var(--c, var(--quiz)) 78%, var(--chalk)); }
 </style>
 </head>
 <body>
@@ -48,12 +50,12 @@ h1 i { font-style: normal; }
     <span style="left:5%;bottom:20%;--d:2.2">potential = stored</span>
     <span style="right:6%;bottom:15%;--d:2.5">we're solar-powered!</span>
   </div>
-  <svg class="mascot draw" id="guide" width="210" height="147"></svg>
+  <svg class="mascot draw" id="guide" width="210" height="147" aria-hidden="true"></svg>
+  <h1>Energy &amp; Change</h1>
   <p class="kicker">An animated notebook</p>
-  <h1>Energy <i>&amp;</i> Change</h1>
   <p class="lede">Follow Blip, a little bundle of energy, from sunlight to salad to a sprint. Watch balls roll, pens drop and bumper cars collide, and see why energy never disappears.</p>
   <div class="acts">
-    <a class="btn go" href="#contents" data-t="open">Open the book<svg viewBox="0 0 16 16"><path d="M6 2.5 11.5 8 6 13.5 4.6 12.1 8.7 8 4.6 3.9z"/></svg></a>
+    <a class="btn go" href="#contents" data-t="open">Open the book<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 2.5 11.5 8 6 13.5 4.6 12.1 8.7 8 4.6 3.9z"/></svg></a>
     <a class="btn quiet" id="resume" hidden></a>
   </div>
   <p class="meta" id="meta"></p>
@@ -62,7 +64,7 @@ h1 i { font-style: normal; }
 
 <main id="contents">
   <header class="top">
-    <a class="home" href="#book" aria-label="Back to the cover" data-t-label="toCover"><svg class="mascot" id="guideSmall" width="52" height="36"></svg><strong>Energy <i>&amp;</i> Change</strong></a>
+    <a class="home" href="#book" aria-label="Back to the cover" data-t-label="toCover"><svg class="mascot" id="guideSmall" width="52" height="36" aria-hidden="true"></svg><strong>Energy &amp; Change</strong></a>
     <span class="prog" id="prog"></span>
     <a class="back-shelf contents-back" href="../">← Bookshelf</a>
   </header>

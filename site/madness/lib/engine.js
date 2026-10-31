@@ -49,7 +49,6 @@ const TRANSLATIONS = {
     chapterComplete: 'Chapter {n} complete', quickChecks: 'Quick checks', chapterPractice: 'Chapter practice', sources: 'Sources in this chapter', opensSource: '{label}, opens the source in a new tab',
     firstTryScore: '{name}: {r} of {t} right on the first try.', notAttempted: '{name}: not attempted.',
     watchAgain: 'Watch again', nextChapter: 'Next chapter',
-    wordsHeard: '{k} / {n}', allWordsHeard: 'You found them all!',
   },
   ru: {
     decimalSign: ',', stageLabel: 'Анимация урока', stageLabelTitled: 'Анимация урока: {title}',
@@ -87,7 +86,6 @@ const TRANSLATIONS = {
     chapterComplete: 'Глава {n} пройдена', quickChecks: 'Проверь себя', chapterPractice: 'Практика по главе', sources: 'Источники этой главы', opensSource: '{label}, источник откроется в новой вкладке',
     firstTryScore: '{name}: {r} из {t} верно с первой попытки.', notAttempted: '{name}: не выполнялось.',
     watchAgain: 'Смотреть снова', nextChapter: 'Следующая глава',
-    wordsHeard: '{k} / {n}', allWordsHeard: 'Все найдены!',
   },
   zh: {
     decimalSign: '.', stageLabel: '课程动画', stageLabelTitled: '课程动画：{title}',
@@ -123,7 +121,6 @@ const TRANSLATIONS = {
     chapterComplete: '第 {n} 章完成', quickChecks: '小测', chapterPractice: '本章练习', sources: '本章引用的文献', opensSource: '{label}，在新标签页中打开来源',
     firstTryScore: '{name}：第一次就答对 {r} / {t}。', notAttempted: '{name}：未作答。',
     watchAgain: '再看一遍', nextChapter: '下一章',
-    wordsHeard: '{k} / {n}', allWordsHeard: '全都找到啦！',
   },
   ja: {
     decimalSign: '.', stageLabel: '授業アニメーション', stageLabelTitled: '授業アニメーション：{title}',
@@ -159,7 +156,6 @@ const TRANSLATIONS = {
     chapterComplete: '第{n}章 完了', quickChecks: '確認問題', chapterPractice: '章末練習', sources: 'この章の出典', opensSource: '{label}（出典を新しいタブで開く）',
     firstTryScore: '{name}：1 回目で {t} 問中 {r} 問正解。', notAttempted: '{name}：未挑戦。',
     watchAgain: 'もう一度見る', nextChapter: '次の章へ',
-    wordsHeard: '{k} / {n}', allWordsHeard: 'ぜんぶ見つけたね！',
   },
   // Arabic plurals (Intl.PluralRules 'ar'): one 1, two 2, few 3–10, many 11–99, other 100+ (zero falls back to other).
   // The timeline keeps its left-to-right geometry in Arabic (see RTL below), so ← stays "previous step".
@@ -202,7 +198,6 @@ const TRANSLATIONS = {
     chapterComplete: 'اكتمل الفصل {n}', quickChecks: 'الأسئلة القصيرة', chapterPractice: 'تمارين الفصل', sources: 'مصادر هذا الفصل', opensSource: '{label}، يفتح المصدر في علامة تبويب جديدة',
     firstTryScore: '{name}: {r} من {t} صحيحة من المحاولة الأولى.', notAttempted: '{name}: لم تُحاوَل.',
     watchAgain: 'شاهد مرة أخرى', nextChapter: 'الفصل التالي',
-    wordsHeard: '{k} / {n}', allWordsHeard: 'وجدتها كلها!',
   },
 };
 // <html data-stage="portrait"> turns the stage upright: 900 wide, 1600 tall. Landscape (1600×900) otherwise.
@@ -1075,126 +1070,214 @@ const pickEls = (items, right, yes, no, onRight) => (body, api) => {
   return stageTap(api, targets, right, yes, onRight,
     [kbd('←'), kbd('→'), translate('hintMove'), kbd('Enter'), translate('hintChooseOrClick')]);
 };
-/* ---------- point and read ---------- */
-// A picture book's point-and-read moment, for young children learning words: a film's ask beat (CHAPTER.film),
-//   ask: done => tapWords(THINGS, done)        THINGS = [{ g, word: 'basket', clip: 'w-basket', side: 'below' }]
-// which the scene fills as it builds the picture; g is what the reader taps (a puppet, a prop, or a transparent shape
-// over part of a baked set), clip names audio/<lang>/<clip>.mp3, 'w-' + the word by default, and side puts the word
-// 'above', 'below', 'left' or 'right' of its thing (kept on the stage); without it the word goes above, or wherever fits. Once the narration is
-// over (P.waiting) every thing turns tappable: a tap hops it, shows its word in large letters beside it and says it, on
-// wall time at the player volume with the music ducked under it; tapping again says it again. A counter and Continue
-// (Enter) wait in the corner; Continue lights up once every thing has been heard. Seeking or replaying clears it all.
-// While the page waits, the scene's continuous motion (stopClock, clockRun with tail: true) runs on past the beat's
-// end on wall time, so puppets posed as a function of time keep breathing and blinking.
-// The video (export.py) cannot tap: P.tapDemo.at(s) shows the words one by one, DEMO_STEP s apart, while it holds.
-const TAP_MIN = 120, DEMO_STEP = 2;   // TAP_MIN: the smallest hit box in stage px, a child's finger on a phone
+/* ---------- listen and find ---------- */
+// A picture book's point-and-read stop, for young children learning words: a film's ask beat (CHAPTER.film),
+//   ask: done => findWords(THINGS, ASKS, done, { end: 'q-done', there: 'q-there' })
+// THINGS = [{ g, word, side?, clip?, talk? }], which the scene fills as it builds the picture: g is what the reader taps
+// (a puppet, a prop, or a transparent shape over part of a baked set); clip names audio/<lang>/<clip>.mp3, 'w-' + the
+// word by default; side puts the word 'above', 'below', 'left' or 'right' of its thing (kept on the stage), else above
+// or wherever it fits; talk: true says the clip is the character's own voice ('q-me' when the reader taps the
+// character), so it moves the mouth and is captioned. ASKS = [{ word, clip, again? }] in order: clip asks for the thing
+// ("Can you find the bird? Touch it!"), again is the short ask after a wrong tap ("Where's the bird?"), 'r-' + the word
+// by default. Options: end, the praise after the last one ('q-done'); there, the give-up line ('q-there'); hintAfter,
+// giveUpAfter (s); minBox, the smallest hit box in stage px (a child's finger on a phone).
+// Once the narration is over (P.waiting) the character asks for one thing at a time. Every thing answers a tap: a wrong
+// one hops and says its own name, then the short ask comes again. Nothing is ever called wrong; each miss helps more: at
+// the second the thing asked for shakes, from the third paper stars circle it and it keeps shaking. A tap on nothing
+// leaves a paper ripple (two count as a miss). A tap inside the asked thing's box finds it, even where a smaller thing's
+// box lies on top. No tap for hintAfter s: it shakes; nobody finds it for giveUpAfter s: the character says the `there`
+// line, it hops and counts as found, so a child who never taps is never stuck. Found, it hops, shows its word and says
+// it, a chime (audio/sfx/chime.mp3); after the last one the praise, and the film goes on by itself. A new tap cuts off
+// whatever was being said, so lines never pile up. Tab or ← → reach the things from the keyboard and Enter or Space taps
+// the one focused; Enter with none focused skips the stop. Seeking or replaying clears it all.
+// While the character speaks, FIND.saying names its clip: the scene poses the mouth with findMouth() and can turn the
+// eyes to FIND.target (the thing asked for) or findSaw() (the thing just found, until the next ask). The character's
+// lines are captioned from their timings when captions are on. A scene that does more with a found thing (a flower
+// flying into a bouquet) watches FIND.found; the hit boxes are <rect>s in a <g class="findw"> over the stage, each with
+// its thing's word as aria-label. The scene keeps drawing while the page waits (the film's ask beats, below).
+// The video (export.py) cannot tap: give the beat video: false, or a number of seconds to cut it there.
+const FIND = { saying: null, t0: 0, target: null, found: null, foundAt: -1e9 }, FIND_SEEN = .9;
+let askLine = '';   // the caption of the character's line while a film's ask waits (ui() shows it)
+const mouthOf = (clip, t) => { let m = 'X'; if (t < 0) return m; for (const [at, k] of window.MOUTHS?.[clip] || []) { if (at > t) break; m = k; } return m; };
+const findMouth = () => FIND.saying ? mouthOf(FIND.saying, performance.now() / 1000 - FIND.t0) : 'X';
+const findSaw = () => performance.now() / 1000 - FIND.foundAt < FIND_SEEN ? FIND.found : null;
 const SIDES = { above: 0, below: 1, right: 2, left: 3 };   // where a word goes, in the order tried
-const wordClip = word => 'w-' + word.toLowerCase().trim().replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '');
-function tapWords(things, done) {
+const slug = word => word.toLowerCase().trim().replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '');
+function findWords(things, asks, done, { end = 'q-done', there = 'q-there', hintAfter = 5, giveUpAfter = 20, minBox = 120 } = {}) {
   const gen = P.gen, stage = $('stage'), lang = CHAPTER.language || 'en';
-  if (!CHAPTER.film) console.warn('tapWords: CHAPTER.film is not true, so the chapter plays as a lesson: no music or effects');
+  if (!CHAPTER.film) console.warn('findWords: CHAPTER.film is not true, so the chapter plays as a lesson: no music or effects');
+  const clip = (name, who) => {
+    const a = new Audio(`audio/${lang}/${name}.mp3`);
+    a.preload = 'auto'; a.clipName = name;
+    a.onerror = () => console.warn(`findWords: ${who} has no clip at audio/${lang}/${name}.mp3`);
+    return a;
+  };
   const list = things.filter(t => {
     const why = !t.word ? 'has no word' : !(t.g instanceof SVGGraphicsElement && stage.contains(t.g)) ? 'is not an element on the stage' : '';
-    if (why) console.warn(`tapWords: ${t.word ? `"${t.word}"` : 'a thing'} ${why}: left out`);
+    if (why) console.warn(`findWords: ${t.word ? `"${t.word}"` : 'a thing'} ${why}: left out`);
+    if (t.side && !Object.hasOwn(SIDES, t.side)) console.warn(`findWords: "${t.word}" has side "${t.side}": use above, below, left or right; its word goes where it fits`);
     return !why;
-  }).map(t => {
-    const clip = t.clip || wordClip(t.word), a = new Audio(`audio/${lang}/${clip}.mp3`);
-    a.preload = 'auto';
-    a.onerror = () => console.warn(`tapWords: "${t.word}" has no clip at audio/${lang}/${clip}.mp3`);
-    if (t.side && !Object.hasOwn(SIDES, t.side)) console.warn(`tapWords: "${t.word}" has side "${t.side}": use above, below, left or right; its word goes where it fits`);
-    return { g: t.g, word: t.word, clip, a, side: Object.hasOwn(SIDES, t.side ?? '') ? t.side : null, heard: false };
+  }).map(t => ({ ...t, a: clip(t.clip || 'w-' + slug(t.word), `"${t.word}"`) }));
+  const qs = asks.map(q => {
+    if (!list.some(t => t.word === q.word)) console.warn(`findWords: the ask for "${q.word}" has no thing with that word: it is found when its time runs out`);
+    return { ...q, a: clip(q.clip, `the ask for "${q.word}"`), again: clip(q.again || 'r-' + slug(q.word), `the short ask for "${q.word}"`) };
   });
-  const L = mk('g', { class: 'tapw' }, stage);   // the hit boxes, over the whole picture
-  let on = false, alive = true, finished = false, word = null, shown = -1, bar, count, go;
-  // a thing's box in stage px (its picture may move: puppets idle), and its hit box, at least TAP_MIN square
+  const praise = clip(end, 'the praise (end)'), help = clip(there, 'the give-up line (there)'), chime = new Audio('audio/sfx/chime.mp3');
+  const L = mk('g', { class: 'findw' }, stage);   // the hit boxes, over the whole picture
+  let on = false, alive = true, finished = false, k = 0, word = null, lastAct = 0, askedAt = 0, wiggling = null, playing = null;
+  let misses = 0, blanks = 0, turn = 0, stars = null, enabled = false;
+  const now = () => performance.now();
+  const finish = () => { if (finished || P.gen !== gen) return; finished = true; done(); };
+  // a thing's box in stage px (its picture may move: puppets idle), and its hit box, at least minBox square
   const box = t => {
     const s = stage.getBoundingClientRect(), r = t.g.getBoundingClientRect(), kx = SW / s.width, ky = SH / s.height;
     return { x: (r.left - s.left) * kx, y: (r.top - s.top) * ky, w: r.width * kx, h: r.height * ky };
   };
-  const place = () => {
-    for (const t of list) {
-      const b = box(t), w = Math.max(TAP_MIN, b.w), hh = Math.max(TAP_MIN, b.h);
-      for (const [k, v] of Object.entries({ x: b.x + (b.w - w) / 2, y: b.y + (b.h - hh) / 2, width: w, height: hh })) t.ring.setAttribute(k, v.toFixed(1));
-    }
-  };
-  const finish = () => { if (finished || P.gen !== gen) return; finished = true; done(); };
-  const idle = s => { for (const w of TW) if (w.tail === true && w.dur) w.pf(1 + s / w.dur); };   // s seconds past the end
-  let since = 0;
-  const tapIt = (k, quiet) => {
-    const t = list[k];
-    shown = k;
-    t.heard = true;
-    const n = list.filter(x => x.heard).length, all = n === list.length;
-    count.textContent = all ? translate('allWordsHeard') : translate('wordsHeard', { k: n, n: list.length });
-    if (all && !go.classList.contains('go')) { go.className = 'btn go'; bar.classList.add('lit'); }
-    // the word beside the thing: on its side, or above it, else below, right or left, wherever it fits on the stage
-    // (slid along that side to stay on it)
-    word?.remove();
+  const hitBox = t => { const b = box(t), w = Math.max(minBox, b.w), hh = Math.max(minBox, b.h); return { x: b.x + (b.w - w) / 2, y: b.y + (b.h - hh) / 2, w, h: hh }; };
+  const place = () => { for (const t of list) { const b = hitBox(t); for (const [key, v] of Object.entries({ x: b.x, y: b.y, width: b.w, height: b.h })) t.hit.setAttribute(key, v.toFixed(1)); } };
+  const stagePoint = e => { const s = stage.getBoundingClientRect(); return [(e.clientX - s.left) * SW / s.width, (e.clientY - s.top) * SH / s.height]; };
+  const want = () => list.find(t => t.word === qs[k]?.word);
+  // one sound at a time, ducking the music like the narration (SND.word); the character's own lines move its mouth and
+  // are captioned; resolves when the sound ends
+  const say = (a, talk = false) => new Promise(ok => {
+    if (!alive) return ok();
+    playing?.pause(); playing = a;
+    a.currentTime = 0; a.volume = +($('volume')?.value ?? 1);
+    FIND.saying = talk ? a.clipName : null; FIND.t0 = now() / 1000;
+    askLine = talk ? (TIMINGS[a.clipName]?.cues || []).map(c => c[1]).join(' ') : '';
+    a.onended = () => { if (SND.word === a) SND.word = null; if (FIND.saying === a.clipName) FIND.saying = null; if (talk) askLine = ''; ok(); };
+    SND.word = a;
+    a.play().catch(ok);
+  });
+  let wordTimer = 0;
+  const hideWord = (after = 1500) => { clearTimeout(wordTimer); const w = word; wordTimer = setTimeout(() => w?.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300 }).finished.then(() => w.remove()), after); };
+  // the word beside its thing: on its side, or above it, else below, right or left, wherever it fits on the stage
+  const showWord = t => {
+    word?.remove(); clearTimeout(wordTimer);
     word = h('div', 'card word', t.word);
     word.setAttribute('aria-hidden', 'true');   // the thing's own label already says the word
     $('ui').append(word);
     // gap: clear of the thing's hop; m: the stage's margin
     const b = box(t), w = word.offsetWidth, hh = word.offsetHeight, gap = 30, m = 16, cx = b.x + (b.w - w) / 2, cy = b.y + (b.h - hh) / 2;
     const spots = [[cx, b.y - hh - gap], [cx, b.y + b.h + gap], [b.x + b.w + gap, cy], [b.x - w - gap, cy]];
-    const [x, y] = t.side ? spots[SIDES[t.side]] : spots.find(([x, y], k) => k < 2 ? y >= m && y + hh <= SH - m : x >= m && x + w <= SW - m) || spots[0];
+    const [x, y] = t.side in SIDES ? spots[SIDES[t.side]] : spots.find(([x, y], i) => i < 2 ? y >= m && y + hh <= SH - m : x >= m && x + w <= SW - m) || spots[0];
     Object.assign(word.style, { left: Math.max(m, Math.min(SW - m - w, x)) + 'px', top: Math.max(m, Math.min(SH - m - hh, y)) + 'px' });
-    if (quiet) { word.style.animation = go.style.animation = 'none'; return; }   // a video's frame shows it at rest
-    for (const x of list) if (x !== t) x.a.pause();
-    t.a.currentTime = 0;
-    t.a.volume = +($('volume')?.value ?? 1);
-    t.a.play().catch(() => {});
-    SND.word = t.a;   // soundTick ducks the music under it
-    // the hop is the CSS translate property, which adds to the transform the scene sets (a prop posed every frame keeps its place)
-    t.g.animate([{ translate: '0 0' }, { translate: '0 -18px', offset: .3 }, { translate: '0 0' }], { duration: 450, easing: 'ease-out' });
-    t.ring.animate([{ strokeOpacity: 1 }, { strokeOpacity: 0 }], { duration: 700, easing: 'ease-out' });
+  };
+  // the hop and the shake are the CSS translate property, which adds to the transform the scene sets; a scene can copy
+  // it onto a picture it moves itself (getComputedStyle(g).translate)
+  const hop = t => t.g.animate([{ translate: '0 0' }, { translate: '0 -22px', offset: .3 }, { translate: '0 0' }], { duration: 450, easing: 'ease-out' });
+  const wiggle = t => {
+    if (wiggling) return;
+    wiggling = t.g.animate([{ translate: '0 0' }, { translate: '-20px -6px' }, { translate: '20px 0' }, { translate: '-16px -4px' }, { translate: '12px 0' }, { translate: '0 0' }], { duration: 750 });
+    wiggling.onfinish = () => { wiggling = null; lastAct = now() - (hintAfter - (misses >= 3 ? 0 : 2.5)) * 1000; };
+  };
+  // paper stars close round the thing asked for, from the third miss until it is found
+  const starsOn = t => {
+    if (stars) return;
+    stars = mk('g', { 'pointer-events': 'none' }, L.parentNode);
+    stars.innerHTML = Array.from({ length: 6 }, () => `<path d="M0,-28 L8,-8 L28,-8 L12,6 L18,26 L0,14 L-18,26 L-12,6 L-28,-8 L-8,-8 Z" fill="#f4c542" stroke="#b8862a" stroke-width="3"/>`).join('');
+    stars.t = t;
+  };
+  const starsOff = () => { stars?.remove(); stars = null; };
+  const ask = async () => {
+    lastAct = askedAt = now();
+    window.FIND_STATE = { k, of: qs.length };   // for tests (engine/check_find.py)
+    FIND.target = want()?.g || null;
+    if (k >= qs.length) {
+      on = false; word?.remove(); FIND.target = null;
+      await say(praise, true);
+      setTimeout(() => { if (alive && P.gen === gen) { window.FIND_STATE.done = true; finish(); } }, 900);
+      return;
+    }
+    await say(qs[k].a, true);
+    lastAct = askedAt = now();
+  };
+  const found = async (t, given) => {
+    on = false; starsOff(); turn++;
+    if (t) { hop(t); showWord(t); }
+    if (given) await say(help, true);
+    if (t) { await say(t.a); hideWord(600); FIND.found = t.g; FIND.foundAt = now() / 1000; }
+    chime.currentTime = 0; chime.volume = .5 * +($('volume')?.value ?? 1); chime.play().catch(() => {});
+    await new Promise(r => setTimeout(r, 700));
+    if (!alive) return;
+    k++; misses = blanks = 0; on = true; ask();
+  };
+  const miss = async (t, my) => {
+    misses++;
+    const w = want();
+    if (misses >= 2 && w) wiggle(w);
+    if (misses >= 3 && w) starsOn(w);
+    if (t) { await say(t.a, !!t.talk); if (my !== turn) return; hideWord(); }
+    await new Promise(r => setTimeout(r, 250));
+    if (my === turn && alive && on) say(qs[k].again, true);
+  };
+  // a thing tapped (or chosen from the keyboard): the one asked for is found, any other says its name
+  const tapThing = t => {
+    if (!on || !alive) return;
+    lastAct = now();
+    if (t === want()) return found(t);
+    const my = ++turn; hop(t); showWord(t); miss(t, my);
+  };
+  // every tap: inside the asked thing's box it is found, whatever lies on top; else the thing tapped, or nothing
+  const press = (e, t) => {
+    e.preventDefault();
+    if (!on || !alive) return;
+    lastAct = now();
+    const [x, y] = stagePoint(e), w = want(), b = w && hitBox(w);
+    if (b && x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return found(w);
+    if (t) return tapThing(t);
+    const r = mk('circle', { cx: x, cy: y, r: 10, fill: 'none', stroke: '#fbf6ea', 'stroke-width': 4, 'pointer-events': 'none' }, L.parentNode);
+    r.animate([{ r: 10, opacity: .9 }, { r: 46, opacity: 0 }], { duration: 500, easing: 'ease-out' }).finished.then(() => r.remove());
+    if (++blanks % 2 === 0) miss(null, ++turn);
   };
   const enable = () => {
     on = true;
-    since = performance.now();
     linkStage();   // the stage is no longer one picture to a screen reader: the things are its buttons
+    const bg = mk('rect', { x: 0, y: 0, width: SW, height: SH, fill: 'transparent', style: 'pointer-events:all' }, L);
+    bg.addEventListener('pointerdown', e => press(e, null));
+    for (const t of list) {
+      t.hit = mk('rect', { fill: 'transparent', style: 'cursor:pointer;pointer-events:all', 'aria-label': t.word, role: 'button', tabindex: 0 }, L);
+      t.hit.addEventListener('pointerdown', e => press(e, t));
+      keyAct(t.hit, () => tapThing(t));
+    }
     const at = new Map(list.map(t => [t, box(t)]));
-    for (const [t, b] of at) if (b.x + b.w <= 0 || b.x >= SW || b.y + b.h <= 0 || b.y >= SH || !b.w || !b.h) console.warn(`tapWords: "${t.word}" is not in the picture`);
-    // smaller boxes on top, so a thing standing in front of a bigger one can still be tapped
-    for (const t of [...list].sort((a, c) => at.get(c).w * at.get(c).h - at.get(a).w * at.get(a).h)) { t.hit = G(L); t.ring = mk('rect', { class: 'ring', rx: 22 }, t.hit); }
+    for (const [t, b] of at) if (b.x + b.w <= 0 || b.x >= SW || b.y + b.h <= 0 || b.y >= SH || !b.w || !b.h) console.warn(`findWords: "${t.word}" is not in the picture`);
+    // smaller things on top, so a bird in front of a tree can be reached
+    [...list].sort((a, c) => at.get(c).w * at.get(c).h - at.get(a).w * at.get(a).h).forEach(t => L.append(t.hit));
     place();
-    // the arrows go through the things from left to right
+    // ← → go through the things from left to right; Enter with none focused skips the stop
     const order = [...list].sort((a, c) => at.get(a).x + at.get(a).w / 2 - at.get(c).x - at.get(c).w / 2);
-    const move = tappable(order.map(t => ({ g: t.hit, label: t.word, act: () => { if (alive) tapIt(list.indexOf(t)); } })));
-    P.keys = e => e.key === 'Enter' ? (finish(), true) : move(e);
-    bar = card({ x: 0, y: SH - 130, w: 0, cls: 'side' }, 'words');
-    Object.assign(bar.style, { left: 'auto', right: '40px', width: 'auto' });
-    count = h('span', 'count', translate('wordsHeard', { k: 0, n: list.length }));
-    count.setAttribute('role', 'status');
-    go = h('button', 'btn quiet', [translate('continue'), kbd('Enter')]);
-    go.onclick = finish;
-    bar.append(h('div', 'acts', [count, go]));
-    // a thing whose box is covered where a finger lands (a card, a layer over the stage) cannot be tapped: once the
-    // counter's card has come in, try each box's middle and four points around it, and name what covers it
-    setTimeout(() => { if (alive) for (const t of list) {
-      const r = t.ring.getBoundingClientRect(), pts = [[.5, .5], [.3, .3], [.7, .3], [.3, .7], [.7, .7]];
-      const tops = pts.map(([u, v]) => document.elementFromPoint(r.left + u * r.width, r.top + v * r.height));
-      if (!tops.some(e => t.hit.contains(e))) {
-        const e = tops[0], cls = e?.getAttribute('class')?.split(' ')[0];
-        const what = !e ? 'it is off screen' : e.closest('.hit') ? `"${e.closest('.hit').getAttribute('aria-label')}" covers it`
-          : `<${e.tagName.toLowerCase()}${e.id ? '#' + e.id : cls ? '.' + cls : ''}> covers it`;
-        console.warn(`tapWords: "${t.word}" cannot be tapped: ${what}`);
-      }
-    } }, 600);
+    let cur = -1;
+    P.keys = e => {
+      if (e.key === 'Enter') return finish(), true;
+      const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if (!d || !order.length) return false;
+      const i = order.findIndex(t => t.hit === document.activeElement);
+      cur = i >= 0 ? (i + d + order.length) % order.length : d > 0 ? 0 : order.length - 1;
+      order[cur].hit.focus();
+      return true;
+    };
+    ask();
   };
   const cleanup = () => {
-    alive = false;
-    L.remove();
-    for (const t of list) { t.a.onerror = null; t.a.pause(); t.a.removeAttribute('src'); t.a.load(); if (SND.word === t.a) SND.word = null; }
-    if (P.tapDemo?.gen === gen) delete P.tapDemo;
+    alive = false; on = false; L.remove(); word?.remove(); starsOff(); clearTimeout(wordTimer); wiggling?.cancel();
+    for (const a of [...list.map(t => t.a), ...qs.map(q => q.a), ...qs.map(q => q.again), praise, help, chime]) { a.onerror = null; a.pause(); }
+    SND.word = null; askLine = '';
+    Object.assign(FIND, { saying: null, target: null, found: null, foundAt: -1e9 });
   };
   P.cleanup.push(cleanup);
-  P.tapDemo = { gen, clips: list.map(t => t.clip), step: DEMO_STEP, at(s) { if (!on) enable(); idle(s); const k = Math.min(list.length - 1, Math.floor(s / DEMO_STEP)); if (k >= 0 && k !== shown) { list.slice(0, k).forEach(t => { t.heard = true; }); tapIt(k, true); } } };
   const tick = () => {
     if (!alive) return;
     if (P.gen !== gen) { cleanup(); return; }   // a seek away, or the beat replayed
-    if (P.waiting && !on) enable();
-    if (on && P.waiting) idle((performance.now() - since) / 1000);
-    if (on) place();
+    if (P.waiting && !enabled) { enabled = true; enable(); }
+    if (list[0]?.hit) place();
+    if (stars) {
+      const b = box(stars.t), cx = b.x + b.w / 2, cy = b.y + b.h / 2, R = Math.max(b.w, b.h) * .38 + 24, a0 = now() / 900;
+      [...stars.children].forEach((st, i) => { const a = a0 + i * Math.PI / 3; st.setAttribute('transform', `translate(${(cx + R * Math.cos(a)).toFixed(1)},${(cy + R * .8 * Math.sin(a)).toFixed(1)}) rotate(${(a * 60).toFixed(0)})`); });
+    }
+    const w = want();
+    if (on && now() - askedAt > giveUpAfter * 1000) found(w, true);
+    else if (on && w && now() - lastAct > hintAfter * 1000) wiggle(w);
     requestAnimationFrame(tick);
   };
   requestAnimationFrame(tick);
@@ -1364,8 +1447,12 @@ const blanks = rowsIn => (body, api) => {
 
 /* ---------- sound effects and music ----------
    sfx(beat, at, name, vol, bed): play audio/sfx/<name>.mp3 when the clock of beat `beat` passes `at` in normal playback
-   (a seek past it fires nothing), at half volume (vol 2 is full). A long ambience is listed in SFX_BED with its length
-   (SFX_BED.birds = 10): a seek into it joins it part-way. A beat function runs again at every seek; an effect is listed once.
+   (a seek past it fires nothing), at half volume (vol 2 is full). Effects past a beat's end never play. A long one-off
+   sound is listed in SFX_BED with its length (SFX_BED.birds = 10), or given it as `bed`: a seek into it joins it part-way.
+   A bed of ambience that lasts: sfx(beat, at, 'river', .5, { loop: true }) lays the file again every (its length −
+   BED_OVERLAP) s, so a 10 s file with soft ends runs to the beat's end, and through a film's ask wait; { loop: true,
+   to: t } stops it at t on the beat clock (a forest bed under an indoor close-up). A seek joins it where it would be.
+   A beat function runs again at every seek; an effect is listed once.
    An effect still loading when it is due plays late, joined part-way, for up to a second (or its bed).
    music(file, beats, gain, fade): a looping track under the listed beats (all of them by default). Its place is the
    length of its earlier beats plus the clock. It ducks to 30 % under the whole beat, or 70 % in the music-only lead-in
@@ -1381,8 +1468,10 @@ const everyBeat = () => { try { return BEATS.map(b => b.id); } catch { return un
 // window properties, not declarations: a book with its own older sfx() or BGM declares them over these
 Object.assign(window, { SFX: SND.sfx, SFX_BED: SND.bed, BGM: SND.bgm,
   sfx(beat, at, name, vol = 1, bed = SND.bed[name] || 0) {
+    const { loop = false, to = null } = typeof bed === 'object' && bed || {};
+    if (typeof bed !== 'number') bed = SND.bed[name] || 0;
     const e = SND.sfx.find(x => x.beat === beat && x.at === at && x.name === name);
-    if (e) Object.assign(e, { vol, bed }); else SND.sfx.push({ beat, at, name, vol, bed });
+    if (e) Object.assign(e, { vol, bed, loop, to }); else SND.sfx.push({ beat, at, name, vol, bed, loop, to });
     sfxLoad(name);
   },
   // without beats, every beat: boot() fills them in when music() comes before BEATS
@@ -1401,14 +1490,24 @@ function sfxLoad(name) {
   const ctx = SND.ctx || (window.OfflineAudioContext && (DECODER ??= new OfflineAudioContext(2, 1, 44100)));
   if (ctx && !s.decoded) s.decoded = s.data.then(d => d && ctx.decodeAudioData(d)).then(b => { s.b = b; }, () => {});
 }
-function sfxPlay(e, late) {
+function sfxPlay(e, late, at = e.at, t = P.t) {
   const ctx = SND.ctx, src = ctx.createBufferSource(), g = ctx.createGain();
-  src.buffer = SND.buf[e.name].b; src._sfx = e.name; g.gain.value = src._vol = .5 * e.vol;
+  src.buffer = SND.buf[e.name].b; src._sfx = e.name; src._e = e; src._at = at; g.gain.value = src._vol = .5 * e.vol;
   src.playbackRate.value = P.rate;
   src.connect(g).connect(SND.out);
-  src.start(0, late && !e.bed ? 0 : Math.max(0, P.t - e.at));   // a late one-shot starts from its attack
+  src.start(0, late && !e.bed ? 0 : Math.max(0, t - at));   // a late one-shot starts from its attack
   SND.on.push(src);
   src.onended = () => { const k = SND.on.indexOf(src); if (k >= 0) SND.on.splice(k, 1); };
+}
+// A bed (sfx's { loop: true }) is laid at `at` and again every BED_OVERLAP s short of its file's length, so the soft ends
+// of one lay and the next overlap, until `to` on the beat clock, else the beat's end and on through an ask wait. Each
+// frame the lay due now is playing, or starts where it should be by now: a seek, a late load and a wait all join it.
+const BED_OVERLAP = .5;
+function bedLay(e, t) {
+  const b = SND.buf[e.name]?.b;
+  if (!b || t < e.at || t >= (e.to ?? Infinity)) return;
+  const step = Math.max(.5, b.duration - BED_OVERLAP), at = e.at + Math.floor((t - e.at) / step) * step;
+  if (t - at < b.duration - .05 && !SND.on.some(s => s._e === e && Math.abs(s._at - at) < 1e-6)) sfxPlay(e, false, at, t);
 }
 function bgmWire(m) {
   m.g = SND.ctx.createGain();
@@ -1444,26 +1543,31 @@ function soundTick(dt) {
   const held = P.started && !P.playing && !P.done, ctx = SND.ctx;
   if (ctx?.state === 'running' && held) ctx.suspend();
   else if (ctx && ctx.state !== 'running' && ctx.state !== 'closed' && !held) ctx.resume().catch(() => {});
+  // the sound's clock: the beat's, and on past its end while a film's ask waits (P.idle), where only the beds play
+  const T = P.t + (P.waiting ? P.idle : 0);
   // the clock ran on (or stood still, paused) in the same beat; anything else is a seek, a replay or the next beat
-  const same = L.i === P.i && P.t >= L.t && P.t - Math.max(0, L.t) < Math.max(.5, dt * P.rate + .25);
+  const same = L.i === P.i && T >= L.t && T - Math.max(0, L.t) < Math.max(.5, dt * P.rate + .25);
   if (!same) { while (SND.on.length) SND.on.pop().stop(); SND.wait = []; }
   // a beat that has just begun fires its effects from 0 on; a seek fires nothing it skipped, but joins a bed
-  const from = same ? L.t : P.t < .25 ? -1 : P.t, seeked = !same || L.pend;
-  if (on && ctx) {
+  const from = same ? L.t : T < .25 ? -1 : T, seeked = !same || L.pend;
+  if ((on || wait) && ctx) {
     for (const e of SND.sfx) {
-      if (e.beat !== id || !(e.at > from && e.at <= P.t || seeked && e.bed && e.at < P.t && P.t < e.at + e.bed)) continue;
+      if (e.beat !== id) continue;
+      if (e.loop) { bedLay(e, T); continue; }
+      if (!on || !(e.at > from && e.at <= T || seeked && e.bed && e.at < T && T < e.at + e.bed)) continue;
       if (SND.buf[e.name]?.b) sfxPlay(e); else SND.wait.push(e);
     }
-    SND.wait = SND.wait.filter(e => P.t - e.at < (e.bed || 1) && !(SND.buf[e.name]?.b && (sfxPlay(e, true), true)));
+    if (on) SND.wait = SND.wait.filter(e => T - e.at < (e.bed || 1) && !(SND.buf[e.name]?.b && (sfxPlay(e, true), true)));
     for (const s of SND.on) if (s.playbackRate.value !== P.rate) s.playbackRate.value = P.rate;
   }
-  SND.last = { i: P.i, t: on ? P.t : from, pend: !on && (!same || !!L.pend) };
+  for (const s of [...SND.on]) if (s._e?.loop && T >= (s._e.to ?? Infinity)) s.stop();   // a bed stopped mid-beat (onended drops it)
+  SND.last = { i: P.i, t: on || wait ? T : from, pend: !(on || wait) && (!same || !!L.pend) };
   const vol = +($('volume')?.value ?? 1), up = window.MUSIC_UP_IN_PRE;
   if (SND.out) SND.out.gain.value = vol;
   if (!SND.bgm.length || BEATS.some(b => b.ask) && !CHAPTER.film) return;   // a lesson with questions plays no music
   // the film's clock moved this frame (a clip loading or buffering holds it), or jumped (a seek, a replay)
   const runs = on && same && P.t > L.t, jump = !same && !(L.i === P.i - 1 && P.t < .5);
-  // a word the reader tapped (tapWords) ducks the music at once, as the narration does
+  // a word said at a listen-and-find stop (findWords) ducks the music at once, as the narration does
   const saying = !!SND.word && !SND.word.paused && !SND.word.ended;
   if (!held) SND.duck += Math.max(-dt * (saying ? 4 : 1), Math.min(dt, (wait && !saying || P.t < pre && (up === true || up?.includes?.(id)) ? .7 : .3) - SND.duck));
   for (const m of SND.bgm) {
@@ -1508,7 +1612,7 @@ function soundTick(dt) {
 }
 
 /* ---------- player ---------- */
-const P = { i: 0, t: 0, end: 1, back: 0, playing: false, waiting: false, done: false, started: false, audio: null, afail: false, stall: 0, cleanup: [], rate: 1, nextClip: null };
+const P = { i: 0, t: 0, end: 1, back: 0, idle: 0, playing: false, waiting: false, done: false, started: false, audio: null, afail: false, stall: 0, cleanup: [], rate: 1, nextClip: null };
 function runBeat(i) {
   TW = [];
   const b = BEATS[i], tm = TIMINGS[b.id], pre = b.pre || 0;   // pre: seconds of picture before the narration starts
@@ -1580,7 +1684,7 @@ function start(i, play) {
   stopAudio(); clearCards();
   // P.gen counts starts: a done() kept from an earlier start of this same beat (a step replayed) no longer counts
   const gen = P.gen = (P.gen || 0) + 1;
-  Object.assign(P, { i, t: 0, waiting: false, done: false, afail: false, stall: 0, lost: 0, back: 0 });
+  Object.assign(P, { i, t: 0, idle: 0, waiting: false, done: false, afail: false, stall: 0, lost: 0, back: 0 });
   P.end = runBeat(i);
   evalTo(0);
   const a = P.audio = beatClip(i, true);
@@ -1641,6 +1745,15 @@ function setPlaying(v) {
     a.play().then(() => { if (P.t < (BEATS[P.i].pre || 0)) { a.pause(); a.currentTime = 0; } a.muted = false; }, () => { a.muted = false; });
   } else a.pause();
 }
+// A film's ask beat waiting for the reader (CHAPTER.film): P.idle counts the seconds it has waited, playing (a pause
+// holds it, as it holds the music), and the beat's continuous motion (stopClock, clockRun with tail: true) runs on past
+// its end at P.t + P.idle, so puppets breathe, blink and talk while a child looks; its beds play on (soundTick).
+// export.py calls P.idleAt(s) to draw a frame s seconds into the wait.
+function idleAt(s) {
+  P.idle = s;
+  for (const w of TW) if (w.tail === true && w.dur) w.pf((P.t + s - w.t0) / w.dur);
+}
+P.idleAt = idleAt;
 function beatDone() {
   // Steps finish; continuous motion (tails) stays where the clock is: a beat under music ends up to HOLD early, and
   // jumping its tails to their end would move them a few px on the last frame
@@ -1693,7 +1806,7 @@ function frameStep(now, most) {
     const back = P.back = SND.bgm.some(m => m.beats.includes(BEATS[P.i].id)) ? Math.max(0, Math.min(HOLD, P.lost)) : 0;
     evalTo(P.t);
     if (P.t >= P.end - back) beatDone();
-  }
+  } else if (P.playing && P.waiting && !P.done && CHAPTER.film) idleAt(P.idle + dt * P.rate);
   soundTick(dt);
   syncLinks();
   ui();
@@ -1730,7 +1843,8 @@ function ui() {
   // a question's caption shows while its narration plays, clear of the cards; a full-screen card already shows the
   // question, so it has none
   const asking = !!b.ask;
-  if (P.started && !P.done && !(asking && (P.waiting || $('ui').querySelector('.card.screen')))) {
+  if (P.started && !P.done && asking && P.waiting) text = captions ? askLine : '';   // a listen-and-find character's line
+  else if (P.started && !P.done && !(asking && $('ui').querySelector('.card.screen'))) {
     // a cue is [start, line], [start, line, end] or [start, line, end, 1]: with an end, the caption clears once its
     // words are over; a 1 marks a line in another language, whose subtitle shows even with captions off (as does every
     // cue of a beat whose timings say forced: true, from tts.py or eleven.py)
@@ -1927,7 +2041,7 @@ return { TRANSLATIONS, PORTRAIT, SW, SH, LANGUAGE, translate, DECIMAL_SIGN, isSh
   R, E, TX, $tex, texGraphic, texPart, OV, M, chip, tokens, layRow, collapse, mathEl, io, out, back, lin, tw, prog,
   show, hide, draw, pop, pulse, stream, mix, evalTo, soft, clockRun, camera, scene, S, AXIS, X, Y0, num, reset, tick,
   dot, arrow, panel, retire, header, fx, fxp, finishFx, pulseFx, shakeFx, floatText, TF, $, kbd, sources, uiW, SCORE,
-  h, rich, card, mascotEl, quiz, qlayer, keyAct, choice, mcq, tap, tapEls, pickEls, tapWords, grid, rat, gcd, lowest, blanks,
+  h, rich, card, mascotEl, quiz, qlayer, keyAct, choice, mcq, tap, tapEls, pickEls, findWords, FIND, findMouth, findSaw, grid, rat, gcd, lowest, blanks,
   SND, P, HOLD, clearCards, seek, seekInto, start, setSpeed, setPlaying, setCaptions, hideCover, restart, boot,
   finishCard };
 })();
@@ -1954,7 +2068,7 @@ const TRANSLATIONS = ENGINE.TRANSLATIONS, PORTRAIT = ENGINE.PORTRAIT, SW = ENGIN
   uiW = ENGINE.uiW, SCORE = ENGINE.SCORE, h = ENGINE.h, rich = ENGINE.rich, card = ENGINE.card,
   mascotEl = ENGINE.mascotEl, quiz = ENGINE.quiz, qlayer = ENGINE.qlayer, keyAct = ENGINE.keyAct,
   choice = ENGINE.choice, mcq = ENGINE.mcq, tap = ENGINE.tap, tapEls = ENGINE.tapEls, pickEls = ENGINE.pickEls,
-  tapWords = ENGINE.tapWords, grid = ENGINE.grid, rat = ENGINE.rat, gcd = ENGINE.gcd, lowest = ENGINE.lowest, blanks = ENGINE.blanks,
+  findWords = ENGINE.findWords, FIND = ENGINE.FIND, findMouth = ENGINE.findMouth, findSaw = ENGINE.findSaw, grid = ENGINE.grid, rat = ENGINE.rat, gcd = ENGINE.gcd, lowest = ENGINE.lowest, blanks = ENGINE.blanks,
   SND = ENGINE.SND, P = ENGINE.P, HOLD = ENGINE.HOLD, clearCards = ENGINE.clearCards, seek = ENGINE.seek,
   seekInto = ENGINE.seekInto, start = ENGINE.start, setSpeed = ENGINE.setSpeed, setPlaying = ENGINE.setPlaying,
   setCaptions = ENGINE.setCaptions, hideCover = ENGINE.hideCover, restart = ENGINE.restart, boot = ENGINE.boot;

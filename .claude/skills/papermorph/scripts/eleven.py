@@ -18,7 +18,10 @@ language, from the file name narration.<lang>.json; the first run downloads the 
 matched to the heard words in order; each [[mark]] is the start of the word after it, and there is one caption cue per
 sentence and per clause after a colon ("Mr." and "e.g." do not end one, as in tts.py). Whisper writes spoken numbers in
 digits ("a hundred and twenty" heard as "120"): a number's first word is matched to such a heard number, so a mark on it
-lands on the number's start. A rerun prints the marks that moved more than 0.1 s against the old timings.js. Audio is decoded with ffmpeg, not PyAV (faster-whisper's PyAV version clashes). Needs ffmpeg.
+lands on the number's start. A rerun prints the marks that moved more than 0.1 s against the old timings.js. Every word's heard time also goes
+in the .timings.json beside the narration, as tts.py writes it, so a picture book's mouths.py and join.py --words work
+on these clips too. A word Whisper starts inside a pause (it often does, up to 0.7 s early) is moved to where the
+sound comes back, and the run prints it. Audio is decoded with ffmpeg, not PyAV (faster-whisper's PyAV version clashes). Needs ffmpeg.
 
 v4 audio tags such as [cackles] or [whispers] act: they are performed, not read aloud, and left out of captions.
 Price: about $0.00008 per character (about $0.65 for a ten-minute film). Before paying, the run prints the characters
@@ -50,6 +53,7 @@ import argparse, atexit, hashlib, json, pathlib, re, subprocess, sys, urllib.err
 from paint import key
 from ledger import append
 from tts import ABBREV, split_marks, mark_times, duration, write_atomic
+from silence import silences
 import level as lv
 
 TAG = re.compile(r"(?<!\[)\[[^\[\]]+\](?!\])")   # a v4 audio tag, not a [[mark]]
@@ -147,6 +151,8 @@ print(f"{sum(b[6] for b in beats)} beats to synthesize, {todo} characters, about
 if a.dry:
     sys.exit()
 timings, spent = {}, 0
+wc_path = pathlib.Path(a.narration).with_suffix(".timings.json")   # every word's heard time, for mouths.py and join.py
+wcache = json.loads(wc_path.read_text(encoding="utf-8")) if wc_path.exists() else {}
 
 
 def charge():
@@ -196,6 +202,24 @@ for beat, voice, sub, clean, marks, cached, fresh in beats:
             if d is not None and (k is None or d < k): k, run = d, heard[d][1]
         times.append(None if k is None else heard[k][1]); j = j if k is None else k + 1
     dur = duration(mp3)
+    # Whisper starts a word that follows a pause inside the pause (up to 0.7 s early, the mouth moving in silence):
+    # a word heard inside a silence starts where the sound comes back
+    gaps = [(a, b) for a, b in silences(mp3) if b < dur - .05]
+    for i, v in enumerate(times):
+        g = next(((a, b) for a, b in gaps if v is not None and a - .02 <= v < b - .02), None)
+        if g:
+            print(f"{beat}: {toks[i]!r} moved from {v:.2f} to the end of the pause, {g[1]:.2f}")
+            times[i] = round(g[1], 3)
+    # ... or puts the word after a pause before it ("river? Isn't it" heard as Isn't@0.54, pause 0.78-1.21, it@1.46):
+    # when no word starts where a pause of 0.3 s or more ends and the next word comes later than 0.2 s after it,
+    # the last word before the pause is the one spoken there
+    for g0, g1 in gaps:   # (not a, b: `a` holds the arguments)
+        if g1 - g0 < .3 or any(v is not None and abs(v - g1) < .03 for v in times): continue
+        k = max((q for q, v in enumerate(times) if v is not None and v < g0), default=None)
+        n = next((v for v in times[k + 1:] if v is not None), None) if k is not None else None
+        if k is not None and k > 0 and n is not None and n > g1 + .2:
+            print(f"{beat}: {toks[k]!r} moved from {times[k]:.2f} past the pause to {g1:.2f}")
+            times[k] = round(g1, 3)
     for i, v in enumerate(times):   # words Whisper merged or split: halfway between their known neighbours
         if v is None:
             prev = next((times[q] for q in range(i - 1, -1, -1) if times[q] is not None), 0.0)
@@ -204,7 +228,7 @@ for beat, voice, sub, clean, marks, cached, fresh in beats:
     words = list(zip(times, toks))
     # caption cues: one per sentence or clause after a colon (long documentary sentences), at its first word
     cues, i, sents = [], 0, []
-    for sent in re.split(r"(?<=[.?!:])\s+", re.sub(r"\s+", " ", TAG.sub(" ", clean)).strip()):   # a tag parts words
+    for sent in re.split(r"(?<=[.?!:])(?<!\.\.\.)\s+", re.sub(r"\s+", " ", TAG.sub(" ", clean)).strip()):   # a tag parts words; "I... I can't" stays one line
         if sents and ABBREV.search(sents[-1]): sents[-1] += " " + sent   # "Mr. Lee", "e.g. a lot" go on
         else: sents.append(sent)
     for sent in sents:
@@ -213,10 +237,12 @@ for beat, voice, sub, clean, marks, cached, fresh in beats:
     if cues: cues[0][0] = min(cues[0][0], .1)
     timings[beat] = {"dur": dur, "marks": mark_times(clean, marks, words), "cues": [[0, sub]] if sub else cues}
     if sub: timings[beat]["forced"] = True
+    wcache[beat] = {"dur": dur, "words": [[t, w] for t, w in words], "lag": 0}   # heard times: no Edge lead to correct
     moved = [f"{k} {old[beat]['marks'][k]} -> {v}" for k, v in timings[beat]["marks"].items()
              if k in old.get(beat, {}).get("marks", {}) and abs(old[beat]["marks"][k] - v) > .1]
     if moved: print(f"{beat}: marks moved: {', '.join(moved)}")
     print(f"{beat}: {dur} s, {len(marks)} marks")
 write_atomic(tf, "window.TIMINGS = " + json.dumps(timings, indent=1, ensure_ascii=False) + ";\n")
 write_atomic(tk, json.dumps(takes, indent=1))
+write_atomic(wc_path, json.dumps(wcache, indent=1, ensure_ascii=False))
 print(f"{len(timings)} beats in {tf}; synthesized {spent} characters, about ${spent * PRICE:.2f}")

@@ -69,8 +69,8 @@ def start(a, root, ch, site, work, content):
         copy(T / 'chapter.html', site / ch / 'index.html')
         copy(T / 'narration.en.json', narration)
     elif a.kind == 'picture':
-        (site / 'img' / 'puppets').mkdir(parents=True, exist_ok=True)
-        (work / 'art').mkdir(parents=True, exist_ok=True)
+        for d in (site / 'img' / 'puppets', work / 'art', site / ch / 'audio' / 'sfx'):
+            d.mkdir(parents=True, exist_ok=True)
         copy(PB / 'series.html', site / 'index.html')
         for f in (PB / 'lib').glob('*.js'):
             copy(f, site / 'lib' / f.name)
@@ -101,7 +101,8 @@ def start(a, root, ch, site, work, content):
     print(f'\n{a.kind} book started: {site.relative_to(root)}/ (pilot {ch}); next:')
     print(f'  uv run --with edge-tts python3 {S}/tts.py {narration.relative_to(root)} {A.relative_to(root)}')
     if a.kind == 'picture':
-        print(f'  then level.py, mouths.py, join.py and sfx.py in tools/{a.book}/audio.sh; bake_sets.py, scenes, bake_puppets.py')
+        print(f'  uv run --with numpy python3 {S}/sfx.py {(site / ch / "audio" / "sfx").relative_to(root)} knock chime room   # the template scene\'s knock, the find stop\'s chime, the room-tone bed')
+        print(f'  then level.py, mouths.py, join.py in tools/{a.book}/audio.sh; bake_sets.py, scenes, bake_puppets.py')
     if a.kind == 'shorts':
         print(f'  uv run --with numpy python3 {S}/sfx.py {(site / ch / "audio" / "sfx").relative_to(root)} whoosh bang tick thud')
     if a.maps:

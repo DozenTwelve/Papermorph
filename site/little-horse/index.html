@@ -6,41 +6,116 @@
 <title>The Little Horse Crosses the River</title>
 <meta name="description" content="A Chinese folk tale (小马过河) as a paper cut-out film, all drawn in code, with English voices and two stops where a child touches the picture to hear its words.">
 <link rel="stylesheet" href="lib/book.css"><!-- only for --progress-key, if the book sets one -->
-<!-- A picture book's cover and episode list. A starting point, not a design: give it the book's own look. -->
 <style>
   :root { --ink: #2f2418; --soft: #6b5a46; --paper: #fbf5e8; --card: #fffaf0; --line: #e4d6bb; --accent: #2f5aa8;
+    --on-ink: #fff6e0; --ink-hover: #4a3826; --shadow: #4a33182e; --select: #2f5aa833; --frame: #fffdf8;
     --ui: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif; --serif: "Iowan Old Style", Palatino, Georgia, serif; color-scheme: light; }
   * { box-sizing: border-box; }
+  html, body { overflow-x: clip; }
   body { margin: 0; background: var(--paper); color: var(--ink); font: 18px/1.6 var(--ui); }
-  header { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 40px; align-items: center; max-width: 1180px; margin: 0 auto; padding: 48px 24px 24px; }
-  header img { width: 100%; height: auto; border-radius: 10px; box-shadow: 0 14px 40px #4a33182e; }
+  ::selection { background: var(--select); }
+  a { color: var(--accent); }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+  h1, h2 { text-wrap: balance; overflow-wrap: break-word; min-width: 0; } p, li { text-wrap: pretty; }
+  .hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 40px; align-items: center; max-width: 1180px; margin: 0 auto; padding: 48px 24px 40px; }
+  .cover { display: block; border-radius: 10px; }
+  .cover img { display: block; width: 100%; height: auto; border-radius: 10px; box-shadow: 0 14px 40px var(--shadow); }
+  .back { display: inline-block; margin: -10px 0 8px; padding: 10px 0; font-size: 15px; color: var(--soft); text-decoration: none; }
+  .back:hover { color: var(--ink); }
   h1 { margin: 0 0 8px; font: 700 clamp(34px, 4.6vw, 56px)/1.05 var(--serif); }
-  .lede { font-size: 20px; color: var(--soft); }
-  main { max-width: 1000px; margin: 0 auto; padding: 8px 24px 80px; }
-  .episodes { list-style: none; padding: 0; margin: 18px 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-  .episodes a { display: flex; flex-direction: column; height: 100%; background: var(--card); border: 1px solid var(--line); border-radius: 10px;
-    overflow: hidden; color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; }
-  .episodes a:hover, .episodes a:focus-visible { border-color: var(--accent); transform: translateY(-2px); }
-  .episodes img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
-  .episodes small { margin: 12px 16px 0; color: var(--soft); font-size: 13px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; }
-  .episodes b { margin: 2px 16px 4px; font: 700 21px/1.25 var(--serif); }
-  .episodes span { margin: 0 16px 16px; color: var(--soft); font-size: 15px; line-height: 1.5; }
-  .watched small::after { content: " · ✓ watched"; color: var(--accent); }
-  @media (max-width: 760px) { header { grid-template-columns: 1fr; padding-top: 28px; } .episodes { grid-template-columns: 1fr; } }
+  .lede { margin: 0; font-size: 20px; color: var(--soft); }
+  .action { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 24px 0 0; color: var(--soft); font-size: 16px; }
+  .watch { display: inline-flex; align-items: center; gap: 10px; padding: 14px 26px; border-radius: 99px; background: var(--ink); color: var(--on-ink); font-weight: 600; text-decoration: none; white-space: nowrap; }
+  .watch:hover { background: var(--ink-hover); }
+  .watch:active { transform: translateY(1px); }
+  .watch:focus-visible { border-radius: 99px; }
+  .watch svg { width: 11px; height: 13px; fill: currentColor; }
+  .seen { color: var(--accent); font-style: normal; }
+  main { max-width: 900px; margin: 0 auto; padding: 8px 24px 80px; }
+  .intro { font-size: 20px; }
+  h2 { margin: 64px 0 8px; font: 700 32px/1.2 var(--serif); }
+  figure { margin: 18px 0 26px; }
+  figure img { display: block; width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--line); background: var(--frame); }
+  figcaption { margin-top: 8px; font-size: 15px; color: var(--soft); }
+  .stills { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 32px 0 18px; }
+  .stills img { width: 100%; height: auto; border-radius: 6px; display: block; }
+  .numbers { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 18px 0; }
+  .numbers div { padding: 14px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; text-align: center; }
+  .numbers b { display: block; font: 700 28px/1.1 var(--serif); }
+  .numbers span { font-size: 14px; color: var(--soft); }
+  footer { max-width: 900px; margin: 0 auto; padding: 0 24px 60px; color: var(--soft); font-size: 15px; }
+  @media (prefers-reduced-motion: reduce) { .watch { transition: none; } .watch:active { transform: none; } }
+  @media (max-width: 760px) { .hero { grid-template-columns: minmax(0, 1fr); padding-top: 28px; gap: 24px; } .stills { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 </style>
 </head>
 <body>
-<header>
-  <img src="img/cover.webp" width="1400" height="788" alt="Little Horse, a chestnut paper foal with a red saddle cloth, standing in the river with the water at his knees.">
+<header class="hero">
+  <a class="cover" href="ch01/" tabindex="-1"><img src="img/cover.webp" width="1400" height="788" alt="Little Horse, a chestnut paper foal with a red saddle cloth, standing in the river with the water at his knees."></a>
   <div>
+    <a class="back" href="../">← Back to the bookshelf</a>
     <h1>The Little Horse Crosses the River</h1>
-    <p class="lede">小马过河 — a Chinese folk tale for young children learning English. Uncle Ox says the river is shallow; Squirrel says it is deep. Little Horse has to find out for himself.</p>
-    <p class="lede">Paper puppets in a layered spring valley, all drawn in code. Twice the film stops so a child can touch the picture and hear the words.</p>
+    <p class="lede">小马过河: a Chinese folk tale for young children learning English. Is the river deep or shallow? It depends on who is asking.</p>
+    <p class="action"><a class="watch" href="ch01/"><svg viewBox="0 0 11 13" aria-hidden="true"><path d="M0 0l11 6.5L0 13z"/></svg>Watch the film</a>
+      <span>4 minutes</span> <em class="seen" id="seen" hidden>✓ Watched</em></p>
   </div>
 </header>
 <main>
-  <ul class="episodes" id="episodes"></ul>
+  <p class="intro">Uncle Ox says the river is shallow; Squirrel says it is deep. Little Horse has to find out for himself. Paper puppets in a layered spring valley, all drawn in code. Twice the film stops so a child can touch the picture and hear the words.</p>
+
+  <div class="stills">
+    <img src="making/still-home.webp" width="800" height="450" alt="Mother and Little Horse side by side at the stable door, the half sack of wheat waiting beside them." loading="lazy">
+    <img src="making/still-river.webp" width="800" height="450" alt="Little Horse stops on the river bank, the sack of wheat on his back." loading="lazy">
+    <img src="making/still-ox.webp" width="800" height="450" alt="Uncle Ox, a grey water buffalo with crescent horns, munching grass in the shallows." loading="lazy">
+    <img src="making/still-squirrel.webp" width="800" height="450" alt="Squirrel on the rock, shouting at Little Horse to stop." loading="lazy">
+    <img src="making/still-bubble.webp" width="800" height="450" alt="A thought bubble: the river cut side-on, Uncle Ox in it with the water at his shins, Little Horse beside him, a red question mark." loading="lazy">
+    <img src="making/still-rabbit.webp" width="800" height="450" alt="Little Horse, with no sack now, meets a little white rabbit at the river's edge." loading="lazy">
+  </div>
+
+  <h2>What we set out to do</h2>
+  <p>The shelf had no Chinese story. 小马过河 is one almost every child in China knows: a foal is sent to the mill with half a sack of wheat, a river is in the way, an old ox says it is shallow and a squirrel says it is deep. We made it for young children learning English, with English voices, in the paper-puppet style of <a href="../little-red-riding-hood/">Little Red Riding Hood</a>: no image model, everything drawn in code.</p>
+  <p>The whole story hangs on one picture: the same river is shallow for a big ox, deep for a small squirrel, and just up to the knees for Little Horse. So the film never only says how deep the water is. It shows it against legs, at the waterline, while the voice says it.</p>
+
+  <h2>Showing the depth</h2>
+  <p>The river is seen side-on, the way a paper theatre sees it, and the water stands in front of whoever wades in, so its depth reads against their legs. The puppets keep their sizes through the whole film and the riverbed is built on them: at the deepest point the water is on Uncle Ox's shins, at Little Horse's knees, and over Squirrel's head.</p>
+  <figure><img src="making/depth.webp" width="1610" height="450" alt="Left: Uncle Ox's legs in the river, the water at his shins. Right: Little Horse in the middle of the river, a dashed line marking the water at his knees." loading="lazy"><figcaption>The same river: on Uncle Ox's shins, at Little Horse's knees.</figcaption></figure>
+  <p>The film adds a few moments to the story, so a child can see why each of them was right:</p>
+  <ul>
+    <li>When we meet Uncle Ox he is already standing in the shallows, and Squirrel is tiny beside the river.</li>
+    <li>When Mother asks "Did you think about what they said?", a thought bubble opens over Little Horse: the river cut side-on, the ox with the water at his shins, the squirrel under it, and Little Horse in between with a question mark.</li>
+    <li>After the crossing, Uncle Ox says "Told you it was shallow", Squirrel says "Told you it was deep!", and they look at each other.</li>
+    <li>On the way home a little rabbit wants to cross. Little Horse starts "The water only comes up to my—", looks at the rabbit's short legs, and says "For you, it might be deep. Hop on! Let's find out together."</li>
+  </ul>
+
+  <h2>Listen and find</h2>
+  <p>Twice the film stops for a game. By the river, Little Horse needs someone to ask, and he asks the child to find things one at a time: a bird, a flower, a butterfly, and last Uncle Ox ("There's Uncle Ox! Let's ask him!"), which takes the story on. At the mill he asks for the wheel, the duck and the sack. He asks with his eyes on the child, and the picture keeps living while he waits: the ox chews, the wheel turns.</p>
+  <p>Nothing is ever called wrong. A tap on something else says that thing's name and asks again. After a second miss, the thing he wants wiggles; after a third, paper stars circle it; and if nobody finds it in twenty seconds, he says "Look! There it is!" Tap Little Horse himself and he says "That's me!" The game was new in this book, and Little Red Riding Hood's meadow stop was rebuilt the same way.</p>
+
+  <h2>Puppets on four legs</h2>
+  <p>Little Red Riding Hood's puppets stand on two legs. This story needed a foal, his mother, a water buffalo, a squirrel and a rabbit, so we built a rig for animals on four legs. Each leg is two paper pieces on pins, and the hoof is solved to land on a point, so a planted hoof stays exactly where it is while the body rides over it. Walking and trotting come from the distance covered, not from the clock, so the feet never slide. To turn round, a puppet squashes flat and comes out mirrored, like a paper cut-out turned over on the table.</p>
+  <p>Uncle Ox changed most along the way. After the first review he became a water buffalo: longer, thicker legs, two broad crescent horns, a broad muzzle and a nose ring.</p>
+
+  <h2>A spring valley in layers</h2>
+  <p>Four sets: the stable, the road, the river and the mill. Each is cut from layers of paper (misty mountains, willows, bamboo, peach blossom, a red paper sun), and as the camera moves the layers slide past each other at different speeds. Behind a close-up the set goes soft, and in the close-ups of the depth the water turns half see-through, so the legs show under it.</p>
+
+  <h2>Voices, music and sound</h2>
+  <p>Five ElevenLabs (v4) voices: George narrates, Jessica is Little Horse, Lily is Mother, Brian is Uncle Ox, slow and deep, and Laura is Squirrel, quick. Every word in every line is timed, and those times drive the mouths and the captions. The music is original, composed in code for this book: a synthesized guzheng and a soft dizi on a pentatonic scale, looping under the whole film and falling silent for the stare after the crossing. The river, the mill wheel, the hooves, the splashes and the rest of the sounds are synthesized in code too.</p>
+
+  <h2>How it was made</h2>
+  <p>One agent built everything the scenes share: the story and storyboard, the voices, the sets, the puppets and the helpers. Then nine scene agents, one per scene, each staged and checked its own scene: contact sheets of every shot, onion skins of the walks to see that hooves stay planted, frames at every cut. A director agent watched the exported film and wrote notes, and the scenes were reworked from them. There were four review rounds; in the last, the director also played both games.</p>
+  <p>The second round's notes put what the film is for in one line: a five-year-old must see the river shallow for Uncle Ox, deep for Squirrel and knee-deep for Little Horse, at the moments the voice says it. From then on, wherever depth is said, the film reuses its clearest pictures of it: the side-on slice in the thought bubble and a dashed waterline across the legs.</p>
+
+  <h2>The numbers</h2>
+  <div class="numbers">
+    <div><b>~4 min</b><span>9 scenes</span></div>
+    <div><b>5</b><span>puppets</span></div>
+    <div><b>4</b><span>sets</span></div>
+    <div><b>2</b><span>listen-and-find games</span></div>
+    <div><b>~$0.31</b><span>for voices, $0 for pictures</span></div>
+  </div>
+
+  <p><a class="watch" href="ch01/"><svg viewBox="0 0 11 13" aria-hidden="true"><path d="M0 0l11 6.5L0 13z"/></svg>Watch the film</a></p>
 </main>
+<footer>Story: 小马过河 (The Little Horse Crosses the River), a Chinese folk tale, retold in English for this film. No image model: everything you see is drawn in code. Voices by ElevenLabs (v4), music composed in code for this film, sound effects synthesized. Part of <a href="../">Papermorph</a>.</footer>
 <script>
 'use strict';
 // One entry per finished episode, in order: its folder, title, a still (16:9) with alt text, and one line.
@@ -53,10 +128,7 @@ const key = getComputedStyle(document.documentElement).getPropertyValue('--progr
   || 'animebook:progress:' + new URL('.', location.href).pathname;
 let done = [];
 try { done = JSON.parse(localStorage.getItem(key) || '{}').done || []; } catch {}
-const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-document.getElementById('episodes').innerHTML = EPISODES.map((e, i) => `<li${done.includes(+e.ch.slice(2)) ? ' class="watched"' : ''}>
-  <a href="${e.ch}/"><img src="${esc(e.still)}" alt="${esc(e.alt)}" loading="lazy">
-  <small>Film · ${e.minutes} minute${e.minutes == 1 ? "" : "s"}</small><b>${esc(e.title)}</b><span>${esc(e.line)}</span></a></li>`).join('');
+if (EPISODES.some(e => done.includes(+e.ch.slice(2)))) document.getElementById('seen').hidden = false;
 </script>
 </body>
 </html>

@@ -33,7 +33,7 @@ function scene2(p, D) {
     .cut({ x: s2_BX + 10, y: s2_BY - 62, z: 3.5 }, CLOSE).to({ x: s2_BX + 4, y: s2_BY - 56 }, CLOSE, D + .6 - CLOSE);   // z 3.5 is the layered sets' limit
   cam.soft(CLOSE, true);
 
-  sfx('scene2', 0, 'forest', .52);   // shared.js lays it again every 9.5 s
+  sfx('scene2', 0, 'forest', .52, { loop: true });   // a bed: it repeats to the end of the scene
   for (let k = 0, t; (t = PER * (.25 + .5 * k)) < BUT + 2.4; k++) sfx('scene2', +t.toFixed(2), 'step' + (1 + k % 3), t < BUT ? .6 : .6 - .3 * Math.min(1, (t - BUT) / 2));
   sfx('scene2', OPEN - .1, 'rustle', 1.1);
 

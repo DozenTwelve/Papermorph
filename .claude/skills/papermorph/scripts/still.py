@@ -10,6 +10,9 @@ measuring; a scene's own `jit` (snowfall, a tremble) keeps working, so what is l
 a breathing, blinking puppet that does nothing else measures about 1-1.5, real acting 2 and up (The Chess Dog,
 2026-10-23). Defaults: 0.03 for a lesson, 1.5 for a picture book. Strips and onion skins cannot show that nothing
 moves; this can. A stretch is worth a look, not automatically wrong: a held moment can be right.
+A film's ask beats (CHAPTER.film: a listen-and-find stop, a shot the reader fires) are measured like the others, up to
+where the page starts waiting (P.end); what the page draws while it waits is not. A lesson's question beats are skipped,
+and the run names them.
 """
 import argparse, asyncio, io
 from playwright.async_api import async_playwright
@@ -41,7 +44,8 @@ async def main():
         b = await p.firefox.launch(firefox_user_prefs={"media.autoplay.default": 0})
         pg = await b.new_page(viewport={"width": 1600, "height": 960}, reduced_motion="reduce")
         await pg.goto(URL + "?beat=0&t=0"); await pg.wait_for_timeout(800)
-        ids = await pg.evaluate("BEATS.map(b => b.id)"); asks = await pg.evaluate("BEATS.map(b => !!b.ask)")
+        ids = await pg.evaluate("BEATS.map(b => b.id)")
+        asks = await pg.evaluate("BEATS.map(b => !!b.ask && !CHAPTER.film)")   # a film's ask beat plays a scene first
         film = await pg.evaluate(STEADY)
         thr = a.thr if a.thr is not None else (1.5 if film else .03)
         r = await pg.evaluate("(() => { const r = document.getElementById('stage').getBoundingClientRect(); return {x: r.x, y: r.y, width: r.width, height: r.height}; })()")
@@ -62,6 +66,8 @@ async def main():
                     if min(t1 - a.step, dur) - start >= a.min: runs.append((start, min(t1 - a.step, dur)))
                     start = None
             print(f"{bid:11s} dur {dur:5.1f}  still: " + (", ".join(f"{s:.0f}-{e:.0f}s" for s, e in runs) or "-"), flush=True)
+        skipped = [bid for i, bid in enumerate(ids) if asks[i] and (not a.beats or bid in a.beats)]
+        if skipped: print(f"question beats skipped (a lesson's questions): {', '.join(skipped)}")
         await b.close()
 
 asyncio.run(main())
