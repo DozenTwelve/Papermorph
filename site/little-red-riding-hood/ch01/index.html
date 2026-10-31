@@ -19,6 +19,7 @@
 <script src="audio/en/mouths.js"></script>
 <script src="audio/en/shots.js"></script>
 <script src="../lib/shared.js"></script>
+<script src="../lib/find.js"></script>
 <script src="scene1.js"></script>
 <script src="scene2.js"></script>
 <script src="scene3.js"></script>
@@ -38,13 +39,16 @@ const CHAPTER = { number: 1, title: 'Little Red Riding Hood', minutes: 4, langua
 // A picture book: captions are on unless the reader turned them off.
 try { if (localStorage.getItem('captions') === null) setCaptions(true, false); } catch {}
 
+// The meadow stop is "listen and find" (lib/find.js): Red asks for one thing at a time; every thing in the picture
+// answers a tap with its name. Only things that move are asked for; a found flower flies into her bouquet.
+const FIND_MEADOW = ['flower', 'butterfly', 'bird'].map((w, i) => ({ word: w, clip: 'q-' + w + (i ? '' : '1') }));
 /* ---------- beats: [id, title, run(m, D), extra] ---------- */
 const BEATS = [
   ['scene1', 'Home', (m, D) => scene1(panel(0), D), { lead: false, pre: PRE1 }],
   ['scene2', 'Into the woods', (m, D) => scene2(panel(0), D), { lead: false, pre: PRE2 }],
   ['scene3', 'Good morning', (m, D) => scene3(panel(0), D), { lead: false, pre: PRE3 }],
   ['scene4', 'Flowers', (m, D) => scene4(panel(0), D), { lead: false, pre: PRE4 }],
-  ['scene4w', 'In the meadow', (m, D) => scene4w(panel(0), D), { lead: false, pre: PRE4W, ask: done => tapWords(MEADOW_THINGS, done) }],
+  ['scene4w', 'In the meadow', (m, D) => scene4w(panel(0), D), { lead: false, pre: PRE4W, ask: done => findWords(MEADOW_THINGS, FIND_MEADOW, done), video: PRE4W + TIMINGS.scene4w.dur }],
   ['scene5', 'Knock, knock', (m, D) => scene5(panel(0), D), { lead: false, pre: PRE5 }],
   ['scene6', 'The wardrobe', (m, D) => scene6(panel(0), D), { lead: false, pre: PRE6 }],
   ['scene7', 'The open door', (m, D) => scene7(panel(0), D), { lead: false, pre: PRE7 }],
@@ -60,7 +64,8 @@ const BEATS = [
 [['m1-home', ['scene1', 'scene2']], ['m2-wolf', ['scene3', 'scene4', 'scene4w', 'scene5']],
   ['m3-chimney', ['scene6', 'scene7', 'scene8', 'scene9']], ['m4-ending', ['scene10', 'scene11']]]
   .forEach(([n, beats]) => music(`audio/bgm/${n}.mp3`, beats, +(new URLSearchParams(location.search).get('bgm') || .6)));
-paperWarm(g => { redPuppet(g); motherPuppet(g); wolfPuppet(g); grandmaPuppet(g); woodcutterPuppet(g); door(g); smoke(g, 0, 0); });
+paperWarm(g => { redPuppet(g); motherPuppet(g); wolfPuppet(g); grandmaPuppet(g); woodcutterPuppet(g); door(g); smoke(g, 0, 0);
+  birdProp(g); butterflyProp(g); FLOWER_COLS.forEach(c => flowerProp(g, c)); cloudProp(g); sunProp(g); granCapProp(g); basketProp(g); });
 boot();
 </script>
 </body>

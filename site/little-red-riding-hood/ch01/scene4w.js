@@ -7,29 +7,7 @@ const PRE4W = 1.2, CAM4W = { x: 3250, y: 480, z: 1.2 };
 let MEADOW_THINGS = [];
 // A screen point of the fixed view, in the world of its k = 1 plane (where hit shapes and puppets go).
 const meadowAt = (sx, sy) => [CAM4W.x + (sx - 800) / CAM4W.z, CAM4W.y + (sy - 450) / CAM4W.z];
-function birdProp(parent) {
-  const g = mk('g', {}, parent), body = mk('g', {}, g);
-  body.innerHTML = `<g filter="url(#paper)"><path d="M-30,4 L-52,-6 L-50,12 Z" fill="#3f5f8a"/><ellipse cx="0" cy="0" rx="30" ry="21" fill="#5b82b8"/>
-    <ellipse cx="6" cy="8" rx="17" ry="11" fill="#f1e2c4"/></g>`;
-  const head = mk('g', {}, body);
-  head.innerHTML = `<g filter="url(#paper)"><circle cx="24" cy="-18" r="15" fill="#5b82b8"/><path d="M37,-21 L50,-16 L37,-12 Z" fill="#efae48"/></g><circle cx="29" cy="-21" r="3.2" fill="#22150e"/>`;
-  const wing = prop(body, `<g filter="url(#paper)"><path d="M-14,-6 Q4,-22 18,-4 Q2,10 -14,-6 Z" fill="#3f5f8a"/></g>`);
-  const legs = prop(g, `<path d="M-4,18 l-3,14 M8,18 l2,14" stroke="#c98a3c" stroke-width="3"/>`);
-  bakeAll(g);
-  return { g, pose(x, y, s, { peck = 0, flap = 0, look = 0 } = {}) {
-    tf(g, `translate(${x.toFixed(1)},${y.toFixed(1)}) scale(${s})`); vis(legs, !flap);
-    tf(body, `translate(0,${flap ? -14 : 0}) rotate(${(peck * 28).toFixed(1)},10,10)`);
-    tf(head, `rotate(${(look * 10).toFixed(1)},24,-8)`);
-    tf(wing, flap ? `rotate(${flap > 0 ? -50 : 20},-14,-6)` : '');
-  } };
-}
-function butterflyProp(parent) {
-  const g = mk('g', {}, parent), wings = [-1, 1].map(d => prop(g, `<g filter="url(#paper)"><path d="M0,0 C${12 * d},-34 ${44 * d},-30 ${36 * d},-6 C${32 * d},6 ${12 * d},4 0,0 Z" fill="#e88ab0"/>
-    <path d="M0,2 C${16 * d},8 ${30 * d},16 ${20 * d},30 C${10 * d},32 ${2 * d},18 0,2 Z" fill="#efae48"/><circle cx="${22 * d}" cy="-14" r="5" fill="#f6efe0"/></g>`));
-  prop(g, `<g filter="url(#paper)"><rect x="-3.5" y="-16" width="7" height="34" rx="3.5" fill="#3b2a1e"/></g><path d="M-2,-15 q-6,-12 -12,-14 M2,-15 q6,-12 12,-14" stroke="#3b2a1e" stroke-width="2" fill="none"/>`);
-  mk('circle', { r: 40, fill: 'transparent' }, g);   // a finger-sized target even when the wings are shut
-  return { g, pose(x, y, s, open) { tf(g, `translate(${x.toFixed(1)},${y.toFixed(1)}) scale(${s})`); wings.forEach(w => tf(w, `scale(${open},1)`)); } };
-}
+// birdProp and butterflyProp live in lib/shared.js (the meadow props).
 function scene4w(p, D) {
   const cam = paperCam(p, 'forest', CAM4W), st = cam.stage;
   // the set's own clouds sit at the very top of this view: one more, lower and drifting, is the one to tap
