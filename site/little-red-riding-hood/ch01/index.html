@@ -64,6 +64,8 @@ const BEATS = [
 [['m1-home', ['scene1', 'scene2']], ['m2-wolf', ['scene3', 'scene4', 'scene4w', 'scene5']],
   ['m3-chimney', ['scene6', 'scene7', 'scene8', 'scene9']], ['m4-ending', ['scene10', 'scene11']]]
   .forEach(([n, beats]) => music(`audio/bgm/${n}.mp3`, beats, +(new URLSearchParams(location.search).get('bgm') || .6)));
+// The hush before "EAT you with!": the music fades out just before it and comes back with the rescue (scene 9).
+window.MUSIC_OFF = { scene8: t => t >= PRE8 + TIMINGS.scene8.parts.hush8 - .3 };
 paperWarm(g => { redPuppet(g); motherPuppet(g); wolfPuppet(g); grandmaPuppet(g); woodcutterPuppet(g); door(g); smoke(g, 0, 0);
   birdProp(g); butterflyProp(g); FLOWER_COLS.forEach(c => flowerProp(g, c)); cloudProp(g); sunProp(g); granCapProp(g); basketProp(g); });
 boot();

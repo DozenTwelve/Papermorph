@@ -1,43 +1,132 @@
-/* scene6.js — the wardrobe. */
+/* scene6.js — the wardrobe. Times are on the beat clock; C(t) is t s into the narrator's s06.
+     A  0         – C 0      wide: the wolf leaning in at the open door, Grandma in bed sees him (scene 5's last frame)
+     B  C 0       – C 3.45   medium, Grandma to us: a start, eyes wide behind her glasses; then a set jaw ("quick!")
+     C  C 3.45    – C 4.5    bed to wardrobe: she hops out of bed in an arc, flings the wardrobe open, lands inside;
+                             her nightcap and glasses fly off onto the pillow
+     I  C 4.5     – C 5.2    insert: the pillow, the cap lying there, the glasses landing and rocking
+     D  C 5.2     – C 10.25  the wardrobe: she pulls it shut (slam, shake, wobble); in the silence the camera pans left
+                             with the wolf creeping in to the head of the bed, his back to the wardrobe; he finds the
+                             cap and glasses and puts them on ("The wolf put on her nightcap and glasses")
+     G  C 10.25   – C 12.6   the bed: he climbs in, pulls the quilt to his chin and waits (push in)
+     H  C 12.6    – end      close: the wardrobe door opens a crack, Grandma's eye looks out (eye6) */
 'use strict';
-const PRE6 = .6;
-sfx('scene6', PRE6 + TIMINGS.scene6.marks['s06.hide'] + .8, 'bang', 1.6);   // the wardrobe slammed shut
+const PRE6 = 1.2;
+const s6_C = t => clipAt('scene6', PRE6, 's06', t);
+const s6_WALK = { t0: s6_C(2.2), period: .88, steps: 11, x0: 262 };   // the wolf's creep from the door to the bed's head
+const s6_SHUT0 = Math.round(s6_C(5.25) * FPS) / FPS, s6_SLAM = s6_SHUT0 + 5 / FPS;   // the wardrobe door pulled to, on a frame
+sfx('scene6', 0, 'room', .4, 10);   // the room bed (shared.js relays it every 9.5 s)
+sfx('scene6', s6_C(3.56), 'hop', 1.4); sfx('scene6', s6_C(3.68), 'whoosh', 1); sfx('scene6', s6_C(3.95), 'creak', .8);
+sfx('scene6', s6_C(4.62), 'pad', .9);                                  // the glasses land on the pillow (in the insert)
+sfx('scene6', s6_SLAM, 'slam', 2); sfx('scene6', s6_SLAM, 'bang', .9);
+for (let j = 1; j <= s6_WALK.steps; j++) {                              // his paws, once he is in the picture
+  const t = s6_WALK.t0 + (j - .5) * s6_WALK.period / 2;
+  if (t > s6_C(5.95)) sfx('scene6', +t.toFixed(3), 'pad', 1);
+}
+sfx('scene6', s6_C(10.8), 'creak', .5);                                 // the bed takes his weight
+sfx('scene6', s6_C(12.85), 'creak', .7);                                // the wardrobe door, just a crack
 function scene6(p, D) {
-  const HIDE = PRE6 + TIMINGS.scene6.marks['s06.hide'], CAP = PRE6 + TIMINGS.scene6.marks['s06.cap'], W = t => PRE6 + t;
-  const cam = paperCam(p, 'room', { x: 1120, y: 480, z: .9 }), R = roomProps(cam, []);
-  const granIn = grandmaPuppet(R.inWardrobe), gran = grandmaPuppet(R.inBed), wolfBed = wolfPuppet(R.inBed), wolf = wolfPuppet(R.front);
-  const things = prop(R.front, `<g filter="url(#paper)"><path d="M-40,8 C-40,-30 46,-34 54,6 Q8,-10 -40,8 Z" fill="#f6efe0"/></g>`), specs = mk('g', {}, R.front);
-  specs.innerHTML = '<circle cx="-12" r="10" fill="none" stroke="#7a5a2a" stroke-width="2.6"/><circle cx="12" r="10" fill="none" stroke="#7a5a2a" stroke-width="2.6"/>';
-  const wipe = trunkWipe(p, D - .7, .65);
-  // 6.1 the wolf leans in; her eyes go wide; 6.2 she hops into the wardrobe and slams it; 6.3 close on the bed:
-  // nightcap, glasses, into bed; then wide again — a crack in the wardrobe door, one eye.
-  cam.shake(HIDE + .8, 2 / FPS, 8).cut({ x: 1120, y: 620, z: 1.9 }, CAP).to({ z: 2.15 }, CAP + .1, 4).cut({ x: 1120, y: 480, z: .9 }, W(11));
-  const sneak = walker(262, .6, { period: 1.1, A: 26, knee: 50 }, 1, 8);
+  const C = s6_C, SLAM = s6_SLAM, HOP0 = C(3.56), HOP1 = C(4.2), OPEN = C(3.95), SHUT0 = s6_SHUT0;
+  const cam = paperCam(p, 'room', { x: 800, y: 560, z: 1.15 }), R = roomProps(cam, []);
+  // inside the wardrobe: dark; Grandma; and, for the last shot, her face close behind the crack (clipped to the door)
+  mk('rect', { x: 1792, y: 412, width: 140, height: 378, fill: '#2a1a10' }, R.inWardrobe);
+  const granIn = grandmaPuppet(R.inWardrobe);
+  mk('rect', { x: 1792, y: 412, width: 140, height: 378 }, mk('clipPath', { id: 'crack6' }, R.inWardrobe));
+  const eyeG = mk('g', { 'clip-path': 'url(#crack6)' }, R.inWardrobe), granEye = grandmaPuppet(eyeG);
+  // Grandma without her cap, to us: the puppet's front head has only a fringe, so her grey hair is a prop here
+  const HAIR = `<g filter="url(#paper)"><path d="M-44,-194 C-50,-254 50,-254 44,-194 Q24,-226 0,-220 Q-24,-226 -44,-194 Z" fill="#cfc8be"/><circle cy="-252" r="15" fill="#cfc8be"/></g>`;
+  const hairIn = prop(R.inWardrobe, HAIR), hairEye = prop(eyeG, HAIR);
+  // in bed the quilt hides her lower half: clipped at the quilt's lower edge (off once she hops)
+  mk('rect', { x: -500, y: -500, width: 4000, height: 1264 }, mk('clipPath', { id: 'bed6' }, R.inBed));
+  const bedClip = mk('g', { 'clip-path': 'url(#bed6)' }, R.inBed);
+  const gran = grandmaPuppet(bedClip), wolfBed = wolfPuppet(R.inBed);
+  const cap = granCapProp(R.front), specs = granGlassesProp(R.front), wolf = wolfPuppet(R.front);
+  // the quilt's edge he pulls up to his chin, his paws on it
+  const flap = mk('g', {}, R.front);
+  const cloth = prop(flap, `<g filter="url(#paper)"><path d="M-190,8 C-130,6 -110,-60 -64,-66 Q0,-74 64,-66 C86,-60 92,-14 100,8 Z" fill="#b5523b"/><path d="M-112,-40 C-96,-58 -84,-64 -64,-66 Q0,-74 64,-66 C76,-64 84,-56 88,-44" stroke="#c8704a" stroke-width="8" fill="none"/></g>`);
+  const paws = prop(flap, `<g filter="url(#paper)"><circle cx="-30" cy="0" r="12" fill="${FUR2}"/><circle cx="30" cy="0" r="12" fill="${FUR2}"/></g>`);
+  cam.cut({ x: 1200, y: 585, z: 2.9 }, C(0)).to({ x: 1235, y: 585, z: 3.4 }, C(1.84), 1.2).cut({ x: 1580, y: 600, z: 1.7 }, C(3.45)).cut({ x: 1300, y: 625, z: 3.3 }, C(4.5))
+    .cut({ x: 1800, y: 590, z: 1.9 }, C(5.2)).to({ x: 1500, y: 590, z: 1.85 }, C(6.0), 1.0).to({ x: 1470, y: 585, z: 2.0 }, C(7.8), 1.6)
+    .cut({ x: 1290, y: 580, z: 2.0 }, C(10.25)).to({ x: 1250, y: 545, z: 2.6 }, C(11.0), 1.6)
+    .cut({ x: 1916, y: 580, z: 3.4 }, C(12.6)).shake(SLAM, 2 / FPS, 8);
+  const wipe = trunkWipe(p, D - .1, .6);   // scene 7 opens on the trunk
+  const lin = (q, a, b) => Math.min(1, Math.max(0, (q - a) / (b - a))), lerp = (a, b, u) => a + (b - a) * u;
+  const GY = 680;   // Grandma sitting up in bed, the quilt to her chest (clipped at its lower edge)
+  const breath = q => 1.5 * Math.sin(q * 2.6);
+  const hop = q => { const u = lin(q, HOP0, HOP1); return { u, x: 1250 + 608 * u, y: GY + (684 - GY) * u - 170 * Math.sin(Math.PI * u) }; };
+  const creep = walker(s6_WALK.x0, .6, { period: s6_WALK.period, A: 30, knee: 50 }, 1, s6_WALK.steps), WX = creep(1e9).x;
+  const STOP = s6_WALK.t0 + s6_WALK.steps * s6_WALK.period / 2, WY = hipOn(800, .6, 200);
+  // the cap and glasses: off her head as she leaves the bed, onto the pillow; then up to the wolf's head
+  const CAPOFF = C(3.6), CAPREST = C(4.1), SPOFF = C(3.64), SPREST = C(4.62);
+  const GRAB = C(8.45), CAPON = C(8.85), GRAB2 = C(9.05), SPON = C(9.45), CLIMB0 = C(10.35), CLIMB1 = C(10.85);
+  const c0 = hop(CAPOFF), s0 = hop(SPOFF), capFrom = [c0.x + 5, c0.y - 132], spFrom = [s0.x + 18, s0.y - 113];
+  const capRest = [1282, 628], spRest = [1306, 645], capTo = [WX - 3, WY - 150], spTo = [WX - 26, WY - 130];
   stopClock(D, (q, f) => {
     cam.apply(q, f); wipe(q); R.door(-.35);
-    const hop = Math.min(1, Math.max(0, (q - HIDE) / .7)), inWard = q >= HIDE + .8;
-    R.wardrobe(q < HIDE + .45 ? 1 : q < HIDE + .8 ? -.3 : q < W(11.2) ? 1 + (q < HIDE + 1.2 ? .03 * onTwos(q) : 0) : .82);
-    vis(gran.g, !inWard);
-    const sg = .55, startled = q >= W(1.0);
-    gran.pose({ x: 1250 + 605 * ease(hop), y: 630 + (692 - 630) * hop - 130 * Math.sin(Math.PI * hop), s: sg, turn: hop > 0 ? 1 : -1,
-      head: startled && hop === 0 ? 'F' : 'P', brow: startled ? 1 : 0, hop: between(q, W(1.0), W(1.0) + 2 / FPS) ? -8 : 0,
-      ua: between(q, W(.4), W(1.0)) ? -150 : 6, fa: between(q, W(.4), W(1.0)) ? -30 : -6, rua: -30, rfa: -10, lua: 30, lfa: 10,
-      cap: q < HIDE + .1, glasses: q < HIDE + .1 }, f);
-    vis(granIn.g, q >= W(11.2));
-    granIn.pose({ x: 1830, y: 692, s: sg, head: 'F', cap: false, glasses: false, shut: blinking(q, [W(11.9)]) }, f);
-    // her nightcap and glasses fly onto the bed, and wait there for the wolf
-    const fly = Math.min(1, Math.max(0, (q - HIDE - .1) / .4)), worn = q >= W(7.4), specsOn = q >= W(8.2);
-    vis(things, q >= HIDE + .1 && !worn); tf(things, `translate(${1300 - 120 * fly},${560 + 80 * fly - 90 * Math.sin(Math.PI * fly)}) scale(.55)`);
-    vis(specs, q >= HIDE + .1 && !specsOn); tf(specs, `translate(${1280 - 70 * fly},${560 + 84 * fly - 60 * Math.sin(Math.PI * fly)}) scale(.55)`);
-    const s = .6, w = sneak(Math.max(0, q - HIDE - 1.2)), bed = Math.min(1, Math.max(0, (q - W(9.0)) / .4));
-    const x = q < W(9.0) ? Math.min(1000, w.x) : 1000 + 250 * ease(bed);
-    // over the quilt while he climbs, under it once he is in: two of him, one on each side of the quilt
-    const tucked = bed >= 1; vis(wolf.g, !tucked); vis(wolfBed.g, tucked);
-    (tucked ? wolfBed : wolf).pose({ x, y: q < W(9.0) ? hipOn(800, s, 200) + w.drop * s : hipOn(800, s, 200) + (630 - hipOn(800, s, 200)) * bed - 80 * Math.sin(Math.PI * bed), s,
-      turn: q < W(9.0) ? 1 : bed < .5 ? 1 - 2 * bed * 2 : -1, near: q < W(9.0) && x < 1000 ? w.near : 0, far: q < W(9.0) && x < 1000 ? w.far : 0,
-      kNear: x < 1000 ? w.kNear : 0, kFar: x < 1000 ? w.kFar : 0, lean: q < W(1.2) ? 22 * span(q, W(.1), W(.5)) : q < HIDE + 1.2 ? 22 : 8,
-      ua: between(q, W(7.0), W(7.4)) ? -60 : between(q, W(7.4), W(8.6)) ? -150 : 6, fa: between(q, W(7.0), W(7.4)) ? -30 : between(q, W(7.4), W(8.6)) ? -30 : -6,
-      cap: worn ? 'off' : 'on', night: worn, glasses: specsOn, head: q >= W(10.2) ? 'F' : 'P', brow: q >= W(10.2) ? onTwos(q) * .6 : 0,
-      tail: 6 * Math.sin(q * 4), shut: blinking(q, [W(2.6), W(9.4)]) }, f);
+    R.wardrobe(q < OPEN ? 1 : q < SHUT0 ? opening(q, OPEN) : q < SLAM ? opening(q, SHUT0, [-.35, -.15, .15, .45, .75, 1])
+      : q < SLAM + .45 ? 1 + .03 * onTwos(q) : 1 - .22 * span(q, C(12.85), C(13.35)));
+    // Grandma in bed, then in the air
+    const h = hop(q), jolt = C(.25), set = C(1.84);
+    vis(gran.g, q < HOP1); if (q >= HOP0) bedClip.removeAttribute('clip-path'); else bedClip.setAttribute('clip-path', 'url(#bed6)');
+    if (q < C(0)) gran.pose({ x: 1250, y: GY, s: .55, turn: -1, hop: between(q, .6, .6 + 2 / FPS) ? -8 : 0, nod: breath(q),
+      ua: q > .6 ? -60 : 6, fa: q > .6 ? -50 : -6, shut: blinking(q, [.3]) }, f);
+    else if (q < C(3.45)) gran.pose({ x: 1250, y: GY, s: .55, head: 'F', turn: -1, hop: between(q, jolt, jolt + 2 / FPS) ? -10 : 0,
+      brow: q < jolt ? .4 : q < set ? 1.4 : -1, mouth: between(q, jolt, C(1.4)) ? 'D' : 'X', crouch: .5 * span(q, C(2.75), C(3.2)),
+      nod: breath(q) + (between(q, C(2.36), C(2.36) + 2 / FPS) ? 6 : 0),
+      rua: between(q, jolt, set) ? -150 : 6, rfa: between(q, jolt, set) ? -110 : -4, lua: between(q, jolt, set) ? 150 : -6, lfa: between(q, jolt, set) ? 110 : 4,
+      shut: blinking(q, [C(1.6), C(3.0)]) }, f);
+    else gran.pose({ x: h.x, y: h.y, s: .55, turn: 1, crouch: q < HOP0 ? .6 : 0, lean: h.u > 0 ? 25 : 0, ua: h.u > 0 ? -100 : -20, fa: -20,
+      cap: q < CAPOFF, glasses: q < SPOFF }, f);
+    // in the wardrobe: lands, then (front, after the cut) pulls the door to
+    vis(granIn.g, q >= HOP1 && q < C(12.6));
+    if (q < C(5.2)) granIn.pose({ x: 1858, y: 680, s: .55, turn: 1, crouch: .6 * (1 - span(q, HOP1, HOP1 + .25)), cap: false, glasses: false, ua: -40, fa: -20 }, f);
+    else granIn.pose({ x: 1858, y: 680, s: .55, head: 'F', cap: false, glasses: false, brow: -1, lua: q < SHUT0 + 2 / FPS ? 80 : 30, lfa: q < SHUT0 + 2 / FPS ? 20 : 10, shut: blinking(q, [SLAM + .1]) }, f);
+    // her eye at the crack: the face slides in from behind the right-hand door
+    vis(hairIn, q >= C(5.2) && q < C(12.6)); tf(hairIn, 'translate(1858,680) scale(.55)');
+    vis(eyeG, q >= C(12.6)); const ex = 1938 + 40 * (1 - span(q, C(13.3), C(13.65)));
+    tf(hairEye, `translate(${ex.toFixed(1)},911) scale(1.6)`);
+    granEye.pose({ x: ex, y: 911, s: 1.6, head: 'F', cap: false, glasses: false,
+      brow: q > C(13.95) ? .8 : 0, shut: blinking(q, [C(13.75), C(14.35)]) }, f);
+    // the cap: off, onto the pillow, then up onto the wolf
+    vis(cap.g, q >= CAPOFF && q < CAPON);
+    if (q < GRAB) { const u = lin(q, CAPOFF, CAPREST); cap.pose(lerp(capFrom[0], capRest[0], u), lerp(capFrom[1], capRest[1], u) - 70 * Math.sin(Math.PI * u), .55, -12 * u); }
+    else { const u = span(q, GRAB, CAPON); cap.pose(lerp(capRest[0], capTo[0], u), lerp(capRest[1], capTo[1], u) - 30 * Math.sin(Math.PI * u), .55 + .07 * u, -12 * (1 - u)); }
+    // the glasses: higher, spinning, they land in the insert and rock still
+    vis(specs.g, q >= SPOFF && q < SPON);
+    if (q < SPREST) { const u = lin(q, SPOFF, SPREST); specs.pose(lerp(spFrom[0], spRest[0], u), lerp(spFrom[1], spRest[1], u) - 4 * 150 * u * (1 - u), .55, 360 * u); }
+    else if (q < GRAB2) { const t = q - SPREST; specs.pose(spRest[0], spRest[1] - (t < .17 ? 12 * Math.sin(Math.PI * t / .17) : 0), .55, 8 + (t < .6 ? 10 * Math.cos(t * 18) * (1 - t / .6) : 0)); }
+    else { const u = span(q, GRAB2, SPON); specs.pose(lerp(spRest[0], spTo[0], u), lerp(spRest[1], spTo[1], u) - 20 * Math.sin(Math.PI * u), .55 + .05 * u, 8 * (1 - u)); }
+    // the wolf
+    const tucked = q >= CLIMB1, capOn = q >= CAPON, spOn = q >= SPON;
+    vis(wolf.g, !tucked); vis(wolfBed.g, tucked);
+    if (tucked) {
+      const waiting = between(q, C(11.5), C(12.4));
+      wolfBed.pose({ x: 1250, y: 630, s: .6, turn: -1, head: 'F', cap: 'off', night: true, glasses: true, nod: breath(q),
+        look: q > C(11.06) && q < C(12.2) ? -1 : 0, brow: waiting ? (onTwos(q) > 0 ? 1 : .3) : .5, shut: blinking(q, [C(12.3)]) }, f);
+    } else if (q >= C(10.25)) {   // G: to us, climbing in over the quilt
+      const u = lin(q, CLIMB0, CLIMB1);
+      wolf.pose({ x: lerp(WX, 1250, u), y: lerp(WY, 630, u) - 80 * Math.sin(Math.PI * u), s: .6, turn: -1, head: 'F', cap: 'off', night: true, glasses: true,
+        rua: -20 * Math.sin(Math.PI * u), lua: 20 * Math.sin(Math.PI * u), nod: breath(q) }, f);
+    } else if (q < s6_WALK.t0) {  // in the doorway, leaning in, sly
+      wolf.pose({ x: s6_WALK.x0, y: WY, s: .6, lean: 12, brow: .6, look: 1, ua: -20, fa: -40, tail: 8 * Math.sin(q * 3), nod: breath(q), shut: blinking(q, [.9]) }, f);
+    } else if (q < STOP) {        // creeping in on tiptoe
+      const w = creep(q - s6_WALK.t0);
+      wolf.pose({ x: w.x, y: WY + w.drop * .6, s: .6, near: w.near, far: w.far, kNear: w.kNear, kFar: w.kFar, lean: 14, ua: -100, fa: -60,
+        brow: .6, tail: 10 * Math.sin(q * 4) }, f);
+    } else {                      // at the head of the bed: turns his back to the wardrobe, finds them, puts them on
+      const turn = 1 - 2 * lin(q, C(7.1), C(7.1) + 3 / FPS);
+      const scratch = between(q, C(7.4), C(7.8)), reach = lin(q, C(8.1), C(8.35)) * (1 - lin(q, GRAB, CAPON)), reach2 = lin(q, C(8.9), GRAB2) * (1 - lin(q, GRAB2, SPON));
+      const lift = between(q, GRAB, CAPON + .1) ? lin(q, GRAB, CAPON) : 0, lift2 = between(q, GRAB2, SPON + .1) ? lin(q, GRAB2, SPON) : 0;
+      const preen = q >= SPON + .1;
+      let ua = 6, fa = -6;
+      if (scratch) ua = -165, fa = -60 + 20 * onTwos(q);
+      else if (lift) ua = lerp(-40, -170, lift), fa = lerp(-20, -40, lift);
+      else if (lift2) ua = lerp(-40, -120, lift2), fa = lerp(-20, -80, lift2);
+      else if (reach || reach2) ua = -40, fa = -20;
+      wolf.pose({ x: WX, y: WY, s: .6, turn, lean: 30 * Math.max(reach, reach2), cap: capOn ? 'off' : 'on', night: capOn, glasses: spOn, ua, fa,
+        headR: between(q, C(7.8), C(8.1)) ? 14 : preen ? -8 : 0, brow: scratch || between(q, C(7.8), C(8.45)) ? 1.2 : preen ? (onTwos(q) > 0 ? .9 : .3) : .4,
+        ear: between(q, C(7.8), C(8.1)) ? onTwos(q) : 0, tail: 8 * Math.sin(q * 3), nod: breath(q), shut: blinking(q, [C(7.5), C(9.9)]) }, f);
+    }
+    vis(flap, tucked); const fh = span(q, C(10.9), C(11.25));
+    tf(cloth, `translate(1250,646) scale(1,${Math.max(.05, fh).toFixed(3)})`); tf(paws, `translate(1250,${(646 - 66 * fh).toFixed(1)})`);
   });
 }
