@@ -17,11 +17,14 @@
 <style>
   :root { --ink: #2f2418; --soft: #6b5a46; --paper: #fbf5e8; --card: #fffaf0; --line: #e4d6bb; --accent: #2f5aa8; --ui: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif; --serif: "Iowan Old Style", Palatino, Georgia, serif; color-scheme: light; }
   * { box-sizing: border-box; }
+  ::selection { background: #2f5aa833; }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+  h1, h2 { text-wrap: balance; } p, li, dd { text-wrap: pretty; }
   body { margin: 0; background: var(--paper); color: var(--ink); font: 18px/1.65 var(--ui); }
   a { color: var(--accent); }
   header.hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 40px; align-items: center; max-width: 1180px; margin: 0 auto; padding: 48px 24px 24px; }
   .hero img { width: 100%; height: auto; border-radius: 10px; box-shadow: 0 14px 40px #4a33182e; }
-  .back { display: inline-block; margin-bottom: 18px; font-size: 15px; color: var(--soft); text-decoration: none; }
+  .back { display: inline-block; margin: -10px 0 8px; padding: 10px 0; font-size: 15px; color: var(--soft); text-decoration: none; }
   h1 { margin: 0 0 8px; font: 700 clamp(34px, 4.6vw, 56px)/1.05 var(--serif); }
   .tag { display: inline-block; margin-bottom: 18px; padding: 2px 12px; border: 1.5px solid var(--accent); border-radius: 99px; color: var(--accent); font-size: 14px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
   .lede { font-size: 20px; color: #4a3b2a; }
@@ -35,13 +38,14 @@
   .stills img { width: 100%; height: auto; border-radius: 6px; display: block; }
   .episodes { list-style: none; padding: 0; margin: 18px 0 10px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
   .episodes a { display: flex; flex-direction: column; height: 100%; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; }
-  .episodes a:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .episodes a:hover, .episodes a:focus-visible { border-color: var(--accent); transform: translateY(-2px); }
+  .episodes a:focus-visible { border-radius: 10px; }
   .thumb { position: relative; display: block; }
   .thumb img { display: block; width: 100%; height: auto; }
   .thumb::after { content: "▶"; position: absolute; left: 10px; bottom: 10px; width: 38px; height: 38px; border-radius: 50%; background: #2f2418d0; color: #fff6e0; font-size: 15px; line-height: 38px; text-align: center; text-indent: 3px; opacity: .85; transition: opacity .15s; }
-  .episodes a:hover .thumb::after { opacity: 1; }
+  .episodes a:hover .thumb::after, .episodes a:focus-visible .thumb::after { opacity: 1; }
   .episodes small { margin: 12px 16px 0; color: var(--soft); font-size: 13px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; }
-  .episodes b { margin: 2px 16px 4px; font: 700 21px/1.25 var(--serif); }
+  .episodes b { margin: 2px 16px 4px; font: 700 21px/1.25 var(--serif); text-wrap: balance; }
   .episodes span:last-child { margin: 0 16px 16px; color: var(--soft); font-size: 15px; line-height: 1.5; }
   .soon { margin: 0 0 18px; color: var(--soft); font-size: 15px; }
   .verdict { margin: 18px 0; padding: 4px 22px; border-left: 4px solid var(--accent); background: var(--card); border-radius: 0 8px 8px 0; }
