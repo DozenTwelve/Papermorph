@@ -27,7 +27,8 @@ TEMPLATES = SKILL / "assets/templates"
 TIMING = {"dur": 30, "marks": {"sub": 1, "note": 2, "w1": 3, "w2": 4}, "cues": []}
 TIMINGS = "const TIMINGS = " + json.dumps({beat: TIMING for beat in ("intro", "idea", "q1", "wrap", "final1", "finish")})
 # Page variants: (html lang, engine and book template from BASE_REF instead of the working tree).
-VARIANTS = {"base": ("en", True), "en": ("en", False), "ru": ("ru", False), "zh": ("zh", False), "ja": ("ja", False), "de": ("de", False)}
+VARIANTS = {"base": ("en", True), "en": ("en", False), "ru": ("ru", False), "zh": ("zh", False), "ja": ("ja", False), "de": ("de", False),
+            "ar": ("ar", False)}
 
 
 def at_base_ref(path):
@@ -291,6 +292,76 @@ async def check_cjk(browser, errors):
     print("PASS Chinese and Japanese lesson cover and book contents")
 
 
+async def check_arabic_lesson(browser, errors):
+    page = await open_lesson(browser, "ar", errors)
+    text = lambda selector: page.locator(selector).first.text_content()
+    style = lambda selector, prop: page.locator(selector).first.evaluate(f"e => getComputedStyle(e).{prop}")
+    # Text reads right to left; the drawing and the timeline keep their left-to-right geometry, so ← is still "back".
+    assert await page.evaluate("document.documentElement.dir") == "rtl"
+    assert await style("#stage", "direction") == "ltr"
+    assert await style("#bar", "direction") == "ltr"
+    assert await text("#coverK") == "الفصل 1"
+    assert "ابدأ الدرس" in await text("#cover .go")
+    assert await text("#coverMeta") == "نحو 8 دقائق، مع الصوت وأسئلة قصيرة."
+    assert await page.locator("#help h2").text_content() == "اختصارات لوحة المفاتيح"
+    # Arabic has one, two, few (3–10), many (11–99) and other (100+).
+    assert await page.evaluate("[1, 2, 3, 11, 100].map(n => translate('aboutMinutes', { n })).join('|')") == (
+        "نحو دقيقة، مع الصوت وأسئلة قصيرة.|نحو دقيقتين، مع الصوت وأسئلة قصيرة.|نحو 3 دقائق، مع الصوت وأسئلة قصيرة.|"
+        "نحو 11 دقيقة، مع الصوت وأسئلة قصيرة.|نحو 100 دقيقة، مع الصوت وأسئلة قصيرة.")
+    assert await page.evaluate("num(2.5) === '2.5' && num(-3) === '−3'"), "Arabic lessons write digits as 0–9 with a point"
+    assert await page.get_by_role("button", name="الترجمة النصية (C)", exact=True).count() == 1
+
+    # C on an Arabic layout types ؤ.
+    await page.locator("#cover").click()
+    await page.wait_for_function("P.started && P.audio.currentTime > .1")
+    before = await page.get_attribute("#bCC", "aria-pressed")
+    await press(page, "ؤ", "KeyC")
+    assert await page.get_attribute("#bCC", "aria-pressed") != before, "ؤ toggles captions"
+
+    # A question card reads from the right: its accent edge is on the right.
+    await page.evaluate("seek(2, false)")
+    await page.wait_for_timeout(200)
+    assert await text(".card .kicker") == "تحقّق سريع"
+    assert await style(".card", "direction") == "rtl"
+    assert await style(".card", "borderRightWidth") == "7px" and await style(".card", "borderLeftWidth") != "7px"
+    # Mathematics reads left to right inside Arabic text: "3 + 4 = [box]", the box after the expression, on its right.
+    assert await page.evaluate("""(() => { const m = document.querySelector('.card .bline svg.m').getBoundingClientRect(),
+      b = document.querySelector('.card .bline .box').getBoundingClientRect(); return b.left >= m.right - 1; })()"""), "equation flipped"
+    assert await style(".card svg.m", "direction") == "ltr"
+    # The bar's step label reads as the bar does: "3 / 6", not "6 / 3".
+    assert await style("#stepName", "direction") == "ltr"
+    await page.locator(".box").fill("6")
+    await page.locator(".box").press("Enter")
+    assert (await text(".card .fb")).startswith("ليس تماماً.")
+
+    await page.evaluate("seek(BEATS.length - 1, false)")
+    await page.wait_for_timeout(200)
+    card = await text(".card")
+    for line in ("اكتمل الفصل 1", "شاهد مرة أخرى", "كل الفصول"):
+        assert line in card, f"finish card lacks {line!r}"
+    print("PASS Arabic lesson: right-to-left text over a left-to-right stage, plurals, keys on an Arabic layout, questions")
+    await page.close()
+
+
+async def check_arabic_book(browser, errors):
+    page = await open_page(browser, "ar/", errors)
+    text = lambda selector: page.locator(selector).first.text_content()
+    assert await page.evaluate("document.documentElement.dir") == "rtl"
+    assert (await text("#cover .btn.go")).startswith("افتح الكتاب")
+    # Its arrow points the way the page reads: to the left.
+    assert await page.locator("#cover .btn.go svg").evaluate("e => getComputedStyle(e).transform") == "matrix(-1, 0, 0, 1, 0, 0)"
+    assert await text("#meta") == "فصل واحد · وحدة واحدة · مع الصوت", await text("#meta")
+    assert await text("#prog") == "فصل واحد"
+    assert await text(".unit h2 span") == "الوحدة 1"
+    assert await text(".ch small") == "8 دقائق"
+    await page.evaluate("localStorage.setItem('animebook:progress:/__i18n__/ar/', JSON.stringify({ done: [1], last: 1 }))")
+    await page.reload()
+    assert await text("#prog") == "اكتمل 1 من 1"
+    assert await text("#resume") == "تابع · الفصل 1"
+    print("PASS Arabic cover and contents: right to left, plurals, progress")
+    await page.close()
+
+
 async def main():
     errors = []
     async with async_playwright() as playwright:
@@ -300,6 +371,8 @@ async def main():
         await check_other_language(browser, errors)
         await check_russian_book(browser, errors)
         await check_cjk(browser, errors)
+        await check_arabic_lesson(browser, errors)
+        await check_arabic_book(browser, errors)
         await browser.close()
     assert not errors, errors
     print("PASS no page errors, console errors or failed requests")

@@ -55,9 +55,28 @@ const Contents = (() => {
       refsLead: '授業で引用したすべての著作です。リンクは著作の DOI または図書館の記録を新しいタブで開きます。信頼できるオンライン記録のない著作はリンクなしで載せています。',
       refsCount: '授業で引用した著作 {n} 件', refsAllLinked: '、すべて出典へのリンクつき', refsSomeLinked: '、うち {n} 件は出典へのリンクつき',
     },
+    // Arabic plurals: one 1, two 2, few 3–10, many 11–99, other 100+. Arrows point the way the page reads (right to left).
+    ar: {
+      open: 'افتح الكتاب', toCover: 'العودة إلى الغلاف', resume: 'تابع · الفصل {n}', unit: 'الوحدة {n}',
+      minutes: { one: 'دقيقة', two: 'دقيقتان', few: '{n} دقائق', many: '{n} دقيقة', other: '{n} دقيقة' },
+      meta: '{chapters}{samples} · {units} · مع الصوت',
+      metaChapters: { one: 'فصل واحد', two: 'فصلان', few: '{n} فصول', many: '{n} فصلاً', other: '{n} فصل' },
+      metaUnits: { one: 'وحدة واحدة', two: 'وحدتان', few: '{n} وحدات', many: '{n} وحدة', other: '{n} وحدة' },
+      metaSamples: { one: ' + فصل تجريبي واحد', two: ' + فصلان تجريبيان', few: ' + {n} فصول تجريبية', many: ' + {n} فصلاً تجريبياً', other: ' + {n} فصل تجريبي' },
+      samples: 'فصول تجريبية بأسلوب آخر',
+      chapterCount: { one: 'فصل واحد', two: 'فصلان', few: '{n} فصول', many: '{n} فصلاً', other: '{n} فصل' }, finished: 'اكتمل {done} من {n}',
+      doneMark: '✓ مكتمل · ', lastMark: ' · آخر ما فُتح',
+      references: 'المراجع', viewAll: 'عرض الكل ←', backToContents: '→ المحتويات',
+      refsLead: 'كل الأعمال المستشهد بها في الدروس. يفتح كل رابط معرّف DOI للعمل أو سجله في المكتبة في علامة تبويب جديدة؛ والأعمال التي ليس لها سجل موثوق على الإنترنت مذكورة دون رابط.',
+      refsCount: { one: 'عمل واحد مستشهد به في الدروس', two: 'عملان مستشهد بهما في الدروس', few: '{n} أعمال مستشهد بها في الدروس',
+        many: '{n} عملاً مستشهداً به في الدروس', other: '{n} عمل مستشهد به في الدروس' },
+      refsAllLinked: '، وكلها مرتبطة بمصادرها', refsSomeLinked: '، منها {n} مرتبطة بمصادرها',
+    },
   };
   // the same lookup as translate() in engine.js (the two pages never load each other's file): keep them in step
   const LANGUAGE = (document.documentElement.lang || 'en').toLowerCase().split('-')[0];
+  // right-to-left interface languages, as RTL_LANGUAGES in engine.js: keep them in step
+  if (!document.documentElement.dir && ['ar'].includes(LANGUAGE)) document.documentElement.dir = 'rtl';
   function translate(key, vars = {}) {
     const language = TRANSLATIONS[LANGUAGE]?.[key] !== undefined ? LANGUAGE : 'en';
     let text = TRANSLATIONS[language][key] ?? key;

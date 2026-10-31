@@ -195,9 +195,9 @@ async def main():
         assert await js(word) == "box" and await js(count) == "You found them all!"
         assert await js("PLAYED.length") == said, "the video's words played sound"
         print("PASS video: P.tapDemo lists the clips and shows the words in turn, silently")
-        missing = await js("['en', 'ru', 'zh', 'ja'].flatMap(l => ['wordsHeard', 'allWordsHeard'].filter(k => !TRANSLATIONS[l][k]).map(k => l + '.' + k))")
+        missing = await js("Object.keys(TRANSLATIONS).flatMap(l => ['wordsHeard', 'allWordsHeard'].filter(k => !TRANSLATIONS[l][k]).map(k => l + '.' + k))")
         assert not missing, f"interface strings missing: {missing}"
-        print("PASS interface strings in en, ru, zh and ja")
+        print("PASS interface strings in every interface language (" + ", ".join(await js("Object.keys(TRANSLATIONS)")) + ")")
         assert not errors, errors
         await browser.close()
 

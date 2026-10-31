@@ -176,7 +176,7 @@ def mark_times(clean, marks, words):
     return out
 
 
-SENTENCE_END = re.compile(r"[.?!]\s+|[。！？]\s*")
+SENTENCE_END = re.compile(r"[.?!؟]\s+|[。！？]\s*")   # ؟ is the Arabic question mark
 ABBREV = re.compile(r"(?<![\w.])(?:Mr|Mrs|Ms|Dr|Prof|St|vs|approx|e\.g|i\.e|cf)\.$")
 
 

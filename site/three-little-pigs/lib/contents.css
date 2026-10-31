@@ -78,12 +78,12 @@ h1 i { color: var(--task); font-style: italic; }
 .home .mascot { view-transition-name: guide; }
 .home strong { font: 500 22px/1.1 var(--book); view-transition-name: book; }
 .home strong i { color: var(--task); }
-.prog { margin-left: auto; color: var(--dim); font-size: 15px; white-space: nowrap; }
+.prog { margin-inline-start: auto; color: var(--dim); font-size: 15px; white-space: nowrap; }
 .prog b { color: var(--good); font-weight: 600; }
 main#contents { padding-bottom: 80px; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr)); gap: 12px; }
 .ch { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: 1fr auto; column-gap: 16px; row-gap: 8px; min-height: 112px;
-  padding: 16px 18px 14px 16px; border-radius: 16px; background: var(--panel); border: 1.5px solid var(--edge); border-left: 6px solid var(--c);
+  padding: 16px 18px 14px 16px; border-radius: 16px; background: var(--panel); border: 1.5px solid var(--edge); border-inline-start: 6px solid var(--c);
   text-decoration: none; transition: transform .3s var(--ease), border-color .3s, box-shadow .3s; }
 .ch:hover { transform: translateY(-3px); border-color: var(--c); box-shadow: 0 14px 34px var(--lift); }
 .ch b { grid-row: span 2; min-width: 1.15em; font: 500 42px/1 var(--book); color: var(--c); font-variant-numeric: lining-nums tabular-nums; }
@@ -102,16 +102,16 @@ main#contents { padding-bottom: 80px; }
 .refs-more a:hover { border-color: var(--dim); }
 .refs-more b { font: 500 22px/1.2 var(--book); }
 .refs-more span { color: var(--dim); font-size: 15px; }
-.refs-more i { margin-left: auto; font-style: normal; color: var(--quiz); font-weight: 600; font-size: 15px; }
+.refs-more i { margin-inline-start: auto; font-style: normal; color: var(--quiz); font-weight: 600; font-size: 15px; }
 #refpage { padding-bottom: 80px; }
 .top .back { display: inline-flex; align-items: center; gap: 8px; padding: 6px 4px; font-weight: 600; text-decoration: none; color: var(--quiz); border-radius: 8px; }
-.top .rp-book { margin-left: auto; font: 500 18px/1.2 var(--book); color: var(--dim); }
+.top .rp-book { margin-inline-start: auto; font: 500 18px/1.2 var(--book); color: var(--dim); }
 .top .rp-book i { color: var(--task); }
 .refs { max-width: 1212px; margin: 32px auto 0; padding: 0 16px; }
 .refs h1 { margin: 0 0 8px; font: 500 clamp(32px, 5vw, 44px)/1.1 var(--book); view-transition-name: none; }
 .refs .lead { margin: 0 0 26px; max-width: 46em; color: var(--dim); }
 .refs ol { margin: 0; padding: 0; list-style: none; color: var(--dim); font-size: 16px; line-height: 1.5; }
-.refs li { margin: 0 0 10px; padding-left: 2em; text-indent: -2em; }
+.refs li { margin: 0 0 10px; padding-inline-start: 2em; text-indent: -2em; }
 .refs a { color: var(--chalk); text-underline-offset: 3px; overflow-wrap: anywhere; }
 .refs a:hover { color: var(--quiz); }
 .stagger .top { animation: rise .6s var(--ease) backwards; }
@@ -135,3 +135,12 @@ main#contents { padding-bottom: 80px; }
   *, *::before, ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; transition: none !important; }
   .chalk span { opacity: .075; }
 }
+/* Arabic (contents.js sets <html dir="rtl">): the layout follows through logical properties (border-inline-start, …).
+   Letters join, so no letter spacing; the faces are each system's own, no font file is loaded. A book's own :root
+   theme, after this file, still sets its faces (this rule has the same specificity as :root). */
+:root:where(:lang(ar)) {
+  --ui: "Segoe UI", "SF Arabic", "Geeza Pro", "Noto Sans Arabic", Tahoma, sans-serif;
+  --book: "Noto Naskh Arabic", "Traditional Arabic", "Times New Roman", serif;
+}
+:root:lang(ar) :is(.kicker, .meta, h1, .unit h2 .label) { letter-spacing: 0; }
+[dir="rtl"] .btn.go svg { transform: scaleX(-1); }   /* "open" points the way the page reads */
