@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Little Horse Crosses the River</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<!-- The Little Horse Crosses the River (小马过河): one beat per scene. Order matters: engine, sets and baked pieces,
+     kit, cast, the audio data, shared helpers, then the scenes. -->
+<script src="../lib/engine.js"></script>
+<script src="../img/sets/sets.js"></script>
+<script src="../img/puppets/baked.js" onerror="0"></script>
+<script src="../lib/paper.js"></script>
+<script src="../lib/cast.js"></script>
+<script src="audio/en/timings.js"></script>
+<script src="audio/en/mouths.js"></script>
+<script src="audio/en/shots.js"></script>
+<script src="../lib/shared.js"></script>
+<script src="../lib/find.js"></script>
+<script src="scene1.js"></script>
+<script src="scene2.js"></script>
+<script src="scene3.js"></script>
+<script src="scene4.js"></script>
+<script src="scene5.js"></script>
+<script src="scene6.js"></script>
+<script src="scene7.js"></script>
+<script src="scene8.js"></script>
+<script src="scene9.js"></script>
+<script>
+'use strict';
+// film: the two point-and-read stops are its only questions, so music and effects play and the help leaves out
+// question keys.
+const CHAPTER = { number: 1, title: 'The Little Horse Crosses the River', minutes: 4, language: 'en', film: true, questionKeys: false };
+try { if (localStorage.getItem('captions') === null) setCaptions(true, false); } catch {}   // captions on at the first visit; the reader's own choice is kept
+
+// The two stops are "listen and find" (lib/find.js): Little Horse asks for one thing at a time; every thing in the
+// picture answers a tap with its name. Only things that move are asked for, so their hop and wiggle can be seen.
+// At the river he is looking for help: the ox comes last, and finding him leads into scene 4 ("There's Uncle Ox!").
+const FIND_RIVER = ['bird', 'flower', 'butterfly', 'ox'].map((w, i) => ({ word: w, clip: 'q-' + w + (i ? '' : '1') }));
+const FIND_MILL = ['wheel', 'duck', 'sack'].map((w, i) => ({ word: w, clip: 'q-' + w + (i ? '' : '1') }));
+const BEATS = [
+  ['scene1', 'Home', (m, D) => scene1(panel(0), D), { lead: false, pre: PRE1 }],
+  ['scene2', 'Off to the mill', (m, D) => scene2(panel(0), D), { lead: false, pre: PRE2 }],
+  ['scene3', 'By the river', (m, D) => scene3(panel(0), D), { lead: false, pre: PRE3, ask: done => findWords(RIVER_THINGS, FIND_RIVER, done, { end: 'q-uncle' }), video: false }],
+  ['scene4', 'Uncle Ox', (m, D) => scene4(panel(0), D), { lead: false, pre: PRE4 }],
+  ['scene5', 'Squirrel', (m, D) => scene5(panel(0), D), { lead: false, pre: PRE5 }],
+  ['scene6', 'Ask Mama', (m, D) => scene6(panel(0), D), { lead: false, pre: PRE6 }],
+  ['scene7', 'Let me try', (m, D) => scene7(panel(0), D), { lead: false, pre: PRE7 }],
+  ['scene8', 'At the mill', (m, D) => scene8(panel(0), D), { lead: false, pre: PRE8, ask: done => findWords(MILL_THINGS, FIND_MILL, done), video: PRE8 + 3.6 }],   // the video keeps "brought the wheat to the mill." and skips the game
+  ['scene9', 'The little rabbit', (m, D) => scene9(panel(0), D), { lead: false, pre: PRE9 }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+// music: one looping theme under every scene (books/little-horse/MUSIC.md), up in the lead-ins, silent for the stare
+// at the end of scene 7; ?bgm= sets its level by ear. Beds: river and mill tile every 9.5 s, birds every 9.6 s.
+music('audio/bgm/theme.mp3', undefined, +(new URLSearchParams(location.search).get('bgm') || .4));
+window.MUSIC_UP_IN_PRE = true;
+window.MUSIC_OFF = { scene7: t => t > PRE7 + 32.7,   // faded out by the stare (33.47): "deep!" ends at 32.7
+  scene9: t => t > PRE9 + TIMINGS.scene9.dur - 2 };    // the film fades out under the last picture
+SFX_BED.river = 10; SFX_BED.birds = 10; SFX_BED.mill = 10; SFX_BED.wind = 8;
+// Build every puppet and prop once at load, off screen, so their bitmaps are ready before the first beat needs them.
+paperWarm(g => { horsePuppet(g); motherPuppet(g); oxPuppet(g); squirrelPuppet(g); rabbitPuppet(g); prop(g, SACK); millWheel(g); });
+boot();
+</script>
+</body>
+</html>
