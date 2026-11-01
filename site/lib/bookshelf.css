@@ -31,9 +31,10 @@ a { color: inherit; }
 .banner a { position: relative; display: block; width: 100%; transition: transform .15s; }
 .banner a:hover { transform: translateY(-2px); }
 .banner svg { display: block; width: 100%; height: auto; }
-/* The banner links to /work/; a hand-made sign on its corner says so, like the shelf's "Interactive". */
-.work-sign { position: absolute; right: 2.2%; bottom: -1.1cqw; padding: .3em .6em .25em; background: var(--focus); border: 2px solid #1e1d1b; color: #1e1d1b; font: 700 clamp(11px, 1.75cqw, 17px)/1 Oswald, var(--ui); white-space: nowrap; transform: rotate(4deg); box-shadow: 3px 4px 4px #0003; transition: transform .15s; }
-.banner a:hover .work-sign { transform: rotate(2deg) scale(1.04); }
+/* The banner links to /work/; a cream paper tag, cut from the same paper as the banner's white letters, hangs
+   under its lower-right corner on a punched hole and swings a little on hover. */
+.work-sign { position: absolute; right: 3%; top: calc(100% - .2cqw); padding: .55em .9em .5em 1.5em; background: #f3efe3 radial-gradient(circle at .7em 50%, #1c1f1d .22em, #0000 .25em); color: #1c1f1d; font: 600 clamp(11px, 1.6cqw, 16px)/1 Oswald, var(--ui); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; clip-path: polygon(.6em 0, 100% 0, 100% 100%, .6em 100%, 0 50%); transform: rotate(-3deg); transform-origin: 85% -40%; filter: drop-shadow(2px 4px 3px #0005); transition: transform .3s cubic-bezier(.3, 1.6, .5, 1); }
+.banner a:hover .work-sign, .banner a:focus-visible .work-sign { transform: rotate(2deg); }
 .case { --s: calc(84.375cqw / 864); top: 17.09cqw; }
 .cap, .lip { background: 0 0 / 100% 100% no-repeat; }
 .cap { aspect-ratio: 864 / 15; background-image: url(../assets/shelf/cap.webp); }
@@ -113,6 +114,7 @@ a.book:hover .tag { transform: translateY(-2px); }
   html { background: #e9e6e1; }
   .scene { aspect-ratio: auto; width: calc(100% - 16px); padding: 12px 0 40px; background: none; }
   .scene > * { position: static; width: auto; }
+  .banner { position: relative; inset: auto; }   /* so its z-index holds the hanging tag above the case */
   .case { --s: calc(100cqw / 864); margin-top: 0; filter: drop-shadow(5px 8px 10px #0003); }
   .shelf { aspect-ratio: auto !important; }
   .row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: calc(75 * var(--s)) calc(30 * var(--s)); padding-top: calc(40 * var(--s)); padding-bottom: 0; }
@@ -125,6 +127,7 @@ a.book:hover .tag { transform: translateY(-2px); }
   .spines { min-height: calc(180 * var(--s)); align-items: center; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .doc, .tag { transition: none; }
+  .doc, .tag, .work-sign { transition: none; }
+  .banner a:hover .work-sign, .banner a:focus-visible .work-sign { transform: rotate(-3deg); }
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
 }

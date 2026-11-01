@@ -15,6 +15,8 @@
 <meta property="og:image:alt" content="A wooden bookshelf of animated books">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231d2b27'/%3E%3Ctext x='32' y='45' text-anchor='middle' font-size='48' fill='%23f0b45a'%3E∞%3C/text%3E%3C/svg%3E">
+<link rel="preload" href="assets/shelf/wall.webp" as="image" fetchpriority="high" media="(min-width: 701px)">
+<link rel="preload" href="lib/fonts/Oswald-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="lib/bookshelf.css">
 <script src="lib/bookshelf.js" defer></script>
 </head>
@@ -75,19 +77,19 @@
     <section class="shelf pictures" aria-labelledby="pictures-title">
       <div class="row">
         <a class="book" data-book="three-little-pigs" href="three-little-pigs/">
-          <span class="doc"><img src="assets/covers/three-little-pigs.webp" width="960" height="540" style="object-position: 72% 50%" alt=""><span class="ct" aria-hidden="true">The Three Little Pigs</span></span>
+          <span class="doc"><img loading="lazy" decoding="async" src="assets/covers/three-little-pigs.webp" width="960" height="540" style="object-position: 72% 50%" alt=""><span class="ct" aria-hidden="true">The Three Little Pigs</span></span>
           <span class="tag"><b>The Three Little Pigs</b><em>An experiment</em><span>Art from an image model, motion from code: what we tried, and why it stayed out of the Skill.</span></span>
         </a>
         <a class="book" data-book="little-red-riding-hood" href="little-red-riding-hood/">
-          <span class="doc"><img src="assets/covers/little-red-riding-hood.webp" width="960" height="540" style="object-position: 50% 40%" alt=""><span class="ct" aria-hidden="true">Little Red Riding Hood</span></span>
+          <span class="doc"><img loading="lazy" decoding="async" src="assets/covers/little-red-riding-hood.webp" width="960" height="540" style="object-position: 50% 40%" alt=""><span class="ct" aria-hidden="true">Little Red Riding Hood</span></span>
           <span class="tag"><b>Little Red Riding Hood</b><em>Paper cut-out</em><span>Stop motion drawn entirely in code. In the meadow, Red asks and the child finds.</span></span>
         </a>
         <a class="book" data-book="little-horse" href="little-horse/">
-          <span class="doc"><img src="assets/covers/little-horse.webp" width="960" height="540" style="object-position: 64% 50%" alt=""><span class="ct" aria-hidden="true">Little Horse</span></span>
+          <span class="doc"><img loading="lazy" decoding="async" src="assets/covers/little-horse.webp" width="960" height="540" style="object-position: 64% 50%" alt=""><span class="ct" aria-hidden="true">Little Horse</span></span>
           <span class="tag"><b>The Little Horse Crosses the River</b><em>Paper cut-out, 小马过河</em><span>A Chinese folk tale. Little Horse asks, the child finds and taps.</span></span>
         </a>
         <a class="book" data-book="joke-collection" href="joke-collection/">
-          <span class="doc"><img src="assets/covers/joke-collection.webp" width="960" height="540" style="object-position: 22% 50%" alt=""><span class="ct" aria-hidden="true">Joke Collection</span></span>
+          <span class="doc"><img loading="lazy" decoding="async" src="assets/covers/joke-collection.webp" width="960" height="540" style="object-position: 22% 50%" alt=""><span class="ct" aria-hidden="true">Joke Collection</span></span>
           <span class="tag"><b>Joke Collection</b><em>Short films, 7 episodes</em><span>Painted sets and paper puppets moved by code, one joke an episode.</span></span>
         </a>
       </div>
@@ -97,20 +99,20 @@
     <section class="shelf films" aria-labelledby="films-title">
       <div class="row">
         <a class="book" data-book="madness" href="madness/">
-          <span class="doc"><img src="assets/covers/madness.webp" width="652" height="952" style="object-position: 50% 30%" alt=""><span class="ct" aria-hidden="true">Madness and Civilization</span></span>
+          <span class="doc"><img loading="lazy" decoding="async" src="assets/covers/madness.webp" width="520" height="760" style="object-position: 50% 30%" alt=""><span class="ct" aria-hidden="true">Madness and Civilization</span></span>
           <span class="tag"><b>Madness and Civilization</b><em>Documentary, 10 min</em><span>Michel Foucault&rsquo;s book as a short film, and the same story as upright shorts.</span></span>
         </a>
         <a class="book" data-book="pandemic" href="pandemic/">
-          <span class="doc"><img src="assets/covers/pandemic.webp" width="640" height="520" style="object-position: 50% 50%" alt=""><span class="ct" aria-hidden="true">The Pandemic</span></span>
+          <span class="doc"><img loading="lazy" decoding="async" src="assets/covers/pandemic.webp" width="640" height="520" style="object-position: 50% 50%" alt=""><span class="ct" aria-hidden="true">The Pandemic</span></span>
           <span class="tag"><b>The Pandemic</b><em>Documentary, 7 min</em><span>From a market in Wuhan to the count of the dead. Also as shorts and a scroll story.</span></span>
         </a>
         <a class="book" data-book="time-of-the-magicians" href="time-of-the-magicians/">
-          <span class="doc"><img src="assets/covers/time-of-the-magicians.webp" width="440" height="470" alt=""><span class="ct" aria-hidden="true">Time of the Magicians</span></span>
+          <span class="doc"><img loading="lazy" decoding="async" src="assets/covers/time-of-the-magicians.webp" width="440" height="470" alt=""><span class="ct" aria-hidden="true">Time of the Magicians</span></span>
           <span class="tag"><b>Time of the Magicians</b><em>An explorable map</em><span>Europe from 1919 to 1929: four philosophers walking the map, a year at a time.</span></span>
         </a>
         <a class="book" data-book="shooting-an-elephant" href="shooting-an-elephant/">
           <span class="sign" aria-hidden="true">Interactive</span>
-          <span class="doc"><img src="assets/covers/shooting-an-elephant.webp" width="960" height="631" style="object-position: 38% 50%" alt=""><span class="ct" aria-hidden="true">Shooting an Elephant</span></span>
+          <span class="doc"><img loading="lazy" decoding="async" src="assets/covers/shooting-an-elephant.webp" width="960" height="631" style="object-position: 38% 50%" alt=""><span class="ct" aria-hidden="true">Shooting an Elephant</span></span>
           <span class="tag"><b>Shooting an Elephant</b><em>Interactive documentary</em><span>George Orwell&rsquo;s 1936 essay in his own words. You hold the rifle.</span></span>
         </a>
       </div>
