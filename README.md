@@ -34,12 +34,12 @@ Formulas, diagrams and scenes change step by step as the narration explains, wit
 
 ### Picture books, from a story, a joke or a fairy tale
 
-Paper puppets in front of sets drawn in code or painted by an image model, with voices, subtitles, sound effects, music and camera work. Young readers can tap things in the picture to hear their names.
-[Joke Collection](https://papermorph.diamonddoge.org/joke-collection/) (7 episodes) · [Little Red Riding Hood](https://papermorph.diamonddoge.org/little-red-riding-hood/)
+Paper puppets in front of sets drawn in code or painted by an image model, with acted voices, subtitles, sound effects, music and camera work. For children who can't read yet, the film stops for a game: a character asks for one thing at a time, the child touches it in the picture, and nothing is ever called wrong.
+[The Little Horse Crosses the River](https://papermorph.diamonddoge.org/little-horse/) (小马过河) · [Little Red Riding Hood](https://papermorph.diamonddoge.org/little-red-riding-hood/) · [Joke Collection](https://papermorph.diamonddoge.org/joke-collection/) (7 episodes)
 
 <p align="center">
-  <a href="https://papermorph.diamonddoge.org/joke-collection/ch03/"><img src="img/readme/joke-collection.webp" alt="Joke Collection: paper puppets on a painted farm, cutting between close-ups" width="49%"></a>
-  <a href="https://papermorph.diamonddoge.org/little-red-riding-hood/ch01/"><img src="img/readme/red-riding-hood.webp" alt="Little Red Riding Hood: in the meadow, tapping the sun and a cloud shows and says each word" width="49%"></a>
+  <a href="https://papermorph.diamonddoge.org/little-horse/ch01/"><img src="img/readme/little-horse.webp" alt="The Little Horse Crosses the River: by the river the foal asks for the bird; a tap on the ox says 'ox', a tap on the bird finds it" width="49%"></a>
+  <a href="https://papermorph.diamonddoge.org/little-red-riding-hood/ch01/"><img src="img/readme/red-riding-hood.webp" alt="Little Red Riding Hood: the wolf in Grandma's cap and glasses, closer with every question, then the lunge" width="49%"></a>
 </p>
 
 ### Documentaries and upright shorts, from a book or an idea
@@ -74,21 +74,20 @@ Then type `/papermorph`. It finds the PDF in your project (or asks for your stor
 
 In OpenCode, a clone of this repository already has the command (`.opencode/commands/papermorph.md`) and the Skill; with a global install, copy that file to `~/.config/opencode/commands/`.
 
-You need [uv](https://docs.astral.sh/uv/), ffmpeg, and Playwright's browsers (`uv run --with playwright playwright install chromium firefox`). Narration uses Edge TTS (online) or Kokoro (local), free. A few steps are paid, optional and need an API key: painted sets for picture books (OpenRouter or OpenAI), and ElevenLabs narration and clips made from a still for documentaries ([OpenRouter](https://openrouter.ai/)).
+You need [uv](https://docs.astral.sh/uv/), ffmpeg, and Playwright's browsers (`uv run --with playwright playwright install chromium firefox`). Narration uses Edge TTS (online) or Kokoro (local), free. A few steps are paid, optional and need an API key: acted ElevenLabs voices for picture books and documentaries, clips made from a still ([OpenRouter](https://openrouter.ai/)), and painted sets for picture books (OpenRouter or OpenAI). The two newest picture books cost under $0.35 each in voices.
 
 ## How it works
 
 A book is planned before it is drawn: chapters or scenes, then a script, then a storyboard. The narration is voiced and every word gets a time, and the picture is animated to those times. The model then watches its own output (contact sheets, overlap and blank-frame checks, end-to-end tests, a director's review against approved books) and fixes what it sees. Large chapters are made by a team of subagents, each step on the model you choose ([core/team.md](.claude/skills/papermorph/references/core/team.md)). The books on the shelf were made with Opus 5.5, GPT-6.1-Sol and Sonnet 5.5; an illustrated physics chapter costs about $10–18 of model usage.
 
-Every book plays in the same player: pause anywhere, step back and forth, speed, captions, keyboard shortcuts, and progress saved per book, with the interface in English, Russian, Chinese or Japanese. The player lives in [`engine/`](engine) and every book keeps its own copy, so a book never breaks when the engine changes; `scripts/engine.py site` updates them from the latest release (`--from you/your-fork@main` from your own).
+Every book plays in the same player: pause anywhere, step back and forth, speed, captions, keyboard shortcuts, and progress saved per book, with the interface in English, Russian, Chinese, Japanese or Arabic (right to left). The player lives in [`engine/`](engine) and every book keeps its own copy, so a book never breaks when the engine changes; `scripts/engine.py site` updates them from the latest release (`--from you/your-fork@main` from your own).
 
 Any chapter or episode also renders to a 1080p MP4 with an `.srt`, frame by frame from the lesson clock (`scripts/export.py`), and a book can be packaged for an LMS as SCORM (`scripts/scorm.py`, [courses.md](.claude/skills/papermorph/references/lessons/courses.md)).
 
 ## Roadmap
 
-The first roadmap is done: maths books, science books, picture books, a model of your choice for every step, documentaries, and upright shorts. Point-and-read, a rifle, a map and a scroll story came along the way. Next:
+The first roadmap is done: maths books, science books, picture books, a model of your choice for every step, documentaries, and upright shorts. So are picture books for children who can't read yet: layered paper sets, four-legged puppets and listen-and-find games, in *The Little Horse* and the second *Little Red Riding Hood*. A rifle, a map and a scroll story came along the way. Next:
 
-- **Picture books for children who can't read yet.** New looks besides paper cut-outs, still moved in code, and more ways to play inside the film by voice and touch: find the thing the narrator names, tap to make the story go on, choose by picture.
 - **Picture books from a PDF of pictures.** Bring an illustrated book and make its pages move: tap to hear names over the painting, layers that drift in parallax, characters cut into paper puppets, the printed text read aloud. For your own books or a publisher's; our own examples will use public-domain books or pictures we draw.
 - **Lessons with their own examples.** The textbook sets what is taught, in what order and how hard; the Skill writes new worked examples and exercises, with answers computed in code, so nothing is copied from the book.
 - **One source, every shape.** A single Wikipedia article made into a documentary, shorts, an interactive page and a scroll story, side by side.
