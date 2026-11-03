@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Map Redrawn: Japan 1868–1878</title>
+<meta name="description" content="A map of Japan, 1868 onward: the domains become prefectures, and four people move across the changing map.">
+<link rel="stylesheet" href="lib/page.css">
+</head>
+<body>
+<main id="stage">
+  <svg id="map" role="group" tabindex="-1" aria-label="Map of Japan"></svg>
+  <div id="paper"></div>
+
+  <svg id="north" viewBox="-22 -26 44 52" role="img" aria-label="North" hidden><path d="M0,-12 L5,10 L0,6 L-5,10Z"/><text>N</text></svg>
+
+  <div id="brand">
+    <p id="title">The Map Redrawn <span>Japan 1868–1878</span></p>
+  </div>
+  <header id="top">
+    <div id="yearbar">
+      <button id="prev" class="step" aria-label="Previous year" title="Previous year (←)">‹</button>
+      <h1 id="year" aria-live="polite">1868</h1>
+      <button id="next" class="step" aria-label="Next year" title="Next year (→)">›</button>
+    </div>
+    <p id="mapstate"></p>
+    <button id="replay" class="link" hidden>▶ Play <span>1868</span> again</button>
+  </header>
+  <p id="hint">Click a figure to read their year. → for the next year.</p>
+  <div id="corner">
+    <button id="music" class="link" aria-pressed="true" title="Music on or off">♪<span class="wide"> Music</span></button>
+    <button id="credits-open" class="link">Sources<span class="wide"> and credits</span></button>
+  </div>
+
+  <nav id="people" aria-label="The four people"></nav>
+
+  <section id="event" class="card" aria-live="polite" hidden>
+    <h2></h2>
+    <figure><img alt=""><figcaption></figcaption></figure>
+    <p class="text"></p>
+  </section>
+  <p id="move" aria-live="polite" hidden><b></b> <span></span></p>
+  <div id="filmbar" hidden><button id="skip">Skip<span class="wide"> to the four</span> ▸▸</button></div>
+  <audio id="voice" preload="none"></audio>
+  <audio id="bgm" preload="none"></audio>
+
+  <section id="intro" class="card" role="dialog" aria-modal="true" aria-labelledby="intro-h">
+    <h2 id="intro-h">The Map Redrawn</h2>
+    <p class="sub">Japan 1868–1878</p>
+    <p class="text"></p>
+    <div class="row"><button class="go" id="begin" disabled>▶ Begin in 1868</button></div>
+  </section>
+
+  <section id="person" class="card" role="dialog" aria-modal="true" aria-labelledby="person-h" hidden>
+    <button class="close" aria-label="Close">×</button>
+    <div class="head">
+      <img alt="">
+      <div>
+        <h2 id="person-h"></h2>
+        <p class="jp"></p>
+        <p class="where"></p>
+      </div>
+    </div>
+    <p class="text"></p>
+    <div class="row"><button class="play" hidden>▶ Listen</button></div>
+  </section>
+
+  <section id="credits" class="card" role="dialog" aria-modal="true" aria-labelledby="credits-h" hidden>
+    <button class="close" aria-label="Close">×</button>
+    <h2 id="credits-h">Sources and credits</h2>
+    <p><b>The map</b> shows who held the land on the eve of the Restoration, village by village. Adapted from Honda, Natsume and Nemoto,
+      “Construction of Early Modern Village Territory Data” (<i>Theory and Applications of GIS</i> 34(1), 2026), data version 2.01 of
+      <a href="https://github.com/yaoyue00085856/Kyudaka_agrivillage">Kyudaka_agrivillage</a>, after the <i>Kyūdaka kyūryō torishirabechō</i>.
+      Shared under <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>; see <a href="data/LICENSE-map.txt">data/LICENSE-map.txt</a>.
+      Village shapes: MAFF Agricultural Census 2015 rural community boundaries, credit required.</p>
+    <p>Villages held by several lords are shown under their first-listed lord. Shapes are 2015 coastlines and units, simplified; the source’s own date is unsettled, so the map is dated only to the eve of the Restoration. Hokkaidō, Ryukyu and Amami have no village data in the source, so Hokkaidō and Okinawa are outlines (Amami was Satsuma land and is not shown). Dates are Western calendar.</p>
+    <p><b>The prefectures</b> of 1871 and 1876 follow the decrees county by county (<a href="notes/ken-1871.csv">1871 table</a>, <a href="notes/ken-1876.csv">1876 table</a>). A few missing counties are inferred, split counties are assigned by rule (holding lord or modern boundary), and exclaves and later changes are not shown. Story sources: <a href="notes/sources.md">notes/sources.md</a>.</p>
+    <p><b>Playback engine</b> adapted from <a href="https://papermorph.diamonddoge.org/time-of-the-magicians/"><i>Time of the Magicians</i></a> (Papermorph), MIT licence; see <a href="LICENSE-engine.txt">LICENSE-engine.txt</a>.</p>
+    <p><b>Music:</b> Japanese koto songs from Nagai and Obata’s 1895 collection, typeset by Tom Potter for the <a href="https://www.mutopiaproject.org/">Mutopia Project</a> (public domain), played by a synthesised koto made for this page.</p>
+    <p><b>Pictures:</b> portraits and event pictures are public domain or CC0 (Wikimedia Commons, Rijksmuseum, the Met); details in <a href="img/SOURCES.md">img/SOURCES.md</a>. The four walking figures were painted for this page by an image model (OpenAI gpt-image-2.5-flare) from period photographs; they are not photographs. <b>Fonts</b> (SIL Open Font Licence, texts in <a href="lib/fonts/OFL-EBGaramond.txt">lib/fonts</a>): EB Garamond and Noto Serif JP.</p>
+  </section>
+</main>
+
+<script src="lib/voiced.js"></script>
+<script src="lib/topo.js"></script>
+<script src="lib/states.js"></script>
+<script src="lib/story.js"></script>
+<script src="lib/events.js"></script>
+<script src="lib/sprite.js"></script>
+<script src="lib/app.js"></script>
+</body>
+</html>

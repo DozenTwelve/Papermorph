@@ -1,0 +1,25 @@
+The 1868 domain map (data/japan-1868.topo.json and data/domains-1868.json) is adapted from:
+
+  Honda, Kenichi, Muneyuki Natsume and Yuuki Nemoto. 2026. "Construction of Early Modern Village Territory Data
+  (幕末期近世村領域データの作成)". Theory and Applications of GIS 34(1): 1-10. Data: Kyudaka_agrivillage, version 2.01,
+  https://github.com/yaoyue00085856/Kyudaka_agrivillage. Licensed CC BY-SA 4.0:
+  https://creativecommons.org/licenses/by-sa/4.0/
+
+That data attaches the lords of the 旧高旧領取調帳 (Kyudaka-Kyuryo Torishirabecho; database "れきはく", National Museum
+of Japanese History, from the edition by Kimura Motoi) to rural community areas. The area shapes are from:
+
+  Ministry of Agriculture, Forestry and Fisheries (MAFF), Agricultural Census 2015 rural community boundary data
+  (農業集落境界データ, MA0001_2015). Used under MAFF's open data terms (credit required, CC BY style).
+  https://www.machimura.maff.go.jp/
+
+Changes made: the 2015 community areas of all 47 prefectures were joined to the village lords (first-listed lord,
+領分１, only); lords were normalised (branch holdings such as 紀伊和歌山藩（水野家） merged into the parent han, the
+sub-holder kept as a note); areas were dissolved by lord and province, then by lord, 1871 prefecture and 1876 prefecture (one feature per triple, with all
+its scattered pieces; the 1871 prefecture comes from each village's province and county by notes/ken-1871.csv, with rules for ten split counties; the 1876 one
+by notes/ken-1876.csv, with rules for four counties split by modern prefecture), by province, and into a national land outline that also includes Hokkaido and Okinawa as plain
+outlines; unmatched lakes were removed; unmatched land was kept as one "未割当" (unassigned) feature; everything was
+projected (Lambert conformal conic, parallels 33 and 38, origin 36N 136E) and simplified (Visvalingam, about 100 m,
+keeping small shapes), then quantised to a TopoJSON. Shapes are 2015 coastlines and units, not 1868 ones.
+
+The adapted data in data/japan-1868.topo.json and data/domains-1868.json is shared under the same licence,
+CC BY-SA 4.0. It is not covered by the repository's MIT licence.
