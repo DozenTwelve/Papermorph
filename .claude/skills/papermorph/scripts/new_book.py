@@ -34,7 +34,7 @@ def main():
     ap.add_argument('kind', choices=['lesson', 'picture', 'documentary', 'shorts'])
     ap.add_argument('book', help='the book slug, e.g. history')
     ap.add_argument('--chapter', type=int, default=1, help='the pilot chapter number (default 1)')
-    ap.add_argument('--lang', default='en', help="the narration language code (default en); the template's text stays English until translated")
+    ap.add_argument('--lang', default='en', help="the book's language code (default en): it names the narration file, the audio folder, <html lang> and CHAPTER.language; the template's text and voice stay English until translated")
     ap.add_argument('--maps', action='store_true', help='add the map kit (documentaries and shorts)')
     ap.add_argument('--root', default='.', help='folder holding site/, books/, content/, tools/ (default .)')
     a = ap.parse_args()
@@ -96,6 +96,13 @@ def start(a, root, ch, site, work, content):
         if a.maps:
             for f in (MK / 'lib').glob('*.js'):
                 copy(f, site / 'lib' / f.name)
+
+    if a.lang != 'en':   # the pages name the book's language: <html lang>, CHAPTER.language and the audio/<lang>/ paths
+        for f in (site / 'index.html', *(site / ch).glob('*.*')):
+            if f.is_file() and f.suffix in ('.html', '.js'):
+                s = f.read_text(encoding='utf-8')
+                f.write_text(s.replace('lang="en"', f'lang="{a.lang}"').replace("language: 'en'", f"language: '{a.lang}'")
+                             .replace('audio/en/', f'audio/{a.lang}/'), encoding='utf-8')
 
     S, A = HERE, site / ch / 'audio' / a.lang
     print(f'\n{a.kind} book started: {site.relative_to(root)}/ (pilot {ch}); next:')
