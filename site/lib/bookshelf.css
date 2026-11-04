@@ -97,8 +97,16 @@ a.book:hover .tag { transform: translateY(-2px); }
 
 /* The archive: books stand spine out in a row (a.spine, title written down the spine). */
 .spines { display: flex; gap: calc(6 * var(--s)); align-items: end; justify-content: center; padding-bottom: calc(14 * var(--s)); }
-.spine { display: block; width: calc(40 * var(--s)); height: calc(105 * var(--s)); padding: 8px 0; background: var(--c); color: var(--paper-white); text-decoration: none; writing-mode: vertical-rl; font: 600 clamp(10px, calc(14 * var(--s)), 15px)/calc(40 * var(--s)) var(--ui); box-shadow: inset -4px 0 6px #0003, 5px 6px 9px #0003; }
-.note { align-self: center; margin: 0; padding: .7em 1.1em; background: var(--brown); color: #f1e9df; font: clamp(12px, calc(15 * var(--s)), 15px)/1.4 var(--ui); box-shadow: 5px 6px 9px #0003; transform: rotate(-1deg); }
+.spine { display: block; width: calc(40 * var(--s)); height: calc(118 * var(--s)); padding: 8px 0; background: var(--c); color: var(--paper-white); text-decoration: none; white-space: nowrap; overflow: hidden; writing-mode: vertical-rl; font: 600 clamp(10px, calc(14 * var(--s)), 15px)/calc(40 * var(--s)) var(--ui); box-shadow: inset -4px 0 6px #0003, 5px 6px 9px #0003; }
+.spine:nth-child(even) { background: color-mix(in srgb, var(--c), #000 22%); }
+/* Too narrow for a title to stand: the books lie flat, one on another, spine facing out. */
+@container (max-width: 1099px) {
+  .row.spines { flex-direction: column; align-items: center; justify-content: end; gap: 0; }
+  .row.spines > * { margin-bottom: 0; }
+  .row.spines { padding-bottom: calc(22 * var(--s)); }
+  .spine { writing-mode: horizontal-tb; width: auto; height: auto; padding: 3px 14px; line-height: 1.25; }
+  .spine:nth-child(even) { transform: translateX(8%); }
+}
 
 /* Under the archive, the photo's own pair of drawers, GitHub and YouTube cut into them: each link is the front. */
 .drawers { position: relative; aspect-ratio: 864 / 176; margin-top: calc(21 * var(--s)); background: url(../assets/shelf/drawers.webp) 0 0 / 100% 100%; }

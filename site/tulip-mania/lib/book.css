@@ -1,0 +1,15 @@
+/* Tulip Mania's colours: a Delft night-blue ground, cream ink, tulip red for the trade. --board is the ground, --chalk
+   the ink on it, --dim captions; --accent, and an old document's --paper, --paper-ink and --stamp, are read by film.js;
+   --map-* by map.js (the paper map). Pictures are baked with prep.py's default cream. */
+@import url("fonts.css");
+:root {
+  --page: #121b26; --board: #1d2a3a; --panel: #172230; --edge: #33455a;
+  --chalk: #f3ede0; --dim: #b9c4cf; --faint: #5d7088;
+  --task: #f0b45a; --quiz: #e8c8a0; --good: #c8e0b0; --bad: #ffb0a0;
+  --vignette: rgba(4, 8, 14, .45);
+  --rule: #2c3d52; --track: #2a3a4e; --track-ask: #2a3a4e;
+  --bar-edge: #2a3a4e; --hover: #2c3e54; --veil: #0e151e;
+  --accent: #e8664a; --paper: #f3ede0; --paper-ink: #2a2a30; --stamp: #3a2a24;
+  --red: #c8281e;
+  --map-land: #ece3cd; --map-sea: #b4c3c9; --map-ink: #23252b; --map-line: #ece3cd; --map-hot: #c8281e; --map-urban: #ece3cd;
+}

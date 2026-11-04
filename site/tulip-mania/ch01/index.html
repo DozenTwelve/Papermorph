@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tulip Mania</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<!-- Tulip Mania, a three-minute documentary carried by maps. One beat per paragraph of
+     content/tulip-mania/ch01/narration.en.json; storyboard in books/tulip-mania/storyboard.md. -->
+<script src="../lib/engine.js"></script>
+<script src="../lib/film.js"></script>
+<script src="../img/geo-lite.js"></script>
+<script src="../lib/map.js"></script>
+<script src="audio/en/timings.js"></script>
+<script src="../img/art.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 1, title: 'Tulip Mania', minutes: 3, language: 'en', lead: false };
+
+const OPEN_PRE = 4.5;   // seconds of title, Blaeu's map and music before the first line
+
+// views [lon, lat, H]: H is the Earth's radius as 450 / H stage px
+const HOL = [4.86, 52.38, .016];            // Holland: Leiden to Alkmaar fills the height
+const EUR = [17, 47, .2];                    // Leiden to Constantinople
+const ASIA = [45, 44, .34];                  // Central Asia to Vienna
+const k = (t, v, dx = 0, dy = 0) => [t, v[0], v[1], v[2], dx, dy];
+const still = v => () => ({ lon: v[0], lat: v[1], H: v[2] });
+
+// places the kit's city list lacks
+CITIES.Frankfurt = [8.68, 50.11]; CITIES['The Hague'] = [4.31, 52.08];
+const ALK_V = [4.95, 52.5, .014], ALK_DX = [-330, 40];   // the opening's close view of North Holland
+const PEAK_END = k(0, [4.75, 52.63, .005], -330);         // the peak's last view, the crash's first
+const GLOBE = [8, 24, 1.1];   // the half of the world the story reached first
+const ROUTES_TRADE = [['Haarlem', 'Amsterdam'], ['Alkmaar', 'Haarlem'], ['Leiden', 'Haarlem'], ['Utrecht', 'Amsterdam'], ['Amsterdam', 'Alkmaar']];
+const SPICE = [[106.8, -6.2], [100, -12], [80, -30], [45, -38], [18.4, -35.5], [0, -20], [-25, 0], [-32, 25], [-20, 42], [-6, 48.8], [4.9, 52.37]];
+const TOWN_LABELS = (t0 = -1) => TOWNS.map(n => [n, t0, n === 'Leiden' || n === 'Haarlem' ? 'l' : 'r']);
+
+const BEATS = [
+  // Blaeu's Holland of 1634 under the title, then our map of the same land; Alkmaar, the Viceroy and its price
+  ['open', 'Alkmaar, 1637', (m, D) => {
+    const p = panel(0);
+    const mp = G(p, { o: 0 });
+    oldMap(mp, D, mapKeys([k(0, [4.95, 52.45, .03]), k(OPEN_PRE, [4.95, 52.45, .03]), k(m('alk') + .6, ALK_V, ...ALK_DX)]), {
+      cities: [['Alkmaar', m('alk') - .8]], dots: [[...CITIES.Alkmaar, m('alk') - .8, 12]] });
+    show(mp, OPEN_PRE - 1, 1.2, lin);
+    const bl = pic(p, 'blaeu', { x: 800, y: 450, h: 860 });   // whole from the first frame: the thumbnail
+    push(bl, 0, OPEN_PRE, 1.04);
+    hide(bl, OPEN_PRE - 1, 1.2, lin);
+    const ti = band(p, 'Tulip Mania', 800, 470, -1, { size: 120, sub: 'the Dutch tulip bubble, 1636–37' });
+    hide(ti, OPEN_PRE - .8, .6);
+    mapChip(p, '1637', 'February', OPEN_PRE + .05);
+    const v = pic(p, 'viceroy', { x: 1260, y: 450, h: 800, r: 2, at: m('vice') - .3, from: [500, 0] });
+    push(v, m('vice'), D, 1.05);
+    band(p, '4,200 guilders', 790, 240, m('price') + .1, { size: 70, sub: 'one bulb, the Viceroy' });
+    band(p, '300 guilders a year', 790, 620, m('wage') + .1, { size: 54, sub: 'a skilled craftsman' });
+  }, { pre: OPEN_PRE }],
+
+  // the bubble, then where: the camera pulls back from Holland to Europe
+  ['bubble', 'The first famous bubble', (m, D) => {
+    const p = panel(0);
+    const view = mapKeys([k(0, ALK_V, ...ALK_DX), k(1.2, HOL), k(m('where'), HOL), k(D + .3, EUR)]);
+    oldMap(p, D, view, { dots: TOWNS.map((n, i) => [...CITIES[n], n === 'Alkmaar' ? -1 : .6 + i * .15, n === 'Alkmaar' ? 12 : 9]),
+      cities: [['Alkmaar', -1]] });   // one label: five would pile up as the camera pulls back to Europe
+    const b = band(p, 'The first famous bubble', 800, 140, m('bubble'), { size: 80 });
+    hide(b, m('where') - .6, .5);
+    const w = band(p, 'Where?', 800, 800, m('where') + .2, { size: 60 });
+    hide(w, D - .2, .4);
+  }],
+
+  // from the mountains of Central Asia to Constantinople, then Busbecq and Vienna
+  ['origin', 'From the sultans\' gardens', (m, D) => {
+    const p = panel(0);
+    const TIAN = [74, 41.5], VIENNA = CITIES.Vienna, IST = CITIES.Constantinople;
+    const view = mapKeys([k(0, EUR), k(m('asia') - .4, ASIA), k(m('busbecq') - .4, ASIA), k(m('vienna') + .2, [22, 46, .22], 220)]);
+    oldMap(p, D, view, {
+      dots: [[...TIAN, m('asia'), 14], ...TOWNS.map(n => [...CITIES[n], -1, 6])],
+      routes: [[TIAN, IST, m('ottoman'), 1.4], [IST, VIENNA, m('vienna') - .3, 1]],
+      cities: [['Constantinople', m('ist')], ['Vienna', m('vienna') + .3]],
+    });
+    const a = band(p, 'Central Asia', 1240, 170, m('asia') + .1, { size: 48 }); hide(a, m('ottoman') + 1.2, .4);
+    const o = band(p, 'The Ottoman gardens', 800, 800, m('ottoman') + .2, { size: 52 }); hide(o, m('busbecq') - .5, .4);
+    const bb = pic(p, 'busbecq', { x: 260, y: 430, h: 640, r: -2, at: m('busbecq') - .2, from: [-400, 0] });
+    mtag(p, 'Ogier de Busbecq, 1557', 260, 790, m('busbecq') + .4);
+  }],
+
+  // Clusius carries them from Vienna, by way of Frankfurt, to Leiden; the university garden; the first flowering
+  ['leiden', 'Leiden, 1594', (m, D) => {
+    const p = panel(0);
+    const TIAN = [74, 41.5], VIENNA = CITIES.Vienna, IST = CITIES.Constantinople, FRA = CITIES.Frankfurt;
+    const view = mapKeys([k(0, [22, 46, .22], 220), k(m('leiden') - .6, [22, 46, .22], 220), k(m('leiden') + 1.6, [8, 51, .1], 330)]);
+    oldMap(p, D, view, {
+      dots: [[...TIAN, -1, 14], ...TOWNS.map(n => [...CITIES[n], -1, 6])],
+      routes: [[TIAN, IST, -3, 1], [IST, VIENNA, -3, 1], [VIENNA, FRA, m('clusius') + 2.2, 1.2], [FRA, CITIES.Leiden, m('leiden') - .1, 1.3]],
+      cities: [['Constantinople', -1], ['Vienna', -1], ['Frankfurt', m('clusius') + 3.2], ['Leiden', m('leiden')]],
+    });
+    const c = pic(p, 'clusius', { x: 270, y: 430, h: 640, r: 2, at: m('clusius') - .3, from: [-400, 0] });
+    mtag(p, 'Carolus Clusius, 1575', 270, 790, m('clusius') + .3, m('bloom') - .6);
+    hide(c, m('bloom') - .6, .5);
+    pic(p, 'hortus', { x: 420, y: 470, h: 560, at: m('bloom') - .3, from: [-60, 30], back: true });
+    mtag(p, 'The university garden at Leiden, 1610', 420, 800, m('bloom') + .3);
+    mapChip(p, '1594', 'Leiden', m('bloom'));
+  }],
+
+  // the trading republic: grain from the Baltic, spices from the East round the Cape (in ink: not the tulip trade)
+  ['republic', 'The richest trading nation', (m, D) => {
+    const p = panel(0);
+    const AMS = CITIES.Amsterdam;
+    const view = mapKeys([k(0, [8, 51, .1], 330), k(1.6, [12, 52, .2]), k(m('baltic') + .8, [12, 52, .2]), k(m('east') + 1.4, [30, 8, 1.05])]);
+    const M = oldMap(p, D, view, {
+      cities: [['Batavia', m('east') + 1.2, 'l']],
+      dots: TOWNS.map(n => [...CITIES[n], -1, 6]),
+    });
+    mapLabels(p, M, [['Leiden', -1, m('east') - .2, 'l'], ['Amsterdam', .6, m('east') - .2], ['Danzig', m('baltic'), m('east') - .2]], D);
+    inkRoute(p, M, [CITIES.Danzig, [12, 56], [8, 57.5], [5, 54], AMS], m('baltic'), 1.1, D);
+    inkRoute(p, M, SPICE, m('east') + .3, 2.2, D);
+    const s = pic(p, 'ships', { x: 1210, y: 640, h: 360, r: 1, at: .4, from: [300, 0] });
+    mtag(p, 'Dutch ships, Hendrick Vroom, c. 1630', 1210, 860, .9, m('east') - .4);
+    hide(s, m('east') - .4, .5);
+    const gp = M.xy([16, 57], m('baltic') + .8) || [700, 300];
+    const g = band(p, 'Grain', gp[0], gp[1] - 30, m('baltic') + .3, { size: 50 }); hide(g, m('east'), .4);
+    band(p, 'Spices', 1330, 640, m('east') + 2, { size: 50, sub: 'round the Cape' });
+    band(p, 'Money for rare things', 800, 860, m('rare'), { size: 50 });
+  }],
+
+  // a broken tulip, close up: the flames, its name, the virus
+  ['broken', 'Broken tulips', (m, D) => {
+    const p = panel(0);
+    const g = pic(p, 'semper', { x: 800, y: 450, h: 840, at: .1, from: [0, 30] });
+    closeups(p, g, 'semper', [['broken', .45, .22, 'Broken', 3], ['semper', .5, .3, 'Semper Augustus', 3], ['virus', .55, .16, 'A virus', 3.6]], m, m('few') - .5, { x: 640, y: 450 });
+    const v = pic(p, 'viceroy', { x: 1180, y: 410, h: 600, r: 3, at: m('few') - .2, from: [400, 0] });
+    tag(p, 'the Viceroy, 1637', 1180, 750, m('few') + .3, { anchor: 'middle', size: 28, fill: CREAM });
+    tag(p, 'Semper Augustus, before 1640', 640, 890, m('few') + .3, { anchor: 'middle', size: 26, fill: CREAM });
+    band(p, 'Few bulbs · no recipe', 1180, 840, m('few') + .4, { size: 46 });
+  }],
+
+  // the wind trade: promises on paper, in taverns, in five towns; then the paper trade itself moving between them
+  ['wind', 'The wind trade', (m, D) => {
+    const p = panel(0);
+    oldMap(p, D, still(HOL), {
+      cities: TOWNS.map(n => [n, m(n.toLowerCase()), n === 'Leiden' || n === 'Haarlem' ? 'l' : 'r']),
+      dots: TOWNS.map(n => [...CITIES[n], m(n.toLowerCase()), 11]),
+      routes: ROUTES_TRADE.map(([a, b], i) => [CITIES[a], CITIES[b], m('wind') + .9 + i * .55, .8]),
+    });
+    mapChip(p, '1636', 'Winter', .3);
+    const d = doc(p, 'Promise to pay, June', 1240, 470, 3, m('ground') + .6, 7);
+    hide(d, m('taverns') - .5, .5);
+    const tv = pic(p, 'tavern', { x: 1250, y: 300, h: 360, r: -1.5, at: m('taverns') - .3, from: [300, 0] });
+    mtag(p, 'A tavern of the time, Adriaen van Ostade', 1250, 510, m('taverns') + .3, m('wind') - .3);
+    band(p, 'Windhandel', 1250, 720, m('wind'), { size: 80, sub: 'the wind trade' });
+    hide(tv, m('wind') - .3, .5);
+  }],
+
+  // Alkmaar, 5 February: the orphans' sale
+  ['peak', 'Alkmaar, 5 February 1637', (m, D) => {
+    const p = panel(0);
+    const view = mapKeys([k(0, HOL), k(m('fifth') - .2, HOL), [m('fifth') + 1.4, ...PEAK_END.slice(1)]]);
+    oldMap(p, D, view, { cities: TOWN_LABELS(), dots: TOWNS.map(n => [...CITIES[n], -1, n === 'Alkmaar' ? 16 : 11]),
+      routes: ROUTES_TRADE.map(([a, b]) => [CITIES[a], CITIES[b], -3, .8]) });
+    const v = pic(p, 'viceroy', { x: 1260, y: 450, h: 600, r: 2, at: .1, from: [300, 0] });
+    hide(v, m('fifth') - .3, .5);
+    hide(mapChip(p, '5 Feb', '1637 · Alkmaar', m('fifth')), D - .2, .5);
+    const ak = pic(p, 'alkmaar', { x: 1150, y: 410, h: 460, r: -1, at: m('orphans') - .5, from: [300, 0] });
+    mtag(p, 'Alkmaar, Salomon van Ruysdael', 1150, 680, m('orphans'), D - .2);
+    const nt = band(p, 'about 90,000 guilders', 1150, 780, m('total') + .1, { size: 64, sub: 'one sale, for an innkeeper\'s orphans' });
+    [ak, nt].forEach(e => hide(e, D - .2, .5));   // the crash cuts in on the map alone
+  }],
+
+  // Haarlem, the same week: no bids; the towns go grey
+  ['crash', 'No bids', (m, D) => {
+    const p = panel(0);
+    const M = oldMap(p, D, mapKeys([PEAK_END, k(1.6, HOL)]), { cities: TOWN_LABELS(),
+      routes: ROUTES_TRADE.map(([a, b]) => [CITIES[a], CITIES[b], -3, .8]),
+      areas: [[[mapCircle(CITIES.Haarlem, 7)], m('haarlem'), { fill: null, line: MAP_COL.hot, width: 5 }]] });
+    const ds = townDots(p, M, TOWNS, TOWNS.map(() => -1), D);
+    pulse(ds[0], m('haarlem'), .6);
+    pic(p, 'waermondt', { x: 1260, y: 430, h: 700, r: 2, at: m('haarlem') + .2, from: [300, 0] });
+    mtag(p, 'Waermondt and Gaergoedt: the Haarlem dialogues of 1637, in a reprint', 1220, 830, m('haarlem') + .8, undefined, { size: 24 });
+    // "lowered his price again and again": the pamphlet gives no figures, so none are shown
+    ['Lower', 'Lower', 'Lower'].forEach((s, i) => { const b = band(p, s + ' …', 470, 160 + i * 70, 2.6 + i * .8, { size: 54 - i * 8 }); hide(b, m('nobody') - .1, .2); });
+    band(p, 'No bid', 470, 200, m('nobody') + .1, { size: 84, fill: HOT });
+    ds.forEach((c, i) => tw(c, { c_fill: '#6f6a62', s: .7 }, m('everywhere') + i * .25, .5));
+  }],
+
+  // who pays? Amsterdam, the court at The Hague, Haarlem's 3.5 %, never paid
+  ['courts', 'Who should pay?', (m, D) => {
+    const p = panel(0);
+    const AMS = CITIES.Amsterdam, HAGUE = CITIES['The Hague'];
+    const others = ['Haarlem', 'Leiden', 'Alkmaar', 'Utrecht'];
+    const M = oldMap(p, D, still(HOL), {
+      cities: [...TOWN_LABELS()],
+      routes: others.map((n, i) => [CITIES[n], AMS, m('ams') + i * .2, .7]),
+    });
+    townDots(p, M, TOWNS, TOWNS.map(() => -1), D).forEach(c => put(c, { c_fill: '#6f6a62', s: .7 }));
+    TOWNS.forEach((n, i) => inkRoute(p, M, [HAGUE, CITIES[n]], m('court') + .6 + i * .15, .8, D, { dash: '6 6', width: 3 }));
+    const hg = M.xy(HAGUE, 0), cr = G(p, { x: hg[0], y: hg[1], o: 0 });
+    mk('rect', { x: -13, y: -13, width: 26, height: 26, fill: MAP_COL.ink }, cr);
+    T(cr, 'THE HAGUE', { x: -24, y: 4, size: 34, fill: MAP_COL.ink, font: KEY, weight: 600, anchor: 'end' });
+    T(cr, 'court of Holland', { x: -24, y: 36, size: 24, fill: MAP_COL.ink, font: SER, anchor: 'end' }).setAttribute('font-style', 'italic');
+    show(cr, m('court') - .1, .3);
+    const t = pic(p, 'tooneel', { x: 1260, y: 420, h: 620, r: -2, at: .2, from: [300, 0] });
+    mtag(p, 'Tooneel van Flora, Amsterdam 1637', 1260, 760, .8, m('pct') - 2.4);
+    hide(t, m('pct') - 2.4, .5);
+    band(p, '3.5 %', 1250, 220, m('pct') + .1, { size: 110, sub: 'to walk away, in Haarlem' });
+    doc(p, 'Promise to pay, June', 1250, 610, 3, m('never') - .7, 7);
+    line(p, 'M1110 490L1390 730', m('never') + .2, .3, 9, { stroke: MAP_COL.ink });
+  }],
+
+  // the legend grows: the wagon of fools, the monkeys, Mackay and his onion
+  ['legend', 'The legend', (m, D) => {
+    const p = panel(0);
+    const w = pic(p, 'mallewagen', { x: 800, y: 440, h: 720, at: .1, from: [0, 30] });
+    hide(tag(p, 'Flora\'s Wagon of Fools, Hendrik Pot, c. 1637', 800, 860, 1, { anchor: 'middle', size: 28, fill: CREAM }), m('monkeys') - .3, .3);
+    const b = pic(p, 'brueghel', { x: 800, y: 440, h: 720, o: 0 });
+    dissolve(w, b, m('monkeys') - .2, .8);
+    const bt = tag(p, 'Satire on tulip mania, Jan Brueghel the Younger, c. 1640', 800, 860, m('monkeys') + .4, { anchor: 'middle', size: 28, fill: CREAM });
+    hide(bt, m('mackay') - .5, .3);
+    leave(b, m('mackay') - .5, 500, 0, .8);
+    pic(p, 'mackay', { x: 420, y: 440, h: 700, r: -2, at: m('mackay') - .3, from: [-400, 0] });
+    tag(p, 'Charles Mackay, 1841', 420, 830, m('mackay') + .3, { anchor: 'middle', size: 28, fill: CREAM });
+    band(p, 'An onion?', 1110, 380, m('onion'), { size: 84, sub: 'a sailor\'s breakfast, in Mackay' });
+    band(p, 'Legend', 1110, 620, m('beggary') + .2, { size: 84 });
+  }],
+
+  // the archives: back on the map, the paper at the towns; fewer than half a dozen in trouble
+  ['archives', 'The archives', (m, D) => {
+    const p = panel(0);
+    const M = oldMap(p, D, still(HOL), { cities: TOWN_LABELS() });
+    townDots(p, M, TOWNS, TOWNS.map(() => -1), D).forEach(c => put(c, { c_fill: '#6f6a62', s: .7 }));
+    const stacks = TOWNS.map((n, i) => { const [x, y] = M.xy(CITIES[n], 0), g = G(p, { x: x + (n === 'Leiden' || n === 'Haarlem' ? 52 : -52), y: y - 64, s: .24 });   // on the side away from the label
+      doc(g, ['Contract', 'Court record', 'Notary', 'Contract', 'Will'][i], 0, 0, -6 + i * 3, m('archives') - .4 + i * .2, 11 + i); return g; });
+    band(p, 'Fewer than 6', 330, 300, m('six'), { size: 80, sub: 'traders in real trouble' });
+    stacks.forEach((g, i) => hide(g, m('never') + i * .1, .5));
+    band(p, 'Paper losses', 330, 560, m('never') + .2, { size: 60 });
+  }],
+
+  // the end: a day's ride; the story goes round the world (in ink); back to the small map; tulips still
+  ['end', 'A day\'s ride', (m, D) => {
+    const p = panel(0);
+    const HLM = CITIES.Haarlem;
+    const view = mapKeys([k(0, HOL), k(m('story') - .6, HOL), k(m('story') + 1.1, GLOBE), k(m('kept') + .5, GLOBE), k(m('kept') + 2.1, HOL)]);
+    const out = ['New York', 'Rio de Janeiro', 'Cape Town', 'Lagos', 'Cairo', 'Mumbai', 'Moscow', 'London'].filter(n => CITIES[n]);
+    const M = oldMap(p, D, view, {
+      areas: [[[mapCircle(HLM, 60)], m('day'), { fill: null, line: MAP_COL.hot, width: 4 }]],
+      dots: TOWNS.map(n => [...CITIES[n], .6, 10]),
+      cities: [['Haarlem', -1, 'l']],
+    });
+    townDots(p, M, TOWNS, TOWNS.map(() => -1), .6, 7).forEach(c => { put(c, { c_fill: '#6f6a62' }); hide(c, .6, .3); });
+    // the other towns' labels carried from the archives, gone before the pull-out (they would pile up), back after it
+    mapLabels(p, M, TOWNS.filter(n => n !== 'Haarlem').map(n => [n, -1, m('story') - .6, n === 'Leiden' ? 'l' : 'r']), D);
+    mapLabels(p, M, TOWNS.filter(n => n !== 'Haarlem').map(n => [n, m('kept') + 2.1, undefined, n === 'Leiden' ? 'l' : 'r']), D);
+    const ch = mapChip(p, '1636–37', 'A few winter months', .9); hide(ch, m('story') - .6, .4);
+    const rg = G(p, {});
+    out.forEach((n, i) => inkRoute(rg, M, [HLM, CITIES[n]], m('story') + .4 + i * .12, 1, D, { dash: '9 7', width: 4 }));
+    hide(rg, m('kept') + .4, .5);
+    const dr = band(p, 'A day\'s ride', 1250, 160, m('day') + .2, { size: 60 });
+    hide(dr, m('story') - .2, .4);
+    const sb = band(p, 'The story', 800, 840, m('story') + .9, { size: 60 }); hide(sb, m('kept') + .3, .4);
+    const s = pic(p, 'semper', { x: 1330, y: 430, h: 560, r: 2, at: m('still') - .4, from: [300, 0] });
+    push(s, m('still'), D + 1, 1.03);
+    band(p, 'Tulip Mania', 640, 800, m('still') + .8, { size: 72, sub: 'Holland, the winter of 1636–37' });
+  }, { minDur: 18.5 }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+/* ---------- music ----------
+   Part one, bright and quick, to the peak; part two, the Aria, from the crash to the end. */
+window.MUSIC_UP_IN_PRE = ['open'];
+music('audio/bgm/part1.mp3', ['open', 'bubble', 'origin', 'leiden', 'republic', 'broken', 'wind', 'peak'], .45, 1.5);
+music('audio/bgm/part2.mp3', ['crash', 'courts', 'legend', 'archives', 'end'], .45, 2.5);
+
+// the fonts must be in before words are measured
+Promise.all(['600 40px Oswald', '500 40px Oswald', 'italic 400 40px "EB Garamond"', '400 40px "EB Garamond"']
+  .map(f => document.fonts.load(f))).then(boot);
+</script>
+</body>
+</html>
