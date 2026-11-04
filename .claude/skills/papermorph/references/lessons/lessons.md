@@ -52,7 +52,7 @@ A course book may also want verified citation links, a reviewed question bank or
 
 ## LaTeX
 
-For formulas that need LaTeX ([core/engine.md](../core/engine.md#latex)), add MathJax (with its licence) to `lib/` and load `../lib/mathjax.js` right after `engine.js` in every chapter:
+For formulas that need LaTeX ([core/engine.md](../core/engine.md#latex)), add MathJax (with its licence) to `lib/` and load `../lib/mathjax.js` in every chapter, right after `engine.js` (after `math.js` when the chapter loads it):
 
 ```sh
 python3 SKILL/scripts/engine.py site/<book> --latex   # lib/mathjax.js; later syncs keep it in step

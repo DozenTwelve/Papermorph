@@ -107,7 +107,12 @@ async def main(a):
         while not await pg.evaluate(stop) and waited < total / a.rate + 30:
             await pg.wait_for_timeout(250); waited += .25
         log, afail = await pg.evaluate(f"[__log.filter(e => e.i <= {last}), P.afail]")
-        if not await pg.evaluate(f"P.done || P.i > {last}"): print(f"did not reach the end of {ids[last]} (a question waits, or it stalled)")
+        if not await pg.evaluate(f"P.done || P.i > {last}"):
+            i, wait = await pg.evaluate("[P.i, !!P.waiting]")
+            print(f"stopped in {ids[i]}, before the end of {ids[last]}: " + (
+                f"the page waits for the reader there (a question, a film's ask such as a listen-and-find stop); "
+                f"--from {ids[i + 1]} plays on after it" if wait and i + 1 < len(ids) else
+                "the page waits for the reader there" if wait else "it stalled (the clock stopped moving)"))
         # the frames: each beat rebuilt once and its clock run forward, as playback reaches it
         shots = []
         await pg.add_style_tag(content=".paused-mark { display: none !important; }")   # the frames are taken paused

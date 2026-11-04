@@ -13,6 +13,8 @@
      lit(iso, t) -> 0..1                a country lit (iso as in geo-lite.js: ISO 3166 alpha-3, 'CHN', 'ITA', 'ATA')
      litFill: MAP_COL.hot               the fill of lit and region: a colour, or (key) => colour to mix several
      region(name, t, iso) -> 0..1       a region lit ('Hubei', 'Lombardia': geo.py --regions CHN,ITA:region)
+                                        names as geo.py prints them ('North Holland', not 'Noord-Holland'); one not
+                                        in the data lights nothing, silently
      regions: true | ['CHN']            draw the borders of every region in the data (true) or of these countries'
      hatch(key, t) -> 0..1              ink hatching over a country (iso) or a region (name): an order, a lockdown, what
                                         is not the colour of the film's subject

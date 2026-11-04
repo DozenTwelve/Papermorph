@@ -37,7 +37,7 @@ Every tier shares the core:
 | [core/team.md](references/core/team.md) | making chapters with subagents, the coordinator, workers in parallel |
 | [core/engine.md](references/core/engine.md) | the player and drawing API, timing, camera, performance, traps |
 
-Start with the tier's intake whenever `books/<book>/style.json` does not exist yet; reuse answers and approvals already given. The reference books on https://papermorph.diamonddoge.org/ are the bar: the maths and science books for lessons, *Joke Collection* and *Little Red Riding Hood* for picture books, *Madness and Civilization*, *Shooting an Elephant* (interactive) and *The Pandemic* for documentaries, the *Madness and Civilization* shorts for shorts.
+Start with the tier's intake whenever `books/<book>/style.json` does not exist yet; reuse answers and approvals already given. The reference books on https://papermorph.diamonddoge.org/ are the bar: the maths and science books for lessons, *The Little Horse Crosses the River*, *Little Red Riding Hood* and *Joke Collection* for picture books, *Madness and Civilization*, *Shooting an Elephant* (interactive) and *The Pandemic* for documentaries, the *Madness and Civilization* shorts for shorts.
 
 ## Project layout
 
@@ -62,10 +62,10 @@ All in `SKILL/scripts/`; each prints its usage with `--help` when run with the `
 
 | For | Scripts |
 |---|---|
-| Every book | `new_book.py` start a book folder · `serve.py` preview without caching · `engine.py` sync the engine into books · `tts.py` narration and word times · `level.py` even loudness · `lint.py` static checks · `check.py` page errors, console warnings and beat lengths in Chromium and Firefox · `shot.py` beat screenshots · `strip.py` storyboard sheets and motion strips · `still.py` stretches where nothing moves · `playlog.py` sounds and captions against the picture · `perf.py` Firefox frame times · `export.py` MP4 and `.srt` · `sfx.py` synthesized effects |
+| Every book | `new_book.py` start a book folder · `serve.py` preview without caching · `engine.py` sync the engine into books · `tts.py` narration and word times · `eleven.py` the same from ElevenLabs (paid) · `level.py` even loudness · `lint.py` static checks · `check.py` page errors, console warnings and beat lengths in Chromium and Firefox · `shot.py` beat screenshots · `strip.py` storyboard sheets and motion strips · `still.py` stretches where nothing moves · `playlog.py` sounds and captions against the picture · `perf.py` Firefox frame times · `export.py` MP4 and `.srt` · `sfx.py` synthesized effects |
 | Lessons | `outline.py` and `split_pages.py` page map and chapter text · `check_blank.py` empty openings · `overlap.py` arrows through text · `sprites.py` image processing steps · `refs.py` verified citations · `items.py` question bank · `scorm.py` LMS package |
 | Picture books | `mouths.py` mouth shapes · `join.py` one clip per scene · `bake_sets.py` set layers · `bake_puppets.py` puppet bitmaps · `paint.py` / `paint_openai.py` image-model pictures · `painted.py` place them in the book |
-| Films | `commons.py` public-domain pictures and recordings with their licences · `prep.py` print, line and full-bleed treatments · `trace.py` drawings that draw themselves on · `video.py` a clip from a still · `frames.py` a clip as treated frames · `geo.py` the map kit's data from Natural Earth · `eleven.py` ElevenLabs narration with word times · `music.py` a track cut to the film, and the bed in the voice's gaps · `safe.py` words outside an upright film's safe area |
+| Films | `commons.py` public-domain pictures and recordings with their licences · `prep.py` print, line and full-bleed treatments · `trace.py` drawings that draw themselves on · `video.py` a clip from a still · `frames.py` a clip as treated frames · `geo.py` the map kit's data from Natural Earth · `music.py` a track cut to the film, and the bed in the voice's gaps · `safe.py` words outside an upright film's safe area |
 
 `silence.py`, `ledger.py` (the one cost ledger: date, chapter, file, model, what, cost) and `browsers.py` are helpers the others import.
 

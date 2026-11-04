@@ -212,6 +212,8 @@ def main():
     print(out, f'{out.stat().st_size // 1024} KB:', 'points 110m', pts(geo['lod'][0]), '50m', pts(geo['lod'][1]),
           *(f'{c} {len(v)} regions' for c, v in geo.get('regions', {}).items()), 'cities', len(geo['cities']),
           *(f'detail {n}' for n in geo.get('detail', {})))
+    for c, v in geo.get('regions', {}).items():   # the names region() and hatch() are called with: a name not here lights nothing
+        print(f'{c} region names:', ', '.join(sorted(v)))
     if a.globe:
         globe(pathlib.Path(a.globe), img, a.night_width)
 

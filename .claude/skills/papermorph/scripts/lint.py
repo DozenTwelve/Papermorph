@@ -18,7 +18,8 @@ Errors (exit status 1):
   word      a listen-and-find stop (findWords) plays a clip that is missing: a thing's (clip:, else w-<word>), an
             ask's question (its clip:) and its again (r-<word> by default), the stop's end (q-done) and there (q-there)
             lines, audio/sfx/chime.mp3 after each find; or an ask's word is no thing's word. Each clip is a narration line, "w-<word>": "<word>", voiced by tts.py
-Warnings: a chapter that calls findWords() without CHAPTER.film true, or whose things and asks do not write their word
+Warnings: a top-level name of the page that is one of the engine's sound properties on window (sfx music SFX
+  SFX_BED BGM MUSIC_OFF MUSIC_UP_IN_PRE: const BGM = .4 hides the engine's list from export.py's mix); a chapter that calls findWords() without CHAPTER.film true, or whose things and asks do not write their word
   and clip as literals (word: 'bird', clip: 'q-bird'; an ask list built with .map does not), whose clips were not
   checked; a beat's m('name') not among that beat's own marks (beats built by shared helpers can mislead this);
   a mark in timings.js that the narration lacks (added by hand: the next tts.py or eleven.py run drops it, so a
@@ -39,6 +40,7 @@ BEAT = re.compile(r"\[\s*'(\w+)'\s*,\s*(['\"`])(?:\\.|(?!\2).)*\2\s*,\s*(?:\(\s*
 MCALL = re.compile(r"(?<![\w$.])m\(\s*'(\w+)'\s*[,)]")
 MARK = re.compile(r'\[\[(\w+)\]\]')
 TAG = re.compile(r'(?<!\[)\[[^\[\]]+\](?!\])')   # an ElevenLabs v4 audio tag, [whispers]: performed, not in captions (eleven.py's)
+WINDOW_PROPS = {'sfx', 'music', 'SFX', 'SFX_BED', 'BGM', 'MUSIC_OFF', 'MUSIC_UP_IN_PRE'}   # set on window by engine.js, not declared
 ENGINE_FILES = {'engine.js', 'math.js', 'volume.js', 'contents.js', 'units.js'}
 LOCAL = re.compile(r'[,(]\s*([A-Za-z_$][\w$]*)\s*=(?![=>])')   # a, name = … or (p, name = 1): declared in a list
 PARAMS = re.compile(r'function\s*[\w$]*\s*\(([^)]*)\)|\(([^()]*)\)\s*=>|([A-Za-z_$][\w$]*)\s*=>')   # parameters
@@ -177,6 +179,13 @@ def lint_chapter(ch, content, out):
                 err('global', f'{name}:{line} {what} {ident} from {first}')
             else:
                 seen[ident] = (name, kind)
+    # the engine's window properties (sound), which a page's own top-level name hides from the engine and export.py
+    if 'engine.js' in {Path(x).name for x in SRC.findall(html)}:
+        for ident in sorted(WINDOW_PROPS & set(seen)):
+            name, kind = seen[ident]
+            if name not in ENGINE_FILES:
+                warn('global', f"{name} declares {ident} ({kind}), a window property of the engine's sound: the engine's "
+                     f"sfx()/music() lists and export.py's mix then miss it (an older book's own player does this on purpose); rename it")
     # maths helpers used without math.js (they left engine.js after the engine-v1 tag)
     math = (ch / '../lib/math.js').resolve()
     loaded = {Path(s).name for s in SRC.findall(html)}

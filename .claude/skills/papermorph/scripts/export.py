@@ -151,7 +151,8 @@ async def main(a):
             print('warning: the page declares sound globals of its own, which the engine does not play and the video leaves out:\n  '
                   + '\n  '.join(clash) + '\n  move that sound to the engine\'s sfx() and music(), or set window.MUSIC_OFF', flush=True)
         info = await pg.evaluate("""({lang: CHAPTER.language || 'en', film: !!CHAPTER.film,
-          beats: BEATS.map(b => ({id: b.id, ask: !!b.ask, pre: b.pre || 0, hold: b.hold ?? null, video: b.video ?? null})),
+          beats: BEATS.map(b => ({id: b.id, ask: !!b.ask, pre: b.pre || 0, hold: b.hold ?? null, video: b.video ?? null,
+            find: !!b.ask && /findWords/.test(String(b.ask))})),
           bgm: SND.bgm.map(m => ({src: m.a.src, beats: m.beats, gain: m.gain, fade: m.fade ?? .8})),
           upInPre: window.MUSIC_UP_IN_PRE || false})""")
         # a film's question beats (CHAPTER.film: the reader acts, e.g. fires) stay in the video: their picture holds `hold` s
@@ -167,6 +168,10 @@ async def main(a):
         last = beats[-1][0] if beats else -1
         skipped = [x['id'] for i, x in enumerate(info['beats']) if x['video'] is False and i <= last]
         if skipped: print(f'left out of the video (video: false): {", ".join(skipped)}')
+        for i, bid in beats:   # a game the video cannot play, left in: it holds its picture as if a reader had tapped
+            if info['beats'][i]['find'] and info['beats'][i]['video'] is None:
+                print(f'warning: {bid} is a listen-and-find stop (findWords) with no `video` in its fourth slot: the video holds its '
+                      'waiting picture, then plays on; give it video: false, or video: S to keep its lead-in line', flush=True)
         info['sfx'] = []
         asks = not info['film'] and any(x['ask'] for x in info['beats'])   # a lesson's questions, left out: the end card says where they are
         box = await pg.locator('#stage').bounding_box()
