@@ -1,20 +1,20 @@
 /* scene16.js — The prettiest cat (p33, then p34). Beat clock = PRE16 + the joined clip's seconds (T below).
    1 p33 wide: the evening at home, she knits and rocks, he smokes and rocks, the cat plays with the yarn (0 – T(.95));
-   2 close on her, w14 "And it is a very pretty cat, after all!" (to T(2.5)); 3 insert on the cat and its yarn (to T(3.9));
-   4 close on her for "said the very old woman" (to T(6.65)); 5 close on him with his pipe smoke, m14 "the most beautiful cat
-     in the whole world" and "said the very old man" (to T(12.7)); 6 the wide again, and on "hundreds … trillions" the room
+   2 close on her, w14 "And it is a very pretty cat, after all!" (to T(2.5)); 3 insert on the cat and its yarn (to T(3.6));
+   4 (cut 3 dropped the narrator's "said the very old woman / man" and her second close shot); 5 close on him with his pipe
+     smoke, m14 "the most beautiful cat in the whole world" (to T(7.584)); 6 the wide again, and on "hundreds … trillions" the room
      fades to paper, Gág's refrain lettering stands straight on it (a soft borderless cream glow behind the letters, no card)
      with a ghost of the crowd swelling behind, and all fades back on "and not one was as pretty as this one"
-     (T(13.5) – T(21.0)); 7 insert on the cat (to the hole sleep16);
+     (T(8.4) – T(15.9)); 7 insert on the cat (to the hole sleep16);
    8 page turn in the hole to p34: the cat asleep under its flower, a slow push held to the end; no end card. */
 'use strict';
 const PRE16 = .5;
 
 const s16T = t => PRE16 + t;
 const s16M = m => markAt('scene16', PRE16, m);
-const s16CUT = [.95, 2.5, 3.9, 6.65, 12.7, 20.4].map(s16T);   // cuts: wide | woman | cat | woman | man | wide | cat
-const s16TURN = s16T(23.35);                                  // covered here, in the hole sleep16
-const s16SAY = [[.22, 2.4], [6.9, 9.8], [13.74, 22.4]];       // when her / his own voice is speaking (clip seconds)
+const s16CUT = [.95, 2.5, 3.6, 3.6, 7.584, 15.284].map(s16T);   // cuts: wide | woman | cat | (her second shot, gone in cut 3) | man | wide | cat
+const s16TURN = s16T(18.234);                                  // covered here, in the hole sleep16
+const s16SAY = [[.22, 2.4], [3.95, 7.242], [8.624, 17.284]];       // when her / his own voice is speaking (clip seconds)
 const s16talk = (q, i) => { const [a, b] = s16SAY[i]; return q >= s16T(a) && q < s16T(b) ? Math.abs(Math.sin((q - s16T(a)) * 8.4)) : 0; };
 // the refrain's words, in time: the five numbers on their marks, the little words on the words file's times
 // each little word is the nearest number's mark plus the gap between their word times in m14b's words file
@@ -34,7 +34,7 @@ for (let k = 0; k < 6; k++) sfx('scene16', +(1.5 + k * 3.4).toFixed(2), 'rock', 
 sfx('scene16', s16CUT[1], 'purr', .22);
 sfx('scene16', s16T(1.0), 'mew1', .25);
 for (const [m, v] of [['m14b.hun', .2], ['m14b.thou', .28], ['m14b.mil', .36], ['m14b.bil', .42], ['m14b.tril', .5]]) sfx('scene16', s16M(m), 'mews', v);
-sfx('scene16', s16T(20.15), 'chime', .3); sfx('scene16', s16T(20.5), 'purr', .25);
+sfx('scene16', s16T(15.034), 'chime', .3); sfx('scene16', s16T(15.384), 'purr', .25);
 sfx('scene16', s16TURN - .5, 'page', .5);
 
 function scene16(p, D) {
@@ -45,10 +45,9 @@ function scene16(p, D) {
   A.to({ x: 820, y: 470, z: 1.55 }, .6, s16CUT[0] - .6)
    .cut({ x: 505, y: 475, z: 2.5 }, s16CUT[0]).to({ x: 515, y: 470, z: 2.65 }, s16CUT[0], s16CUT[1] - s16CUT[0])      // her, w14
    .cut({ x: 770, y: 585, z: 3.3 }, s16CUT[1]).to({ x: 760, y: 590, z: 3.5 }, s16CUT[1], s16CUT[2] - s16CUT[1])      // the cat and its yarn
-   .cut({ x: 500, y: 480, z: 2.4 }, s16CUT[2]).to({ x: 510, y: 475, z: 2.55 }, s16CUT[2], s16CUT[3] - s16CUT[2])    // "said the very old woman"
    .cut({ x: 1020, y: 345, z: 2.5 }, s16CUT[3]).to({ x: 1020, y: 355, z: 2.75 }, s16CUT[3], s16CUT[4] - s16CUT[3])  // him, m14
    .cut({ x: 820, y: 470, z: 1.6 }, s16CUT[4]).to({ x: 820, y: 460, z: 1.35 }, s16CUT[4], 1.2)                      // pull back: the refrain
-   .to({ x: 820, y: 470, z: 1.3 }, s16T(14), s16T(20) - s16T(14))
+   .to({ x: 820, y: 470, z: 1.3 }, s16T(8.884), s16T(14.884) - s16T(8.884))
    .cut({ x: 775, y: 590, z: 3.0 }, s16CUT[5]).to({ x: 765, y: 592, z: 3.6 }, s16CUT[5], s16TURN - s16CUT[5]);       // the cat, "pretty as this one"
   const wAt = pagePos('p33', 'woman33'), mAt = pagePos('p33', 'man33'), cAt = pagePos('p33', 'cat33');
   const woman = cutPuppet(A.stage, 'woman33'), man = cutPuppet(A.stage, 'man33'), cat = cutPuppet(A.stage, 'cat33');

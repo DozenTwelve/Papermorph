@@ -7,7 +7,7 @@
      arms), "picked" – 5.5; then the kitten alone on its mound, big, "It was thin and scraggly";
    4 the talk, shot and reverse shot on the blank paper of p28 (the speakers are the p27 figures lifted large, in the
      blank part of the sheet; the mound is out of frame): her "Poor little kitty", him "Dear little kitty" and "How does it
-     happen…", with the kitten listening between (it looks up, an ear-flick of a head turn, a tremble);
+     happen…" (no narrator tags between them since cut 3), with the kitten listening between (it looks up, an ear-flick of a head turn, a tremble);
    5 the kitten's own lines (k12, k12b): a slow push from a medium shot to a close-up of the face by "very homely", with a
      mouth under the nose, the head dropping a little on "nobody bothered about me".
    Ends with the page turning in for scene15. */
@@ -26,9 +26,10 @@ sfx('scene14', s14_C('k12', .1), 'mew4', .25);
 
 function scene14(p, D) {
   const T1 = s14_C('n12', 3.0), T2 = s14_C('n12', 5.5), TP = markAt('scene14', PRE14, 'n12.picked') - .1;   // cuts; the pick-up
-  const W1 = s14_C('w12', -.05), K1 = s14_C('w12', 1.7), W2 = s14_C('n12b', 0), M1 = s14_C('m12', -.1), K2 = s14_C('m12', 1.55),
-    M2 = s14_C('n12c', -.05), K3 = s14_C('m12b', 2.55), M3 = s14_C('m12b', 5.45), K4 = s14_C('k12', -.1);
+  const W1 = s14_C('w12', -.05), K1 = s14_C('w12', 1.7), M1 = s14_C('m12', -.1), K2 = s14_C('m12', 1.55),
+    W2 = M1, M2 = s14_C('m12b', -.05), K3 = s14_C('m12b', 2.55), M3 = s14_C('m12b', 5.45), K4 = s14_C('k12', -.1);
   const WALK0 = s14_C('n12', 3.2);
+  // (cut 3 dropped "said the very old woman/man" after their lines, and with them her second shot: W2 is M1, the kitten listens until he speaks)
   const TE = s14_C('k12b', 6.6);   // the pick-up is shown last, after "So nobody bothered about me": the kitten stays on its mound through the talk
 
   // ---- p27: the grass ----
@@ -46,7 +47,6 @@ function scene14(p, D) {
    .to({ x: 772, y: 686, z: 3.2 }, s14_C('n12', 5.55), K1 - s14_C('n12', 5.55))   // a slow push on the kitten ("thin and scraggly")
    .cut({ x: 1000, y: 300, z: 1.3 }, W1).to({ x: 1004, y: 304, z: 1.36 }, W1, K1 - W1)
    .cut({ x: 775, y: 684, z: 3.0 }, K1).to({ x: 775, y: 680, z: 3.2 }, K1, W2 - K1)
-   .cut({ x: 1000, y: 300, z: 1.3 }, W2).to({ x: 996, y: 296, z: 1.36 }, W2, M1 - W2)
    .cut({ x: 1000, y: 300, z: 1.3 }, M1).to({ x: 1004, y: 300, z: 1.38 }, M1, K2 - M1)
    .cut({ x: 775, y: 684, z: 2.9 }, K2).to({ x: 775, y: 680, z: 3.1 }, K2, M2 - K2)
    .cut({ x: 1000, y: 300, z: 1.34 }, M2).to({ x: 998, y: 298, z: 1.4 }, M2, K3 - M2)

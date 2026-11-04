@@ -17,10 +17,10 @@ const s10_HUN = markAt('scene10', PRE10, 'n09d.hun'), s10_THOU = markAt('scene10
 
 // ---- the dialogue cuts on p22 ----
 const s10_CUTS = [   // [beat time, view]: her shots are tight two-shots (she at x 483, he at 692-843), his shots keep her out of the edge
-  [0, { x: 640, y: 425, z: 1.9 }], [s10_S(2.0), { x: 600, y: 395, z: 2.8 }], [s10_S(4.5), { x: 655, y: 420, z: 2.4 }],
-  [s10_S(6.65), { x: 810, y: 395, z: 3.1 }], [s10_S(11.3), { x: 610, y: 395, z: 2.6 }], [s10_S(15.9), { x: 595, y: 385, z: 3.0 }],
-  [s10_S(17.5), { x: 640, y: 405, z: 2.1 }], [s10_S(21.4), { x: 810, y: 395, z: 3.2 }], [s10_S(25.3), { x: 1010, y: 440, z: 2.0 }],
-  [s10_S(27.7), { x: 900, y: 405, z: 2.7 }]];
+  [0, { x: 640, y: 425, z: 1.9 }], [s10_S(2.0), { x: 600, y: 395, z: 2.8 }], 
+  [s10_S(4.5), { x: 810, y: 395, z: 3.1 }], [s10_S(9.15), { x: 610, y: 395, z: 2.6 }], [s10_S(13.75), { x: 595, y: 385, z: 3.0 }],
+  [s10_S(15.35), { x: 640, y: 405, z: 2.1 }], [s10_S(19.25), { x: 810, y: 395, z: 3.2 }], [s10_S(23.15), { x: 1010, y: 440, z: 2.0 }],
+  [s10_S(25.55), { x: 900, y: 405, z: 2.7 }]];
 
 // ---- plain paper: the cats pile up. Each stays as the next pops in; the shouts are the big ones in front, between them
 // smaller cats pop in on mews, the gaps shrinking from .7 s to .17 s, so the paper fills faster and faster up to the crowd ----
@@ -46,7 +46,7 @@ const s10_CROWD0 = s10_C('n09d', .15), s10_PILEEND = s10_THOU + .25;   // the pi
 
 // sound: the meadow under the dialogue, a pop and a small mew on each cat, the crowd's mews on the tiers
 sfx('scene10', 0, 'meadow', .3, { loop: true, to: s10_C('i1', 0) });
-s10_POP.forEach((c, j) => { sfx('scene10', +(c.pop).toFixed(2), 'pop', c.hero ? .5 : .35); if (c.hero || c.pop < s10_S(40) || j % 2) sfx('scene10', +(c.pop + .05).toFixed(2), 'mew' + ((Math.floor(c.pop * 7) + j) % 4 + 1), c.hero ? .4 : .3); });
+s10_POP.forEach((c, j) => { sfx('scene10', +(c.pop).toFixed(2), 'pop', c.hero ? .5 : .35); if (c.hero || c.pop < s10_S(37.85) || j % 2) sfx('scene10', +(c.pop + .05).toFixed(2), 'mew' + ((Math.floor(c.pop * 7) + j) % 4 + 1), c.hero ? .4 : .3); });
 sfx('scene10', s10_CROWD0, 'pop', .6); sfx('scene10', s10_CROWD0, 'mews', .35);
 [[s10_HUN, .45], [s10_THOU, .5], [s10_MIL, .6], [s10_BIL, .65], [s10_TRIL, .75]].forEach(([t, v]) => { sfx('scene10', t, 'pop', .7); sfx('scene10', t + .05, 'mews', v); });
 sfx('scene10', s10_C('n09c', 1.7), 'mew2', .3);

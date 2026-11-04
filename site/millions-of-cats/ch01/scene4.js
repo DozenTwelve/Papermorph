@@ -8,8 +8,8 @@
    parts move, and a taken cat's old spot is plain paper. */
 'use strict';
 const PRE4 = .6;
-const S4_TURN = [20.2, 36.2, 49.55];                 // clip time of the page turns (covered at this moment), each in its g4 hole
-const S4_SAY = [[0, 4.4], [43.08, 45.4], [56.27, 58.3]];   // the old man's own lines (clip seconds)
+const S4_TURN = [20.2, 36.2, 47.759];                 // clip time of the page turns (covered at this moment), each in its g4 hole
+const S4_SAY = [[0, 4.4], [43.08, 45.082], [54.479, 56.509]];   // the old man's own lines (clip seconds)
 
 // a hop from a to b over [t0, t0 + dur], h px high at the top; u 0 → 1
 function s4hop(q, t0, dur, a, b, h) {
@@ -86,16 +86,15 @@ function scene4(p, D) {
   // p12: the wide, the insert on the black kitten, the man who speaks, the hop
   cam12.cut({ x: 535, y: 410, z: 1.5 }, 0)
     .cut({ x: 440, y: 335, z: 4.2 }, T(40.0))
-    .cut({ x: 580, y: 330, z: 2.2 }, T(43.05)).to({ x: 575, y: 325, z: 2.4 }, T(43.05), 2.4)
-    .cut({ x: 500, y: 430, z: 1.7 }, T(45.65))
-    .cut({ x: 505, y: 350, z: 1.9 }, T(47.4)).to({ x: 520, y: 430, z: 1.7 }, T(48.5), .7);
+    .cut({ x: 580, y: 330, z: 2.2 }, T(43.05)).to({ x: 575, y: 325, z: 2.4 }, T(43.05), 2.56)   // through "So he took it" (cut 3 dropped "said the very old man" and its wide)
+    .cut({ x: 505, y: 350, z: 1.9 }, T(45.609)).to({ x: 520, y: 430, z: 1.7 }, T(46.709), .7);
   // p13: the wide, the insert on the baby tiger, the two-shot, the man who cries out, the leap
   cam13.cut({ x: 1135, y: 430, z: 1.5 }, 0)
-    .cut({ x: 1232, y: 292, z: 5 }, T(52.2))
-    .cut({ x: 1130, y: 390, z: 1.8 }, T(54.7))
-    .cut({ x: 1075, y: 300, z: 2.3 }, T(56.2))     // y up 35: his head (the cat on it, his stressed bobs) stays in with air above
-    .cut({ x: 1100, y: 345, z: 1.8 }, T(58.7))
-    .cut({ x: 1135, y: 270, z: 2.4 }, T(60.4)).to({ x: 1135, y: 310, z: 2.0 }, T(61.7), 1.0);
+    .cut({ x: 1232, y: 292, z: 5 }, T(50.409))
+    .cut({ x: 1130, y: 390, z: 1.8 }, T(52.909))
+    .cut({ x: 1075, y: 300, z: 2.3 }, T(54.409))     // y up 35: his head (the cat on it, his stressed bobs) stays in with air above
+    .cut({ x: 1100, y: 345, z: 1.8 }, T(56.909))
+    .cut({ x: 1135, y: 270, z: 2.4 }, T(58.609)).to({ x: 1135, y: 310, z: 2.0 }, T(59.909), 1.0);
 
   // ---- page turns: p10 → p11 → p12 → p13, each in a hole; the last one closes the scene ----
   const turns = S4_TURN.map(c => {
@@ -113,7 +112,7 @@ function scene4(p, D) {
   sfx('scene4', T(21.8), 'mew1', .3); sfx('scene4', M('n04c.took') + .1, 'hop', .5);
   sfx('scene4', T(30.3), 'mew2', .3); sfx('scene4', M('n04d.took') + .1, 'hop', .5);
   sfx('scene4', T(40.3), 'mew4', .3); sfx('scene4', M('n04f.took') + .05, 'hop', .5);
-  sfx('scene4', T(52.5), 'mew3', .3); sfx('scene4', M('n04h.did') - .25, 'hop', .5);
+  sfx('scene4', T(50.709), 'mew3', .3); sfx('scene4', M('n04h.did') - .25, 'hop', .5);
 
   // ---- the poses ----
   const HOP = .55;
@@ -173,14 +172,14 @@ function scene4(p, D) {
         parts: { legL: Math.sin(q * 1.2) * 1.5, legR: -Math.sin(q * 1.2) * 1.5,
           armL: -11 * s4hump(q, tk - .6, tk + 1.1) + 1.5 * Math.sin(q * 1.9) - 2 * talk, armR: 3 * Math.sin(q * 2.3 + 1) + 4 * talk * Math.sin(q * 5) } }, f);
       const hp = s4hop(q, tk + .05, HOP, { x: c12.x, y: c12.y }, { x: 585, y: 240 }, 60);
-      const cl12 = catLife(q, 4), sq12 = s4squirm(q, tk + .65, T(48.4), 7, 4);
+      const cl12 = catLife(q, 4), sq12 = s4squirm(q, tk + .65, T(46.609), 7, 4);
       cat12.pose({ x: hp.x, y: hp.y, s: c12.s, parts: cl12.parts, ...s4idle(q, 5), sq: q > tk - .25 && q < tk + .05 ? .9 : 1 + .02 * Math.sin(q * 2.6), rot: hp.u > 0 && hp.u < 1 ? -10 + 20 * hp.u : sq12.rot }, f);
     }
     if (on13) {
       cam13.apply(q, f);
       const tk = M('n04h.did') - .25;
-      man13.pose({ x: m13.x, y: m13.y, s: m13.s, ...s4idle(q, 6), bob: talk * 3 + (q > T(56.27) && q < T(58.4) ? Math.abs(Math.sin((q - T(56.27)) * 4.2)) * 6 : 0), rot: Math.sin(q * 1.2) * .8 + s4nod(q, 2).rot + 2 * span(q, T(52.4), T(54)) * (1 - span(q, T(55), T(56))),
-        parts: { arm: -5 * s4hump(q, T(50.2), T(52.4)) - 12 * s4hump(q, T(54.4), T(56)) - 14 * s4hump(q, tk - .4, tk + 1.0) + 1.2 * Math.sin(q * 1.8), head: 2.2 * s4nod(q, 2).rot + 3 * s4hump(q, T(52.4), T(54)) + 4 * s4hump(q, T(49.8), T(51.8)) } }, f);
+      man13.pose({ x: m13.x, y: m13.y, s: m13.s, ...s4idle(q, 6), bob: talk * 3 + (q > T(54.479) && q < T(56.609) ? Math.abs(Math.sin((q - T(54.479)) * 4.2)) * 6 : 0), rot: Math.sin(q * 1.2) * .8 + s4nod(q, 2).rot + 2 * span(q, T(50.609), T(52.209)) * (1 - span(q, T(53.209), T(54.209))),
+        parts: { arm: -5 * s4hump(q, T(48.409), T(50.609)) - 12 * s4hump(q, T(52.609), T(54.209)) - 14 * s4hump(q, tk - .4, tk + 1.0) + 1.2 * Math.sin(q * 1.8), head: 2.2 * s4nod(q, 2).rot + 3 * s4hump(q, T(50.609), T(52.209)) + 4 * s4hump(q, T(48.009), T(50.009)) } }, f);
       const hp = s4hop(q, tk, HOP, { x: c13.x, y: c13.y }, { x: 1150, y: 290 }, 60);
       const cl13 = catLife(q, 5), sq13 = s4squirm(q, tk + .65, D, 7, 5);
       cat13.pose({ x: hp.x, y: hp.y, s: c13.s, parts: cl13.parts, ...s4idle(q, 7), sq: q > tk - .25 && q < tk ? .9 : 1 + .02 * Math.sin(q * 2.6), rot: hp.u > 0 && hp.u < 1 ? -10 + 20 * hp.u : sq13.rot }, f);

@@ -8,7 +8,7 @@
 'use strict';
 const PRE8 = .5;
 const s8_T = t => PRE8 + t;
-const s8_B = s8_T(.5), s8_WIDE = s8_T(2.97), s8_REF = s8_T(10.81), s8_SAY = s8_T(10.86), s8_ATE = s8_T(15.4), s8_LEFT = s8_T(18.74);
+const s8_B = s8_T(.5), s8_WIDE = s8_T(2.97), s8_REF = s8_T(10.81), s8_SAY = s8_T(10.86), s8_ATE = s8_T(13.52), s8_LEFT = s8_T(16.86);
 const s8_kids = [['rf-hundreds', 'rf-of1', 'rf-cats4'], ['rf-thousands', 'rf-of2', 'rf-cats5'], ['rf-millions', 'rf-and2', 'rf-billions', 'rf-and3', 'rf-trillions', 'rf-of3', 'rf-cats6']];
 const s8_RW = { 'rf-hundreds': 4.3, 'rf-of1': 4.68, 'rf-cats4': 4.94, 'rf-thousands': 5.73, 'rf-of2': 6.12, 'rf-cats5': 6.46,
   'rf-millions': 7.29, 'rf-and2': 7.6, 'rf-billions': 8.08, 'rf-and3': 8.46, 'rf-trillions': 8.9, 'rf-of3': 9.3, 'rf-cats6': 9.78 };
@@ -54,7 +54,7 @@ function scene8(p, D) {
   P.to({ x: 800, y: 380, z: 1.3 }, 0, s8_B)
    .cut({ x: 480, y: 400, z: 2 }, s8_B).cut({ x: 500, y: 400, z: 2 }, s8_T(1.55))
    .cut({ x: 800, y: 425, z: 1 }, s8_WIDE).to({ x: 800, y: 420, z: .98 }, s8_WIDE, s8_REF - s8_WIDE)
-   .cut({ x: 800, y: 400, z: 1.5 }, s8_ATE - .5).to({ x: 900, y: 400, z: 1.7 }, s8_ATE - .5, 3.8)
+   .cut({ x: 800, y: 400, z: 1.5 }, s8_ATE - .3).to({ x: 900, y: 400, z: 1.7 }, s8_ATE - .3, 3.8)
    .cut({ x: 850, y: 390, z: 1.15 }, s8_LEFT + .5).to({ x: 850, y: 400, z: 1.3 }, s8_LEFT + .5, 2.4);
   const L = lettering(P.stage, s8_kids.flat(), { x: 800, y: 770, s: 1.15 });
   const hillC = catCrowd(P.stage, { names: s8_CATS, n: 18, box: [380, 440, 1250, 505], seed: 8, s: [.85, .55] });
@@ -62,7 +62,7 @@ function scene8(p, D) {
   const bigB = [['cat23a', 380, 495, 1.4, false, 3], ['cat8c', 500, 495, 1.6, true, 4], ['cat8d', 620, 495, 1.3, false, 5]].map(([n, x, y, s, flip, i]) => ({ p: cutPuppet(P.stage, n), x, y, s, flip, i }));
   const eaters = [['cat8a', 420, 480, 1.15, false], ['cat22c', 620, 495, 1.0, false], ['cat23d', 820, 500, 1.0, false], ['cat8b', 1060, 505, 1.15, true], ['cat25a', 1200, 505, 1.0, true], ['cat22d', 740, 510, .95, false]]
     .map(([n, x, y, s, flip], i) => ({ p: cutPuppet(P.stage, n), x, y, s, flip, i }));
-  P.soft(s8_B - .01, true).soft(s8_WIDE - .01, false).soft(s8_ATE - .51, true).soft(s8_LEFT + .49, false);
+  P.soft(s8_B - .01, true).soft(s8_WIDE - .01, false).soft(s8_ATE - .31, true).soft(s8_LEFT + .49, false);
 
   // Q: page 21, the tiny old man at the foot of the hill
   const Q = paperCam(p, 'p21', { x: 1100, y: 640, z: 1.6 });
@@ -71,7 +71,7 @@ function scene8(p, D) {
 
   const turnOut = pageTurn(p, 0, .45, 'out'), turnIn = pageTurn(p, D - .1, .45, 'in');
   stopClock(D, (q, f) => {
-    const inQ = q >= s8_SAY && q < s8_ATE - .5;
+    const inQ = q >= s8_SAY && q < s8_ATE - .3;
     vis(P.root, !inQ); vis(Q.root, inQ);
     P.apply(q, f); Q.apply(q, f);
     const closeA = q >= s8_B && q < s8_T(1.55), closeB = q >= s8_T(1.55) && q < s8_WIDE, wide = !closeA && !closeB && !inQ;
@@ -79,7 +79,7 @@ function scene8(p, D) {
     man.pose({ x: at20.x, y: at20.y, s: at20.s, sq: 1 + .025 * Math.sin(q * 2.2), rot: Math.sin(q * 1.5) * 2.2, bob: 1.5 * Math.abs(Math.sin(q * 1.6)),
       parts: { head: Math.sin(q * 1.2) * 12 + (q > s8_ATE ? Math.sin(q * 5) * 8 : 0), bundle: Math.sin(q * 2.4) * 4 } }, f);
     hillC.pose(q, f, { from: .6, every: i => i < 8 ? i * .2 : s8_T(4.3) - .6 + (i - 8) * .55, walk: { v: 12, t0: s8_WIDE }, seethe: .3 });
-    vis(hillC.g, wide && q < s8_ATE - .5);
+    vis(hillC.g, wide && q < s8_ATE - .3);
     const times = {}; for (const n in s8_RW) times[n] = s8_T(s8_RW[n]);
     vis(L.g, q >= s8_WIDE && q < s8_SAY); L.show(q, times, f, { hideAt: s8_SAY });
     const mewT = [s8_T(.52), s8_T(.78), s8_T(1.04), s8_T(1.22), s8_T(1.56), s8_T(1.68)];

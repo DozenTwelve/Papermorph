@@ -1,6 +1,7 @@
 /* scene1.js — home (Gág's p05). The house and its flower bed, the old man and old woman standing on the paper to the
    right (lifted man5, woman5, on the spot where she drew them). Shots: wide, the two, the flower bed and the door,
-   the two (lonely), her, him, her with the thought of a kitten, him, then he walks off right. Beat clock = PRE1 + the
+   the two (lonely), her, him, her with the thought of a kitten, him, then he walks off right (since cut 3 only
+   her sigh and his question are tagged by the narrator). Beat clock = PRE1 + the
    scene-clip word times. */
 'use strict';
 const PRE1 = .5;
@@ -24,8 +25,8 @@ function scene1(p, D) {
   const turnOut = pageTurn(p, 0, .5, 'out'), turnIn = pageTurn(p, D - .1, .6, 'in');
 
   // Times on the beat clock.
-  const WALK = T(30.62), W1 = T(13.96), M1 = T(19.69), WB = T(22.87), MB = T(28.07);
-  const THINK0 = T(23.62), THINK1 = T(26.05), SIGH = T(17.45);
+  const WALK = T(28.3), W1 = T(13.96), M1 = T(19.69), WB = T(22.87), MB = T(26.06);   // he sets off right after "my dear" (cut 3: no narrator tags after her line or his)
+  const THINK0 = T(23.62), THINK1 = T(25.25), SIGH = T(17.45);   // the thought has faded by the cut to him
 
   // Cameras: wide, a push towards the two, the house, flowers pan to the door, the two, then close-ups for each voice.
   cam.to({ x: 830, y: 470, z: 1.42 }, 0, T(2.2))
@@ -37,14 +38,13 @@ function scene1(p, D) {
     .cut({ x: 1195, y: 612, z: 2.05 }, W1 - .08).to({ x: 1205, y: 614, z: 2.2 }, W1 - .08, 3.2)         // her: "If we only had a cat!"; her sigh
     .cut({ x: 1100, y: 610, z: 2.5 }, M1 - .1).to({ x: 1090, y: 612, z: 2.7 }, M1 - .1, 3)             // him: "A cat?"
     .cut({ x: 1320, y: 545, z: 1.7 }, WB - .1)                                                         // her, and the cloud with the kitten
-    .cut({ x: 1285, y: 605, z: 2.6 }, T(26.08)).to({ x: 1285, y: 610, z: 2.7 }, T(26.08), 1.8)
     .cut({ x: 1095, y: 610, z: 2.6 }, MB - .1).to({ x: 1090, y: 612, z: 2.75 }, MB - .1, 2.2)           // him: "I will get you a cat, my dear"
-    .cut({ x: 1150, y: 600, z: 1.35 }, T(30.5)).to({ x: 1250, y: 610, z: 1.5 }, T(30.5), D - T(30.5)); // he walks off right
-  cam.soft(T(10.28), true).soft(T(26.08), 'all').soft(MB - .1, true).soft(T(30.5), false)
+    .cut({ x: 1150, y: 600, z: 1.35 }, T(28.2)).to({ x: 1250, y: 610, z: 1.5 }, T(28.2), D - T(28.2)); // he walks off right
+  cam.soft(T(10.28), true).soft(MB - .1, true).soft(T(28.2), false)
     .soft(W1 - .08, false).soft(M1 - .1, false).soft(WB - .1, false);   // no blur on the two close shots: the far fence floated in the corner
   sfx('scene1', 0, 'birds', .4, { loop: true });
   sfx('scene1', THINK0, 'pop', .4); sfx('scene1', THINK0 + .15, 'mew2', .3); sfx('scene1', 0, 'page', .4);
-  for (let k = 0; k < 12; k++) sfx('scene1', WALK + .2 + k * .36, 'step' + (k % 3 + 1), .25);
+  for (let k = 0; k < 8; k++) sfx('scene1', WALK + .2 + k * .36, 'step' + (k % 3 + 1), .25);
   sfx('scene1', D - .1, 'page', .5);
 
   stopClock(D, (q, f) => {

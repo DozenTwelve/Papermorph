@@ -1,10 +1,10 @@
 /* scene13.js — But look! (p27) and the one listen-and-find stop. Beat clock = PRE13 + the joined clip's time.
-   1 follow shot, 0 – 6.2: the old woman runs out of the house at the top right and down Gág's path, arms out, small and far and
-     growing as she comes; the camera rides along (a wide shot of her alone on the paper would lose her) ("I think they must have eaten each other all up");
-   3 two-shot, 6.2 – 8.5: "It's too bad!", she wrings herself, he stands and puffs;
-   4 close on him, 8.5 – 12.7: "But look!", his arm swings out and points; "said the very old man, and he pointed";
-   5 insert on the high grass and the kitten in it, 12.7 – 15.8, the kitten trembling ("to a bunch of high grass");
-   6 pulls back to the game's frame, 15.8 – D: the whole page, the house, a cloud, the grass, him, her, the kitten.
+   1 follow shot, 0 – 5.0: the old woman runs out of the house at the top right and down Gág's path, arms out, small and far and
+     growing as she comes; the camera rides along (a wide shot of her alone on the paper would lose her) ("I think they must have eaten each other all up", "It's too bad!");
+   3 two-shot, 5.0 – 5.9: her last strides, she pulls up beside him and wrings herself, he stands and puffs;
+   4 close on him, 5.9 – 10.1: "But look!", his arm swings out and points; "said the very old man, and he pointed";
+   5 insert on the high grass and the kitten in it, 10.1 – 13.2, the kitten trembling ("to a bunch of high grass");
+   6 pulls back to the game's frame, 13.2 – D: the whole page, the house, a cloud, the grass, him, her, the kitten.
    The game (q > D): he asks (no mouth: his arm turns to the thing asked for and he pulses with the voice), she and
    everyone else live on: breath, sway, a trembling kitten, smoke from his pipe. */
 'use strict';
@@ -18,7 +18,9 @@ const S13K = { x: -30, y: 8, s: .8 };   // the clean kitten on Gág's blot: offs
 const s13_GAME = { x: 790, y: 470, z: 1.2 };
 // her run down the ridge: [x, y, scale] in set px (the house door to where Gág drew her)
 const s13_PATH = [[1250, 200, .24], [1066, 250, .38], [977, 313, .5], [889, 401, .65], [853, 490, .75], [756, 552, .88], [696, 605, 1]];
-const s13_T0 = .45, s13_T1 = 6.1 + PRE13 - .5;   // she starts after the page turn and pulls up at the end of "It's"
+const s13_T0 = .45, s13_T1 = 5.6;   // she starts after the page turn and pulls up beside him just before "But look!" (m11 at 5.9 on the beat clock):
+// since cut 3 dropped "said the very old woman" the follow shot stays on her through "It's too bad!" and the two-shot
+// takes her last strides
 const s13_SEG = (() => {   // each stretch takes time in proportion to its length over her size, so her stride is the same everywhere
   const w = s13_PATH.slice(1).map((b, i) => { const a = s13_PATH[i]; return Math.hypot(b[0] - a[0], b[1] - a[1]) / ((a[2] + b[2]) / 2); });
   const sum = w.reduce((x, y) => x + y, 0); let acc = 0;
@@ -52,8 +54,8 @@ function s13_patch(parent) {
 
 function scene13(p, D) {
   const turnOut = pageTurn(p, 0, .6, 'out');
-  const T3 = s13_C('w11b', -.15), T4 = s13_C('m11', -.1), T5 = s13_C('n11b', 2.4), T6 = s13_C('n11c', 0);   // shot cuts
-  const TW = s13_C('n11', -.15);   // the follow shot begins as she is named
+  const T3 = s13_C('w11b', 1.2), T4 = s13_C('m11', -.1), T5 = s13_C('n11b', 2.4), T6 = s13_C('n11c', 0);   // shot cuts
+  const TW = T3;   // the follow shot pushes in until the two-shot
   sfx('scene13', T4 + .15, 'whoosh', .25);
   sfx('scene13', s13_C('n11b', 3.3), 'mew3', .3);
 

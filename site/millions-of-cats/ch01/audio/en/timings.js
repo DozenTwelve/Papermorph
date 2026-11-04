@@ -85,16 +85,6 @@ window.TIMINGS = {
    ]
   ]
  },
- "n01d": {
-  "dur": 1.654,
-  "marks": {},
-  "cues": [
-   [
-    0.0,
-    "said the very old woman."
-   ]
-  ]
- },
  "m01b": {
   "dur": 2.1,
   "marks": {},
@@ -102,16 +92,6 @@ window.TIMINGS = {
    [
     0.0,
     "I will get you a cat, my dear,"
-   ]
-  ]
- },
- "n01e": {
-  "dur": 1.581,
-  "marks": {},
-  "cues": [
-   [
-    0.0,
-    "said the very old man."
    ]
   ]
  },
@@ -262,17 +242,13 @@ window.TIMINGS = {
   ]
  },
  "n04f": {
-  "dur": 3.066,
+  "dur": 1.275,
   "marks": {
-   "took": 1.851
+   "took": 0.06
   },
   "cues": [
    [
-    0.0,
-    "said the very old man."
-   ],
-   [
-    1.851,
+    0.06,
     "So he took it."
    ]
   ]
@@ -414,18 +390,14 @@ window.TIMINGS = {
   ]
  },
  "n06c": {
-  "dur": 5.62,
+  "dur": 3.58,
   "marks": {
-   "sip": 2.1,
-   "gone": 3.58
+   "sip": 0.06,
+   "gone": 1.54
   },
   "cues": [
    [
-    0.0,
-    "said the very old man."
-   ],
-   [
-    2.1,
+    0.06,
     "Each cat took a sip of water, and the pond was gone!"
    ]
   ]
@@ -465,18 +437,14 @@ window.TIMINGS = {
   ]
  },
  "n07b": {
-  "dur": 5.771,
+  "dur": 3.891,
   "marks": {
-   "ate": 1.94,
-   "blade": 4.083
+   "ate": 0.06,
+   "blade": 2.203
   },
   "cues": [
    [
-    0.0,
-    "said the very old man."
-   ],
-   [
-    1.94,
+    0.06,
     "Each cat ate a mouthful of grass, and not a blade was left!"
    ]
   ]
@@ -541,16 +509,6 @@ window.TIMINGS = {
    [
     2.072,
     "They will eat us out of house and home."
-   ]
-  ]
- },
- "n09": {
-  "dur": 1.8,
-  "marks": {},
-  "cues": [
-   [
-    0.0,
-    "said the very old woman."
    ]
   ]
  },
@@ -769,16 +727,6 @@ window.TIMINGS = {
    ]
   ]
  },
- "n11": {
-  "dur": 2.208,
-  "marks": {},
-  "cues": [
-   [
-    0.1,
-    "said the very old woman."
-   ]
-  ]
- },
  "w11b": {
   "dur": 1.872,
   "marks": {},
@@ -839,16 +787,6 @@ window.TIMINGS = {
    ]
   ]
  },
- "n12b": {
-  "dur": 2.208,
-  "marks": {},
-  "cues": [
-   [
-    0.1,
-    "said the very old woman."
-   ]
-  ]
- },
  "m12": {
   "dur": 2.112,
   "marks": {},
@@ -856,16 +794,6 @@ window.TIMINGS = {
    [
     0.101,
     "Dear little kitty."
-   ]
-  ]
- },
- "n12c": {
-  "dur": 2.208,
-  "marks": {},
-  "cues": [
-   [
-    0.1,
-    "said the very old man."
    ]
   ]
  },
@@ -949,16 +877,6 @@ window.TIMINGS = {
    ]
   ]
  },
- "n14": {
-  "dur": 2.208,
-  "marks": {},
-  "cues": [
-   [
-    0.1,
-    "said the very old woman."
-   ]
-  ]
- },
  "m14": {
   "dur": 3.504,
   "marks": {},
@@ -966,16 +884,6 @@ window.TIMINGS = {
    [
     0.101,
     "It is the most beautiful cat in the whole world."
-   ]
-  ]
- },
- "n14b": {
-  "dur": 2.208,
-  "marks": {},
-  "cues": [
-   [
-    0.1,
-    "said the very old man."
    ]
   ]
  },

@@ -9,7 +9,7 @@
 const PRE7 = .5;
 const s7_T = (t) => PRE7 + t;
 const s7_TURN = .6, s7_C0 = s7_T(1.77), s7_B2 = s7_T(3.2), s7_WIDE = s7_T(4.747), s7_REF = s7_T(12.65), s7_WELL = s7_T(12.7),
-  s7_SAID = s7_T(15.82), s7_SIP = s7_T(17.92), s7_GONE = s7_T(21.26);
+  s7_SAID = s7_T(15.82), s7_SIP = s7_T(15.88), s7_GONE = s7_T(19.22);
 const s7_kids = [['rf-hundreds', 'rf-of1', 'rf-cats4'], ['rf-thousands', 'rf-of2', 'rf-cats5'], ['rf-millions', 'rf-and2', 'rf-billions', 'rf-and3', 'rf-trillions', 'rf-of3', 'rf-cats6']];
 // the refrain's words and when each lands in the scene clip 'r' (words file; marks give the first word of each line)
 const s7_RW = { 'rf-hundreds': 6.14, 'rf-of1': 6.52, 'rf-cats4': 6.78, 'rf-thousands': 7.57, 'rf-of2': 7.96, 'rf-cats5': 8.3,
@@ -64,8 +64,8 @@ function scene7(p, D) {
   P.to({ x: 780, y: 360, z: 1.4 }, 0, s7_C0 + .1)
    .cut({ x: 1000, y: 410, z: 2 }, s7_C0).cut({ x: 1060, y: 410, z: 2 }, s7_B2)
    .cut({ x: 800, y: 335, z: 1.25 }, s7_WIDE).cut({ x: 800, y: 297, z: 1.12 }, s7_WIDE + .5).to({ x: 800, y: 292, z: 1.06 }, s7_WIDE + .5, s7_REF - s7_WIDE)
-   .cut({ x: 800, y: 330, z: 1.55 }, s7_WELL).to({ x: 760, y: 335, z: 1.72 }, s7_WELL, s7_SIP - .6 - s7_WELL)
-   .cut({ x: 1010, y: 405, z: 1.9 }, s7_SIP - .6).to({ x: 1010, y: 415, z: 1.98 }, s7_SIP - .6, s7_GONE - s7_SIP + .6);
+   .cut({ x: 800, y: 330, z: 1.55 }, s7_WELL).to({ x: 760, y: 335, z: 1.72 }, s7_WELL, s7_SIP - .3 - s7_WELL)
+   .cut({ x: 1010, y: 405, z: 1.9 }, s7_SIP - .3).to({ x: 1010, y: 415, z: 1.98 }, s7_SIP - .3, s7_GONE - s7_SIP + .6);
   // cats for the wide shots and the lapping: a crowd that fills the bank on each refrain line
   const L18 = lettering(P.stage, s7_kids.flat(), { x: 800, y: 0, s: 1.3 });
   const bankL = catCrowd(P.stage, { names: s7_CATS, n: 18, box: [300, 400, 700, 560], seed: 7, s: [1.1, .8] });
@@ -89,13 +89,13 @@ function scene7(p, D) {
     P.apply(q, f); Q.apply(q, f);
     const wide = (q < s7_C0 || q >= s7_WIDE) && !inQ, closeA = q >= s7_C0 && q < s7_B2, closeB = q >= s7_B2 && q < s7_WIDE;
     // the old man at the left of the pond: breathes, rocks, looks at the water; on "Well, here is a great deal of water" he leans to it
-    vis(man.g, wide && q < s7_SIP - .6);
+    vis(man.g, wide && q < s7_SIP - .3);
     const lean = ease(k01(q, s7_WELL, .7)) * (q < s7_SIP ? 1 : 0), nod = q >= s7_WELL && q < s7_SAID ? Math.max(0, Math.sin((q - s7_WELL) * 4.2)) : 0;
     man.pose({ x: at18.x, y: at18.y, s: at18.s, sq: 1 + .02 * Math.sin(q * 2.2) - lean * .012 - nod * .008, rot: Math.sin(q * 1.5) * 1.8 + lean * 6 + nod * 1.2, bob: 2 * Math.abs(Math.sin(q * 1.1)),
       parts: { head: nod * 14 + lean * 10 + Math.sin(q * 1.7) * 3, bundle: Math.sin(q * 2.2) * 2 - lean * 4 } }, f);
     // the bank cats: Gág's page already has hers; ours come in a few at a time, A trots in, C packs on each word
     bankL.pose(q, f, { from: .8, every: i => i < 6 ? i * .22 : s7_REF - 6.5 + (i - 6) * .55, walk: { v: 60, t0: .8, t1: s7_C0 - .1 }, seethe: q >= s7_WIDE ? .3 : 0 });   // arriving on legs; then a slow shuffle
-    vis(bankL.g, !(q >= s7_C0 && q < s7_WIDE) && q < s7_SIP - .6);
+    vis(bankL.g, !(q >= s7_C0 && q < s7_WIDE) && q < s7_SIP - .3);
     // the refrain's lettering over the sky
     const times = {}; for (const n in s7_RW) times[n] = s7_T(s7_RW[n]);
     vis(L18.g, q >= s7_WIDE && q < s7_WELL); L18.show(q, times, f, { hideAt: s7_WELL });
