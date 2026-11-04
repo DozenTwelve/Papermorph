@@ -3,9 +3,10 @@
    2 close on her, w14 "And it is a very pretty cat, after all!" (to T(2.5)); 3 insert on the cat and its yarn (to T(3.9));
    4 close on her for "said the very old woman" (to T(6.65)); 5 close on him with his pipe smoke, m14 "the most beautiful cat
      in the whole world" and "said the very old man" (to T(12.7)); 6 the wide again, and on "hundreds … trillions" the room
-     dims, Gág's refrain lettering comes over it on a slip of paper with a ghost of the crowd swelling behind, and all fades
-     back on "and not one was as pretty as this one" (T(13.5) – T(21.0)); 7 insert on the cat (to the hole sleep16);
-   8 page turn in the hole to p34: the cat asleep under its flower, a slow push, and the end card below it. */
+     fades to paper, Gág's refrain lettering stands straight on it (a soft borderless cream glow behind the letters, no card)
+     with a ghost of the crowd swelling behind, and all fades back on "and not one was as pretty as this one"
+     (T(13.5) – T(21.0)); 7 insert on the cat (to the hole sleep16);
+   8 page turn in the hole to p34: the cat asleep under its flower, a slow push held to the end; no end card. */
 'use strict';
 const PRE16 = .5;
 
@@ -48,7 +49,7 @@ function scene16(p, D) {
   const woman = cutPuppet(A.stage, 'woman33'), man = cutPuppet(A.stage, 'man33'), cat = cutPuppet(A.stage, 'cat33');
 
   // ---- the refrain over the room: all in frame space, above the camera ----
-  const veil = mk('rect', { width: 1600, height: 900, fill: '#150b05', opacity: 0, visibility: 'hidden', 'pointer-events': 'none' }, p);
+  const veil = mk('rect', { width: 1600, height: 900, fill: '#efe8d6', opacity: 0, visibility: 'hidden', 'pointer-events': 'none' }, p);
   const NAMES = ['cat23a', 'cat23b', 'cat23c', 'cat23d', 'cat23e', 'cat23f', 'cat23g', 'cat23h', 'cat22a', 'cat22b', 'cat22c', 'cat22d'];
   const crowd = catCrowd(p, { names: NAMES, n: 72, box: [40, 430, 1560, 880], seed: 14, s: [2.3, 1.2] });
   const hunT = s16M('m14b.hun'), trilT = s16M('m14b.tril'), notT = s16NOT();
@@ -57,13 +58,13 @@ function scene16(p, D) {
   const times = {}; for (const [n, t] of s16RF) times[n] = typeof t === 'string' ? s16M(t) : s16T(t);
   const box = L.items.reduce((b, it) => { const C = it.p.C, k = 1.6, l = it.x - C.ax * k, t = it.y - C.ay * k, w = C.parts[0].w * k, h = C.parts[0].h * k;
     return [Math.min(b[0], l), Math.min(b[1], t), Math.max(b[2], l + w), Math.max(b[3], t + h)]; }, [1e9, 1e9, -1e9, -1e9]);
-  const slip = prop(p, `<g filter="url(#paper)"><rect x="${box[0] - 40}" y="${box[1] - 34}" width="${box[2] - box[0] + 80}" height="${box[3] - box[1] + 68}" rx="18" fill="#f4ecd6"/></g>`);
+  const slip = mk('g', {}, p);   // a soft glow only: no edge, no shadow
+  slip.innerHTML = `<defs><filter id="s16glow" x="-30%" y="-60%" width="160%" height="220%"><feGaussianBlur stdDeviation="30"/></filter></defs><rect x="${box[0] - 30}" y="${box[1] - 24}" width="${box[2] - box[0] + 60}" height="${box[3] - box[1] + 48}" rx="40" fill="#efe8d6" filter="url(#s16glow)"/>`;
   p.insertBefore(slip, L.g);   // the slip under her letters
 
   // ---- p34: the cat asleep ----
   const B = paperCam(p, 'p34', { x: 815, y: 560, z: 1.5 });
-  B.to({ x: 815, y: 548, z: 1.66 }, s16TURN + .5, 4);
-  const card = endCard(p, s16T(24.6), 'The End', { x: 800, y: 765, size: 56 });
+  B.to({ x: 815, y: 540, z: 1.7 }, s16TURN + .5, Math.max(4, D - s16TURN - .5));   // a slow hold to the last frame
 
   const turnOut = pageTurn(p, 0, .6, 'out');
   const ta = pageTurn(p, s16TURN - .5, .5, 'in'), ga = p.lastChild, tb = pageTurn(p, s16TURN, .5, 'out'), gb = p.lastChild;
@@ -86,7 +87,7 @@ function scene16(p, D) {
       const live = swell > 0;
       for (const g of [veil, crowd.g, slip, L.g]) vis(g, live);
       if (live) {
-        veil.setAttribute('opacity', (.68 * swell).toFixed(3));
+        veil.setAttribute('opacity', (.8 * swell).toFixed(3));
         crowd.g.setAttribute('opacity', (swell * (.2 + .35 * span(q, hunT, trilT + .6))).toFixed(3));
         for (const g of [slip, L.g]) g.setAttribute('opacity', swell.toFixed(3));
         crowd.pose(q, f, { from: 0, every: when, hop: false });
@@ -96,6 +97,6 @@ function scene16(p, D) {
       for (const g of [veil, crowd.g, slip, L.g]) vis(g, false);
       B.apply(q, f);
     }
-    card(q); turnOut(q); ta(q); vis(ga, q > s16TURN - .5 && q < s16TURN); tb(q); vis(gb, q >= s16TURN && q < s16TURN + .5);
+    turnOut(q); ta(q); vis(ga, q > s16TURN - .5 && q < s16TURN); tb(q); vis(gb, q >= s16TURN && q < s16TURN + .5);
   });
 }

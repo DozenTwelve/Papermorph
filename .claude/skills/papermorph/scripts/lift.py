@@ -166,7 +166,9 @@ def lift_piece(book, name, P, res, out, sheet):
         check_poly(f'{name}.{pn}', D['poly'], W, H)
         own = poly_mask(L.shape, D['poly'], x0, y0)
         cap = poly_mask(L.shape, D.get('cap'), x0, y0)
-        a = alpha * (own | cap)
+        # the part reaches 3 page px past its cut line, under or over the body, so the two never show a pale seam
+        lap = cv2.dilate(own.astype(np.uint8), np.ones((7, 7), np.uint8)).astype(bool)
+        a = alpha * (lap | cap)
         if a.sum() < 20: print(f'WARNING {name}.{pn}: the part took no ink (its poly misses the figure?)', file=sys.stderr)
         parts[pn] = (a, D.get('pivot'))
         taken |= own

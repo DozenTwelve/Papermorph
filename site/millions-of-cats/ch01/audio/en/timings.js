@@ -555,21 +555,21 @@ window.TIMINGS = {
   ]
  },
  "m09": {
-  "dur": 4.344,
+  "dur": 4.032,
   "marks": {},
   "cues": [
    [
-    0.104,
+    0.101,
     "I never thought of that."
    ],
    [
-    2.364,
+    2.197,
     "What shall we do?"
    ]
   ]
  },
  "n09b": {
-  "dur": 4.056,
+  "dur": 3.792,
   "marks": {},
   "cues": [
    [
@@ -579,15 +579,15 @@ window.TIMINGS = {
   ]
  },
  "w09b": {
-  "dur": 5.328,
+  "dur": 4.968,
   "marks": {},
   "cues": [
    [
-    0.103,
+    0.1,
     "I know!"
    ],
    [
-    1.676,
+    1.559,
     "We will let the cats decide which one we should keep."
    ]
   ]
@@ -597,13 +597,13 @@ window.TIMINGS = {
   "marks": {},
   "cues": [
    [
-    0.104,
+    0.101,
     "Oh yes!"
    ]
   ]
  },
  "n09c": {
-  "dur": 3.768,
+  "dur": 3.504,
   "marks": {},
   "cues": [
    [
@@ -613,21 +613,21 @@ window.TIMINGS = {
   ]
  },
  "m09c": {
-  "dur": 2.88,
+  "dur": 2.688,
   "marks": {},
   "cues": [
    [
-    0.104,
+    0.101,
     "Which one of you is the prettiest?"
    ]
   ]
  },
  "i1": {
-  "dur": 1.608,
+  "dur": 1.872,
   "marks": {},
   "cues": [
    [
-    0.1,
+    0.097,
     "I am!"
    ]
   ]
@@ -637,27 +637,27 @@ window.TIMINGS = {
   "marks": {},
   "cues": [
    [
-    0.1,
+    0.097,
     "I am!"
    ]
   ]
  },
  "i3": {
-  "dur": 2.04,
+  "dur": 1.896,
   "marks": {},
   "cues": [
    [
-    0.1,
+    0.097,
     "No, I am!"
    ]
   ]
  },
  "i4": {
-  "dur": 2.928,
+  "dur": 2.736,
   "marks": {},
   "cues": [
    [
-    0.1,
+    0.097,
     "No, I am the prettiest!"
    ]
   ]
@@ -667,37 +667,37 @@ window.TIMINGS = {
   "marks": {},
   "cues": [
    [
-    0.1,
+    0.097,
     "I am!"
    ]
   ]
  },
  "i6": {
-  "dur": 5.304,
+  "dur": 4.968,
   "marks": {},
   "cues": [
    [
-    0.1,
+    0.097,
     "No, I am!"
    ],
    [
-    2.188,
+    2.044,
     "I am!"
    ],
    [
-    3.737,
+    3.493,
     "I am!"
    ]
   ]
  },
  "n09d": {
-  "dur": 7.392,
+  "dur": 6.912,
   "marks": {
-   "hun": 0.478,
-   "thou": 1.064,
-   "mil": 1.767,
-   "bil": 2.379,
-   "tril": 2.978
+   "hun": 0.452,
+   "thou": 0.998,
+   "mil": 1.653,
+   "bil": 2.224,
+   "tril": 2.782
   },
   "cues": [
    [
@@ -707,9 +707,9 @@ window.TIMINGS = {
   ]
  },
  "n10": {
-  "dur": 2.4,
+  "dur": 2.232,
   "marks": {
-   "quarrel": 0.946
+   "quarrel": 0.889
   },
   "cues": [
    [
@@ -719,12 +719,12 @@ window.TIMINGS = {
   ]
  },
  "n10b": {
-  "dur": 9.384,
+  "dur": 8.736,
   "marks": {
-   "bit": 0.308,
-   "scratched": 0.881,
-   "clawed": 1.689,
-   "ran": 6.259
+   "bit": 0.294,
+   "scratched": 0.828,
+   "clawed": 1.581,
+   "ran": 5.84
   },
   "cues": [
    [
@@ -734,9 +734,9 @@ window.TIMINGS = {
   ]
  },
  "n10c": {
-  "dur": 8.688,
+  "dur": 8.112,
   "marks": {
-   "peeped": 5.454
+   "peeped": 5.086
   },
   "cues": [
    [
@@ -744,13 +744,13 @@ window.TIMINGS = {
     "But after a while, the noise stopped."
    ],
    [
-    3.227,
+    3.011,
     "And the very old man and the very old woman peeped out of the window to see what had happened."
    ]
   ]
  },
  "n10d": {
-  "dur": 2.856,
+  "dur": 2.664,
   "marks": {},
   "cues": [
    [
@@ -760,17 +760,17 @@ window.TIMINGS = {
   ]
  },
  "w11": {
-  "dur": 3.144,
+  "dur": 2.928,
   "marks": {},
   "cues": [
    [
-    0.103,
+    0.1,
     "I think they must have eaten each other all up."
    ]
   ]
  },
  "n11": {
-  "dur": 2.376,
+  "dur": 2.208,
   "marks": {},
   "cues": [
    [
@@ -780,11 +780,11 @@ window.TIMINGS = {
   ]
  },
  "w11b": {
-  "dur": 1.944,
+  "dur": 1.872,
   "marks": {},
   "cues": [
    [
-    0.103,
+    0.1,
     "It's too bad!"
    ]
   ]
@@ -794,13 +794,13 @@ window.TIMINGS = {
   "marks": {},
   "cues": [
    [
-    0.104,
+    0.101,
     "But look!"
    ]
   ]
  },
  "n11b": {
-  "dur": 4.704,
+  "dur": 4.368,
   "marks": {},
   "cues": [
    [
@@ -810,9 +810,9 @@ window.TIMINGS = {
   ]
  },
  "n12": {
-  "dur": 7.872,
+  "dur": 7.32,
   "marks": {
-   "picked": 3.917
+   "picked": 3.654
   },
   "cues": [
    [
@@ -820,27 +820,27 @@ window.TIMINGS = {
     "In it sat one little frightened kitten."
    ],
    [
-    3.084,
+    2.878,
     "They went out and picked it up."
    ],
    [
-    5.545,
+    5.171,
     "It was thin and scraggly."
    ]
   ]
  },
  "w12": {
-  "dur": 2.112,
+  "dur": 1.968,
   "marks": {},
   "cues": [
    [
-    0.103,
+    0.1,
     "Poor little kitty."
    ]
   ]
  },
  "n12b": {
-  "dur": 2.376,
+  "dur": 2.208,
   "marks": {},
   "cues": [
    [
@@ -850,17 +850,17 @@ window.TIMINGS = {
   ]
  },
  "m12": {
-  "dur": 2.256,
+  "dur": 2.112,
   "marks": {},
   "cues": [
    [
-    0.104,
+    0.101,
     "Dear little kitty."
    ]
   ]
  },
  "n12c": {
-  "dur": 2.376,
+  "dur": 2.208,
   "marks": {},
   "cues": [
    [
@@ -870,27 +870,27 @@ window.TIMINGS = {
   ]
  },
  "m12b": {
-  "dur": 7.536,
+  "dur": 7.008,
   "marks": {},
   "cues": [
    [
-    0.104,
+    0.101,
     "How does it happen that you were not eaten up, with all those hundreds and thousands and millions and billions and trillions of cats?"
    ]
   ]
  },
  "k12": {
-  "dur": 3.768,
+  "dur": 3.504,
   "marks": {},
   "cues": [
    [
-    0.102,
+    0.099,
     "Oh, I'm just a very homely little cat."
    ]
   ]
  },
  "n12d": {
-  "dur": 1.968,
+  "dur": 1.872,
   "marks": {},
   "cues": [
    [
@@ -900,24 +900,24 @@ window.TIMINGS = {
   ]
  },
  "k12b": {
-  "dur": 7.896,
+  "dur": 7.344,
   "marks": {},
   "cues": [
    [
-    0.102,
+    0.099,
     "So when you asked who was the prettiest, I didn't say anything."
    ],
    [
-    4.961,
+    4.624,
     "So nobody bothered about me."
    ]
   ]
  },
  "n13": {
-  "dur": 7.872,
+  "dur": 7.344,
   "marks": {
-   "bath": 3.498,
-   "brushed": 4.67
+   "bath": 3.267,
+   "brushed": 4.36
   },
   "cues": [
    [
@@ -927,10 +927,10 @@ window.TIMINGS = {
   ]
  },
  "n13b": {
-  "dur": 4.992,
+  "dur": 4.656,
   "marks": {
-   "milk": 1.22,
-   "plump": 3.147
+   "milk": 1.144,
+   "plump": 2.94
   },
   "cues": [
    [
@@ -940,17 +940,17 @@ window.TIMINGS = {
   ]
  },
  "w14": {
-  "dur": 3.6,
+  "dur": 3.36,
   "marks": {},
   "cues": [
    [
-    0.103,
+    0.1,
     "And it is a very pretty cat, after all!"
    ]
   ]
  },
  "n14": {
-  "dur": 2.376,
+  "dur": 2.208,
   "marks": {},
   "cues": [
    [
@@ -960,17 +960,17 @@ window.TIMINGS = {
   ]
  },
  "m14": {
-  "dur": 3.768,
+  "dur": 3.504,
   "marks": {},
   "cues": [
    [
-    0.104,
+    0.101,
     "It is the most beautiful cat in the whole world."
    ]
   ]
  },
  "n14b": {
-  "dur": 2.376,
+  "dur": 2.208,
   "marks": {},
   "cues": [
    [
@@ -980,24 +980,24 @@ window.TIMINGS = {
   ]
  },
  "m14b": {
-  "dur": 9.48,
+  "dur": 8.808,
   "marks": {
-   "hun": 1.708,
-   "thou": 2.849,
-   "mil": 4.072,
-   "bil": 4.792,
-   "tril": 5.349,
-   "not": 6.626
+   "hun": 1.59,
+   "thou": 2.651,
+   "mil": 3.787,
+   "bil": 4.457,
+   "tril": 4.974,
+   "not": 6.161
   },
   "cues": [
    [
-    0.104,
+    0.101,
     "I ought to know, for I've seen hundreds of cats, thousands of cats, millions and billions and trillions of cats, and not one was as pretty as this one."
    ]
   ]
  },
  "n11c": {
-  "dur": 5.304,
+  "dur": 4.944,
   "marks": {},
   "cues": [
    [
@@ -1005,7 +1005,7 @@ window.TIMINGS = {
     "Can you find the kitten?"
    ],
    [
-    2.211,
+    2.065,
     "Listen, and touch what he asks for."
    ]
   ]
@@ -1061,75 +1061,75 @@ window.TIMINGS = {
   ]
  },
  "q-house": {
-  "dur": 4.032,
+  "dur": 3.744,
   "marks": {},
   "cues": [
    [
-    0.104,
+    0.101,
     "Can you find the house?"
    ],
    [
-    2.432,
+    2.26,
     "Touch it!"
    ]
   ]
  },
  "q-cloud": {
-  "dur": 2.328,
+  "dur": 2.16,
   "marks": {},
   "cues": [
    [
-    0.104,
+    0.101,
     "Can you find a cloud?"
    ]
   ]
  },
  "q-kitten": {
-  "dur": 3.264,
+  "dur": 3.048,
   "marks": {},
   "cues": [
    [
-    0.104,
+    0.101,
     "Now, can you find the little kitten?"
    ]
   ]
  },
  "r-house": {
-  "dur": 2.088,
+  "dur": 1.944,
   "marks": {},
   "cues": [
    [
-    0.104,
+    0.101,
     "Where's the house?"
    ]
   ]
  },
  "r-cloud": {
-  "dur": 1.968,
+  "dur": 1.872,
   "marks": {},
   "cues": [
    [
-    0.104,
+    0.101,
     "Where's a cloud?"
    ]
   ]
  },
  "r-kitten": {
-  "dur": 2.064,
+  "dur": 1.92,
   "marks": {},
   "cues": [
    [
-    0.104,
+    0.101,
     "Where's the kitten?"
    ]
   ]
  },
  "q-me": {
-  "dur": 1.872,
+  "dur": 1.704,
   "marks": {},
   "cues": [
    [
-    0.104,
+    0.101,
     "That's me!"
    ]
   ]
@@ -1139,35 +1139,35 @@ window.TIMINGS = {
   "marks": {},
   "cues": [
    [
-    0.103,
+    0.1,
     "That's me!"
    ]
   ]
  },
  "q-done": {
-  "dur": 3.864,
+  "dur": 3.6,
   "marks": {},
   "cues": [
    [
-    0.104,
+    0.101,
     "There it is!"
    ],
    [
-    1.97,
+    1.831,
     "You found it!"
    ]
   ]
  },
  "q-there": {
-  "dur": 3.48,
+  "dur": 3.24,
   "marks": {},
   "cues": [
    [
-    0.104,
+    0.101,
     "Look!"
    ],
    [
-    1.617,
+    1.503,
     "There it is!"
    ]
   ]

@@ -1,18 +1,19 @@
 /* scene14.js — A very homely little cat (p27, then p28). Beat clock = PRE14 + the joined clip's time (clipAt below).
    It follows scene13's stop on the same page, so it opens on the game's frame, no page turn:
    1 push-in from that frame to the kitten in the grass, trembling ("In it sat one little frightened kitten"), 0 – 3.0;
-   2 two-shot, "They went out and picked it up": she comes down the ridge to it, he leans in, the kitten rises into her
-     arms and the camera rises with it (so the painted kitten the set keeps is left below the frame), 3.0 – 5.5;
-   3 cut to p28: the kitten alone on its mound, big, thin and scraggly, "It was thin and scraggly";
+   2 two-shot, "They went out and picked it up": she comes down the ridge to the kitten (which stays in its grass, trembling:
+     it is never lifted off the p27 set) and bends over it, 3.0 – "picked";
+   3 on "picked it up" a cut to a close shot of her hands taking the clean p28 kitten, on plain paper (kitten28 rises into her
+     arms), "picked" – 5.5; then the kitten alone on its mound, big, "It was thin and scraggly";
    4 the talk, shot and reverse shot on the blank paper of p28 (the speakers are the p27 figures lifted large, in the
      blank part of the sheet; the mound is out of frame): her "Poor little kitty", him "Dear little kitty" and "How does it
      happen…", with the kitten listening between (it looks up, an ear-flick of a head turn, a tremble);
-   5 close on the kitten for its own lines, with a mouth on Gág's face (k12, k12b), slowly closer, the head turning
-     small ways as it says "nobody bothered about me".
+   5 the kitten's own lines (k12, k12b): a slow push from a medium shot to a close-up of the face by "very homely", with a
+     mouth under the nose, the head dropping a little on "nobody bothered about me".
    Ends with the page turning in for scene15. */
 'use strict';
 const PRE14 = .5;
-CUT_FACE.kitten28 = { at: [1545, 1801], w: 34, h: 26 };   // the white of the cheek right of the nose where the mouth slit is drawn; under the nose the face is black fur, an ink mouth would vanish
+CUT_FACE.kitten28 = { at: [1522, 1808], w: 32, h: 24 };   // straight under the nose, over the white muzzle, where the black chin takes the opening: it reads as the jaw dropping
 sfx('scene14', 0, 'birds', .3, { loop: true });
 
 const s14_C = (clip, t = 0) => clipAt('scene14', PRE14, clip, t);
@@ -32,14 +33,15 @@ function scene14(p, D) {
   // ---- p27: the grass ----
   const A = paperCam(p, 'p27', s14_START);
   A.to({ x: 452, y: 748, z: 3.0 }, .25, 2.6)
-   .cut({ x: 505, y: 650, z: 1.9 }, T1).to({ x: 515, y: 640, z: 2.1 }, T1, TP - T1)
-   .to({ x: 525, y: 590, z: 2.3 }, TP, T2 - TP);
+   .cut({ x: 505, y: 650, z: 1.9 }, T1).to({ x: 515, y: 640, z: 2.1 }, T1, TP - T1);
   const wAt = pagePos('p27', 'woman27'), mAt = pagePos('p27', 'man27'), kAt = pagePos('p27', 'kitten27');
   const man = cutPuppet(A.stage, 'man27'), woman = cutPuppet(A.stage, 'woman27'), kit = cutPuppet(A.stage, 'kitten27');
 
   // ---- p28: the mound (the kitten), and the blank paper beside it (the two old people's close-ups) ----
   const B = paperCam(p, 'p28', { x: 770, y: 690, z: 3.4 });
-  B.to({ x: 772, y: 686, z: 3.9 }, s14_C('n12', 5.55), K1 - s14_C('n12', 5.55))   // a slow push on the kitten ("thin and scraggly")
+  B.cut({ x: 945, y: 320, z: 1.55 }, TP).to({ x: 940, y: 326, z: 1.65 }, TP, T2 - TP)   // her hands take the kitten, on the blank paper
+   .cut({ x: 770, y: 690, z: 3.4 }, T2)
+   .to({ x: 772, y: 686, z: 3.9 }, s14_C('n12', 5.55), K1 - s14_C('n12', 5.55))   // a slow push on the kitten ("thin and scraggly")
    .cut({ x: 1000, y: 300, z: 1.3 }, W1).to({ x: 1004, y: 304, z: 1.36 }, W1, K1 - W1)
    .cut({ x: 775, y: 684, z: 3.7 }, K1).to({ x: 775, y: 680, z: 3.9 }, K1, W2 - K1)
    .cut({ x: 1000, y: 300, z: 1.3 }, W2).to({ x: 996, y: 296, z: 1.36 }, W2, M1 - W2)
@@ -48,17 +50,17 @@ function scene14(p, D) {
    .cut({ x: 1000, y: 300, z: 1.34 }, M2).to({ x: 998, y: 298, z: 1.4 }, M2, K3 - M2)
    .cut({ x: 775, y: 684, z: 3.3 }, K3).to({ x: 775, y: 680, z: 3.6 }, K3, M3 - K3)
    .cut({ x: 1000, y: 300, z: 1.4 }, M3).to({ x: 1002, y: 302, z: 1.46 }, M3, K4 - M3)
-   .cut({ x: 772, y: 652, z: 4.4 }, K4).to({ x: 772, y: 646, z: 5.6 }, K4, D);
+   .cut({ x: 775, y: 676, z: 3.4 }, K4).to({ x: 764, y: 642, z: 6.2 }, K4, s14_C('k12', 1.7) - K4)   // in to the face by "very homely"
+   .to({ x: 764, y: 648, z: 6.8 }, s14_C('k12', 1.7), D - s14_C('k12', 1.7));
   const kAt28 = pagePos('p28', 'kitten28'), kitten = cutPuppet(B.stage, 'kitten28');
   const womanB = cutPuppet(B.stage, 'woman27'), manB = cutPuppet(B.stage, 'man27');
   const turn = pageTurn(p, D - .1, .6, 'in');
 
-  // where the kitten goes: up into her arms (held low in front of her: the hands are out at (-62, -158) of her feet, but that puts it among his pipe smoke)
-  const HAND = [-44, -112];
-  const hop = u => Math.sin(Math.PI * u);
+  // the close shot: where her hands are (of her feet) when the kitten is in them, and the sides of its rise
+  const HAND = [-44, -112], CS = 2.0, hop = u => Math.sin(Math.PI * u);
 
   stopClock(D, (q, f) => {
-    const onA = q < T2;
+    const onA = q < TP, onC = q >= TP && q < T2;
     vis(A.root, onA); vis(B.root, !onA);
     const breathe = Math.sin(q * 2.3);
     if (onA) {
@@ -66,7 +68,7 @@ function scene14(p, D) {
       // she comes down the ridge (a stepping bob, leaning forward), then bends over the kitten
       const wu = span(q, WALK0, TP), going = q > WALK0 && q < TP;
       const wx = q < WALK0 ? wAt.x : s14_WALK[0] + (s14_WALK[2] - s14_WALK[0]) * wu, wy = q < WALK0 ? wAt.y : s14_WALK[1] + (s14_WALK[3] - s14_WALK[1]) * wu;
-      const bend = span(q, TP - .25, TP + .2) * (1 - span(q, TP + .8, TP + 1.2));
+      const bend = span(q, TP - .5, TP - .05);
       woman.pose({ x: wx, y: wy - (going ? Math.abs(Math.sin((q - WALK0) * 2 * Math.PI / .5)) * 8 : 2 * breathe * (q > TP ? 1 : 0)),
         rot: (going ? -3 + 2 * Math.sin((q - WALK0) * 2 * Math.PI / .5) : -5 * bend + 1.2 * Math.sin(q * 1.3)), sq: 1 + .012 * breathe,
         parts: { head: -12 * bend + 2.5 * Math.sin(q * .9 + 1) } }, f);
@@ -74,17 +76,23 @@ function scene14(p, D) {
       const look = span(q, T1, T1 + .6);
       man.pose({ x: mAt.x, y: mAt.y, rot: 3.5 * look + .8 * Math.sin(q * 1.1), sq: 1 + .012 * Math.sin(q * 2.2 + 1) - .01 * s14_PK(q, TP, .4),
         parts: { armR: 5 - 7 * s14_PK(q, TP - .1, .5) + 1.2 * Math.sin(q * 1.9), smoke: 3.5 * Math.sin(q * 1.9) + 2 * Math.sin(q * 4.3) } }, f);
-      // the kitten: trembles in the grass; lifted, it hops up into her arms and is held there, still trembling
-      const u = span(q, TP, TP + .9);
-      const hx = wx + HAND[0], hy = wy + HAND[1];
+      // the kitten stays in its grass, trembling and looking up at her
       const tre = 1.1 * (Math.floor(q * FPS) % 2 ? 1 : -1) * (.6 + .4 * Math.sin(q * 3)) * (q < T1 ? 1.4 : 1);
-      kit.pose({ x: kAt.x + (hx - kAt.x) * u, y: kAt.y + (hy - kAt.y) * u - 40 * hop(u), s: 1 - .25 * u, rot: tre * (1 - u * .5) + 14 * hop(u) - 8 * u,
-        sq: 1 + .012 * Math.sin(q * 3.1) }, f);
+      kit.pose({ x: kAt.x, y: kAt.y, rot: tre, sq: 1 + .012 * Math.sin(q * 3.1) }, f);
     } else {
       B.apply(q, f);
       // which shot: the kitten's (on the mound) or the speakers' (blank paper)
       const speakW = (q >= W1 && q < K1) || (q >= W2 && q < M1), speakM = (q >= M1 && q < K2) || (q >= M2 && q < K3) || (q >= M3 && q < K4);
-      vis(womanB.g, speakW); vis(manB.g, speakM); vis(kitten.g, !speakW && !speakM);
+      vis(womanB.g, speakW || onC); vis(manB.g, speakM); vis(kitten.g, onC || (!speakW && !speakM));
+      // her hands take the kitten: she bends to it, it rises into her arms and she straightens with it
+      if (onC) {
+        const u = span(q, TP + .15, TP + 1.0), st = span(q, TP + .6, TP + 1.4), wx = 987, wy = 700;
+        womanB.pose({ x: wx, y: wy, s: CS, rot: -7 * (1 - st) + .9 * Math.sin(q * 1.1), sq: 1 + .012 * breathe,
+          parts: { head: -12 * (1 - st) - 6 + 2.5 * Math.sin(q * .8) } }, f);
+        const hx = wx + HAND[0] * CS, hy = wy + HAND[1] * CS + 14;
+        kitten.pose({ x: 790 + (hx - 790) * u, y: 640 + (hy - 640) * u - 60 * hop(u), s: 1.5 + .4 * u, rot: 1.2 * (Math.floor(q * FPS) % 2 ? 1 : -1) * (1 - u * .6) + 10 * hop(u) - 6 * u,
+          sq: 1 + .014 * breathe, parts: { head: 3 * Math.sin(q * 1.3) } }, f);
+      }
       // the old woman, large: looks down at it, a nod on "Poor", "kitty"
       if (speakW) {
         const nod = s14_PK(q, s14_C('w12', .38), .15) + s14_PK(q, s14_C('w12', .95), .2);
@@ -105,11 +113,11 @@ function scene14(p, D) {
       const look = span(q, K1, K1 + .4) * (q < W2 ? 1 : 0) + span(q, K2, K2 + .4) * (q < M2 ? 1 : 0) + span(q, K3, K3 + .4) * (q < M3 ? 1 : 0);
       const gaze = q >= T2 && q < W1 ? 3 * Math.sin(q * 1.1) - 2 : 0;
       const kHead = (q >= K4 ? -4 * span(q, K4, K4 + .5) + 3 * Math.sin(q * .8) + (q > s14_C('k12b', 1.1) ? 5 * span(q, s14_C('k12b', 1.1), s14_C('k12b', 1.6)) * (1 - span(q, s14_C('k12b', 2.3), s14_C('k12b', 2.9))) : 0)
-        + (q > s14_C('k12b', 4.9) ? -7 * span(q, s14_C('k12b', 4.9), s14_C('k12b', 5.5)) : 0) + 4 * s14_PK(q, s14_C('k12', 2.1), .3) : 6 * look + gaze)
+        + (q > s14_C('k12b', 4.9) ? -6 * span(q, s14_C('k12b', 4.9), s14_C('k12b', 5.5)) : 0) + 4 * s14_PK(q, s14_C('k12', 2.1), .3) : 6 * look + gaze)
         + 1.3 * Math.sin(q * 1.9);
       const tre = afraid * .9 * (Math.floor(q * FPS) % 2 ? 1 : -1) * (.6 + .4 * Math.sin(q * 3));
-      kitten.pose({ x: kAt28.x, y: kAt28.y, rot: tre + (up ? .6 * Math.sin(q * 1.3) : 0), sq: 1 + .014 * breathe,
-        parts: { head: kHead }, mouth: lips(q, 'scene14', PRE14, 'k12', 'k12b') }, f);
+      if (!onC) kitten.pose({ x: kAt28.x, y: kAt28.y, rot: tre + (up ? .6 * Math.sin(q * 1.3) : 0), sq: 1 + .014 * breathe,
+        parts: { head: kHead }, move: { head: [0, 7 * span(q, s14_C('k12b', 4.9), s14_C('k12b', 5.6))] }, mouth: lips(q, 'scene14', PRE14, 'k12', 'k12b') }, f);
     }
     turn(q);
   });

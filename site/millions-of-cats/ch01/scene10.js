@@ -21,39 +21,28 @@ const s10_CUTS = [   // [beat time, view]
   [s10_S(6.65), { x: 780, y: 395, z: 3.1 }], [s10_S(11.3), { x: 505, y: 392, z: 2.7 }], [s10_S(15.9), { x: 505, y: 380, z: 3.5 }],
   [s10_S(17.5), { x: 640, y: 405, z: 2.1 }], [s10_S(21.4), { x: 780, y: 395, z: 3.2 }], [s10_S(25.3), { x: 1010, y: 440, z: 2.0 }],
   [s10_S(27.7), { x: 900, y: 405, z: 2.7 }]];
-const s10_CATEND = s10_C('i1', -.05);   // the first cat on paper
 
-// ---- single cats on plain paper: [clip, offset of the cut, offset of the end, cats [{ n, x, y (feet; frame centre is 0, 0), s, flip, pop (clip offset) }]] ----
+// ---- plain paper: the cats pile up. Each stays as the next pops in; the shouts are the big ones in front, between them
+// smaller cats pop in on mews, the gaps shrinking from .7 s to .17 s, so the paper fills faster and faster up to the crowd ----
 const s10_PH = ['cat8b', 'cat25d', 'cat14a', 'cat22c', 'cat11w', 'cat23f', 'cat25b', 'cat8a', 'cat10bw', 'cat12', 'cat23e', 'cat13', 'cat8e', 'cat14b', 'cat25a', 'cat23a', 'cat8d', 'cat22d', 'cat25c'];
-const s10_SHOTS = [
-  [s10_C('i1', -.05), s10_C('i2', -.04), [{ n: 'cat8b', x: 0, y: 250, s: 4.8, pop: s10_C('i1', .22) }]],
-  [s10_C('i2', -.04), s10_C('i3', -.02), [{ n: 'cat10bw', x: -60, y: 290, s: 6.6, flip: true, pop: s10_C('i2', .22) }]],
-  [s10_C('i3', -.02), s10_C('i3', .73), [{ n: 'cat25b', x: -120, y: 280, s: 5.2, pop: s10_C('i3', .22) }]],
-  [s10_C('i3', .73), s10_C('i4', -.02), [{ n: 'cat14a', x: 120, y: 280, s: 4.4, flip: true, pop: s10_C('i3', .77) }]],
-  [s10_C('i4', -.02), s10_C('i4', .85), [{ n: 'cat12', x: 40, y: 290, s: 5.4, pop: s10_C('i4', .22) }]],
-  [s10_C('i4', .85), s10_C('i4', 1.75), [{ n: 'cat13', x: -250, y: 220, s: 5.6, pop: s10_C('i4', .87) }, { n: 'cat11w', x: 280, y: 290, s: 4.2, flip: true, pop: s10_C('i4', 1.0) }]],
-  [s10_C('i4', 1.75), s10_C('i5', -.05), [{ n: 'cat8e', x: -430, y: 280, s: 4.4, pop: s10_C('i4', 1.77) }, { n: 'cat14b', x: 20, y: 270, s: 5.2, flip: true, pop: s10_C('i4', 1.86) }, { n: 'cat23e', x: 450, y: 290, s: 4.6, pop: s10_C('i4', 1.95) }]],
-  // i5: close-ups into p23's crowd (below), then three cats
-  [s10_C('i5', 1.0), s10_C('i6', .08), [{ n: 'cat23f', x: -420, y: 270, s: 4.2, pop: s10_C('i5', 1.02) }, { n: 'cat8a', x: 0, y: 300, s: 4.6, pop: s10_C('i5', 1.1) }, { n: 'cat25a', x: 420, y: 280, s: 4.0, flip: true, pop: s10_C('i5', 1.18) }]]];
-// i6 and the frenzy up to n09d: cuts quicker and quicker, more cats in each
-const s10_FR = []; {
-  const edges = [.08, .8, 1.3, 1.75, 2.15, 2.5, 2.8, 3.07, 3.3, 3.5, 3.68, 3.84, 3.98, 4.1, 4.2, 4.3], full = s10_C('n09d', .15) - s10_C('i6');
-  edges.push(full);
-  for (let k = 0; k < edges.length - 1; k++) {
-    const t0 = s10_C('i6', edges[k]), t1 = s10_C('i6', edges[k + 1]), m = Math.min(1 + Math.floor(k / 2.3), 6), cats = [];
-    for (let j = 0; j < m; j++) {
-      const r = rnd(k * 29 + j * 7 + 3), r2 = rnd(k * 13 + j * 17 + 5), cx = m === 1 ? 0 : -560 + 1120 * (j + .5) / m + (r - .5) * 80;
-      cats.push({ n: s10_PH[Math.floor(rnd(k * 41 + j * 11 + 1) * s10_PH.length)], x: cx, y: 250 + r2 * 90 + (j % 2) * 20, s: (m === 1 ? 5.2 : m < 4 ? 3.8 : 2.8) * (.9 + r * .25), flip: r > .5, pop: t0 + .02 + j * .05 });
-    }
-    s10_FR.push([t0, t1, cats]);
+const s10_SHOUT = [31.26, 33.22, 35.44, 37.83, 41.11, 43.33, 45.42, 46.97];   // each "I am!" in the clip
+const s10_HERO = [[-120, 300, 4.6, 0], [330, 310, 4.2, 1], [-400, 300, 4.4, 0], [0, 335, 5.0, 1], [430, 330, 4.2, 0], [-490, 330, 4.0, 1], [230, 345, 4.4, 0], [-170, 345, 4.6, 1]];
+const s10_POP = []; {
+  const t0 = 31.6, t1 = 48.6;
+  for (let t = t0, k = 0; t < t1; t += Math.max(.17, .7 - (t - t0) * .032), k++) {
+    if (s10_SHOUT.some(h => Math.abs(h - t) < .12)) continue;
+    const r = rnd(k * 29 + 3), r2 = rnd(k * 13 + 5), pr = (t - t0) / (t1 - t0);
+    s10_POP.push({ n: s10_PH[Math.floor(rnd(k * 41 + 1) * s10_PH.length)], x: -620 + 1240 * r, y: 150 + 200 * r2, s: (3.4 - 1.3 * pr) * (.9 + .25 * rnd(k * 7 + 2)), flip: rnd(k * 53 + 9) > .5, pop: s10_S(t), hero: false });
   }
+  s10_SHOUT.forEach((t, i) => { const h = s10_HERO[i]; s10_POP.push({ n: ['cat8b', 'cat10bw', 'cat25b', 'cat14a', 'cat12', 'cat23f', 'cat8a', 'cat13'][i], x: h[0], y: h[1], s: h[2], flip: !!h[3], pop: s10_S(t), hero: true }); });
 }
-const s10_ALL = s10_SHOTS.concat(s10_FR);
-const s10_CROWD0 = s10_C('n09d', .15);
+const s10_CATEND = s10_S(31.26) - .04;   // the first cat on paper: the cut lands on its pop
+s10_POP.find(c => c.hero).pop = s10_CATEND;
+const s10_CROWD0 = s10_C('n09d', .15), s10_PILEEND = s10_THOU + .25;   // the pile stays under the crowd's first tiers
 
 // sound: the meadow under the dialogue, a pop and a small mew on each cat, the crowd's mews on the tiers
 sfx('scene10', 0, 'meadow', .3, { loop: true, to: s10_C('i1', 0) });
-for (const [t0, , cats] of s10_ALL) cats.forEach((c, j) => { sfx('scene10', +(c.pop).toFixed(2), 'pop', .5); sfx('scene10', +(c.pop + .05).toFixed(2), 'mew' + ((Math.floor(c.pop * 7) + j) % 4 + 1), .35); });
+s10_POP.forEach((c, j) => { sfx('scene10', +(c.pop).toFixed(2), 'pop', c.hero ? .5 : .35); sfx('scene10', +(c.pop + .05).toFixed(2), 'mew' + ((Math.floor(c.pop * 7) + j) % 4 + 1), c.hero ? .4 : .3); });
 sfx('scene10', s10_CROWD0, 'pop', .6); sfx('scene10', s10_CROWD0, 'mews', .35);
 [[s10_HUN, .45], [s10_THOU, .5], [s10_MIL, .6], [s10_BIL, .65], [s10_TRIL, .75]].forEach(([t, v]) => { sfx('scene10', t, 'pop', .7); sfx('scene10', t + .05, 'mews', v); });
 sfx('scene10', s10_C('n09c', 1.7), 'mew2', .3);
@@ -83,15 +72,16 @@ function scene10(p, D) {
   // ---- plain paper: the single cats, then the whole crowd ----
   const E = paperCam(p, 'p22', { x: -900, y: 450, z: 1 });
   const s10_cx = x => -900 + x, s10_cy = y => 450 + y;   // shot coordinates -> world
-  const shotCats = s10_ALL.map(([t0, t1, cats]) => cats.map(c => ({ ...c, t0, t1, p: cutPuppet(E.stage, c.n) })));
+  const shotCats = s10_POP.slice().sort((a, b) => a.hero - b.hero).map(c => ({ ...c, p: cutPuppet(E.stage, c.n) }));   // the shouts in front of the mews
   const names = ['cat8a', 'cat8b', 'cat8c', 'cat8d', 'cat8e', 'cat8f', 'cat22a', 'cat22b', 'cat22c', 'cat22d', 'cat23a', 'cat23b', 'cat23c', 'cat23d', 'cat23e', 'cat23f', 'cat23g', 'cat23h',
     'cat25a', 'cat25b', 'cat25c', 'cat25d', 'cat10bw', 'cat11w', 'cat12', 'cat13', 'cat14a', 'cat14b'];
   const NC = 170, tiers = [[0, 24, s10_CROWD0], [24, 64, s10_HUN], [64, 100, s10_THOU], [100, 132, s10_MIL], [132, 154, s10_BIL], [154, NC, s10_TRIL]];
   const crowd = catCrowd(E.stage, { names, n: NC, box: [-1900, 360, 0, 900], seed: 10, s: [4.4, 2.2] });
   const tierT = i => { for (const [a, b, t] of tiers) if (i >= a && i < b) return t + (i - a) * .025; return s10_TRIL; };
-  E.cut({ x: -900, y: 450, z: 1.3 }, 0).to({ z: 1.0 }, s10_HUN, s10_TRIL - s10_HUN + 1).to({ z: .86 }, s10_TRIL + 1, 3);
+  E.cut({ x: -900, y: 450, z: 1.3 }, 0).to({ z: 1.42 }, s10_CATEND, s10_CROWD0 - s10_CATEND).to({ z: 1.0 }, s10_HUN, s10_TRIL - s10_HUN + 1).to({ z: .86 }, s10_TRIL + 1, 3);
   const SH = 3;   // a little camera knock on each tier
   [s10_HUN, s10_THOU, s10_MIL, s10_BIL, s10_TRIL].forEach((t, i) => E.shake(t, .35, SH + i));
+  s10_POP.filter(c => c.hero).forEach((c, i) => E.shake(c.pop, .25, 1.5 + i * .3));
 
   const turn = pageTurn(p, D - .1, .6, 'in');
   stopClock(D, (q, f) => {
@@ -126,11 +116,11 @@ function scene10(p, D) {
       });
     } else {
       E.apply(q, f);
-      for (const shot of shotCats) for (const c of shot) {
-        const on = q >= c.t0 && q < c.t1 && q >= c.pop - .01; vis(c.p.g, on); if (!on) continue;
-        const u = q - c.pop, pop = u < .3 ? Math.sin(u / .3 * Math.PI) * 30 : 0, say = pk(q, c.pop + .12, .2);
-        c.p.pose({ x: s10_cx(c.x), y: s10_cy(c.y), s: c.s * (1 + .08 * say + (u < .08 ? .1 : 0)), flip: !!c.flip, bob: pop + 8 * pk(q, c.pop + .3, .15),
-          sq: 1 + .016 * Math.sin(q * 2.4 + c.x), rot: Math.sin(q * 3 + c.x) * (1.5 + 3 * say) }, f + c.x);
+      for (const c of shotCats) {
+        const on = q >= c.pop - .01 && q < s10_PILEEND; vis(c.p.g, on); if (!on) continue;
+        const u = q - c.pop, pop = u < .3 ? Math.sin(u / .3 * Math.PI) * 30 : 0, say = c.hero ? pk(q, c.pop + .12, .3) : pk(q, c.pop + .1, .15) * .5;
+        c.p.pose({ x: s10_cx(c.x), y: s10_cy(c.y), s: c.s * (1 + .08 * say + (u < .08 ? .1 : 0)), flip: c.flip, bob: pop + 8 * pk(q, c.pop + .3, .15),
+          sq: 1 + .016 * Math.sin(q * 2.4 + c.x), rot: Math.sin(q * 3 + c.x) * (1.5 + 3 * say) }, f + Math.round(c.x));
       }
       crowd.pose(q, f, { from: 0, every: i => tierT(i) });
     }

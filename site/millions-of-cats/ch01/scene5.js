@@ -3,7 +3,8 @@
    head lifts and the camera follows his eyes to the right; C (3.4 – 4.84) insert on the hillock, "another cat" pops up
    on it; D (4.84 – 7.9) back on him, wider, one more look up and more cats around his feet; E (7.9 – 9.1) closer and
    quicker, "before he knew it"; F (9.1 – end) "chosen them all": the camera pulls back over a crowd that fills the page.
-   Every look up is a head lift (part `head`) and, a moment later, new cats pop in. */
+   Every look up is a head lift (part `head`) and, a moment later, new cats pop in. Every cat stands inside Gág's arched
+   vignette (world x 330 – 1250, feet no lower than y 792): they crowd up to its edge and stop there. */
 'use strict';
 const PRE5 = .5;
 const S5_NAMES = ['cat8a', 'cat8b', 'cat8c', 'cat8d', 'cat8e', 'cat8f', 'cat22a', 'cat22b', 'cat22d', 'cat23a', 'cat23b', 'cat23c', 'cat23d', 'cat23e',
@@ -28,12 +29,12 @@ function scene5(p, D) {
   const out = pageTurn(p, 0, .6, 'out'), turn = pageTurn(p, D - .1, .6, 'in');
   const man = cutPuppet(cam.stage, 'man14'), at = pagePos('p14', 'man14');
   // the cats: those of each look, then the great crowd at "chosen them all"
-  const cats = S5_CATS.map(([k, n, x, y, s, fl, d], i) => ({ i, t: T(S5_LOOK[k] + d), x, y, s, flip: !!fl, p: cutPuppet(cam.stage, n), ph: rnd(i * 5 + 2) * 7 }));
+  const cats = S5_CATS.map(([k, n, x, y, s, fl, d], i) => ({ i, t: T(S5_LOOK[k] + d), x: Math.min(1250, Math.max(330, x)), y: Math.min(792, y), s, flip: !!fl, p: cutPuppet(cam.stage, n), ph: rnd(i * 5 + 2) * 7 }));
   const ALL = T(9.12);
   const crowd = [
-    catCrowd(cam.stage, { names: S5_NAMES, n: 24, box: [230, 745, 1400, 840], seed: 5, s: [1.9, 1.4] }),
-    catCrowd(cam.stage, { names: S5_NAMES, n: 40, box: [-100, 640, 1700, 900], seed: 6, s: [1.9, 1.0] }),
-    catCrowd(cam.stage, { names: S5_NAMES, n: 70, box: [-500, 600, 2100, 1000], seed: 7, s: [2.1, 1.0] }),
+    catCrowd(cam.stage, { names: S5_NAMES, n: 24, box: [330, 745, 1250, 792], seed: 5, s: [1.9, 1.4] }),
+    catCrowd(cam.stage, { names: S5_NAMES, n: 40, box: [330, 700, 1250, 792], seed: 6, s: [1.9, 1.0] }),
+    catCrowd(cam.stage, { names: S5_NAMES, n: 70, box: [330, 640, 1250, 792], seed: 7, s: [2.1, 1.0] }),
   ];
   const wave = [[ALL, .05], [ALL + .5, .04], [ALL + 1.1, .035]];
   // in front of the man's hole at his feet, over the stand-in: a few cats stay round him from the first look

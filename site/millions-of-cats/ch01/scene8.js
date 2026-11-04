@@ -29,8 +29,10 @@ function scene8(p, D) {
   const order = Array.from({ length: NP }, (_, i) => i).sort((a, b) => rnd(a * 7 + 3) - rnd(b * 7 + 3));
   const patches = Array.from({ length: NP }, (_, i) => ({ x: BX + (i % COLS + .2 + rnd(i * 5 + 1) * .6) * BW / COLS, y: BY + (Math.floor(i / COLS) + .2 + rnd(i * 5 + 2) * .6) * BH / ROWS,
     r: 62 + rnd(i * 5 + 3) * 22, t: order.indexOf(i) / NP }));
+  // each bite is a rounded, ragged blob (a ring of 16 points, a few nicked in), drawn at unit size and scaled by transform
+  const blob = i => Array.from({ length: 16 }, (_, k) => { const a = k / 16 * 6.2832, r = (k % 5 === 2 ? .66 : 1) * (.86 + .3 * rnd(i * 31 + k)); return `${(Math.cos(a) * r * 1.2).toFixed(2)},${(Math.sin(a) * r * 1.2).toFixed(2)}`; }).join(' ');
   defs.innerHTML = `<mask id="s8_eat" maskUnits="userSpaceOnUse" x="${BX - 20}" y="${BY - 20}" width="${BW + 40}" height="${BH + 40}"><rect x="${BX - 20}" y="${BY - 20}" width="${BW + 40}" height="${BH + 40}" fill="#fff"/>
-      <g id="s8_bites" fill="#000">${patches.map((a, i) => `<ellipse id="s8_b${i}" cx="${a.x.toFixed(0)}" cy="${a.y.toFixed(0)}" rx="0" ry="0"/>`).join('')}</g><polygon points="926,428 985,452 1114,482 1276,519 1362,541 1379,571 1114,571 996,557 942,509" fill="#fff"/></mask>
+      <g id="s8_bites" fill="#000">${patches.map((a, i) => `<polygon id="s8_b${i}" points="${blob(i)}" transform="translate(${a.x.toFixed(0)} ${a.y.toFixed(0)}) scale(0)"/>`).join('')}</g><polygon points="926,428 985,452 1114,482 1276,519 1362,541 1379,571 1114,571 996,557 942,509" fill="#fff"/></mask>
     <filter id="s8_grow" x="-5%" y="-10%" width="110%" height="120%"><feMorphology operator="dilate" radius="4"/></filter>
     <mask id="s8_bedMask" maskUnits="userSpaceOnUse" x="${BX - 20}" y="${BY - 20}" width="${BW + 40}" height="${BH + 40}"><image href="../img/sets/p20/grass.webp" x="${BX}" y="${BY}" width="${BW}" height="${BH}" preserveAspectRatio="none" filter="url(#s8_grow)"/></mask>`;
   const bites = patches.map((a, i) => defs.querySelector('#s8_b' + i));
@@ -38,21 +40,23 @@ function scene8(p, D) {
   // P: page 20, the hill and its grass; puppets stand in front of the grass layer
   const P = paperCam(p, 'p20', { x: 800, y: 380, z: 1.3 }, { after: 'grass' });
   P.layer('grass').setAttribute('mask', 'url(#s8_eat)');
-  // the bare hill under the grass: dull stubble, a few short ticks of Gág's ink
+  // the bare hill under the grass is plain paper; a few short ticks of Gág's ink stay as stubble
   const bed = mk('g', { mask: 'url(#s8_bedMask)' }), tk = [];
-  for (let i = 0; i < 160; i++) { const x = BX + rnd(i * 3 + 1) * BW, y = BY + rnd(i * 3 + 2) * BH, l = 5 + rnd(i * 3 + 3) * 8; tk.push(`M${x.toFixed(0)},${y.toFixed(0)} l${(l * .4).toFixed(0)},${(-l).toFixed(0)}`); }
-  bed.innerHTML = `<rect x="${BX - 20}" y="${BY - 20}" width="${BW + 40}" height="${BH + 40}" fill="#d6c9aa"/><path d="${tk.join(' ')}" fill="none" stroke="#1e1a16" stroke-width="1.8" stroke-linecap="round" opacity=".6"/>`;
+  for (let i = 0; i < 9; i++) { const cx = BX + rnd(i * 7 + 1) * BW, cy = BY + rnd(i * 7 + 2) * BH;   // little tufts of three or four strokes
+    for (let k = 0; k < 3 + (i % 2); k++) { const x = cx + (rnd(i * 17 + k * 3) - .5) * 40, y = cy + (rnd(i * 17 + k * 3 + 1) - .5) * 22, l = 5 + rnd(i * 17 + k) * 12, a = (rnd(i * 17 + k * 5 + 2) - .5) * 1.4;
+      tk.push(`M${x.toFixed(0)},${y.toFixed(0)} l${(Math.sin(a) * l).toFixed(0)},${(-Math.cos(a) * l).toFixed(0)}`); } }
+  bed.innerHTML = `<path d="${tk.join(' ')}" fill="none" stroke="#1e1a16" stroke-width="2" stroke-linecap="round" opacity=".75"/>`;
   P.layer('grass').parentNode.insertBefore(bed, P.layer('grass'));
   const at20 = pagePos('p20', 'man20'), man = cutPuppet(P.stage, 'man20');
   P.to({ x: 800, y: 380, z: 1.3 }, 0, s8_B)
-   .cut({ x: 620, y: 420, z: 2.4 }, s8_B).cut({ x: 700, y: 420, z: 2.4 }, s8_T(1.55))
-   .cut({ x: 800, y: 360, z: 1.12 }, s8_WIDE).to({ x: 800, y: 372, z: 1.05 }, s8_WIDE, s8_REF - s8_WIDE)
+   .cut({ x: 480, y: 400, z: 2 }, s8_B).cut({ x: 500, y: 400, z: 2 }, s8_T(1.55))
+   .cut({ x: 800, y: 425, z: 1 }, s8_WIDE).to({ x: 800, y: 420, z: .98 }, s8_WIDE, s8_REF - s8_WIDE)
    .cut({ x: 800, y: 400, z: 1.5 }, s8_ATE - .5).to({ x: 900, y: 400, z: 1.7 }, s8_ATE - .5, 3.8)
    .cut({ x: 850, y: 390, z: 1.15 }, s8_LEFT + .5).to({ x: 850, y: 400, z: 1.3 }, s8_LEFT + .5, 2.4);
-  const L = lettering(P.stage, s8_kids.flat(), { x: 800, y: 50, s: 1.3 });
+  const L = lettering(P.stage, s8_kids.flat(), { x: 800, y: 770, s: 1.15 });
   const hillC = catCrowd(P.stage, { names: s8_CATS, n: 18, box: [380, 440, 1250, 505], seed: 8, s: [.85, .55] });
-  const bigA = [['cat8a', 500, 560, 2.1, false, 0], ['cat8c', 610, 565, 2.7, false, 1], ['cat23b', 730, 565, 2.5, false, 2]].map(([n, x, y, s, flip, i]) => ({ p: cutPuppet(P.stage, n), x, y, s, flip, i }));
-  const bigB = [['cat23a', 560, 565, 2.4, false, 3], ['cat8c', 680, 565, 3.0, true, 4], ['cat8d', 790, 565, 2.2, false, 5]].map(([n, x, y, s, flip, i]) => ({ p: cutPuppet(P.stage, n), x, y, s, flip, i }));
+  const bigA = [['cat8a', 340, 490, 1.3, false, 0], ['cat8c', 460, 495, 1.5, false, 1], ['cat23b', 580, 495, 1.4, false, 2]].map(([n, x, y, s, flip, i]) => ({ p: cutPuppet(P.stage, n), x, y, s, flip, i }));
+  const bigB = [['cat23a', 380, 495, 1.4, false, 3], ['cat8c', 500, 495, 1.6, true, 4], ['cat8d', 620, 495, 1.3, false, 5]].map(([n, x, y, s, flip, i]) => ({ p: cutPuppet(P.stage, n), x, y, s, flip, i }));
   const eaters = [['cat8a', 420, 480, .8, false], ['cat22c', 620, 495, .7, false], ['cat23d', 820, 500, .7, false], ['cat8b', 1060, 505, .8, true], ['cat25a', 1200, 505, .7, true], ['cat22d', 740, 510, .65, false]]
     .map(([n, x, y, s, flip], i) => ({ p: cutPuppet(P.stage, n), x, y, s, flip, i }));
   P.soft(s8_B - .01, true).soft(s8_WIDE - .01, false).soft(s8_ATE - .51, true).soft(s8_LEFT + .49, false);
@@ -62,13 +66,13 @@ function scene8(p, D) {
   const at21 = pagePos('p21', 'man21'), man21 = cutPuppet(Q.stage, 'man21');
   Q.to({ x: 1160, y: 660, z: 2.2 }, s8_SAY, 4.4);
 
-  const turnOut = pageTurn(p, 0, .6, 'out'), turnIn = pageTurn(p, D - .1, .6, 'in');
+  const turnOut = pageTurn(p, 0, .45, 'out'), turnIn = pageTurn(p, D - .1, .45, 'in');
   stopClock(D, (q, f) => {
     const inQ = q >= s8_SAY && q < s8_ATE - .5;
     vis(P.root, !inQ); vis(Q.root, inQ);
     P.apply(q, f); Q.apply(q, f);
     const closeA = q >= s8_B && q < s8_T(1.55), closeB = q >= s8_T(1.55) && q < s8_WIDE, wide = !closeA && !closeB && !inQ;
-    vis(man.g, wide && q < s8_ATE - .5 || q >= s8_LEFT + .5);
+    vis(man.g, !closeA && !closeB && !inQ);
     man.pose({ x: at20.x, y: at20.y, s: at20.s, sq: 1 + .012 * Math.sin(q * 2.2), rot: Math.sin(q * 1.3) * .8 }, f);
     hillC.pose(q, f, { from: .6, every: i => i < 8 ? i * .2 : s8_T(4.3) - .6 + (i - 8) * .55 });
     vis(hillC.g, wide && q < s8_ATE - .5);
@@ -79,7 +83,7 @@ function scene8(p, D) {
     for (const [arr, on] of [[bigA, closeA], [bigB, closeB]]) arr.forEach(c => { vis(c.p.g, on); c.p.pose({ x: c.x, y: c.y, s: c.s * (1 + .02 * bob(c, mewT)), flip: c.flip, sq: 1 + .012 * Math.sin(q * 2.3 + c.i) + .05 * bob(c, mewT), rot: Math.sin(q * 1.6 + c.i) - bob(c, mewT) * 2 }, f + c.i); });
     // the bites: each patch opens in a few steps on twos as its moment comes, so the grass goes patch by patch
     const span8 = s8_LEFT + .3 - s8_ATE;
-    patches.forEach((a, i) => { const u = k01(q, s8_ATE + a.t * span8 * .85, .45), st = Math.floor(u * 4) / 4; const r = a.r * (.7 + .8 * st) * (1 + .5 * k01(q, s8_LEFT - .7, 1.2)) * (st ? 1 : 0); bites[i].setAttribute('rx', r.toFixed(1)); bites[i].setAttribute('ry', (r * .8).toFixed(1)); });
+    patches.forEach((a, i) => { const u = k01(q, s8_ATE + a.t * span8 * .85, .45), st = Math.floor(u * 4) / 4; const r = a.r * (.7 + .8 * st) * (1 + .5 * k01(q, s8_LEFT - .7, 1.2)) * (st ? 1 : 0); bites[i].setAttribute('transform', `translate(${a.x.toFixed(0)} ${a.y.toFixed(0)}) scale(${r.toFixed(1)} ${(r * .85).toFixed(1)})`); });
     // the eaters: heads down, munching (a quick small dip) while there is grass; sitting up after
     const eatOn = q >= s8_ATE - .5 && q < s8_LEFT + .5 || q >= s8_LEFT + .5;
     for (const c of eaters) {

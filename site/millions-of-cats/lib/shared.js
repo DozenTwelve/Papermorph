@@ -19,7 +19,8 @@ const rnd = k => (jit(k, 7) + 1) / 2;
    Between places, Gág's next page comes over this one like a turned leaf: a cream sheet with a soft shadow at its
    edge sweeps from right to left. 'in' ends with the frame covered (the scene ends on it), 'out' starts covered and
    uncovers the new page (the next scene begins with it). Put it last in the scene's panel, so it is drawn on top. */
-function pageTurn(p, t0, dur = .7, mode = 'in') {
+function pageTurn(p, t0, dur = .45, mode = 'in') {
+  dur = Math.min(dur, .45);   // round 1: the turns showed up to 1.5 s of blank sheet; a leaf turns quickly
   const g = mk('g', {}, p);
   g.innerHTML = `<defs><linearGradient id="turnEdge${mode}" x1="0" x2="1"><stop offset="0" stop-color="#2a1608" stop-opacity="0"/><stop offset="1" stop-color="#2a1608" stop-opacity=".28"/></linearGradient>
     <linearGradient id="turnFace${mode}" x1="0" x2="1"><stop offset="0" stop-color="#e6dcc4"/><stop offset=".12" stop-color="#efe8d6"/><stop offset="1" stop-color="#efe8d6"/></linearGradient></defs>

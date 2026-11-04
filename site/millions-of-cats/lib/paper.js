@@ -28,7 +28,7 @@ const PAPER_DEFS = `<defs>
   <g id="mF"><circle r="3.6" fill="#6b1f1f"/></g>
   <g id="mG"><ellipse rx="6.5" ry="2.6" fill="#6b1f1f"/><path d="M-5,-1.5 h10" stroke="#f6efe0" stroke-width="2"/></g>
   <g id="mH"><ellipse rx="6" ry="3.8" fill="#6b1f1f"/><ellipse cy="-1" rx="2.6" ry="1.6" fill="#e07a78"/></g>
-  <radialGradient id="vignette" cx="50%" cy="45%" r="75%"><stop offset="60%" stop-color="#1e0f05" stop-opacity="0"/><stop offset="100%" stop-color="#1e0f05" stop-opacity=".45"/></radialGradient>
+  <radialGradient id="vignette" cx="50%" cy="45%" r="75%"><stop offset="60%" stop-color="#1e0f05" stop-opacity="0"/><stop offset="100%" stop-color="#1e0f05" stop-opacity=".2"/></radialGradient>
 </defs>`;
 document.body.insertAdjacentHTML('afterbegin', `<svg width="0" height="0" style="position:absolute" aria-hidden="true">${PAPER_DEFS}</svg>`);
 // The exposure flicker is an HTML layer over the stage: changing it every frame inside the SVG would repaint the whole picture.

@@ -33,7 +33,8 @@ function scene11(p, D) {
     .cut({ x: 900, y: 540, z: 2.7 }, s11_SCR).to({ x: 860, y: 520, z: 3 }, s11_SCR, s11_CLAW - s11_SCR)
     .cut({ x: 790, y: 420, z: 2.6 }, s11_CLAW).to({ x: 800, y: 440, z: 2.9 }, s11_CLAW, s11_W - s11_CLAW)
     .cut({ x: 800, y: 470, z: 1.3 }, s11_W).to({ x: 900, y: 430, z: 1.4 }, s11_W, s11_RAN - .3 - s11_W)
-    .to({ x: 1060, y: 280, z: 2.1 }, s11_RAN - .3, 1.6).to({ x: 1150, y: 235, z: 2.4 }, s11_RAN + 1.4, 1.2);
+    // on "ran" a cut to the house, past the grey smear where the pair was lifted (world x < 1140): they run into the frame from its left edge
+    .cut({ x: 1372, y: 215, z: 3.5 }, s11_RAN - .1).to({ x: 1385, y: 210, z: 3.7 }, s11_RAN - .1, 3);
   cam.shake(s11_QUARREL, s11_BIT - s11_QUARREL, 5); cam.shake(s11_BIT, s11_W - s11_BIT, 7); cam.shake(s11_W, s11_RAN - s11_W, 3);
   // the tangle in a wrapper, so it can jolt without touching the layer's own parallax transform
   const fg = cam.layer('fight'), wrap = mk('g', {}, cam.world);
@@ -63,7 +64,7 @@ function scene11(p, D) {
       }
     }
     // the tiny old people: they shake and cringe, then run to the house and in at the door
-    const ru = (q - s11_RAN) / 2.3, mu = ru, wu = (q - s11_RAN + .15) / 2.0;
+    const ru = (q - s11_RAN) / 1.7, mu = ru, wu = (q - s11_RAN + .15) / 1.6;
     const tremble = a * .25 * k(51), hop = q => { const u = Math.floor(q * FPS / 2) * 2 / FPS * 3.2 * Math.PI * 2; return Math.abs(Math.sin(u)) * 6; };
     const doRun = (pup, at, u, lag, flip, ph) => {
       const run = u > 0, on = u < 1;
@@ -76,5 +77,5 @@ function scene11(p, D) {
     turnOut(q); turn(q);
   });
   // the door: each is gone through it
-  sfx('scene11', s11_RAN + 2.1, 'door', .6);
+  sfx('scene11', s11_RAN + 1.65, 'door', .6);
 }

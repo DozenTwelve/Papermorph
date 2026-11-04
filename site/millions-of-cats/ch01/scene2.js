@@ -1,9 +1,10 @@
 /* scene2.js — Over the hills (p06+p07 as one spread, set `hills`; layer `clouds` drifts by parallax). The old man (man5,
-   lifted off p05, tiny here) walks from the house in the valley over the ridges: five shots, each a stretch of the
+   lifted off p05, tiny here) walks from the house in the valley over the ridges, then turns the page to p08 (the hill of cats): five shots, each a stretch of the
    way, so a walk of a few hundred px per shot makes the whole long journey (a cut is the time that passes). He walks
    with cutWalk, legs on pins, feet planted; the camera follows. Beat clock = PRE2 + the scene-clip word times. */
 'use strict';
 const PRE2 = 1.2;                    // the page turn uncovers the valley, then "And he set out"
+const S2_TURN = PRE2 + 11.45;       // "at last he came to a hill": the page turns to p08
 const S2_S = .17;                    // his size on this spread (Gág's ridge man was about 43 px; the piece is ~340 px tall)
 // The spread's top edge (world x, y of the first ink), read off the set: he walks the crest, against the blank sky.
 const S2_TOP = [[330,521],[360,515],[400,509],[440,507],[480,512],[520,523],[560,537],[580,542],[600,530],[620,513],[640,499],[660,485],[680,473],[700,457],[720,447],[740,438],[760,431],[780,424],[800,424],[820,450],[840,454],[860,438],[880,430],[900,421],[920,413],[940,398],[960,395],[980,377],[1000,367],[1020,353],[1040,340],[1060,333],[1080,330],[1100,319],[1120,303],[1140,292],[1160,276],[1180,240],[1200,226],[1220,214],[1240,200],[1260,196],[1280,192],[1300,190],[1320,196],[1340,213],[1360,213],[1380,207],[1400,210],[1420,220],[1440,247],[1460,252],[1480,255],[1500,272],[1520,276],[1540,270],[1560,272],[1580,274],[1600,273],[1620,271],[1640,267],[1660,261],[1680,260],[1700,266],[1720,264],[1740,259],[1760,256],[1780,261],[1800,264],[1820,268],[1840,263],[1860,255],[1880,249],[1900,246],[1920,234],[1940,224]];
@@ -36,16 +37,35 @@ const S2_SHOTS = [
   { t0: 0,        go: PRE2 + .05, stop: 99, poly: [[-132, 782], [-95, 789], [-40, 773], [10, 750], [60, 740], [130, 752]], z: 1.5, vol: .12 },
   { t0: PRE2 + 2.75, go: PRE2 + 2.9, stop: 99, poly: s2_crest(610, 800), z: 2.3, vol: .12, period: .5 },
   { t0: PRE2 + 5.15, go: PRE2 + 5.2, stop: 99, poly: s2_crest(770, 960), z: 2.3, vol: .1, period: .6, A: 17, slump: 1 },
-  { t0: PRE2 + 7.5,  go: PRE2 + 7.5, stop: 99, poly: s2_crest(960, 1200), z: 1.0, vol: .05, period: .5 },
-  { t0: PRE2 + 10.05, go: PRE2 + 10.1, stop: PRE2 + 13.6, poly: s2_crest(1530, 1745), z: 2.2, vol: .12, period: .5 },
+  // the long walk: on the road (the pale path up the ridge to the crest), the camera on him
+  { t0: PRE2 + 7.5,  go: PRE2 + 7.5, poly: [[960, 425], [1000, 388], [1050, 346], [1100, 314], ...s2_crest(1110, 1190)], z: 2.0, vol: .1, period: .5, stop: S2_TURN },
 ];
+
+// p08 (set cathill): the old man from behind and the cats on the hill. Shared with scene3, which holds the same picture.
+// Returns pose(q, f, u, fl): u 0..1 the arms rising (on their pins), fl the surprise flutter.
+function s2_hill(cam) {
+  const man = cutPuppet(cam.stage, 'man8'), at = pagePos('cathill', 'man8');
+  const pets = ['cat8a', 'cat8c', 'cat8d', 'cat8e'].map((n, i) => ({ n, i, p: cutPuppet(cam.stage, n), at: pagePos('cathill', n) }));
+  cam.world.insertBefore(mk('rect', { x: -3000, y: -2000, width: 8000, height: 5000, fill: '#eee8d6' }), cam.world.firstChild);
+  return (q, f, u, fl) => {
+    man.pose({
+      x: at.x, y: at.y, s: at.s, sq: 1 + .012 * Math.sin(q * 2.2), rot: Math.sin(q * 1.3) * .5,
+      bob: u > 0 && u < 1 ? Math.sin(u * Math.PI) * 9 : 0,
+      parts: { armL: -75 * (1 - u) + fl, armR: 75 * (1 - u) - fl, head: -7 * u + Math.sin(q * 1.8) * 1.2 },
+    }, f);
+    for (const c of pets) c.p.pose({ x: c.at.x, y: c.at.y, s: c.at.s, rot: Math.sin(q * 2.4 + c.i * 2) * 1.6, sq: 1 + .012 * Math.sin(q * 2.6 + c.i), bob: (q + c.i * 1.1) % 2.3 < .2 ? Math.sin(((q + c.i * 1.1) % 2.3) / .2 * Math.PI) * 4 : 0 }, f + c.i);
+  };
+}
+const S2_HILLCAM = { x: 640, y: 560, z: 1.95 };   // where the p08 shot ends, and scene3 begins
 
 function scene2(p, D) {
   const P = PRE2, T = (c, t = 0) => clipAt('scene2', P, c, t);
   const cam = paperCam(p, 'hills');
   cam.world.insertBefore(mk('rect', { x: -3000, y: -2000, width: 8000, height: 5000, fill: '#eee8d6' }), cam.world.firstChild);   // the set's sky is cut out under the clouds; parallax would show the stage
   const man = cutPuppet(cam.stage, 'man5');
-  const out = pageTurn(p, 0, .6, 'out'), turn = pageTurn(p, D - .1, .6, 'in');
+  const cam1 = paperCam(p, 'cathill'), hill = s2_hill(cam1);
+  const out = pageTurn(p, 0, .6, 'out'), tin = pageTurn(p, S2_TURN, .3, 'in'), tout = pageTurn(p, S2_TURN + .3, .3, 'out');
+  const SW = S2_TURN + .3, UP = T('n02', 13.0), UPEND = T('n02', 13.75);   // the swap under the turned leaf; arms up on "covered with cats"
   for (const s of S2_SHOTS) { s.period ??= .5; s.A ??= 20; s.L = 128; }
 
   // Where he is at beat time q: the shot, his steps, the slope under his feet.
@@ -59,12 +79,15 @@ function scene2(p, D) {
 
   // Cameras: wide on the valley with him at the door; close on the crest, following; wide again for the long walk,
   // the camera going ahead of him; then the last ridge, pushing in as he stops.
-  const lead = 90, fx = t => Math.min(manAt(t).x + lead, 1611), fy = t => manAt(t).y - 42;
+  // (the grey smudge where Gág's own figure was lifted off the ridge, near x 1340-1380, stays out of frame)
+  const lead = 90, fx = t => { const m = manAt(t); return Math.min(m.x + (t >= S2_SHOTS[3].t0 ? -110 : lead), 935); },
+  fy = t => manAt(t).y - 42;
   cam.cut({ x: fx, y: fy, z: 2.5 }, 0);
   cam.cut({ x: fx, y: fy, z: 2.3 }, S2_SHOTS[1].t0);
   cam.cut({ x: fx, y: fy, z: 2.3 }, S2_SHOTS[2].t0);
-  cam.cut({ x: 960, y: 330, z: 1.0 }, S2_SHOTS[3].t0).to({ x: 1200, y: 320, z: 1.05 }, S2_SHOTS[3].t0, P + 10.9 - S2_SHOTS[3].t0);
-  cam.cut({ x: fx, y: fy, z: 2.2 }, S2_SHOTS[4].t0).to({ z: 2.7 }, T('n02', 13.0), 2.0);
+  cam.cut({ x: fx, y: fy, z: 2.0 }, S2_SHOTS[3].t0).to({ z: 2.3 }, S2_SHOTS[3].t0 + 1, SW - S2_SHOTS[3].t0 - 1);
+  // p08: wide on the hill, then in on him as his arms rise; scene3 opens on the last framing
+  cam1.cut({ x: 800, y: 470, z: 1.36 }, 0).to(S2_HILLCAM, SW, UPEND - SW);
 
   // Sound: wind in the grass and birds; his steps (a soft shoe, in turn), quieter the further he is.
   sfx('scene2', 0, 'meadow', .5, { loop: true }); sfx('scene2', 0, 'birds', .3, { loop: true });
@@ -73,9 +96,15 @@ function scene2(p, D) {
     const t1 = Math.min(s.stop, S2_SHOTS[S2_SHOTS.indexOf(s) + 1]?.t0 ?? D);
     for (let k = 0; ; k++) { const t = s.go + s.period / 4 + k * s.period / 2; if (t >= t1 - .05) break; sfx('scene2', t, 'step' + (1 + n++ % 3), s.vol); }
   }
-  sfx('scene2', D - .15, 'page', .6);
+  sfx('scene2', S2_TURN, 'page', .6); sfx('scene2', UP, 'whoosh', .22);
 
   stopClock(D, (q, f) => {
+    const hillShot = q >= SW; vis(cam.root, !hillShot); vis(cam1.root, hillShot);
+    if (hillShot) {
+      cam1.apply(q, f);
+      hill(q, f, span(q, UP, UPEND), q > UPEND ? Math.sin(q * 11) * 2.5 * span(q, UPEND, UPEND + .4) : 0);
+      out(q); tin(0); tout(q); return;
+    }
     cam.apply(q, f);
     const m = manAt(q), s = m.s, w = m.w, still = !m.walking;
     const slope = m.ang, lean = still ? 0 : (slope < -8 ? 7 : 3);
@@ -83,11 +112,11 @@ function scene2(p, D) {
     const slump = s.slump && q < T('n02', 7.4) ? .97 : 1;
     man.pose({
       x: m.x, y: m.y, s: S2_S, rot: Math.max(-6, Math.min(6, slope * .25)) + lean + (still ? Math.sin(q * 1.7) * .8 : 0),
-      bob: (still ? 0 : w.bob * S2_S) + (still && q > T('n02', 13.7) && q < T('n02', 13.7) + .4 ? Math.sin((q - T('n02', 13.7)) / .4 * Math.PI) * 9 : 0),
+      bob: (still ? 0 : w.bob * S2_S),
       sq: slump * (1 + .012 * Math.sin(q * 2.2)),
       parts: still ? { legL: 0, legR: 0 } : { legL: w.legL, legR: w.legR },
       move: { smoke: [Math.sin(q * 1.3) * 3, -Math.abs(Math.sin(q * 1.1)) * 4] },
     }, f);
-    out(q); turn(q);
+    out(q); tin(q); tout(1e9);
   });
 }
