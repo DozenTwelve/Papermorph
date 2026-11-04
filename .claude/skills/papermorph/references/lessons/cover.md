@@ -15,6 +15,7 @@ One page: no hash or `#book` shows the cover, `#references` the reference list, 
   - A chapter's own third entry `{ chapter }` changes only the number on its card; `{ href, chapter }` links a card to another book's chapter, outside this book's count and progress (`href` on a unit's entry does it for the whole unit).
 - `hues`: one colour per unit, cycling.
 - A book that cites works gets a `#references` view ([courses.md](courses.md#citations)).
+- The infinity guide on the cover and beside the question cards comes with the engine (`mascotEl` in `engine.js`, the cover's in `contents.js`), so a book's copy is replaced at every sync. A custom guide needs a hook in the engine itself, agreed with the user and made at the engine's source.
 - A book with its own look overrides the tokens of `lib/contents.css` (`--board`, `--chalk`, `--top-bg`, …) in a `<style>` after it, as the template's comment shows, rather than copying the stylesheet into the page.
 
 ## Unit sketches (`unit-art.js`)

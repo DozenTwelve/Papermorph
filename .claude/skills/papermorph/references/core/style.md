@@ -50,7 +50,7 @@ Start from the tier's template: [lessons](../../assets/templates/style.json), or
 | `words` | the user's own words about the look, verbatim, with later feedback that changed the bar | all |
 | `look` | palette, what each colour means, text and maths fonts, notation and rounding | all |
 | `voice` | TTS engine (`edge`; `kokoro` when Edge is unavailable or local audio is wanted; `eleven`, paid, for a film: [core/sound.md](sound.md#voices)), voice, rate | all |
-| `pacing` | minutes per chapter, where checks and practice go | all |
+| `pacing` | minutes per chapter, where checks and practice go | lessons, documentaries |
 | `engine` | engine source and version used to build the book | all |
 | `scenes` | art style, cast, how storyboards are reviewed | lessons, tier 2 |
 | `components` | shared elements: name, file, what each does | lessons, tier 2 (tier 1 when the book has some) |

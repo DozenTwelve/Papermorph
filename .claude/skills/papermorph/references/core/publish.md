@@ -18,7 +18,6 @@ It runs `engine.py` into `site/<book>/lib/` (the engine, plus `lib/book.css` for
 - A chapter's minutes appear on its title screen (`CHAPTER.minutes`), its contents card and any series card, the same number in each: the length of its audio (the `dur`s in `timings.js`) plus about 15 s per question, rounded to whole minutes and never below 1.
 - Each book has its own engine copy, kept in step by `engine.py` ([core/engine.md](engine.md)). The engine and the cover or series page take the progress key from the book's URL folder ([core/engine.md](engine.md#player)), so moving a book resets its readers' progress unless `--progress-key` is set in `lib/book.css`.
 - A chapter returns to its book's index; the book opens directly at `/<book>/` and needs no parent index page. Every chapter but the last sets `CHAPTER.next` to the next one.
-- The infinity guide comes with the engine (`mascotEl` in `engine.js`, the cover's in `contents.js`), so a book's copy is replaced at every sync. A custom guide needs a hook in the engine itself, agreed with the user and made at the engine's source.
 
 ## Local preview and delivery
 
