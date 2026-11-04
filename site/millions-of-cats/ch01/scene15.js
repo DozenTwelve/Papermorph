@@ -52,6 +52,11 @@ function scene15(p, D) {
   const wAt = pagePos('p29', 'woman29'), mAt = pagePos('p29', 'man29'), kAt = pagePos('p29', 'kitten29');
   const man = cutPuppet(A.stage, 'man29'), woman = cutPuppet(A.stage, 'woman29'), kit = cutPuppet(A.stage, 'kitten29');
 
+  // warm steam from the basin: slow, small ribbons in Gág's ink (s15W: page px of p29 to world)
+  const s15W = (x, y) => { const S = SETS.p29[0].page; return [S.wx + (x - S.x0) * S.s, S.wy + (y - S.y0) * S.s]; };
+  const s15stg = mk('g', {}, A.stage);
+  const s15steam = [[1950, 1585, 3], [2040, 1595, 5], [2120, 1580, 8]].map(([x, y, sd]) => inkSmoke(s15stg, ...s15W(x, y), { size: 2.6, rise: 95, drift: 8, curl: 6, period: 3.4, ink: 1.3, seed: sd }));
+
   // ---- the milk spread ----
   const B = paperCam(p, 'milk', { x: s15path(s15KEY[0][0], 1), y: s15path(s15KEY[0][0], 2), z: s15path(s15KEY[0][0], 3) });
   B.cut({ x: t => s15path(t, 1), y: t => s15path(t, 2), z: t => s15path(t, 3) }, 0);
@@ -68,18 +73,20 @@ function scene15(p, D) {
     const onA = q < s15TURN; vis(A.root, onA); vis(B.root, !onA);
     if (onA) {
       A.apply(q, f);
+      s15stg.setAttribute('opacity', (.9 * span(q, .3, 1.6)).toFixed(2)); s15steam.forEach(st => st(q));
       // the old man: stands, breathes, watches the bath (a lean in), nods on "brushed" and again when it is soft and shiny
       const nod = 5 * pk(q, s15BRUSH + .15, .25) + 4 * pk(q, s15T(5.9), .25) + 6 * pk(q, s15SHINY + .3, .3) + 2 * Math.sin(q * 1.1);
-      man.pose({ ...mAt, sq: 1 + .012 * Math.sin(q * 2.2 + 1), rot: Math.sin(q * 1.2) * .5 + 1.2 * span(q, s15BATH - .5, s15BATH + .5), parts: { head: nod } }, f);
+      man.pose({ ...mAt, sq: 1 + .012 * Math.sin(q * 2.2 + 1), rot: Math.sin(q * 1.2) * .9 + 1.2 * span(q, s15BATH - .5, s15BATH + .5), parts: { head: nod + 3 * Math.sin(q * 1.9) } }, f);
       // she bends to the bath, then brushes: the forearm strokes on twos from "brushed" to "shiny"
-      const bru = q > s15BRUSH && q < s15SHINY ? Math.sin((q - s15BRUSH) * 9.5) * 13 * Math.min(1, (q - s15BRUSH) * 3) * Math.min(1, (s15SHINY - q) * 3) : 0;
+      const bru = q > s15BRUSH && q < s15SHINY ? Math.sin((q - s15BRUSH) * 9.5) * 17 * Math.min(1, (q - s15BRUSH) * 3) * Math.min(1, (s15SHINY - q) * 3) : 0;
       const bath = span(q, s15BATH - .3, s15BATH + .3) * (1 - span(q, s15BRUSH - .2, s15BRUSH)) * 9 * (1 + .25 * Math.sin(q * 11));   // a rub in the water
       woman.pose({ ...wAt, sq: 1 + .012 * Math.sin(q * 2.2), rot: Math.sin(q * 1.3 + 2) * .5 - 1.5 * span(q, s15BATH - .3, s15BATH + .3) * (1 - span(q, s15BRUSH + .3, s15BRUSH + .8)),
-        parts: { armR: bru * 1 + bath - 4 * pk(q, s15BRUSH, .3) } }, f);
+        parts: { armR: bru * 1 + bath - 4 * pk(q, s15BRUSH, .3), head: 1.6 * Math.sin(q * 1.4) + bru * .28 + bath * .3 } }, f);
       // the kitten on her lap: squirms in the water, small shake when she dries it, a shiver when it is done, then still
       const shiver = q > s15SHINY + .1 && q < s15SHINY + 1.0 ? Math.sin((q - s15SHINY) * 40) * 3 * (1 - span(q, s15SHINY + .1, s15SHINY + 1.0)) : 0;
       const squirm = span(q, s15BATH, s15BATH + .4) * (1 - span(q, s15BRUSH, s15BRUSH + .3)) * Math.sin(q * 7) * 4;
-      kit.pose({ ...kAt, sq: 1 + .02 * Math.sin(q * 2.8) * (q < s15SHINY ? 1 : .3), rot: squirm + shiver + (q > s15BRUSH && q < s15SHINY ? Math.sin(q * 9.5) * 1.5 : 0),
+      const kl = catLife(q, .5, { tail: 14, head: 6 });
+      kit.pose({ ...kAt, parts: kl.parts, sq: 1 + .02 * Math.sin(q * 2.8) * (q < s15SHINY ? 1 : .3), rot: squirm + shiver + (q > s15BRUSH && q < s15SHINY ? Math.sin(q * 9.5) * 1.5 : 0),
         bob: pk(q, s15BATH + .1, .15) * 3 }, f);
     } else {
       B.apply(q, f);
@@ -91,7 +98,9 @@ function scene15(p, D) {
         const dip = bursting * onTwos(q) * 2.4 + (i < 9 ? 1.2 * Math.sin((q + k.ph) * 2.4) : Math.sin(q * 1.3) * .8);
         const flick = ((q + k.ph * 2) % 3.1) < .3 ? 3 * onTwos(q) : 0;
         const s = k.at.s * k.g * (i === 9 ? 1 + .05 * span(q, s15T(12.3), s15T(13.4)) : 1);
-        k.p.pose({ ...k.at, s, bob: pop, rot: dip + flick, sq: 1 + .014 * Math.sin(q * 2.2 + k.ph) }, f + i);
+        const hd = i < 9 ? bursting * onTwos(q) * 9 + 2 * Math.sin((q + k.ph) * 2.4) : catLife(q, k.ph, { head: 8 }).parts.head;   // the head dips and lifts on each lap
+        k.p.pose({ ...k.at, s, bob: pop, rot: dip * .6 + flick, sq: 1 + .014 * Math.sin(q * 2.2 + k.ph),
+          w: 1 + .05 * span(q, k.t + .3, k.t + 2.4) + .014 * Math.sin(q * 1.5 + k.ph), parts: { head: hd } }, f + i);   // plumper within each picture, and a slow swell
       });
       vis(bowl.g, q >= s15AP[9]);
       bowl.pose({ ...bAt, bob: q - s15AP[9] < .3 ? Math.sin((q - s15AP[9]) / .3 * Math.PI) * 14 : 0 }, f);

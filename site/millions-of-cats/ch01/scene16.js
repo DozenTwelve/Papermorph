@@ -52,6 +52,11 @@ function scene16(p, D) {
    .cut({ x: 775, y: 590, z: 3.0 }, s16CUT[5]).to({ x: 765, y: 592, z: 3.6 }, s16CUT[5], s16TURN - s16CUT[5]);       // the cat, "pretty as this one"
   const wAt = pagePos('p33', 'woman33'), mAt = pagePos('p33', 'man33'), cAt = pagePos('p33', 'cat33');
   const woman = cutPuppet(A.stage, 'woman33'), man = cutPuppet(A.stage, 'man33'), cat = cutPuppet(A.stage, 'cat33');
+  // the lamp's flame as its own piece over Gág's: it flickers on twos (scale, skew), never smaller than hers
+  const flame = cutPuppet(A.stage, 'flame33'), fAt = pagePos('p33', 'flame33');
+  // his pipe smoke curls from the pipe bowl in her ink (man33-local px), over the hidden drawn smoke
+  const MC = CUT.man33, s16sm = inkSmoke(mk('g', {}, man.g), (2290 - MC.pa[0]) * MC.sc, (800 - MC.pa[1]) * MC.sc, { size: 8, rise: 150, drift: 34, curl: 13, period: 2.2, ink: 1.8, seed: 3 });
+  const s16r = k => { const x = Math.sin(k * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x); };
 
   // ---- the refrain over the room: all in frame space, above the camera ----
   const veil = mk('rect', { width: 1600, height: 900, fill: '#efe8d6', opacity: 0, visibility: 'hidden', 'pointer-events': 'none' }, p);
@@ -69,6 +74,7 @@ function scene16(p, D) {
 
   // ---- p34: the cat asleep ----
   const B = paperCam(p, 'p34', { x: 815, y: 560, z: 1.5 });
+  const fl = cutPuppet(B.stage, 'flower34'), flAt = pagePos('p34', 'flower34'), sl = cutPuppet(B.stage, 'sleeper34'), slAt = pagePos('p34', 'sleeper34');
   B.to({ x: 815, y: 540, z: 1.7 }, s16TURN + .5, Math.max(4, D - s16TURN - .5));   // a slow hold to the last frame
 
   const turnOut = pageTurn(p, 0, .6, 'out');
@@ -80,13 +86,19 @@ function scene16(p, D) {
       A.apply(q, f);
       // she rocks slowly, he rocks out of step with her; each pulses a little with his or her voice, and breathes
       const rw = Math.sin(q * 2 * Math.PI / 2.9) * 2.6, rm = Math.sin(q * 2 * Math.PI / 3.4 + 1.3) * 2.0;
-      woman.pose({ ...wAt, rot: rw, sq: 1 + .012 * Math.sin(q * 2.2) + .012 * s16talk(q, 0), bob: 2.5 * s16talk(q, 0) }, f);
-      const sm = Math.sin(q * 1.3);
-      man.pose({ ...mAt, rot: rm, sq: 1 + .01 * Math.sin(q * 2.0 + 1) + .01 * (s16talk(q, 1) || s16talk(q, 2)), bob: 2 * (s16talk(q, 1) || s16talk(q, 2)),
-        parts: { smoke: 7 * sm + 3 * Math.sin(q * 3.1) }, move: { smoke: [4 * Math.sin(q * 1.7 + 1), -3 * Math.abs(Math.sin(q * 0.9))] } }, f);
+      // her head nods over the work and tilts with her voice; the needles click on twos in runs, her hands with them
+      const tw = s16talk(q, 0), tm = s16talk(q, 1) || s16talk(q, 2), run = (q % 1.9) < 1.3 ? 1 : .35;
+      woman.pose({ ...wAt, rot: rw, sq: 1 + .012 * Math.sin(q * 2.2) + .012 * tw, bob: 2.5 * tw,
+        parts: { head: 2.5 * Math.sin(q * 1.5) + tw * 5 * Math.sin(q * 8.4 + 1), hands: 1.8 * run * onTwos(q) + .6 * Math.sin(q * 2.1) } }, f);
+      man.pose({ ...mAt, rot: rm, sq: 1 + .01 * Math.sin(q * 2.0 + 1) + .01 * tm, bob: 2 * tm, hide: ['smoke'],
+        parts: { head: 2 * Math.sin(q * 1.2 + 1) + tm * 3 * Math.sin(q * 7.3), hands: .8 * Math.sin(q * 1.7) + tm * 2.5 * Math.sin(q * 6.1 + 2) } }, f);
+      s16sm(q);
+      const k = Math.floor(q * 6), r1 = s16r(k), r2 = s16r(k + 100), r3 = s16r(k + 200);
+      flame.pose({ ...fAt, s: fAt.s * (1.25 + 1.0 * r1), sq: 1 + .5 * r2, w: .85 + .5 * r3, sk: (r3 - .5) * 26 }, f);
       // the cat bats the yarn: small quick bats on twos in bursts, then licks a paw (a rest)
       const w = (q % 2.4) / 2.4, burst = w < .55 ? Math.sin(w / .55 * Math.PI) : 0;
-      cat.pose({ ...cAt, rot: burst * onTwos(q) * 5, bob: burst * 2.5 * (onTwos(q) > 0 ? 1 : 0), sq: 1 + .015 * Math.sin(q * 3.1), move: { body: [burst * onTwos(q) * 2.5, 0] } }, f);
+      const cl = catLife(q, 2, { tail: 16, head: 9 });
+      cat.pose({ ...cAt, parts: { ...cl.parts, head: cl.parts.head + burst * onTwos(q) * 6 }, rot: burst * onTwos(q) * 5, bob: burst * 2.5 * (onTwos(q) > 0 ? 1 : 0), sq: 1 + .015 * Math.sin(q * 3.1), move: { body: [burst * onTwos(q) * 2.5, 0] } }, f);
       // the refrain: the room dims, the crowd swells behind her letters, then all fades back on "and not one was as pretty"
       const swell = span(q, hunT - .35, hunT + .6) * (1 - span(q, notT, notT + .7));
       const live = swell > 0;
@@ -101,6 +113,9 @@ function scene16(p, D) {
     } else {
       for (const g of [veil, crowd.g, slip, L.g]) vis(g, false);
       B.apply(q, f);
+      // the page's one live thing: the flower sways on its stem (twos), the sleeper breathes
+      fl.pose({ ...flAt, sk: 4 * Math.sin(q * 1.3) + 1.5 * Math.sin(q * 3.1), rot: 1.2 * Math.sin(q * 1.3 + .8) }, f);
+      sl.pose({ ...slAt, sq: 1 + .022 * (.5 + .5 * Math.sin(q * 1.7)), w: 1 + .008 * Math.sin(q * 1.7) }, f);
     }
     turnOut(q); ta(q); vis(ga, q > s16TURN - .5 && q < s16TURN); tb(q); vis(gb, q >= s16TURN && q < s16TURN + .5);
   });

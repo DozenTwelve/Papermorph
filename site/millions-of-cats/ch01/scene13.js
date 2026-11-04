@@ -54,11 +54,17 @@ function scene13(p, D) {
   const houseR = mk('rect', { x: 1245, y: 128, width: 118, height: 78, fill: 'transparent' }, cam.stage);   // painted into the set
   const cloudR = mk('rect', { x: 484, y: 202, width: 144, height: 70, fill: 'transparent' }, cam.stage);
   const grassR = mk('rect', { x: 262, y: 690, width: 150, height: 140, fill: 'transparent' }, cam.stage);
+  // Gág's drawn smoke is kept only as a hidden part; the live smoke curls from the pipe bowl in her ink (s13_smoke: a wrapper to point at)
+  const s13_sg = mk('g', {}, man.part.head), s13_sq = inkSmoke(s13_sg, 66, -228, { size: 12, rise: 140, drift: 30, curl: 12, period: 2.2, ink: 2, seed: 3 });
+  // Gág's tufts sway from their feet (world px of the set; 'tuftL' left fan, 'tuftB' the blades along the bottom)
+  cam.move('tuftL', q => `translate(302 833) skewX(${(2.2 * Math.sin(q * 1.8) + .8 * Math.sin(q * 4.1)).toFixed(2)}) translate(-302 -833)`)
+    .move('tuftB', q => `translate(415 826) skewX(${(2 * Math.sin(q * 1.5 + 1) + .7 * Math.sin(q * 3.7)).toFixed(2)}) translate(-415 -826)`);
+
   THINGS13 = [
     { g: houseR, word: 'house', side: 'below' }, { g: cloudR, word: 'cloud', side: 'below' }, { g: grassR, word: 'grass', side: 'left' },
-    { g: man.part.smoke, word: 'smoke', side: 'right' }, { g: man.g, word: 'old man', clip: 'q-me', talk: true, side: 'above' },
+    { g: s13_sg, word: 'smoke', side: 'right' }, { g: man.g, word: 'old man', clip: 'q-me', talk: true, side: 'above' },
     { g: woman.g, word: 'old woman', clip: 'q-her', talk: true, side: 'right' }, { g: kit2.g, word: 'kitten', side: 'right' }];
-  const where = new Map([[houseR, [1300, 166]], [cloudR, [556, 237]], [grassR, [340, 770]], [man.part.smoke, [462, 459]], [man.g, null],
+  const where = new Map([[houseR, [1300, 166]], [cloudR, [556, 237]], [grassR, [340, 770]], [s13_sg, [462, 459]], [man.g, null],
     [woman.g, [696, 450]], [kit2.g, [463, 740]]]);
   let armNow = 6, lean = 0;
 
@@ -72,13 +78,13 @@ function scene13(p, D) {
     const talkW = q > s13_C('w11') && q < s13_C('w11', 2.6) || q > s13_C('w11b') && q < s13_C('w11b', 1.4) || hers;
     const settle = Math.max(0, 1 - (q - s13_T1) / .5);   // the pulled-up lurch dies away
     let wo;
-    if (q < s13_T1) wo = { x: r.x, y: r.y - Math.abs(step) * 9 * r.s, s: r.s, rot: -3 + 2 * step, parts: { head: 4 * step + 5 * stress } };
+    const sp = Math.max(0, q - s13_T0) / .28, sk = Math.floor(sp), sf = sp - sk;   // a step every .28 s: hop, tip over the planted foot, squash on landing
+    if (q < s13_T1) wo = { x: r.x + 6 * r.s * (sf - .5), y: r.y - Math.sin(Math.PI * sf) * 14 * r.s, s: r.s, rot: -3 + (sk % 2 ? 5 : -5) * (1 - .5 * sf), sq: 1 - .04 * (1 - Math.sin(Math.PI * sf)), parts: { head: 4 * step + 5 * stress, armL: 8 + 14 * step } };
     else wo = { x: wAt.x, y: wAt.y - 2.5 * breathe * (q < s13_T1 ? 0 : 1) - (q > s13_T1 && q < s13_T1 + .4 ? 10 * Math.sin((q - s13_T1) / .4 * Math.PI) : 0),
       s: 1, rot: q < s13_T1 ? 0 : -3 * settle + 1.2 * Math.sin(q * 1.3) + (talkW && q < D ? -2 * stress : 0),
       sq: 1 + .012 * breathe + (talkW ? .012 * Math.abs(Math.sin(q * 9)) : 0),
-      parts: { head: (q < T4 ? 3 * Math.sin(q * 5) * (q > s13_C('w11b') && q < s13_C('w11b', 1.5) ? 1 : .25) + 4 * stress : 0) + 2.5 * Math.sin(q * .9 + 1) +
+      parts: { armL: 6 + 3 * Math.sin(q * 1.4) + 15 * stress + (talkW ? 6 * Math.sin(q * 6) : 0) + (wait && !hers ? 4 * Math.sin(q * 2.1) : 0), head: (q < T4 ? 3 * Math.sin(q * 5) * (q > s13_C('w11b') && q < s13_C('w11b', 1.5) ? 1 : .25) + 4 * stress : 0) + 2.5 * Math.sin(q * .9 + 1) +
         (wait ? (() => { const t = FIND.target && where.get(FIND.target); return t ? (t[1] < 600 ? 5 : -3) : 0; })() : 0) + (hers ? 4 * Math.sin(q * 8) : 0) } };
-    if (q < s13_T1) wo.sq = 1 + .01 * breathe;
     woman.pose({ ...wo, flip: false }, f);
 
     // ---- the old man: stands, puffs, then swings his arm out and points; in the game it turns to what he asks for ----
@@ -100,14 +106,16 @@ function scene13(p, D) {
     const nodM = s13_PK(q, s13_C('m11', .22), .15) + s13_PK(q, s13_C('m11', .5), .15) + s13_PK(q, s13_C('n11b', 3.4), .2);   // his stressed words: But, look, grass
     man.pose({ x: mAt.x, y: mAt.y, flip: false, rot: .8 * Math.sin(q * 1.1) + lean * (q > D ? 1 : 0) - (talkM ? 1.2 * Math.abs(Math.sin(q * 7.5)) : 0) - 1.4 * nodM,
       sq: 1 + .012 * Math.sin(q * 2.2 + 1) + (talkM ? .013 * Math.abs(Math.sin(q * 7.5)) : 0),
-      parts: { armR: arm, smoke: 3.5 * Math.sin(q * 1.9) + 2 * Math.sin(q * 4.3) } }, f);
+      parts: { armR: arm, head: 3 * nodM + 1.5 * Math.sin(q * 1.2) + (q > T5 - .3 && q < T6 || (wait && FIND.target === kit2.g) ? 6 : 0) + (talkM ? 2 * Math.abs(Math.sin(q * 7.5)) : 0) }, hide: ['smoke'] }, f);
+    s13_sq(q);
 
     // ---- the kitten in the grass: always trembling a little, more when we look at it ----
-    const tre = q > T5 - .2 ? 1 : .45;
-    kit.pose({ x: kAt.x, y: kAt.y, rot: tre * 1.1 * (Math.floor(q * FPS) % 2 ? 1 : -1) * (.6 + .4 * Math.sin(q * 3)), sq: 1 + .012 * Math.sin(q * 3.1) }, f);
+    const tre = q > T5 - .2 ? 2.4 : 1.6, shake = Math.floor(q * FPS) % 2 ? 1 : -1;   // a fast small tremble on twos
+    const listen = (talkM || talkW) ? 1 : 0;
+    kit.pose({ x: kAt.x, y: kAt.y, rot: tre * 1.1 * shake * (.6 + .4 * Math.sin(q * 3)), sq: 1 + .012 * Math.sin(q * 3.1) }, f);
 
     // the clean kitten sits over the blot from the start of the scene, tucked low in the grass, trembling
-    kit2.pose({ x: kAt.x + S13K.x, y: kAt.y + S13K.y, s: S13K.s, rot: tre * 1.1 * (Math.floor(q * FPS) % 2 ? 1 : -1) * (.6 + .4 * Math.sin(q * 3)), sq: 1 + .012 * Math.sin(q * 3.1) }, f);
+    kit2.pose({ x: kAt.x + S13K.x + .8 * tre * shake, y: kAt.y + S13K.y, s: S13K.s, rot: tre * 1.1 * shake * (.6 + .4 * Math.sin(q * 3)), sq: 1 + .012 * Math.sin(q * 3.1), parts: { head: -3 + 6 * listen + 1.5 * Math.sin(q * 1.3) + 2 * shake * tre * .5 } }, f);
 
     turnOut(q);
   });

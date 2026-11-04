@@ -16,12 +16,16 @@ The manifest (several may be given; later ones add to and replace entries of ear
      "pieces": {
        "man": {"page": "p05", "scale": 0.5, "poly": [[x, y], ...], "mask": "auto", "close": 9,
                "anchor": [x, y],                                   the point a puppet is placed by (default bottom middle)
+               "faces": -1,                                        the way the drawing looks (-1 left, 1 right), kept in cut.js
                "erase": [[[x, y], ...]],                           areas painted paper first (a stray cat, a word)
                "holes": [[[x, y], ...]],                           areas cut out of the silhouette (paper between an arm and the body)
                "shadow": 0.38,                                     the baked drop shadow's strength (0: none; "ink" pieces: 0);
                                                                    a piece with parts gets a shadow picture per part (sf),
                                                                    which cut.js draws under all the parts, each moving with its part
                "parts": {"legF": {"poly": [...], "cap": [...], "pivot": [x, y]}, ...},
+                       or {"frac": [x0, y0, x1, y1], "capFrac": [...], "pivotFrac": [x, y]}: a box in fractions
+                       of the figure's own box (0, 0 its top left, 1, 1 its bottom right), for small figures such as
+                       a cat split into legF, legH, tail, head without reading coordinates; check the sheet
                "order": ["legB", "legF", "body", "armF"]}},        draw order, back to front ("body" is what no part took)
      "sets": {
        "house": {"page": "p05", "box": [x0, y0, x1, y1], "world": [x, y, w], "erase": [...], "fill": [...],
@@ -57,8 +61,9 @@ look at before using them.
 
 The run names what it could not do: a polygon outside its page, a part that took no ink, a piece whose silhouette is
 much bigger than its ink (an outline that did not close: raise `close` or draw a tighter poly), an unknown page.
+A piece re-lifted with other parts has its old pictures removed, each named.
 """
-import argparse, json, pathlib, sys
+import argparse, fcntl, hashlib, json, pathlib, re, sys, tempfile
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 import cv2
@@ -160,9 +165,20 @@ def lift_piece(book, name, P, res, out, sheet):
     alpha = cv2.GaussianBlur(alpha.astype(np.float32), (3, 3), 0.7) if mode != 'ink' else alpha
     rgb = book.rgb(t)
     s = P.get('scale', 900 / H); px_per = s * res   # default: the scale of a set that fits its page to the frame's height
-    parts_def = P.get('parts', {})
+    parts_def = {pn: dict(D) for pn, D in P.get('parts', {}).items()}
     taken = np.zeros(L.shape, bool); parts = {}
+    ys_, xs_ = np.nonzero(alpha > 0.05)
+    if len(xs_):   # "frac" parts: boxes in fractions of the figure's own box, so a cat splits without reading coordinates
+        fx0, fy0, fw, fh = x0 + xs_.min(), y0 + ys_.min(), xs_.max() - xs_.min() + 1, ys_.max() - ys_.min() + 1
+        at = lambda u, v: [fx0 + u * fw, fy0 + v * fh]
+        for pn, D in parts_def.items():
+            if 'frac' in D:
+                a0, b0, a1, b1 = D['frac']; D['poly'] = [at(a0, b0), at(a1, b0), at(a1, b1), at(a0, b1)]
+            if 'capFrac' in D:
+                a0, b0, a1, b1 = D['capFrac']; D['cap'] = [at(a0, b0), at(a1, b0), at(a1, b1), at(a0, b1)]
+            if 'pivotFrac' in D: D['pivot'] = at(*D['pivotFrac'])
     for pn, D in parts_def.items():
+        if 'poly' not in D: print(f'WARNING {name}.{pn}: no "poly" or "frac"; part skipped', file=sys.stderr); continue
         check_poly(f'{name}.{pn}', D['poly'], W, H)
         own = poly_mask(L.shape, D['poly'], x0, y0)
         cap = poly_mask(L.shape, D.get('cap'), x0, y0)
@@ -182,6 +198,7 @@ def lift_piece(book, name, P, res, out, sheet):
     anc = P.get('anchor') or [x0 + bx0 + bw / 2, y0 + by0 + bh]
     entry = {'w': round(float(bw * s), 1), 'h': round(float(bh * s), 1), 'ax': round(float((anc[0] - x0 - bx0) * s), 1), 'ay': round(float((anc[1] - y0 - by0) * s), 1),
              'page': P['page'], 'pa': [round(float(anc[0]), 1), round(float(anc[1]), 1)], 'sc': s, 'parts': []}
+    if 'faces' in P: entry['faces'] = P['faces']   # -1: drawn looking left (cut.js turns a walking crowd by it)
     (out / 'cut').mkdir(parents=True, exist_ok=True)
     one = len(parts) == 1
     shadow = P.get('shadow', 0.38 if mode != 'ink' else 0)
@@ -223,6 +240,12 @@ def lift_piece(book, name, P, res, out, sheet):
         d.line([entry['ax'] + 2, entry['ay'] + 30, entry['ax'] + 18, entry['ay'] + 30], fill=(0, 160, 0), width=3)
         d.text((4, 4), f"{name} {entry['w']:.0f}x{entry['h']:.0f}", fill=(0, 0, 0))
         sheet.append(tile)
+    # a piece re-lifted with other parts (a cat split into legs) leaves its old pictures behind: remove them, and say so
+    keep = {p['f'] for p in entry['parts']} | {p['sf'] for p in entry['parts'] if p.get('sf')}
+    # ponytail: a part name is one word, so 'man-old.webp' of a piece 'man-old' would count as a part of 'man'
+    own = re.compile(re.escape(name) + r'(-[A-Za-z0-9]+)?(-sh)?\.webp')
+    for f in (out / 'cut').glob(f'{name}*.webp'):
+        if own.fullmatch(f.name) and f.name not in keep: f.unlink(); print(f'removed {f.name} (no longer a part of {name})')
     return entry
 
 
@@ -300,7 +323,11 @@ def main():
         d = json.loads(pathlib.Path(f).read_text(encoding='utf-8'))
         for k, v in d.items():
             m[k] = {**m.get(k, {}), **v} if isinstance(v, dict) and k in ('pieces', 'sets') else v
-    book = Book(m, a.pages); out = pathlib.Path(a.out); res = m.get('res', 2.5); set_res = m.get('setRes', 2)
+    out = pathlib.Path(a.out)
+    # several workers may lift into one book at once: one run at a time, so no run's cut.js or sets.js is lost
+    key = hashlib.md5(str(out.resolve()).encode()).hexdigest()[:10]
+    lock = open(pathlib.Path(tempfile.gettempdir()) / f'lift-{key}.lock', 'w'); fcntl.flock(lock, fcntl.LOCK_EX)
+    book = Book(m, a.pages); res = m.get('res', 2.5); set_res = m.get('setRes', 2)
     want = lambda n: not a.only or n in a.only
     cut_js = out / 'cut' / 'cut.js'
     cut = json.loads(cut_js.read_text().split('=', 1)[1].strip().rstrip(';')) if cut_js.exists() else {}

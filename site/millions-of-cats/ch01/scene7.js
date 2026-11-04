@@ -36,6 +36,7 @@ function scene7(p, D) {
   // P: Gág's page 18, the pond; puppets stand in front of the water layer
   const P = paperCam(p, 'p18', { x: 800, y: 330, z: 1.2 }, { after: 'water' });
   P.layer('water').setAttribute('mask', 'url(#s7_drain)');
+  P.move('water', q => `translate(${(3 * Math.sin(q * 1.4)).toFixed(1)} ${(1.5 * Math.sin(q * 2.1)).toFixed(1)})`);   // the ripple breathes
   const at18 = pagePos('p18', 'man18'), man = cutPuppet(P.stage, 'man18');
   P.to({ x: 780, y: 360, z: 1.4 }, 0, s7_C0 + .1)
    .cut({ x: 1000, y: 410, z: 2 }, s7_C0).cut({ x: 1060, y: 410, z: 2 }, s7_B2)
@@ -57,6 +58,7 @@ function scene7(p, D) {
   const at19 = pagePos('p19', 'man19'), man19 = cutPuppet(Q.stage, 'man19');
   Q.cut({ x: 820, y: 550, z: 1.3 }, s7_GONE).to({ x: 880, y: 560, z: 1.4 }, s7_GONE, 3);
 
+  const lapping0 = q => q > s7_SIP;
   const turnOut = pageTurn(p, 0, .45, 'out'), turnIn = pageTurn(p, D - .1, .45, 'in');
   stopClock(D, (q, f) => {
     const inQ = q >= s7_GONE;
@@ -66,9 +68,10 @@ function scene7(p, D) {
     // the old man at the left of the pond: breathes, rocks, looks at the water; on "Well, here is a great deal of water" he leans to it
     vis(man.g, wide && q < s7_SIP - .6);
     const lean = ease(k01(q, s7_WELL, .7)) * (q < s7_SIP ? 1 : 0), nod = q >= s7_WELL && q < s7_SAID ? Math.max(0, Math.sin((q - s7_WELL) * 4.2)) : 0;
-    man.pose({ x: at18.x, y: at18.y, s: at18.s, sq: 1 + .012 * Math.sin(q * 2.2) - lean * .012 - nod * .008, rot: Math.sin(q * 1.3) * .8 + lean * 6 + nod * 1.2 }, f);
+    man.pose({ x: at18.x, y: at18.y, s: at18.s, sq: 1 + .02 * Math.sin(q * 2.2) - lean * .012 - nod * .008, rot: Math.sin(q * 1.5) * 1.8 + lean * 6 + nod * 1.2, bob: 2 * Math.abs(Math.sin(q * 1.1)),
+      parts: { head: nod * 14 + lean * 10 + Math.sin(q * 1.7) * 3, bundle: Math.sin(q * 2.2) * 2 - lean * 4 } }, f);
     // the bank cats: Gág's page already has hers; ours come in a few at a time, A trots in, C packs on each word
-    bankL.pose(q, f, { from: .8, every: i => i < 6 ? i * .22 : s7_REF - 6.5 + (i - 6) * .55 });
+    bankL.pose(q, f, { from: .8, every: i => i < 6 ? i * .22 : s7_REF - 6.5 + (i - 6) * .55, walk: { v: 60, t0: .8, t1: s7_C0 - .1 }, seethe: q >= s7_WIDE ? .3 : 0 });   // arriving on legs; then a slow shuffle
     vis(bankL.g, !(q >= s7_C0 && q < s7_WIDE) && q < s7_SIP - .6);
     // the refrain's lettering over the sky
     const times = {}; for (const n in s7_RW) times[n] = s7_T(s7_RW[n]);
@@ -76,22 +79,23 @@ function scene7(p, D) {
     // close-ups: each mew a head bob; the cats breathe
     const mewT = [s7_T(2.29), s7_T(2.55), s7_T(2.81), s7_T(3.25), s7_T(3.55)];
     const bob = (c, ts) => { let b = 0; for (const t of ts) { const u = q - t - c.i * .04; if (u >= 0 && u < .3) b = Math.max(b, Math.sin(u / .3 * Math.PI)); } return b; };
-    bigA.forEach(c => { vis(c.p.g, closeA); c.p.pose({ x: c.x, y: c.y, s: c.s * (1 + .02 * bob(c, mewT)), flip: c.flip, sq: 1 + .012 * Math.sin(q * 2.3 + c.i) + .05 * bob(c, mewT), rot: Math.sin(q * 1.6 + c.i) * 1 - bob(c, mewT) * 2 }, f + c.i); });
-    bigB.forEach(c => { vis(c.p.g, closeB); c.p.pose({ x: c.x, y: c.y, s: c.s, flip: c.flip, sq: 1 + .012 * Math.sin(q * 2.3 + c.i) + .06 * bob(c, mewT), rot: Math.sin(q * 1.6 + c.i) * 1 - bob(c, mewT) * 2 }, f + c.i); });
+    bigA.forEach(c => { const L = catLife(q, c.i, { head: 7 }); L.parts.head += 14 * bob(c, mewT); vis(c.p.g, closeA); c.p.pose({ parts: L.parts, x: c.x, y: c.y, s: c.s * (1 + .02 * bob(c, mewT)), flip: c.flip, sq: 1 + .012 * Math.sin(q * 2.3 + c.i) + .05 * bob(c, mewT), rot: Math.sin(q * 1.6 + c.i) * 1 - bob(c, mewT) * 2 }, f + c.i); });
+    bigB.forEach(c => { const L = catLife(q, c.i, { head: 7 }); L.parts.head += 14 * bob(c, mewT); vis(c.p.g, closeB); c.p.pose({ parts: L.parts, x: c.x, y: c.y, s: c.s, flip: c.flip, sq: 1 + .012 * Math.sin(q * 2.3 + c.i) + .06 * bob(c, mewT), rot: Math.sin(q * 1.6 + c.i) * 1 - bob(c, mewT) * 2 }, f + c.i); });
     // the sips: the cats gather at the water on his word; each dips its head a few times; from "Each cat took a sip" the water steps away on twos
     const lapOn = q >= s7_WELL + .4 && !inQ;
     const drain = k01(q, s7_SIP, s7_GONE - .2 - s7_SIP), steps = Math.floor(ease(drain) * 12) / 12;
     hole.setAttribute('rx', (WRX * (1 - steps)).toFixed(1)); hole.setAttribute('ry', (WRY * (1 - steps)).toFixed(1));
     for (const c of lapCats) {
       vis(c.p.g, lapOn);
+      const LL = catLife(q, c.i); if (lapping0(q)) LL.parts.head += 30 * Math.max(0, Math.sin((q - s7_SIP) * 5.5 + c.i * 1.7));
       const lapping = q > s7_SIP, lap = Math.max(0, Math.sin((q - s7_SIP) * 5.5 + c.i * 1.7));
-      c.p.pose({ x: c.x, y: c.y, s: c.s, flip: c.flip, rot: (c.flip ? -1 : 1) * (lapping ? lap * 7 : 0) + Math.sin(q * 1.5 + c.i), sq: 1 + .012 * Math.sin(q * 2 + c.i) - (lapping ? lap * .05 : 0) }, f + c.i);
+      c.p.pose({ parts: LL.parts, x: c.x, y: c.y, s: c.s, flip: c.flip, rot: (c.flip ? -1 : 1) * (lapping ? lap * 7 : 0) + Math.sin(q * 1.5 + c.i), sq: 1 + .012 * Math.sin(q * 2 + c.i) - (lapping ? lap * .05 : 0) }, f + c.i);
     }
     // page 19: the dry hollow; the old man spreads his hand over it
     vis(man19.g, inQ);
     const bend = ease(k01(q, s7_GONE + .2, .6));
-    man19.pose({ x: at19.x, y: at19.y, s: at19.s, sq: 1 + .012 * Math.sin(q * 2.2), rot: -bend * 2 + Math.sin(q * 1.3) * .6,
-      parts: { armR: -bend * 28 + Math.sin((q - s7_GONE) * 3) * 4 } }, f);
+    man19.pose({ x: at19.x, y: at19.y, s: at19.s, sq: 1 + .02 * Math.sin(q * 2.2), rot: -bend * 2 + Math.sin(q * 1.5) * 1.4, bob: 2 * Math.abs(Math.sin(q * 1.2)),
+      parts: { head: Math.sin(q * 1.6) * 3 + bend * 5 + Math.sin((q - s7_GONE) * 3) * 3 * bend, armR: -bend * 28 + Math.sin((q - s7_GONE) * 3) * (4 + 14 * bend) } }, f);
     turnOut(q); turnIn(q);
   });
 }

@@ -44,6 +44,8 @@ function scene11(p, D) {
   // where the pair was lifted off the page's sky and the hill's rim, a grey smear shows once they run: a soft paper patch over the sky side of it
   const patch = mk('g', {}, cam.stage);
   patch.innerHTML = '<defs><filter id="s11soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3"/></filter></defs><polygon points="925,185 1163,183 1170,192 1122,232 1090,250 1037,266 969,279 925,300" fill="#efe8d6" filter="url(#s11soft)"/>';
+  // a seething crowd over Gág's tangle: cats lunging, hopping and spinning, wilder as the quarrel grows (catCrowd's seethe)
+  const crowd = catCrowd(cam.stage, { names: ['cat25a', 'cat25b', 'cat25c', 'cat25d'], n: 22, box: [380, 470, 1250, 760], seed: 25, s: [1.35, .85] });
   const man = cutPuppet(cam.stage, 'man25'), woman = cutPuppet(cam.stage, 'woman25');
   const mAt = pagePos('p25', 'man25'), wAt = pagePos('p25', 'woman25');
   const fly = s11_FLY.map(([n, t, d, a, b, spin]) => ({ p: cutPuppet(cam.stage, n), t: s11_T(t), d, a, b, spin }));
@@ -57,6 +59,7 @@ function scene11(p, D) {
     // the tangle: a jolt on twos (shift, tilt, a boil of scale about its centre)
     const g = Math.floor(f / 2), a = amp(q), k = (n) => jit(g, n);
     wrap.setAttribute('transform', `translate(${s11_C[0] + k(41) * a} ${s11_C[1] + k(42) * a}) rotate(${k(43) * a * .3}) scale(${1 + k(44) * a * .004}) translate(${-s11_C[0]} ${-s11_C[1]})`);
+    crowd.pose(q, f, { from: s11_QUARREL - .2, every: i => i * .03, hop: false, seethe: .3 + .7 * span(q, s11_QUARREL, s11_CLAW) - .3 * span(q, s11_W + 1, s11_RAN) });
     // single cats flung out and back
     for (const c of fly) {
       const u = (q - c.t) / c.d, on = u > 0 && u < 1;
@@ -69,14 +72,22 @@ function scene11(p, D) {
     // the tiny old people: they shake and cringe, then run to the house and in at the door
     const ru = (q - s11_RAN) / 1.7, mu = ru, wu = (q - s11_RAN + .15) / 1.6;
     const tremble = a * .25 * k(51), hop = q => { const u = Math.floor(q * FPS / 2) * 2 / FPS * 3.2 * Math.PI * 2; return Math.abs(Math.sin(u)) * 6; };
-    const doRun = (pup, at, u, lag, flip, ph) => {
+    const MW = { L: 32, A: 32, period: .34 }, mwEnd = cutWalk(1.7, MW).d;   // the man's feet: a quick stride, planted while the body rides over them
+    const doRun = (pup, at, u, lag, flip, ph, legs) => {
       const run = u > 0, on = u < 1;
       vis(pup.g, on);
       if (!on) return;
-      if (!run) pup.pose({ ...at, x: at.x + tremble * .5, flip, sq: 1 + .012 * Math.sin(q * 2.2 + ph) - .03 * span(q, s11_QUARREL, s11_QUARREL + .5), rot: Math.sin(q * 9 + ph) * 1.2 * (a / 6) }, f);
-      else { const r = route(at, u, lag); pup.pose({ ...at, x: r.x, y: r.y, flip, bob: hop(q + ph), rot: Math.sin(q * 11 + ph) * 3, s: 1 - .25 * Math.min(1, u) }, f); }
+      if (!run) { pup.pose({ ...at, x: at.x + tremble * .5, flip, bob: Math.abs(Math.sin(q * 13 + ph)) * 3 * (a / 6), sq: 1 + .012 * Math.sin(q * 2.2 + ph) - .03 * span(q, s11_QUARREL, s11_QUARREL + .5), rot: Math.sin(q * 9 + ph) * 1.2 * (a / 6) }, f); return; }
+      const e = Math.min(1, u), y0 = at.y + (s11_DOOR[1] - at.y) * ease(e), sc = 1 - .25 * e;
+      if (legs) {   // x from the hip's travel d·s, scaled so the walk ends at the door
+        const w = cutWalk(u * 1.7, MW), k = (s11_DOOR[0] - at.x - lag) / (mwEnd * at.s);
+        pup.pose({ ...at, x: at.x + w.d * at.s * k, y: y0, flip, bob: w.bob * 2.2 * at.s, rot: Math.sin(q * 11 + ph) * 2, s: sc, parts: { legF: w.legL, legB: w.legR } }, f);
+      } else {   // the woman's skirt hides her legs: a quick shuffle, the hem bobbing and tipping at each step
+        const r = route(at, u, lag), st = Math.floor(q * FPS / 2) * 2 / FPS * 3.4 * Math.PI * 2;
+        pup.pose({ ...at, x: r.x, y: r.y, flip, bob: Math.abs(Math.sin(st)) * 8, rot: Math.sin(st) * 7, sq: 1 + .03 * Math.sin(st * 2), s: sc }, f);
+      }
     };
-    doRun(man, mAt, mu, 6, false, 0); doRun(woman, wAt, wu, -12, false, 1.3);
+    doRun(man, mAt, mu, 6, false, 0, true); doRun(woman, wAt, wu, -12, false, 1.3, false);
     turnOut(q); turn(q);
   });
   // the door: each is gone through it

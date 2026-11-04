@@ -92,17 +92,20 @@ function paperCam(p, setName, v0 = {}, { after = null, stages = [] } = {}) {
     cut: (v, t0) => cam.to(v, t0, 0),
     show(name, on) { for (const L of layers) if (L.name === name) vis(L.g, on); return cam; },   // swap a set layer (weather)
     layer: name => layers.find(L => L.name === name)?.g,   // a set layer's group, to move, clip or fade one layer (a pond draining)
+    // move(name, q => transform) adds a transform to a set layer each frame, after its parallax: grass swaying from its
+    // foot (q => `translate(0 860) skewX(${1.5 * Math.sin(q * 1.9)}) translate(0 -860)`), clouds drifting (q => `translate(${q * 6} 0)`).
+    move(name, fn) { const L = layers.filter(L => L.name === name); if (!L.length) console.warn(`paperCam.move: set '${setName}' has no layer '${name}'`); L.forEach(L => L.fx = fn); return cam; },
     soft(t0, on) { softs.push([t0, on]); softs.sort((a, b) => a[0] - b[0]); return cam; },
     shake(t0, dur, amp = 10) { shakes.push([t0, dur, amp]); return cam; },
-    apply(q, f) {
-      const s = at(q);
+    apply(q, f, camQ = q) {   // camQ: the time the camera itself is posed at (still.py --hold-cam holds it; layers' move() keep q)
+      const s = at(camQ);
       let sx = 0, sy = 0;
-      for (const [t0, d, amp] of shakes) if (q >= t0 && q < t0 + d) { sx += jit(f, 91) * amp; sy += jit(f, 92) * amp; }
+      for (const [t0, d, amp] of shakes) if (camQ >= t0 && camQ < t0 + d) { sx += jit(f, 91) * amp; sy += jit(f, 92) * amp; }
       view.setAttribute('transform', `translate(${800 + sx} ${450 + sy}) scale(${s.z}) translate(${-s.x} ${-s.y})`);
       const dx = s.x - base.x, dy = s.y - base.y;
-      let soft = false; for (const [t0, on] of softs) if (q >= t0) soft = on;
+      let soft = false; for (const [t0, on] of softs) if (camQ >= t0) soft = on;
       for (const L of layers) {
-        L.g.setAttribute('transform', `translate(${((1 - L.k) * dx).toFixed(1)} ${((1 - L.k) * dy).toFixed(1)})`);
+        L.g.setAttribute('transform', `translate(${((1 - L.k) * dx).toFixed(1)} ${((1 - L.k) * dy).toFixed(1)})${L.fx ? ' ' + L.fx(Math.floor(q * FPS / 2) * 2 / FPS) : ''}`);
         if (L.blur) { const b = soft === 'all' || (soft && L.k < 1); vis(L.blur, b); vis(L.sharp, !b); }   // never 'visible': it would show through a hidden camera
       }
       FLICKER.style.opacity = (.02 + .02 * jit(f, 30)).toFixed(3);   // the exposure flicker of real frames

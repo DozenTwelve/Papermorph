@@ -102,34 +102,46 @@ function scene10(p, D) {
         - 7 * (pk(q, s10_C('w09', .45), .15) + pk(q, s10_C('w09', 2.4), .15)) + 2 * Math.sin(q * 3) * (q > upT && q < dnT ? 0 : 1);
       const talkW = lips(q, 'scene10', PRE10, 'w09', 'w09b') !== 'X';
       const think = span(q, s10_C('n09b', .3), s10_C('n09b', 1.0)) * (1 - span(q, s10_C('n09b', 3.0), s10_C('n09b', 3.6)));
+      // head: a nod forward (+) on each stressed word of hers, a slow nod of listening to him; the far hand rises with her points
+      const sw = [['w09', .42], ['w09', .72], ['w09', 1.22], ['w09', 2.32], ['w09', 2.76], ['w09', 3.48], ['w09b', .1], ['w09b', 1.7], ['w09b', 2.0], ['w09b', 2.65], ['w09b', 3.75]];
+      const stW = sw.reduce((a, [c, t]) => a + pk(q, s10_C(c, t), .16), 0), listenW = lips(q, 'scene10', PRE10, 'm09', 'm09b', 'm09c') !== 'X';
+      const headW = 7 * stW + (listenW ? 3 * Math.sin(q * 4) : 1.2 * Math.sin(q * 1.9)) + 3 * think;
+      const armL = -14 * (pk(q, s10_C('w09', .72), .3) + pk(q, s10_C('w09', 2.7), .3) + pk(q, s10_C('w09b', 2.0), .3) + pk(q, s10_C('w09b', 3.7), .3)) + (listenW ? -4 * Math.sin(q * 3) : 2 * Math.sin(q * 2.4));
       woman.pose({ ...wAt, flip: false, sq: 1 + .012 * Math.sin(q * 2.2) + (talkW ? .008 * pk(q % .45, .1, .12) : 0),
-        rot: Math.sin(q * 1.3) * .8 - 1.2 * pk(q, s10_C('w09b', .1), .3) + 1.4 * think, parts: { armR: arm },
+        rot: Math.sin(q * 1.3) * .8 - 1.2 * pk(q, s10_C('w09b', .1), .3) + 1.4 * think, parts: { armR: arm, armL, head: headW },
         mouth: lips(q, 'scene10', PRE10, 'w09', 'w09b') }, f);
       // him: stands near his spot, breathes under the armful, a nod on "I never thought of that", on "Oh yes!", then turns to the cats
       const nod = pk(q, s10_C('m09', .35), .2) + pk(q, s10_C('m09', .6), .2) * .6 + pk(q, s10_C('m09b', .3), .22) + pk(q, s10_C('m09b', .62), .18) * .7;
       const faceCats = q >= s10_C('n09c', 1.55);
       const sayM = lips(q, 'scene10', PRE10, 'm09', 'm09b', 'm09c');
+      // head (forward is -, he faces left): a nod on his stressed words; while she speaks he listens, dipping his head with her points
+      const sm = [['m09', .17], ['m09', .35], ['m09', 1.2], ['m09', 2.3], ['m09b', .1], ['m09b', .3], ['m09c', .2], ['m09c', .5], ['m09c', 1.2]];
+      const stM = sm.reduce((a, [c, t]) => a + pk(q, s10_C(c, t), .16), 0), listenM = talkW;
+      const headM = -(6 * stM + (listenM ? 4 * Math.sin(q * 3.1) * .8 + 3 * pk(q, s10_C('w09', 1.22), .35) + 3 * pk(q, s10_C('w09b', 1.7), .35) : 1.5 * Math.sin(q * 1.4))) * (faceCats ? -1 : 1);
       man.pose({ x: mAt.x, y: mAt.y, flip: faceCats, sq: 1 + .012 * Math.sin(q * 2.3 + 1) - .013 * nod - (sayM !== 'X' ? .014 * pk(q % .4, .1, .12) : 0),
-        rot: Math.sin(q * 1.1) * .6 + 1.4 * nod * (faceCats ? -1 : 1) + (faceCats ? 1.2 * pk(q, s10_C('m09c', .5), .5) : 0) }, f);
+        rot: Math.sin(q * 1.1) * .6 + 1.4 * nod * (faceCats ? -1 : 1) + (faceCats ? 1.2 * pk(q, s10_C('m09c', .5), .5) : 0), parts: { head: headM } }, f);
       // the line of cats: breathing, an ear-twitch rock; they hop when he calls and turn up to him
-      line.forEach((c, i) => c.p.pose({ ...c.at, sq: 1 + .02 * Math.sin(q * 2.4 + i), rot: Math.sin(q * 1.6 + c.ph * 5) * 1.6, bob: 10 * pk(q, tHop + i * .09, .2) }, f));
+      line.forEach((c, i) => { const L = catLife(q, c.ph, { head: 9 }); c.p.pose({ ...c.at, sq: 1 + .02 * Math.sin(q * 2.4 + i), rot: Math.sin(q * 1.6 + c.ph * 5) * 1.6, bob: 10 * pk(q, tHop + i * .09, .2), parts: L.parts }, f); });
       tail.pose(q, f, { from: -20, every: 0 });
       feet.pose(q, f, { from: -20, every: 0 });
     } else if (closeup) {
       B.apply(q, f);
       bc.pose(q, f, { from: -20, every: 0 });
       bv.forEach(([t, , k], j) => { const c = bc.cats[k]; if (q < t || j === 0 && q >= bv[1][0]) return;
-        c.p.pose({ x: c.x, y: c.y, s: c.s * (1 + .06 * pk(q, t + .3, .3)), flip: c.flip, bob: pk(q, t + .22, .25) * 26, rot: Math.sin(q * 6) * 2 * pk(q, t + .4, .5) }, f + 900);
+        c.p.pose({ x: c.x, y: c.y, s: c.s * (1 + .06 * pk(q, t + .3, .3)), flip: c.flip, bob: pk(q, t + .22, .25) * 26, rot: Math.sin(q * 6) * 2 * pk(q, t + .4, .5),
+          parts: { head: 16 * pk(q, t + .3, .3), tail: 20 * Math.sin(q * 9) * pk(q, t + .4, .6) } }, f + 900);
       });
     } else {
       E.apply(q, f);
       for (const c of shotCats) {
         const on = q >= c.pop - .01 && q < s10_PILEEND; vis(c.p.g, on); if (!on) continue;
         const u = q - c.pop, pop = u < .3 ? Math.sin(u / .3 * Math.PI) * 30 : 0, say = c.hero ? pk(q, c.pop + .12, .3) : pk(q, c.pop + .1, .15) * .5;
-        c.p.pose({ x: s10_cx(c.x), y: s10_cy(c.y), s: c.s * (1 + .08 * say + (u < .08 ? .1 : 0)), flip: c.flip, bob: pop + 8 * pk(q, c.pop + .3, .15),
-          sq: 1 + .016 * Math.sin(q * 2.4 + c.x), rot: Math.sin(q * 3 + c.x) * (1.5 + 3 * say) }, f + Math.round(c.x));
+        const L = catLife(q, c.x * .01, { tail: 14, head: 7 });   // a shout: the head throws forward, the body hops and rocks, the tail lashes
+        c.p.pose({ x: s10_cx(c.x), y: s10_cy(c.y), s: c.s * (1 + .08 * say + (u < .08 ? .1 : 0)), flip: c.flip, bob: pop + 8 * pk(q, c.pop + .3, .15) + (c.hero ? 22 : 8) * pk(q, c.pop + .55, .2),
+          sq: 1 + .016 * Math.sin(q * 2.4 + c.x), rot: Math.sin(q * 3 + c.x) * (1.5 + 3 * say) + (c.hero ? 5 : 2) * say * (c.flip ? -1 : 1),
+          parts: { ...L.parts, head: L.parts.head + (c.hero ? 18 : 9) * say, tail: L.parts.tail + 25 * say } }, f + Math.round(c.x));
       }
-      crowd.pose(q, f, { from: 0, every: i => tierT(i) });
+      crowd.pose(q, f, { from: 0, every: i => tierT(i), seethe: .3 + .7 * span(q, s10_HUN, s10_TRIL + 1), walk: { v: -45, t0: s10_MIL } });   // they also surge left, legs going   // the shouting crowd seethes more with every tier, to the end
     }
     turnOut(q); turn(q);
   });

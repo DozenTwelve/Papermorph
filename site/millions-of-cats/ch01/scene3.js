@@ -11,6 +11,22 @@ const S3_WORDS = [['rf-cats1', 0], ['rf-here', .16], ['rf-cats2', .84], ['rf-the
   ['rf-kittens', 2.2], ['rf-everywhere', 2.44], ['rf-hundreds', 3.82], ['rf-of1', 4.14], ['rf-cats4', 4.4], ['rf-thousands', 4.96],
   ['rf-of2', 5.36], ['rf-cats5', 5.66], ['rf-millions', 6.38], ['rf-and2', 6.62], ['rf-billions', 7.08], ['rf-and3', 7.38],
   ['rf-trillions', 7.78], ['rf-of3', 8.14], ['rf-cats6', 8.6]];
+// The p08 hush, alive: scene2's hill picture with his arms still swinging up and down and the head turning, and each of
+// the hill's cats tail-swishing, head-turning and hopping (catLife). Local to scene3 (scene2's own s2_hill is another worker's).
+function s3_hill(cam) {
+  const man = cutPuppet(cam.stage, 'man8'), at = pagePos('cathill', 'man8');
+  const pets = ['cat8a', 'cat8c', 'cat8d', 'cat8e'].map((n, i) => ({ n, i, p: cutPuppet(cam.stage, n), at: pagePos('cathill', n) }));
+  cam.world.insertBefore(mk('rect', { x: -3000, y: -2000, width: 8000, height: 5000, fill: '#eee8d6' }), cam.world.firstChild);
+  return (q, f) => {
+    const wave = Math.sin(q * 5.5);   // arms up, waving over the cats: "here they are!"
+    man.pose({ x: at.x, y: at.y, s: at.s, sq: 1 + .014 * Math.sin(q * 2.6), rot: Math.sin(q * 1.9) * .9, bob: Math.abs(Math.sin(q * 2.8)) * 3,
+      parts: { armL: wave * 9, armR: -wave * 9, head: -7 + Math.sin(q * 2.2) * 4 } }, f);
+    for (const c of pets) {
+      const L = catLife(q, c.i * 1.9, { tail: 20, head: 11 }), w = (q + c.i * 1.1) % 1.7, hop = w < .3 ? Math.sin(w / .3 * Math.PI) * 7 : 0;
+      c.p.pose({ x: c.at.x, y: c.at.y, s: c.at.s, rot: Math.sin(q * 2.4 + c.i * 2) * 1.8 + L.rot, sq: 1 + .014 * Math.sin(q * 2.6 + c.i), bob: hop + L.bob, parts: L.parts }, f + c.i);
+    }
+  };
+}
 const S3_TXT = [260, 300, 1340, 640];   // where the letters sit on the page (x0, y0, x1, y1): early cats keep out of it
 
 function scene3(p, D) {
@@ -20,7 +36,7 @@ function scene3(p, D) {
   const turn = pageTurn(p, D - .1, .6, 'in');
 
   // ---- p08: the same picture scene2 ended on (its last framing), held in hush ----
-  const hill = s2_hill(cam1);
+  const hill = s3_hill(cam1);
   cam1.cut(S2_HILLCAM, 0);
   const TS = P - .65, SW = P - .35;     // the leaf turns in and out just before her first word
   const tin = pageTurn(p, TS, .3, 'in'), tout = pageTurn(p, SW, .3, 'out');
@@ -43,7 +59,7 @@ function scene3(p, D) {
   WAVES.forEach(([box, n, from, to, near, far], wi) => {
     const crowd = catCrowd(sea, { names: S3_NAMES, n, box, seed: 11 + wi * 7, s: [near, far] });
     crowd.cats.forEach((c, i) => {
-      c.t = from + (to - from) * (i / n) ** 1.2;
+      c.t = from + (to - from) * (i / n) ** 1.2; c.wi = wi;
       // the first cats keep clear of her letters; from the hundreds on a paper slip behind the letters holds them
       const inside = c.x > S3_TXT[0] && c.x < S3_TXT[2] && c.y > S3_TXT[1] && c.y < S3_TXT[3];
       if (inside && wi < 3) { c.y = rnd(wi * 313 + i) < .5 ? 90 + rnd(i + wi * 9) * 200 : 650 + rnd(i * 3 + wi) * 190; c.s = Math.max(far, near - (near - far) * (1 - (c.y - box[1]) / (box[3] - box[1]))); }
@@ -82,16 +98,22 @@ function scene3(p, D) {
     vis(cam1.root, first); vis(cam2.root, !first);
     if (first) {
       cam1.apply(q, f);
-      hill(q, f, 1, 0);   // arms up, held
+      hill(q, f);
       tin(q); tout(1e9);
     } else {
       cam2.apply(q, f);
       L.show(q, times, f);
       vis(slip, q >= SLIP); slip.setAttribute('opacity', Math.min(1, (q - SLIP) / .25).toFixed(2));
-      cats.forEach(c => {   // the same pop in and hop as catCrowd's, now on one depth order
+      cats.forEach(c => {   // the same pop in and hop as catCrowd's, now on one depth order, each cat living (catLife); the early ones hop often
         const u = q - c.t; vis(c.p.g, u >= 0); if (u < 0) return;
-        const pop = u < .34 ? Math.sin(u / .34 * Math.PI) * 18 : 0, w = (q + c.ph) % 4.2, live = w < .34 ? Math.sin(w / .34 * Math.PI) * 7 : 0;
-        c.p.pose({ x: c.x, y: c.y, s: c.s, flip: c.flip, bob: pop + live, rot: Math.sin((q + c.ph) * 1.7) * 1.2 }, f + c.i);
+        const early = c.wi < 3, pop = u < .34 ? Math.sin(u / .34 * Math.PI) * 18 : 0, per = early ? 1.6 : 1.8, w = (q + c.ph) % per, live = w < .34 ? Math.sin(w / .34 * Math.PI) * (early ? 12 : 15) : 0;
+        // from "hundreds" a wave runs through the sea, and goes on to the end
+        const surge = Math.max(0, Math.sin(q * 3 - c.x * .006 + c.y * .004)) * 5 * span(q, T('rf', 3.8), T('rf', 4.4));
+        // the first cats (here, there, everywhere) pace to and fro on their spot, turned the way they go, legs keeping pace
+        const a = q * .9 + c.ph, pace = early ? 34 * Math.sin(a) : 0;
+        const L = catLife(q, c.ph, { d: early ? q * 16 / c.s : null, L: 70, A: 20, tail: early ? 24 : 18, head: early ? 14 : 10 });
+        const fl = early ? Math.cos(a) < 0 !== ((CUT[c.name].faces ?? 1) < 0) : c.flip;
+        c.p.pose({ x: c.x + pace, y: c.y, s: c.s, flip: fl, bob: pop + live + surge + L.bob + (early ? 0 : 2.6 * Math.abs(Math.sin(q * 2.3 + c.ph))), rot: Math.sin((q + c.ph) * 1.7) * (early ? 1.2 : 3) + L.rot, parts: L.parts }, f + c.i);
       });
     }
     if (!first) { tin(0); tout(q); }

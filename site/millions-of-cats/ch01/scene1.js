@@ -14,6 +14,13 @@ function scene1(p, D) {
   const M = pagePos('house', 'man5'), W = pagePos('house', 'woman5');
   const th = thought(cam.stage, 1305, 535, 1560, 392, 88);
   const kit = cutPuppet(th.inside, 'cat8a');
+  // Gág's pipe smoke is hidden (man5.smoke) and drawn live in her ink from the pipe's end; chimney smoke from her chimney.
+  const pipeG = mk('g', {}, cam.stage), pipe = inkSmoke(pipeG, 0, 0, { size: 13, rise: 150, drift: 34, curl: 15, waves: 1.5, period: 2.1, ink: 2, seed: 2 });
+  const pg = SETS.house[0].page, wx = px => pg.wx + (px - pg.x0) * pg.s, wy = py => pg.wy + (py - pg.y0) * pg.s;
+  const chim = inkSmoke(cam.stage, wx(950), wy(612), { size: 11, rise: 110, drift: 42, curl: 12, waves: 1.4, period: 2.7, ink: 2, seed: 5 });
+  // the flower bed sways from its foot (skew about the bed's bottom edge), each patch at its own pace
+  [['bedL', 1460, 0], ['bedF', 1450, 1.9], ['bedR', 1340, 3.4]].forEach(([n, py, ph]) => cam.move(n, q =>
+    `translate(0 ${wy(py).toFixed(1)}) skewX(${(5 * Math.sin(q * 1.8 + ph) + 1.6 * Math.sin(q * 3.3 + ph * 2)).toFixed(2)}) translate(0 ${(-wy(py)).toFixed(1)})`));
   const turnOut = pageTurn(p, 0, .5, 'out'), turnIn = pageTurn(p, D - .1, .6, 'in');
 
   // Times on the beat clock.
@@ -44,27 +51,37 @@ function scene1(p, D) {
     cam.apply(q, f);
     const sad = span(q, T(11.6), T(12.8)) * (1 - span(q, W1 - .05, W1 + .3));   // "so very lonely": shoulders down, heads low
     // ---- the old woman: breath; head follows the talk; the sigh on "sighed"
-    const wsp = lips(q, 'scene1', P, 'w01', 'w01b');
+    const wsp = lips(q, 'scene1', P, 'w01', 'w01b'), msp = lips(q, 'scene1', P, 'm01', 'm01b');
     const sigh = Math.sin(Math.PI * Math.min(1, Math.max(0, (q - SIGH) / 1.5)));
     const wTalk = wsp !== 'X' ? Math.sin(q * 9) * 1.3 : 0;
     const look = 5 * span(q, WALK + 1.3, WALK + 2);   // watches him go: head turns after him
+    const wg = wsp !== 'X' ? .5 + .5 * Math.sin(q * 6.4) : 0, dream = span(q, THINK0, THINK0 + .7) * (1 - span(q, THINK1, THINK1 + .7)),
+      hush = msp !== 'X' ? 2.5 * Math.sin(q * 4.2) : 0;   // her hands talk with her; she nods while he answers; in the thought they lift
     woman.pose({ x: W.x, y: W.y, sq: 1 + .012 * Math.sin(q * 2.1) - .02 * sigh - .012 * sad,
       rot: .5 * Math.sin(q * 1.1 + 1),
-      parts: { head: 3 * Math.sin(q * 1.3) + 6 * sad + 7 * sigh + (q > WB && q < THINK1 ? 5 * span(q, WB, WB + .5) : 0) + wTalk + look },
+      parts: { head: 3 * Math.sin(q * 1.3) + 6 * sad + 7 * sigh + (q > WB && q < THINK1 ? 5 * span(q, WB, WB + .5) : 0) + wTalk + look + hush, armL: 2 * Math.sin(q * 1.4) + 11 * wg + 9 * dream - 4 * sad - 3 * sigh,
+        armR: -(2 * Math.sin(q * 1.4 + 1) + 9 * Math.abs(Math.sin(q * 5.1 + 1)) * (wsp !== 'X' ? 1 : 0) + 9 * dream - 4 * sad) },
       move: { head: [0, 2 * sigh + 3 * sad] },
       mouth: wsp }, f);
     // ---- the old man: breath, a rock, smoke curling; his lines pulse the whole figure (his mouth is under the beard and pipe)
-    const msp = lips(q, 'scene1', P, 'm01', 'm01b');
     const pulse = msp !== 'X' ? .01 * Math.abs(Math.sin(q * 8.5)) : 0;
     const w = cutWalk(q - WALK, { L: 125, A: 18, period: .72 });
     const going = q >= WALK, lean = going ? 3 * span(q, WALK - .5, WALK + .3) : 0;
-    man.pose({ x: M.x + (going ? w.d : 0), y: M.y, sq: 1 + .012 * Math.sin(q * 2.3) + pulse - .02 * sad,
-      bob: going ? w.bob : 0, rot: going ? lean : .7 * Math.sin(q * 1.3) + (msp !== 'X' ? 1.2 * Math.sin(q * 6) : 0),
-      parts: { legL: going ? w.legL : 0, legR: going ? w.legR : 0, smoke: 6 * Math.sin(q * 2.4) },
-      move: { smoke: [2 * Math.sin(q * 1.9), -3 * Math.abs(Math.sin(q * 1.2))] } }, f);
+    const pop = Math.sin(Math.PI * span(q, M1 - .05, M1 + .45));   // "A cat?": he starts, head up
+    const mhead = 2 * Math.sin(q * 1.2) + (msp !== 'X' ? 5 * Math.sin(q * 7.3) : 0) + (wsp !== 'X' ? 3.5 * Math.sin(q * 3.2) : 0) - 7 * pop + 5 * sad + (going ? 2 * Math.sin(q * 5.5) : 0);
+    const mrot = going ? lean : .7 * Math.sin(q * 1.3) + (msp !== 'X' ? 1.2 * Math.sin(q * 6) : 0);
+    const mx = M.x + (going ? w.d : 0), mb = going ? w.bob : 3.5 * pop, msq = 1 + .012 * Math.sin(q * 2.3) + pulse - .02 * sad;
+    man.pose({ x: mx, y: M.y, sq: msq, bob: mb, rot: mrot,
+      parts: { legL: going ? w.legL : 0, legR: going ? w.legR : 0, head: mhead }, hide: ['smoke'] }, f);
+    // the pipe's end (page 2418, 1372) rides on the figure: rotated about his feet and bobbed with him
+    const pa = mrot * Math.PI / 180, ddx = (2418 - 2400) * .358, ddy = (1372 - 2190) * .358 * msq;
+    pipe.px = mx + ddx * Math.cos(pa) - ddy * Math.sin(pa); pipe.py = M.y - mb + ddx * Math.sin(pa) + ddy * Math.cos(pa);
+    pipeG.setAttribute('transform', `translate(${pipe.px.toFixed(1)} ${pipe.py.toFixed(1)})`);
+    pipe(q); chim(q);
     // ---- the thought: a kitten like the one under the tree, sitting still and breathing
     th.pose(q, THINK0, THINK1);
-    kit.pose({ x: 0, y: 56, s: 1.25, sq: 1 + .02 * Math.sin(q * 3), rot: 2 * Math.sin(q * 1.7) }, f);
+    const kl = catLife(q, 1, { tail: 14, head: 6 });
+    kit.pose({ x: 0, y: 56, s: 1.25, sq: 1 + .02 * Math.sin(q * 3), rot: 2 * Math.sin(q * 1.7) + kl.rot, bob: kl.bob, parts: kl.parts }, f);
     turnOut(q); turnIn(q);
   });
 }

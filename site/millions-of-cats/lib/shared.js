@@ -33,8 +33,11 @@ function pageTurn(p, t0, dur = .45, mode = 'in') {
 /* ---------- a crowd of cats ----------
    catCrowd(parent, { names, n, box: [x0, y0, x1, y1], seed, s: [near, far], flip }) scatters n lifted cats in the
    box (feet in it), smaller towards the top (far) and drawn back to front, each a different one of `names`, half of
-   them mirrored. pose(q, f, { from, every, hop }) shows cat i from from + i·every s (a pop in: a little hop), and
-   then lets each cat live: a hop now and then at its own moment, a small rock. `every` can be a function i → time.
+   them mirrored. pose(q, f, { from, every, hop, walk, seethe }) shows cat i from from + i·every s (a pop in: a little
+   hop), and then lets each cat live (catLife in cut.js: tail, head, and legs when split): a hop now and then at its own
+   moment, a small rock. `every` can be a function i → time. walk: { v, t0, t1 } moves every cat v world px/s from t0 to t1
+   (+ right), each turned to face the way it goes (by its piece's `faces` in cut.js: -1 drawn looking left), legs keeping pace;
+   seethe 0 … 1: a quarrel, every cat hopping, lunging and spinning on its spot, faster and higher as it grows.
    Returns { cats: [{ p, x, y, s, flip }], pose }. */
 function catCrowd(parent, { names, n = 20, box = [0, 600, 1600, 900], seed = 1, s = [1, .55], flip = true } = {}) {
   const g = mk('g', {}, parent), cats = [];
@@ -46,13 +49,22 @@ function catCrowd(parent, { names, n = 20, box = [0, 600, 1600, 900], seed = 1, 
   cats.sort((a, b) => a.y - b.y);
   for (const c of cats) c.p = cutPuppet(g, c.name);
   return { g, cats,
-    pose(q, f, { from = 0, every = 0, hop = true } = {}) {
+    pose(q, f, { from = 0, every = 0, hop = true, walk = null, seethe = 0 } = {}) {
       for (const c of cats) {
         const t = from + (typeof every === 'function' ? every(c.i) : c.i * every), u = q - t;
         vis(c.p.g, u >= 0); if (u < 0) continue;
         const pop = u < .34 ? Math.sin(u / .34 * Math.PI) * 18 : 0;                        // pops in with a hop
         const w = hop ? (q + c.ph) % 4.2 : 9, live = w < .34 ? Math.sin(w / .34 * Math.PI) * 7 : 0;   // a hop now and then
-        c.p.pose({ x: c.x, y: c.y, s: c.s, flip: c.flip, bob: pop + live, rot: Math.sin((q + c.ph) * 1.7) * 1.2 }, f + c.i);
+        const t0w = walk?.t0 ?? 0, moving = walk && q >= t0w && q < (walk.t1 ?? Infinity);
+        const run = walk ? (Math.min(q, walk.t1 ?? Infinity) - t0w) * walk.v * (q > t0w) : 0;   // world px walked (stops at t1)
+        const L = catLife(q, c.ph, { d: moving ? Math.abs(run) / c.s : null, tail: 12 + 20 * seethe, head: 7 + 12 * seethe });
+        let x = c.x + run, bob = pop + live + L.bob, rot = Math.sin((q + c.ph) * 1.7) * 1.2 + L.rot;
+        if (seethe) {   // a quarrel: on twos, each cat lunges, hops and twists at its own beat
+          const k = Math.floor((q + c.ph) * FPS / 2), r = jit(k, c.i + 40), r2 = jit(k, c.i + 80);
+          x += r * 14 * seethe; bob += Math.abs(r2) * 22 * seethe; rot += r2 * 16 * seethe;
+        }
+        const fl = walk && walk.v ? (CUT[c.name].faces ?? 1) * Math.sign(walk.v) < 0 : c.flip;
+        c.p.pose({ x, y: c.y, s: c.s, flip: fl !== (seethe > 0 && jit(Math.floor((q + c.ph) * 2), c.i) > .6), bob, rot, parts: L.parts }, f + c.i);
       }
     } };
 }

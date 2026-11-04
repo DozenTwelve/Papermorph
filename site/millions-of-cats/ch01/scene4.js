@@ -20,6 +20,12 @@ function s4hop(q, t0, dur, a, b, h) {
 function s4talk(q) { for (const [a, b] of S4_SAY) if (q >= PRE4 + a && q < PRE4 + b) return Math.abs(Math.sin((q - PRE4 - a) * 8.4)); return 0; }
 // the same breath and slow rock every living figure gets
 const s4idle = (q, ph = 0) => ({ sq: 1 + .012 * Math.sin(q * 2.2 + ph), rot: Math.sin(q * 1.3 + ph) * .5 });
+// a speaker's nod on his stressed words: pulses with the syllables, a degree or two of head-and-shoulder tip plus a little dip
+const s4nod = (q, ph = 0) => { const k = s4talk(q); return { rot: k * 1.6 * Math.sin(q * 4.2 + ph), bob: k * 2.5 }; };
+// a cat in the hand or arms squirms: quick small turns and squashes, out of step with the next one
+const s4squirm = (q, t0, t1, amp, ph = 0) => { const k = span(q, t0, t0 + .25) * (1 - span(q, t1 - .4, t1)); return { rot: k * amp * Math.sin(q * 11 + ph), sq: 1 + k * .05 * Math.sin(q * 13 + ph) }; };
+// 0 → 1 → 0 over [a, b]: an arm that goes out and comes back
+const s4hump = (q, a, b) => Math.sin(Math.PI * span(q, a, b));
 // a damped pendulum swing (degrees) from t0
 const s4swing = (q, t0, amp, hz = 1.6, damp = 1.1) => q < t0 ? 0 : amp * Math.exp(-(q - t0) * damp) * Math.sin((q - t0) * hz * Math.PI * 2);
 // a point on a part turned a degrees (clockwise on screen) about its pivot
@@ -50,6 +56,11 @@ function scene4(p, D) {
   // ---- p12, p13 ----
   const m12 = pagePos('p12', 'man12'), c12 = pagePos('p12', 'cat12'), m13 = pagePos('p13', 'man13'), c13 = pagePos('p13', 'cat13');
   const man12 = cutPuppet(cam12.stage, 'man12'), cat12 = cutPuppet(cam12.stage, 'cat12'), man13 = cutPuppet(cam13.stage, 'man13'), cat13 = cutPuppet(cam13.stage, 'cat13');
+
+  // Gág's flowers and the bush, lifted as small pieces: each sways from its foot (sk), behind the figures
+  const s4tuft = (cam, page, names) => names.map((n, i) => { const t = cutPuppet(cam.stage, n); cam.stage.insertBefore(t.g, cam.stage.firstChild); return { t, at: pagePos(page, n), i }; });
+  const tf10 = s4tuft(cam10, 'p10', ['tuft10a', 'tuft10b', 'tuft10c']), tf11 = s4tuft(cam11, 'p11', ['tuft11a', 'tuft11b', 'tuft11c']), tf12 = s4tuft(cam12, 'p12', ['tuft12a', 'tuft12b']);
+  const s4sway = (q, L, f) => L.forEach(({ t, at, i }) => t.pose({ x: at.x, y: at.y, s: at.s, sk: (i === 4 ? 1.2 : 3) * Math.sin(q * 1.8 + i * 1.7) + Math.sin(q * 3.1 + i) }, f));
 
   // ---- cameras ----
   const T = c2t;
@@ -82,9 +93,9 @@ function scene4(p, D) {
   cam13.cut({ x: 1135, y: 430, z: 1.5 }, 0)
     .cut({ x: 1232, y: 292, z: 5 }, T(52.2))
     .cut({ x: 1130, y: 390, z: 1.8 }, T(54.7))
-    .cut({ x: 1075, y: 335, z: 2.3 }, T(56.2))
-    .cut({ x: 1100, y: 380, z: 1.8 }, T(58.7))
-    .cut({ x: 1135, y: 300, z: 2.4 }, T(60.4)).to({ x: 1135, y: 330, z: 2.0 }, T(61.7), 1.0);
+    .cut({ x: 1075, y: 300, z: 2.3 }, T(56.2))     // y up 35: his head (the cat on it, his stressed bobs) stays in with air above
+    .cut({ x: 1100, y: 345, z: 1.8 }, T(58.7))
+    .cut({ x: 1135, y: 270, z: 2.4 }, T(60.4)).to({ x: 1135, y: 310, z: 2.0 }, T(61.7), 1.0);
 
   // ---- page turns: p10 → p11 → p12 → p13, each in a hole; the last one closes the scene ----
   const turns = S4_TURN.map(c => {
@@ -112,14 +123,14 @@ function scene4(p, D) {
     const talk = s4talk(q);
 
     if (on10) {
-      cam10.apply(q, f);
+      cam10.apply(q, f); s4sway(q, tf10, f);
       // the white cat: his arms hang low at "Oh!", lift on "So he chose one", and the cat wiggles in his hands on "white"
       const up = span(q, M('n04.white') - 1.7, M('n04.white') - .2);
       const wig = q > M('n04.white') ? Math.sin((q - M('n04.white')) * 9) * 3 * span(q, M('n04.white'), M('n04.white') + .3) : 0;
       // the arms part overlaps its cut by only 3 page px: a turn of more than a degree opens the line across his beard, so they only
       // turn a hair and shift by a pixel; the lift and the wiggle ride on the whole figure (rot, bob)
-      man10a.pose({ x: a10.x, y: a10.y, s: a10.s, ...s4idle(q), bob: talk * 2.5 + 2.5 * up + (q > T(.0) && q < T(.3) ? 6 * Math.sin((q - T(0)) / .3 * Math.PI) : 0),
-        parts: { arms: .8 * Math.sin(q * 1.9) + wig * .15 }, move: { arms: [0, .5 - .9 * (1 - up) + .15 * Math.sin(q * 1.9)] } }, f);
+      man10a.pose({ x: a10.x, y: a10.y, s: a10.s, ...s4idle(q), rot: s4idle(q).rot + s4nod(q).rot + wig * .2, bob: talk * 2.5 + 2.5 * up + (q > T(.0) && q < T(.3) ? 6 * Math.sin((q - T(0)) / .3 * Math.PI) : 0),
+        parts: { arms: .8 * Math.sin(q * 1.9) + wig * .3 }, move: { arms: [wig * .12, .5 - .9 * (1 - up) + .15 * Math.sin(q * 1.9) - Math.abs(wig) * .25] } }, f);
       // the other man at the tree: bends, sees the kitten, reaches, picks it up
       const tk = M('n04b.took'), ph = M('n04b.bw');
       const reach = -8 * span(q, T(15.2), tk) + 53 * span(q, tk + .25, tk + .95);        // armR: down to the kitten, then lifted with it
@@ -130,11 +141,12 @@ function scene4(p, D) {
       const at = { x: k10.x, y: k10.y }, to = { x: hand.x + 8, y: hand.y + 44 };
       const h = s4hop(q, tk + .0, HOP, at, to, 70), crouch = q > tk - .22 && q < tk ? .88 : 1;
       const kp = q < tk ? at : h.u < 1 ? h : to;
-      kit10.pose({ x: kp.x, y: kp.y, s: k10.s, sq: (q < tk ? crouch * (1 + .015 * Math.sin(q * 3)) : 1 + .03 * Math.sin((q - tk) * 8) * Math.exp(-(q - tk) * 2)),
-        rot: q < tk ? (q > ph ? Math.sin(q * 2.2) * 3 : 0) : h.u < 1 ? -22 + 44 * h.u : Math.sin(q * 5) * 2 }, f);
+      const sq10 = s4squirm(q, tk + .95, T(19.3), 6, 2), cl10 = catLife(q, 1);
+      kit10.pose({ x: kp.x, y: kp.y, s: k10.s, parts: cl10.parts, sq: (q < tk ? crouch * (1 + .015 * Math.sin(q * 3)) : 1 + .03 * Math.sin((q - tk) * 8) * Math.exp(-(q - tk) * 2)),
+        rot: q < tk ? (q > ph ? Math.sin(q * 2.2) * 3 : 0) : h.u < 1 ? -22 + 44 * h.u : Math.sin(q * 5) * 2 + sq10.rot }, f);
     }
     if (on11) {
-      cam11.apply(q, f);
+      cam11.apply(q, f); s4sway(q, tf11, f);
       // right: he walks in (one stride cycle, ending with the feet together), then reaches up for the kitten
       const rightOn = q < T(27.95); vis(ground11, rightOn); for (const pp of [man11b, kit11]) vis(pp.g, rightOn); for (const pp of [man11a, cat11]) vis(pp.g, !rightOn);
       const w0 = T(20.75), W = cutWalk(q - w0, { L: 140, A: 14, period: 1 }), walking = q >= w0 && q < w0 + 1;
@@ -145,26 +157,33 @@ function scene4(p, D) {
       const hx = 1152, hy = 238;            // where the kitten sits once he has it: his open hands are at about (1130, 300)
       const sw = s4swing(q, T(21.7), 16, 1.1, .35);
       const kd = s4hop(q, tk + .05, .55, { x: k11.x, y: k11.y }, { x: hx, y: hy }, -30);
-      kit11.pose(q < tk + .05 ? { x: k11.x, y: k11.y, s: k11.s, rot: sw } : { x: kd.x, y: kd.y, s: k11.s, rot: sw * (1 - kd.u) }, f);
+      const cl11 = catLife(q, 2), sq11 = s4squirm(q, tk + .65, T(27.95), 7, 1);
+      kit11.pose(q < tk + .05 ? { x: k11.x, y: k11.y, s: k11.s, rot: sw, parts: cl11.parts } : { x: kd.x, y: kd.y, s: k11.s, rot: sw * (1 - kd.u) + sq11.rot, sq: sq11.sq, parts: cl11.parts }, f);
       // left: the man under the drooping tree shifts and looks down; the white cat looks up, then jumps on
-      man11a.pose({ x: a11.x, y: a11.y, s: a11.s, ...s4idle(q, 2), rot: s4idle(q, 2).rot + 3 * span(q, T(31.3), T(33.0)) }, f);
+      man11a.pose({ x: a11.x, y: a11.y, s: a11.s, ...s4idle(q, 2), rot: s4idle(q, 2).rot + 3 * span(q, T(31.3), T(33.0)) + 1.2 * Math.sin(q * 3.1) * span(q, T(33.0), T(35)), bob: 2 * Math.max(0, Math.sin(q * 3.1)) * span(q, T(33.0), T(35)),
+        parts: { arm: 9 * s4hump(q, M('n04d.took') - .5, M('n04d.took') + 1.1) + 1.5 * Math.sin(q * 1.7 + 2), head: 4 * span(q, T(30.8), T(31.6)) * (1 - span(q, T(33), T(34))) + 2.5 * Math.sin(q * 3.1) * span(q, T(33.0), T(35)) } }, f);
       const tc = M('n04d.took'), cp = s4hop(q, tc + .05, .55, { x: w11.x, y: w11.y }, { x: 520, y: 590 }, 60);
-      cat11.pose({ x: cp.x, y: cp.y, s: w11.s, ...s4idle(q, 3), sq: q > tc - .25 && q < tc + .05 ? .9 : 1 + .015 * Math.sin(q * 2.4), rot: cp.u > 0 && cp.u < 1 ? -25 + 40 * cp.u : Math.sin(q * 1.6) * 2 }, f);
+      const cl11w = catLife(q, 3), sq11w = s4squirm(q, tc + .65, T(35.2), 7, 3);
+      cat11.pose({ x: cp.x, y: cp.y, s: w11.s, parts: cl11w.parts, ...s4idle(q, 3), sq: q > tc - .25 && q < tc + .05 ? .9 : 1 + .015 * Math.sin(q * 2.4), rot: cp.u > 0 && cp.u < 1 ? -25 + 40 * cp.u : Math.sin(q * 1.6) * 2 + sq11w.rot }, f);
     }
     if (on12) {
-      cam12.apply(q, f);
+      cam12.apply(q, f); s4sway(q, tf12.map(t => ({ ...t, i: t.i + 4 })), f);
       const sway = Math.sin(q * 1.2) * .8, tk = M('n04f.took');
-      man12.pose({ x: m12.x, y: m12.y, s: m12.s, ...s4idle(q, 4), bob: talk * 2.5, rot: sway + 2 * talk * .4,
-        parts: { legL: Math.sin(q * 1.2) * 1.5, legR: -Math.sin(q * 1.2) * 1.5 } }, f);
+      man12.pose({ x: m12.x, y: m12.y, s: m12.s, ...s4idle(q, 4), bob: s4nod(q, 1).bob, rot: sway + s4nod(q, 1).rot + 2.5 * span(q, T(40.2), T(41.5)) * (1 - span(q, T(43), T(43.5))),
+        parts: { legL: Math.sin(q * 1.2) * 1.5, legR: -Math.sin(q * 1.2) * 1.5,
+          armL: -11 * s4hump(q, tk - .6, tk + 1.1) + 1.5 * Math.sin(q * 1.9) - 2 * talk, armR: 3 * Math.sin(q * 2.3 + 1) + 4 * talk * Math.sin(q * 5) } }, f);
       const hp = s4hop(q, tk + .05, HOP, { x: c12.x, y: c12.y }, { x: 585, y: 240 }, 60);
-      cat12.pose({ x: hp.x, y: hp.y, s: c12.s, ...s4idle(q, 5), sq: q > tk - .25 && q < tk + .05 ? .9 : 1 + .02 * Math.sin(q * 2.6), rot: hp.u > 0 && hp.u < 1 ? -10 + 20 * hp.u : 0 }, f);
+      const cl12 = catLife(q, 4), sq12 = s4squirm(q, tk + .65, T(48.4), 7, 4);
+      cat12.pose({ x: hp.x, y: hp.y, s: c12.s, parts: cl12.parts, ...s4idle(q, 5), sq: q > tk - .25 && q < tk + .05 ? .9 : 1 + .02 * Math.sin(q * 2.6), rot: hp.u > 0 && hp.u < 1 ? -10 + 20 * hp.u : sq12.rot }, f);
     }
     if (on13) {
       cam13.apply(q, f);
       const tk = M('n04h.did') - .25;
-      man13.pose({ x: m13.x, y: m13.y, s: m13.s, ...s4idle(q, 6), bob: talk * 3 + (q > T(56.27) && q < T(58.4) ? Math.abs(Math.sin((q - T(56.27)) * 4.2)) * 6 : 0), rot: Math.sin(q * 1.2) * .8 }, f);
-      const hp = s4hop(q, tk, HOP, { x: c13.x, y: c13.y }, { x: 1092, y: 272 }, 60);
-      cat13.pose({ x: hp.x, y: hp.y, s: c13.s, ...s4idle(q, 7), sq: q > tk - .25 && q < tk ? .9 : 1 + .02 * Math.sin(q * 2.6), rot: hp.u > 0 && hp.u < 1 ? -10 + 20 * hp.u : 0 }, f);
+      man13.pose({ x: m13.x, y: m13.y, s: m13.s, ...s4idle(q, 6), bob: talk * 3 + (q > T(56.27) && q < T(58.4) ? Math.abs(Math.sin((q - T(56.27)) * 4.2)) * 6 : 0), rot: Math.sin(q * 1.2) * .8 + s4nod(q, 2).rot + 2 * span(q, T(52.4), T(54)) * (1 - span(q, T(55), T(56))),
+        parts: { arm: -5 * s4hump(q, T(50.2), T(52.4)) - 12 * s4hump(q, T(54.4), T(56)) - 14 * s4hump(q, tk - .4, tk + 1.0) + 1.2 * Math.sin(q * 1.8), head: 2.2 * s4nod(q, 2).rot + 3 * s4hump(q, T(52.4), T(54)) + 4 * s4hump(q, T(49.8), T(51.8)) } }, f);
+      const hp = s4hop(q, tk, HOP, { x: c13.x, y: c13.y }, { x: 1150, y: 290 }, 60);
+      const cl13 = catLife(q, 5), sq13 = s4squirm(q, tk + .65, D, 7, 5);
+      cat13.pose({ x: hp.x, y: hp.y, s: c13.s, parts: cl13.parts, ...s4idle(q, 7), sq: q > tk - .25 && q < tk ? .9 : 1 + .02 * Math.sin(q * 2.6), rot: hp.u > 0 && hp.u < 1 ? -10 + 20 * hp.u : sq13.rot }, f);
     }
     out(q); turns.forEach(t => t(q)); last(q);
   });

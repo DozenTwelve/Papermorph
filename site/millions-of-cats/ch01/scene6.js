@@ -29,11 +29,15 @@ function scene6(p, D) {
   const A = paperCam(p, 'p16'); paper(A);
   const m16 = cutPuppet(A.stage, 'man16'), at16 = pagePos('p16', 'man16');
   const X0 = at16.x, WALK0 = T(.3), SPEED = 92, GY = at16.y + 34;
-  const manX = q => X0 - SPEED * Math.max(0, Math.min(q, CUT) - WALK0);
+  // His steps set the ground's speed: the compass walk plants each foot while the hip rides over it (leg 33 px, swing 26 deg, 0.64 s
+  // per two steps = about 90 px/s, SPEED); the trail walks the same distance, their legs by it.
+  const w16 = q => cutWalk(Math.max(0, Math.min(q, CUT) - WALK0), { L: 33, A: 26, period: .64 });
+  const manX = q => X0 - w16(q).d;
   const trail = Array.from({ length: 11 }, (_, i) => ({ i, name: S6_LEFT[i % S6_LEFT.length], off: 85 + i * 62 + rnd(i * 3 + 1) * 24, dy: (rnd(i * 7 + 2) - .5) * 14, ph: rnd(i * 5 + 4) * 7,
     p: cutPuppet(A.stage, S6_LEFT[i % S6_LEFT.length]) }));
   A.cut({ x: 1000, y: 310, z: 1.5 }, 0).to({ x: 760, y: 310, z: 1.4 }, WALK0, CUT - WALK0);
   A.soft(0, false);
+  for (const [n, k] of [['cloudA', 1], ['cloudB', 3]]) A.move(n, q => `translate(${(8 * Math.sin(q * .5 + k * 2)).toFixed(1)} ${(2.5 * Math.sin(q * .37 + k)).toFixed(1)})`);   // Gág's two clouds drift
 
   // ---------------- page 17: the winding road ----------------
   const B = paperCam(p, 'p17'); paper(B);
@@ -85,11 +89,13 @@ function scene6(p, D) {
     vis(A.root, first); vis(B.root, !first);
     if (first) {
       A.apply(q, f);
-      const x = manX(q), st = trot(q, 0, 1.9);
-      m16.pose({ x, y: GY, s: at16.s, bob: st.bob * .8 + Math.sin(q * 2.2), rot: st.rot * .5 }, f);
+      const x = manX(q), w = w16(q), walking = q > WALK0;
+      m16.pose({ x, y: GY, s: at16.s, bob: w.bob + Math.sin(q * 2.2) * .6, rot: walking ? w.legL * .05 : 0, sq: 1 + .01 * Math.sin(q * 2.2),
+        parts: { legL: w.legL, legR: w.legR } }, f);
+      const dist = X0 - x;   // how far the ground has gone by: the cats' legs keep pace with it
       for (const c of trail) {
-        const cx = Math.min(manX(q) + c.off, 1e9), tr = trot(q, c.ph, 3.2);
-        c.p.pose({ x: cx, y: GY + c.dy, s: .5, bob: tr.bob * 1.2, rot: tr.rot, op: Math.max(0, Math.min(1, (1436 - cx) / 40)) }, f + c.i);
+        const cx = x + c.off, L = catLife(q, c.ph, { d: dist / .5, L: 80, A: 22, tail: 16, head: 9 });
+        c.p.pose({ x: cx, y: GY + c.dy, s: .5, bob: L.bob * 1.4 + (walking ? Math.abs(Math.sin(dist / 22 + c.ph)) * 1.2 : 0), rot: L.rot, parts: L.parts, op: Math.max(0, Math.min(1, (1436 - cx) / 40)) }, f + c.i);
       }
     } else {
       B.apply(q, f);
@@ -98,12 +104,13 @@ function scene6(p, D) {
         parts: { legL: w.legL, legR: w.legR } }, f);
       for (const it of items) {
         const u = q - it.t; vis(it.p.g, u >= 0); if (u < 0) continue;
-        const tr0 = trot(q, it.ph, 3.2);
-        if (it.fixed) { it.p.pose({ x: it.fixed[0], y: it.fixed[1], s: it.fixed[2], flip: true, bob: tr0.bob * 1.6 + (u < .3 ? Math.sin(u / .3 * Math.PI) * 10 : 0), rot: tr0.rot }, f + it.ph * 5 | 0); continue; }
-        const k = Math.min(1, u / 1.1), arc = it.a + 230 * (1 - k * k * (3 - 2 * k)) - shift;   // runs in from further back
+        const tr0 = trot(q, it.ph, 3.2), slow = Math.max(0, q - WALK17 - TAU_END) * 34;   // when he has stopped the cats go on trotting, slowly
+        if (it.fixed) { const L = catLife(q, it.ph, { d: (u + slow * .05) * 70 / it.fixed[2], L: 80, A: 20, tail: 16, head: 9 }); it.p.pose({ x: it.fixed[0], y: it.fixed[1], s: it.fixed[2], flip: true, bob: tr0.bob * 1.6 + L.bob + (u < .3 ? Math.sin(u / .3 * Math.PI) * 10 : 0), rot: tr0.rot + L.rot, parts: L.parts }, f + it.ph * 5 | 0); continue; }
+        const k = Math.min(1, u / 1.1), sm = k * k * (3 - 2 * k), arc = it.a + 230 * (1 - sm) - shift;   // runs in from further back
         const [rx, ry, rs] = s6road(arc), [ax, ay] = s6road(arc + 14), [bx, by] = s6road(arc - 14), tr = trot(q, it.ph, 3.2);
         const nx = -(by - ay), ny = bx - ax, nl = Math.hypot(nx, ny) || 1;
-        it.p.pose({ x: rx + nx / nl * it.lat * rs, y: ry + ny / nl * it.lat * rs + 2, s: rs * 1.05, flip: bx > ax, bob: tr.bob * rs * 1.6 + (u < .3 ? Math.sin(u / .3 * Math.PI) * 10 : 0), rot: tr.rot }, f + it.ph * 5 | 0);
+        const L = catLife(q, it.ph, { d: (shift + 230 * sm + slow) / (rs * 1.05), L: 80, A: 20, tail: 16, head: 9 });
+        it.p.pose({ x: rx + nx / nl * it.lat * rs, y: ry + ny / nl * it.lat * rs + 2, s: rs * 1.05, flip: bx > ax, bob: tr.bob * rs * 1.6 + L.bob * rs + (u < .3 ? Math.sin(u / .3 * Math.PI) * 10 : 0), rot: tr.rot + L.rot, parts: L.parts }, f + it.ph * 5 | 0);
       }
     }
     out(q); turn(q);

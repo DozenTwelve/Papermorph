@@ -51,9 +51,11 @@ function s2_hill(cam) {
     man.pose({
       x: at.x, y: at.y, s: at.s, sq: 1 + .012 * Math.sin(q * 2.2), rot: Math.sin(q * 1.3) * .5,
       bob: u > 0 && u < 1 ? Math.sin(u * Math.PI) * 9 : 0,
-      parts: { armL: -75 * (1 - u) + fl, armR: 75 * (1 - u) - fl, head: -7 * u + Math.sin(q * 1.8) * 1.2 },
+      parts: { armL: -75 * (1 - u) + fl + 3 * Math.sin(q * 1.6) + 4 * u * Math.sin(q * 3.3), armR: 75 * (1 - u) - fl - 3 * Math.sin(q * 1.6 + 1) - 4 * u * Math.sin(q * 3.3 + 2),
+        head: -7 * u + Math.sin(q * 1.8) * 1.2 + (1 - u) * 5 * Math.sin(q * .8) },   // before: looking slowly along the hill; after: arms up and waving in awe
     }, f);
-    for (const c of pets) c.p.pose({ x: c.at.x, y: c.at.y, s: c.at.s, rot: Math.sin(q * 2.4 + c.i * 2) * 1.6, sq: 1 + .012 * Math.sin(q * 2.6 + c.i), bob: (q + c.i * 1.1) % 2.3 < .2 ? Math.sin(((q + c.i * 1.1) % 2.3) / .2 * Math.PI) * 4 : 0 }, f + c.i);
+    for (const c of pets) { const cl = catLife(q, c.i * 1.3 + .4);
+      c.p.pose({ x: c.at.x, y: c.at.y, s: c.at.s, rot: Math.sin(q * 2.4 + c.i * 2) * 1.6 + cl.rot, parts: cl.parts, sq: 1 + .012 * Math.sin(q * 2.6 + c.i), bob: (q + c.i * 1.1) % 2.3 < .2 ? Math.sin(((q + c.i * 1.1) % 2.3) / .2 * Math.PI) * 4 : 0 }, f + c.i); }
   };
 }
 const S2_HILLCAM = { x: 640, y: 560, z: 1.95 };   // where the p08 shot ends, and scene3 begins
@@ -63,6 +65,8 @@ function scene2(p, D) {
   const cam = paperCam(p, 'hills');
   cam.world.insertBefore(mk('rect', { x: -3000, y: -2000, width: 8000, height: 5000, fill: '#eee8d6' }), cam.world.firstChild);   // the set's sky is cut out under the clouds; parallax would show the stage
   const man = cutPuppet(cam.stage, 'man5');
+  cam.move('clouds', q => `translate(${(-13 * q).toFixed(1)} 0)`);   // Gág's clouds drift, against his way
+  const pipeG = mk('g', {}, cam.stage), pipe = inkSmoke(pipeG, 0, 0, { size: 1.1, rise: 24, drift: 7, curl: 2.4, waves: 1.4, period: 1.6, ink: .7, seed: 4 });
   const cam1 = paperCam(p, 'cathill'), hill = s2_hill(cam1);
   const out = pageTurn(p, 0, .6, 'out'), tin = pageTurn(p, S2_TURN, .3, 'in'), tout = pageTurn(p, S2_TURN + .3, .3, 'out');
   const SW = S2_TURN + .3, UP = T('n02', 13.0), UPEND = T('n02', 13.75);   // the swap under the turned leaf; arms up on "covered with cats"
@@ -110,13 +114,17 @@ function scene2(p, D) {
     const slope = m.ang, lean = still ? 0 : (slope < -8 ? 7 : 3);
     // trudging through the valleys: head down, a little slumped
     const slump = s.slump && q < T('n02', 7.4) ? .97 : 1;
+    const rotv = Math.max(-6, Math.min(6, slope * .25)) + lean + (still ? Math.sin(q * 1.7) * .8 : 0);
     man.pose({
-      x: m.x, y: m.y, s: S2_S, rot: Math.max(-6, Math.min(6, slope * .25)) + lean + (still ? Math.sin(q * 1.7) * .8 : 0),
+      x: m.x, y: m.y, s: S2_S, rot: rotv,
       bob: (still ? 0 : w.bob * S2_S),
       sq: slump * (1 + .012 * Math.sin(q * 2.2)),
-      parts: still ? { legL: 0, legR: 0 } : { legL: w.legL, legR: w.legR },
-      move: { smoke: [Math.sin(q * 1.3) * 3, -Math.abs(Math.sin(q * 1.1)) * 4] },
+      parts: still ? { legL: 0, legR: 0, head: 2 * Math.sin(q * 1.3) } : { legL: w.legL, legR: w.legR, head: 3 * Math.sin(q * Math.PI * 2 / s.period + 1) + (s.slump ? 4 : 0) },
+      hide: ['smoke'],
     }, f);
+    const pa = rotv * Math.PI / 180, ddx = 18 * .358 * S2_S, ddy = -818 * .358 * S2_S;   // his pipe's end, rotated about his feet
+    pipeG.setAttribute('transform', `translate(${(m.x + ddx * Math.cos(pa) - ddy * Math.sin(pa)).toFixed(1)} ${(m.y - (still ? 0 : w.bob * S2_S) + ddx * Math.sin(pa) + ddy * Math.cos(pa)).toFixed(1)})`);
+    pipe(q);
     out(q); tin(q); tout(1e9);
   });
 }

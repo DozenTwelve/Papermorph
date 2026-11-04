@@ -42,17 +42,22 @@ function scene9(p, D) {
   const wAt = pagePos('p22', 'woman22'), mAt = pagePos('p22', 'man22');
   const woman = cutPuppet(A.stage, 'woman22'), man = cutPuppet(A.stage, 'man22');
   const line = ['cat22a', 'cat22b', 'cat22c', 'cat22d'].map((n, i) => ({ p: cutPuppet(A.stage, n), at: pagePos('p22', n), ph: i * .37 }));
-  const tail = catCrowd(A.stage, { names: ['cat22a', 'cat22b', 'cat22c', 'cat22d'], n: 18, box: [760, 585, 1380, 630], seed: 9, s: [1, .85] });
   const dEnd = walk(s9_WALKN * s9_PER / 2, { L: s9_L, A: s9_A, period: s9_PER, knee: 0 }).d;
+  // the cats behind him start dEnd to the right and walk in with him (legs by catLife), freezing where Gag drew them
+  const s9_TW = s9_WALKN * s9_PER / 2, s9_V = -dEnd / s9_TW;
+  const tail = catCrowd(A.stage, { names: ['cat22a', 'cat22b', 'cat22c', 'cat22d'], n: 18, box: [760 + dEnd, 585, 1380 + dEnd, 630], seed: 9, s: [1, .85] });
 
   // ---- p23: the long line ----
   const B = paperCam(p, 'p23', { x: 800, y: 430, z: 1 });
   B.to({ x: 800, y: 600, z: 1.32 }, s9_S7 + .1, 1.5).to({ x: 770, y: 610, z: 1.36 }, s9_T(12.23), 3.5)
    .to({ x: 800, y: 610, z: 1.3 }, s9_T(16), 1.6).to({ x: 800, y: 600, z: 1.18 }, s9_T(19.9), .9);
   B.shake(s9_T(20.01), .5, 5);
+  // the long line is a procession: every cat walks left at s9_V2 from the cut for s9_DX px, the box starting that far in from the
+  // band's right end, so every cat stands on Gag's drawn ground from its first frame to its last (band world x 235 .. 1365)
+  const s9_V2 = -18, s9_DX = 230, s9_T1 = s9_S7 + s9_DX / -s9_V2;
   const names = ['cat23a', 'cat23b', 'cat23c', 'cat23d', 'cat23e', 'cat23f', 'cat23g', 'cat23h', 'cat22a', 'cat22b', 'cat22c', 'cat22d'];
-  const N = 64, crowd = catCrowd(B.stage, { names, n: N, box: [235, 588, 1365, 655], seed: 23, s: [1.15, .85] });
-  const when = i => s9_T(i < 12 ? 12.8 + i * .2 : i < 28 ? 16.5 + (i - 12) * .06 : i < 44 ? 17.7 + (i - 28) * .05 : 19.1 + (i - 44) * .07);
+  const N = 64, crowd = catCrowd(B.stage, { names, n: N, box: [235 + s9_DX, 588, 1365, 655], seed: 23, s: [1.15, .85] });
+  const when = i => (i < 14 ? s9_S7 + i * .08 : s9_T(i < 20 ? 12.8 + (i - 14) * .2 : i < 28 ? 16.5 + (i - 12) * .06 : i < 44 ? 17.7 + (i - 28) * .05 : 19.1 + (i - 44) * .07));
   const L = lettering(B.stage, s9_RF.map(w => w[0]), { x: 778, y: 763, s: .98 });
   const times = {}; for (const [n, t] of s9_RF) times[n] = s9_T(t);
 
@@ -66,19 +71,27 @@ function scene9(p, D) {
         - 20 * span(q, s9_T(7.99), s9_T(8.6)) * (q < s9_S6 ? 1 : 0) * (1 - span(q, s9_T(9.9), s9_T(10.2))) - 9 * pk(q, s9_T(10.25), .25) - 5 * pk(q, s9_T(2.1), .5)
         + 2.5 * Math.sin(q * 3);
       const talk = (q >= s9_S2 && q < s9_S3) || (q >= s9_S4 && q < s9_S7);
+      // head: a nod on each stressed word (forward is +), tipped back as she sees them; far hand waving up with her cries
+      const st = pk(q, s9_T(3.42), .15) + pk(q, s9_T(3.62), .15) + pk(q, s9_T(6.83), .15) + pk(q, s9_T(6.96), .15) + pk(q, s9_T(8.0), .15) + pk(q, s9_T(10.25), .2);
+      const head = 7 * st - 6 * span(q, s9_T(1.7), s9_T(2.6)) * (1 - span(q, s9_T(3.2), s9_T(3.5))) + 1.5 * Math.sin(q * 1.9);
+      const armL = -16 * (pk(q, s9_T(3.5), .3) + pk(q, s9_T(6.9), .3) + pk(q, s9_T(10.2), .3)) - 10 * span(q, s9_T(2.0), s9_T(3.0)) * (1 - span(q, s9_T(3.3), s9_T(3.6))) + 2 * Math.sin(q * 2.6);
       woman.pose({ ...wAt, flip: false, sq: 1 + .012 * Math.sin(q * 2.2) + (talk ? .01 * pk(q % .5, .1, .12) : 0), rot: Math.sin(q * 1.3) * .8 + (talk ? -1.4 * pk(q, s9_T(3.62), .3) : 0),
-        parts: { armR: arm }, mouth: lips(q, 'scene9', PRE9, 'w08', 'w08b') }, f);
+        parts: { armR: arm, armL, head }, mouth: lips(q, 'scene9', PRE9, 'w08', 'w08b') }, f);
       // him: strides in on pins, stops, breathes under the armful, a bob when she cries out
       const tau = Math.min(Math.max(q - s9_WALK0, 0), s9_WALKN * s9_PER / 2), w = cutWalk(tau, { L: s9_L, A: s9_A, period: s9_PER }), moving = q > s9_WALK0 && tau < s9_WALKN * s9_PER / 2;
       const wd = walk(tau, { L: s9_L, A: s9_A, period: s9_PER, knee: 0 }).d;
       man.pose({ x: mAt.x + (dEnd - wd) * 1, y: mAt.y, flip: false, bob: moving ? w.bob : 0, sq: 1 + .012 * Math.sin(q * 2.3 + 1) - (q > s9_T(3.5) ? .01 * pk(q, s9_T(3.8), .25) : 0),
-        rot: moving ? Math.sin(q * 5.7) * .8 : Math.sin(q * 1.1) * .6 - 1.5 * pk(q, s9_T(3.8), .35), parts: { legL: moving ? w.legL : 0, legR: moving ? w.legR : 0 } }, f);
+        rot: moving ? Math.sin(q * 5.7) * .8 : Math.sin(q * 1.1) * .6 - 1.5 * pk(q, s9_T(3.8), .35), parts: { legL: moving ? w.legL : 0, legR: moving ? w.legR : 0,
+          head: -(moving ? 3.5 * Math.sin(q * Math.PI * 4 / s9_PER) : 1.2 * Math.sin(q * 1.4)) - 6 * pk(q, s9_T(3.9), .3) - 4 * pk(q, s9_T(6.95), .3) } }, f);
       // the line of cats behind him, trotting on the spot, and more popping in behind
-      for (const c of line) c.p.pose({ ...c.at, ...trot(q, c.ph, 2.4) }, f);
-      tail.pose(q, f, { from: .0, every: .12 });
+      for (const c of line) {
+        const L = catLife(q, c.ph, { d: moving ? wd * 1.2 : null, L: 60, A: 16 });
+        c.p.pose({ ...c.at, x: c.at.x + (dEnd - wd), bob: L.bob, rot: L.rot, parts: L.parts }, f);
+      }
+      tail.pose(q, f, { from: .0, every: .04, walk: { v: s9_V, t0: s9_WALK0, t1: s9_WALK0 + s9_TW } });
     } else {
       B.apply(q, f);
-      crowd.pose(q, f, { from: 0, every: i => when(i) });
+      crowd.pose(q, f, { from: 0, every: i => when(i), walk: { v: s9_V2, t0: s9_S7, t1: s9_T1 } });
       L.show(q, times, f);
     }
     turnOut(q); turn(q);

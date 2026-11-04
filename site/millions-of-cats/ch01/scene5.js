@@ -26,6 +26,8 @@ function scene5(p, D) {
   const P = PRE5, T = t => P + t;
   const cam = paperCam(p, 'p14');
   cam.world.insertBefore(mk('rect', { x: -3000, y: -2000, width: 8000, height: 5000, fill: '#eee8d6' }), cam.world.firstChild);
+  // Gág's three clouds drift a few px (layers lifted off p14: the hole they leave is paper, so they stay within about 8 px)
+  [1, 2, 3].forEach(k => cam.move('cloud' + k, q => `translate(${(8 * Math.sin(q * .5 + k * 2)).toFixed(1)} ${(2.5 * Math.sin(q * .37 + k)).toFixed(1)})`));
   const out = pageTurn(p, 0, .6, 'out'), turn = pageTurn(p, D - .1, .6, 'in');
   const man = cutPuppet(cam.stage, 'man14'), at = pagePos('p14', 'man14');
   // the cats: those of each look, then the great crowd at "chosen them all"
@@ -67,11 +69,13 @@ function scene5(p, D) {
     cam.apply(q, f);
     let up = 0; for (const l of S5_LOOK) up = Math.max(up, bump(q, T(l)));
     man.pose({ x: at.x, y: at.y, s: at.s, sq: 1 + .012 * Math.sin(q * 2.2), rot: Math.sin(q * 1.3) * .6 + (up > .1 ? -.8 * up : 0),
-      parts: { head: 4 - 18 * up + Math.sin(q * 1.9) * 1.2 }, move: { head: [0, 0] } }, f);
+      bob: Math.abs(Math.sin(q * 1.6)) * 2.2 + up * 4,   // he shifts his weight, and rises on his toes at each look
+      parts: { head: 4 - 18 * up + Math.sin(q * 1.9) * 1.2 + Math.sin(q * .7) * 2.5, armF: Math.sin(q * 2.1) * 2.5 - 9 * up + Math.sin(q * 5.3) * 1.2 * (1 - up) } }, f);
     for (const c of cats) {
       const u = q - c.t; vis(c.p.g, u >= 0); if (u < 0) continue;
       const pop = u < .34 ? Math.sin(u / .34 * Math.PI) * 18 : 0, w = (q + c.ph) % 4.2, live = w < .34 ? Math.sin(w / .34 * Math.PI) * 6 : 0;
-      c.p.pose({ x: c.x, y: c.y, s: c.s, flip: c.flip, bob: pop + live, rot: Math.sin((q + c.ph) * 1.7) * 1.4 }, f + c.i);
+      const L = catLife(q, c.ph, { tail: 20, head: 11 });   // tail, head (and legs once split) alive; each cat looks at him now and then
+      c.p.pose({ x: c.x, y: c.y, s: c.s, flip: c.flip, bob: pop + live + L.bob, rot: Math.sin((q + c.ph) * 1.7) * 1.4 + L.rot, parts: L.parts }, f + c.i);
     }
     crowd.forEach((c, k) => c.pose(q, f, { from: wave[k][0], every: wave[k][1] }));
     out(q); turn(q);

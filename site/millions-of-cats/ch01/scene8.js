@@ -35,11 +35,14 @@ function scene8(p, D) {
       <g id="s8_bites" fill="#000">${patches.map((a, i) => `<polygon id="s8_b${i}" points="${blob(i)}" transform="translate(${a.x.toFixed(0)} ${a.y.toFixed(0)}) scale(0)"/>`).join('')}</g><polygon points="926,428 985,452 1114,482 1276,519 1362,541 1379,571 1114,571 996,557 942,509" fill="#fff"/></mask>
     <filter id="s8_grow" x="-5%" y="-10%" width="110%" height="120%"><feMorphology operator="dilate" radius="4"/></filter>
     <mask id="s8_bedMask" maskUnits="userSpaceOnUse" x="${BX - 20}" y="${BY - 20}" width="${BW + 40}" height="${BH + 40}"><image href="../img/sets/p20/grass.webp" x="${BX}" y="${BY}" width="${BW}" height="${BH}" preserveAspectRatio="none" filter="url(#s8_grow)"/></mask>`;
+  // the first bites are at the eaters' feet and open in the wide refrain shot already
+  [[430, 410], [620, 405], [740, 415], [830, 425], [1060, 420], [1200, 440]].forEach(([x, y], k) => Object.assign(patches[k], { x, y, early: s8_T(3.6 + k * 1.1), r: 40 }));
   const bites = patches.map((a, i) => defs.querySelector('#s8_b' + i));
 
   // P: page 20, the hill and its grass; puppets stand in front of the grass layer
   const P = paperCam(p, 'p20', { x: 800, y: 380, z: 1.3 }, { after: 'grass' });
   P.layer('grass').setAttribute('mask', 'url(#s8_eat)');
+  P.move('grass', q => `translate(0 571) skewX(${(1.2 * Math.sin(q * 1.9)).toFixed(2)}) translate(0 -571)`);   // the fur of grass sways from its foot
   // the bare hill under the grass is plain paper; a few short ticks of Gág's ink stay as stubble
   const bed = mk('g', { mask: 'url(#s8_bedMask)' }), tk = [];
   for (let i = 0; i < 9; i++) { const cx = BX + rnd(i * 7 + 1) * BW, cy = BY + rnd(i * 7 + 2) * BH;   // little tufts of three or four strokes
@@ -57,7 +60,7 @@ function scene8(p, D) {
   const hillC = catCrowd(P.stage, { names: s8_CATS, n: 18, box: [380, 440, 1250, 505], seed: 8, s: [.85, .55] });
   const bigA = [['cat8a', 340, 490, 1.3, false, 0], ['cat8c', 460, 495, 1.5, false, 1], ['cat23b', 580, 495, 1.4, false, 2]].map(([n, x, y, s, flip, i]) => ({ p: cutPuppet(P.stage, n), x, y, s, flip, i }));
   const bigB = [['cat23a', 380, 495, 1.4, false, 3], ['cat8c', 500, 495, 1.6, true, 4], ['cat8d', 620, 495, 1.3, false, 5]].map(([n, x, y, s, flip, i]) => ({ p: cutPuppet(P.stage, n), x, y, s, flip, i }));
-  const eaters = [['cat8a', 420, 480, .8, false], ['cat22c', 620, 495, .7, false], ['cat23d', 820, 500, .7, false], ['cat8b', 1060, 505, .8, true], ['cat25a', 1200, 505, .7, true], ['cat22d', 740, 510, .65, false]]
+  const eaters = [['cat8a', 420, 480, 1.15, false], ['cat22c', 620, 495, 1.0, false], ['cat23d', 820, 500, 1.0, false], ['cat8b', 1060, 505, 1.15, true], ['cat25a', 1200, 505, 1.0, true], ['cat22d', 740, 510, .95, false]]
     .map(([n, x, y, s, flip], i) => ({ p: cutPuppet(P.stage, n), x, y, s, flip, i }));
   P.soft(s8_B - .01, true).soft(s8_WIDE - .01, false).soft(s8_ATE - .51, true).soft(s8_LEFT + .49, false);
 
@@ -73,28 +76,30 @@ function scene8(p, D) {
     P.apply(q, f); Q.apply(q, f);
     const closeA = q >= s8_B && q < s8_T(1.55), closeB = q >= s8_T(1.55) && q < s8_WIDE, wide = !closeA && !closeB && !inQ;
     vis(man.g, !closeA && !closeB && !inQ);
-    man.pose({ x: at20.x, y: at20.y, s: at20.s, sq: 1 + .012 * Math.sin(q * 2.2), rot: Math.sin(q * 1.3) * .8 }, f);
-    hillC.pose(q, f, { from: .6, every: i => i < 8 ? i * .2 : s8_T(4.3) - .6 + (i - 8) * .55 });
+    man.pose({ x: at20.x, y: at20.y, s: at20.s, sq: 1 + .025 * Math.sin(q * 2.2), rot: Math.sin(q * 1.5) * 2.2, bob: 1.5 * Math.abs(Math.sin(q * 1.6)),
+      parts: { head: Math.sin(q * 1.2) * 12 + (q > s8_ATE ? Math.sin(q * 5) * 8 : 0), bundle: Math.sin(q * 2.4) * 4 } }, f);
+    hillC.pose(q, f, { from: .6, every: i => i < 8 ? i * .2 : s8_T(4.3) - .6 + (i - 8) * .55, walk: { v: 12, t0: s8_WIDE }, seethe: .3 });
     vis(hillC.g, wide && q < s8_ATE - .5);
     const times = {}; for (const n in s8_RW) times[n] = s8_T(s8_RW[n]);
     vis(L.g, q >= s8_WIDE && q < s8_SAY); L.show(q, times, f, { hideAt: s8_SAY });
     const mewT = [s8_T(.52), s8_T(.78), s8_T(1.04), s8_T(1.22), s8_T(1.56), s8_T(1.68)];
     const bob = (c, ts) => { let b = 0; for (const t of ts) { const u = q - t - c.i * .04; if (u >= 0 && u < .3) b = Math.max(b, Math.sin(u / .3 * Math.PI)); } return b; };
-    for (const [arr, on] of [[bigA, closeA], [bigB, closeB]]) arr.forEach(c => { vis(c.p.g, on); c.p.pose({ x: c.x, y: c.y, s: c.s * (1 + .02 * bob(c, mewT)), flip: c.flip, sq: 1 + .012 * Math.sin(q * 2.3 + c.i) + .05 * bob(c, mewT), rot: Math.sin(q * 1.6 + c.i) - bob(c, mewT) * 2 }, f + c.i); });
+    for (const [arr, on] of [[bigA, closeA], [bigB, closeB]]) arr.forEach(c => { const L = catLife(q, c.i, { head: 7 }); L.parts.head += 14 * bob(c, mewT); vis(c.p.g, on); c.p.pose({ parts: L.parts, x: c.x, y: c.y, s: c.s * (1 + .02 * bob(c, mewT)), flip: c.flip, sq: 1 + .012 * Math.sin(q * 2.3 + c.i) + .05 * bob(c, mewT), rot: Math.sin(q * 1.6 + c.i) - bob(c, mewT) * 2 }, f + c.i); });
     // the bites: each patch opens in a few steps on twos as its moment comes, so the grass goes patch by patch
     const span8 = s8_LEFT + .3 - s8_ATE;
-    patches.forEach((a, i) => { const u = k01(q, s8_ATE + a.t * span8 * .85, .45), st = Math.floor(u * 4) / 4; const r = a.r * (.7 + .8 * st) * (1 + .5 * k01(q, s8_LEFT - .7, 1.2)) * (st ? 1 : 0); bites[i].setAttribute('transform', `translate(${a.x.toFixed(0)} ${a.y.toFixed(0)}) scale(${r.toFixed(1)} ${(r * .85).toFixed(1)})`); });
+    patches.forEach((a, i) => { const u = k01(q, a.early ?? s8_ATE + a.t * span8 * .85, .45), st = Math.floor(u * 4) / 4; const r = a.r * (.7 + .8 * st) * (1 + .5 * k01(q, s8_LEFT - .7, 1.2)) * (st ? 1 : 0); bites[i].setAttribute('transform', `translate(${a.x.toFixed(0)} ${a.y.toFixed(0)}) scale(${r.toFixed(1)} ${(r * .85).toFixed(1)})`); });
     // the eaters: heads down, munching (a quick small dip) while there is grass; sitting up after
-    const eatOn = q >= s8_ATE - .5 && q < s8_LEFT + .5 || q >= s8_LEFT + .5;
+    const eatOn = q >= s8_T(3.4) && !inQ && !closeA && !closeB;
     for (const c of eaters) {
       vis(c.p.g, eatOn);
-      const m = q > s8_ATE && q < s8_LEFT + .2 ? Math.max(0, Math.sin((q - s8_ATE) * 7 + c.i * 1.9)) : 0;
-      c.p.pose({ x: c.x, y: c.y, s: c.s, flip: c.flip, rot: (c.flip ? -1 : 1) * m * 6 + Math.sin(q * 1.5 + c.i), sq: 1 + .012 * Math.sin(q * 2 + c.i) - m * .05 }, f + c.i);
+      const m = q > s8_T(3.6) + c.i * .95 && q < s8_LEFT + .2 ? Math.max(0, Math.sin(q * 6 + c.i * 1.9)) : 0;
+      const LL = catLife(q, c.i); LL.parts.head += 40 * m; c.p.pose({ parts: LL.parts, x: c.x, y: c.y, s: c.s, flip: c.flip, rot: (c.flip ? -1 : 1) * m * 6 + Math.sin(q * 1.5 + c.i), sq: 1 + .012 * Math.sin(q * 2 + c.i) - m * .05 }, f + c.i);
     }
     // page 21: the tiny old man speaks (a small bob with the voice)
     vis(man21.g, inQ);
     const say = lips(q, 'scene8', PRE8, 'm07') !== 'X';
-    man21.pose({ x: at21.x, y: at21.y, s: at21.s, sq: 1 + .012 * Math.sin(q * 2.2) + (say ? .012 * Math.sin(q * 30) : 0), rot: Math.sin(q * 1.3) * .8 }, f);
+    man21.pose({ x: at21.x, y: at21.y, s: at21.s, sq: 1 + .025 * Math.sin(q * 2.2) + (say ? .012 * Math.sin(q * 30) : 0), rot: Math.sin(q * 1.5) * 6, bob: 7 * Math.abs(Math.sin(q * 1.6)),
+      parts: { head: Math.sin(q * 1.3) * 16 + (say ? Math.sin(q * 7) * 12 : 0), legF: 28 * Math.sin(q * 3.1) } }, f);
     turnOut(q); turnIn(q);
   });
 }

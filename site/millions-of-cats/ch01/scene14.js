@@ -54,6 +54,10 @@ function scene14(p, D) {
    .to({ x: 766, y: 652, z: 3.3 }, s14_C('k12', 1.7), D - s14_C('k12', 1.7));
   const kAt28 = pagePos('p28', 'kitten28'), kitten = cutPuppet(B.stage, 'kitten28');
   const womanB = cutPuppet(B.stage, 'woman27'), manB = cutPuppet(B.stage, 'man27');
+  // live pipe smoke in Gág's ink over the hidden drawn part (the pipe bowl at man27-local 66,-228), on both pages
+  const s14_sm = [man, manB].map(m => inkSmoke(mk('g', {}, m.part.head), 66, -228, { size: 12, rise: 140, drift: 30, curl: 12, period: 2.2, ink: 2, seed: 3 })), s14_sB = s14_sm[1];
+  A.move('tuftL', q => `translate(302 833) skewX(${(2.2 * Math.sin(q * 1.8) + .8 * Math.sin(q * 4.1)).toFixed(2)}) translate(-302 -833)`)
+   .move('tuftB', q => `translate(415 826) skewX(${(2 * Math.sin(q * 1.5 + 1) + .7 * Math.sin(q * 3.7)).toFixed(2)}) translate(-415 -826)`);
   const turn = pageTurn(p, D - .1, .6, 'in');
 
   // the close shot: where her hands are (of her feet) when the kitten is in them, and the sides of its rise
@@ -70,19 +74,21 @@ function scene14(p, D) {
       A.apply(q, f);
       // she comes down the ridge (a stepping bob, leaning forward), then bends over the kitten
       const wu = span(q, WALK0, TP), going = q > WALK0 && q < TP;
-      const wx = q < WALK0 ? wAt.x : s14_WALK[0] + (s14_WALK[2] - s14_WALK[0]) * wu, wy = q < WALK0 ? wAt.y : s14_WALK[1] + (s14_WALK[3] - s14_WALK[1]) * wu;
+      const sp = Math.max(0, q - WALK0) / .25, sk = Math.floor(sp), sf = sp - sk, hopx = going ? 5 * (sf - .5) : 0;   // a step every .25 s: hop, tip, land
+      const wx = (q < WALK0 ? wAt.x : s14_WALK[0] + (s14_WALK[2] - s14_WALK[0]) * wu) + hopx, wy = q < WALK0 ? wAt.y : s14_WALK[1] + (s14_WALK[3] - s14_WALK[1]) * wu;
       const bend = span(q, TP - .5, TP - .05);
-      woman.pose({ x: wx, y: wy - (going ? Math.abs(Math.sin((q - WALK0) * 2 * Math.PI / .5)) * 8 : 2 * breathe * (q > TP ? 1 : 0)),
-        rot: (going ? -3 + 2 * Math.sin((q - WALK0) * 2 * Math.PI / .5) : -5 * bend + 1.2 * Math.sin(q * 1.3)), sq: 1 + .012 * breathe,
-        parts: { head: -12 * bend + 2.5 * Math.sin(q * .9 + 1) } }, f);
+      woman.pose({ x: wx, y: wy - (going ? Math.sin(Math.PI * sf) * 11 : 2 * breathe * (q > TP ? 1 : 0)),
+        rot: (going ? -3 + (sk % 2 ? 4 : -4) : -5 * bend + 1.2 * Math.sin(q * 1.3)), sq: going ? 1 - .04 * (1 - Math.sin(Math.PI * sf)) : 1 + .012 * breathe,
+        parts: { head: -12 * bend + 2.5 * Math.sin(q * .9 + 1), armL: going ? 8 + 14 * (sk % 2 ? 1 : -1) * Math.sin(Math.PI * sf) : 6 + 4 * Math.sin(q * 1.6) - 10 * bend } }, f);
       // he leans in to look, a hand out
       const look = span(q, T1, T1 + .6);
       man.pose({ x: mAt.x, y: mAt.y, rot: 3.5 * look + .8 * Math.sin(q * 1.1), sq: 1 + .012 * Math.sin(q * 2.2 + 1) - .01 * s14_PK(q, TP, .4),
-        parts: { armR: 5 - 7 * s14_PK(q, TP - .1, .5) + 1.2 * Math.sin(q * 1.9), smoke: 3.5 * Math.sin(q * 1.9) + 2 * Math.sin(q * 4.3) } }, f);
+        parts: { armR: 5 - 7 * s14_PK(q, TP - .1, .5) + 1.2 * Math.sin(q * 1.9), head: 6 * look + 1.5 * Math.sin(q * 1.2) }, hide: ['smoke'] }, f);
+      s14_sm[0](q);
       // the kitten stays in its grass, trembling and looking up at her
-      const tre = 1.1 * (Math.floor(q * FPS) % 2 ? 1 : -1) * (.6 + .4 * Math.sin(q * 3)) * (q < T1 ? 1.4 : 1);
-      kit.pose({ x: kAt.x, y: kAt.y, rot: tre, sq: 1 + .012 * Math.sin(q * 3.1) }, f);
-      kit2.pose({ x: kAt.x + S13K.x, y: kAt.y + S13K.y, s: S13K.s, rot: tre, sq: 1 + .012 * Math.sin(q * 3.1) }, f);
+      const shk = Math.floor(q * FPS) % 2 ? 1 : -1, tre = 1.8 * shk * (.6 + .4 * Math.sin(q * 3)) * (q < T1 ? 1.4 : 1);
+      kit.pose({ x: kAt.x + .6 * shk, y: kAt.y, rot: tre, sq: 1 + .012 * Math.sin(q * 3.1) }, f);
+      kit2.pose({ x: kAt.x + S13K.x + .8 * shk, y: kAt.y + S13K.y, s: S13K.s, rot: tre, sq: 1 + .012 * Math.sin(q * 3.1), parts: { head: -3 + 5 * span(q, T1 - 1.5, T1) + 1.5 * Math.sin(q * 1.3) } }, f);
     } else {
       B.apply(q, f);
       // which shot: the kitten's (on the mound) or the speakers' (blank paper)
@@ -94,7 +100,7 @@ function scene14(p, D) {
       if (onC) {
         const u = span(q, TP + .15, TP + 1.0), st = span(q, TP + .6, TP + 1.4), wx = 987, wy = 700;
         womanB.pose({ x: wx, y: wy, s: CS, rot: -7 * (1 - st) + .9 * Math.sin(q * 1.1), sq: 1 + .012 * breathe,
-          parts: { head: -12 * (1 - st) - 6 + 2.5 * Math.sin(q * .8) } }, f);
+          parts: { head: -12 * (1 - st) - 6 + 2.5 * Math.sin(q * .8), armL: 12 - 14 * st + 2 * Math.sin(q * 1.7) } }, f);
         const hx = wx + HAND[0] * CS, hy = wy + HAND[1] * CS + 34 * (1.0 + .15 * u);   // its feet below her hand, the hand over its cut-off bottom
         kitten.pose({ x: 790 + (hx - 790) * u, y: 640 + (hy - 640) * u - 30 * hop(u), s: 1.0 + .15 * u, rot: 1.2 * (Math.floor(q * FPS) % 2 ? 1 : -1) * (1 - u * .6) + 10 * hop(u) - 6 * u,
           sq: 1 + .014 * breathe, parts: { head: 3 * Math.sin(q * 1.3) } }, f);
@@ -104,25 +110,27 @@ function scene14(p, D) {
         const nod = s14_PK(q, s14_C('w12', .38), .15) + s14_PK(q, s14_C('w12', .95), .2);
         const say = q < K1 ? Math.abs(Math.sin(q * 9)) * (q < s14_C('w12', 1.6) ? 1 : 0) : 0;
         womanB.pose({ x: 987, y: 842, s: 2.46, rot: .9 * Math.sin(q * 1.1) - 1.4 * nod, sq: 1 + .012 * breathe + .008 * say,
-          parts: { head: -9 - 3 * nod + 2.5 * Math.sin(q * .8) } }, f);
+          parts: { head: -9 - 3 * nod + 2.5 * Math.sin(q * .8), armL: 8 + 12 * nod + 5 * say * Math.sin(q * 5) + 3 * Math.sin(q * 1.5) } }, f);
       }
       // the old man, large: bends to it a little, nods on "Dear", "kitty", "How", "trillions"
       if (speakM) {
         const nod = s14_PK(q, s14_C('m12', .22), .15) + s14_PK(q, s14_C('m12', .6), .2) + s14_PK(q, s14_C('m12b', .15), .15) + s14_PK(q, s14_C('m12b', 5.65), .2) + s14_PK(q, s14_C('m12b', 6.5), .2);
         const talk = (q >= M1 && q < s14_C('m12', 1.5)) || (q >= s14_C('m12b', .1) && q < s14_C('m12b', 2.2)) || (q >= M3 && q < s14_C('m12b', 7.1));
         manB.pose({ x: 971, y: 865, s: 2.4, rot: -3 + .8 * Math.sin(q * 1.2) - 1.1 * nod, sq: 1 + .012 * breathe + (talk ? .01 * Math.abs(Math.sin(q * 7.5)) : 0),
-          parts: { armR: 4 + 1.5 * Math.sin(q * 1.7), smoke: 3.5 * Math.sin(q * 1.9) + 2 * Math.sin(q * 4.3) } }, f);
+          parts: { armR: 4 + 1.5 * Math.sin(q * 1.7) + (talk ? 6 * Math.abs(Math.sin(q * 3.1)) : 0) + 8 * nod, head: 4 + 4 * nod + (talk ? 2 * Math.abs(Math.sin(q * 7.5)) : 0) + 1.5 * Math.sin(q * 1.3) }, hide: ['smoke'] }, f);
+        s14_sB(q);
       }
       // the kitten on the mound: a tremble that eases as it grows used to them; head turns up to whoever speaks
       const afraid = q < M1 ? 1 : q < K4 ? .6 : .25;
       const up = (q >= K1 && q < W2) ? 1 : (q >= K2 && q < M2) ? 1 : (q >= K3 && q < M3) ? 1 : 0;   // listening, looking up at them
       const look = span(q, K1, K1 + .4) * (q < W2 ? 1 : 0) + span(q, K2, K2 + .4) * (q < M2 ? 1 : 0) + span(q, K3, K3 + .4) * (q < M3 ? 1 : 0);
       const gaze = q >= T2 && q < W1 ? 3 * Math.sin(q * 1.1) - 2 : 0;
+      const flinch = [W1, W2, M1, M2, M3].reduce((a, t) => Math.max(a, q >= t && q < t + .6 ? 1 - (q - t) / .6 : 0), 0);   // it flinches when spoken to
       const kHead = (q >= K4 ? -4 * span(q, K4, K4 + .5) + 3 * Math.sin(q * .8) + (q > s14_C('k12b', 1.1) ? 5 * span(q, s14_C('k12b', 1.1), s14_C('k12b', 1.6)) * (1 - span(q, s14_C('k12b', 2.3), s14_C('k12b', 2.9))) : 0)
         + (q > s14_C('k12b', 4.9) ? -6 * span(q, s14_C('k12b', 4.9), s14_C('k12b', 5.5)) : 0) + 4 * s14_PK(q, s14_C('k12', 2.1), .3) : 6 * look + gaze)
-        + 1.3 * Math.sin(q * 1.9);
-      const tre = afraid * .9 * (Math.floor(q * FPS) % 2 ? 1 : -1) * (.6 + .4 * Math.sin(q * 3));
-      if (!onC) kitten.pose({ x: kAt28.x, y: kAt28.y, rot: tre + (up ? .6 * Math.sin(q * 1.3) : 0), sq: 1 + .014 * breathe,
+        - 3 * afraid - 7 * flinch + 1.3 * Math.sin(q * 1.9) + 3.5 * Math.sin(q * 2.6 + 1) * (q < K4 ? 1 : .5);   // it cringes and looks about, slowly
+      const shk = Math.floor(q * FPS) % 2 ? 1 : -1, tre = afraid * 1.8 * shk * (.7 + .3 * Math.sin(q * 3));
+      if (!onC) kitten.pose({ x: kAt28.x + .6 * afraid * shk, y: kAt28.y, rot: tre + 3.5 * flinch + 1.8 * Math.sin(q * 1.2) + (up ? .6 * Math.sin(q * 1.3) : 0), sq: 1 + .025 * breathe - .03 * flinch,
         parts: { head: kHead }, move: { head: [0, 7 * span(q, s14_C('k12b', 4.9), s14_C('k12b', 5.6))] }, mouth: lips(q, 'scene14', PRE14, 'k12', 'k12b') }, f);
     }
     turn(q);
