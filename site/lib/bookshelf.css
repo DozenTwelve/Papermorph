@@ -95,17 +95,43 @@ a.book:hover .tag { transform: translateY(-2px); }
 .book-slot { position: relative; }
 .resume-label { position: absolute; z-index: 4; top: 44%; right: -4px; padding: 3px 7px; background: #fff7c9; color: #3c3a2e; box-shadow: 1px 2px 5px #0003; font: clamp(10px, calc(12 * var(--s)), 13px) var(--ui); text-decoration: none; transform: rotate(3deg); }
 
-/* The archive: books stand spine out in a row (a.spine, title written down the spine). */
-.spines { display: flex; gap: calc(6 * var(--s)); align-items: end; justify-content: center; padding-bottom: calc(14 * var(--s)); }
-.spine { display: block; width: calc(40 * var(--s)); height: calc(118 * var(--s)); padding: 8px 0; background: var(--c); color: var(--paper-white); text-decoration: none; white-space: nowrap; overflow: hidden; writing-mode: vertical-rl; font: 600 clamp(10px, calc(14 * var(--s)), 15px)/calc(40 * var(--s)) var(--ui); box-shadow: inset -4px 0 6px #0003, 5px 6px 9px #0003; }
-.spine:nth-child(even) { background: color-mix(in srgb, var(--c), #000 22%); }
-/* Too narrow for a title to stand: the books lie flat, one on another, spine facing out. */
+/* The archive: old hardbacks stand spine out (a.spine, --w and --h its size in source px, --c its cloth). Each spine
+   is drawn in gradients: the cloth weave, gilt rules at head and tail, a rounded spine (dark at both edges, a light
+   streak down the left), the title on a dark label or, on a leather book, in gilt between raised bands. The second
+   book leans on the first. --across and --along are the spine's two directions, so the phone can lay the books flat. */
+.spines { display: flex; gap: 0; align-items: end; justify-content: center; padding-bottom: calc(13 * var(--s)); }
+.spine {
+  --across: 90deg; --along: 180deg; --gilt: #d9b45a;
+  position: relative; display: grid; place-items: center; width: calc(var(--w) * var(--s)); height: calc(var(--h) * var(--s));
+  border-radius: 3px 3px 2px 2px; color: var(--gilt); text-decoration: none; writing-mode: vertical-rl;
+  background:
+    linear-gradient(var(--across), #000a, #0000 13%, #fff3 27%, #ffffff0d 42%, #0000 58%, #0006 86%, #000b),
+    linear-gradient(var(--along), #0000 6%, var(--gilt) 6% calc(6% + 1.5px), #0000 0 8%, var(--gilt) 8% calc(8% + 1px), #0000 0 92%, var(--gilt) 92% calc(92% + 1px), #0000 0 94%, var(--gilt) 94% calc(94% + 1.5px), #0000 0),
+    var(--ribs, linear-gradient(#0000, #0000)),
+    repeating-linear-gradient(var(--along), #ffffff0a 0 1px, #0000 1px 3px),
+    repeating-linear-gradient(var(--across), #0000000f 0 1px, #0000 1px 2px),
+    var(--c);
+  box-shadow: inset 0 2px 0 #ffffff26, inset 0 -2px 1px #0005, 4px 3px 8px #0004, 9px 6px 14px #0002;
+  transition: translate .2s, filter .2s;
+}
+.spine::after { content: ""; position: absolute; z-index: -1; top: calc(100% - 3px); left: -15%; right: -45%; height: calc(7 * var(--s)); background: radial-gradient(closest-side, #000a, #0000); }   /* where it meets the board */
+.spine span { padding: .55em .3em; max-height: 72%; background: #1b1714; border: 1px solid var(--gilt); box-shadow: inset 0 0 0 2px #1b1714, inset 0 0 0 3px #d9b45a88, 0 1px 2px #0006; font: 600 clamp(10px, calc(10 * var(--s)), 14px)/1.12 var(--book); letter-spacing: .02em; text-align: center; text-wrap: balance; text-shadow: 0 1px 0 #0009; }
+.spine.leather { --ribs: linear-gradient(var(--along), #0000 22%, #0006 22% calc(22% + 1px), #fff3 0 calc(22% + 3px), #0005 0 calc(22% + 5px), #0000 0 78%, #0006 78% calc(78% + 1px), #fff3 0 calc(78% + 3px), #0005 0 calc(78% + 5px), #0000 0); }
+.spine.leather span { max-height: 52%; background: none; border: 0; box-shadow: none; font-size: clamp(11px, calc(11 * var(--s)), 15px); letter-spacing: .05em; text-shadow: 0 -1px 0 #0008, 0 1px 0 #fff3; }
+.spine + .spine { margin-left: calc(8 * var(--s)); rotate: -4.6deg; transform-origin: 0 100%; }
+.spine:hover, .spine:focus-visible { translate: 0 calc(-6 * var(--s)); filter: brightness(1.12); }
+/* Too narrow for a title to stand: the books lie flat, the big one at the bottom, spines facing out. */
 @container (max-width: 1099px) {
-  .row.spines { flex-direction: column; align-items: center; justify-content: end; gap: 0; }
+  .row.spines { flex-direction: column-reverse; align-items: center; justify-content: flex-start; gap: 0; }
   .row.spines > * { margin-bottom: 0; }
-  .row.spines { padding-bottom: calc(22 * var(--s)); }
-  .spine { writing-mode: horizontal-tb; width: auto; height: auto; padding: 3px 14px; line-height: 1.25; }
-  .spine:nth-child(even) { transform: translateX(8%); }
+  .row.spines { padding-bottom: calc(6 * var(--s)); }
+  .spine { --across: 180deg; --along: 90deg; writing-mode: horizontal-tb; width: max(calc(var(--h) * 1.9 * var(--s)), var(--h) * 1.45px); height: max(calc(var(--w) * .9 * var(--s)), var(--w) * .68px); border-radius: 2px 3px 3px 2px; }
+  .spine::after { top: auto; bottom: -4px; left: -4%; right: -10%; height: 8px; }
+  .spine span { max-height: none; max-width: 76%; padding: .2em .6em; white-space: nowrap; }
+  .spine.leather span { max-width: 52%; }
+  .spine + .spine { margin: 0 0 -1px; rotate: -1.5deg; translate: 7% 0; transform-origin: 50% 100%; }
+  .spine:hover, .spine:focus-visible { translate: calc(-4 * var(--s)) 0; }
+  .spine + .spine:hover, .spine + .spine:focus-visible { translate: calc(7% - 4 * var(--s)) 0; }
 }
 
 /* Under the archive, the photo's own pair of drawers, GitHub and YouTube cut into them: each link is the front. */
@@ -133,9 +159,10 @@ a.book:hover .tag { transform: translateY(-2px); }
   .sign { font-size: 12px; }
   .label { font-size: 11px; }
   .spines { min-height: calc(180 * var(--s)); align-items: center; }
+  .row.spines { padding-bottom: 4px; }   /* clear of the lip's label */
 }
 @media (prefers-reduced-motion: reduce) {
-  .doc, .tag, .work-sign { transition: none; }
+  .doc, .tag, .work-sign, .spine { transition: none; }
   .banner a:hover .work-sign, .banner a:focus-visible .work-sign { transform: rotate(-3deg); }
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
 }
