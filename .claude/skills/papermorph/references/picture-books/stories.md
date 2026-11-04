@@ -51,7 +51,7 @@ uv run --with edge-tts python "$SKILL/scripts/tts.py" "$N" "$A"
 python3 "$SKILL/scripts/level.py" "$A"/*.mp3
 python3 "$SKILL/scripts/mouths.py" "$N" "$A"
 python3 "$SKILL/scripts/join.py" "$A" scene1=s01,s02,s02b,s03 --words "$N"
-uv run --with numpy python "$SKILL/scripts/sfx.py" "site/$BOOK/ch01/audio/sfx" knock chime
+uv run --with numpy python "$SKILL/scripts/sfx.py" "site/$BOOK/ch01/audio/sfx" knock chime room
 ```
 
 Keep these commands in `tools/<book>/audio.sh` and rerun it after any narration change ([Sound](#sound)). As copied they voice the kit's sample episode, a check that the folder works; the episode's script then replaces the narration file, and its scenes the `join.py` list.

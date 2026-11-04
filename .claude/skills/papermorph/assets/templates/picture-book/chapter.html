@@ -39,7 +39,8 @@ try { if (localStorage.getItem('captions') === null) setCaptions(true, false); }
    lint.py names any clip that is missing. Write words and clips as literals so lint can check them. */
 const FIND1 = [{ word: 'cat', clip: 'q-cat' }, { word: 'dad', clip: 'q-dad' }];
 const BEATS = [
-  ['scene1', 'The visit', (m, D) => scene1(panel(0), D), { lead: false, pre: PRE1, ask: done => findWords(THINGS1, FIND1, done) }],
+  ['scene1', 'The visit', (m, D) => scene1(panel(0), D), { lead: false, pre: PRE1, ask: done => findWords(THINGS1, FIND1, done),
+    video: PRE1 + TIMINGS.scene1.dur }],   // export.py cannot tap: the video keeps the scene and skips the game
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
 
 /* ---------- background music ----------
