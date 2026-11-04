@@ -1,5 +1,5 @@
 /* scene16.js — The prettiest cat (p33, then p34). Beat clock = PRE16 + the joined clip's seconds (T below).
-   1 p33 wide: the evening at home, she knits and rocks, he smokes and rocks, the cat plays with the yarn (0 – T(.95));
+   1 p33 wide: the evening at home, she knits and rocks, he smokes and rocks, the cat plays with the yarn (0 – T(.12): her line opens on her);
    2 close on her, w14 "And it is a very pretty cat, after all!" (to T(2.5)); 3 insert on the cat and its yarn (to T(3.6));
    4 (cut 3 dropped the narrator's "said the very old woman / man" and her second close shot); 5 close on him with his pipe
      smoke, m14 "the most beautiful cat in the whole world" (to T(7.584)); 6 the wide again, and on "hundreds … trillions" the room
@@ -12,7 +12,7 @@ const PRE16 = .5;
 
 const s16T = t => PRE16 + t;
 const s16M = m => markAt('scene16', PRE16, m);
-const s16CUT = [.95, 2.5, 3.6, 3.6, 7.584, 15.284].map(s16T);   // cuts: wide | woman | cat | (her second shot, gone in cut 3) | man | wide | cat
+const s16CUT = [.12, 2.5, 3.6, 3.6, 7.584, 15.284].map(s16T);   // cuts: wide | woman | cat | (her second shot, gone in cut 3) | man | wide | cat
 const s16TURN = s16T(18.234);                                  // covered here, in the hole sleep16
 const s16SAY = [[.22, 2.4], [3.95, 7.242], [8.624, 17.284]];       // when her / his own voice is speaking (clip seconds)
 const s16talk = (q, i) => { const [a, b] = s16SAY[i]; return q >= s16T(a) && q < s16T(b) ? Math.abs(Math.sin((q - s16T(a)) * 8.4)) : 0; };

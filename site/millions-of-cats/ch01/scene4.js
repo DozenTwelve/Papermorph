@@ -9,7 +9,7 @@
 'use strict';
 const PRE4 = .6;
 const S4_TURN = [20.2, 36.2, 47.759];                 // clip time of the page turns (covered at this moment), each in its g4 hole
-const S4_SAY = [[0, 4.4], [43.08, 45.082], [54.479, 56.509]];   // the old man's own lines (clip seconds)
+const S4_SAY = [[0, 4.4], [42.48, 45.082], [54.479, 56.509]];   // the old man's own lines (clip seconds)
 
 // a hop from a to b over [t0, t0 + dur], h px high at the top; u 0 → 1
 function s4hop(q, t0, dur, a, b, h) {
@@ -86,7 +86,7 @@ function scene4(p, D) {
   // p12: the wide, the insert on the black kitten, the man who speaks, the hop
   cam12.cut({ x: 535, y: 410, z: 1.5 }, 0)
     .cut({ x: 440, y: 335, z: 4.2 }, T(40.0))
-    .cut({ x: 580, y: 330, z: 2.2 }, T(43.05)).to({ x: 575, y: 325, z: 2.4 }, T(43.05), 2.56)   // through "So he took it" (cut 3 dropped "said the very old man" and its wide)
+    .cut({ x: 580, y: 330, z: 2.2 }, T(42.4)).to({ x: 575, y: 325, z: 2.4 }, T(42.4), 3.21)   // through "So he took it" (cut 3 dropped "said the very old man" and its wide)
     .cut({ x: 505, y: 350, z: 1.9 }, T(45.609)).to({ x: 520, y: 430, z: 1.7 }, T(46.709), .7);
   // p13: the wide, the insert on the baby tiger, the two-shot, the man who cries out, the leap
   cam13.cut({ x: 1135, y: 430, z: 1.5 }, 0)

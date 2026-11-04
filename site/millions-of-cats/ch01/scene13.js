@@ -55,13 +55,17 @@ function s13_patch(parent) {
 function scene13(p, D) {
   const turnOut = pageTurn(p, 0, .6, 'out');
   const T3 = s13_C('w11b', 1.2), T4 = s13_C('m11', -.1), T5 = s13_C('n11b', 2.4), T6 = s13_C('n11c', 0);   // shot cuts
-  const TW = T3;   // the follow shot pushes in until the two-shot
   sfx('scene13', T4 + .15, 'whoosh', .25);
   sfx('scene13', s13_C('n11b', 3.3), 'mew3', .3);
 
   const cam = paperCam(p, 'p27', { x: 1160, y: 250, z: 1.9 });
   const fx = t => s13_ride(t).x - 60, fy = t => s13_ride(t).y - 120 * s13_ride(t).s;   // the follow shot rides along the run
-  cam.cut({ x: fx, y: fy, z: 1.9 }, 0).to({ z: 2.3 }, .4, TW - .4)
+  const sz = t => {   // her size along the run's landings, smoothly (s13_run's own s steps with each hop)
+    const x = Math.max(0, (t - s13_T0) / s13_SP), n = s13_CT.length - 1, k = Math.min(n, Math.floor(x)), f = Math.min(1, x - k);
+    return s13_CT[k][2] + (s13_CT[Math.min(n, k + 1)][2] - s13_CT[k][2]) * f;
+  };
+  const fz = t => Math.min(3.6, Math.max(2.3, .9 / sz(t)));   // close enough that she is about a quarter of the frame from her first word, out to 2.3 as she grows
+  cam.cut({ x: fx, y: fy, z: fz }, 0)
     .cut({ x: 545, y: 560, z: 1.4 }, T3).to({ x: 520, y: 565, z: 1.5 }, T3, T4 - T3)
     .cut({ x: 350, y: 565, z: 2.9 }, T4).to({ x: 365, y: 565, z: 3.1 }, T4, T5 - T4)
     .cut({ x: 452, y: 745, z: 3.0 }, T5).to({ x: 452, y: 748, z: 3.4 }, T5, T6 - T5)
