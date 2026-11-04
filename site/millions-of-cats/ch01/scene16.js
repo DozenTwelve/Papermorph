@@ -100,7 +100,7 @@ function scene16(p, D) {
       const cl = catLife(q, 2, { tail: 16, head: 9 });
       cat.pose({ ...cAt, parts: { ...cl.parts, head: cl.parts.head + burst * onTwos(q) * 6 }, rot: burst * onTwos(q) * 5, bob: burst * 2.5 * (onTwos(q) > 0 ? 1 : 0), sq: 1 + .015 * Math.sin(q * 3.1), move: { body: [burst * onTwos(q) * 2.5, 0] } }, f);
       // the refrain: the room dims, the crowd swells behind her letters, then all fades back on "and not one was as pretty"
-      const swell = (q >= hunT - .1 ? 1 : 0) * (1 - span(q, notT, notT + .7));   // a cut to clean cream paper on the first word, not a fade through grey
+      const swell = q >= hunT - .1 && q < notT ? 1 : 0;   // a cut to clean cream paper on the first word and a cut back to the room on "not one": no fade
       const live = swell > 0;
       for (const g of [veil, crowd.g, slip, L.g]) vis(g, live);
       if (live) {

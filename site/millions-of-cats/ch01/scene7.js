@@ -32,10 +32,31 @@ function scene7(p, D) {
   const WC = [1016, 443], WRX = 340, WRY = 130;
   defs.innerHTML = `<mask id="s7_drain" maskUnits="userSpaceOnUse" x="700" y="300" width="640" height="300"><ellipse id="s7_hole" cx="${WC[0]}" cy="${WC[1]}" rx="${WRX}" ry="${WRY}" fill="#fff"/></mask>`;
   const hole = defs.querySelector('#s7_hole');
+  // Why the pond did not seem to shrink: the set's 'water' layer holds only Gág's ripple dashes (the pond itself is bare paper inside her bank), so
+  // scaling it moved a few dashes. The mud is drawn here instead: a ring of Gág's two inks (diagonal hatching) between the pond's outline and a water
+  // ellipse that pulls in on twos, so the dry hollow of page 19 grows from the bank. PC/PRX/PRY: the pond's paper as seen on page 18.
+  const PC = [1066, 468], PRX = 296, PRY = 78;
+  defs.insertAdjacentHTML('beforeend', `<mask id="s7_mud" maskUnits="userSpaceOnUse" x="${PC[0] - PRX - 20}" y="${PC[1] - PRY - 20}" width="${2 * PRX + 40}" height="${2 * PRY + 40}"><ellipse cx="${PC[0]}" cy="${PC[1]}" rx="${PRX}" ry="${PRY}" fill="#fff"/><ellipse id="s7_pool" cx="${PC[0]}" cy="${PC[1]}" rx="${PRX}" ry="${PRY}" fill="#000"/></mask>`);
+  const pool = defs.querySelector('#s7_pool');
 
   // P: Gág's page 18, the pond; puppets stand in front of the water layer
   const P = paperCam(p, 'p18', { x: 800, y: 330, z: 1.2 }, { after: 'water' });
   P.layer('water').setAttribute('mask', 'url(#s7_drain)');
+  // hand strokes like the bank's own hatching: short curved arcs of 10–30 px that follow the pond's rings, uneven in length, spacing and weight, seeded once
+  const mudG = mk('g', { fill: 'none', stroke: '#1e1a16', 'stroke-linecap': 'round' }), mudD = [];
+  for (let ring = 0, n = 0; ring < 22; ring++) {
+    const f = 1.04 - ring * .043 + (rnd(ring * 13 + 1) - .5) * .03;
+    for (let a = rnd(ring + 70) * .3; a < 6.283; n++) {
+      const len = 10 + rnd(n * 7 + 3) * 20, rx = PRX * f, ry = PRY * f, da = len / rx, a1 = a + da, am = a + da / 2;
+      const pt = t => [PC[0] + Math.cos(t) * rx, PC[1] + Math.sin(t) * ry + (rnd(n * 3 + 9) - .5) * 4];
+      const [x0, y0] = pt(a), [x1, y1] = pt(a1), [xm, ym] = pt(am), bend = (rnd(n * 5 + 2) - .5) * 5;
+      mudD.push(`M${x0.toFixed(1)},${y0.toFixed(1)} Q${(xm + bend * .3).toFixed(1)},${(ym + bend).toFixed(1)} ${x1.toFixed(1)},${y1.toFixed(1)}`);
+      a += da + .02 + rnd(n * 11 + 4) * .1;
+    }
+  }
+  mudG.innerHTML = `<path d="${mudD.filter((_, i) => i % 3).join(' ')}" stroke-width="1.7"/><path d="${mudD.filter((_, i) => !(i % 3)).join(' ')}" stroke-width="3"/>`;
+  mudG.setAttribute('mask', 'url(#s7_mud)');
+  P.layer('water').after(mudG);
   // the ripple breathes; from "Each cat took a sip" the whole pond pulls in about its centre on twos, down to 0.3, the bank showing as it goes
   const pondK = q => 1 - .7 * Math.floor(ease(k01(q, s7_SIP, s7_GONE - .1 - s7_SIP)) * 12) / 12;
   P.move('water', q => `translate(${(3 * Math.sin(q * 1.4)).toFixed(1)} ${(1.5 * Math.sin(q * 2.1)).toFixed(1)}) translate(${WC[0]} ${WC[1]}) scale(${pondK(q).toFixed(3)}) translate(${-WC[0]} ${-WC[1]})`);
@@ -85,6 +106,7 @@ function scene7(p, D) {
     bigB.forEach(c => { const L = catLife(q, c.i, { head: 7 }); L.parts.head += 14 * bob(c, mewT); vis(c.p.g, closeB); c.p.pose({ parts: L.parts, x: c.x, y: c.y, s: c.s, flip: c.flip, sq: 1 + .012 * Math.sin(q * 2.3 + c.i) + .06 * bob(c, mewT), rot: Math.sin(q * 1.6 + c.i) * 1 - bob(c, mewT) * 2 }, f + c.i); });
     // the sips: the cats gather at the water on his word; each dips its head a few times; from "Each cat took a sip" the water steps away on twos
     const lapOn = q >= s7_WELL + .4 && !inQ;
+    const wk = pondK(q); pool.setAttribute('rx', (PRX * wk).toFixed(1)); pool.setAttribute('ry', (PRY * wk).toFixed(1));
     const drain = k01(q, s7_SIP, s7_GONE - .2 - s7_SIP), steps = Math.floor(ease(drain) * 12) / 12;
     for (const c of lapCats) {
       vis(c.p.g, lapOn);

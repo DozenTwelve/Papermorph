@@ -72,7 +72,7 @@ function scene3(p, D) {
   // so the sea of cats never swallows them
   const box = L.items.reduce((b, it) => { const C = it.p.C, k = 1.4, l = it.x - C.ax * k, t = it.y - C.ay * k, w = C.parts[0].w * k, h = C.parts[0].h * k;
     return [Math.min(b[0], l), Math.min(b[1], t), Math.max(b[2], l + w), Math.max(b[3], t + h)]; }, [1e9, 1e9, -1e9, -1e9]);
-  const slip = prop(cam2.stage, `<defs><radialGradient id="s3glow"><stop offset="0" stop-color="#efe8d6" stop-opacity="1"/><stop offset=".8" stop-color="#efe8d6" stop-opacity="1"/><stop offset="1" stop-color="#efe8d6" stop-opacity="0"/></radialGradient></defs>
+  const slip = prop(cam2.stage, `<defs><radialGradient id="s3glow"><stop offset="0" stop-color="#efe8d6" stop-opacity="1"/><stop offset=".93" stop-color="#efe8d6" stop-opacity="1"/><stop offset="1" stop-color="#efe8d6" stop-opacity="0"/></radialGradient></defs>
     <ellipse cx="${(box[0] + box[2]) / 2}" cy="${(box[1] + box[3]) / 2}" rx="${(box[2] - box[0]) * .68}" ry="${(box[3] - box[1]) * .95}" fill="url(#s3glow)"/>`);
   const SLIP = T('rf', 3.7);
   cam2.stage.appendChild(slip); cam2.stage.appendChild(L.g);

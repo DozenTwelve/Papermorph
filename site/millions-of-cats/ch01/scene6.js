@@ -67,11 +67,8 @@ function scene6(p, D) {
   for (const o of order) B.stage.appendChild(o.g);
   B.cut({ x: 980, y: 690, z: 1.7 }, CUT)
     .to({ x: 960, y: 680, z: 1.55 }, CUT, W('hun') - CUT)
-    .cut({ x: 790, y: 640, z: 1.55 }, W('hun')).to({ x: 770, y: 630, z: 1.45 }, W('hun'), W('thou') - W('hun'))
-    .cut({ x: 700, y: 560, z: 1.5 }, W('thou')).to({ x: 690, y: 550, z: 1.4 }, W('thou'), W('mil') - W('thou'))
-    .cut({ x: 740, y: 510, z: 1.45 }, W('mil')).to({ x: 735, y: 505, z: 1.35 }, W('mil'), W('bil') - W('mil'))
-    .cut({ x: 730, y: 450, z: 1.4 }, W('bil')).to({ x: 725, y: 445, z: 1.3 }, W('bil'), W('tril') - W('bil'))
-    .cut({ x: 790, y: 590, z: .95 }, W('tril')).to({ x: 800, y: 600, z: .9 }, W('tril'), W('follow') - W('tril'))
+    .cut({ x: 790, y: 640, z: 1.55 }, W('hun')).to({ x: 790, y: 590, z: .95 }, W('hun'), W('tril') - W('hun'))   // one pull-back over the numbers, no cuts
+    .to({ x: 800, y: 600, z: .9 }, W('tril'), W('follow') - W('tril'))
     .cut({ x: 1000, y: 700, z: 1.5 }, W('follow')).to({ x: 960, y: 650, z: 1.15 }, W('follow'), 2.6);
   B.soft(CUT - .01, false);
 
