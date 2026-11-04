@@ -116,7 +116,7 @@ function lettering(parent, words, { x = 800, y = 450, s = 1 } = {}) {
    returns { parts, bob, rot } to spread into pose: the tail swishes, the head twitches now and then (an ear flick, a
    look round), out of step with the other cats by ph. Walking: give d, the distance walked in the piece's own px
    (world px / s), and the legs swing by it, front and hind pairs opposite (legF2 / legH2, when split, opposite their
-   pair), with a small bob each step, so the feet keep pace with the ground; L is a stride (piece px), A the swing in
+   pair), with a small bob each step, so the feet keep pace with the ground; L is a stride (piece px: about 70–80 for a crowd cat walking 40–60 world px/s; shorter strides flicker at 12 fps), A the swing in
    degrees. A part the piece does not have is ignored. On twos, as everything else. */
 function catLife(q, ph = 0, { d = null, L = 30, A = 16, tail = 12, head = 7 } = {}) {
   const t = Math.floor((q + ph * 1.7) * FPS / 2) * 2 / FPS, w = (t + ph * 3.1) % 3.7;

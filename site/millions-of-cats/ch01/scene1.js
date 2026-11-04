@@ -30,18 +30,18 @@ function scene1(p, D) {
   // Cameras: wide, a push towards the two, the house, flowers pan to the door, the two, then close-ups for each voice.
   cam.to({ x: 830, y: 470, z: 1.42 }, 0, T(2.2))
     .cut({ x: 1000, y: 620, z: 1.7 }, T(2.12)).to({ x: 1050, y: 630, z: 1.9 }, T(2.12), 2.2)          // "a very old man and a very old woman"
-    .cut({ x: 590, y: 430, z: 1.45 }, T(4.5)).to({ x: 620, y: 440, z: 1.55 }, T(4.5), 1.9)             // "a nice clean house"
+    .cut({ x: 480, y: 430, z: 1.5 }, T(4.5)).to({ x: 500, y: 440, z: 1.55 }, T(4.5), 1.9)             // "a nice clean house"
     .cut({ x: 740, y: 500, z: 2.1 }, T(6.4)).to({ x: 570, y: 485, z: 2.1 }, T(6.4), 1.9)               // flowers all around: along the bed
     .cut({ x: 509, y: 440, z: 2.7 }, T(8.34)).to({ x: 509, y: 430, z: 2.95 }, T(8.34), 1.9)            // except where the door was
     .cut({ x: 1170, y: 640, z: 1.65 }, T(10.28)).to({ x: 1180, y: 640, z: 2.05 }, T(10.28), 3.6)       // so very lonely: push in on the two
-    .cut({ x: 1285, y: 605, z: 2.6 }, W1 - .08).to({ x: 1285, y: 612, z: 2.8 }, W1 - .08, 3.2)         // her: "If we only had a cat!"; her sigh
+    .cut({ x: 1195, y: 612, z: 2.05 }, W1 - .08).to({ x: 1205, y: 614, z: 2.2 }, W1 - .08, 3.2)         // her: "If we only had a cat!"; her sigh
     .cut({ x: 1100, y: 610, z: 2.5 }, M1 - .1).to({ x: 1090, y: 612, z: 2.7 }, M1 - .1, 3)             // him: "A cat?"
     .cut({ x: 1320, y: 545, z: 1.7 }, WB - .1)                                                         // her, and the cloud with the kitten
     .cut({ x: 1285, y: 605, z: 2.6 }, T(26.08)).to({ x: 1285, y: 610, z: 2.7 }, T(26.08), 1.8)
     .cut({ x: 1095, y: 610, z: 2.6 }, MB - .1).to({ x: 1090, y: 612, z: 2.75 }, MB - .1, 2.2)           // him: "I will get you a cat, my dear"
     .cut({ x: 1150, y: 600, z: 1.35 }, T(30.5)).to({ x: 1250, y: 610, z: 1.5 }, T(30.5), D - T(30.5)); // he walks off right
   cam.soft(T(10.28), true).soft(T(26.08), 'all').soft(MB - .1, true).soft(T(30.5), false)
-    .soft(W1 - .08, 'all').soft(M1 - .1, 'all').soft(WB - .1, false);
+    .soft(W1 - .08, false).soft(M1 - .1, false).soft(WB - .1, false);   // no blur on the two close shots: the far fence floated in the corner
   sfx('scene1', 0, 'birds', .4, { loop: true });
   sfx('scene1', THINK0, 'pop', .4); sfx('scene1', THINK0 + .15, 'mew2', .3); sfx('scene1', 0, 'page', .4);
   for (let k = 0; k < 12; k++) sfx('scene1', WALK + .2 + k * .36, 'step' + (k % 3 + 1), .25);
@@ -55,12 +55,14 @@ function scene1(p, D) {
     const sigh = Math.sin(Math.PI * Math.min(1, Math.max(0, (q - SIGH) / 1.5)));
     const wTalk = wsp !== 'X' ? Math.sin(q * 9) * 1.3 : 0;
     const look = 5 * span(q, WALK + 1.3, WALK + 2);   // watches him go: head turns after him
+    const bump = (a, b) => Math.sin(Math.PI * span(q, a, b)),
+      g1 = bump(T(14.9), T(16.0)), g2 = bump(T(23.7), T(25.3)) * (1 + .15 * Math.sin(q * 10));   // "only had": both hands rise; "sweet little fluffy": hands up to the cheek
     const wg = wsp !== 'X' ? .5 + .5 * Math.sin(q * 6.4) : 0, dream = span(q, THINK0, THINK0 + .7) * (1 - span(q, THINK1, THINK1 + .7)),
       hush = msp !== 'X' ? 2.5 * Math.sin(q * 4.2) : 0;   // her hands talk with her; she nods while he answers; in the thought they lift
     woman.pose({ x: W.x, y: W.y, sq: 1 + .012 * Math.sin(q * 2.1) - .02 * sigh - .012 * sad,
       rot: .5 * Math.sin(q * 1.1 + 1),
-      parts: { head: 3 * Math.sin(q * 1.3) + 6 * sad + 7 * sigh + (q > WB && q < THINK1 ? 5 * span(q, WB, WB + .5) : 0) + wTalk + look + hush, armL: 2 * Math.sin(q * 1.4) + 11 * wg + 9 * dream - 4 * sad - 3 * sigh,
-        armR: -(2 * Math.sin(q * 1.4 + 1) + 9 * Math.abs(Math.sin(q * 5.1 + 1)) * (wsp !== 'X' ? 1 : 0) + 9 * dream - 4 * sad) },
+      parts: { head: 3 * Math.sin(q * 1.3) + 6 * sad + 7 * sigh + (q > WB && q < THINK1 ? 5 * span(q, WB, WB + .5) : 0) + wTalk + look + hush, armL: 2 * Math.sin(q * 1.4) + 8 * wg + 24 * g1 + 26 * g2 + 9 * dream - 4 * sad - 3 * sigh,
+        armR: -(2 * Math.sin(q * 1.4 + 1) + 6 * Math.abs(Math.sin(q * 5.1 + 1)) * (wsp !== 'X' ? 1 : 0) + 24 * g1 + 26 * g2 + 9 * dream - 4 * sad) },
       move: { head: [0, 2 * sigh + 3 * sad] },
       mouth: wsp }, f);
     // ---- the old man: breath, a rock, smoke curling; his lines pulse the whole figure (his mouth is under the beard and pipe)

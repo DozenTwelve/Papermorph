@@ -7,8 +7,10 @@ const PRE2 = 1.2;                    // the page turn uncovers the valley, then 
 const S2_TURN = PRE2 + 11.45;       // "at last he came to a hill": the page turns to p08
 const S2_S = .17;                    // his size on this spread (Gág's ridge man was about 43 px; the piece is ~340 px tall)
 // The spread's top edge (world x, y of the first ink), read off the set: he walks the crest, against the blank sky.
+const S2_GAP = 30;
 const S2_TOP = [[330,521],[360,515],[400,509],[440,507],[480,512],[520,523],[560,537],[580,542],[600,530],[620,513],[640,499],[660,485],[680,473],[700,457],[720,447],[740,438],[760,431],[780,424],[800,424],[820,450],[840,454],[860,438],[880,430],[900,421],[920,413],[940,398],[960,395],[980,377],[1000,367],[1020,353],[1040,340],[1060,333],[1080,330],[1100,319],[1120,303],[1140,292],[1160,276],[1180,240],[1200,226],[1220,214],[1240,200],[1260,196],[1280,192],[1300,190],[1320,196],[1340,213],[1360,213],[1380,207],[1400,210],[1420,220],[1440,247],[1460,252],[1480,255],[1500,272],[1520,276],[1540,270],[1560,272],[1580,274],[1600,273],[1620,271],[1640,267],[1660,261],[1680,260],[1700,266],[1720,264],[1740,259],[1760,256],[1780,261],[1800,264],[1820,268],[1840,263],[1860,255],[1880,249],[1900,246],[1920,234],[1940,224]];
 function s2_top(x) {
+  x += S2_GAP * Math.min(1, Math.max(0, (x - 780) / 40));   // the set's right page was moved 30 px left to close the gutter
   const T = S2_TOP; if (x <= T[0][0]) return T[0][1]; if (x >= T[T.length - 1][0]) return T[T.length - 1][1];
   let i = 0; while (T[i + 1][0] < x) i++;
   return T[i][1] + (T[i + 1][1] - T[i][1]) * (x - T[i][0]) / (T[i + 1][0] - T[i][0]);
@@ -16,7 +18,7 @@ function s2_top(x) {
 // The crest from x0 to x1, a little smoothed (trees and spires would make him bob), his feet a few px inside the hatching.
 function s2_crest(x0, x1) {
   const pts = [], sm = x => { let a = 0; for (let k = -3; k <= 3; k++) a += s2_top(x + k * 14); return a / 7; };
-  for (let x = x0; x <= x1; x += 10) pts.push([x, sm(x) + 9]);
+  for (let x = x0; x <= x1; x += 10) pts.push([x, sm(x) + 14]);
   return pts;
 }
 // Where he is after walking `u` px along a polyline: x, y and the slope's angle (degrees).
@@ -38,7 +40,7 @@ const S2_SHOTS = [
   { t0: PRE2 + 2.75, go: PRE2 + 2.9, stop: 99, poly: s2_crest(610, 800), z: 2.3, vol: .12, period: .5 },
   { t0: PRE2 + 5.15, go: PRE2 + 5.2, stop: 99, poly: s2_crest(770, 960), z: 2.3, vol: .1, period: .6, A: 17, slump: 1 },
   // the long walk: on the road (the pale path up the ridge to the crest), the camera on him
-  { t0: PRE2 + 7.5,  go: PRE2 + 7.5, poly: [[960, 425], [1000, 388], [1050, 346], [1100, 314], ...s2_crest(1110, 1190)], z: 2.0, vol: .1, period: .5, stop: S2_TURN },
+  { t0: PRE2 + 7.5,  go: PRE2 + 7.5, poly: [[930, 425], [970, 388], [1020, 346], [1070, 314], ...s2_crest(1080, 1160)], z: 2.0, vol: .1, period: .5, stop: S2_TURN },
 ];
 
 // p08 (set cathill): the old man from behind and the cats on the hill. Shared with scene3, which holds the same picture.
@@ -65,7 +67,7 @@ function scene2(p, D) {
   const cam = paperCam(p, 'hills');
   cam.world.insertBefore(mk('rect', { x: -3000, y: -2000, width: 8000, height: 5000, fill: '#eee8d6' }), cam.world.firstChild);   // the set's sky is cut out under the clouds; parallax would show the stage
   const man = cutPuppet(cam.stage, 'man5');
-  cam.move('clouds', q => `translate(${(-13 * q).toFixed(1)} 0)`);   // Gág's clouds drift, against his way
+  cam.move('clouds', q => `translate(${(18 * Math.sin(q * .45) - 4 * q).toFixed(1)} 0)`);   // Gág's clouds drift to and fro (a steady drift would pull the spread's cut edge out of the sky)
   const pipeG = mk('g', {}, cam.stage), pipe = inkSmoke(pipeG, 0, 0, { size: 1.1, rise: 24, drift: 7, curl: 2.4, waves: 1.4, period: 1.6, ink: .7, seed: 4 });
   const cam1 = paperCam(p, 'cathill'), hill = s2_hill(cam1);
   const out = pageTurn(p, 0, .6, 'out'), tin = pageTurn(p, S2_TURN, .3, 'in'), tout = pageTurn(p, S2_TURN + .3, .3, 'out');
@@ -84,7 +86,7 @@ function scene2(p, D) {
   // Cameras: wide on the valley with him at the door; close on the crest, following; wide again for the long walk,
   // the camera going ahead of him; then the last ridge, pushing in as he stops.
   // (the grey smudge where Gág's own figure was lifted off the ridge, near x 1340-1380, stays out of frame)
-  const lead = 90, fx = t => { const m = manAt(t); return Math.min(m.x + (t >= S2_SHOTS[3].t0 ? -110 : lead), 935); },
+  const lead = 90, fx = t => { const m = manAt(t); return Math.min(m.x + (t >= S2_SHOTS[3].t0 ? -110 : lead), 905); },
   fy = t => manAt(t).y - 42;
   cam.cut({ x: fx, y: fy, z: 2.5 }, 0);
   cam.cut({ x: fx, y: fy, z: 2.3 }, S2_SHOTS[1].t0);

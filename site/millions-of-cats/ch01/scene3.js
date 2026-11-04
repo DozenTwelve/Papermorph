@@ -46,8 +46,8 @@ function scene3(p, D) {
   const times = {}; for (const [n, c] of S3_WORDS) times[n] = T('rf', c);
   // Waves of cats, each from its word: [box, count, from, to, near, far]. Letters stay clear until the last waves.
   const WAVES = [
-    [[300, 640, 560, 840], 3, T('rf', .16), T('rf', .6), 1.5, 1.25],        // here: left
-    [[1040, 640, 1300, 840], 3, T('rf', .96), T('rf', 1.4), 1.5, 1.25],      // there: right
+    [[300, 640, 560, 840], 5, T('rf', .16), T('rf', .6), 1.5, 1.25],        // here: left
+    [[1040, 640, 1300, 840], 5, T('rf', .96), T('rf', 1.4), 1.5, 1.25],      // there: right
     [[200, 110, 1400, 860], 14, T('rf', 1.9), T('rf', 3.3), 1.5, 1.0],       // cats and kittens everywhere
     [[100, 60, 1500, 920], 40, T('rf', 3.82), T('rf', 4.9), 1.5, .85],       // hundreds
     [[-250, -20, 1850, 1020], 100, T('rf', 4.96), T('rf', 6.3), 1.5, .8],    // thousands
@@ -72,8 +72,8 @@ function scene3(p, D) {
   // so the sea of cats never swallows them
   const box = L.items.reduce((b, it) => { const C = it.p.C, k = 1.4, l = it.x - C.ax * k, t = it.y - C.ay * k, w = C.parts[0].w * k, h = C.parts[0].h * k;
     return [Math.min(b[0], l), Math.min(b[1], t), Math.max(b[2], l + w), Math.max(b[3], t + h)]; }, [1e9, 1e9, -1e9, -1e9]);
-  const slip = prop(cam2.stage, `<defs><radialGradient id="s3glow"><stop offset="0" stop-color="#efe8d6" stop-opacity=".95"/><stop offset=".55" stop-color="#efe8d6" stop-opacity=".85"/><stop offset="1" stop-color="#efe8d6" stop-opacity="0"/></radialGradient></defs>
-    <ellipse cx="${(box[0] + box[2]) / 2}" cy="${(box[1] + box[3]) / 2}" rx="${(box[2] - box[0]) * .62}" ry="${(box[3] - box[1]) * .75}" fill="url(#s3glow)"/>`);
+  const slip = prop(cam2.stage, `<defs><radialGradient id="s3glow"><stop offset="0" stop-color="#efe8d6" stop-opacity="1"/><stop offset=".8" stop-color="#efe8d6" stop-opacity="1"/><stop offset="1" stop-color="#efe8d6" stop-opacity="0"/></radialGradient></defs>
+    <ellipse cx="${(box[0] + box[2]) / 2}" cy="${(box[1] + box[3]) / 2}" rx="${(box[2] - box[0]) * .68}" ry="${(box[3] - box[1]) * .95}" fill="url(#s3glow)"/>`);
   const SLIP = T('rf', 3.7);
   cam2.stage.appendChild(slip); cam2.stage.appendChild(L.g);
 
@@ -110,7 +110,7 @@ function scene3(p, D) {
         // from "hundreds" a wave runs through the sea, and goes on to the end
         const surge = Math.max(0, Math.sin(q * 3 - c.x * .006 + c.y * .004)) * 5 * span(q, T('rf', 3.8), T('rf', 4.4));
         // the first cats (here, there, everywhere) pace to and fro on their spot, turned the way they go, legs keeping pace
-        const a = q * .9 + c.ph, pace = early ? 34 * Math.sin(a) : 0;
+        const a = q * .9 + c.ph, pace = early ? 48 * Math.sin(a) : 0;
         const L = catLife(q, c.ph, { d: early ? q * 16 / c.s : null, L: 70, A: 20, tail: early ? 24 : 18, head: early ? 14 : 10 });
         const fl = early ? Math.cos(a) < 0 !== ((CUT[c.name].faces ?? 1) < 0) : c.flip;
         c.p.pose({ x: c.x + pace, y: c.y, s: c.s, flip: fl, bob: pop + live + surge + L.bob + (early ? 0 : 2.6 * Math.abs(Math.sin(q * 2.3 + c.ph))), rot: Math.sin((q + c.ph) * 1.7) * (early ? 1.2 : 3) + L.rot, parts: L.parts }, f + c.i);

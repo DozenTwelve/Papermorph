@@ -75,7 +75,7 @@ function catCrowd(parent, { names, n = 20, box = [0, 600, 1600, 900], seed = 1, 
 function thought(parent, x, y, bx, by, r = 120) {
   const g = mk('g', {}, parent), bub = mk('g', {}, g), inside = mk('g', {}, bub);
   const lump = Array.from({ length: 9 }, (_, i) => { const a = i / 9 * Math.PI * 2; return `<circle cx="${(Math.cos(a) * r * .78).toFixed(1)}" cy="${(Math.sin(a) * r * .55).toFixed(1)}" r="${(r * .42).toFixed(1)}"/>`; }).join('');
-  bub.insertAdjacentHTML('afterbegin', `<g filter="url(#paper)"><g fill="#1e1a16">${lump}</g><g fill="#efe8d6" transform="scale(.95)">${lump}<ellipse rx="${r * .8}" ry="${r * .58}"/></g></g>`);
+  bub.insertAdjacentHTML('afterbegin', `<g filter="url(#paper)"><g fill="#1e1a16">${lump}</g></g><g fill="#efe8d6" transform="scale(.95)">${lump}<ellipse rx="${r * .8}" ry="${r * .58}"/></g>`);
   const dots = [.25, .5, .75].map((k, i) => mk('circle', { cx: x + (bx - x) * k, cy: y + (by - y) * k, r: 8 + i * 6, fill: '#efe8d6', stroke: '#1e1a16', 'stroke-width': 3 }, g));
   bakeAll(bub);
   return { g, inside, pose(q, t0, t1 = Infinity) {

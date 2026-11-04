@@ -28,6 +28,7 @@ function scene6(p, D) {
   // ---------------- page 16: the strip of hills ----------------
   const A = paperCam(p, 'p16'); paper(A);
   const m16 = cutPuppet(A.stage, 'man16'), at16 = pagePos('p16', 'man16');
+  const EDGE16 = at16.x + 55;   // Gág's picture ends there (page px 3195): a cat further right would stand on blank paper
   const X0 = at16.x, WALK0 = T(.3), SPEED = 92, GY = at16.y + 34;
   // His steps set the ground's speed: the compass walk plants each foot while the hip rides over it (leg 33 px, swing 26 deg, 0.64 s
   // per two steps = about 90 px/s, SPEED); the trail walks the same distance, their legs by it.
@@ -95,7 +96,7 @@ function scene6(p, D) {
       const dist = X0 - x;   // how far the ground has gone by: the cats' legs keep pace with it
       for (const c of trail) {
         const cx = x + c.off, L = catLife(q, c.ph, { d: dist / .5, L: 80, A: 22, tail: 16, head: 9 });
-        c.p.pose({ x: cx, y: GY + c.dy, s: .5, bob: L.bob * 1.4 + (walking ? Math.abs(Math.sin(dist / 22 + c.ph)) * 1.2 : 0), rot: L.rot, parts: L.parts, op: Math.max(0, Math.min(1, (1436 - cx) / 40)) }, f + c.i);
+        c.p.pose({ x: cx, y: GY + c.dy, s: .5, bob: L.bob * 1.4 + (walking ? Math.abs(Math.sin(dist / 22 + c.ph)) * 1.2 : 0), rot: L.rot, parts: L.parts, op: Math.max(0, Math.min(1, (EDGE16 - cx) / 30)) }, f + c.i);
       }
     } else {
       B.apply(q, f);

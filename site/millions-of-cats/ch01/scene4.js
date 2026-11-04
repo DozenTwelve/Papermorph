@@ -60,7 +60,7 @@ function scene4(p, D) {
   // Gág's flowers and the bush, lifted as small pieces: each sways from its foot (sk), behind the figures
   const s4tuft = (cam, page, names) => names.map((n, i) => { const t = cutPuppet(cam.stage, n); cam.stage.insertBefore(t.g, cam.stage.firstChild); return { t, at: pagePos(page, n), i }; });
   const tf10 = s4tuft(cam10, 'p10', ['tuft10a', 'tuft10b', 'tuft10c']), tf11 = s4tuft(cam11, 'p11', ['tuft11a', 'tuft11b', 'tuft11c']), tf12 = s4tuft(cam12, 'p12', ['tuft12a', 'tuft12b']);
-  const s4sway = (q, L, f) => L.forEach(({ t, at, i }) => t.pose({ x: at.x, y: at.y, s: at.s, sk: (i === 4 ? 1.2 : 3) * Math.sin(q * 1.8 + i * 1.7) + Math.sin(q * 3.1 + i) }, f));
+  const s4sway = (q, L, f) => L.forEach(({ t, at, i }) => t.pose({ x: at.x, y: at.y, s: at.s, sk: 5 * Math.sin(q * 1.8 + i * 1.7) + 2 * Math.sin(q * 3.1 + i * 2.3) }, f));
 
   // ---- cameras ----
   const T = c2t;

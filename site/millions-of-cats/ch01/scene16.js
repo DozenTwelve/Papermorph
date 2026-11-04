@@ -104,7 +104,7 @@ function scene16(p, D) {
       const live = swell > 0;
       for (const g of [veil, crowd.g, slip, L.g]) vis(g, live);
       if (live) {
-        veil.setAttribute('opacity', (.8 * swell).toFixed(3));
+        veil.setAttribute('opacity', (.97 * Math.min(1, swell * 2.2)).toFixed(3));   // the room thins to paper (not to grey): the cream rises over it almost whole
         crowd.g.setAttribute('opacity', (swell * (.2 + .35 * span(q, hunT, trilT + .6))).toFixed(3));
         for (const g of [slip, L.g]) g.setAttribute('opacity', swell.toFixed(3));
         crowd.pose(q, f, { from: 0, every: when, hop: false });

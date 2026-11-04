@@ -58,6 +58,9 @@ function scene9(p, D) {
   const names = ['cat23a', 'cat23b', 'cat23c', 'cat23d', 'cat23e', 'cat23f', 'cat23g', 'cat23h', 'cat22a', 'cat22b', 'cat22c', 'cat22d'];
   const N = 64, crowd = catCrowd(B.stage, { names, n: N, box: [235 + s9_DX, 588, 1365, 655], seed: 23, s: [1.15, .85] });
   const when = i => (i < 14 ? s9_S7 + i * .08 : s9_T(i < 20 ? 12.8 + (i - 14) * .2 : i < 28 ? 16.5 + (i - 12) * .06 : i < 44 ? 17.7 + (i - 28) * .05 : 19.1 + (i - 44) * .07));
+  // big cats walking past in the foreground, under the lettering and in front of the band: a parade from the right, so the frame is never just paper and words
+  const s9_FV = -130;
+  const fore = catCrowd(B.stage, { names, n: 11, box: [700, 912, 2700, 932], seed: 91, s: [1.95, 1.75] });
   const L = lettering(B.stage, s9_RF.map(w => w[0]), { x: 778, y: 763, s: .98 });
   const times = {}; for (const [n, t] of s9_RF) times[n] = s9_T(t);
 
@@ -93,6 +96,7 @@ function scene9(p, D) {
       B.apply(q, f);
       crowd.pose(q, f, { from: 0, every: i => when(i), walk: { v: s9_V2, t0: s9_S7, t1: s9_T1 } });
       L.show(q, times, f);
+      fore.pose(q, f, { from: -20, every: 0, walk: { v: s9_FV, t0: s9_S7 } });
     }
     turnOut(q); turn(q);
   });

@@ -35,8 +35,8 @@ function scene8(p, D) {
       <g id="s8_bites" fill="#000">${patches.map((a, i) => `<polygon id="s8_b${i}" points="${blob(i)}" transform="translate(${a.x.toFixed(0)} ${a.y.toFixed(0)}) scale(0)"/>`).join('')}</g><polygon points="926,428 985,452 1114,482 1276,519 1362,541 1379,571 1114,571 996,557 942,509" fill="#fff"/></mask>
     <filter id="s8_grow" x="-5%" y="-10%" width="110%" height="120%"><feMorphology operator="dilate" radius="4"/></filter>
     <mask id="s8_bedMask" maskUnits="userSpaceOnUse" x="${BX - 20}" y="${BY - 20}" width="${BW + 40}" height="${BH + 40}"><image href="../img/sets/p20/grass.webp" x="${BX}" y="${BY}" width="${BW}" height="${BH}" preserveAspectRatio="none" filter="url(#s8_grow)"/></mask>`;
-  // the first bites are at the eaters' feet and open in the wide refrain shot already
-  [[430, 410], [620, 405], [740, 415], [830, 425], [1060, 420], [1200, 440]].forEach(([x, y], k) => Object.assign(patches[k], { x, y, early: s8_T(3.6 + k * 1.1), r: 40 }));
+  // the first bites are above the eaters and open first, once "Each cat ate a mouthful" is said; the grass stays whole until then
+  [[430, 410], [620, 405], [740, 415], [830, 425], [1060, 420], [1200, 440]].forEach(([x, y], k) => Object.assign(patches[k], { x, y, t: k * .05, r: 60 }));
   const bites = patches.map((a, i) => defs.querySelector('#s8_b' + i));
 
   // P: page 20, the hill and its grass; puppets stand in front of the grass layer
@@ -67,7 +67,7 @@ function scene8(p, D) {
   // Q: page 21, the tiny old man at the foot of the hill
   const Q = paperCam(p, 'p21', { x: 1100, y: 640, z: 1.6 });
   const at21 = pagePos('p21', 'man21'), man21 = cutPuppet(Q.stage, 'man21');
-  Q.to({ x: 1160, y: 660, z: 2.2 }, s8_SAY, 4.4);
+  Q.cut({ x: at21.x + 10, y: at21.y - 30, z: 2.9 }, s8_SAY).to({ x: at21.x + 10, y: at21.y - 30, z: 3.3 }, s8_SAY, 4.4);
 
   const turnOut = pageTurn(p, 0, .45, 'out'), turnIn = pageTurn(p, D - .1, .45, 'in');
   stopClock(D, (q, f) => {
@@ -92,7 +92,7 @@ function scene8(p, D) {
     const eatOn = q >= s8_T(3.4) && !inQ && !closeA && !closeB;
     for (const c of eaters) {
       vis(c.p.g, eatOn);
-      const m = q > s8_T(3.6) + c.i * .95 && q < s8_LEFT + .2 ? Math.max(0, Math.sin(q * 6 + c.i * 1.9)) : 0;
+      const eat = q > s8_ATE && q < s8_LEFT + .2, m = Math.max(0, Math.sin(q * (eat ? 6 : 2.6) + c.i * 1.9)) * (eat ? 1 : .35);   // before the mouthful: sniffing and stalking, not eating
       const LL = catLife(q, c.i); LL.parts.head += 40 * m; c.p.pose({ parts: LL.parts, x: c.x, y: c.y, s: c.s, flip: c.flip, rot: (c.flip ? -1 : 1) * m * 6 + Math.sin(q * 1.5 + c.i), sq: 1 + .012 * Math.sin(q * 2 + c.i) - m * .05 }, f + c.i);
     }
     // page 21: the tiny old man speaks (a small bob with the voice)

@@ -8,7 +8,7 @@ const PRE11 = .5;
 const s11_T = t => PRE11 + t;
 const s11_QUARREL = markAt('scene11', PRE11, 'n10.quarrel'), s11_BIT = markAt('scene11', PRE11, 'n10b.bit'),
   s11_SCR = markAt('scene11', PRE11, 'n10b.scratched'), s11_CLAW = markAt('scene11', PRE11, 'n10b.clawed'), s11_RAN = markAt('scene11', PRE11, 'n10b.ran');
-const s11_W = s11_T(7.4), s11_DOOR = [1242, 172];   // the wide again; where the house's door is (world px)
+const s11_W = s11_T(7.4), s11_DOOR = [1248, 163];   // the wide again; where the house's door is (world px)
 const s11_C = [825, 530];   // the tangle's centre
 sfx('scene11', 0, 'fight', .9, { loop: true });
 sfx('scene11', .05, 'page', .8);
@@ -21,7 +21,7 @@ const s11_FLY = [
   ['cat25d', 3.8, 1, [760, 590], [260, 650], -1], ['cat25b', 5.0, .8, [600, 560], [330, 420], -1], ['cat25a', 5.45, .8, [900, 520], [1180, 330], 1],
   ['cat25d', 6.1, .8, [780, 480], [620, 280], 1], ['cat25c', 6.3, .9, [800, 500], [1000, 300], -1], ['cat25a', 7.6, 1, [720, 580], [300, 780], 1],
   ['cat25d', 8.3, 1, [850, 560], [1380, 700], -1], ['cat25b', 9.2, 1, [800, 590], [500, 850], 1], ['cat25c', 10.0, 1, [820, 560], [330, 700], -1],
-  ['cat25a', 11.4, 1, [800, 570], [1360, 790], 1], ['cat25d', 12.4, 1, [760, 580], [280, 760], -1], ['cat25b', 13.4, 1, [800, 560], [1300, 800], 1],
+  ['cat25a', 11.4, 1, [900, 440], [1150, 250], 1], ['cat25d', 12.4, 1, [1000, 470], [790, 240], -1], ['cat25b', 13.4, 1, [850, 440], [1110, 235], 1],
 ];
 s11_FLY.forEach(([, t, , , , ]) => sfx('scene11', s11_T(t) + .05, 'whoosh', .22));
 
@@ -43,10 +43,20 @@ function scene11(p, D) {
 
   // where the pair was lifted off the page's sky and the hill's rim, a grey smear shows once they run: a soft paper patch over the sky side of it
   const patch = mk('g', {}, cam.stage);
-  patch.innerHTML = '<defs><filter id="s11soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3"/></filter></defs><polygon points="925,185 1163,183 1170,192 1122,232 1090,250 1037,266 969,279 925,300" fill="#efe8d6" filter="url(#s11soft)"/>';
+  const edge = [[925, 300], [969, 279], [1037, 266], [1090, 250], [1122, 232], [1170, 192]];   // the hill's rim where the pair were lifted: crisp, hatched in Gág's ink
+  let ticks = '';
+  for (let k = 0; k < edge.length - 1; k++) {
+    const [ax, ay] = edge[k], [bx, by] = edge[k + 1], len = Math.hypot(bx - ax, by - ay), nx = (by - ay) / len, ny = -(bx - ax) / len;
+    for (let t = 0; t < len; t += 5) { const r = rnd(k * 97 + t), l = 7 + r * 12, x = ax + (bx - ax) * t / len, y = ay + (by - ay) * t / len;
+      ticks += `M${x.toFixed(1)} ${y.toFixed(1)}l${(nx * l).toFixed(1)} ${(ny * l).toFixed(1)}`; }   // down-right, into the hill
+  }
+  patch.innerHTML = `<polygon points="925,185 1163,183 1170,192 ${edge.slice().reverse().map(e => e.join(',')).join(' ')}" fill="#efe8d6"/><ellipse cx="1077" cy="269" rx="14" ry="6" fill="#1e1a16"/><ellipse cx="1024" cy="285" rx="11" ry="5" fill="#1e1a16"/><path d="M${edge.map(e => e.join(' ')).join('L')}" fill="none" stroke="#1e1a16" stroke-width="4" stroke-linejoin="round"/><path d="${ticks}" fill="none" stroke="#efe8d6" stroke-width="1.8" stroke-linecap="round"/>`;
+  // the door's jamb: the pair are cut off at the door's left edge as they go in
+  const jamb = mk('g', {}, cam.stage); jamb.innerHTML = '<defs><clipPath id="s11jamb"><rect x="0" y="-200" width="1247" height="800"/></clipPath></defs>';
+  const pc = mk('g', { 'clip-path': 'url(#s11jamb)' }, cam.stage);
   // a seething crowd over Gág's tangle: cats lunging, hopping and spinning, wilder as the quarrel grows (catCrowd's seethe)
   const crowd = catCrowd(cam.stage, { names: ['cat25a', 'cat25b', 'cat25c', 'cat25d'], n: 22, box: [380, 470, 1250, 760], seed: 25, s: [1.35, .85] });
-  const man = cutPuppet(cam.stage, 'man25'), woman = cutPuppet(cam.stage, 'woman25');
+  const man = cutPuppet(pc, 'man25'), woman = cutPuppet(pc, 'woman25');
   const mAt = pagePos('p25', 'man25'), wAt = pagePos('p25', 'woman25');
   const fly = s11_FLY.map(([n, t, d, a, b, spin]) => ({ p: cutPuppet(cam.stage, n), t: s11_T(t), d, a, b, spin }));
   const route = (at, u, lag) => {   // from a spot up the hill to the door, in a gentle zigzag of steps
@@ -59,7 +69,7 @@ function scene11(p, D) {
     // the tangle: a jolt on twos (shift, tilt, a boil of scale about its centre)
     const g = Math.floor(f / 2), a = amp(q), k = (n) => jit(g, n);
     wrap.setAttribute('transform', `translate(${s11_C[0] + k(41) * a} ${s11_C[1] + k(42) * a}) rotate(${k(43) * a * .3}) scale(${1 + k(44) * a * .004}) translate(${-s11_C[0]} ${-s11_C[1]})`);
-    crowd.pose(q, f, { from: s11_QUARREL - .2, every: i => i * .03, hop: false, seethe: .3 + .7 * span(q, s11_QUARREL, s11_CLAW) - .3 * span(q, s11_W + 1, s11_RAN) });
+    crowd.pose(q, f, { from: s11_QUARREL - .2, every: i => i * .03, hop: false, seethe: .3 + .7 * span(q, s11_QUARREL, s11_CLAW) });
     // single cats flung out and back
     for (const c of fly) {
       const u = (q - c.t) / c.d, on = u > 0 && u < 1;
@@ -78,16 +88,16 @@ function scene11(p, D) {
       vis(pup.g, on);
       if (!on) return;
       if (!run) { pup.pose({ ...at, x: at.x + tremble * .5, flip, bob: Math.abs(Math.sin(q * 13 + ph)) * 3 * (a / 6), sq: 1 + .012 * Math.sin(q * 2.2 + ph) - .03 * span(q, s11_QUARREL, s11_QUARREL + .5), rot: Math.sin(q * 9 + ph) * 1.2 * (a / 6) }, f); return; }
-      const e = Math.min(1, u), y0 = at.y + (s11_DOOR[1] - at.y) * ease(e), sc = 1 - .25 * e;
+      const e = Math.min(1, u), y0 = at.y + (s11_DOOR[1] - at.y) * ease(e), sc = (1 - .78 * ease(e)) ;
       if (legs) {   // x from the hip's travel d·s, scaled so the walk ends at the door
         const w = cutWalk(u * 1.7, MW), k = (s11_DOOR[0] - at.x - lag) / (mwEnd * at.s);
-        pup.pose({ ...at, x: at.x + w.d * at.s * k, y: y0, flip, bob: w.bob * 2.2 * at.s, rot: Math.sin(q * 11 + ph) * 2, s: sc, parts: { legF: w.legL, legB: w.legR } }, f);
+        pup.pose({ ...at, x: at.x + w.d * at.s * k, y: y0, flip, bob: w.bob * 2.2 * at.s * sc, rot: Math.sin(q * 11 + ph) * 2, s: sc, parts: { legF: w.legL, legB: w.legR } }, f);
       } else {   // the woman's skirt hides her legs: a quick shuffle, the hem bobbing and tipping at each step
-        const r = route(at, u, lag), st = Math.floor(q * FPS / 2) * 2 / FPS * 3.4 * Math.PI * 2;
-        pup.pose({ ...at, x: r.x, y: r.y, flip, bob: Math.abs(Math.sin(st)) * 8, rot: Math.sin(st) * 7, sq: 1 + .03 * Math.sin(st * 2), s: sc }, f);
+        const r = route(at, u, lag - 8), st = Math.floor(q * FPS / 2) * 2 / FPS * 3.4 * Math.PI * 2;
+        pup.pose({ ...at, x: r.x, y: r.y, flip, bob: Math.abs(Math.sin(st)) * 5 * sc, rot: Math.sin(st) * 7, sq: 1 + .03 * Math.sin(st * 2), s: sc }, f);
       }
     };
-    doRun(man, mAt, mu, 6, false, 0, true); doRun(woman, wAt, wu, -12, false, 1.3, false);
+    doRun(man, mAt, mu, -14, false, 0, true); doRun(woman, wAt, wu, -12, false, 1.3, false);
     turnOut(q); turn(q);
   });
   // the door: each is gone through it

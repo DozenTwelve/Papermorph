@@ -28,9 +28,17 @@ function s13_run(q) {
   const u = Math.max(0, Math.min(1, (q - s13_T0) / (s13_T1 - s13_T0)));
   let i = s13_SEG.findIndex(r => u <= r[1]); if (i < 0) i = s13_SEG.length - 1;
   const [a, b] = [s13_PATH[i], s13_PATH[i + 1]], k = (u - s13_SEG[i][0]) / (s13_SEG[i][1] - s13_SEG[i][0] || 1);
-  return { x: a[0] + (b[0] - a[0]) * k, y: a[1] + (b[1] - a[1]) * k, s: a[2] + (b[2] - a[2]) * k, going: q > s13_T0 && u < 1 };
+  const s = a[2] + (b[2] - a[2]) * k;
+  return { x: a[0] + (b[0] - a[0]) * k, y: a[1] + (b[1] - a[1]) * k + 12 * s * (1 - Math.max(0, Math.min(1, (u - .8) / .2))), s, going: q > s13_T0 && u < 1 };
 }
 for (let t = s13_T0 + .2, k = 0; t < s13_T1; t += .3, k++) sfx('scene13', +t.toFixed(2), 'step' + (k % 3 + 1), +(.12 + .35 * (t - s13_T0) / (s13_T1 - s13_T0)).toFixed(2));
+
+// an inked patch over the soft grey smear on p27's ridge edge where the old woman was drawn (set world px), with the ridge's teeth
+function s13_patch(parent) {
+  const pts = [[704, 590], [712, 576], [716, 560], [720, 548], [731, 541], [752, 536], [770, 529], [790, 524], [808, 520], [826, 514], [836, 508], [846, 510], [830, 540], [812, 566], [790, 584], [770, 598], [740, 606]];   // read off the set's own pixels: the grey rim along the ridge top
+  const d = 'M' + pts.map(([x, y]) => `${x},${y}`).join(' L') + ' Z';
+  return mk('path', { d, fill: '#1e1a16' }, parent);
+}
 
 function scene13(p, D) {
   const turnOut = pageTurn(p, 0, .6, 'out');
@@ -49,6 +57,7 @@ function scene13(p, D) {
 
   // ---- the set: stage things ----
   const wAt = pagePos('p27', 'woman27'), mAt = pagePos('p27', 'man27'), kAt = pagePos('p27', 'kitten27');
+  s13_patch(cam.stage);
   const man = cutPuppet(cam.stage, 'man27'), woman = cutPuppet(cam.stage, 'woman27'), kit = cutPuppet(cam.stage, 'kitten27');
   const kit2 = cutPuppet(cam.stage, 'kitten28');   // the clean p28 kitten over Gág's p27 blot, so a child can see what it taps
   const houseR = mk('rect', { x: 1245, y: 128, width: 118, height: 78, fill: 'transparent' }, cam.stage);   // painted into the set
@@ -91,7 +100,7 @@ function scene13(p, D) {
     const mT = s13_C('m11', .4);   // the swing, on "look"
     let arm;
     if (q < D) {
-      arm = 5 + 1.2 * Math.sin(q * 1.9) - 12 * span(q, T4 + .1, mT + .1) + 5 * span(q, mT + .1, mT + .45) - 4 * s13_PK(q, s13_C('n11b', 3.25), .25);
+      arm = 5 + 1.2 * Math.sin(q * 1.9) - 12 * span(q, T4 + .1, mT + .1) + 5 * span(q, mT + .1, mT + .45) - 14 * span(q, s13_C('n11b', 1.7), s13_C('n11b', 2.1)) * (1 - span(q, T6, T6 + .5));   // "he pointed": down toward the grass, before the cut
       armNow = arm;
     } else {
       const t = saying === 'q-me' ? null : FIND.target && where.get(FIND.target);
@@ -106,7 +115,7 @@ function scene13(p, D) {
     const nodM = s13_PK(q, s13_C('m11', .22), .15) + s13_PK(q, s13_C('m11', .5), .15) + s13_PK(q, s13_C('n11b', 3.4), .2);   // his stressed words: But, look, grass
     man.pose({ x: mAt.x, y: mAt.y, flip: false, rot: .8 * Math.sin(q * 1.1) + lean * (q > D ? 1 : 0) - (talkM ? 1.2 * Math.abs(Math.sin(q * 7.5)) : 0) - 1.4 * nodM,
       sq: 1 + .012 * Math.sin(q * 2.2 + 1) + (talkM ? .013 * Math.abs(Math.sin(q * 7.5)) : 0),
-      parts: { armR: arm, head: 3 * nodM + 1.5 * Math.sin(q * 1.2) + (q > T5 - .3 && q < T6 || (wait && FIND.target === kit2.g) ? 6 : 0) + (talkM ? 2 * Math.abs(Math.sin(q * 7.5)) : 0) }, hide: ['smoke'] }, f);
+      parts: { armR: arm, head: 3 * nodM + 1.5 * Math.sin(q * 1.2) + (q > s13_C('n11b', 1.9) && q < T6 || (wait && FIND.target === kit2.g) ? 6 : 0) + (talkM ? 2 * Math.abs(Math.sin(q * 7.5)) : 0) }, hide: ['smoke'] }, f);
     s13_sq(q);
 
     // ---- the kitten in the grass: always trembling a little, more when we look at it ----

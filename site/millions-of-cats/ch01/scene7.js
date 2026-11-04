@@ -87,9 +87,9 @@ function scene7(p, D) {
     hole.setAttribute('rx', (WRX * (1 - steps)).toFixed(1)); hole.setAttribute('ry', (WRY * (1 - steps)).toFixed(1));
     for (const c of lapCats) {
       vis(c.p.g, lapOn);
-      const LL = catLife(q, c.i); if (lapping0(q)) LL.parts.head += 30 * Math.max(0, Math.sin((q - s7_SIP) * 5.5 + c.i * 1.7));
+      const LL = catLife(q, c.i); if (lapping0(q)) LL.parts.head += 45 * Math.max(0, Math.sin((q - s7_SIP) * 5.5 + c.i * 1.7));
       const lapping = q > s7_SIP, lap = Math.max(0, Math.sin((q - s7_SIP) * 5.5 + c.i * 1.7));
-      c.p.pose({ parts: LL.parts, x: c.x, y: c.y, s: c.s, flip: c.flip, rot: (c.flip ? -1 : 1) * (lapping ? lap * 7 : 0) + Math.sin(q * 1.5 + c.i), sq: 1 + .012 * Math.sin(q * 2 + c.i) - (lapping ? lap * .05 : 0) }, f + c.i);
+      c.p.pose({ parts: LL.parts, x: c.x, y: c.y, bob: lapping ? -8 * lap : 0, s: c.s, flip: c.flip, rot: (c.flip ? -1 : 1) * (lapping ? lap * 16 : 0) + Math.sin(q * 1.5 + c.i), sq: 1 + .012 * Math.sin(q * 2 + c.i) - (lapping ? lap * .05 : 0) }, f + c.i);
     }
     // page 19: the dry hollow; the old man spreads his hand over it
     vis(man19.g, inQ);
