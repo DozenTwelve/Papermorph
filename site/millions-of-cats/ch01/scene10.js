@@ -64,6 +64,8 @@ function scene10(p, D) {
   const line = ['cat22a', 'cat22b', 'cat22c', 'cat22d'].map((n, i) => ({ p: cutPuppet(A.stage, n), at: pagePos('p22', n), ph: i * .37 }));
   const tail = catCrowd(A.stage, { names: ['cat22a', 'cat22b', 'cat22c', 'cat22d'], n: 18, box: [760, 585, 1380, 630], seed: 9, s: [1, .85] });
   const tHop = s10_C('n09c', 2.5);   // "to the cats": they hop up
+  // cats round his feet, as on Gág's page: they also hide the inpainted smear where his legs were drawn (round 3)
+  const feet = catCrowd(A.stage, { names: ['cat22a', 'cat22b', 'cat22c', 'cat22d'], n: 10, box: [mAt.x - 60, mAt.y - 34, mAt.x + 110, mAt.y + 4], seed: 21, s: [1.15, 1] });
 
   // ---- close-ups into p23's crowd ----
   const B = paperCam(p, 'p23', { x: 500, y: 600, z: 3 });
@@ -112,6 +114,7 @@ function scene10(p, D) {
       // the line of cats: breathing, an ear-twitch rock; they hop when he calls and turn up to him
       line.forEach((c, i) => c.p.pose({ ...c.at, sq: 1 + .02 * Math.sin(q * 2.4 + i), rot: Math.sin(q * 1.6 + c.ph * 5) * 1.6, bob: 10 * pk(q, tHop + i * .09, .2) }, f));
       tail.pose(q, f, { from: -20, every: 0 });
+      feet.pose(q, f, { from: -20, every: 0 });
     } else if (closeup) {
       B.apply(q, f);
       bc.pose(q, f, { from: -20, every: 0 });
