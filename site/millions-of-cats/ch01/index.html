@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Millions of Cats</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<!-- Millions of Cats (Wanda Gág, 1928): one beat per scene. Every set is one of her pages (img/sets/), every actor one of
+     her drawings lifted off a page (img/cut/, SKILL/scripts/lift.py; lib/cut.js moves them). Order matters: engine,
+     sets, cut pieces, kit, the audio data, shared helpers, then the scenes. -->
+<script src="../lib/engine.js"></script>
+<script src="../img/sets/sets.js"></script>
+<script src="../img/cut/cut.js"></script>
+<script src="../img/puppets/baked.js" onerror="0"></script>
+<script src="../lib/paper.js"></script>
+<script src="../lib/cut.js"></script>
+<script src="audio/en/timings.js"></script>
+<script src="audio/en/mouths.js"></script>
+<script src="audio/en/shots.js"></script>
+<script src="../lib/shared.js"></script>
+<script src="scene0.js"></script>
+<script src="scene1.js"></script>
+<script src="scene2.js"></script>
+<script src="scene3.js"></script>
+<script src="scene4.js"></script>
+<script src="scene5.js"></script>
+<script src="scene6.js"></script>
+<script src="scene7.js"></script>
+<script src="scene8.js"></script>
+<script src="scene9.js"></script>
+<script src="scene10.js"></script>
+<script src="scene11.js"></script>
+<script src="scene12.js"></script>
+<script src="scene13.js"></script>
+<script src="scene14.js"></script>
+<script src="scene15.js"></script>
+<script src="scene16.js"></script>
+<script>
+'use strict';
+// film: music and effects play; questionKeys: false, since the only question is the listen-and-find stop.
+const CHAPTER = { number: 1, title: 'Millions of Cats', minutes: 7, language: 'en', film: true, questionKeys: false };
+try { if (localStorage.getItem('captions') === null) setCaptions(true, false); } catch {}   // captions on at the first visit
+
+// The one listen-and-find stop (scene13, p27): the old man asks for the house, a cloud, then the little kitten; finding
+// it leads on to "In it sat one little frightened kitten." The video keeps the scene up to his pointing and leaves the game out.
+const FIND13 = [{ word: 'house', clip: 'q-house' }, { word: 'cloud', clip: 'q-cloud' }, { word: 'kitten', clip: 'q-kitten' }];
+const BEATS = [
+  ['scene0', 'Millions of Cats', (m, D) => scene0(panel(0), D), { lead: false, pre: PRE0 }],
+  ['scene1', 'A very old man and a very old woman', (m, D) => scene1(panel(0), D), { lead: false, pre: PRE1 }],
+  ['scene2', 'Over the hills', (m, D) => scene2(panel(0), D), { lead: false, pre: PRE2 }],
+  ['scene3', 'A hill covered with cats', (m, D) => scene3(panel(0), D), { lead: false, pre: PRE3 }],
+  ['scene4', 'The prettiest cat', (m, D) => scene4(panel(0), D), { lead: false, pre: PRE4 }],
+  ['scene5', 'Every time he looked up', (m, D) => scene5(panel(0), D), { lead: false, pre: PRE5 }],
+  ['scene6', 'Back over the hills', (m, D) => scene6(panel(0), D), { lead: false, pre: PRE6 }],
+  ['scene7', 'The pond', (m, D) => scene7(panel(0), D), { lead: false, pre: PRE7 }],
+  ['scene8', 'The grass', (m, D) => scene8(panel(0), D), { lead: false, pre: PRE8 }],
+  ['scene9', 'What do I see?', (m, D) => scene9(panel(0), D), { lead: false, pre: PRE9 }],
+  ['scene10', 'Which one is the prettiest?', (m, D) => scene10(panel(0), D), { lead: false, pre: PRE10 }],
+  ['scene11', 'They began to quarrel', (m, D) => scene11(panel(0), D), { lead: false, pre: PRE11 }],
+  ['scene12', 'Not a single cat', (m, D) => scene12(panel(0), D), { lead: false, pre: PRE12 }],
+  ['scene13', 'But look!', (m, D) => scene13(panel(0), D), { lead: false, pre: PRE13, ask: done => findWords(THINGS13, FIND13, done, { end: 'q-done', there: 'q-there' }), video: PRE13 + TIMINGS.scene13.parts.n11c - .1 }],
+  ['scene14', 'A very homely little cat', (m, D) => scene14(panel(0), D), { lead: false, pre: PRE14 }],
+  ['scene15', 'Soft and shiny, nice and plump', (m, D) => scene15(panel(0), D), { lead: false, pre: PRE15 }],
+  ['scene16', 'The prettiest cat in the whole world', (m, D) => scene16(panel(0), D), { lead: false, pre: PRE16 }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+// music: the waltz under the outdoor scenes, its night variation inside and at the end; ?bgm= sets the level by ear.
+const BGM_GAIN = +(new URLSearchParams(location.search).get('bgm') || .4);
+music('audio/bgm/theme.mp3', ['scene0', 'scene1', 'scene2', 'scene3', 'scene4', 'scene5', 'scene6', 'scene7', 'scene8', 'scene9', 'scene10', 'scene11', 'scene13', 'scene14'], BGM_GAIN);
+music('audio/bgm/theme-night.mp3', ['scene12', 'scene15', 'scene16'], BGM_GAIN * 1.2);
+window.MUSIC_OFF = { scene11: t => t > PRE11 + TIMINGS.scene11.parts.n10b - .2,   // the fight's noise carries the end; then hush
+                     scene12: t => t < PRE12 + TIMINGS.scene12.parts.n10c };     // the silence after the noise stays silent
+window.MUSIC_UP_IN_PRE = true;
+boot();
+</script>
+</body>
+</html>

@@ -15,6 +15,7 @@ Pick with the user. The two reference books' own `cast.js` files show the second
 - What makes it read as stop motion
 - Acting
 - Cameras
+- Lifted from the book's own pictures
 - Performance
 - Seeing your own work
 
@@ -37,7 +38,21 @@ Pick with the user. The two reference books' own `cast.js` files show the second
 
 ## Cameras
 
-`paperCam(parent, set, view, { after, stages })` is one camera on one set: layers slide with parallax, `to`/`cut` move it on the scene's clock, `soft` swaps in the blurred copy of the set for close-ups, `shake(t0, dur, amp = 10)` jolts it (the engine's `cam.shake` takes the amplitude first), `show(layer, on)` swaps a layer (rain and snow versions of the same street). A scene can hold several cameras; cut between places by showing one `cam.root` and hiding the others. Close-ups zoom the same set and blur it, so the speaker stays sharp.
+`paperCam(parent, set, view, { after, stages })` is one camera on one set: layers slide with parallax, `to`/`cut` move it on the scene's clock, `soft` swaps in the blurred copy of the set for close-ups, `shake(t0, dur, amp = 10)` jolts it (the engine's `cam.shake` takes the amplitude first), `show(layer, on)` swaps a layer (rain and snow versions of the same street). `move(layer, q => transform)` adds a transform to one layer each frame, after its parallax: grass swaying from its foot (a skew about the layer's ground line), clouds drifting, a pond's water shrinking about its middle. A scene can hold several cameras; cut between places by showing one `cam.root` and hiding the others. Close-ups zoom the same set and blur it, so the speaker stays sharp.
+
+## Lifted from the book's own pictures
+
+When the story comes as a scanned picture book that may be reused, its own drawings are the cast. `lift.py` (its docstring has the manifest) cuts each figure off its page as a silhouette, cream paper inside kept opaque and the page's paper and ink levelled to one colour pair, optionally split into parts on pivots (legs with caps under the coat hem, an arm, a head); it makes each page into a set (lettering erased, lifted figures erased or inpainted, layers along the art's own edges), and lettering into pieces that float. Read coordinates off `lift.py grid` crops and look at the `--sheet` after every run. `lib/cut.js` (in the kit) moves the pieces: `cutPuppet` puts parts on their pins, `pagePos` puts a figure back exactly where it stood on its page's set, `cutWalk` swings two legs as `walk()` does, `lettering` stamps the book's own words in as they are said, and `CUT_FACE` gives a lifted face a mouth for close-ups. Load `img/cut/cut.js` and `lib/cut.js` after `paper.js` in the chapter page.
+
+A lifted figure is one drawing, and that pulls towards stills: a figure lifted whole can only breathe and rock, a page set with everything baked in can only be panned, and a frame of it looks finished on a contact sheet. *Millions of Cats*' first cut played like that, and the owner found it static even where every figure breathed. Lift for the acting the story asks of each figure, not for the shot: split a speaker's head and working hand, a walker's legs, a cat's legs, tail and head, a lamp's flame, a tuft of grass or a cloud into their own parts or layers, so every figure on screen acts the whole time it is on screen. For the parts there are:
+
+- `lift.py`'s `frac` boxes, which split a small figure (a cat into legF, legH, tail, head) without reading coordinates.
+- A part's `"under": "fill"`, which keeps the body drawn behind an arm that lifts off a coat. Without it the coat shows a paper hole. Inpainting suits a plain coat; on Gág's hatched bodice it came out a grey smear, so there keep the lift small (about 12–15°) and gesture with the head, or have the image model paint the coat behind it (painting.md).
+- `catLife(q, ph, { d })`, which swishes the tail and twitches the head; give it the distance walked and it swings the legs at the ground's pace.
+- The pose keys `sk` (a sway from the foot) and `w` (a kitten growing plump).
+- `inkSmoke`, which draws smoke or steam as a cream ribbon with an ink edge and hatching, curling up the way an ink drawing shows it.
+
+Cutting to the book's next drawing of the same person (replacement) still beats inventing a pose. Measure with `still.py --hold-cam` ([core/review.md](../core/review.md#watch-it-in-motion)): a pan over a figure that only breathes is still.
 
 ## Performance
 

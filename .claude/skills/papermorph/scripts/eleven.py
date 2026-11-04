@@ -26,7 +26,7 @@ sound comes back, and the run prints it. Audio is decoded with ffmpeg, not PyAV 
 v4 audio tags such as [cackles] or [whispers] act: they are performed, not read aloud, and left out of captions.
 Price: about $0.00008 per character (about $0.65 for a ten-minute film). Before paying, the run prints the characters
 it will synthesize and their estimated cost; --dry stops there. --ledger appends the characters the run synthesized
-(also when it stops partway) and their estimated cost to the ledger paint.py writes (OpenRouter reports no cost for
+(also when it stops partway, when timings.js is written for the beats it finished and the rest are named) and their estimated cost to the ledger paint.py writes (OpenRouter reports no cost for
 speech).
 
 Each beat's clip is cached beside the narration as .eleven/<beat>.<hash>.mp3 (hash of model, voice and text), so
@@ -162,6 +162,20 @@ def charge():
 
 
 atexit.register(charge)   # at the end, or when a later step (a failed take, Whisper) stops the run
+done = []
+
+
+def save():
+    """timings.js, takes and word times for every beat finished so far: a run stopped partway (a 402 for credit) keeps
+    what it paid for usable, and says what is missing."""
+    write_atomic(tf, "window.TIMINGS = " + json.dumps(timings, indent=1, ensure_ascii=False) + ";\n")
+    write_atomic(tk, json.dumps(takes, indent=1))
+    write_atomic(wc_path, json.dumps(wcache, indent=1, ensure_ascii=False))
+    left = [b[0] for b in beats if b[0] not in timings]
+    if left: print(f"WARNING {len(left)} beats not voiced, left out of {tf}: {', '.join(left[:12])}{' …' if len(left) > 12 else ''}", file=sys.stderr)
+
+
+atexit.register(lambda: done or save())   # stopped partway: keep the finished beats
 for beat, voice, sub, clean, marks, cached, fresh in beats:
     if only and beat not in only and beat in old:
         timings[beat] = old[beat]; continue   # --only leaves the other beats alone
@@ -242,7 +256,5 @@ for beat, voice, sub, clean, marks, cached, fresh in beats:
              if k in old.get(beat, {}).get("marks", {}) and abs(old[beat]["marks"][k] - v) > .1]
     if moved: print(f"{beat}: marks moved: {', '.join(moved)}")
     print(f"{beat}: {dur} s, {len(marks)} marks")
-write_atomic(tf, "window.TIMINGS = " + json.dumps(timings, indent=1, ensure_ascii=False) + ";\n")
-write_atomic(tk, json.dumps(takes, indent=1))
-write_atomic(wc_path, json.dumps(wcache, indent=1, ensure_ascii=False))
+save(); done.append(1)
 print(f"{len(timings)} beats in {tf}; synthesized {spent} characters, about ${spent * PRICE:.2f}")

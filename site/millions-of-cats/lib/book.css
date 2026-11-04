@@ -1,0 +1,15 @@
+/* This book's own settings, imported by engine.css. The engine files next to this one are the same in every book
+   and are replaced when the engine is updated; this file is not.
+   Settings (uncomment to use):
+:root {
+  --math-font: "Avenir Next", Arial, sans-serif;   face for numbers and formulas (default: a serif, see engine.js)
+  --progress-key: "progress";                      localStorage key shared with the cover (default: one per book folder)
+  --page: #e9e5d8; --board: #fbfaf5; --panel: #fff; --edge: #d8d2c0;      a light board: the palette at the top of
+  --chalk: #1d1d1f; --dim: #6a6a6e; --faint: #c4bfae;                       engine.css, redefined; the stage, cards,
+  --task: #e2589b; --quiz: #1f6fc5; --good: #3f8a1d; --bad: #d9473a;        bar and COL follow (#rrggbb for the ink
+  --on-fill: #fff; --vignette: rgba(90, 70, 30, .08); color-scheme: light;  and board colours COL reads)
+  --rule: #ece8e0; --track: #e6e2d5; --track-ask: #cfdeeb;                   and the shades between them
+  --bar-edge: #eae6da; --hover: #efede6; --veil: #e9e5d8;
+}
+   Style overrides go here too. They come before the engine's rules, so make each selector more specific than the
+   engine's, e.g. ':root .card.band' for '.card.band'. */
