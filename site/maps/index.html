@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Explorable maps</title>
+<meta name="description" content="Explorable history maps: each year the map plays what happened, then four people walk to where that year took them. Europe 1919–1929 and Japan 1868–1878.">
+<link rel="canonical" href="https://papermorph.diamonddoge.org/maps/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Papermorph">
+<meta property="og:title" content="Explorable maps">
+<meta property="og:description" content="Explorable history maps: each year the map plays what happened, then four people walk to where that year took them. Europe 1919–1929 and Japan 1868–1878.">
+<meta property="og:url" content="https://papermorph.diamonddoge.org/maps/">
+<meta property="og:image" content="https://papermorph.diamonddoge.org/assets/covers/maps.webp">
+<meta property="og:image:alt" content="Two maps side by side: Germany in the 1920s with philosophers walking it, and central Japan with Fukuzawa and Tsuda by Edo.">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+  :root { --ink: #2f2418; --soft: #6b5a46; --paper: #fbf5e8; --card: #fffaf0; --line: #e4d6bb; --accent: #2f5aa8; --lede: #4a3b2a; --select: #2f5aa833; --ui: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif; --serif: "Iowan Old Style", Palatino, Georgia, serif; color-scheme: light; }
+  * { box-sizing: border-box; }
+  html, body { overflow-x: clip; }
+  @media (prefers-reduced-motion: reduce) { .maps a { transition: none !important; } .maps a:hover, .maps a:focus-visible { transform: none !important; } }
+  ::selection { background: var(--select); }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+  h1, h2 { text-wrap: balance; } p, li { text-wrap: pretty; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 18px/1.65 var(--ui); }
+  a { color: var(--accent); text-underline-offset: .15em; }
+  header, main, footer { max-width: 900px; margin: 0 auto; padding-left: 24px; padding-right: 24px; }
+  header { padding-top: 48px; }
+  .back { display: inline-block; margin: -10px 0 8px; padding: 10px 0; font-size: 15px; color: var(--soft); text-decoration: none; }
+  h1 { margin: 0 0 8px; font: 700 clamp(34px, 4.6vw, 56px)/1.05 var(--serif); }
+  .tag { display: block; margin: 0 0 14px; color: var(--accent); font-size: 18px; font-weight: 600; }
+  .lede { max-width: 40em; margin: 0; font-size: 20px; color: var(--lede); }
+  main { padding-top: 8px; padding-bottom: 80px; }
+  main p { max-width: 40em; }
+  h2 { margin: 64px 0 8px; font: 700 32px/1.2 var(--serif); }
+  /* Two to a row, whatever the count: a third or fourth map starts the next row. */
+  .maps { list-style: none; padding: 0; margin: 32px 0 10px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+  .maps a { display: flex; flex-direction: column; height: 100%; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; }
+  .maps a:hover, .maps a:focus-visible { border-color: var(--accent); transform: translateY(-2px); }
+  .maps a:focus-visible { border-radius: 10px; }
+  .maps a:active { transform: translateY(0); border-color: var(--ink); }
+  .maps img { display: block; width: 100%; height: auto; aspect-ratio: 44 / 47; object-fit: cover; border-bottom: 1px solid var(--line); }
+  .maps small { margin: 14px 18px 0; color: var(--soft); font-size: 15px; }
+  .maps b { margin: 2px 18px 6px; font: 700 24px/1.2 var(--serif); text-wrap: balance; }
+  .maps .what { margin: 0 18px 10px; font-size: 16px; line-height: 1.55; }
+  .maps .who { margin: auto 18px 18px; color: var(--soft); font-size: 15px; line-height: 1.5; }
+  footer { padding-bottom: 60px; color: var(--soft); font-size: 15px; }
+  @media (max-width: 760px) {
+    header { padding-top: 28px; }
+    .maps { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
+</head>
+<body>
+<header>
+  <a class="back" href="../">← Back to the bookshelf</a><br>
+  <h1>Explorable maps</h1>
+  <span class="tag">History a year at a time</span>
+  <p class="lede">Ten years to a map. Each year the map plays what happened, then four people walk to where that year took them. Click a figure to hear or read their year.</p>
+</header>
+
+<main>
+  <ul class="maps">
+    <li><a href="../time-of-the-magicians/">
+      <img src="../assets/covers/time-of-the-magicians.webp" width="440" height="470" alt="">
+      <small>Europe, 1919 to 1929</small>
+      <b>Time of the Magicians</b>
+      <span class="what">A ruined continent rebuilds its borders while four philosophers change how we think. After Wolfram Eilenberger’s book.</span>
+      <span class="who">Wittgenstein, Heidegger, Benjamin and Cassirer</span>
+    </a></li>
+    <li><a href="../meiji/">
+      <img src="../assets/covers/meiji.webp" width="880" height="940" alt="" loading="lazy">
+      <small>Japan, 1868 to 1878</small>
+      <b>The Map Redrawn</b>
+      <span class="what">More than 260 domains, mapped village by village, give way to the prefectures of 1871 and 1876. Made by <span translate="no">Yuya</span> with the Papermorph Skill.</span>
+      <span class="who">Fukuzawa Yukichi, Itō Hirobumi, Saigō Takamori and Tsuda Umeko</span>
+    </a></li>
+  </ul>
+
+  <h2>How they are made</h2>
+  <p>The borders come from historical data, not from drawings: one snapshot a year of Europe’s states for the first map, and who held each village in Japan on the eve of 1868 for the second, regrouped into prefectures by the decrees of 1871 and 1876. The people’s years are told in our own words from biographies and histories, and each map lists its sources. Pictures of the events are period photographs and prints in the public domain. The walking figures were drawn by an image model, and everything else, from the borders to the walks, is drawn in code.</p>
+  <p>The Map Redrawn reuses the playback code of Time of the Magicians, so the next map starts from a working one.</p>
+</main>
+<footer>Sources and licences for each map are on its own page, under “Sources and credits”. Part of <a href="../">Papermorph</a>.</footer>
+</body>
+</html>
