@@ -33,14 +33,17 @@ function scene11(p, D) {
     .cut({ x: 900, y: 540, z: 2.7 }, s11_SCR).to({ x: 860, y: 520, z: 3 }, s11_SCR, s11_CLAW - s11_SCR)
     .cut({ x: 790, y: 420, z: 2.6 }, s11_CLAW).to({ x: 800, y: 440, z: 2.9 }, s11_CLAW, s11_W - s11_CLAW)
     .cut({ x: 800, y: 470, z: 1.3 }, s11_W).to({ x: 900, y: 430, z: 1.4 }, s11_W, s11_RAN - .3 - s11_W)
-    // on "ran" a cut to the house, past the grey smear where the pair was lifted (world x < 1140): they run into the frame from its left edge
-    .cut({ x: 1372, y: 215, z: 3.5 }, s11_RAN - .1).to({ x: 1385, y: 210, z: 3.7 }, s11_RAN - .1, 3);
+    // on "ran" a cut to the hill path and the house from below-left, so Gág's page fills the frame and both run whole inside it up to the door
+    .cut({ x: 985, y: 335, z: 1.9 }, s11_RAN - .1).to({ x: 1010, y: 300, z: 2.05 }, s11_RAN - .1, 2.3);
   cam.shake(s11_QUARREL, s11_BIT - s11_QUARREL, 5); cam.shake(s11_BIT, s11_W - s11_BIT, 7); cam.shake(s11_W, s11_RAN - s11_W, 3);
   // the tangle in a wrapper, so it can jolt without touching the layer's own parallax transform
   const fg = cam.layer('fight'), wrap = mk('g', {}, cam.world);
   fg.parentNode.insertBefore(wrap, fg); wrap.appendChild(fg);
   const amp = q => 1.5 + 3 * span(q, s11_QUARREL - .3, s11_QUARREL + .4) + 2 * span(q, s11_BIT - .1, s11_BIT + .2) - 2 * span(q, s11_W, s11_W + .5);
 
+  // where the pair was lifted off the page's sky and the hill's rim, a grey smear shows once they run: a soft paper patch over the sky side of it
+  const patch = mk('g', {}, cam.stage);
+  patch.innerHTML = '<defs><filter id="s11soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3"/></filter></defs><polygon points="925,185 1163,183 1170,192 1122,232 1090,250 1037,266 969,279 925,300" fill="#efe8d6" filter="url(#s11soft)"/>';
   const man = cutPuppet(cam.stage, 'man25'), woman = cutPuppet(cam.stage, 'woman25');
   const mAt = pagePos('p25', 'man25'), wAt = pagePos('p25', 'woman25');
   const fly = s11_FLY.map(([n, t, d, a, b, spin]) => ({ p: cutPuppet(cam.stage, n), t: s11_T(t), d, a, b, spin }));

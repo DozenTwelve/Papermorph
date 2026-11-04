@@ -14,6 +14,7 @@ sfx('scene13', 0, 'birds', .35, { loop: true });
 
 const s13_C = (clip, t = 0) => clipAt('scene13', PRE13, clip, t);
 const s13_PK = (q, t, w = .2) => Math.max(0, 1 - Math.abs(q - t) / w);   // a small peak in time: a stressed word
+const S13K = { x: -30, y: 8, s: .8 };   // the clean kitten on Gág's blot: offset from her kitten27 anchor, and scale (s 1 = the p28 size)
 const s13_GAME = { x: 790, y: 470, z: 1.2 };
 // her run down the ridge: [x, y, scale] in set px (the house door to where Gág drew her)
 const s13_PATH = [[1250, 200, .24], [1066, 250, .38], [977, 313, .5], [889, 401, .65], [853, 490, .75], [756, 552, .88], [696, 605, 1]];
@@ -49,15 +50,16 @@ function scene13(p, D) {
   // ---- the set: stage things ----
   const wAt = pagePos('p27', 'woman27'), mAt = pagePos('p27', 'man27'), kAt = pagePos('p27', 'kitten27');
   const man = cutPuppet(cam.stage, 'man27'), woman = cutPuppet(cam.stage, 'woman27'), kit = cutPuppet(cam.stage, 'kitten27');
+  const kit2 = cutPuppet(cam.stage, 'kitten28');   // the clean p28 kitten over Gág's p27 blot, so a child can see what it taps
   const houseR = mk('rect', { x: 1245, y: 128, width: 118, height: 78, fill: 'transparent' }, cam.stage);   // painted into the set
   const cloudR = mk('rect', { x: 484, y: 202, width: 144, height: 70, fill: 'transparent' }, cam.stage);
   const grassR = mk('rect', { x: 262, y: 690, width: 150, height: 140, fill: 'transparent' }, cam.stage);
   THINGS13 = [
     { g: houseR, word: 'house', side: 'below' }, { g: cloudR, word: 'cloud', side: 'below' }, { g: grassR, word: 'grass', side: 'left' },
     { g: man.part.smoke, word: 'smoke', side: 'right' }, { g: man.g, word: 'old man', clip: 'q-me', talk: true, side: 'above' },
-    { g: woman.g, word: 'old woman', clip: 'q-her', talk: true, side: 'right' }, { g: kit.g, word: 'kitten', side: 'right' }];
+    { g: woman.g, word: 'old woman', clip: 'q-her', talk: true, side: 'right' }, { g: kit2.g, word: 'kitten', side: 'right' }];
   const where = new Map([[houseR, [1300, 166]], [cloudR, [556, 237]], [grassR, [340, 770]], [man.part.smoke, [462, 459]], [man.g, null],
-    [woman.g, [696, 450]], [kit.g, [463, 740]]]);
+    [woman.g, [696, 450]], [kit2.g, [463, 740]]]);
   let armNow = 6, lean = 0;
 
   stopClock(D, (q, f) => {
@@ -103,6 +105,9 @@ function scene13(p, D) {
     // ---- the kitten in the grass: always trembling a little, more when we look at it ----
     const tre = q > T5 - .2 ? 1 : .45;
     kit.pose({ x: kAt.x, y: kAt.y, rot: tre * 1.1 * (Math.floor(q * FPS) % 2 ? 1 : -1) * (.6 + .4 * Math.sin(q * 3)), sq: 1 + .012 * Math.sin(q * 3.1) }, f);
+
+    // the clean kitten sits over the blot from the start of the scene, tucked low in the grass, trembling
+    kit2.pose({ x: kAt.x + S13K.x, y: kAt.y + S13K.y, s: S13K.s, rot: tre * 1.1 * (Math.floor(q * FPS) % 2 ? 1 : -1) * (.6 + .4 * Math.sin(q * 3)), sq: 1 + .012 * Math.sin(q * 3.1) }, f);
 
     turnOut(q);
   });

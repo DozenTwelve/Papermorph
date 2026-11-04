@@ -44,6 +44,9 @@ function scene4(p, D) {
   gl.insertAdjacentHTML('beforeend', `<g id="s4gr-g"><clipPath id="s4gr"><rect x="285" y="731" width="210" height="38"/></clipPath>` + [`translate(540 -133)`, `translate(1530 -133) scale(-1 1)`].map(t =>
     `<g transform="${t}"><g clip-path="url(#s4gr)"><image href="../img/sets/p11/page.webp" x="-87.3" y="-60.1" width="1774.6" height="1020.3" preserveAspectRatio="none"/></g></g>`).join('') + '</g>');
   const ground11 = document.getElementById('s4gr-g');
+  // the white-cat man of p10 stands on bare paper too (Gág drew him floating): the grass tuft of the right vignette, copied under his feet the same way
+  cam10.layer('page').insertAdjacentHTML('beforeend', `<g id="s4gr10"><clipPath id="s4gc10"><rect x="919" y="675" width="111" height="73"/></clipPath>` + [`translate(-589 -150)`, `translate(1471 -150) scale(-1 1)`].map(t =>
+    `<g transform="${t}"><g clip-path="url(#s4gc10)"><image href="../img/sets/p10/page.webp" x="-87.3" y="-60.1" width="1774.6" height="1020.3" preserveAspectRatio="none"/></g></g>`).join('') + '</g>');
   // ---- p12, p13 ----
   const m12 = pagePos('p12', 'man12'), c12 = pagePos('p12', 'cat12'), m13 = pagePos('p13', 'man13'), c13 = pagePos('p13', 'cat13');
   const man12 = cutPuppet(cam12.stage, 'man12'), cat12 = cutPuppet(cam12.stage, 'cat12'), man13 = cutPuppet(cam13.stage, 'man13'), cat13 = cutPuppet(cam13.stage, 'cat13');
@@ -51,8 +54,8 @@ function scene4(p, D) {
   // ---- cameras ----
   const T = c2t;
   // p10 left: he says "Oh!…", chooses (arms up), "It was white" (insert on the cat), then the camera travels right
-  cam10.cut({ x: 450, y: 372, z: 1.45 }, 0).to({ x: 450, y: 360, z: 1.62 }, 0, T(4.5))
-    .cut({ x: 470, y: 300, z: 2.1 }, T(4.62)).to({ x: 480, y: 290, z: 2.25 }, T(4.62), 3.6)
+  cam10.cut({ x: 425, y: 355, z: 1.7 }, 0).to({ x: 430, y: 372, z: 1.85 }, 0, T(4.5))      // tight enough that the right vignette's edge stays out, and he stands on his own ground
+    .cut({ x: 480, y: 300, z: 2.7 }, T(4.62)).to({ x: 485, y: 295, z: 2.9 }, T(4.62), 3.6)
     .cut({ x: 520, y: 275, z: 3.7 }, T(8.2))
     .to({ x: 1135, y: 500, z: 1.4 }, T(9.4), 1.35)
     // p10 right: the wide, the insert on the kitten, the two-shot as his hand reaches, the insert on the hop
@@ -113,8 +116,10 @@ function scene4(p, D) {
       // the white cat: his arms hang low at "Oh!", lift on "So he chose one", and the cat wiggles in his hands on "white"
       const up = span(q, M('n04.white') - 1.7, M('n04.white') - .2);
       const wig = q > M('n04.white') ? Math.sin((q - M('n04.white')) * 9) * 3 * span(q, M('n04.white'), M('n04.white') + .3) : 0;
-      man10a.pose({ x: a10.x, y: a10.y, s: a10.s, ...s4idle(q), bob: talk * 2.5 + (q > T(.0) && q < T(.3) ? 6 * Math.sin((q - T(0)) / .3 * Math.PI) : 0),
-        parts: { arms: 9 * (1 - up) - 3 * up + wig + Math.sin(q * 1.9) * 1.2 }, }, f);
+      // the arms part overlaps its cut by only 3 page px: a turn of more than a degree opens the line across his beard, so they only
+      // turn a hair and shift by a pixel; the lift and the wiggle ride on the whole figure (rot, bob)
+      man10a.pose({ x: a10.x, y: a10.y, s: a10.s, ...s4idle(q), bob: talk * 2.5 + 2.5 * up + (q > T(.0) && q < T(.3) ? 6 * Math.sin((q - T(0)) / .3 * Math.PI) : 0),
+        parts: { arms: .8 * Math.sin(q * 1.9) + wig * .15 }, move: { arms: [0, .5 - .9 * (1 - up) + .15 * Math.sin(q * 1.9)] } }, f);
       // the other man at the tree: bends, sees the kitten, reaches, picks it up
       const tk = M('n04b.took'), ph = M('n04b.bw');
       const reach = -8 * span(q, T(15.2), tk) + 53 * span(q, tk + .25, tk + .95);        // armR: down to the kitten, then lifted with it

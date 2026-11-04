@@ -35,29 +35,32 @@ function scene14(p, D) {
   A.to({ x: 452, y: 748, z: 3.0 }, .25, 2.6)
    .cut({ x: 505, y: 650, z: 1.9 }, T1).to({ x: 515, y: 640, z: 2.1 }, T1, TP - T1);
   const wAt = pagePos('p27', 'woman27'), mAt = pagePos('p27', 'man27'), kAt = pagePos('p27', 'kitten27');
-  const man = cutPuppet(A.stage, 'man27'), woman = cutPuppet(A.stage, 'woman27'), kit = cutPuppet(A.stage, 'kitten27');
+  const man = cutPuppet(A.stage, 'man27'), woman = cutPuppet(A.stage, 'woman27'), kit = cutPuppet(A.stage, 'kitten27'), kit2 = cutPuppet(A.stage, 'kitten28');   // kit2: the clean kitten over Gág's blot, as scene13 left it
 
   // ---- p28: the mound (the kitten), and the blank paper beside it (the two old people's close-ups) ----
   const B = paperCam(p, 'p28', { x: 770, y: 690, z: 3.4 });
-  B.cut({ x: 945, y: 320, z: 1.55 }, TP).to({ x: 940, y: 326, z: 1.65 }, TP, T2 - TP)   // her hands take the kitten, on the blank paper
-   .cut({ x: 770, y: 690, z: 3.4 }, T2)
-   .to({ x: 772, y: 686, z: 3.9 }, s14_C('n12', 5.55), K1 - s14_C('n12', 5.55))   // a slow push on the kitten ("thin and scraggly")
+  B.cut({ x: 815, y: 252, z: 2.2 }, TP).to({ x: 815, y: 250, z: 2.25 }, TP, T2 - TP)   // her hands take the kitten, on the blank paper
+   .cut({ x: 770, y: 690, z: 3.0 }, T2)
+   .to({ x: 772, y: 686, z: 3.2 }, s14_C('n12', 5.55), K1 - s14_C('n12', 5.55))   // a slow push on the kitten ("thin and scraggly")
    .cut({ x: 1000, y: 300, z: 1.3 }, W1).to({ x: 1004, y: 304, z: 1.36 }, W1, K1 - W1)
-   .cut({ x: 775, y: 684, z: 3.7 }, K1).to({ x: 775, y: 680, z: 3.9 }, K1, W2 - K1)
+   .cut({ x: 775, y: 684, z: 3.0 }, K1).to({ x: 775, y: 680, z: 3.2 }, K1, W2 - K1)
    .cut({ x: 1000, y: 300, z: 1.3 }, W2).to({ x: 996, y: 296, z: 1.36 }, W2, M1 - W2)
    .cut({ x: 1000, y: 300, z: 1.3 }, M1).to({ x: 1004, y: 300, z: 1.38 }, M1, K2 - M1)
-   .cut({ x: 775, y: 684, z: 3.5 }, K2).to({ x: 775, y: 680, z: 3.7 }, K2, M2 - K2)
+   .cut({ x: 775, y: 684, z: 2.9 }, K2).to({ x: 775, y: 680, z: 3.1 }, K2, M2 - K2)
    .cut({ x: 1000, y: 300, z: 1.34 }, M2).to({ x: 998, y: 298, z: 1.4 }, M2, K3 - M2)
-   .cut({ x: 775, y: 684, z: 3.3 }, K3).to({ x: 775, y: 680, z: 3.6 }, K3, M3 - K3)
+   .cut({ x: 775, y: 684, z: 2.8 }, K3).to({ x: 775, y: 680, z: 3.1 }, K3, M3 - K3)
    .cut({ x: 1000, y: 300, z: 1.4 }, M3).to({ x: 1002, y: 302, z: 1.46 }, M3, K4 - M3)
-   .cut({ x: 775, y: 676, z: 3.4 }, K4).to({ x: 764, y: 642, z: 6.2 }, K4, s14_C('k12', 1.7) - K4)   // in to the face by "very homely"
-   .to({ x: 764, y: 648, z: 6.8 }, s14_C('k12', 1.7), D - s14_C('k12', 1.7));
+   .cut({ x: 775, y: 676, z: 2.8 }, K4).to({ x: 766, y: 650, z: 3.2 }, K4, s14_C('k12', 1.7) - K4)   // in to the face by "very homely"
+   .to({ x: 766, y: 652, z: 3.3 }, s14_C('k12', 1.7), D - s14_C('k12', 1.7));
   const kAt28 = pagePos('p28', 'kitten28'), kitten = cutPuppet(B.stage, 'kitten28');
   const womanB = cutPuppet(B.stage, 'woman27'), manB = cutPuppet(B.stage, 'man27');
   const turn = pageTurn(p, D - .1, .6, 'in');
 
   // the close shot: where her hands are (of her feet) when the kitten is in them, and the sides of its rise
-  const HAND = [-44, -112], CS = 2.0, hop = u => Math.sin(Math.PI * u);
+  mk('rect', { x: -100, y: -200, width: 200, height: 180 }, mk('clipPath', { id: 's14kit' }, B.stage));   // held, the kitten's lower body (the grass box of the scan) is cut off, behind her hand
+  const HAND = [-70, -158], CS = 2.0,
+    CLIP14 = mk('clipPath', { id: 's14woman' }, B.stage), hop = u => Math.sin(Math.PI * u);
+  mk('rect', { x: -200, y: -400, width: 300, height: 440 }, CLIP14);   // her piece carries a chunk of p27's hill ink on its right (local x > 100): cut it off, and keep it out of the close frame
 
   stopClock(D, (q, f) => {
     const onA = q < TP, onC = q >= TP && q < T2;
@@ -79,18 +82,21 @@ function scene14(p, D) {
       // the kitten stays in its grass, trembling and looking up at her
       const tre = 1.1 * (Math.floor(q * FPS) % 2 ? 1 : -1) * (.6 + .4 * Math.sin(q * 3)) * (q < T1 ? 1.4 : 1);
       kit.pose({ x: kAt.x, y: kAt.y, rot: tre, sq: 1 + .012 * Math.sin(q * 3.1) }, f);
+      kit2.pose({ x: kAt.x + S13K.x, y: kAt.y + S13K.y, s: S13K.s, rot: tre, sq: 1 + .012 * Math.sin(q * 3.1) }, f);
     } else {
       B.apply(q, f);
       // which shot: the kitten's (on the mound) or the speakers' (blank paper)
       const speakW = (q >= W1 && q < K1) || (q >= W2 && q < M1), speakM = (q >= M1 && q < K2) || (q >= M2 && q < K3) || (q >= M3 && q < K4);
-      vis(womanB.g, speakW || onC); vis(manB.g, speakM); vis(kitten.g, onC || (!speakW && !speakM));
+      vis(womanB.g, speakW || onC); vis(manB.g, speakM);
+      for (const e of [womanB.part.body, womanB.shade.body]) e.setAttribute('clip-path', onC ? 'url(#s14woman)' : 'none');
+      for (const e of [kitten.part.body, kitten.shade.body]) e.setAttribute('clip-path', onC ? 'url(#s14kit)' : 'none'); vis(kitten.g, onC || (!speakW && !speakM));
       // her hands take the kitten: she bends to it, it rises into her arms and she straightens with it
       if (onC) {
         const u = span(q, TP + .15, TP + 1.0), st = span(q, TP + .6, TP + 1.4), wx = 987, wy = 700;
         womanB.pose({ x: wx, y: wy, s: CS, rot: -7 * (1 - st) + .9 * Math.sin(q * 1.1), sq: 1 + .012 * breathe,
           parts: { head: -12 * (1 - st) - 6 + 2.5 * Math.sin(q * .8) } }, f);
-        const hx = wx + HAND[0] * CS, hy = wy + HAND[1] * CS + 14;
-        kitten.pose({ x: 790 + (hx - 790) * u, y: 640 + (hy - 640) * u - 60 * hop(u), s: 1.5 + .4 * u, rot: 1.2 * (Math.floor(q * FPS) % 2 ? 1 : -1) * (1 - u * .6) + 10 * hop(u) - 6 * u,
+        const hx = wx + HAND[0] * CS, hy = wy + HAND[1] * CS + 34 * (1.0 + .15 * u);   // its feet below her hand, the hand over its cut-off bottom
+        kitten.pose({ x: 790 + (hx - 790) * u, y: 640 + (hy - 640) * u - 30 * hop(u), s: 1.0 + .15 * u, rot: 1.2 * (Math.floor(q * FPS) % 2 ? 1 : -1) * (1 - u * .6) + 10 * hop(u) - 6 * u,
           sq: 1 + .014 * breathe, parts: { head: 3 * Math.sin(q * 1.3) } }, f);
       }
       // the old woman, large: looks down at it, a nod on "Poor", "kitty"

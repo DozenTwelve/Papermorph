@@ -6,7 +6,7 @@
    refrain in Gág's lettering word by word, the line thickening on every number (s9_S7 – end). */
 'use strict';
 const PRE9 = .5;
-CUT_FACE.woman22 = { at: [733, 982], w: 30, h: 22 };   // the drawn mouth, page px of p22 (grid crop)
+CUT_FACE.woman22 = { at: [744, 957], w: 14, h: 9 };   // her drawn mouth (profile, between nose and chin), page px of p22 (grid crop); small, so it stays inside her face
 
 const s9_T = t => PRE9 + t;   // scene-clip time -> beat clock
 const s9_S2 = s9_T(3.35), s9_S3 = s9_T(5.1), s9_S4 = s9_T(6.5), s9_S5 = s9_T(7.85), s9_S6 = s9_T(9.75), s9_S7 = s9_T(10.85);
@@ -34,11 +34,11 @@ function scene9(p, D) {
   // ---- p22: the door ----
   const A = paperCam(p, 'p22', { x: 760, y: 470, z: 1.36 });
   A.to({ x: 700, y: 440, z: 1.5 }, .6, s9_S2 - .6)
-   .cut({ x: 590, y: 395, z: 3.1 }, s9_S2).to({ z: 3.5 }, s9_S2, s9_S3 - s9_S2)
+   .cut({ x: 600, y: 395, z: 2.8 }, s9_S2).to({ z: 3.1 }, s9_S2, s9_S3 - s9_S2)
    .cut({ x: 790, y: 420, z: 2.3 }, s9_S3).to({ z: 2.5 }, s9_S3, s9_S4 - s9_S3)
-   .cut({ x: 570, y: 385, z: 3.2 }, s9_S4).to({ z: 3.6 }, s9_S4, s9_S5 - s9_S4)
+   .cut({ x: 610, y: 390, z: 2.8 }, s9_S4).to({ z: 3.2 }, s9_S4, s9_S5 - s9_S4)
    .cut({ x: 650, y: 410, z: 2.3 }, s9_S5).to({ x: 620 }, s9_S5, s9_S6 - s9_S5)
-   .cut({ x: 545, y: 370, z: 3.8 }, s9_S6).to({ z: 4.5 }, s9_S6, s9_S7 - s9_S6);
+   .cut({ x: 615, y: 385, z: 3.0 }, s9_S6).to({ z: 3.4 }, s9_S6, s9_S7 - s9_S6);
   const wAt = pagePos('p22', 'woman22'), mAt = pagePos('p22', 'man22');
   const woman = cutPuppet(A.stage, 'woman22'), man = cutPuppet(A.stage, 'man22');
   const line = ['cat22a', 'cat22b', 'cat22c', 'cat22d'].map((n, i) => ({ p: cutPuppet(A.stage, n), at: pagePos('p22', n), ph: i * .37 }));

@@ -17,8 +17,14 @@ const s16TURN = s16T(23.35);                                  // covered here, i
 const s16SAY = [[.22, 2.4], [6.9, 9.8], [13.74, 22.4]];       // when her / his own voice is speaking (clip seconds)
 const s16talk = (q, i) => { const [a, b] = s16SAY[i]; return q >= s16T(a) && q < s16T(b) ? Math.abs(Math.sin((q - s16T(a)) * 8.4)) : 0; };
 // the refrain's words, in time: the five numbers on their marks, the little words on the words file's times
-const s16RF = [['rf-hundreds', 'm14b.hun'], ['rf-of1', 15.76], ['rf-cats4', 15.88], ['rf-thousands', 'm14b.thou'], ['rf-of2', 16.95], ['rf-cats5', 17.07],
-  ['rf-millions', 'm14b.mil'], ['rf-and2', 18.3], ['rf-billions', 'm14b.bil'], ['rf-and3', 18.89], ['rf-trillions', 'm14b.tril'], ['rf-of3', 19.49], ['rf-cats6', 19.61]];
+// each little word is the nearest number's mark plus the gap between their word times in m14b's words file
+// (narration.en.words.txt: hundreds 14.39, of 14.77, cats 14.88, thousands 15.45, of 15.88, cats 15.99, millions 16.59, and 17.13,
+// billions 17.26, and 17.69, trillions 17.77, of 18.24, cats 18.36, and 18.96, not 19.1), so a re-joined clip moves them with the marks
+const s16RF = [['rf-hundreds', 'm14b.hun', 0], ['rf-of1', 'm14b.hun', .38], ['rf-cats4', 'm14b.hun', .49],
+  ['rf-thousands', 'm14b.thou', 0], ['rf-of2', 'm14b.thou', .43], ['rf-cats5', 'm14b.thou', .54],
+  ['rf-millions', 'm14b.mil', 0], ['rf-and2', 'm14b.mil', .54],
+  ['rf-billions', 'm14b.bil', 0], ['rf-and3', 'm14b.bil', .43],
+  ['rf-trillions', 'm14b.tril', 0], ['rf-of3', 'm14b.tril', .47], ['rf-cats6', 'm14b.tril', .59]];
 const s16NOT = () => s16M('m14b.not');
 
 sfx('scene16', 0, 'fire', .3, { loop: true, to: s16TURN });
@@ -27,8 +33,7 @@ for (let k = 0; k < 7; k++) sfx('scene16', +(.3 + k * 2.9).toFixed(2), 'rock', .
 for (let k = 0; k < 6; k++) sfx('scene16', +(1.5 + k * 3.4).toFixed(2), 'rock', .16);
 sfx('scene16', s16CUT[1], 'purr', .22);
 sfx('scene16', s16T(1.0), 'mew1', .25);
-sfx('scene16', s16T(15.35), 'mews', .2); sfx('scene16', s16T(16.49), 'mews', .28); sfx('scene16', s16T(17.71), 'mews', .36);
-sfx('scene16', s16T(18.43), 'mews', .42); sfx('scene16', s16T(18.99), 'mews', .5);
+for (const [m, v] of [['m14b.hun', .2], ['m14b.thou', .28], ['m14b.mil', .36], ['m14b.bil', .42], ['m14b.tril', .5]]) sfx('scene16', s16M(m), 'mews', v);
 sfx('scene16', s16T(20.15), 'chime', .3); sfx('scene16', s16T(20.5), 'purr', .25);
 sfx('scene16', s16TURN - .5, 'page', .5);
 
@@ -55,7 +60,7 @@ function scene16(p, D) {
   const hunT = s16M('m14b.hun'), trilT = s16M('m14b.tril'), notT = s16NOT();
   const when = i => hunT - .1 + Math.pow(i / 72, 1.25) * (trilT + .9 - hunT);
   const L = lettering(p, s16RF.map(w => w[0]), { x: 800, y: 285, s: 1.6 });
-  const times = {}; for (const [n, t] of s16RF) times[n] = typeof t === 'string' ? s16M(t) : s16T(t);
+  const times = {}; for (const [n, m, d] of s16RF) times[n] = s16M(m) + d;
   const box = L.items.reduce((b, it) => { const C = it.p.C, k = 1.6, l = it.x - C.ax * k, t = it.y - C.ay * k, w = C.parts[0].w * k, h = C.parts[0].h * k;
     return [Math.min(b[0], l), Math.min(b[1], t), Math.max(b[2], l + w), Math.max(b[3], t + h)]; }, [1e9, 1e9, -1e9, -1e9]);
   const slip = mk('g', {}, p);   // a soft glow only: no edge, no shadow

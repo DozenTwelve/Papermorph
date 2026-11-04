@@ -7,7 +7,7 @@
    the whole crowd shouts, a tier of cats on each of hundreds, thousands, millions, billions, trillions. */
 'use strict';
 const PRE10 = .5;
-CUT_FACE.woman22 = { at: [733, 982], w: 30, h: 22 };   // the drawn mouth, page px of p22 (as scene9)
+CUT_FACE.woman22 = { at: [744, 957], w: 14, h: 9 };   // her drawn mouth (profile, between nose and chin), page px of p22; small, so it stays inside her face (as scene9)
 // no CUT_FACE for man22: his drawn mouth sits in the black beard, where the kit's dark mouth cannot be seen; he speaks with a pulse and a nod
 
 const s10_C = (clip, t = 0) => clipAt('scene10', PRE10, clip, t);   // clip start + offset (words file) -> beat clock
@@ -16,33 +16,37 @@ const s10_HUN = markAt('scene10', PRE10, 'n09d.hun'), s10_THOU = markAt('scene10
   s10_BIL = markAt('scene10', PRE10, 'n09d.bil'), s10_TRIL = markAt('scene10', PRE10, 'n09d.tril');
 
 // ---- the dialogue cuts on p22 ----
-const s10_CUTS = [   // [beat time, view]
-  [0, { x: 640, y: 425, z: 1.9 }], [s10_S(2.0), { x: 505, y: 392, z: 3.4 }], [s10_S(4.5), { x: 655, y: 420, z: 2.4 }],
-  [s10_S(6.65), { x: 780, y: 395, z: 3.1 }], [s10_S(11.3), { x: 505, y: 392, z: 2.7 }], [s10_S(15.9), { x: 505, y: 380, z: 3.5 }],
-  [s10_S(17.5), { x: 640, y: 405, z: 2.1 }], [s10_S(21.4), { x: 780, y: 395, z: 3.2 }], [s10_S(25.3), { x: 1010, y: 440, z: 2.0 }],
+const s10_CUTS = [   // [beat time, view]: her shots are tight two-shots (she at x 483, he at 692-843), his shots keep her out of the edge
+  [0, { x: 640, y: 425, z: 1.9 }], [s10_S(2.0), { x: 600, y: 395, z: 2.8 }], [s10_S(4.5), { x: 655, y: 420, z: 2.4 }],
+  [s10_S(6.65), { x: 810, y: 395, z: 3.1 }], [s10_S(11.3), { x: 610, y: 395, z: 2.6 }], [s10_S(15.9), { x: 595, y: 385, z: 3.0 }],
+  [s10_S(17.5), { x: 640, y: 405, z: 2.1 }], [s10_S(21.4), { x: 810, y: 395, z: 3.2 }], [s10_S(25.3), { x: 1010, y: 440, z: 2.0 }],
   [s10_S(27.7), { x: 900, y: 405, z: 2.7 }]];
 
 // ---- plain paper: the cats pile up. Each stays as the next pops in; the shouts are the big ones in front, between them
 // smaller cats pop in on mews, the gaps shrinking from .7 s to .17 s, so the paper fills faster and faster up to the crowd ----
 const s10_PH = ['cat8b', 'cat25d', 'cat14a', 'cat22c', 'cat11w', 'cat23f', 'cat25b', 'cat8a', 'cat10bw', 'cat12', 'cat23e', 'cat13', 'cat8e', 'cat14b', 'cat25a', 'cat23a', 'cat8d', 'cat22d', 'cat25c'];
-const s10_SHOUT = [31.26, 33.22, 35.44, 37.83, 41.11, 43.33, 45.42, 46.97];   // each "I am!" in the clip
+// the first word of each "I am!" in the clip: from each shout's own clip start (join.py's parts) plus the word's time in
+// that clip, so a re-join or a new take of another line moves them along (i6 holds three shouts)
+const s10_P = TIMINGS.scene10.parts;
+const s10_SHOUT = [['i1', .22], ['i2', .22], ['i3', .22], ['i4', .22], ['i5', .22], ['i6', .21], ['i6', 2.16], ['i6', 3.61]].map(([c, w]) => s10_P[c] + w);
 const s10_HERO = [[-120, 300, 4.6, 0], [330, 310, 4.2, 1], [-400, 300, 4.4, 0], [0, 335, 5.0, 1], [430, 330, 4.2, 0], [-490, 330, 4.0, 1], [230, 345, 4.4, 0], [-170, 345, 4.6, 1]];
 const s10_POP = []; {
-  const t0 = 31.6, t1 = 48.6;
-  for (let t = t0, k = 0; t < t1; t += Math.max(.17, .7 - (t - t0) * .032), k++) {
+  // a small cat pops in on a mew between the shouts, the gaps shrinking from .55 s to .11 s (exponential), so there is never a still second
+  const t0 = s10_SHOUT[0] + .3, t1 = s10_P.n09d + .13, k0 = Math.log(.55 / .11) / (t1 - t0);
+  for (let t = t0, k = 0; t < t1; t += .55 * Math.exp(-k0 * (t - t0)), k++) {
     if (s10_SHOUT.some(h => Math.abs(h - t) < .12)) continue;
     const r = rnd(k * 29 + 3), r2 = rnd(k * 13 + 5), pr = (t - t0) / (t1 - t0);
-    s10_POP.push({ n: s10_PH[Math.floor(rnd(k * 41 + 1) * s10_PH.length)], x: -620 + 1240 * r, y: 150 + 200 * r2, s: (3.4 - 1.3 * pr) * (.9 + .25 * rnd(k * 7 + 2)), flip: rnd(k * 53 + 9) > .5, pop: s10_S(t), hero: false });
+    s10_POP.push({ n: s10_PH[Math.floor(rnd(k * 41 + 1) * s10_PH.length)], x: -620 + 1240 * r, y: 150 + 200 * r2, s: (3.3 - 1.3 * pr) * (.9 + .25 * rnd(k * 7 + 2)), flip: rnd(k * 53 + 9) > .5, pop: s10_S(t), hero: false });
   }
   s10_SHOUT.forEach((t, i) => { const h = s10_HERO[i]; s10_POP.push({ n: ['cat8b', 'cat10bw', 'cat25b', 'cat14a', 'cat12', 'cat23f', 'cat8a', 'cat13'][i], x: h[0], y: h[1], s: h[2], flip: !!h[3], pop: s10_S(t), hero: true }); });
 }
-const s10_CATEND = s10_S(31.26) - .04;   // the first cat on paper: the cut lands on its pop
+const s10_CATEND = s10_S(s10_SHOUT[0]) - .04;   // the first cat on paper: the cut lands on its pop
 s10_POP.find(c => c.hero).pop = s10_CATEND;
 const s10_CROWD0 = s10_C('n09d', .15), s10_PILEEND = s10_THOU + .25;   // the pile stays under the crowd's first tiers
 
 // sound: the meadow under the dialogue, a pop and a small mew on each cat, the crowd's mews on the tiers
 sfx('scene10', 0, 'meadow', .3, { loop: true, to: s10_C('i1', 0) });
-s10_POP.forEach((c, j) => { sfx('scene10', +(c.pop).toFixed(2), 'pop', c.hero ? .5 : .35); sfx('scene10', +(c.pop + .05).toFixed(2), 'mew' + ((Math.floor(c.pop * 7) + j) % 4 + 1), c.hero ? .4 : .3); });
+s10_POP.forEach((c, j) => { sfx('scene10', +(c.pop).toFixed(2), 'pop', c.hero ? .5 : .35); if (c.hero || c.pop < s10_S(40) || j % 2) sfx('scene10', +(c.pop + .05).toFixed(2), 'mew' + ((Math.floor(c.pop * 7) + j) % 4 + 1), c.hero ? .4 : .3); });
 sfx('scene10', s10_CROWD0, 'pop', .6); sfx('scene10', s10_CROWD0, 'mews', .35);
 [[s10_HUN, .45], [s10_THOU, .5], [s10_MIL, .6], [s10_BIL, .65], [s10_TRIL, .75]].forEach(([t, v]) => { sfx('scene10', t, 'pop', .7); sfx('scene10', t + .05, 'mews', v); });
 sfx('scene10', s10_C('n09c', 1.7), 'mew2', .3);
