@@ -209,7 +209,7 @@ def lift_piece(book, name, P, res, out, sheet):
         entry['parts'].append({'n': pn, 'f': fn, 'x': r((cx0 - bx0) * s), 'y': r((cy0 - by0) * s), 'w': r((cx1 - cx0) * s),
                                'h': r((cy1 - cy0) * s), 'px': r((piv[0] - x0 - bx0) * s), 'py': r((piv[1] - y0 - by0) * s)})
     if sheet is not None:
-        k = 1 / res; tile = Image.new('RGB', (round(bw * s) + 20, round(bh * s) + 40), (150, 150, 150))
+        tile = Image.new('RGB', (round(bw * s) + 20, round(bh * s) + 40), (150, 150, 150))
         d = ImageDraw.Draw(tile)
         for p in entry['parts']:
             pim = Image.open(out / 'cut' / p['f']).resize((max(1, round(p['w'])), max(1, round(p['h']))))
@@ -219,7 +219,7 @@ def lift_piece(book, name, P, res, out, sheet):
             d.ellipse([p['px'] + 6, p['py'] + 26, p['px'] + 14, p['py'] + 34], outline=(220, 0, 0), width=2)
         d.line([entry['ax'] + 2, entry['ay'] + 30, entry['ax'] + 18, entry['ay'] + 30], fill=(0, 160, 0), width=3)
         d.text((4, 4), f"{name} {entry['w']:.0f}x{entry['h']:.0f}", fill=(0, 0, 0))
-        sheet.append(tile); del k
+        sheet.append(tile)
     return entry
 
 
@@ -245,7 +245,7 @@ def lift_set(book, name, S, res, out):
     wx, wy, ww = S.get('world') or [None, None, None]
     if ww is None:
         ww = (x1 - x0) * 900 / (y1 - y0); wx, wy = 800 - ww / 2, 0
-    s = ww / (x1 - x0); wh = (y1 - y0) * s
+    s = ww / (x1 - x0)
     taken = np.zeros(lum.shape, bool); made = []
     for Lr in S.get('layers', []):
         check_poly(f"{name}.{Lr['name']}", Lr['poly'], W, H)
