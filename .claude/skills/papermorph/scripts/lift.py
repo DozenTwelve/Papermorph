@@ -19,8 +19,8 @@ The manifest (several may be given; later ones add to and replace entries of ear
                "erase": [[[x, y], ...]],                           areas painted paper first (a stray cat, a word)
                "holes": [[[x, y], ...]],                           areas cut out of the silhouette (paper between an arm and the body)
                "shadow": 0.38,                                     the baked drop shadow's strength (0: none; "ink" pieces: 0);
-                                                                   a piece with parts gets one shadow part of the whole
-                                                                   figure, drawn first ("shadow"; cut.js moves it with "body")
+                                                                   a piece with parts gets a shadow picture per part (sf),
+                                                                   which cut.js draws under all the parts, each moving with its part
                "parts": {"legF": {"poly": [...], "cap": [...], "pivot": [x, y]}, ...},
                "order": ["legB", "legF", "body", "armF"]}},        draw order, back to front ("body" is what no part took)
      "sets": {
@@ -183,31 +183,32 @@ def lift_piece(book, name, P, res, out, sheet):
     (out / 'cut').mkdir(parents=True, exist_ok=True)
     one = len(parts) == 1
     shadow = P.get('shadow', 0.38 if mode != 'ink' else 0)
-    if shadow and not one:   # one shadow of the whole figure, drawn first and moving with the body
-        parts['shadow'] = (alpha, P.get('pivot')); order = ['shadow'] + order
     for pn in order:
         a, piv = parts[pn]
-        if pn == 'shadow': piv = piv or [x0 + bx0 + bw / 2, y0 + by0 + bh / 2]
         yy, xx = np.nonzero(a > 0.02)
         if not len(xx): continue
         cx0, cy0, cx1, cy1 = xx.min(), yy.min(), xx.max() + 1, yy.max() + 1
         rgba = np.dstack([rgb[cy0:cy1, cx0:cx1], a[cy0:cy1, cx0:cx1] * 255]).astype(np.uint8)
         im = Image.fromarray(rgba, 'RGBA')
         im = im.resize((max(1, round(im.width * px_per)), max(1, round(im.height * px_per))), Image.LANCZOS)
-        if shadow and (one or pn == 'shadow'):   # a soft drop shadow, as the paper filter gives a drawn piece
+        fn = f'{name}.webp' if one else f'{name}-{pn}.webp'
+        sf = None
+        if shadow:   # a soft drop shadow, as the paper filter gives a drawn piece
             pd = round(8 * res); size = (im.width + 2 * pd, im.height + 2 * pd)
             a8 = Image.new('L', size, 0); a8.paste(im.getchannel('A'), (pd + round(2.5 * res), pd + round(3.5 * res)))
             a8 = a8.filter(ImageFilter.GaussianBlur(2.2 * res)).point(lambda v: int(v * shadow))
             base = Image.new('RGBA', size, (42, 22, 8, 0)); base.putalpha(a8)
-            if one: base.alpha_composite(im, (pd, pd))
-            im = base
             cx0 -= pd / px_per; cy0 -= pd / px_per; cx1 += pd / px_per; cy1 += pd / px_per
-        fn = f'{name}.webp' if one else f'{name}-{pn}.webp'
+            if one: base.alpha_composite(im, (pd, pd)); im = base
+            else:   # each part's shadow is its own picture, drawn under every part (cut.js), so a cut edge never shows
+                sf = f'{name}-{pn}-sh.webp'; base.save(out / 'cut' / sf, quality=80, method=6)
+                im = base.copy(); im.putalpha(0); im.alpha_composite(Image.fromarray(rgba, 'RGBA').resize((im.width - 2 * pd, im.height - 2 * pd), Image.LANCZOS), (pd, pd))
         im.save(out / 'cut' / fn, quality=90, method=6)
         piv = piv or [x0 + (cx0 + cx1) / 2, y0 + (cy0 + cy1) / 2]
         r = lambda v: round(float(v), 1)
         entry['parts'].append({'n': pn, 'f': fn, 'x': r((cx0 - bx0) * s), 'y': r((cy0 - by0) * s), 'w': r((cx1 - cx0) * s),
-                               'h': r((cy1 - cy0) * s), 'px': r((piv[0] - x0 - bx0) * s), 'py': r((piv[1] - y0 - by0) * s)})
+                               'h': r((cy1 - cy0) * s), 'px': r((piv[0] - x0 - bx0) * s), 'py': r((piv[1] - y0 - by0) * s),
+                               **({'sf': sf} if sf else {})})
     if sheet is not None:
         tile = Image.new('RGB', (round(bw * s) + 20, round(bh * s) + 40), (150, 150, 150))
         d = ImageDraw.Draw(tile)

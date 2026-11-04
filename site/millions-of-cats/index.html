@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Millions of Cats</title>
+<meta name="description" content="One line about the series.">
+<link rel="stylesheet" href="lib/book.css"><!-- only for --progress-key, if the book sets one -->
+<!-- A picture book's or a film's landing page. A starting point, not a design: give it the book's own look.
+     The page is for one thing, pressing play, so the hero carries the action: its picture and its button open the
+     first episode, and both work without scripting. With one episode the hero is the film and no list is drawn;
+     with two or more, the list below shows each episode as a row. The hero's picture (img/cover.webp) is not shown
+     again: when the series has a list, give the first episode a still of its own, a different frame. -->
+<style>
+  :root { --ink: #2f2418; --soft: #6b5a46; --paper: #fbf5e8; --card: #fffaf0; --line: #e4d6bb; --accent: #2f5aa8;
+    --on-ink: #fff6e0; --ink-hover: #4a3826; --shadow: #4a33182e; --select: #2f5aa833;
+    --ui: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif; --serif: "Iowan Old Style", Palatino, Georgia, serif; color-scheme: light; }
+  * { box-sizing: border-box; }
+  html, body { overflow-x: clip; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 18px/1.6 var(--ui); }
+  ::selection { background: var(--select); }
+  a { color: var(--accent); }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+  h1, h2 { text-wrap: balance; overflow-wrap: break-word; min-width: 0; } p { text-wrap: pretty; }
+  .hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 40px; align-items: center; max-width: 1180px; margin: 0 auto; padding: 48px 24px 40px; }
+  .cover { display: block; border-radius: 10px; }
+  .cover img { display: block; width: 100%; height: auto; border-radius: 10px; box-shadow: 0 14px 40px var(--shadow); }
+  .back { display: inline-block; margin: -10px 0 8px; padding: 10px 0; font-size: 15px; color: var(--soft); text-decoration: none; }
+  .back:hover { color: var(--ink); }
+  h1 { margin: 0 0 8px; font: 700 clamp(34px, 4.6vw, 56px)/1.05 var(--serif); }
+  .lede { margin: 0; font-size: 20px; color: var(--soft); }
+  .action { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 24px 0 0; color: var(--soft); font-size: 16px; }
+  .watch { display: inline-flex; align-items: center; gap: 10px; padding: 14px 26px; border-radius: 99px; background: var(--ink); color: var(--on-ink); font-weight: 600; text-decoration: none; white-space: nowrap; }
+  .watch:hover { background: var(--ink-hover); }
+  .watch:active { transform: translateY(1px); }
+  .watch:focus-visible { border-radius: 99px; }
+  .watch svg { width: 11px; height: 13px; fill: currentColor; }
+  .seen { color: var(--accent); font-style: normal; }
+  main { max-width: 1180px; margin: 0 auto; padding: 8px 24px 80px; }
+  h2 { margin: 40px 0 16px; font: 700 32px/1.2 var(--serif); }
+  .episodes { list-style: none; padding: 0; margin: 0; display: grid; gap: 16px; }
+  .episodes a { display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr); align-items: center; gap: 0 28px; background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    overflow: hidden; color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; }
+  .episodes a:hover, .episodes a:focus-visible { border-color: var(--accent); transform: translateY(-2px); }
+  .episodes a:active { transform: translateY(0); }
+  .episodes a:focus-visible { border-radius: 10px; }
+  .episodes img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
+  .episodes div { padding: 16px 24px 16px 0; }
+  .episodes small, .episodes b, .episodes span, .episodes .seen { display: block; }
+  .episodes small { color: var(--soft); font-size: 15px; }
+  .episodes b { margin: 2px 0 4px; font: 700 24px/1.25 var(--serif); text-wrap: balance; }
+  .episodes span { max-width: 60ch; color: var(--soft); font-size: 16px; line-height: 1.5; }
+  .episodes .seen { margin-top: 6px; font-size: 15px; }
+  @media (prefers-reduced-motion: reduce) { .episodes a, .watch { transition: none; } .episodes a:hover, .episodes a:focus-visible, .episodes a:active, .watch:active { transform: none; } }
+  @media (max-width: 760px) { .hero { grid-template-columns: minmax(0, 1fr); padding-top: 28px; gap: 24px; } .episodes a { grid-template-columns: minmax(0, 1fr); } .episodes div { padding: 12px 16px 16px; } }
+</style>
+</head>
+<body>
+<header class="hero">
+  <a class="cover" href="ch01/" tabindex="-1"><img src="img/cover.webp" width="1400" height="788" alt="Wanda Gág's title page: the words Millions of Cats arched over a tree, a kitten sitting under it among flowers."></a>
+  <div>
+    <a class="back" href="../">← Back to the bookshelf</a>
+    <h1>Millions of Cats</h1>
+    <p class="lede">Wanda Gág's 1928 picture book, read aloud and brought to life with her own drawings: a very old man goes to fetch one cat and comes home with millions. For children of four to eight, and anyone who loves the book.</p>
+    <p class="action"><a class="watch" href="ch01/"><svg viewBox="0 0 11 13" aria-hidden="true"><path d="M0 0l11 6.5L0 13z"/></svg>Watch the film</a>
+      <span>7 minutes</span> <em class="seen" id="seen" hidden>✓ Watched</em></p>
+  </div>
+</header>
+<main>
+  <section id="list" hidden>
+    <h2>Episodes</h2>
+    <ol class="episodes" id="episodes"></ol>
+  </section>
+</main>
+<footer style="max-width:1100px;margin:0 auto;padding:24px 24px 48px;color:var(--soft);font-size:15px">
+  <p>Story and pictures: Wanda Gág, <i>Millions of Cats</i> (Coward-McCann, 1928), in the public domain; the pictures are
+  her own, cut from a scan of the first edition (archive.org). Voices: ElevenLabs. Music: an original waltz made for this film.</p>
+</footer>
+<script>
+'use strict';
+// One entry per finished episode, in order: its folder, title, a still (16:9) with alt text, and one line.
+// With one entry the hero is the film (say "Watch the film" and its length there); with more, the list is drawn
+// and the hero's button names the first episode ("Watch episode 1").
+const EPISODES = [
+  { ch: 'ch01', title: 'Millions of Cats', minutes: 7, still: 'img/cover.webp', alt: 'The title page of Millions of Cats.', line: 'Hundreds of cats, thousands of cats, millions and billions and trillions of cats.' },
+];
+// The player records finished episodes under the same key as here (engine progress(): lib/book.css --progress-key,
+// else this folder's path).
+const key = getComputedStyle(document.documentElement).getPropertyValue('--progress-key').trim().replace(/^["']|["']$/g, '')
+  || 'animebook:progress:' + new URL('.', location.href).pathname;
+let done = [];
+try { done = JSON.parse(localStorage.getItem(key) || '{}').done || []; } catch {}
+const seen = e => done.includes(+e.ch.slice(2));
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+if (EPISODES.length > 1) {
+  document.getElementById('episodes').innerHTML = EPISODES.map((e, i) => `<li><a href="${e.ch}/"><img src="${esc(e.still)}" alt="${esc(e.alt)}" loading="lazy">
+    <div><small>Episode ${i + 1}, ${e.minutes} minute${e.minutes == 1 ? '' : 's'}</small><b>${esc(e.title)}</b><span>${esc(e.line)}</span>${seen(e) ? '<em class="seen">✓ Watched</em>' : ''}</div></a></li>`).join('');
+  document.getElementById('list').hidden = false;
+} else if (EPISODES[0] && seen(EPISODES[0])) document.getElementById('seen').hidden = false;
+</script>
+</body>
+</html>

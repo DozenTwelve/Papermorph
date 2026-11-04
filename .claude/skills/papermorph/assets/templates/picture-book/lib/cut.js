@@ -23,10 +23,13 @@ const MOUTH_OPEN = { X: 0, A: .15, B: .35, C: .6, D: 1, E: .8, F: .45, G: .3, H:
 function cutPuppet(parent, name) {
   const C = CUT[name];
   if (!C) throw new Error(`cutPuppet: no piece '${name}' in img/cut/cut.js`);
-  const g = mk('g', {}, parent), inner = mk('g', {}, g), part = {}, piv = {};
+  // every part's shadow is drawn under all the parts, so the shadow of a cut edge (a hip, a shoulder) never shows
+  const g = mk('g', {}, parent), inner = mk('g', {}, g), shadows = mk('g', {}, inner), part = {}, piv = {}, shade = {};
   for (const p of C.parts) {
+    const box = { x: p.x - C.ax, y: p.y - C.ay, width: p.w, height: p.h };
+    if (p.sf) mk('image', { href: `../img/cut/${p.sf}`, ...box }, shade[p.n] = mk('g', {}, shadows));
     const pg = mk('g', {}, inner);
-    mk('image', { href: `../img/cut/${p.f}`, x: p.x - C.ax, y: p.y - C.ay, width: p.w, height: p.h }, pg);
+    mk('image', { href: `../img/cut/${p.f}`, ...box }, pg);
     part[p.n] = pg; piv[p.n] = [p.px - C.ax, p.py - C.ay];
   }
   let mouth = null;
@@ -41,9 +44,10 @@ function cutPuppet(parent, name) {
     const jx = jit(f, 11) * .33, jy = jit(f, 12) * .33;
     tf(g, `translate(${((o.x ?? 0) + jx).toFixed(2)} ${((o.y ?? 0) - (o.bob ?? 0) + jy).toFixed(2)}) rotate(${(o.rot ?? 0).toFixed(2)}) scale(${(s * fl).toFixed(4)} ${(s * sq).toFixed(4)})`);
     for (const n in part) {
-      const k = n === 'shadow' ? 'body' : n, a = o.parts?.[k] ?? 0, m = o.move?.[k], [px, py] = piv[k] || piv[n];   // the figure's one shadow moves with its body
-      tf(part[n], (a ? `rotate(${a.toFixed(2)} ${px} ${py})` : '') + (m ? ` translate(${m[0].toFixed(2)} ${m[1].toFixed(2)})` : ''));
-      vis(part[n], !(o.hide && o.hide.includes(k)));
+      const a = o.parts?.[n] ?? 0, m = o.move?.[n], [px, py] = piv[n], hid = o.hide && o.hide.includes(n);
+      const t = (a ? `rotate(${a.toFixed(2)} ${px} ${py})` : '') + (m ? ` translate(${m[0].toFixed(2)} ${m[1].toFixed(2)})` : '');
+      tf(part[n], t); vis(part[n], !hid);
+      if (shade[n]) { tf(shade[n], t); vis(shade[n], !hid); }
     }
     if (mouth) {
       const k = MOUTH_OPEN[o.mouth || 'X'] ?? .3;
@@ -51,16 +55,18 @@ function cutPuppet(parent, name) {
     }
     if (o.op !== undefined) g.setAttribute('opacity', o.op); else g.removeAttribute('opacity');
   };
-  return { g, part, C, pose, pivot: n => piv[n] };
+  return { g, part, shade, C, pose, pivot: n => piv[n] };
 }
 
 // Where a lifted piece's anchor stood on its own page, in the world px of a set lifted from that page (or spread).
 function pagePos(setName, name) {
   const C = CUT[name], S = SETS[setName]?.[0]?.page;
   if (!C || !S) throw new Error(`pagePos: no piece '${name}' or no page data in set '${setName}'`);
+  // a piece lifted from a spread (page: ['p30', 'p31']) counts from the spread's left page, as the set does
+  const first = Array.isArray(C.page) ? C.page[0] : C.page;
   let off = 0;
-  for (const [pg, w] of S.pages) { if (pg === C.page) break; off += w; }
-  if (!S.pages.some(([pg]) => pg === C.page)) console.warn(`pagePos: '${name}' is from ${C.page}, not a page of set '${setName}'`);
+  for (const [pg, w] of S.pages) { if (pg === first) break; off += w; }
+  if (!S.pages.some(([pg]) => pg === first)) console.warn(`pagePos: '${name}' is from ${C.page}, not a page of set '${setName}'`);
   return { x: S.wx + (C.pa[0] + off - S.x0) * S.s, y: S.wy + (C.pa[1] - S.y0) * S.s, s: S.s / C.sc };
 }
 
