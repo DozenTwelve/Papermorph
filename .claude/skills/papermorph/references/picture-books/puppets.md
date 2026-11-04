@@ -15,6 +15,7 @@ Pick with the user. The two reference books' own `cast.js` files show the second
 - What makes it read as stop motion
 - Acting
 - Cameras
+- Lifted from the book's own pictures
 - Performance
 - Seeing your own work
 
@@ -38,6 +39,10 @@ Pick with the user. The two reference books' own `cast.js` files show the second
 ## Cameras
 
 `paperCam(parent, set, view, { after, stages })` is one camera on one set: layers slide with parallax, `to`/`cut` move it on the scene's clock, `soft` swaps in the blurred copy of the set for close-ups, `shake(t0, dur, amp = 10)` jolts it (the engine's `cam.shake` takes the amplitude first), `show(layer, on)` swaps a layer (rain and snow versions of the same street). A scene can hold several cameras; cut between places by showing one `cam.root` and hiding the others. Close-ups zoom the same set and blur it, so the speaker stays sharp.
+
+## Lifted from the book's own pictures
+
+When the story comes as a scanned picture book that may be reused, its own drawings are the cast. `lift.py` (its docstring has the manifest) cuts each figure off its page as a silhouette, cream paper inside kept opaque and the page's paper and ink levelled to one colour pair, optionally split into parts on pivots (legs with caps under the coat hem, an arm, a head); it makes each page into a set (lettering erased, lifted figures erased or inpainted, layers along the art's own edges), and lettering into pieces that float. Read coordinates off `lift.py grid` crops and look at the `--sheet` after every run. `lib/cut.js` (in the kit) moves the pieces: `cutPuppet` puts parts on their pins, `pagePos` puts a figure back exactly where it stood on its page's set, `cutWalk` swings two legs as `walk()` does, `lettering` stamps the book's own words in as they are said, and `CUT_FACE` gives a lifted face a mouth for close-ups. Load `img/cut/cut.js` and `lib/cut.js` after `paper.js` in the chapter page. A lifted figure is one drawing, so acting comes from its pins, a breath, a rock, a head part and the camera, and from cutting to the book's next drawing of the same person (replacement), not from new poses.
 
 ## Performance
 

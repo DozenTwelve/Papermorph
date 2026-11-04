@@ -25,6 +25,7 @@ Ask as [core/style.md](../core/style.md#asking) says, skipping whatever the tell
 2. **The look** is the user's choice; there is no house style. Paper puppets moved in code ([puppets.md](puppets.md)) have worked best so far, so offer them first, in two ways, and welcome any other idea:
    - *Painted world, paper actors* (recommended when an image budget is fine): an image model paints the sets and everything that stays still; the puppets and anything that moves stay in code (Joke Collection, under a dollar of pictures per episode). Ask for a budget ceiling and keep to it ([painting.md](painting.md)).
    - *Paper, all in code*: sets and props drawn as SVG paper too. No image cost, plainer, very consistent (Little Red Riding Hood).
+   - *The book's own pictures*, when the user brings an illustrated story book whose pictures may be reused (public domain, like *Millions of Cats*, 1928): its pages become the sets and its drawn figures the puppets, lifted off the scans ([puppets.md](puppets.md#lifted-from-the-books-own-pictures)). An image model only fills what the book cannot give, such as the drawing hidden behind a lifted figure.
 3. **Language and voices**: the narration language, one voice per character ([core/sound.md](../core/sound.md#voices)).
 4. **A series or one film.** A series shares cast, sets and the series page; each episode is a chapter (`chNN`).
 

@@ -61,6 +61,9 @@ function paperCam(p, setName, v0 = {}, { after = null, stages = [] } = {}) {
   if (!set) throw new Error(`paperCam: no set '${setName}' in img/sets/sets.js (${Object.keys(SETS).join(', ')})`);
   after ??= (set.find(L => L.stage) || set.find(L => L.k === 1) || set[set.length - 1]).name;
   for (const n of [after, ...stages]) if (!set.some(L => L.name === n)) console.warn(`paperCam: set '${setName}' has no layer '${n}' (${set.map(L => L.name).join(', ')})`);
+  // A set whose first layer names its paper colour (lift.py's sets: a book's page, narrower than the frame) lies on an
+  // endless sheet of it, so a pan, a zoom out or a shake never sees past the picture.
+  if (set[0]?.paper) mk('rect', { x: -6000, y: -6000, width: 13600, height: 12900, fill: set[0].paper }, world);
   for (const L of set) {
     const g = mk('g', {}, world), [x, y, width, height] = L.box, img = { x, y, width, height, preserveAspectRatio: 'none' };
     const sharp = mk('image', { href: `../img/sets/${setName}/${L.name}.webp`, ...img }, g);
@@ -88,6 +91,7 @@ function paperCam(p, setName, v0 = {}, { after = null, stages = [] } = {}) {
     to(v, t0, dur = 1) { ops.push({ v, t0, dur }); ops.sort((a, b) => a.t0 - b.t0); ops.forEach(o => delete o.from); return cam; },
     cut: (v, t0) => cam.to(v, t0, 0),
     show(name, on) { for (const L of layers) if (L.name === name) vis(L.g, on); return cam; },   // swap a set layer (weather)
+    layer: name => layers.find(L => L.name === name)?.g,   // a set layer's group, to move, clip or fade one layer (a pond draining)
     soft(t0, on) { softs.push([t0, on]); softs.sort((a, b) => a[0] - b[0]); return cam; },
     shake(t0, dur, amp = 10) { shakes.push([t0, dur, amp]); return cam; },
     apply(q, f) {
