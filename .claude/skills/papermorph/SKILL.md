@@ -37,7 +37,7 @@ Every tier shares the core:
 | [core/team.md](references/core/team.md) | making chapters with subagents, the coordinator, workers in parallel |
 | [core/engine.md](references/core/engine.md) | the player and drawing API, timing, camera, performance, traps |
 
-Start with the tier's intake whenever `books/<book>/style.json` does not exist yet; reuse answers and approvals already given. The reference books on https://papermorph.diamonddoge.org/ are the bar: the maths and science books for lessons, *Joke Collection* and *Little Red Riding Hood* for picture books, *Madness and Civilization*, *Shooting an Elephant* (interactive) and *The Pandemic* for documentaries, the *Madness and Civilization* shorts for shorts.
+Start with the tier's intake whenever `books/<book>/style.json` does not exist yet; reuse answers and approvals already given. The reference books on https://papermorph.diamonddoge.org/ are the bar: the maths and science books for lessons, *The Little Horse Crosses the River*, *Little Red Riding Hood* and *Joke Collection* for picture books, *Madness and Civilization*, *Shooting an Elephant* (interactive) and *The Pandemic* for documentaries, the *Madness and Civilization* shorts for shorts.
 
 ## Project layout
 
