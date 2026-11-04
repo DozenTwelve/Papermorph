@@ -1,0 +1,3552 @@
+[
+{
+"lord": "幕領",
+"kind": "bakufu",
+"subs": [],
+"provinces": [
+"信濃",
+"越後",
+"岩代",
+"甲斐",
+"飛騨",
+"上野",
+"武蔵",
+"大和",
+"駿河",
+"肥後",
+"遠江",
+"但馬",
+"美作",
+"豊後",
+"磐城",
+"羽前",
+"播磨",
+"石見",
+"越前",
+"佐渡",
+"美濃",
+"三河",
+"日向",
+"下総",
+"摂津",
+"下野",
+"近江",
+"備中",
+"伊予",
+"隠岐",
+"豊前",
+"相模",
+"丹後",
+"伊豆",
+"常陸",
+"河内",
+"伊勢",
+"能登",
+"讃岐",
+"安房",
+"肥前",
+"山城",
+"備後",
+"丹波",
+"和泉",
+"上総",
+"筑後"
+],
+"pieces": 1191,
+"area_km2": 53119.5,
+"share": 0.18223
+},
+{
+"lord": "旗本領分",
+"kind": "hatamoto",
+"subs": [],
+"provinces": [
+"武蔵",
+"上野",
+"下野",
+"上総",
+"常陸",
+"三河",
+"下総",
+"美濃",
+"駿河",
+"伊豆",
+"近江",
+"遠江",
+"丹波",
+"相模",
+"信濃",
+"大和",
+"備中",
+"播磨",
+"羽後",
+"肥前",
+"摂津",
+"安房",
+"豊後",
+"河内",
+"山城",
+"越後",
+"越前",
+"日向",
+"但馬",
+"岩代",
+"和泉",
+"磐城",
+"豊前",
+"伊勢",
+"尾張",
+"能登"
+],
+"pieces": 797,
+"area_km2": 16088.6,
+"share": 0.05519
+},
+{
+"lord": "陸奥盛岡藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"陸中",
+"陸奥",
+"岩代"
+],
+"pieces": 7,
+"area_km2": 15424.8,
+"share": 0.05292
+},
+{
+"lord": "陸奥仙台藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"陸前",
+"陸中",
+"磐城",
+"常陸",
+"近江"
+],
+"pieces": 34,
+"area_km2": 10559.0,
+"share": 0.03622
+},
+{
+"lord": "薩摩鹿児島藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"大隅",
+"薩摩",
+"日向"
+],
+"pieces": 28,
+"area_km2": 9902.2,
+"share": 0.03397
+},
+{
+"lord": "出羽秋田藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"羽後",
+"下野"
+],
+"pieces": 5,
+"area_km2": 8981.8,
+"share": 0.03081
+},
+{
+"lord": "安芸広島藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"安芸",
+"備後"
+],
+"pieces": 53,
+"area_km2": 7310.3,
+"share": 0.02508
+},
+{
+"lord": "土佐高知藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"土佐"
+],
+"pieces": 8,
+"area_km2": 7115.0,
+"share": 0.02441
+},
+{
+"lord": "紀伊和歌山藩",
+"kind": "han",
+"subs": [
+"安藤家",
+"水野家"
+],
+"provinces": [
+"紀伊",
+"伊勢",
+"近江"
+],
+"pieces": 29,
+"area_km2": 7051.3,
+"share": 0.02419
+},
+{
+"lord": "加賀金沢藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"越中",
+"能登",
+"加賀",
+"近江"
+],
+"pieces": 9,
+"area_km2": 6904.8,
+"share": 0.02369
+},
+{
+"lord": "周防山口藩",
+"kind": "han",
+"subs": [
+"岩国領"
+],
+"provinces": [
+"周防",
+"長門"
+],
+"pieces": 47,
+"area_km2": 5167.8,
+"share": 0.01773
+},
+{
+"lord": "尾張名古屋藩",
+"kind": "han",
+"subs": [
+"成瀬家",
+"竹腰家"
+],
+"provinces": [
+"信濃",
+"美濃",
+"尾張",
+"三河",
+"近江",
+"摂津"
+],
+"pieces": 59,
+"area_km2": 5126.5,
+"share": 0.01759
+},
+{
+"lord": "肥後熊本藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"肥後",
+"豊後"
+],
+"pieces": 17,
+"area_km2": 4966.7,
+"share": 0.01704
+},
+{
+"lord": "阿波徳島藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"阿波",
+"淡路"
+],
+"pieces": 14,
+"area_km2": 4753.1,
+"share": 0.01631
+},
+{
+"lord": "陸奥弘前藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"陸奥"
+],
+"pieces": 1,
+"area_km2": 4419.5,
+"share": 0.01516
+},
+{
+"lord": "陸奥会津藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"越後",
+"岩代",
+"近江"
+],
+"pieces": 81,
+"area_km2": 4362.8,
+"share": 0.01497
+},
+{
+"lord": "社寺領",
+"kind": "religious",
+"subs": [],
+"provinces": [
+"下野",
+"紀伊",
+"飛騨",
+"山城",
+"大和",
+"武蔵",
+"信濃",
+"遠江",
+"伯耆",
+"播磨",
+"伊勢",
+"三河",
+"越前",
+"近江",
+"駿河",
+"甲斐",
+"羽前",
+"越後",
+"常陸",
+"相模",
+"上野",
+"下総",
+"尾張",
+"出雲",
+"上総",
+"伊豆",
+"安房",
+"摂津",
+"能登",
+"河内",
+"讃岐",
+"肥後",
+"丹波",
+"美濃",
+"阿波",
+"佐渡",
+"和泉",
+"因幡",
+"備前"
+],
+"pieces": 304,
+"area_km2": 4182.3,
+"share": 0.01435
+},
+{
+"lord": "因幡鳥取藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"伯耆",
+"因幡"
+],
+"pieces": 1,
+"area_km2": 3357.5,
+"share": 0.01152
+},
+{
+"lord": "日向延岡藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"日向",
+"豊後"
+],
+"pieces": 11,
+"area_km2": 2835.0,
+"share": 0.00973
+},
+{
+"lord": "常陸水戸藩",
+"kind": "han",
+"subs": [
+"中山家"
+],
+"provinces": [
+"常陸",
+"下野"
+],
+"pieces": 12,
+"area_km2": 2521.0,
+"share": 0.00865
+},
+{
+"lord": "出羽米沢藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"羽前"
+],
+"pieces": 1,
+"area_km2": 2507.9,
+"share": 0.0086
+},
+{
+"lord": "未割当",
+"kind": "unknown",
+"subs": [],
+"provinces": [
+"備前",
+"上総",
+"肥前",
+"肥後",
+"尾張",
+"三河",
+"常陸",
+"下総",
+"羽後",
+"豊後",
+"伊勢",
+"近江",
+"備後",
+"加賀",
+"筑後",
+"丹後",
+"長門",
+"若狭",
+"陸前",
+"周防",
+"磐城",
+"豊前",
+"和泉",
+"安芸",
+"武蔵",
+"讃岐",
+"伯耆",
+"薩摩",
+"岩代",
+"阿波",
+"伊予",
+"紀伊",
+"出雲",
+"土佐",
+"備中",
+"遠江",
+"日向",
+"陸中",
+"但馬",
+"越前",
+"陸奥",
+"大隅",
+"佐渡",
+"越後",
+"信濃",
+"筑前"
+],
+"pieces": 305,
+"area_km2": 2379.8,
+"share": 0.00816
+},
+{
+"lord": "出羽庄内藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"羽前",
+"羽後"
+],
+"pieces": 3,
+"area_km2": 2328.9,
+"share": 0.00799
+},
+{
+"lord": "筑前福岡藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"筑前"
+],
+"pieces": 13,
+"area_km2": 2161.5,
+"share": 0.00742
+},
+{
+"lord": "信濃松本藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"信濃"
+],
+"pieces": 1,
+"area_km2": 2123.0,
+"share": 0.00728
+},
+{
+"lord": "陸奥八戸藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"陸中",
+"陸奥"
+],
+"pieces": 3,
+"area_km2": 2093.2,
+"share": 0.00718
+},
+{
+"lord": "出雲松江藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"出雲"
+],
+"pieces": 5,
+"area_km2": 1980.9,
+"share": 0.0068
+},
+{
+"lord": "出羽新庄藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"羽前"
+],
+"pieces": 1,
+"area_km2": 1965.2,
+"share": 0.00674
+},
+{
+"lord": "備前岡山藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"備前",
+"備中"
+],
+"pieces": 28,
+"area_km2": 1780.7,
+"share": 0.00611
+},
+{
+"lord": "肥前佐賀藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"肥前"
+],
+"pieces": 19,
+"area_km2": 1701.9,
+"share": 0.00584
+},
+{
+"lord": "伊勢安濃津藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"伊賀",
+"伊勢",
+"大和",
+"山城",
+"下総"
+],
+"pieces": 39,
+"area_km2": 1622.7,
+"share": 0.00557
+},
+{
+"lord": "越後高田藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"越後",
+"磐城",
+"岩代",
+"上総"
+],
+"pieces": 23,
+"area_km2": 1617.0,
+"share": 0.00555
+},
+{
+"lord": "伊予松山藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"伊予"
+],
+"pieces": 25,
+"area_km2": 1543.7,
+"share": 0.0053
+},
+{
+"lord": "肥後人吉藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"肥後"
+],
+"pieces": 1,
+"area_km2": 1541.0,
+"share": 0.00529
+},
+{
+"lord": "相模小田原藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"相模",
+"駿河",
+"河内",
+"伊豆",
+"摂津"
+],
+"pieces": 46,
+"area_km2": 1384.9,
+"share": 0.00475
+},
+{
+"lord": "伊予宇和島藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"伊予"
+],
+"pieces": 21,
+"area_km2": 1376.8,
+"share": 0.00472
+},
+{
+"lord": "美濃郡上藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"美濃",
+"越前"
+],
+"pieces": 16,
+"area_km2": 1376.8,
+"share": 0.00472
+},
+{
+"lord": "石見浜田藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"石見",
+"美作"
+],
+"pieces": 9,
+"area_km2": 1345.1,
+"share": 0.00461
+},
+{
+"lord": "石見津和野藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"石見"
+],
+"pieces": 5,
+"area_km2": 1329.3,
+"share": 0.00456
+},
+{
+"lord": "豊後岡藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"豊後"
+],
+"pieces": 4,
+"area_km2": 1224.4,
+"share": 0.0042
+},
+{
+"lord": "豊前小倉藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"豊前"
+],
+"pieces": 3,
+"area_km2": 1198.1,
+"share": 0.00411
+},
+{
+"lord": "陸奥棚倉藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"磐城",
+"岩代",
+"羽前",
+"播磨"
+],
+"pieces": 26,
+"area_km2": 1193.4,
+"share": 0.00409
+},
+{
+"lord": "讃岐高松藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"讃岐"
+],
+"pieces": 3,
+"area_km2": 1193.1,
+"share": 0.00409
+},
+{
+"lord": "陸奥中村藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"磐城"
+],
+"pieces": 1,
+"area_km2": 1181.9,
+"share": 0.00405
+},
+{
+"lord": "上野前橋藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"上野",
+"武蔵",
+"上総",
+"安房",
+"常陸",
+"下野",
+"近江"
+],
+"pieces": 65,
+"area_km2": 1163.3,
+"share": 0.00399
+},
+{
+"lord": "対馬府中藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"対馬",
+"肥前",
+"下野",
+"筑前"
+],
+"pieces": 19,
+"area_km2": 1139.3,
+"share": 0.00391
+},
+{
+"lord": "越前福井藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"越前"
+],
+"pieces": 32,
+"area_km2": 1082.0,
+"share": 0.00371
+},
+{
+"lord": "信濃松代藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"信濃"
+],
+"pieces": 5,
+"area_km2": 1048.0,
+"share": 0.0036
+},
+{
+"lord": "信濃高遠藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"信濃"
+],
+"pieces": 3,
+"area_km2": 1031.3,
+"share": 0.00354
+},
+{
+"lord": "伊予大洲藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"伊予"
+],
+"pieces": 7,
+"area_km2": 1012.3,
+"share": 0.00347
+},
+{
+"lord": "若狭小浜藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"若狭",
+"越前",
+"近江"
+],
+"pieces": 16,
+"area_km2": 984.3,
+"share": 0.00338
+},
+{
+"lord": "陸奥二本松藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"岩代"
+],
+"pieces": 1,
+"area_km2": 979.1,
+"share": 0.00336
+},
+{
+"lord": "美濃大垣藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"美濃"
+],
+"pieces": 8,
+"area_km2": 948.4,
+"share": 0.00325
+},
+{
+"lord": "肥前平戸藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"肥前",
+"壱岐"
+],
+"pieces": 61,
+"area_km2": 931.2,
+"share": 0.00319
+},
+{
+"lord": "陸奥白河藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"磐城",
+"岩代",
+"信濃",
+"遠江"
+],
+"pieces": 14,
+"area_km2": 918.8,
+"share": 0.00315
+},
+{
+"lord": "豊前中津藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"豊前",
+"備後",
+"筑前"
+],
+"pieces": 14,
+"area_km2": 893.0,
+"share": 0.00306
+},
+{
+"lord": "筑後久留米藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"筑後"
+],
+"pieces": 1,
+"area_km2": 828.8,
+"share": 0.00284
+},
+{
+"lord": "肥前大村藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"肥前"
+],
+"pieces": 26,
+"area_km2": 815.6,
+"share": 0.0028
+},
+{
+"lord": "日向飫肥藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"日向"
+],
+"pieces": 2,
+"area_km2": 784.5,
+"share": 0.00269
+},
+{
+"lord": "近江彦根藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"近江",
+"下野"
+],
+"pieces": 17,
+"area_km2": 762.8,
+"share": 0.00262
+},
+{
+"lord": "上野沼田藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"上野",
+"美作",
+"河内"
+],
+"pieces": 16,
+"area_km2": 761.3,
+"share": 0.00261
+},
+{
+"lord": "備後福山藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"備後",
+"備中"
+],
+"pieces": 8,
+"area_km2": 752.0,
+"share": 0.00258
+},
+{
+"lord": "越後村上藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"越後"
+],
+"pieces": 12,
+"area_km2": 740.6,
+"share": 0.00254
+},
+{
+"lord": "播磨姫路藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"播磨"
+],
+"pieces": 29,
+"area_km2": 737.8,
+"share": 0.00253
+},
+{
+"lord": "信濃高島藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"信濃"
+],
+"pieces": 3,
+"area_km2": 718.2,
+"share": 0.00246
+},
+{
+"lord": "日向高鍋藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"日向"
+],
+"pieces": 7,
+"area_km2": 699.2,
+"share": 0.0024
+},
+{
+"lord": "肥前島原藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"肥前",
+"豊後",
+"豊前"
+],
+"pieces": 8,
+"area_km2": 671.8,
+"share": 0.0023
+},
+{
+"lord": "下総佐倉藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"下総",
+"羽前",
+"下野",
+"武蔵",
+"相模",
+"常陸"
+],
+"pieces": 36,
+"area_km2": 667.2,
+"share": 0.00229
+},
+{
+"lord": "豊後佐伯藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"豊後"
+],
+"pieces": 10,
+"area_km2": 654.5,
+"share": 0.00225
+},
+{
+"lord": "伊勢桑名藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"越後",
+"伊勢"
+],
+"pieces": 16,
+"area_km2": 650.0,
+"share": 0.00223
+},
+{
+"lord": "丹波園部藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"丹波"
+],
+"pieces": 8,
+"area_km2": 649.9,
+"share": 0.00223
+},
+{
+"lord": "越後長岡藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"越後"
+],
+"pieces": 12,
+"area_km2": 631.0,
+"share": 0.00216
+},
+{
+"lord": "下野宇都宮藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"下野"
+],
+"pieces": 14,
+"area_km2": 630.8,
+"share": 0.00216
+},
+{
+"lord": "下野黒羽藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"下野"
+],
+"pieces": 7,
+"area_km2": 627.3,
+"share": 0.00215
+},
+{
+"lord": "陸奥三春藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"磐城"
+],
+"pieces": 2,
+"area_km2": 625.7,
+"share": 0.00215
+},
+{
+"lord": "交代寄合生駒家",
+"kind": "hatamoto",
+"subs": [],
+"provinces": [
+"羽後"
+],
+"pieces": 2,
+"area_km2": 609.1,
+"share": 0.00209
+},
+{
+"lord": "一橋家領分",
+"kind": "other",
+"subs": [],
+"provinces": [
+"備中",
+"播磨",
+"武蔵",
+"摂津",
+"下野",
+"和泉",
+"越後",
+"下総"
+],
+"pieces": 66,
+"area_km2": 603.3,
+"share": 0.00207
+},
+{
+"lord": "越後新発田藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"越後",
+"岩代"
+],
+"pieces": 18,
+"area_km2": 598.2,
+"share": 0.00205
+},
+{
+"lord": "備中松山藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"備中"
+],
+"pieces": 6,
+"area_km2": 589.2,
+"share": 0.00202
+},
+{
+"lord": "美濃苗木藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"美濃"
+],
+"pieces": 2,
+"area_km2": 577.5,
+"share": 0.00198
+},
+{
+"lord": "丹波篠山藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"丹波",
+"遠江",
+"摂津"
+],
+"pieces": 22,
+"area_km2": 576.9,
+"share": 0.00198
+},
+{
+"lord": "常陸笠間藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"磐城",
+"常陸"
+],
+"pieces": 8,
+"area_km2": 576.6,
+"share": 0.00198
+},
+{
+"lord": "豊後臼杵藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"豊後"
+],
+"pieces": 9,
+"area_km2": 559.6,
+"share": 0.00192
+},
+{
+"lord": "長門府中藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"長門"
+],
+"pieces": 10,
+"area_km2": 551.5,
+"share": 0.00189
+},
+{
+"lord": "遠江掛川藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"遠江",
+"伊豆",
+"駿河"
+],
+"pieces": 32,
+"area_km2": 550.5,
+"share": 0.00189
+},
+{
+"lord": "越中富山藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"越中"
+],
+"pieces": 2,
+"area_km2": 549.2,
+"share": 0.00188
+},
+{
+"lord": "美作津山藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"美作",
+"讃岐"
+],
+"pieces": 15,
+"area_km2": 548.9,
+"share": 0.00188
+},
+{
+"lord": "丹後宮津藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"丹後",
+"近江"
+],
+"pieces": 13,
+"area_km2": 541.9,
+"share": 0.00186
+},
+{
+"lord": "肥前福江藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"肥前"
+],
+"pieces": 41,
+"area_km2": 541.0,
+"share": 0.00186
+},
+{
+"lord": "信濃上田藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"信濃"
+],
+"pieces": 6,
+"area_km2": 528.4,
+"share": 0.00181
+},
+{
+"lord": "美濃岩村藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"美濃",
+"駿河"
+],
+"pieces": 19,
+"area_km2": 527.1,
+"share": 0.00181
+},
+{
+"lord": "出雲広瀬藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"出雲"
+],
+"pieces": 2,
+"area_km2": 526.2,
+"share": 0.00181
+},
+{
+"lord": "武蔵忍藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"武蔵",
+"伊勢",
+"播磨"
+],
+"pieces": 27,
+"area_km2": 526.1,
+"share": 0.0018
+},
+{
+"lord": "越後村松藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"越後"
+],
+"pieces": 1,
+"area_km2": 507.6,
+"share": 0.00174
+},
+{
+"lord": "美作勝山藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"美作"
+],
+"pieces": 1,
+"area_km2": 503.3,
+"share": 0.00173
+},
+{
+"lord": "播磨明石藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"播磨",
+"美作"
+],
+"pieces": 3,
+"area_km2": 493.5,
+"share": 0.00169
+},
+{
+"lord": "常陸土浦藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"常陸",
+"磐城",
+"和泉",
+"美作",
+"羽前",
+"岩代",
+"下総"
+],
+"pieces": 42,
+"area_km2": 477.8,
+"share": 0.00164
+},
+{
+"lord": "出羽亀田藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"羽後"
+],
+"pieces": 1,
+"area_km2": 458.0,
+"share": 0.00157
+},
+{
+"lord": "田安家領分",
+"kind": "other",
+"subs": [],
+"provinces": [
+"甲斐",
+"下総",
+"摂津",
+"播磨",
+"和泉"
+],
+"pieces": 35,
+"area_km2": 446.3,
+"share": 0.00153
+},
+{
+"lord": "伊予今治藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"伊予"
+],
+"pieces": 20,
+"area_km2": 442.1,
+"share": 0.00152
+},
+{
+"lord": "肥前唐津藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"肥前"
+],
+"pieces": 11,
+"area_km2": 430.4,
+"share": 0.00148
+},
+{
+"lord": "越前大野藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"越前"
+],
+"pieces": 4,
+"area_km2": 424.9,
+"share": 0.00146
+},
+{
+"lord": "筑後柳河藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"筑後"
+],
+"pieces": 1,
+"area_km2": 421.8,
+"share": 0.00145
+},
+{
+"lord": "三河吉田藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"三河",
+"遠江",
+"近江"
+],
+"pieces": 43,
+"area_km2": 420.2,
+"share": 0.00144
+},
+{
+"lord": "大和郡山藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"大和",
+"近江",
+"河内"
+],
+"pieces": 51,
+"area_km2": 417.4,
+"share": 0.00143
+},
+{
+"lord": "伊予吉田藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"伊予"
+],
+"pieces": 9,
+"area_km2": 414.4,
+"share": 0.00142
+},
+{
+"lord": "陸奥黒石藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"陸奥"
+],
+"pieces": 2,
+"area_km2": 412.8,
+"share": 0.00142
+},
+{
+"lord": "讃岐丸亀藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"讃岐",
+"播磨",
+"近江"
+],
+"pieces": 13,
+"area_km2": 402.5,
+"share": 0.00138
+},
+{
+"lord": "丹後田辺藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"丹後"
+],
+"pieces": 2,
+"area_km2": 398.3,
+"share": 0.00137
+},
+{
+"lord": "下総古河藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"下野",
+"美作",
+"下総",
+"播磨",
+"武蔵",
+"摂津"
+],
+"pieces": 51,
+"area_km2": 387.6,
+"share": 0.00133
+},
+{
+"lord": "豊後森藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"豊後"
+],
+"pieces": 3,
+"area_km2": 385.9,
+"share": 0.00132
+},
+{
+"lord": "陸奥一関藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"陸中",
+"陸前"
+],
+"pieces": 3,
+"area_km2": 378.2,
+"share": 0.0013
+},
+{
+"lord": "武蔵川越藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"武蔵",
+"近江",
+"常陸",
+"三河"
+],
+"pieces": 29,
+"area_km2": 364.7,
+"share": 0.00125
+},
+{
+"lord": "但馬出石藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"但馬"
+],
+"pieces": 6,
+"area_km2": 364.0,
+"share": 0.00125
+},
+{
+"lord": "皇室領",
+"kind": "court",
+"subs": [],
+"provinces": [
+"山城",
+"丹波"
+],
+"pieces": 17,
+"area_km2": 363.5,
+"share": 0.00125
+},
+{
+"lord": "加賀大聖寺藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"加賀"
+],
+"pieces": 1,
+"area_km2": 355.0,
+"share": 0.00122
+},
+{
+"lord": "蝦夷松前藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"羽前",
+"岩代"
+],
+"pieces": 12,
+"area_km2": 353.0,
+"share": 0.00121
+},
+{
+"lord": "出羽本荘藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"羽後"
+],
+"pieces": 2,
+"area_km2": 343.3,
+"share": 0.00118
+},
+{
+"lord": "上野館林藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"羽前",
+"上野",
+"河内",
+"下野"
+],
+"pieces": 25,
+"area_km2": 332.4,
+"share": 0.00114
+},
+{
+"lord": "伊予西条藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"伊予"
+],
+"pieces": 8,
+"area_km2": 324.2,
+"share": 0.00111
+},
+{
+"lord": "豊後杵築藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"豊後"
+],
+"pieces": 3,
+"area_km2": 323.0,
+"share": 0.00111
+},
+{
+"lord": "出羽松山藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"羽前",
+"羽後",
+"上野"
+],
+"pieces": 9,
+"area_km2": 321.4,
+"share": 0.0011
+},
+{
+"lord": "山城淀藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"下総",
+"近江",
+"上野",
+"山城",
+"摂津",
+"河内",
+"和泉",
+"常陸"
+],
+"pieces": 69,
+"area_km2": 315.9,
+"share": 0.00108
+},
+{
+"lord": "出羽上山藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"羽前",
+"越後"
+],
+"pieces": 6,
+"area_km2": 314.6,
+"share": 0.00108
+},
+{
+"lord": "周防徳山藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"周防",
+"長門"
+],
+"pieces": 11,
+"area_km2": 308.2,
+"share": 0.00106
+},
+{
+"lord": "遠江浜松藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"遠江",
+"播磨",
+"下総"
+],
+"pieces": 15,
+"area_km2": 307.0,
+"share": 0.00105
+},
+{
+"lord": "志摩鳥羽藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"志摩",
+"伊勢"
+],
+"pieces": 17,
+"area_km2": 302.6,
+"share": 0.00104
+},
+{
+"lord": "伊勢亀山藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"伊勢",
+"備中",
+"丹波"
+],
+"pieces": 6,
+"area_km2": 300.1,
+"share": 0.00103
+},
+{
+"lord": "備中新見藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"備中"
+],
+"pieces": 8,
+"area_km2": 299.5,
+"share": 0.00103
+},
+{
+"lord": "下総関宿藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"下総",
+"常陸",
+"下野",
+"岩代",
+"和泉"
+],
+"pieces": 29,
+"area_km2": 294.2,
+"share": 0.00101
+},
+{
+"lord": "下野大田原藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"下野"
+],
+"pieces": 9,
+"area_km2": 290.5,
+"share": 0.001
+},
+{
+"lord": "丹波亀山藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"丹波",
+"備中"
+],
+"pieces": 11,
+"area_km2": 288.5,
+"share": 0.00099
+},
+{
+"lord": "近江膳所藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"近江",
+"河内"
+],
+"pieces": 23,
+"area_km2": 287.6,
+"share": 0.00099
+},
+{
+"lord": "日向佐土原藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"日向"
+],
+"pieces": 2,
+"area_km2": 271.2,
+"share": 0.00093
+},
+{
+"lord": "上野安中藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"上野",
+"下総"
+],
+"pieces": 13,
+"area_km2": 271.1,
+"share": 0.00093
+},
+{
+"lord": "信濃小諸藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"信濃"
+],
+"pieces": 3,
+"area_km2": 266.2,
+"share": 0.00091
+},
+{
+"lord": "陸奥磐城平藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"磐城",
+"三河",
+"美濃"
+],
+"pieces": 17,
+"area_km2": 262.6,
+"share": 0.0009
+},
+{
+"lord": "武蔵岩槻藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"上総",
+"武蔵",
+"安房",
+"上野",
+"下総"
+],
+"pieces": 24,
+"area_km2": 262.3,
+"share": 0.0009
+},
+{
+"lord": "駿河沼津藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"伊豆",
+"駿河",
+"越後",
+"三河"
+],
+"pieces": 30,
+"area_km2": 258.4,
+"share": 0.00089
+},
+{
+"lord": "摂津尼ヶ崎藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"播磨",
+"摂津"
+],
+"pieces": 24,
+"area_km2": 251.6,
+"share": 0.00086
+},
+{
+"lord": "駿河田中藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"駿河",
+"下総"
+],
+"pieces": 17,
+"area_km2": 249.2,
+"share": 0.00085
+},
+{
+"lord": "交代寄合山名家",
+"kind": "hatamoto",
+"subs": [],
+"provinces": [
+"但馬"
+],
+"pieces": 1,
+"area_km2": 249.0,
+"share": 0.00085
+},
+{
+"lord": "信濃飯山藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"信濃"
+],
+"pieces": 1,
+"area_km2": 246.8,
+"share": 0.00085
+},
+{
+"lord": "三河岡崎藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"三河"
+],
+"pieces": 3,
+"area_km2": 246.0,
+"share": 0.00084
+},
+{
+"lord": "肥前小城藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"肥前"
+],
+"pieces": 4,
+"area_km2": 241.4,
+"share": 0.00083
+},
+{
+"lord": "越前鯖江藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"越前"
+],
+"pieces": 10,
+"area_km2": 241.4,
+"share": 0.00083
+},
+{
+"lord": "丹波福知山藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"丹波",
+"近江"
+],
+"pieces": 2,
+"area_km2": 238.4,
+"share": 0.00082
+},
+{
+"lord": "三河挙母藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"三河",
+"美作",
+"遠江"
+],
+"pieces": 20,
+"area_km2": 233.1,
+"share": 0.0008
+},
+{
+"lord": "下野烏山藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"下野",
+"相模"
+],
+"pieces": 17,
+"area_km2": 226.9,
+"share": 0.00078
+},
+{
+"lord": "摂津三田藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"摂津",
+"丹波"
+],
+"pieces": 3,
+"area_km2": 224.7,
+"share": 0.00077
+},
+{
+"lord": "上野高崎藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"上野",
+"越後",
+"下総",
+"武蔵"
+],
+"pieces": 19,
+"area_km2": 220.3,
+"share": 0.00076
+},
+{
+"lord": "その他領分",
+"kind": "other",
+"subs": [],
+"provinces": [
+"上総",
+"山城",
+"下総",
+"大和",
+"和泉"
+],
+"pieces": 45,
+"area_km2": 218.4,
+"share": 0.00075
+},
+{
+"lord": "播磨三日月藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"播磨"
+],
+"pieces": 8,
+"area_km2": 216.0,
+"share": 0.00074
+},
+{
+"lord": "筑前秋月藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"筑前"
+],
+"pieces": 2,
+"area_km2": 215.9,
+"share": 0.00074
+},
+{
+"lord": "豊後日出藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"豊後"
+],
+"pieces": 2,
+"area_km2": 197.4,
+"share": 0.00068
+},
+{
+"lord": "信濃田野口藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"信濃",
+"三河"
+],
+"pieces": 14,
+"area_km2": 187.2,
+"share": 0.00064
+},
+{
+"lord": "和泉岸和田藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"和泉"
+],
+"pieces": 7,
+"area_km2": 184.8,
+"share": 0.00063
+},
+{
+"lord": "上総久留里藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"上総",
+"武蔵"
+],
+"pieces": 27,
+"area_km2": 183.7,
+"share": 0.00063
+},
+{
+"lord": "越後黒川藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"越後"
+],
+"pieces": 7,
+"area_km2": 180.9,
+"share": 0.00062
+},
+{
+"lord": "信濃飯田藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"信濃"
+],
+"pieces": 1,
+"area_km2": 178.4,
+"share": 0.00061
+},
+{
+"lord": "越後糸魚川藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"越後"
+],
+"pieces": 12,
+"area_km2": 178.1,
+"share": 0.00061
+},
+{
+"lord": "美濃高須藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"信濃",
+"美濃",
+"尾張"
+],
+"pieces": 10,
+"area_km2": 175.6,
+"share": 0.0006
+},
+{
+"lord": "三河西尾藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"三河",
+"越前",
+"遠江",
+"駿河"
+],
+"pieces": 39,
+"area_km2": 173.7,
+"share": 0.0006
+},
+{
+"lord": "播磨竜野藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"播磨",
+"美作"
+],
+"pieces": 12,
+"area_km2": 173.5,
+"share": 0.0006
+},
+{
+"lord": "伊勢久居藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"伊勢",
+"大和",
+"山城"
+],
+"pieces": 31,
+"area_km2": 170.6,
+"share": 0.00059
+},
+{
+"lord": "遠江横須賀藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"遠江",
+"駿河"
+],
+"pieces": 24,
+"area_km2": 170.3,
+"share": 0.00058
+},
+{
+"lord": "陸奥守山藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"常陸",
+"磐城"
+],
+"pieces": 14,
+"area_km2": 163.8,
+"share": 0.00056
+},
+{
+"lord": "常陸谷田部藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"下野",
+"常陸"
+],
+"pieces": 4,
+"area_km2": 162.4,
+"share": 0.00056
+},
+{
+"lord": "常陸府中藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"岩代",
+"常陸"
+],
+"pieces": 7,
+"area_km2": 161.8,
+"share": 0.00055
+},
+{
+"lord": "下野高徳藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"下野",
+"河内"
+],
+"pieces": 7,
+"area_km2": 158.5,
+"share": 0.00054
+},
+{
+"lord": "下野壬生藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"下野",
+"播磨",
+"下総",
+"大和"
+],
+"pieces": 22,
+"area_km2": 157.0,
+"share": 0.00054
+},
+{
+"lord": "摂津高槻藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"摂津",
+"丹波",
+"河内"
+],
+"pieces": 7,
+"area_km2": 155.1,
+"share": 0.00053
+},
+{
+"lord": "上総鶴牧藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"丹波",
+"上総"
+],
+"pieces": 27,
+"area_km2": 153.4,
+"share": 0.00053
+},
+{
+"lord": "丹波綾部藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"丹波"
+],
+"pieces": 6,
+"area_km2": 149.3,
+"share": 0.00051
+},
+{
+"lord": "播磨赤穂藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"播磨"
+],
+"pieces": 2,
+"area_km2": 148.6,
+"share": 0.00051
+},
+{
+"lord": "豊後府内藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"豊後"
+],
+"pieces": 2,
+"area_km2": 145.3,
+"share": 0.0005
+},
+{
+"lord": "播磨安志藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"播磨"
+],
+"pieces": 19,
+"area_km2": 145.2,
+"share": 0.0005
+},
+{
+"lord": "公家領",
+"kind": "court",
+"subs": [],
+"provinces": [
+"山城",
+"丹波",
+"摂津",
+"近江",
+"大和",
+"河内"
+],
+"pieces": 29,
+"area_km2": 143.9,
+"share": 0.00049
+},
+{
+"lord": "但馬豊岡藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"但馬"
+],
+"pieces": 2,
+"area_km2": 143.7,
+"share": 0.00049
+},
+{
+"lord": "交代寄合山崎家",
+"kind": "hatamoto",
+"subs": [],
+"provinces": [
+"備中"
+],
+"pieces": 5,
+"area_km2": 143.3,
+"share": 0.00049
+},
+{
+"lord": "上野吉井藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"上野",
+"上総"
+],
+"pieces": 14,
+"area_km2": 134.6,
+"share": 0.00046
+},
+{
+"lord": "相模荻野山中藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"相模",
+"伊豆",
+"駿河"
+],
+"pieces": 19,
+"area_km2": 133.0,
+"share": 0.00046
+},
+{
+"lord": "下総多古藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"磐城",
+"下野",
+"下総"
+],
+"pieces": 14,
+"area_km2": 131.9,
+"share": 0.00045
+},
+{
+"lord": "武蔵六浦藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"下野",
+"相模",
+"武蔵"
+],
+"pieces": 12,
+"area_km2": 131.0,
+"share": 0.00045
+},
+{
+"lord": "伊予小松藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"伊予"
+],
+"pieces": 2,
+"area_km2": 130.4,
+"share": 0.00045
+},
+{
+"lord": "肥前蓮池藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"肥前"
+],
+"pieces": 5,
+"area_km2": 128.4,
+"share": 0.00044
+},
+{
+"lord": "丹波柏原藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"丹波"
+],
+"pieces": 23,
+"area_km2": 127.5,
+"share": 0.00044
+},
+{
+"lord": "下総小見川藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"磐城",
+"下総"
+],
+"pieces": 10,
+"area_km2": 124.9,
+"share": 0.00043
+},
+{
+"lord": "陸奥泉藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"磐城",
+"上野",
+"武蔵"
+],
+"pieces": 8,
+"area_km2": 123.0,
+"share": 0.00042
+},
+{
+"lord": "越前勝山藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"越前"
+],
+"pieces": 6,
+"area_km2": 119.6,
+"share": 0.00041
+},
+{
+"lord": "三河刈谷藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"三河",
+"岩代"
+],
+"pieces": 8,
+"area_km2": 118.7,
+"share": 0.00041
+},
+{
+"lord": "越後与板藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"越後"
+],
+"pieces": 18,
+"area_km2": 112.0,
+"share": 0.00038
+},
+{
+"lord": "上総佐貫藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"上総"
+],
+"pieces": 4,
+"area_km2": 109.1,
+"share": 0.00037
+},
+{
+"lord": "駿河小島藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"駿河"
+],
+"pieces": 5,
+"area_km2": 108.4,
+"share": 0.00037
+},
+{
+"lord": "陸奥福島藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"三河",
+"岩代",
+"上総"
+],
+"pieces": 5,
+"area_km2": 107.8,
+"share": 0.00037
+},
+{
+"lord": "三河田原藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"三河"
+],
+"pieces": 2,
+"area_km2": 106.1,
+"share": 0.00036
+},
+{
+"lord": "出羽山形藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"羽前",
+"近江"
+],
+"pieces": 15,
+"area_km2": 104.6,
+"share": 0.00036
+},
+{
+"lord": "交代寄合池田家",
+"kind": "hatamoto",
+"subs": [],
+"provinces": [
+"播磨"
+],
+"pieces": 1,
+"area_km2": 104.2,
+"share": 0.00036
+},
+{
+"lord": "丹波山家藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"丹波"
+],
+"pieces": 3,
+"area_km2": 103.1,
+"share": 0.00035
+},
+{
+"lord": "近江山上藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"近江"
+],
+"pieces": 12,
+"area_km2": 102.1,
+"share": 0.00035
+},
+{
+"lord": "陸奥湯長谷藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"磐城"
+],
+"pieces": 5,
+"area_km2": 101.9,
+"share": 0.00035
+},
+{
+"lord": "出雲母里藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"出雲"
+],
+"pieces": 1,
+"area_km2": 101.6,
+"share": 0.00035
+},
+{
+"lord": "肥後宇土藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"肥後"
+],
+"pieces": 9,
+"area_km2": 101.5,
+"share": 0.00035
+},
+{
+"lord": "上野小幡藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"上野"
+],
+"pieces": 5,
+"area_km2": 101.4,
+"share": 0.00035
+},
+{
+"lord": "上総飯野藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"丹波",
+"摂津",
+"上総",
+"近江",
+"下総"
+],
+"pieces": 19,
+"area_km2": 101.0,
+"share": 0.00035
+},
+{
+"lord": "近江水口藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"近江"
+],
+"pieces": 9,
+"area_km2": 100.8,
+"share": 0.00035
+},
+{
+"lord": "備中岡田藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"備中",
+"摂津",
+"美濃",
+"河内"
+],
+"pieces": 5,
+"area_km2": 95.9,
+"share": 0.00033
+},
+{
+"lord": "武蔵岡部藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"摂津",
+"三河",
+"武蔵",
+"丹波",
+"上野"
+],
+"pieces": 17,
+"area_km2": 95.9,
+"share": 0.00033
+},
+{
+"lord": "備中足守藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"備中",
+"岩代"
+],
+"pieces": 4,
+"area_km2": 95.2,
+"share": 0.00033
+},
+{
+"lord": "越前鞠山藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"越前",
+"近江",
+"安房"
+],
+"pieces": 13,
+"area_km2": 95.1,
+"share": 0.00033
+},
+{
+"lord": "播磨三草藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"播磨"
+],
+"pieces": 10,
+"area_km2": 92.4,
+"share": 0.00032
+},
+{
+"lord": "下総結城藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"上総",
+"下総",
+"下野",
+"常陸"
+],
+"pieces": 11,
+"area_km2": 92.1,
+"share": 0.00032
+},
+{
+"lord": "大和柳生藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"山城",
+"大和"
+],
+"pieces": 6,
+"area_km2": 92.0,
+"share": 0.00032
+},
+{
+"lord": "備中庭瀬藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"備中"
+],
+"pieces": 5,
+"area_km2": 90.7,
+"share": 0.00031
+},
+{
+"lord": "越前丸岡藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"越前"
+],
+"pieces": 14,
+"area_km2": 89.9,
+"share": 0.00031
+},
+{
+"lord": "三河西端藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"武蔵",
+"伊豆",
+"三河",
+"上総",
+"下総",
+"下野",
+"上野"
+],
+"pieces": 18,
+"area_km2": 87.1,
+"share": 0.0003
+},
+{
+"lord": "常陸下舘藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"河内",
+"常陸"
+],
+"pieces": 2,
+"area_km2": 86.4,
+"share": 0.0003
+},
+{
+"lord": "伊予新谷藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"伊予"
+],
+"pieces": 9,
+"area_km2": 83.4,
+"share": 0.00029
+},
+{
+"lord": "讃岐多度津藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"讃岐"
+],
+"pieces": 2,
+"area_km2": 80.9,
+"share": 0.00028
+},
+{
+"lord": "常陸牛久藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"常陸",
+"下総"
+],
+"pieces": 10,
+"area_km2": 80.0,
+"share": 0.00027
+},
+{
+"lord": "長門清末藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"長門"
+],
+"pieces": 1,
+"area_km2": 79.0,
+"share": 0.00027
+},
+{
+"lord": "下野佐野藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"近江",
+"上野",
+"下野"
+],
+"pieces": 11,
+"area_km2": 78.8,
+"share": 0.00027
+},
+{
+"lord": "安房勝山藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"越前",
+"安房"
+],
+"pieces": 6,
+"area_km2": 78.1,
+"share": 0.00027
+},
+{
+"lord": "三河西大平藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"三河",
+"上総",
+"相模"
+],
+"pieces": 15,
+"area_km2": 77.7,
+"share": 0.00027
+},
+{
+"lord": "備中鴨方藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"備中"
+],
+"pieces": 4,
+"area_km2": 76.6,
+"share": 0.00026
+},
+{
+"lord": "上総大多喜藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"三河",
+"上総",
+"大和"
+],
+"pieces": 15,
+"area_km2": 76.5,
+"share": 0.00026
+},
+{
+"lord": "近江大溝藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"近江"
+],
+"pieces": 8,
+"area_km2": 75.7,
+"share": 0.00026
+},
+{
+"lord": "美濃加納藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"美濃",
+"摂津",
+"河内"
+],
+"pieces": 7,
+"area_km2": 74.6,
+"share": 0.00026
+},
+{
+"lord": "河内狭山藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"河内",
+"近江"
+],
+"pieces": 17,
+"area_km2": 74.0,
+"share": 0.00025
+},
+{
+"lord": "摂津麻田藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"摂津",
+"備中"
+],
+"pieces": 10,
+"area_km2": 72.9,
+"share": 0.00025
+},
+{
+"lord": "安房館山藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"安房",
+"上総",
+"下総"
+],
+"pieces": 14,
+"area_km2": 70.7,
+"share": 0.00024
+},
+{
+"lord": "近江三上藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"和泉",
+"安房",
+"近江"
+],
+"pieces": 11,
+"area_km2": 69.8,
+"share": 0.00024
+},
+{
+"lord": "出羽長瀞藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"羽前",
+"武蔵",
+"下総",
+"上総"
+],
+"pieces": 13,
+"area_km2": 69.4,
+"share": 0.00024
+},
+{
+"lord": "越後椎谷藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"信濃",
+"越後"
+],
+"pieces": 9,
+"area_km2": 69.4,
+"share": 0.00024
+},
+{
+"lord": "上野伊勢崎藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"上野"
+],
+"pieces": 3,
+"area_km2": 68.4,
+"share": 0.00023
+},
+{
+"lord": "伊勢菰野藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"伊勢",
+"近江"
+],
+"pieces": 2,
+"area_km2": 67.6,
+"share": 0.00023
+},
+{
+"lord": "下野喜連川藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"下野"
+],
+"pieces": 10,
+"area_km2": 66.7,
+"share": 0.00023
+},
+{
+"lord": "遠江相良藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"遠江"
+],
+"pieces": 4,
+"area_km2": 65.0,
+"share": 0.00022
+},
+{
+"lord": "大和高取藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"大和"
+],
+"pieces": 4,
+"area_km2": 64.5,
+"share": 0.00022
+},
+{
+"lord": "信濃須坂藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"信濃"
+],
+"pieces": 4,
+"area_km2": 63.8,
+"share": 0.00022
+},
+{
+"lord": "信濃岩村田藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"信濃"
+],
+"pieces": 6,
+"area_km2": 61.5,
+"share": 0.00021
+},
+{
+"lord": "丹後峰山藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"丹後",
+"常陸"
+],
+"pieces": 3,
+"area_km2": 60.3,
+"share": 0.00021
+},
+{
+"lord": "常陸麻生藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"常陸"
+],
+"pieces": 6,
+"area_km2": 59.9,
+"share": 0.00021
+},
+{
+"lord": "下野足利藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"下野",
+"武蔵"
+],
+"pieces": 11,
+"area_km2": 59.6,
+"share": 0.0002
+},
+{
+"lord": "上総一宮藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"伊勢",
+"上総",
+"上野",
+"下総"
+],
+"pieces": 12,
+"area_km2": 59.6,
+"share": 0.0002
+},
+{
+"lord": "上野七日市藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"上野"
+],
+"pieces": 4,
+"area_km2": 57.3,
+"share": 0.0002
+},
+{
+"lord": "伊勢長島藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"遠江",
+"伊勢"
+],
+"pieces": 10,
+"area_km2": 56.5,
+"share": 0.00019
+},
+{
+"lord": "常陸宍戸藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"常陸"
+],
+"pieces": 9,
+"area_km2": 56.0,
+"share": 0.00019
+},
+{
+"lord": "下総高岡藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"下総",
+"上総"
+],
+"pieces": 19,
+"area_km2": 54.0,
+"share": 0.00019
+},
+{
+"lord": "陸奥下手渡藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"岩代",
+"筑後"
+],
+"pieces": 4,
+"area_km2": 48.4,
+"share": 0.00017
+},
+{
+"lord": "交代寄合本堂家",
+"kind": "hatamoto",
+"subs": [],
+"provinces": [
+"常陸"
+],
+"pieces": 2,
+"area_km2": 47.6,
+"share": 0.00016
+},
+{
+"lord": "伊勢神戸藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"河内",
+"伊勢"
+],
+"pieces": 9,
+"area_km2": 47.4,
+"share": 0.00016
+},
+{
+"lord": "越後三根山藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"越後"
+],
+"pieces": 2,
+"area_km2": 46.1,
+"share": 0.00016
+},
+{
+"lord": "播磨山崎藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"播磨"
+],
+"pieces": 1,
+"area_km2": 46.1,
+"share": 0.00016
+},
+{
+"lord": "肥前鹿島藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"肥前"
+],
+"pieces": 2,
+"area_km2": 45.5,
+"share": 0.00016
+},
+{
+"lord": "高家大沢家",
+"kind": "hatamoto",
+"subs": [],
+"provinces": [
+"遠江"
+],
+"pieces": 4,
+"area_km2": 44.9,
+"share": 0.00015
+},
+{
+"lord": "下総生実藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"下総",
+"上総",
+"相模"
+],
+"pieces": 7,
+"area_km2": 44.7,
+"share": 0.00015
+},
+{
+"lord": "和泉伯太藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"和泉",
+"河内",
+"近江"
+],
+"pieces": 12,
+"area_km2": 44.2,
+"share": 0.00015
+},
+{
+"lord": "安房船形藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"安房",
+"下総"
+],
+"pieces": 5,
+"area_km2": 40.9,
+"share": 0.00014
+},
+{
+"lord": "美濃大垣新田藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"三河",
+"美濃"
+],
+"pieces": 11,
+"area_km2": 39.7,
+"share": 0.00014
+},
+{
+"lord": "近江仁正寺藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"近江"
+],
+"pieces": 14,
+"area_km2": 38.7,
+"share": 0.00013
+},
+{
+"lord": "播磨小野藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"播磨"
+],
+"pieces": 2,
+"area_km2": 37.5,
+"share": 0.00013
+},
+{
+"lord": "美濃高富藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"美濃",
+"下野"
+],
+"pieces": 10,
+"area_km2": 34.5,
+"share": 0.00012
+},
+{
+"lord": "播磨林田藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"播磨"
+],
+"pieces": 3,
+"area_km2": 34.1,
+"share": 0.00012
+},
+{
+"lord": "下野吹上藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"下野",
+"伊勢"
+],
+"pieces": 11,
+"area_km2": 34.1,
+"share": 0.00012
+},
+{
+"lord": "常陸下妻藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"下野",
+"常陸",
+"武蔵"
+],
+"pieces": 13,
+"area_km2": 33.5,
+"share": 0.00011
+},
+{
+"lord": "近江宮川藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"近江"
+],
+"pieces": 19,
+"area_km2": 33.3,
+"share": 0.00011
+},
+{
+"lord": "越後三日市藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"越後"
+],
+"pieces": 4,
+"area_km2": 32.7,
+"share": 0.00011
+},
+{
+"lord": "出羽天童藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"羽前"
+],
+"pieces": 9,
+"area_km2": 30.5,
+"share": 0.0001
+},
+{
+"lord": "大和柳本藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"大和"
+],
+"pieces": 8,
+"area_km2": 30.4,
+"share": 0.0001
+},
+{
+"lord": "上総請西藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"上総",
+"上野"
+],
+"pieces": 10,
+"area_km2": 28.5,
+"share": 0.0001
+},
+{
+"lord": "備中生坂藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"備中"
+],
+"pieces": 4,
+"area_km2": 27.9,
+"share": 0.0001
+},
+{
+"lord": "河内丹南藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"河内",
+"下野"
+],
+"pieces": 8,
+"area_km2": 25.2,
+"share": 9e-05
+},
+{
+"lord": "備中浅尾藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"備中"
+],
+"pieces": 5,
+"area_km2": 22.3,
+"share": 8e-05
+},
+{
+"lord": "大和櫛羅藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"大和"
+],
+"pieces": 6,
+"area_km2": 13.3,
+"share": 5e-05
+},
+{
+"lord": "大和小泉藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"大和",
+"和泉",
+"摂津",
+"山城",
+"河内"
+],
+"pieces": 6,
+"area_km2": 12.7,
+"share": 4e-05
+},
+{
+"lord": "不明",
+"kind": "unknown",
+"subs": [],
+"provinces": [
+"武蔵",
+"出雲"
+],
+"pieces": 3,
+"area_km2": 12.3,
+"share": 4e-05
+},
+{
+"lord": "大和芝村藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"大和",
+"摂津"
+],
+"pieces": 8,
+"area_km2": 12.1,
+"share": 4e-05
+},
+{
+"lord": "宮家領",
+"kind": "court",
+"subs": [],
+"provinces": [
+"山城"
+],
+"pieces": 4,
+"area_km2": 10.1,
+"share": 3e-05
+},
+{
+"lord": "土佐高知新田藩",
+"kind": "han",
+"subs": [],
+"provinces": [
+"上総",
+"下野"
+],
+"pieces": 3,
+"area_km2": 9.5,
+"share": 3e-05
+},
+{
+"lord": "交代寄合平野家",
+"kind": "hatamoto",
+"subs": [],
+"provinces": [
+"大和"
+],
+"pieces": 1,
+"area_km2": 4.8,
+"share": 2e-05
+}
+]
