@@ -64,10 +64,14 @@ function scene14(p, D) {
   const turn = pageTurn(p, D - .1, .6, 'in');
 
   // the close shot: where her hands are (of her feet) when the kitten is in them, and the sides of its rise
-  mk('rect', { x: -100, y: -200, width: 200, height: 180 }, mk('clipPath', { id: 's14kit' }, B.stage));   // held, the kitten's lower body (the grass box of the scan) is cut off, behind her hand
-  const HAND = [-70, -158], CS = 2.0,
-    CLIP14 = mk('clipPath', { id: 's14woman' }, B.stage), hop = u => Math.sin(Math.PI * u);
-  mk('rect', { x: -200, y: -400, width: 300, height: 440 }, CLIP14);   // her piece carries a chunk of p27's hill ink on its right (local x > 100): cut it off, and keep it out of the close frame
+  // In the close shot two bodies are cut: held, the kitten's lower body (the grass box of the scan, local y > -20) is
+  // behind her hand; her piece carries a chunk of p27's hill ink on its right (local x > 100). The cut copies are baked
+  // (img/cut/*-c14.webp, tools/millions-of-cats/clip14.py) and swapped in: a live clip-path on these big images made
+  // Firefox redraw them in software every frame (100-400 ms frames).
+  const cutBody = pp => [pp.part.body, pp.shade.body].map(g => { const im = g.firstChild, c = im.cloneNode();
+    c.setAttribute('href', im.getAttribute('href').replace('.webp', '-c14.webp')); g.appendChild(c); return [im, c]; });
+  const cut14 = [...cutBody(womanB), ...cutBody(kitten)];
+  const HAND = [-70, -158], CS = 2.0, hop = u => Math.sin(Math.PI * u);
 
   stopClock(D, (q, f) => {
     const onA = q < TP, onC = q >= TP && q < T2 || q >= TE, late = q >= TE;
@@ -97,8 +101,8 @@ function scene14(p, D) {
       // which shot: the kitten's (on the mound) or the speakers' (blank paper)
       const speakW = (q >= W1 && q < K1) || (q >= W2 && q < M1), speakM = (q >= M1 && q < K2) || (q >= M2 && q < K3) || (q >= M3 && q < K4);
       vis(womanB.g, speakW || onC); vis(manB.g, speakM);
-      for (const e of [womanB.part.body, womanB.shade.body]) e.setAttribute('clip-path', onC ? 'url(#s14woman)' : 'none');
-      for (const e of [kitten.part.body, kitten.shade.body]) e.setAttribute('clip-path', onC ? 'url(#s14kit)' : 'none'); vis(kitten.g, onC || (!speakW && !speakM));
+      for (const [whole, cut] of cut14) { vis(whole, !onC); vis(cut, onC); }
+      vis(kitten.g, onC || (!speakW && !speakM));
       // her hands take the kitten: she bends to it, it rises into her arms and she straightens with it
       if (onC) {
         const u = late ? span(q, TE + .1, TE + .8) : 0, st = late ? span(q, TE + .4, TE + 1.1) : 0, wx = 987, wy = 700;
