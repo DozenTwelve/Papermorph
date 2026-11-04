@@ -12,19 +12,19 @@ const PRE16 = .5;
 
 const s16T = t => PRE16 + t;
 const s16M = m => markAt('scene16', PRE16, m);
-const s16CUT = [.12, 2.5, 3.6, 3.6, 7.584, 15.284].map(s16T);   // cuts: wide | woman | cat | (her second shot, gone in cut 3) | man | wide | cat
-const s16TURN = s16T(18.234);                                  // covered here, in the hole sleep16
-const s16SAY = [[.22, 2.4], [3.95, 7.242], [8.624, 17.284]];       // when her / his own voice is speaking (clip seconds)
+const s16CUT = [.021, 2.136, 2.861, 2.861, 6.763, 16.65].map(s16T);   // cuts: wide | woman | cat | (her second shot, gone in cut 3) | man | wide | cat
+const s16TURN = s16T(19.025);                                  // covered here, in the hole sleep16
+const s16SAY = [[.126, 2.08], [3.068, 6.441], [7.796, 16.95]];       // when her / his own voice is speaking (clip seconds)
 const s16talk = (q, i) => { const [a, b] = s16SAY[i]; return q >= s16T(a) && q < s16T(b) ? Math.abs(Math.sin((q - s16T(a)) * 8.4)) : 0; };
 // the refrain's words, in time: the five numbers on their marks, the little words on the words file's times
 // each little word is the nearest number's mark plus the gap between their word times in m14b's words file
 // (narration.en.words.txt: hundreds 14.39, of 14.77, cats 14.88, thousands 15.45, of 15.88, cats 15.99, millions 16.59, and 17.13,
 // billions 17.26, and 17.69, trillions 17.77, of 18.24, cats 18.36, and 18.96, not 19.1), so a re-joined clip moves them with the marks
-const s16RF = [['rf-hundreds', 'm14b.hun', 0], ['rf-of1', 'm14b.hun', .38], ['rf-cats4', 'm14b.hun', .49],
-  ['rf-thousands', 'm14b.thou', 0], ['rf-of2', 'm14b.thou', .43], ['rf-cats5', 'm14b.thou', .54],
-  ['rf-millions', 'm14b.mil', 0], ['rf-and2', 'm14b.mil', .54],
-  ['rf-billions', 'm14b.bil', 0], ['rf-and3', 'm14b.bil', .43],
-  ['rf-trillions', 'm14b.tril', 0], ['rf-of3', 'm14b.tril', .47], ['rf-cats6', 'm14b.tril', .59]];
+const s16RF = [['rf-hundreds', 'm14b.hun', 0], ['rf-of1', 'm14b.hun', .5], ['rf-cats4', 'm14b.hun', .76],
+  ['rf-thousands', 'm14b.thou', 0], ['rf-of2', 'm14b.thou', .242], ['rf-cats5', 'm14b.thou', .682],
+  ['rf-millions', 'm14b.mil', 0], ['rf-and2', 'm14b.mil', .261],
+  ['rf-billions', 'm14b.bil', 0], ['rf-and3', 'm14b.bil', .38],
+  ['rf-trillions', 'm14b.tril', 0], ['rf-of3', 'm14b.tril', .4], ['rf-cats6', 'm14b.tril', .88]];
 const s16NOT = () => s16M('m14b.not');
 
 sfx('scene16', 0, 'fire', .3, { loop: true, to: s16TURN });
@@ -32,9 +32,9 @@ sfx('scene16', .05, 'page', .8);
 for (let k = 0; k < 7; k++) sfx('scene16', +(.3 + k * 2.9).toFixed(2), 'rock', .2);
 for (let k = 0; k < 6; k++) sfx('scene16', +(1.5 + k * 3.4).toFixed(2), 'rock', .16);
 sfx('scene16', s16CUT[1], 'purr', .22);
-sfx('scene16', s16T(1.0), 'mew1', .25);
+sfx('scene16', s16T(1.062), 'mew1', .25);
 for (const [m, v] of [['m14b.hun', .2], ['m14b.thou', .28], ['m14b.mil', .36], ['m14b.bil', .42], ['m14b.tril', .5]]) sfx('scene16', s16M(m), 'mews', v);
-sfx('scene16', s16T(15.034), 'chime', .3); sfx('scene16', s16T(15.384), 'purr', .25);
+sfx('scene16', s16T(16.461), 'chime', .3); sfx('scene16', s16T(16.697), 'purr', .25);
 sfx('scene16', s16TURN - .5, 'page', .5);
 
 function scene16(p, D) {
@@ -47,7 +47,7 @@ function scene16(p, D) {
    .cut({ x: 770, y: 585, z: 3.3 }, s16CUT[1]).to({ x: 760, y: 590, z: 3.5 }, s16CUT[1], s16CUT[2] - s16CUT[1])      // the cat and its yarn
    .cut({ x: 1020, y: 345, z: 2.5 }, s16CUT[3]).to({ x: 1020, y: 355, z: 2.75 }, s16CUT[3], s16CUT[4] - s16CUT[3])  // him, m14
    .cut({ x: 820, y: 470, z: 1.6 }, s16CUT[4]).to({ x: 820, y: 460, z: 1.35 }, s16CUT[4], 1.2)                      // pull back: the refrain
-   .to({ x: 820, y: 470, z: 1.3 }, s16T(8.884), s16T(14.884) - s16T(8.884))
+   .to({ x: 820, y: 470, z: 1.3 }, s16T(8.126), s16T(16.202) - s16T(8.126))
    .cut({ x: 775, y: 590, z: 3.0 }, s16CUT[5]).to({ x: 765, y: 592, z: 3.6 }, s16CUT[5], s16TURN - s16CUT[5]);       // the cat, "pretty as this one"
   const wAt = pagePos('p33', 'woman33'), mAt = pagePos('p33', 'man33'), cAt = pagePos('p33', 'cat33');
   const woman = cutPuppet(A.stage, 'woman33'), man = cutPuppet(A.stage, 'man33'), cat = cutPuppet(A.stage, 'cat33');

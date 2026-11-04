@@ -4,7 +4,7 @@
    4 "They could not see a single cat!": hold on the empty window (stare12), then the page turn. */
 'use strict';
 const PRE12 = .5;
-const s12_PEEP = markAt('scene12', PRE12, 'n10c.peeped'), s12_NOISE = PRE12 + 3.36, s12_LAST = clipAt('scene12', PRE12, 'n10d'), s12_STARE = clipAt('scene12', PRE12, 'stare12');
+const s12_PEEP = markAt('scene12', PRE12, 'n10c.peeped'), s12_NOISE = PRE12 + 3.161, s12_LAST = clipAt('scene12', PRE12, 'n10d'), s12_STARE = clipAt('scene12', PRE12, 'stare12');
 sfx('scene12', 0, 'room', .35, { loop: true });
 sfx('scene12', .05, 'page', .5);
 for (let t = .7; t < 15.4; t += .95) sfx('scene12', +t.toFixed(2), 'tick', .3);

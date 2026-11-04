@@ -54,9 +54,9 @@ function s13_patch(parent) {
 
 function scene13(p, D) {
   const turnOut = pageTurn(p, 0, .6, 'out');
-  const T3 = s13_C('w11b', 1.2), T4 = s13_C('m11', -.1), T5 = s13_C('n11b', 2.4), T6 = s13_C('n11c', 0);   // shot cuts
+  const T3 = s13_C('w11b', .945), T4 = s13_C('m11', -.1), T5 = s13_C('n11b', 2.668), T6 = s13_C('n11c', 0);   // shot cuts
   sfx('scene13', T4 + .15, 'whoosh', .25);
-  sfx('scene13', s13_C('n11b', 3.3), 'mew3', .3);
+  sfx('scene13', s13_C('n11b', 3.482), 'mew3', .3);
 
   const cam = paperCam(p, 'p27', { x: 1160, y: 250, z: 1.9 });
   const fx = t => s13_ride(t).x - 60, fy = t => s13_ride(t).y - 120 * s13_ride(t).s;   // the follow shot rides along the run
@@ -99,8 +99,8 @@ function scene13(p, D) {
 
     // ---- the old woman: runs down the path, pulls up, then reacts and lives ----
     const r = s13_run(q), step = Math.sin(Math.max(0, q - s13_T0) * 2 * Math.PI / .56);
-    const stress = s13_PK(q, s13_C('w11', .4), .15) + s13_PK(q, s13_C('w11', 1.15), .15) + s13_PK(q, s13_C('w11', 1.83), .2) + s13_PK(q, s13_C('w11b', .46), .12) + s13_PK(q, s13_C('w11b', .65), .12);
-    const talkW = q > s13_C('w11') && q < s13_C('w11', 2.6) || q > s13_C('w11b') && q < s13_C('w11b', 1.4) || hers;
+    const stress = s13_PK(q, s13_C('w11', .306), .15) + s13_PK(q, s13_C('w11', 1.108), .15) + s13_PK(q, s13_C('w11', 1.991), .2) + s13_PK(q, s13_C('w11b', .403), .12) + s13_PK(q, s13_C('w11b', .551), .12);
+    const talkW = q > s13_C('w11') && q < s13_C('w11', 2.537) || q > s13_C('w11b') && q < s13_C('w11b', 1.089) || hers;
     const settle = Math.max(0, 1 - (q - s13_T1) / .5);   // the pulled-up lurch dies away
     let wo;
     const sk = r.k, sf = r.f;
@@ -108,15 +108,15 @@ function scene13(p, D) {
     else wo = { x: wAt.x, y: wAt.y - 2.5 * breathe * (q < s13_T1 ? 0 : 1) - (q > s13_T1 && q < s13_T1 + .4 ? 10 * Math.sin((q - s13_T1) / .4 * Math.PI) : 0),
       s: 1, rot: q < s13_T1 ? 0 : -3 * settle + 1.2 * Math.sin(q * 1.3) + (talkW && q < D ? -2 * stress : 0),
       sq: 1 + .012 * breathe + (talkW ? .012 * Math.abs(Math.sin(q * 9)) : 0),
-      parts: { armL: 6 + 3 * Math.sin(q * 1.4) + 15 * stress + (talkW ? 6 * Math.sin(q * 6) : 0) + (wait && !hers ? 4 * Math.sin(q * 2.1) : 0), head: (q < T4 ? 3 * Math.sin(q * 5) * (q > s13_C('w11b') && q < s13_C('w11b', 1.5) ? 1 : .25) + 4 * stress : 0) + 2.5 * Math.sin(q * .9 + 1) +
+      parts: { armL: 6 + 3 * Math.sin(q * 1.4) + 15 * stress + (talkW ? 6 * Math.sin(q * 6) : 0) + (wait && !hers ? 4 * Math.sin(q * 2.1) : 0), head: (q < T4 ? 3 * Math.sin(q * 5) * (q > s13_C('w11b') && q < s13_C('w11b', 1.16) ? 1 : .25) + 4 * stress : 0) + 2.5 * Math.sin(q * .9 + 1) +
         (wait ? (() => { const t = FIND.target && where.get(FIND.target); return t ? (t[1] < 600 ? 5 : -3) : 0; })() : 0) + (hers ? 4 * Math.sin(q * 8) : 0) } };
     woman.pose({ ...wo, flip: false }, f);
 
     // ---- the old man: stands, puffs, then swings his arm out and points; in the game it turns to what he asks for ----
-    const mT = s13_C('m11', .4);   // the swing, on "look"
+    const mT = s13_C('m11', .183);   // the swing, on "look"
     let arm;
     if (q < D) {
-      arm = 5 + 1.2 * Math.sin(q * 1.9) - 12 * span(q, T4 + .1, mT + .1) + 5 * span(q, mT + .1, mT + .45) - 14 * span(q, s13_C('n11b', 1.7), s13_C('n11b', 2.1)) * (1 - span(q, T6, T6 + .5));   // "he pointed": down toward the grass, before the cut
+      arm = 5 + 1.2 * Math.sin(q * 1.9) - 12 * span(q, T4 + .1, mT + .1) + 5 * span(q, mT + .1, mT + .45) - 14 * span(q, s13_C('n11b', 1.947), s13_C('n11b', 2.191)) * (1 - span(q, T6, T6 + .5));   // "he pointed": down toward the grass, before the cut
       armNow = arm;
     } else {
       const t = saying === 'q-me' ? null : FIND.target && where.get(FIND.target);
@@ -127,11 +127,11 @@ function scene13(p, D) {
       lean += ((tx ? Math.max(-1, Math.min(1, (tx[0] - 366) / 700)) * 2.2 : 0) - lean) * .2;
       armNow += (goal - armNow) * .28; arm = armNow + (saying ? 2.5 * Math.sin(q * 7) : 0);
     }
-    const talkM = (q > s13_C('m11') && q < s13_C('m11', 1.2)) || (q > s13_C('n11b', 1.8) && q < s13_C('n11b', 4.4)) || (saying && !hers && saying !== 'q-her');
-    const nodM = s13_PK(q, s13_C('m11', .22), .15) + s13_PK(q, s13_C('m11', .5), .15) + s13_PK(q, s13_C('n11b', 3.4), .2);   // his stressed words: But, look, grass
+    const talkM = (q > s13_C('m11') && q < s13_C('m11', .574)) || (q > s13_C('n11b', 2.011) && q < s13_C('n11b', 4.15)) || (saying && !hers && saying !== 'q-her');
+    const nodM = s13_PK(q, s13_C('m11', .076), .15) + s13_PK(q, s13_C('m11', .232), .15) + s13_PK(q, s13_C('n11b', 3.541), .2);   // his stressed words: But, look, grass
     man.pose({ x: mAt.x, y: mAt.y, flip: false, rot: .8 * Math.sin(q * 1.1) + lean * (q > D ? 1 : 0) - (talkM ? 1.2 * Math.abs(Math.sin(q * 7.5)) : 0) - 1.4 * nodM,
       sq: 1 + .012 * Math.sin(q * 2.2 + 1) + (talkM ? .013 * Math.abs(Math.sin(q * 7.5)) : 0),
-      parts: { armR: arm, head: 3 * nodM + 1.5 * Math.sin(q * 1.2) + (q > s13_C('n11b', 1.9) && q < T6 || (wait && FIND.target === kit2.g) ? 6 : 0) + (talkM ? 2 * Math.abs(Math.sin(q * 7.5)) : 0) }, hide: ['smoke'] }, f);
+      parts: { armR: arm, head: 3 * nodM + 1.5 * Math.sin(q * 1.2) + (q > s13_C('n11b', 2.071) && q < T6 || (wait && FIND.target === kit2.g) ? 6 : 0) + (talkM ? 2 * Math.abs(Math.sin(q * 7.5)) : 0) }, hide: ['smoke'] }, f);
     s13_sq(q);
 
     // ---- the kitten in the grass: always trembling a little, more when we look at it ----

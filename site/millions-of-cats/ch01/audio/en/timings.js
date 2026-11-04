@@ -513,312 +513,312 @@ window.TIMINGS = {
   ]
  },
  "m09": {
-  "dur": 4.032,
+  "dur": 2.769,
   "marks": {},
   "cues": [
    [
-    0.101,
+    0.0,
     "I never thought of that."
    ],
    [
-    2.197,
+    1.736,
     "What shall we do?"
    ]
   ]
  },
  "n09b": {
-  "dur": 3.792,
+  "dur": 3.517,
   "marks": {},
   "cues": [
    [
-    0.1,
+    0.0,
     "The very old woman thought for a while, and then she said,"
    ]
   ]
  },
  "w09b": {
-  "dur": 4.968,
+  "dur": 3.592,
   "marks": {},
   "cues": [
    [
-    0.1,
+    0.0,
     "I know!"
    ],
    [
-    1.559,
+    1.062,
     "We will let the cats decide which one we should keep."
    ]
   ]
  },
  "m09b": {
-  "dur": 1.872,
+  "dur": 1.276,
   "marks": {},
   "cues": [
    [
-    0.101,
+    0.0,
     "Oh yes!"
    ]
   ]
  },
  "n09c": {
-  "dur": 3.504,
+  "dur": 3.141,
   "marks": {},
   "cues": [
    [
-    0.1,
+    0.0,
     "said the very old man, and he called to the cats,"
    ]
   ]
  },
  "m09c": {
-  "dur": 2.688,
+  "dur": 2.027,
   "marks": {},
   "cues": [
    [
-    0.101,
+    0.0,
     "Which one of you is the prettiest?"
    ]
   ]
  },
  "i1": {
-  "dur": 1.872,
+  "dur": 0.897,
   "marks": {},
   "cues": [
    [
-    0.097,
+    0.0,
     "I am!"
    ]
   ]
  },
  "i2": {
-  "dur": 1.872,
+  "dur": 0.907,
   "marks": {},
   "cues": [
    [
-    0.097,
+    0.0,
     "I am!"
    ]
   ]
  },
  "i3": {
-  "dur": 1.896,
+  "dur": 1.653,
   "marks": {},
   "cues": [
    [
-    0.097,
+    0.0,
     "No, I am!"
    ]
   ]
  },
  "i4": {
-  "dur": 2.736,
+  "dur": 2.098,
   "marks": {},
   "cues": [
    [
-    0.097,
+    0.0,
     "No, I am the prettiest!"
    ]
   ]
  },
  "i5": {
-  "dur": 1.872,
+  "dur": 0.896,
   "marks": {},
   "cues": [
    [
-    0.097,
+    0.0,
     "I am!"
    ]
   ]
  },
  "i6": {
-  "dur": 4.968,
+  "dur": 3.296,
   "marks": {},
   "cues": [
    [
-    0.097,
+    0.0,
     "No, I am!"
    ],
    [
-    2.044,
+    1.34,
     "I am!"
    ],
    [
-    3.493,
+    2.32,
     "I am!"
    ]
   ]
  },
  "n09d": {
-  "dur": 6.912,
+  "dur": 7.78,
   "marks": {
-   "hun": 0.452,
-   "thou": 0.998,
-   "mil": 1.653,
-   "bil": 2.224,
-   "tril": 2.782
+   "hun": 0.18,
+   "thou": 1.02,
+   "mil": 1.86,
+   "bil": 2.66,
+   "tril": 3.48
   },
   "cues": [
    [
-    0.1,
+    0.0,
     "cried hundreds and thousands and millions and billions and trillions of voices, for each cat thought itself the prettiest."
    ]
   ]
  },
  "n10": {
-  "dur": 2.232,
+  "dur": 1.578,
   "marks": {
-   "quarrel": 0.889
+   "quarrel": 0.8
   },
   "cues": [
    [
-    0.1,
+    0.0,
     "And they began to quarrel."
    ]
   ]
  },
  "n10b": {
-  "dur": 8.736,
+  "dur": 9.498,
   "marks": {
-   "bit": 0.294,
-   "scratched": 0.828,
-   "clawed": 1.581,
-   "ran": 5.84
+   "bit": 0.14,
+   "scratched": 0.8,
+   "clawed": 1.62,
+   "ran": 6.8
   },
   "cues": [
    [
-    0.1,
+    0.0,
     "They bit, and scratched, and clawed each other, and made such a great noise that the very old man and the very old woman ran into the house as fast as they could."
    ]
   ]
  },
  "n10c": {
-  "dur": 8.112,
+  "dur": 7.48,
   "marks": {
-   "peeped": 5.086
+   "peeped": 4.7
   },
   "cues": [
    [
-    0.1,
+    0.0,
     "But after a while, the noise stopped."
    ],
    [
-    3.011,
+    2.617,
     "And the very old man and the very old woman peeped out of the window to see what had happened."
    ]
   ]
  },
  "n10d": {
-  "dur": 2.664,
+  "dur": 2.248,
   "marks": {},
   "cues": [
    [
-    0.1,
+    0.0,
     "They could not see a single cat!"
    ]
   ]
  },
  "w11": {
-  "dur": 2.928,
+  "dur": 2.77,
   "marks": {},
   "cues": [
    [
-    0.1,
+    0.0,
     "I think they must have eaten each other all up."
    ]
   ]
  },
  "w11b": {
-  "dur": 1.872,
+  "dur": 1.427,
   "marks": {},
   "cues": [
    [
-    0.1,
+    0.0,
     "It's too bad!"
    ]
   ]
  },
  "m11": {
-  "dur": 1.872,
+  "dur": 0.903,
   "marks": {},
   "cues": [
    [
-    0.101,
+    0.0,
     "But look!"
    ]
   ]
  },
  "n11b": {
-  "dur": 4.368,
+  "dur": 4.118,
   "marks": {},
   "cues": [
    [
-    0.1,
+    0.0,
     "said the very old man, and he pointed to a bunch of high grass."
    ]
   ]
  },
  "n12": {
-  "dur": 7.32,
+  "dur": 6.585,
   "marks": {
-   "picked": 3.654
+   "picked": 3.64
   },
   "cues": [
    [
-    0.1,
+    0.0,
     "In it sat one little frightened kitten."
    ],
    [
-    2.878,
+    2.937,
     "They went out and picked it up."
    ],
    [
-    5.171,
+    4.759,
     "It was thin and scraggly."
    ]
   ]
  },
  "w12": {
-  "dur": 1.968,
+  "dur": 1.58,
   "marks": {},
   "cues": [
    [
-    0.1,
+    0.0,
     "Poor little kitty."
    ]
   ]
  },
  "m12": {
-  "dur": 2.112,
+  "dur": 1.5,
   "marks": {},
   "cues": [
    [
-    0.101,
+    0.0,
     "Dear little kitty."
    ]
   ]
  },
  "m12b": {
-  "dur": 7.008,
+  "dur": 7.78,
   "marks": {},
   "cues": [
    [
-    0.101,
+    0.0,
     "How does it happen that you were not eaten up, with all those hundreds and thousands and millions and billions and trillions of cats?"
    ]
   ]
  },
  "k12": {
-  "dur": 3.504,
+  "dur": 3.303,
   "marks": {},
   "cues": [
    [
-    0.099,
+    0.0,
     "Oh, I'm just a very homely little cat."
    ]
   ]
  },
  "n12d": {
-  "dur": 1.872,
+  "dur": 1.048,
   "marks": {},
   "cues": [
    [
@@ -828,128 +828,128 @@ window.TIMINGS = {
   ]
  },
  "k12b": {
-  "dur": 7.344,
+  "dur": 5.833,
   "marks": {},
   "cues": [
    [
-    0.099,
+    0.0,
     "So when you asked who was the prettiest, I didn't say anything."
    ],
    [
-    4.624,
+    3.919,
     "So nobody bothered about me."
    ]
   ]
  },
  "n13": {
-  "dur": 7.344,
+  "dur": 7.546,
   "marks": {
-   "bath": 3.267,
-   "brushed": 4.36
+   "bath": 3.46,
+   "brushed": 4.62
   },
   "cues": [
    [
-    0.1,
+    0.0,
     "They took the kitten into the house, where the very old woman gave it a warm bath, and brushed its fur until it was soft and shiny."
    ]
   ]
  },
  "n13b": {
-  "dur": 4.656,
+  "dur": 4.57,
   "marks": {
-   "milk": 1.144,
-   "plump": 2.94
+   "milk": 1.12,
+   "plump": 3.3
   },
   "cues": [
    [
-    0.1,
+    0.0,
     "Every day they gave it plenty of milk, and soon it grew nice and plump."
    ]
   ]
  },
  "w14": {
-  "dur": 3.36,
+  "dur": 2.621,
   "marks": {},
   "cues": [
    [
-    0.1,
+    0.0,
     "And it is a very pretty cat, after all!"
    ]
   ]
  },
  "m14": {
-  "dur": 3.504,
+  "dur": 3.442,
   "marks": {},
   "cues": [
    [
-    0.101,
+    0.0,
     "It is the most beautiful cat in the whole world."
    ]
   ]
  },
  "m14b": {
-  "dur": 8.808,
+  "dur": 10.4,
   "marks": {
-   "hun": 1.59,
-   "thou": 2.651,
-   "mil": 3.787,
-   "bil": 4.457,
-   "tril": 4.974,
-   "not": 6.161
+   "hun": 1.62,
+   "thou": 3.178,
+   "mil": 4.659,
+   "bil": 5.42,
+   "tril": 6.24,
+   "not": 8.036
   },
   "cues": [
    [
-    0.101,
+    0.0,
     "I ought to know, for I've seen hundreds of cats, thousands of cats, millions and billions and trillions of cats, and not one was as pretty as this one."
    ]
   ]
  },
  "n11c": {
-  "dur": 4.944,
+  "dur": 4.12,
   "marks": {},
   "cues": [
    [
-    0.1,
+    0.0,
     "Can you find the kitten?"
    ],
    [
-    2.065,
+    1.74,
     "Listen, and touch what he asks for."
    ]
   ]
  },
  "w-kitten": {
-  "dur": 1.872,
+  "dur": 0.67,
   "marks": {},
   "cues": [
    [
-    0.1,
+    0.0,
     "kitten"
    ]
   ]
  },
  "w-house": {
-  "dur": 1.872,
+  "dur": 0.755,
   "marks": {},
   "cues": [
    [
-    0.1,
+    0.0,
     "house"
    ]
   ]
  },
  "w-cloud": {
-  "dur": 1.872,
+  "dur": 0.898,
   "marks": {},
   "cues": [
    [
-    0.1,
+    0.0,
     "cloud"
    ]
   ]
  },
  "w-grass": {
-  "dur": 1.872,
+  "dur": 0.901,
   "marks": {},
   "cues": [
    [
@@ -959,143 +959,143 @@ window.TIMINGS = {
   ]
  },
  "w-smoke": {
-  "dur": 1.872,
+  "dur": 0.819,
   "marks": {},
   "cues": [
    [
-    0.1,
+    0.0,
     "smoke"
    ]
   ]
  },
  "q-house": {
-  "dur": 3.744,
+  "dur": 2.318,
   "marks": {},
   "cues": [
    [
-    0.101,
+    0.0,
     "Can you find the house?"
    ],
    [
-    2.26,
+    1.644,
     "Touch it!"
    ]
   ]
  },
  "q-cloud": {
-  "dur": 2.16,
+  "dur": 1.576,
   "marks": {},
   "cues": [
    [
-    0.101,
+    0.0,
     "Can you find a cloud?"
    ]
   ]
  },
  "q-kitten": {
-  "dur": 3.048,
+  "dur": 2.178,
   "marks": {},
   "cues": [
    [
-    0.101,
+    0.0,
     "Now, can you find the little kitten?"
    ]
   ]
  },
  "r-house": {
-  "dur": 1.944,
+  "dur": 1.209,
   "marks": {},
   "cues": [
    [
-    0.101,
+    0.0,
     "Where's the house?"
    ]
   ]
  },
  "r-cloud": {
-  "dur": 1.872,
+  "dur": 1.21,
   "marks": {},
   "cues": [
    [
-    0.101,
+    0.0,
     "Where's a cloud?"
    ]
   ]
  },
  "r-kitten": {
-  "dur": 1.92,
+  "dur": 1.207,
   "marks": {},
   "cues": [
    [
-    0.101,
+    0.0,
     "Where's the kitten?"
    ]
   ]
  },
  "q-me": {
-  "dur": 1.704,
+  "dur": 0.978,
   "marks": {},
   "cues": [
    [
-    0.101,
+    0.0,
     "That's me!"
    ]
   ]
  },
  "q-her": {
-  "dur": 1.872,
+  "dur": 0.899,
   "marks": {},
   "cues": [
    [
-    0.1,
+    0.0,
     "That's me!"
    ]
   ]
  },
  "q-done": {
-  "dur": 3.6,
+  "dur": 2.1,
   "marks": {},
   "cues": [
    [
-    0.101,
+    0.0,
     "There it is!"
    ],
    [
-    1.831,
+    1.055,
     "You found it!"
    ]
   ]
  },
  "q-there": {
-  "dur": 3.24,
+  "dur": 1.575,
   "marks": {},
   "cues": [
    [
-    0.101,
+    0.0,
     "Look!"
    ],
    [
-    1.503,
+    0.62,
     "There it is!"
    ]
   ]
  },
  "w-old-man": {
-  "dur": 1.872,
+  "dur": 1.125,
   "marks": {},
   "cues": [
    [
-    0.1,
+    0.0,
     "old man"
    ]
   ]
  },
  "w-old-woman": {
-  "dur": 1.872,
+  "dur": 1.21,
   "marks": {},
   "cues": [
    [
-    0.1,
+    0.0,
     "old woman"
    ]
   ]
