@@ -1,0 +1,1 @@
+window.ART = {"semper":[952,1412],"viceroy":[841,1344],"mallewagen":[1712,1279],"brueghel":[1312,879],"clusius":[913,1112],"busbecq":[803,1112],"mackay":[703,1012],"tavern":[1112,817],"ships":[1392,782],"alkmaar":[1512,1001],"hortus":[1600,1249],"blaeu":[1500,1271],"tooneel":[1115,1412],"waermondt":[779,1312]};

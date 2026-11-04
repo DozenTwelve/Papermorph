@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tulip Mania</title>
+<meta name="description" content="A three-minute documentary, told in maps, about the Dutch tulip bubble of 1636–37.">
+<link rel="stylesheet" href="lib/book.css"><link rel="stylesheet" href="lib/fonts.css"><!-- only for --progress-key, if the book sets one -->
+<!-- A picture book's or a film's landing page. A starting point, not a design: give it the book's own look.
+     The page is for one thing, pressing play, so the hero carries the action: its picture and its button open the
+     first episode, and both work without scripting. With one episode the hero is the film and no list is drawn;
+     with two or more, the list below shows each episode as a row. The hero's picture (img/cover.webp) is not shown
+     again: when the series has a list, give the first episode a still of its own, a different frame. -->
+<style>
+  :root { --ink: #f3ede0; --soft: #b9c4cf; --paper: #1d2a3a; --card: #172230; --line: #33455a; --accent: #e8664a;
+    --on-ink: #1d2a3a; --ink-hover: #ffffff; --shadow: #00000066; --select: #e8664a55;
+    --ui: "Oswald", "Arial Narrow", sans-serif; --serif: "EB Garamond", Georgia, serif; color-scheme: dark; }
+  .credits { max-width: 72ch; color: var(--soft); font: 16px/1.5 var(--serif); padding-left: 1.2em; }
+  .credits a { color: var(--ink); }
+  * { box-sizing: border-box; }
+  html, body { overflow-x: clip; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 18px/1.6 var(--ui); }
+  ::selection { background: var(--select); }
+  a { color: var(--accent); }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+  h1, h2 { text-wrap: balance; overflow-wrap: break-word; min-width: 0; } p { text-wrap: pretty; }
+  .hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 40px; align-items: center; max-width: 1180px; margin: 0 auto; padding: 48px 24px 40px; }
+  .cover { display: block; border-radius: 10px; }
+  .cover img { display: block; width: 100%; height: auto; border-radius: 10px; box-shadow: 0 14px 40px var(--shadow); }
+  .back { display: inline-block; margin: -10px 0 8px; padding: 10px 0; font-size: 15px; color: var(--soft); text-decoration: none; }
+  .back:hover { color: var(--ink); }
+  h1 { margin: 0 0 8px; font: 700 clamp(34px, 4.6vw, 56px)/1.05 var(--serif); }
+  .lede { margin: 0; font-size: 20px; color: var(--soft); }
+  .action { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 24px 0 0; color: var(--soft); font-size: 16px; }
+  .watch { display: inline-flex; align-items: center; gap: 10px; padding: 14px 26px; border-radius: 99px; background: var(--ink); color: var(--on-ink); font-weight: 600; text-decoration: none; white-space: nowrap; }
+  .watch:hover { background: var(--ink-hover); }
+  .watch:active { transform: translateY(1px); }
+  .watch:focus-visible { border-radius: 99px; }
+  .watch svg { width: 11px; height: 13px; fill: currentColor; }
+  .seen { color: var(--accent); font-style: normal; }
+  main { max-width: 1180px; margin: 0 auto; padding: 8px 24px 80px; }
+  h2 { margin: 40px 0 16px; font: 700 32px/1.2 var(--serif); }
+  .episodes { list-style: none; padding: 0; margin: 0; display: grid; gap: 16px; }
+  .episodes a { display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr); align-items: center; gap: 0 28px; background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    overflow: hidden; color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; }
+  .episodes a:hover, .episodes a:focus-visible { border-color: var(--accent); transform: translateY(-2px); }
+  .episodes a:active { transform: translateY(0); }
+  .episodes a:focus-visible { border-radius: 10px; }
+  .episodes img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
+  .episodes div { padding: 16px 24px 16px 0; }
+  .episodes small, .episodes b, .episodes span, .episodes .seen { display: block; }
+  .episodes small { color: var(--soft); font-size: 15px; }
+  .episodes b { margin: 2px 0 4px; font: 700 24px/1.25 var(--serif); text-wrap: balance; }
+  .episodes span { max-width: 60ch; color: var(--soft); font-size: 16px; line-height: 1.5; }
+  .episodes .seen { margin-top: 6px; font-size: 15px; }
+  @media (prefers-reduced-motion: reduce) { .episodes a, .watch { transition: none; } .episodes a:hover, .episodes a:focus-visible, .episodes a:active, .watch:active { transform: none; } }
+  @media (max-width: 760px) { .hero { grid-template-columns: minmax(0, 1fr); padding-top: 28px; gap: 24px; } .episodes a { grid-template-columns: minmax(0, 1fr); } .episodes div { padding: 12px 16px 16px; } }
+</style>
+</head>
+<body>
+<header class="hero">
+  <a class="cover" href="ch01/" tabindex="-1"><img src="img/cover.webp" width="1400" height="788" alt="A paper map of Holland with five red dots for the tulip towns, Haarlem, Amsterdam, Leiden, Alkmaar and Utrecht, and the word Windhandel, the wind trade."></a>
+  <div>
+    <a class="back" href="../">← Back to the bookshelf</a>
+    <h1>Tulip Mania</h1>
+    <p class="lede">The most famous bubble in history, on the map: how a flower from the sultans' gardens set a few Dutch towns bidding, one winter, and how the legend outgrew it.</p>
+    <p class="action"><a class="watch" href="ch01/"><svg viewBox="0 0 11 13" aria-hidden="true"><path d="M0 0l11 6.5L0 13z"/></svg>Watch the film</a>
+      <span>3 minutes</span> <em class="seen" id="seen" hidden>✓ Watched</em></p>
+  </div>
+</header>
+<main>
+  <section id="list" hidden>
+    <h2>Episodes</h2>
+    <ol class="episodes" id="episodes"></ol>
+  </section>
+  <section>
+    <h2>Sources</h2>
+    <p class="credits" style="padding:0">Prices and dates: Anne Goldgar, <i>Tulipmania: Money, Honor, and Knowledge in the Dutch Golden Age</i> (2007); Maarten Prak, <i>The Dutch Republic in the Seventeenth Century</i> (2005); the Alkmaar sale list of 5 February 1637. The sailor and the onion: Charles Mackay, <i>Memoirs of Extraordinary Popular Delusions</i> (1841).</p>
+    <h2>Pictures, music and maps</h2>
+    <ul class="credits">
+<li><a href="https://commons.wikimedia.org/wiki/File:Semper_Augustus_Tulip_17th_century.jpg">Semper Augustus Tulip 17th century</a>, Unknown artist, before 1640. Public domain.</li>
+<li><a href="https://commons.wikimedia.org/wiki/File:Tulipomania.jpg">Tulipomania</a>, P. Cos, 1637. Public domain.</li>
+<li><a href="https://commons.wikimedia.org/wiki/File:Flora%27s_Wagon_of_Fools_(Flora%27s_Mallewagen)_tulipomania,_Hendrik_Gerritsz_Pot_c1637.jpg">Flora&#x27;s Wagon of Fools (Flora&#x27;s Mallewagen) tulipomania, Hendrik Gerritsz Pot c1637</a>, Hendrik Gerritsz Pot, circa 1637. Public domain.</li>
+<li><a href="https://commons.wikimedia.org/wiki/File:Jan_Brueghel_the_Younger,_Satire_on_Tulip_Mania,_c._1640.jpg">Jan Brueghel the Younger, Satire on Tulip Mania, c. 1640</a>, Jan Brueghel the Younger, circa 1640. Public domain.</li>
+<li><a href="https://commons.wikimedia.org/wiki/File:Carolus_Clusius_by_Martin_Rota.jpg">Carolus Clusius by Martin Rota</a>, Martin Rota Kolunic (Martinus Rota) c. 1540-1583, 1575. Public domain.</li>
+<li><a href="https://commons.wikimedia.org/wiki/File:Bildnis_des_Kais_Gesandten_Busbecq_von_M_Lorichs_-_Lorck_Melchior_-_1559.jpg">Bildnis des Kais Gesandten Busbecq von M Lorichs - Lorck Melchior - 1559</a>, Melchior Lorck, 1559. Public domain.</li>
+<li><a href="https://commons.wikimedia.org/wiki/File:Mackay_1841_edition_front_page.png">Mackay 1841 edition front page</a>, Charles Mackay, 1841. Public domain.</li>
+<li><a href="https://commons.wikimedia.org/wiki/File:Adriaen_van_Ostade_-_Interior_of_a_Tavern_-_NMH_2138-1863_-_Nationalmuseum.jpg">Adriaen van Ostade - Interior of a Tavern - NMH 2138-1863 - Nationalmuseum</a>, Adriaen van Ostade, between 1640 and 1649. Public domain.</li>
+<li><a href="https://commons.wikimedia.org/wiki/File:Hendrick_Cornelisz._Vroom_001.jpg">Hendrick Cornelisz. Vroom 001</a>, Hendrick Cornelisz Vroom, between circa 1630 and circa 1640. Public domain.</li>
+<li><a href="https://commons.wikimedia.org/wiki/File:Salomon_van_Ruysdael_-_View_of_Alkmaar_-_1980.12.33_-_Yale_University_Art_Gallery.jpg">Salomon van Ruysdael - View of Alkmaar - 1980.12.33 - Yale University Art Gallery</a>, Salomon van Ruysdael, 1650. Public domain.</li>
+<li><a href="https://commons.wikimedia.org/wiki/File:Hortus_botanicus_leiden.gif">Hortus botanicus leiden</a>, Willem Isaacsz Swanenburg, 1610. Public domain.</li>
+<li><a href="https://commons.wikimedia.org/wiki/File:Hollandia_Comitatus_1634.jpg">Hollandia Comitatus 1634</a>, Blaeu, W J, 1634. Public domain.</li>
+<li><a href="https://commons.wikimedia.org/wiki/File:Tooneel_van_Flora_Handel_der_Floristen_in_Amsterdam_1637_(Tulip_mania).png">Tooneel van Flora Handel der Floristen in Amsterdam 1637 (Tulip mania)</a>, Unknown, 1637, 1637. Public domain.</li>
+<li><a href="https://commons.wikimedia.org/wiki/File:Waermondt_gaergoedt_small.tif">Waermondt gaergoedt small</a>, Adrian Roman (Herausgeber), 1637. Public domain.</li>
+<li><a href="https://commons.wikimedia.org/wiki/File:Kimiko_Ishizaka_-_J.S._Bach-_-Open-_Goldberg_Variations,_BWV_988_(Piano)_-_01_Aria.mp3">Kimiko Ishizaka - J.S. Bach- -Open- Goldberg Variations, BWV 988 (Piano) - 01 Aria</a>, JS Bach and Kimiko Ishizaka, 2012. CC0.</li>
+<li><a href="https://commons.wikimedia.org/wiki/File:Kimiko_Ishizaka_-_J.S._Bach-_-Open-_Goldberg_Variations,_BWV_988_(Piano)_-_15_Variatio_14_a_2_Clav.mp3">Kimiko Ishizaka - J.S. Bach- -Open- Goldberg Variations, BWV 988 (Piano) - 15 Variatio 14 a 2 Clav</a>, JS Bach and Kimiko Ishizaka, 2012. CC0.</li>
+<li>Maps: <a href="https://www.naturalearthdata.com/">Natural Earth</a>, public domain; the 1630s Zuiderzee and Haarlem lake drawn after 17th-century maps.</li>
+<li>Narration: Microsoft Edge text to speech (en-GB-RyanNeural).</li>
+    </ul>
+  </section>
+</main>
+<script>
+'use strict';
+// One entry per finished episode, in order: its folder, title, a still (16:9) with alt text, and one line.
+// With one entry the hero is the film (say "Watch the film" and its length there); with more, the list is drawn
+// and the hero's button names the first episode ("Watch episode 1").
+const EPISODES = [
+  { ch: 'ch01', title: 'Tulip Mania', minutes: 3, still: 'img/cover.webp', alt: 'A paper map of Holland with the tulip towns.', line: 'The Dutch tulip bubble of 1636–37, told in maps.' },
+];
+// The player records finished episodes under the same key as here (engine progress(): lib/book.css --progress-key,
+// else this folder's path).
+const key = getComputedStyle(document.documentElement).getPropertyValue('--progress-key').trim().replace(/^["']|["']$/g, '')
+  || 'animebook:progress:' + new URL('.', location.href).pathname;
+let done = [];
+try { done = JSON.parse(localStorage.getItem(key) || '{}').done || []; } catch {}
+const seen = e => done.includes(+e.ch.slice(2));
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+if (EPISODES.length > 1) {
+  document.getElementById('episodes').innerHTML = EPISODES.map((e, i) => `<li><a href="${e.ch}/"><img src="${esc(e.still)}" alt="${esc(e.alt)}" loading="lazy">
+    <div><small>Episode ${i + 1}, ${e.minutes} minute${e.minutes == 1 ? '' : 's'}</small><b>${esc(e.title)}</b><span>${esc(e.line)}</span>${seen(e) ? '<em class="seen">✓ Watched</em>' : ''}</div></a></li>`).join('');
+  document.getElementById('list').hidden = false;
+} else if (EPISODES[0] && seen(EPISODES[0])) document.getElementById('seen').hidden = false;
+</script>
+</body>
+</html>

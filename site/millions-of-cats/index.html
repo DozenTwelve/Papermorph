@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Millions of Cats</title>
-<meta name="description" content="One line about the series.">
+<meta name="description" content="Wanda Gág's 1928 picture book Millions of Cats as a short narrated film, made from her own drawings lifted from the scanned pages.">
 <link rel="stylesheet" href="lib/book.css"><!-- only for --progress-key, if the book sets one -->
 <!-- A picture book's or a film's landing page. A starting point, not a design: give it the book's own look.
      The page is for one thing, pressing play, so the hero carries the action: its picture and its button open the
@@ -52,6 +52,23 @@
   .episodes span { max-width: 60ch; color: var(--soft); font-size: 16px; line-height: 1.5; }
   .episodes .seen { margin-top: 6px; font-size: 15px; }
   @media (prefers-reduced-motion: reduce) { .episodes a, .watch { transition: none; } .episodes a:hover, .episodes a:focus-visible, .episodes a:active, .watch:active { transform: none; } }
+  .making { max-width: 900px; margin: 0 auto; }
+  .making p, .making li { max-width: 72ch; }
+  .making h2 { font-size: 28px; }
+  .pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: center; margin: 18px 0 6px; }
+  .pair img { display: block; width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--line); }
+  figure { margin: 0 0 26px; }
+  figcaption { margin-top: 8px; color: var(--soft); font-size: 15px; }
+  .numbers { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 18px 0; }
+  .numbers div { padding: 14px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; text-align: center; }
+  .numbers b { display: block; font: 700 28px/1.1 var(--serif); }
+  .numbers span { font-size: 14px; color: var(--soft); }
+  .read-link { color: var(--ink); font-weight: 600; }
+  .book { max-width: 1100px; margin: 0 auto; }
+  .book > p { max-width: 72ch; color: var(--soft); }
+  .pages { display: grid; gap: 22px; margin-top: 24px; }
+  .pages img { display: block; width: 100%; height: auto; border-radius: 4px; background: var(--card); box-shadow: 0 6px 24px var(--shadow); }
+  @media (max-width: 760px) { .pair { grid-template-columns: minmax(0, 1fr); } .pages { gap: 12px; } }
   @media (max-width: 760px) { .hero { grid-template-columns: minmax(0, 1fr); padding-top: 28px; gap: 24px; } .episodes a { grid-template-columns: minmax(0, 1fr); } .episodes div { padding: 12px 16px 16px; } }
 </style>
 </head>
@@ -63,7 +80,7 @@
     <h1>Millions of Cats</h1>
     <p class="lede">Wanda Gág's 1928 picture book, read aloud and brought to life with her own drawings: a very old man goes to fetch one cat and comes home with millions. For children of four to eight, and anyone who loves the book.</p>
     <p class="action"><a class="watch" href="ch01/"><svg viewBox="0 0 11 13" aria-hidden="true"><path d="M0 0l11 6.5L0 13z"/></svg>Watch the film</a>
-      <span>7 minutes</span> <em class="seen" id="seen" hidden>✓ Watched</em></p>
+      <span>7 minutes</span> <a class="read-link" href="#read">Read the 1928 book</a> <em class="seen" id="seen" hidden>✓ Watched</em></p>
   </div>
 </header>
 <main>
@@ -71,10 +88,82 @@
     <h2>Episodes</h2>
     <ol class="episodes" id="episodes"></ol>
   </section>
+  <section class="making" aria-labelledby="making-title">
+    <h2 id="making-title">How it was made</h2>
+    <p>Nothing in this film was drawn for it from scratch. Every set, every figure and the hand lettering of the refrain come off the pages of a scan of the 1928 book: each figure is cut out of its page along Gág's own lines, and the page under it becomes the set. The words are hers too, nearly all of them: one sentence is left out ("They did not like such quarreling.") and most of the "said the very old man"s, since the voices say who is talking.</p>
+    <figure>
+      <div class="pair">
+        <img src="making/scan-p09.webp" width="800" height="613" alt="The scanned page: the refrain lettered by hand on a blank page, no picture." loading="lazy">
+        <img src="making/film-refrain.webp" width="800" height="450" alt="The film: the first line of the refrain in Gág's own letters, cats from other pages popping up below it." loading="lazy">
+      </div>
+      <figcaption>The refrain's page in the book (left) and in the film: her letters come in word by word as the narrator says them, and cats cut from her other pages pop up here, there and everywhere.</figcaption>
+    </figure>
+    <h2>Paper puppets</h2>
+    <p>The lifted figures are cut again into parts, a head, an arm, a tail, and pinned at the joints, so the very old man can lift his arms, bend for a kitten and walk the hills, and the very old woman can brush and point. The page itself moves where the story says it changes: the pond the cats drink dry and the grass they eat are separate layers that go away bit by bit. What the pages never show in motion, the curl of smoke from his pipe and a cat walking on four legs, is drawn in code in black ink and cream, to sit in Gág's line.</p>
+    <figure>
+      <div class="pair">
+        <img src="making/scan-p29.webp" width="800" height="613" alt="The scanned page: the very old woman brushes the kitten by a bowl of warm water, the very old man watching." loading="lazy">
+        <img src="making/film-bath.webp" width="800" height="450" alt="The film: close on the bath, the brush in her hand, the kitten on her lap, ink steam rising from the bowl." loading="lazy">
+      </div>
+      <figcaption>The bath in the book (left) and in the film, closer, with the steam drawn in ink.</figcaption>
+    </figure>
+    <h2>Where an image model came in</h2>
+    <p>Only to fill holes. When a figure is lifted off a page, there is nothing behind it: the book never drew the wall behind the old woman or the grass under the old man's feet. Those holes were filled by an image model, asked to continue the hatching around them, and each patch was pasted back only inside its hole, so the rest of every page is Gág's own print. That took 21 low-quality pictures, some of them second tries, for $0.43.</p>
+    <h2>Voices, music and sound</h2>
+    <p>Eight ElevenLabs voices: a narrator, the very old man, the very old woman, the homely kitten, and four voices pitched up and doubled into the crowd of cats ("I am!" "No, I am!"). Every word is timed, and the times drive the captions and the refrain's letters. The music is an original waltz composed in code for this film, with a slower night version for the evening at home; the mews, the purr, the wind in the grass and the rest of the sounds are synthesized too.</p>
+    <h2>Listen and find</h2>
+    <p>Once, after the quarrel, when the two old people come out and find no cats on the hill, the film waits for a child. The very old man asks for the house, then a cloud, and last for the little kitten hiding in the high grass; finding it takes the story on.</p>
+    <h2>The numbers</h2>
+    <div class="numbers">
+      <div><b>~6&frac12; min</b><span>17 scenes</span></div>
+      <div><b>32</b><span>pages of the book</span></div>
+      <div><b>1</b><span>listen-and-find</span></div>
+      <div><b>~$0.85</b><span>voices $0.42, hole patches $0.43</span></div>
+    </div>
+  </section>
+  <section class="book" id="read" aria-labelledby="read-title">
+    <h2 id="read-title">Read the book</h2>
+    <p>Wanda G&aacute;g, <i>Millions of Cats</i> (Coward-McCann, New York, 1928), in the public domain in the United States. These are the pages of the 1928 book, cover to end, from the scan at the <a href="https://archive.org/details/millionsofcatsgg">Internet Archive</a>; pages a later printing added (blurbs, the copyright page, a note on the author, the back cover) are left out.</p>
+    <div class="pages">
+    <img src="book/p01.webp" width="1600" height="1155" loading="lazy" decoding="async" alt="The cover: MILLIONS OF CATS, by Wanda Gág. The very old man strides over dark hills of red flowers, his arms full of kittens, cats running behind him.">
+    <img src="book/p03.webp" width="1600" height="1226" loading="lazy" decoding="async" alt="The title page: MILLIONS OF CATS, by Wanda Gág, Coward-McCann, New York. A kitten sits under a tall tree.">
+    <img src="book/p05.webp" width="1600" height="1226" loading="lazy" decoding="async" alt="Once upon a time there was a very old man and a very old woman. They lived in a nice clean house which had flowers all around it, except where the door was. But they couldn&#x27;t be happy because they were so very lonely.">
+    <img src="book/p06.webp" width="1600" height="1226" loading="lazy" decoding="async" alt="&quot;If we only had a cat!&quot; sighed the very old woman. &quot;A cat?&quot; asked the very old man. &quot;Yes, a sweet little fluffy cat,&quot; said the very old woman. &quot;I will get you a cat, my dear,&quot; said the very old man.">
+    <img src="book/p07.webp" width="1600" height="1226" loading="lazy" decoding="async" alt="And he set out over the hills to look for one. He climbed over the sunny hills. He trudged through the cool valleys. He walked a long, long time and at last he came to a hill which was quite covered with cats.">
+    <img src="book/p08.webp" width="1600" height="1226" loading="lazy" decoding="async" alt="Picture: The hill of cats.">
+    <img src="book/p09.webp" width="1600" height="1226" loading="lazy" decoding="async" alt="Cats here, cats there, Cats and kittens everywhere, Hundreds of cats, Thousands of cats, Millions and billions and trillions of cats.">
+    <img src="book/p10.webp" width="1600" height="1226" loading="lazy" decoding="async" alt="&quot;Oh,&quot; cried the old man joyfully, &quot;Now I can choose the prettiest cat and take it home with me!&quot; So he chose one. It was white. But just as he was about to leave, he saw another one all black and white and it seemed just as pretty as the first. So he took this one also.">
+    <img src="book/p11.webp" width="1600" height="1226" loading="lazy" decoding="async" alt="But then he saw a fuzzy grey kitten way over here which was every bit as pretty as the others so he took it too. And now he saw one way down in a corner which he thought too lovely to leave so he took this too.">
+    <img src="book/p12.webp" width="1600" height="1226" loading="lazy" decoding="async" alt="And just then, over here, the very old man found a kitten which was black and very beautiful. &quot;It would be a shame to leave that one,&quot; said the very old man. So he took it.">
+    <img src="book/p13.webp" width="1600" height="1226" loading="lazy" decoding="async" alt="And now, over there, he saw a cat which had brown and yellow stripes like a baby tiger. &quot;I simply must take it!&quot; cried the very old man, and he did.">
+    <img src="book/p14.webp" width="1600" height="1226" loading="lazy" decoding="async" alt="Picture: The old man with his arms full, the cats all round.">
+    <img src="book/p15.webp" width="1600" height="1226" loading="lazy" decoding="async" alt="So it happened that every time the very old man looked up, he saw another cat which was so pretty he could not bear to leave it, and before he knew it, he had chosen them all.">
+    <img src="book/p16.webp" width="1600" height="1226" loading="lazy" decoding="async" alt="And so he went back over the sunny hills and down through the cool valleys, to show all his pretty kittens to the very old woman. It was very funny to see those hundreds and thousands and millions and billions and trillions of cats following him.">
+    <img src="book/p17.webp" width="1600" height="1226" loading="lazy" decoding="async" alt="Picture: The procession on the winding road.">
+    <img src="book/p18.webp" width="1600" height="1226" loading="lazy" decoding="async" alt="They came to a pond. &quot;Mew, mew! We are thirsty!&quot; cried the Hundreds of cats, Thousands of cats, Millions and billions and trillions of cats.">
+    <img src="book/p19.webp" width="1600" height="1226" loading="lazy" decoding="async" alt="&quot;Well, here is a great deal of water,&quot; said the very old man. Each cat took a sip of water, and the pond was gone!">
+    <img src="book/p20.webp" width="1600" height="1226" loading="lazy" decoding="async" alt="&quot;Mew, mew! Now we are hungry!&quot; said the Hundreds of cats, Thousands of cats, Millions and billions and trillions of cats.">
+    <img src="book/p21.webp" width="1600" height="1226" loading="lazy" decoding="async" alt="&quot;There is much grass on the hills,&quot; said the very old man. Each cat ate a mouthful of grass and not a blade was left!">
+    <img src="book/p22.webp" width="1600" height="1226" loading="lazy" decoding="async" alt="Pretty soon the very old woman saw them coming. &quot;My dear!&quot; she cried, &quot;What are you doing? I asked for one little cat, and what do I see?—">
+    <img src="book/p23.webp" width="1600" height="1226" loading="lazy" decoding="async" alt="&quot;Cats here, cats there, Cats and kittens everywhere, Hundreds of cats, Thousands of cats, Millions and billions and trillions of cats.&quot;">
+    <img src="book/p24.webp" width="1600" height="1226" loading="lazy" decoding="async" alt="&quot;But we can never feed them all,&quot; said the very old woman, &quot;They will eat us out of house and home.&quot; &quot;I never thought of that,&quot; said the very old man, &quot;What shall we do?&quot; The very old woman thought for a while and then she said, &quot;I know! We will let the cats decide which one we should keep.&quot; &quot;Oh yes,&quot; said the very old man, and he called to the cats, &quot;Which one of you is the prettiest?&quot; &quot;I am!&quot; &quot;I am!&quot; &quot;No, I am!&quot; &quot;No, I am the prettiest!&quot; &quot;I am!&quot; &quot;No, I am! I am! I am!&quot; cried hundreds and thousands and millions and billions and trillions of voices, for each cat thought itself the prettiest.">
+    <img src="book/p25.webp" width="1600" height="1226" loading="lazy" decoding="async" alt="And they began to quarrel.">
+    <img src="book/p26.webp" width="1600" height="1226" loading="lazy" decoding="async" alt="They bit and scratched and clawed each other and made such a great noise that the very old man and the very old woman ran into the house as fast as they could. They did not like such quarreling. But after a while the noise stopped and the very old man and the very old woman peeped out of the window to see what had happened. They could not see a single cat!">
+    <img src="book/p27.webp" width="1600" height="1226" loading="lazy" decoding="async" alt="&quot;I think they must have eaten each other all up,&quot; said the very old woman, &quot;It&#x27;s too bad!&quot; &quot;But look!&quot; said the very old man, and he pointed to a bunch of high grass. In it sat one little frightened kitten. They went out and picked it up. It was thin and scraggly.">
+    <img src="book/p28.webp" width="1600" height="1226" loading="lazy" decoding="async" alt="&quot;Poor little kitty,&quot; said the very old woman. &quot;Dear little kitty,&quot; said the very old man, &quot;how does it happen that you were not eaten up with all those hundreds and thousands and millions and billions and trillions of cats?&quot; &quot;Oh, I&#x27;m just a very homely little cat,&quot; said the kitten, &quot;So when you asked who was the prettiest, I didn&#x27;t say anything. So nobody bothered about me.&quot;">
+    <img src="book/p29.webp" width="1600" height="1226" loading="lazy" decoding="async" alt="They took the kitten into the house, where the very old woman gave it a warm bath and brushed its fur until it was soft and shiny.">
+    <img src="book/p30.webp" width="1600" height="1226" loading="lazy" decoding="async" alt="Every day they gave it plenty of milk—">
+    <img src="book/p31.webp" width="1600" height="1226" loading="lazy" decoding="async" alt="—and soon it grew nice and plump.">
+    <img src="book/p32.webp" width="1600" height="1226" loading="lazy" decoding="async" alt="&quot;And it is a very pretty cat, after all!&quot; said the very old woman. &quot;It is the most beautiful cat in the whole world,&quot; said the very old man. &quot;I ought to know, for I&#x27;ve seen— Hundreds of cats, Thousands of cats, Millions and billions and trillions of cats— and not one was as pretty as this one.&quot;">
+    <img src="book/p33.webp" width="1600" height="1226" loading="lazy" decoding="async" alt="Picture: Evening at home, the cat with its ball of yarn.">
+    <img src="book/p34.webp" width="1600" height="1226" loading="lazy" decoding="async" alt="Picture: The cat asleep.">
+    </div>
+    <p><a class="watch" href="ch01/"><svg viewBox="0 0 11 13" aria-hidden="true"><path d="M0 0l11 6.5L0 13z"/></svg>Watch the film</a></p>
+  </section>
 </main>
 <footer style="max-width:1100px;margin:0 auto;padding:24px 24px 48px;color:var(--soft);font-size:15px">
   <p>Story and pictures: Wanda Gág, <i>Millions of Cats</i> (Coward-McCann, 1928), in the public domain; the pictures are
-  her own, cut from a scan of the first edition (archive.org). Voices: ElevenLabs. Music: an original waltz made for this film.</p>
+  her own, cut from a scan at the <a href="https://archive.org/details/millionsofcatsgg">Internet Archive</a>. The holes left behind lifted figures were filled by an image model. Voices: ElevenLabs. Music: an original waltz composed in code for this film.</p>
 </footer>
 <script>
 'use strict';
