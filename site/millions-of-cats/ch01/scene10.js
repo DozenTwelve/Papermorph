@@ -19,7 +19,7 @@ const s10_HUN = markAt('scene10', PRE10, 'n09d.hun'), s10_THOU = markAt('scene10
 const s10_CUTS = [   // [beat time, view]: her shots are tight two-shots (she at x 483, he at 692-843), his shots keep her out of the edge
   [0, { x: 640, y: 425, z: 1.9 }], [s10_S(2), { x: 600, y: 395, z: 2.8 }], 
   [s10_S(4.5), { x: 810, y: 395, z: 3.1 }], [s10_S(7.782), { x: 610, y: 395, z: 2.6 }], [s10_S(11.999), { x: 595, y: 385, z: 3.0 }],
-  [s10_S(13.157), { x: 640, y: 405, z: 2.1 }], [s10_S(16.134), { x: 810, y: 395, z: 3.2 }], [s10_S(19.785), { x: 1010, y: 440, z: 2.0 }],
+  [s10_S(13.157), { x: 640, y: 405, z: 2.1 }], [s10_S(15.37), { x: 810, y: 395, z: 3.2 }], [s10_S(19.785), { x: 1010, y: 440, z: 2.0 }],
   [s10_S(21.511), { x: 900, y: 405, z: 2.7 }]];
 
 // ---- plain paper: the cats pile up. Each stays as the next pops in; the shouts are the big ones in front, between them
@@ -70,7 +70,7 @@ function scene10(p, D) {
   // ---- close-ups into p23's crowd ----
   const B = paperCam(p, 'p23', { x: 500, y: 600, z: 3 });
   const bc = catCrowd(B.stage, { names: ['cat23a', 'cat23b', 'cat23c', 'cat23d', 'cat23e', 'cat23f', 'cat23g', 'cat23h'], n: 40, box: [235, 588, 1365, 655], seed: 7, s: [1.15, .85] });
-  const bv = [[s10_C('i5', 0), { x: 560, y: 600, z: 4.5 }, 0], [s10_C('i5', .323), { x: 930, y: 600, z: 5 }, 0]];   // [cut, view, index of the cat that speaks]
+  const bv = [[s10_C('i5', 0), { x: 560, y: 600, z: 4.5 }, 0], [s10_C('i5', .45), { x: 930, y: 600, z: 5 }, 0]];   // [cut, view, index of the cat that speaks]
   bv.forEach(([t, v]) => B.cut(v, t));
   B.to({ z: 4.8 }, bv[0][0], bv[1][0] - bv[0][0]).to({ z: 5.3 }, bv[1][0], .9);
   for (const b of bv) { let best = 1e9; bc.cats.forEach((c, i) => { const d = Math.hypot(c.x - b[1].x, c.y - b[1].y - 20); if (d < best) { best = d; b[2] = i; } }); }
@@ -91,7 +91,7 @@ function scene10(p, D) {
 
   const turn = pageTurn(p, D - .1, .6, 'in');
   stopClock(D, (q, f) => {
-    const dia = q < s10_CATEND, closeup = q >= bv[0][0] && q < s10_C('i5', .497);
+    const dia = q < s10_CATEND, closeup = q >= bv[0][0] && q < s10_C('i5', 1.05);
     vis(A.root, dia); vis(B.root, closeup); vis(E.root, !dia && !closeup);
     if (dia) {
       A.apply(q, f);
