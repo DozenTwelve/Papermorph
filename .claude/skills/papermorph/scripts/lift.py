@@ -26,6 +26,8 @@ The manifest (several may be given; later ones add to and replace entries of ear
                        or {"frac": [x0, y0, x1, y1], "capFrac": [...], "pivotFrac": [x, y]}: a box in fractions
                        of the figure's own box (0, 0 its top left, 1, 1 its bottom right), for small figures such as
                        a cat split into legF, legH, tail, head without reading coordinates; check the sheet
+                       "under": "fill" keeps the body drawn behind a part (inpainted), so an arm lifted off a coat
+                       leaves no paper hole
                "order": ["legB", "legF", "body", "armF"]}},        draw order, back to front ("body" is what no part took)
      "sets": {
        "house": {"page": "p05", "box": [x0, y0, x1, y1], "world": [x, y, w], "erase": [...], "fill": [...],
@@ -188,7 +190,17 @@ def lift_piece(book, name, P, res, out, sheet):
         if a.sum() < 20: print(f'WARNING {name}.{pn}: the part took no ink (its poly misses the figure?)', file=sys.stderr)
         parts[pn] = (a, D.get('pivot'))
         taken |= own
-    parts['body'] = (alpha * ~taken, P.get('pivot'))
+    # "under": "fill" on a part keeps the body whole behind it, inpainted from the body round it, so an arm that swings
+    # out leaves the coat behind it drawn instead of a hole of paper. A stand-in: on a hatched coat it is a grey smear
+    # (woman5's bodice), so it suits a plain coat or a small lift; a hatched one wants a painted patch
+    under = np.zeros(L.shape, bool)
+    for pn, D in parts_def.items():
+        if D.get('under') == 'fill' and 'poly' in D: under |= poly_mask(L.shape, D['poly'], x0, y0)
+    body_rgb = rgb
+    if under.any():
+        m = (under & sil).astype(np.uint8)   # only under the part: the body round it keeps Gág's own pixels
+        body_rgb = cv2.inpaint(rgb.astype(np.uint8), m, 9, cv2.INPAINT_TELEA).astype(float)
+    parts['body'] = (alpha * ~(taken & ~under), P.get('pivot'))
     order = P.get('order') or ([n for n, D in parts_def.items() if D.get('cap')] + ['body'] + [n for n, D in parts_def.items() if not D.get('cap')])
     for n in parts:
         if n not in order: print(f'WARNING {name}: part {n} is not in "order"; drawn last', file=sys.stderr); order.append(n)
@@ -207,7 +219,8 @@ def lift_piece(book, name, P, res, out, sheet):
         yy, xx = np.nonzero(a > 0.02)
         if not len(xx): continue
         cx0, cy0, cx1, cy1 = xx.min(), yy.min(), xx.max() + 1, yy.max() + 1
-        rgba = np.dstack([rgb[cy0:cy1, cx0:cx1], a[cy0:cy1, cx0:cx1] * 255]).astype(np.uint8)
+        src = body_rgb if pn == 'body' else rgb
+        rgba = np.dstack([src[cy0:cy1, cx0:cx1], a[cy0:cy1, cx0:cx1] * 255]).astype(np.uint8)
         im = Image.fromarray(rgba, 'RGBA')
         im = im.resize((max(1, round(im.width * px_per)), max(1, round(im.height * px_per))), Image.LANCZOS)
         fn = f'{name}.webp' if one else f'{name}-{pn}.webp'

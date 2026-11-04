@@ -50,7 +50,7 @@ function scene11(p, D) {
     for (let t = 0; t < len; t += 5) { const r = rnd(k * 97 + t), l = 7 + r * 12, x = ax + (bx - ax) * t / len, y = ay + (by - ay) * t / len;
       ticks += `M${x.toFixed(1)} ${y.toFixed(1)}l${(nx * l).toFixed(1)} ${(ny * l).toFixed(1)}`; }   // down-right, into the hill
   }
-  patch.innerHTML = `<polygon points="925,185 1163,183 1170,192 ${edge.slice().reverse().map(e => e.join(',')).join(' ')}" fill="#efe8d6"/><ellipse cx="1077" cy="269" rx="14" ry="6" fill="#1e1a16"/><ellipse cx="1024" cy="285" rx="11" ry="5" fill="#1e1a16"/><path d="M${edge.map(e => e.join(' ')).join('L')}" fill="none" stroke="#1e1a16" stroke-width="4" stroke-linejoin="round"/><path d="${ticks}" fill="none" stroke="#efe8d6" stroke-width="1.8" stroke-linecap="round"/>`;
+  patch.innerHTML = `<polygon points="925,185 1163,183 1170,192 ${edge.slice().reverse().map(e => e.join(',')).join(' ')}" fill="#efe8d6"/><polygon points="${edge.map(e => e.join(',')).join(' ')} ${edge.slice().reverse().map(([x, y]) => `${x},${y + 24}`).join(' ')}" fill="#1e1a16"/><path d="M${edge.map(e => e.join(' ')).join('L')}" fill="none" stroke="#1e1a16" stroke-width="4" stroke-linejoin="round"/><path d="${ticks}" fill="none" stroke="#efe8d6" stroke-width="1.8" stroke-linecap="round"/>`;
   // the door's jamb: the pair are cut off at the door's left edge as they go in
   const jamb = mk('g', {}, cam.stage); jamb.innerHTML = '<defs><clipPath id="s11jamb"><rect x="0" y="-200" width="1247" height="800"/></clipPath></defs>';
   const pc = mk('g', { 'clip-path': 'url(#s11jamb)' }, cam.stage);

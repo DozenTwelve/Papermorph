@@ -29,7 +29,7 @@ function scene14(p, D) {
   const W1 = s14_C('w12', -.05), K1 = s14_C('w12', 1.7), W2 = s14_C('n12b', 0), M1 = s14_C('m12', -.1), K2 = s14_C('m12', 1.55),
     M2 = s14_C('n12c', -.05), K3 = s14_C('m12b', 2.55), M3 = s14_C('m12b', 5.45), K4 = s14_C('k12', -.1);
   const WALK0 = s14_C('n12', 3.2);
-  const TE = s14_C('k12b', 6.95);   // the pick-up is shown last, after "So nobody bothered about me": the kitten stays on its mound through the talk
+  const TE = s14_C('k12b', 6.6);   // the pick-up is shown last, after "So nobody bothered about me": the kitten stays on its mound through the talk
 
   // ---- p27: the grass ----
   const A = paperCam(p, 'p27', s14_START);
@@ -101,7 +101,7 @@ function scene14(p, D) {
       for (const e of [kitten.part.body, kitten.shade.body]) e.setAttribute('clip-path', onC ? 'url(#s14kit)' : 'none'); vis(kitten.g, onC || (!speakW && !speakM));
       // her hands take the kitten: she bends to it, it rises into her arms and she straightens with it
       if (onC) {
-        const u = late ? span(q, TE + .15, TE + 1.0) : 0, st = late ? span(q, TE + .6, TE + 1.4) : 0, wx = 987, wy = 700;
+        const u = late ? span(q, TE + .1, TE + .8) : 0, st = late ? span(q, TE + .4, TE + 1.1) : 0, wx = 987, wy = 700;
         womanB.pose({ x: wx, y: wy, s: CS, rot: -7 * (1 - st) + .9 * Math.sin(q * 1.1), sq: 1 + .012 * breathe,
           parts: { head: -12 * (1 - st) - 6 + 2.5 * Math.sin(q * .8), armL: 12 - 14 * st + 2 * Math.sin(q * 1.7) + (late ? 0 : 5 * Math.sin(q * 3)) } }, f);   // first she reaches down to it; the lift comes last
         const hx = wx + HAND[0] * CS, hy = wy + HAND[1] * CS + 34 * (1.0 + .15 * u);   // its feet below her hand, the hand over its cut-off bottom

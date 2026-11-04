@@ -36,7 +36,9 @@ function scene7(p, D) {
   // P: Gág's page 18, the pond; puppets stand in front of the water layer
   const P = paperCam(p, 'p18', { x: 800, y: 330, z: 1.2 }, { after: 'water' });
   P.layer('water').setAttribute('mask', 'url(#s7_drain)');
-  P.move('water', q => `translate(${(3 * Math.sin(q * 1.4)).toFixed(1)} ${(1.5 * Math.sin(q * 2.1)).toFixed(1)})`);   // the ripple breathes
+  // the ripple breathes; from "Each cat took a sip" the whole pond pulls in about its centre on twos, down to 0.3, the bank showing as it goes
+  const pondK = q => 1 - .7 * Math.floor(ease(k01(q, s7_SIP, s7_GONE - .1 - s7_SIP)) * 12) / 12;
+  P.move('water', q => `translate(${(3 * Math.sin(q * 1.4)).toFixed(1)} ${(1.5 * Math.sin(q * 2.1)).toFixed(1)}) translate(${WC[0]} ${WC[1]}) scale(${pondK(q).toFixed(3)}) translate(${-WC[0]} ${-WC[1]})`);
   const at18 = pagePos('p18', 'man18'), man = cutPuppet(P.stage, 'man18');
   P.to({ x: 780, y: 360, z: 1.4 }, 0, s7_C0 + .1)
    .cut({ x: 1000, y: 410, z: 2 }, s7_C0).cut({ x: 1060, y: 410, z: 2 }, s7_B2)
@@ -84,7 +86,6 @@ function scene7(p, D) {
     // the sips: the cats gather at the water on his word; each dips its head a few times; from "Each cat took a sip" the water steps away on twos
     const lapOn = q >= s7_WELL + .4 && !inQ;
     const drain = k01(q, s7_SIP, s7_GONE - .2 - s7_SIP), steps = Math.floor(ease(drain) * 12) / 12;
-    hole.setAttribute('rx', (WRX * (1 - steps)).toFixed(1)); hole.setAttribute('ry', (WRY * (1 - steps)).toFixed(1));
     for (const c of lapCats) {
       vis(c.p.g, lapOn);
       const LL = catLife(q, c.i); if (lapping0(q)) LL.parts.head += 45 * Math.max(0, Math.sin((q - s7_SIP) * 5.5 + c.i * 1.7));

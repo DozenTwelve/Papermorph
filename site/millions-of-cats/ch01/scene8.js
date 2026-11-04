@@ -98,8 +98,9 @@ function scene8(p, D) {
     // page 21: the tiny old man speaks (a small bob with the voice)
     vis(man21.g, inQ);
     const say = lips(q, 'scene8', PRE8, 'm07') !== 'X';
-    man21.pose({ x: at21.x, y: at21.y, s: at21.s, sq: 1 + .025 * Math.sin(q * 2.2) + (say ? .012 * Math.sin(q * 30) : 0), rot: Math.sin(q * 1.5) * 6, bob: 7 * Math.abs(Math.sin(q * 1.6)),
-      parts: { head: Math.sin(q * 1.3) * 16 + (say ? Math.sin(q * 7) * 12 : 0), legF: 28 * Math.sin(q * 3.1) } }, f);
+    // (he stays over the page's own hole: a big sway would show its soft fill either side)
+    man21.pose({ x: at21.x, y: at21.y, s: at21.s, sq: 1 + .025 * Math.sin(q * 2.2) + (say ? .012 * Math.sin(q * 30) : 0), rot: Math.sin(q * 1.5) * 2, bob: 2 * Math.abs(Math.sin(q * 1.6)),
+      parts: { head: Math.sin(q * 1.3) * 16 + (say ? Math.sin(q * 7) * 12 : 0), legF: 10 * Math.sin(q * 3.1) } }, f);
     turnOut(q); turnIn(q);
   });
 }

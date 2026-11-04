@@ -103,7 +103,7 @@ function scene3(p, D) {
     } else {
       cam2.apply(q, f);
       L.show(q, times, f);
-      vis(slip, q >= SLIP); slip.setAttribute('opacity', Math.min(1, (q - SLIP) / .25).toFixed(2));
+      vis(slip, q >= SLIP); slip.setAttribute('opacity', 1);   // on a frame, no fade: a fading slip read as a soft wipe over the cats
       cats.forEach(c => {   // the same pop in and hop as catCrowd's, now on one depth order, each cat living (catLife); the early ones hop often
         const u = q - c.t; vis(c.p.g, u >= 0); if (u < 0) return;
         const early = c.wi < 3, pop = u < .34 ? Math.sin(u / .34 * Math.PI) * 18 : 0, per = early ? 1.6 : 1.8, w = (q + c.ph) % per, live = w < .34 ? Math.sin(w / .34 * Math.PI) * (early ? 12 : 15) : 0;

@@ -24,14 +24,24 @@ const s13_SEG = (() => {   // each stretch takes time in proportion to its lengt
   const sum = w.reduce((x, y) => x + y, 0); let acc = 0;
   return w.map(v => { const r = [acc / sum, (acc += v) / sum]; return r; });
 })();
-function s13_run(q) {
+function s13_ride(q) {   // the smooth line the follow camera rides (not her body)
   const u = Math.max(0, Math.min(1, (q - s13_T0) / (s13_T1 - s13_T0)));
   let i = s13_SEG.findIndex(r => u <= r[1]); if (i < 0) i = s13_SEG.length - 1;
   const [a, b] = [s13_PATH[i], s13_PATH[i + 1]], k = (u - s13_SEG[i][0]) / (s13_SEG[i][1] - s13_SEG[i][0] || 1);
   const s = a[2] + (b[2] - a[2]) * k;
   return { x: a[0] + (b[0] - a[0]) * k, y: a[1] + (b[1] - a[1]) * k + 12 * s * (1 - Math.max(0, Math.min(1, (u - .8) / .2))), s, going: q > s13_T0 && u < 1 };
 }
-for (let t = s13_T0 + .2, k = 0; t < s13_T1; t += .3, k++) sfx('scene13', +t.toFixed(2), 'step' + (k % 3 + 1), +(.12 + .35 * (t - s13_T0) / (s13_T1 - s13_T0)).toFixed(2));
+// her steps: [x, y, scale] of each landing on the ridge's black edge (found in the set's own pixels, sole 2 px into the ink); the last is where Gág drew her
+const s13_CT = [[1250, 184, .24], [1225, 191, .26], [1199, 198, .28], [1174, 210, .3], [1148, 216, .32], [1123, 228, .34], [1098, 240, .36], [1072, 255, .38], [1043, 271, .41], [1013, 293, .45],
+  [982, 316, .49], [948, 344, .55], [914, 366, .61], [883, 402, .67], [860, 456, .73], [814, 522, .8], [756, 539, .88], [696, 605, 1]];
+const s13_SP = (s13_T1 - s13_T0) / (s13_CT.length - 1);   // seconds per step: four frames on twos (two down, two in the air)
+// she is a figure with no legs: the foot lands and holds (x and y of the contact do not change) for two frames, the body dips, then she hops to the next landing
+function s13_run(q) {
+  const t = Math.max(0, (q - s13_T0) / s13_SP), n = s13_CT.length - 1, k = Math.min(n, Math.floor(t + 1e-6)), f = k >= n ? 0 : t - k;
+  const a = s13_CT[k], b = s13_CT[Math.min(n, k + 1)], e = f < .5 ? 0 : (f - .5) * 2;   // e: how far through the hop
+  return { x: a[0] + (b[0] - a[0]) * e, y: a[1] + (b[1] - a[1]) * e - Math.sin(Math.PI * e) * 14 * a[2], s: a[2] + (b[2] - a[2]) * e, k, f, held: f < .5, going: q > s13_T0 && k < n };
+}
+for (let k = 1; k < s13_CT.length; k++) { const t = s13_T0 + k * s13_SP; sfx('scene13', +t.toFixed(2), 'step' + (k % 3 + 1), +(.12 + .35 * (t - s13_T0) / (s13_T1 - s13_T0)).toFixed(2)); }
 
 // an inked patch over the soft grey smear on p27's ridge edge where the old woman was drawn (set world px), with the ridge's teeth
 function s13_patch(parent) {
@@ -48,7 +58,7 @@ function scene13(p, D) {
   sfx('scene13', s13_C('n11b', 3.3), 'mew3', .3);
 
   const cam = paperCam(p, 'p27', { x: 1160, y: 250, z: 1.9 });
-  const fx = t => s13_run(t).x - 60, fy = t => s13_run(t).y - 120 * s13_run(t).s;   // the follow shot rides along the run
+  const fx = t => s13_ride(t).x - 60, fy = t => s13_ride(t).y - 120 * s13_ride(t).s;   // the follow shot rides along the run
   cam.cut({ x: fx, y: fy, z: 1.9 }, 0).to({ z: 2.3 }, .4, TW - .4)
     .cut({ x: 545, y: 560, z: 1.4 }, T3).to({ x: 520, y: 565, z: 1.5 }, T3, T4 - T3)
     .cut({ x: 350, y: 565, z: 2.9 }, T4).to({ x: 365, y: 565, z: 3.1 }, T4, T5 - T4)
@@ -87,8 +97,8 @@ function scene13(p, D) {
     const talkW = q > s13_C('w11') && q < s13_C('w11', 2.6) || q > s13_C('w11b') && q < s13_C('w11b', 1.4) || hers;
     const settle = Math.max(0, 1 - (q - s13_T1) / .5);   // the pulled-up lurch dies away
     let wo;
-    const sp = Math.max(0, q - s13_T0) / .28, sk = Math.floor(sp), sf = sp - sk;   // a step every .28 s: hop, tip over the planted foot, squash on landing
-    if (q < s13_T1) wo = { x: r.x + 6 * r.s * (sf - .5), y: r.y - Math.sin(Math.PI * sf) * 14 * r.s, s: r.s, rot: -3 + (sk % 2 ? 5 : -5) * (1 - .5 * sf), sq: 1 - .04 * (1 - Math.sin(Math.PI * sf)), parts: { head: 4 * step + 5 * stress, armL: 8 + 14 * step } };
+    const sk = r.k, sf = r.f;
+    if (q < s13_T1) wo = { x: r.x, y: r.y, s: r.s, rot: -3 + (sk % 2 ? 4 : -4) * (r.held ? .5 : 1), sq: r.held ? 1 - (sf < .25 ? .06 : .03) : 1.02, parts: { head: 4 * step + 5 * stress, armL: 8 + 14 * step } };
     else wo = { x: wAt.x, y: wAt.y - 2.5 * breathe * (q < s13_T1 ? 0 : 1) - (q > s13_T1 && q < s13_T1 + .4 ? 10 * Math.sin((q - s13_T1) / .4 * Math.PI) : 0),
       s: 1, rot: q < s13_T1 ? 0 : -3 * settle + 1.2 * Math.sin(q * 1.3) + (talkW && q < D ? -2 * stress : 0),
       sq: 1 + .012 * breathe + (talkW ? .012 * Math.abs(Math.sin(q * 9)) : 0),

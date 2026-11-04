@@ -47,6 +47,7 @@ When the story comes as a scanned picture book that may be reused, its own drawi
 A lifted figure is one drawing, and that pulls towards stills: a figure lifted whole can only breathe and rock, a page set with everything baked in can only be panned, and a frame of it looks finished on a contact sheet. *Millions of Cats*' first cut played like that, and the owner found it static even where every figure breathed. Lift for the acting the story asks of each figure, not for the shot: split a speaker's head and working hand, a walker's legs, a cat's legs, tail and head, a lamp's flame, a tuft of grass or a cloud into their own parts or layers, so every figure on screen acts the whole time it is on screen. For the parts there are:
 
 - `lift.py`'s `frac` boxes, which split a small figure (a cat into legF, legH, tail, head) without reading coordinates.
+- A part's `"under": "fill"`, which keeps the body drawn behind an arm that lifts off a coat. Without it the coat shows a paper hole. Inpainting suits a plain coat; on Gág's hatched bodice it came out a grey smear, so there keep the lift small (about 12–15°) and gesture with the head, or have the image model paint the coat behind it (painting.md).
 - `catLife(q, ph, { d })`, which swishes the tail and twitches the head; give it the distance walked and it swings the legs at the ground's pace.
 - The pose keys `sk` (a sway from the foot) and `w` (a kitten growing plump).
 - `inkSmoke`, which draws smoke or steam as a cream ribbon with an ink edge and hatching, curling up the way an ink drawing shows it.

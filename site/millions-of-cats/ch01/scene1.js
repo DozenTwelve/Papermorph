@@ -61,8 +61,8 @@ function scene1(p, D) {
       hush = msp !== 'X' ? 2.5 * Math.sin(q * 4.2) : 0;   // her hands talk with her; she nods while he answers; in the thought they lift
     woman.pose({ x: W.x, y: W.y, sq: 1 + .012 * Math.sin(q * 2.1) - .02 * sigh - .012 * sad,
       rot: .5 * Math.sin(q * 1.1 + 1),
-      parts: { head: 3 * Math.sin(q * 1.3) + 6 * sad + 7 * sigh + (q > WB && q < THINK1 ? 5 * span(q, WB, WB + .5) : 0) + wTalk + look + hush, armL: 2 * Math.sin(q * 1.4) + 8 * wg + 24 * g1 + 26 * g2 + 9 * dream - 4 * sad - 3 * sigh,
-        armR: -(2 * Math.sin(q * 1.4 + 1) + 6 * Math.abs(Math.sin(q * 5.1 + 1)) * (wsp !== 'X' ? 1 : 0) + 24 * g1 + 26 * g2 + 9 * dream - 4 * sad) },
+      parts: { head: 3 * Math.sin(q * 1.3) + 6 * sad + 7 * sigh + (q > WB && q < THINK1 ? 5 * span(q, WB, WB + .5) : 0) + wTalk + look + hush + 6 * g1 - 7 * g2, armL: 2 * Math.sin(q * 1.4) + 8 * wg + 12 * g1 + 14 * g2 + 9 * dream - 4 * sad - 3 * sigh,
+        armR: -(2 * Math.sin(q * 1.4 + 1) + 6 * Math.abs(Math.sin(q * 5.1 + 1)) * (wsp !== 'X' ? 1 : 0) + 12 * g1 + 14 * g2 + 9 * dream - 4 * sad) },
       move: { head: [0, 2 * sigh + 3 * sad] },
       mouth: wsp }, f);
     // ---- the old man: breath, a rock, smoke curling; his lines pulse the whole figure (his mouth is under the beard and pipe)

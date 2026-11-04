@@ -37,10 +37,10 @@ function s2_along(poly, u) {
 // The shots. go = when his feet start, stop = when he stands (snapped to a whole step so both legs are together).
 const S2_SHOTS = [
   { t0: 0,        go: PRE2 + .05, stop: 99, poly: [[-132, 782], [-95, 789], [-40, 773], [10, 750], [60, 740], [130, 752]], z: 1.5, vol: .12 },
-  { t0: PRE2 + 2.75, go: PRE2 + 2.9, stop: 99, poly: s2_crest(610, 800), z: 2.3, vol: .12, period: .5 },
-  { t0: PRE2 + 5.15, go: PRE2 + 5.2, stop: 99, poly: s2_crest(770, 960), z: 2.3, vol: .1, period: .6, A: 17, slump: 1 },
+  { t0: PRE2 + 2.75, go: PRE2 + 2.9, stop: 99, poly: s2_crest(610, 765), z: 2.3, vol: .12, period: .5 },
+  { t0: PRE2 + 5.15, go: PRE2 + 5.2, stop: 99, poly: [[900, 506], [925, 475], [950, 437], [975, 409], [1000, 394], [1060, 362]], z: 2.3, vol: .1, period: .6, A: 17, slump: 1 },
   // the long walk: on the road (the pale path up the ridge to the crest), the camera on him
-  { t0: PRE2 + 7.5,  go: PRE2 + 7.5, poly: [[930, 425], [970, 388], [1020, 346], [1070, 314], ...s2_crest(1080, 1160)], z: 2.0, vol: .1, period: .5, stop: S2_TURN },
+  { t0: PRE2 + 7.5,  go: PRE2 + 7.5, poly: [[1000, 394], [1060, 364], [1100, 337], [1150, 315], [1200, 300], [1300, 287]], z: 2.0, vol: .1, period: .5, stop: S2_TURN },
 ];
 
 // p08 (set cathill): the old man from behind and the cats on the hill. Shared with scene3, which holds the same picture.
@@ -67,7 +67,8 @@ function scene2(p, D) {
   const cam = paperCam(p, 'hills');
   cam.world.insertBefore(mk('rect', { x: -3000, y: -2000, width: 8000, height: 5000, fill: '#eee8d6' }), cam.world.firstChild);   // the set's sky is cut out under the clouds; parallax would show the stage
   const man = cutPuppet(cam.stage, 'man5');
-  cam.move('clouds', q => `translate(${(18 * Math.sin(q * .45) - 4 * q).toFixed(1)} 0)`);   // Gág's clouds drift to and fro (a steady drift would pull the spread's cut edge out of the sky)
+  cam.move('clouds', q => `translate(${(-.2 * (cam.at(q).x - cam.at(0).x) + 18 * Math.sin(q * .45)).toFixed(1)} 0)`);   // the parallax is cancelled so the cut edge of the cloud band stays at the gutter, off screen
+  //   // Gág's clouds drift to and fro (a steady drift would pull the spread's cut edge out of the sky)
   const pipeG = mk('g', {}, cam.stage), pipe = inkSmoke(pipeG, 0, 0, { size: 1.1, rise: 24, drift: 7, curl: 2.4, waves: 1.4, period: 1.6, ink: .7, seed: 4 });
   const cam1 = paperCam(p, 'cathill'), hill = s2_hill(cam1);
   const out = pageTurn(p, 0, .6, 'out'), tin = pageTurn(p, S2_TURN, .3, 'in'), tout = pageTurn(p, S2_TURN + .3, .3, 'out');
@@ -86,12 +87,14 @@ function scene2(p, D) {
   // Cameras: wide on the valley with him at the door; close on the crest, following; wide again for the long walk,
   // the camera going ahead of him; then the last ridge, pushing in as he stops.
   // (the grey smudge where Gág's own figure was lifted off the ridge, near x 1340-1380, stays out of frame)
-  const lead = 90, fx = t => { const m = manAt(t); return Math.min(m.x + (t >= S2_SHOTS[3].t0 ? -110 : lead), 905); },
+  // The spread's join (world x 800) is Gág's gutter: the two pages are out of register, so no shot may show it. The shots
+  // before 6.35 s keep the camera on the left page (its right edge stays left of 800), the ones after on the right page.
+  const lead = 90, fx = t => { const m = manAt(t); return t < S2_SHOTS[2].t0 ? Math.min(m.x + lead, 415) : Math.max(m.x + 30, 1085); },
   fy = t => manAt(t).y - 42;
   cam.cut({ x: fx, y: fy, z: 2.5 }, 0);
   cam.cut({ x: fx, y: fy, z: 2.3 }, S2_SHOTS[1].t0);
-  cam.cut({ x: fx, y: fy, z: 2.3 }, S2_SHOTS[2].t0);
-  cam.cut({ x: fx, y: fy, z: 2.0 }, S2_SHOTS[3].t0).to({ z: 2.3 }, S2_SHOTS[3].t0 + 1, SW - S2_SHOTS[3].t0 - 1);
+  cam.cut({ x: fx, y: fy, z: 3.2 }, S2_SHOTS[2].t0);   // left edge = cx - 250 stays right of the gutter (800)
+  cam.cut({ x: fx, y: fy, z: 3.2 }, S2_SHOTS[3].t0);
   // p08: wide on the hill, then in on him as his arms rise; scene3 opens on the last framing
   cam1.cut({ x: 800, y: 470, z: 1.36 }, 0).to(S2_HILLCAM, SW, UPEND - SW);
 

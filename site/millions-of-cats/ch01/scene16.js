@@ -61,7 +61,7 @@ function scene16(p, D) {
   // ---- the refrain over the room: all in frame space, above the camera ----
   const veil = mk('rect', { width: 1600, height: 900, fill: '#efe8d6', opacity: 0, visibility: 'hidden', 'pointer-events': 'none' }, p);
   const NAMES = ['cat23a', 'cat23b', 'cat23c', 'cat23d', 'cat23e', 'cat23f', 'cat23g', 'cat23h', 'cat22a', 'cat22b', 'cat22c', 'cat22d'];
-  const crowd = catCrowd(p, { names: NAMES, n: 72, box: [40, 430, 1560, 880], seed: 14, s: [2.3, 1.2] });
+  const crowd = catCrowd(p, { names: NAMES, n: 72, box: [-260, 440, 1330, 880], seed: 14, s: [2.3, 1.2] });
   const hunT = s16M('m14b.hun'), trilT = s16M('m14b.tril'), notT = s16NOT();
   const when = i => hunT - .1 + Math.pow(i / 72, 1.25) * (trilT + .9 - hunT);
   const L = lettering(p, s16RF.map(w => w[0]), { x: 800, y: 285, s: 1.6 });
@@ -100,14 +100,14 @@ function scene16(p, D) {
       const cl = catLife(q, 2, { tail: 16, head: 9 });
       cat.pose({ ...cAt, parts: { ...cl.parts, head: cl.parts.head + burst * onTwos(q) * 6 }, rot: burst * onTwos(q) * 5, bob: burst * 2.5 * (onTwos(q) > 0 ? 1 : 0), sq: 1 + .015 * Math.sin(q * 3.1), move: { body: [burst * onTwos(q) * 2.5, 0] } }, f);
       // the refrain: the room dims, the crowd swells behind her letters, then all fades back on "and not one was as pretty"
-      const swell = span(q, hunT - .35, hunT + .6) * (1 - span(q, notT, notT + .7));
+      const swell = (q >= hunT - .1 ? 1 : 0) * (1 - span(q, notT, notT + .7));   // a cut to clean cream paper on the first word, not a fade through grey
       const live = swell > 0;
       for (const g of [veil, crowd.g, slip, L.g]) vis(g, live);
       if (live) {
-        veil.setAttribute('opacity', (.97 * Math.min(1, swell * 2.2)).toFixed(3));   // the room thins to paper (not to grey): the cream rises over it almost whole
-        crowd.g.setAttribute('opacity', (swell * (.2 + .35 * span(q, hunT, trilT + .6))).toFixed(3));
+        veil.setAttribute('opacity', swell.toFixed(3));
+        crowd.g.setAttribute('opacity', swell.toFixed(3));   // full black ink
         for (const g of [slip, L.g]) g.setAttribute('opacity', swell.toFixed(3));
-        crowd.pose(q, f, { from: 0, every: when, hop: false });
+        crowd.pose(q, f, { from: 0, every: when, hop: false, walk: { v: 55, t0: hunT, t1: notT + .7 } });   // pop in as the words land, then walk with legs and tails
         L.show(q, times, f);
       }
     } else {
