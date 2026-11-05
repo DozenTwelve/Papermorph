@@ -82,17 +82,39 @@
 
   /* ---------- the map layers ---------- */
   const geo = el('g', { id: 'geo', transform: `matrix(${M.join(' ')})` }, svg);   // quantised file units -> km
-  const landD = Topo.rings(arcs, Topo.polygons(topo.objects.land.geometries[0]));
-  const landEl = el('path', { class: 'land', d: landD }, geo);
+  // each shape twice: as the file has it, and coarser for while the camera moves (to about 1 km, islets under 2 km left out)
+  const rough = Topo.simplify(arcs, 20), shape = polys => [Topo.rings(arcs, polys), Topo.rings(rough, polys, 40)];
+  const landD = shape(Topo.polygons(topo.objects.land.geometries[0]));
+  const landEl = el('path', { class: 'land', d: landD[0] }, geo);
   const isLand = p => landEl.isPointInFill(new DOMPoint(...toQ(p)));
   const domG = el('g', {}, geo);
-  const domEl = domGeoms.map(g => { const p = el('path', { class: 'dom', d: Topo.rings(arcs, Topo.polygons(g)) }, domG); el('title', {}, p); return p; });
+  const domD = domGeoms.map(g => shape(Topo.polygons(g)));
+  const domEl = domD.map(d => { const p = el('path', { class: 'dom', d: d[0] }, domG); el('title', {}, p); return p; });
   // province lines: the arcs between two provinces
   const provOwner = Topo.owners(provGeoms);
   const provLines = el('path', { class: 'prov', d: Topo.lines(arcs, [...provOwner].filter(([, g]) => g.length === 2).map(([id]) => id)) }, geo);
   const bordKept = el('path', { class: 'bord' }, geo), bordGone = el('path', { class: 'bord gone' }, geo), bordNew = el('path', { class: 'bord new' }, geo);
   const glowG = el('g', {}, geo);
-  el('path', { class: 'coast', d: landD }, geo);
+  // the coast as short lines, each the coast inside a square of about 50 km: Firefox strokes a path once for every raster tile
+  // it reaches, and the whole coast as one path cost about 150 ms each time the map was drawn
+  const coastCells = new Map();
+  for (const id of Topo.owners(topo.objects.land.geometries).keys()) {
+    const a = arcs[id], k = `${Math.floor(a[0] / 1000)},${Math.floor(a[1] / 1000)}`;
+    coastCells.set(k, [...coastCells.get(k) || [], id]);
+  }
+  const coastD = [...coastCells.values()].map(ids => [Topo.lines(arcs, ids), Topo.lines(rough, ids)]);
+  const coastEl = coastD.map(d => el('path', { class: 'coast', d: d[0] }, geo));
+  // while the camera moves: the coarse shapes, and none of the thin lines. Firefox draws the whole map again on every frame the
+  // view changes; with the full 220,000 points and the lines a frame took 150-200 ms. All of it comes back when the camera stops.
+  let lite = false;
+  function setLite(on) {
+    if (on === lite) return;
+    lite = on; svg.classList.toggle('lite', on);
+    const k = on ? 1 : 0;
+    domEl.forEach((p, i) => p.setAttribute('d', domD[i][k]));
+    coastEl.forEach((p, i) => p.setAttribute('d', coastD[i][k]));
+    landEl.setAttribute('d', landD[k]);
+  }
   // paper grain, baked once into a small tile and multiplied over the whole map
   const tile = document.createElement('canvas'); tile.width = tile.height = 160;
   const tc = tile.getContext('2d'), grain = tc.createImageData(160, 160);
@@ -278,8 +300,8 @@
   function cam(to, ms) {
     const from = view.slice(), id = ++camRun, ep = epoch;
     zoomed = to !== home;
-    svg.classList.add('cam', 'lite');
-    const end = () => { if (id === camRun) { setView(to); svg.classList.remove('cam'); if (!walking) svg.classList.remove('lite'); layout(); } };
+    svg.classList.add('cam'); setLite(true);
+    const end = () => { if (id === camRun) { setView(to); svg.classList.remove('cam'); if (!walking) setLite(false); layout(); } };
     if (reduced || film?.skip || !ms) { end(); return Promise.resolve(); }
     return new Promise(r => {
       const t0 = performance.now(), ms2 = ms / SPEED;
@@ -436,11 +458,11 @@
       return { ...it, legs, durs, L, T, trail: trails.querySelector(`[data-w="${it.w}"]`) };
     });
     for (const r of rows) F[r.w].g.classList.remove('idle');
-    if (follow) svg.classList.add('lite');
+    if (follow) setLite(true);
     return new Promise(res => {
       let t0 = 0, vw = null, last = 0;
       const end = () => {
-        waits.delete(end); walking = false; svg.classList.remove('lite');
+        waits.delete(end); walking = false; setLite(false);
         for (const r of rows) {
           const f = F[r.w]; f.pos = r.pts.at(-1).slice(); f.off = r.off1; place(r.w); f.g.classList.add('idle'); setTrail(r.trail, r.fwd ? r.pts : r.out);
         }
@@ -833,7 +855,7 @@
     film = null; stopVoice();
     commitBorders();
     clearFilmUi(false);
-    svg.classList.remove('cam', 'lite');
+    svg.classList.remove('cam'); setLite(false);
   }
   const nextStep = () => { if (film) { voice.pause(); wake(); } };   // a click in the film: on to the next card, or the next walker
   function skip() { if (film) { film.skip = true; voice.pause(); wake(); } }
