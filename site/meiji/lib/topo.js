@@ -37,11 +37,38 @@ const Topo = (() => {
     return `M${pts[0]} ${pts[1]}l` + out.join(' ') + 'z';
   }
 
-  // all the rings of a list of polygons as one path
-  function rings(arcs, polys) {
+  // all the rings of a list of polygons as one path; with min, the rings less than min units across are left out
+  function rings(arcs, polys, min = 0) {
     let d = '';
-    for (const poly of polys) for (const r of poly) d += pathOf(arcs, r);
+    for (const poly of polys) for (const r of poly) if (!min || across(arcs, r) >= min) d += pathOf(arcs, r);
     return d;
+  }
+  function across(arcs, idx) {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const i of idx) { const a = arcs[unwrap(i)]; for (let k = 0; k < a.length; k += 2) { x0 = Math.min(x0, a[k]); x1 = Math.max(x1, a[k]); y0 = Math.min(y0, a[k + 1]); y1 = Math.max(y1, a[k + 1]); } }
+    return Math.max(x1 - x0, y1 - y0);
+  }
+
+  // the arcs drawn coarser (Douglas-Peucker, to within tol units); each arc keeps its two ends, so neighbours still meet
+  function simplify(arcs, tol) {
+    return arcs.map(a => {
+      const n = a.length / 2;
+      if (n <= 2) return a;
+      const keep = new Uint8Array(n), todo = [[0, n - 1]];
+      keep[0] = keep[n - 1] = 1;
+      while (todo.length) {
+        const [i, j] = todo.pop(), ax = a[2 * i], ay = a[2 * i + 1], dx = a[2 * j] - ax, dy = a[2 * j + 1] - ay, L = Math.hypot(dx, dy);
+        let far = -1, most = tol;
+        for (let k = i + 1; k < j; k++) {   // the distance from the line between the ends; from the end itself when they meet (an island)
+          const px = a[2 * k] - ax, py = a[2 * k + 1] - ay, d = L ? Math.abs(px * dy - py * dx) / L : Math.hypot(px, py);
+          if (d > most) { most = d; far = k; }
+        }
+        if (far > 0) { keep[far] = 1; todo.push([i, far], [far, j]); }
+      }
+      const out = [];
+      for (let k = 0; k < n; k++) if (keep[k]) out.push(a[2 * k], a[2 * k + 1]);
+      return Int32Array.from(out);
+    });
   }
 
   // the polygons of a geometry as [[ring, ...], ...]; each ring a list of arc indexes
@@ -85,5 +112,5 @@ const Topo = (() => {
     return best.c;
   }
 
-  return { decode, matrix, polygons, rings, lines, owners, centre };
+  return { decode, matrix, polygons, rings, simplify, lines, owners, centre };
 })();

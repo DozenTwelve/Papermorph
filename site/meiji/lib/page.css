@@ -23,12 +23,13 @@ button { font: inherit; color: inherit; }
 
 /* the map: land as the base, each lord a patch of colour, lines only where groups meet */
 .land { fill: var(--base); fill-rule: evenodd; }
-.coast { fill: none; fill-rule: evenodd; stroke: var(--ink); stroke-width: 1px; vector-effect: non-scaling-stroke; stroke-linejoin: round; pointer-events: none; }
+.coast { fill: none; stroke: var(--ink); stroke-width: 1px; vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; pointer-events: none; }
 .dom { stroke-width: .8px; vector-effect: non-scaling-stroke; stroke-linejoin: round; transition: fill .9s, stroke .9s; }
 .bord { fill: none; stroke: var(--ink); stroke-width: .8px; vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; transition: opacity 1s; pointer-events: none; }
 .bord.gone, .bord.new { stroke: var(--shu); }
 .prov { fill: none; stroke: rgba(27, 26, 23, .24); stroke-width: .5px; vector-effect: non-scaling-stroke; transition: opacity 1s; pointer-events: none; }
-/* while the camera moves the thousands of thin lines are not drawn (stroking them is what costs frames); they return when it stops */
+/* while the camera moves the thousands of thin lines are not drawn (stroking them is what costs frames); they return when it stops.
+   The shapes are coarser then too (setLite in app.js) */
 #map.lite .dom { stroke: none !important; }
 #map.lite .bord, #map.lite .prov { display: none; }
 .prov.off { opacity: 0; }
