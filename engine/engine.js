@@ -2030,6 +2030,7 @@ document.addEventListener('keydown', e => {
   if (!$('help').hidden) { if (k === 'Escape' || k === '?') { e.preventDefault(); toggleHelp(); } return; }
   if (e.target.matches?.('input')) {        // Keep native input keys; only answer boxes use Enter to check.
     if (k === 'Enter' && e.target.type !== 'range' && P.keys) { e.preventDefault(); P.keys(e); }
+    else if (k === ' ' && e.target.type === 'range') { e.preventDefault(); togglePlay(); }   // the volume slider has no use for Space
     else if (k === 'Escape') e.target.blur();
     return;
   }
