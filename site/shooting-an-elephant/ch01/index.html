@@ -67,7 +67,7 @@ function toward(g, name, fx, fy, Z, t0, dur) {
 // a close-up of a rifle laid beside a photograph, with a cream line from it to the rifle in the picture (gx, gy: 0..1)
 function gunInset(p0, photo, photoName, [gx, gy], name, label, { x, y, w, r = 0 }, t0) {
   const p = G(p0, {}), [px, py] = spot(photo, photoName, gx, gy);
-  line(p, `M${px} ${py}L${x - w * .3} ${y - 40}`, t0, .35, 3, { opacity: .9 });
+  line(p, `M${px} ${py}L${x - w * .3} ${y - 40}`, t0, .35, 3);
   put(mk('circle', { cx: px, cy: py, r: 9, fill: 'none', stroke: CREAM, 'stroke-width': 3 }, p), { o: 0 });
   const dot = p.lastChild; show(dot, t0, .2);
   pic(p, name, { x, y, w, r, at: t0 + .2, from: [60, 0], dur: .45 });
@@ -441,7 +441,7 @@ function flashAt(p, t, live) { if (live) return; const f = put(mk('rect', { x: -
 // the ground of the shooting: a paddy field drawn as lines, a road at the foot
 function paddy(p, GY) {
   const g = G(p, {});
-  line(g, `M0 ${GY}H1600`, 0, .01, 2, { opacity: .5 });
+  line(g, `M0 ${GY}H1600`, 0, .01, 2);
   const R = rng(55);
   for (let x = -20; x < 1620; x += 50 + R() * 50) mk('path', { d: `M${x} ${GY}l-5 -${10 + R() * 12}M${x} ${GY}l3 -${12 + R() * 10}M${x} ${GY}l10 -${8 + R() * 8}`, stroke: CREAM, 'stroke-width': 2, opacity: .4 }, g);
   return g;
@@ -506,7 +506,7 @@ function townPlan(p, t0, D) {
     const dens = [1, .7, .35][c];
     for (let y = y0; y < y1 - 12; y += 22) for (let x = x0; x < x1 - 16; x += 24) {
       if (rnd() > dens) continue;
-      const w = 12 + rnd() * 9, h = 10 + rnd() * 7, b = mk('rect', { x: x + rnd() * 4, y: y + rnd() * 3, width: w, height: h, fill: rnd() < .55 ? PEN : PAPER, stroke: PEN, 'stroke-width': 1.2, opacity: .8 }, houses);
+      const w = 12 + rnd() * 9, h = 10 + rnd() * 7, b = mk('rect', { x: x + rnd() * 4, y: y + rnd() * 3, width: w, height: h, fill: rnd() < .55 ? PEN : PAPER, stroke: PEN, 'stroke-width': 1.2 }, houses);
       put(b, { o: 0 }); show(b, t0 + .7 + (y - 60) / 780 * .6 + rnd() * .1, .12, lin);
     }
   }
@@ -900,7 +900,7 @@ const BEATS = [
     hide(gi, m('small') - .3, .3);
     // "… and much too small to kill an elephant": the man and his rifle against the elephant, both in silhouette
     t = m('small') - .3; p = cut(t, .3);
-    line(p, 'M0 780H1600', t, .4, 2, { opacity: .45 });
+    line(p, 'M0 780H1600', t, .4, 2);
     const man = G(p, {}), manL = G(p, { o: 0 });   // facing the elephant, and turned to run
     cutout(man, 'officer', 400, 790, 330, { at: t + .05, from: [-40, 0], D });
     cutout(manL, 'officer', 0, 0, 330, { flip: true, D });
@@ -933,7 +933,7 @@ const BEATS = [
     t = m('must') - .45; p = cut(t, .25);
     const GY = 800, V = 620, tm = m('must'), tRun = tm + .25;
     const world = G(p, {});   // everything on the ground; it rolls right while the elephant runs left
-    line(p, `M0 ${GY}H1600`, t, .3, 2, { opacity: .45 });
+    line(p, `M0 ${GY}H1600`, t, .3, 2);
     const R = rng(1926);
     for (let x = -4200; x < 1700; x += 70 + R() * 90) mk('path', { d: `M${x} ${GY}l-6 -${10 + R() * 14}M${x} ${GY}l4 -${12 + R() * 12}M${x} ${GY}l12 -${8 + R() * 10}`, stroke: CREAM, 'stroke-width': 2, opacity: .4 }, world);
     const EH = 380, EW = SHAPES.elephant.w * EH / SHAPES.elephant.h, X0 = 1290, XR = 960;   // chained, and running
@@ -965,7 +965,7 @@ const BEATS = [
       const Rb = rng(n.length * 97), bits = n === 'stall' ? 14 : n === 'hut' ? 8 : 0;
       for (let k = 0; k < bits; k++) {
         const vx = 220 + Rb() * 380, vy = 360 + Rb() * 360, x0 = x + (Rb() - .5) * 80, y0 = GY - h * (.3 + Rb() * .5), spin = (Rb() - .5) * 1400;
-        const b = n === 'stall' ? mk('circle', { r: 7 + Rb() * 5, fill: CREAM, opacity: .85 }, debris) : mk('rect', { x: -34, y: -3, width: 68, height: 6, rx: 3, fill: CREAM }, debris);
+        const b = n === 'stall' ? mk('circle', { r: 7 + Rb() * 5, fill: CREAM }, debris) : mk('rect', { x: -34, y: -3, width: 68, height: 6, rx: 3, fill: CREAM }, debris);
         put(b, { o: 0 });
         const tLand = (vy + Math.sqrt(vy * vy + 4 * 1300 * (GY - 10 - y0))) / 2600;
         clockRun(tt => {
@@ -1004,7 +1004,7 @@ const BEATS = [
     comicPanel(p, 'orderly', [40, 460, 1520, 400], [.5, .52], m('q10') + 2.1, [0, 50]);
     const sw = comicPanel(p, 'swap', [620, 40, 940, 400], [.4, .3], m('erifle') - .45, [50, 0]);
     const [lx, ly] = sw.at(.32, .34);
-    line(p, `M${lx} ${ly}L1110 640`, m('erifle') - .1, .35, 3, { opacity: .9 });
+    line(p, `M${lx} ${ly}L1110 640`, m('erifle') - .1, .35, 3);
     put(mk('circle', { cx: lx, cy: ly, r: 9, fill: 'none', stroke: CREAM, 'stroke-width': 3 }, p), { o: 0 });
     show(p.lastChild, m('erifle') - .1, .2);
     pic(p, 'double-rifle-bw', { x: 1260, y: 690, w: 560, r: 1.5, at: m('erifle') + .1, from: [60, 0], dur: .45 });
