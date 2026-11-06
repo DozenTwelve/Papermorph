@@ -35,7 +35,7 @@ def slug(heading):
 
 def anchors(path):
     out, fence = set(), False
-    for line in path.read_text().splitlines():
+    for line in path.read_text(encoding='utf-8').splitlines():
         if line.startswith('```'):
             fence = not fence
         elif not fence and (m := re.match(r'#{1,6} (.*)', line)):
@@ -49,7 +49,7 @@ def without_fences(text):
 
 def links():
     for doc in DOCS + REPO_DOCS:
-        for target in re.findall(r'\]\(([^)\s]+)\)', without_fences(doc.read_text())):
+        for target in re.findall(r'\]\(([^)\s]+)\)', without_fences(doc.read_text(encoding='utf-8'))):
             if re.match(r'[a-z]+:', target):
                 continue
             path, _, frag = target.partition('#')
@@ -61,7 +61,7 @@ def links():
 
 
 def routing():
-    text = (SKILL / 'SKILL.md').read_text()
+    text = (SKILL / 'SKILL.md').read_text(encoding='utf-8')
     linked = {(SKILL / t.split('#')[0]).resolve() for t in re.findall(r'\]\((references/[^)#\s]+)', text)}
     for ref in DOCS[1:]:
         if ref.resolve() not in linked:
@@ -70,7 +70,7 @@ def routing():
         if f'`{script.name}`' not in text:
             say(script, 'not named in SKILL.md')
         try:
-            compile(script.read_text(), str(script), 'exec')
+            compile(script.read_text(encoding='utf-8'), str(script), 'exec')
         except SyntaxError as e:
             say(script, f'does not compile: line {e.lineno}: {e.msg}')
 
@@ -85,7 +85,7 @@ def code_spans(text):
 
 def drift():
     for doc in DOCS:
-        for span in code_spans(doc.read_text()):
+        for span in code_spans(doc.read_text(encoding='utf-8')):
             for p in re.findall(r'(?:^|[\s"]|SKILL/)(scripts/\w+\.py)', span):
                 if not (SKILL / p).exists():
                     say(doc, f'names a missing script: {p}')
@@ -96,7 +96,7 @@ def drift():
                 src = SKILL / 'scripts' / name
                 if not src.exists():
                     continue
-                code = src.read_text()
+                code = src.read_text(encoding='utf-8')
                 # a flag right after this script's name and before the next script or pipe belongs to it
                 tail = re.split(r'\b\w+\.py\b|\|', span.split(name, 1)[1])[0]
                 for flag in re.findall(r'(?<![\w-])(--[a-z][\w-]*)', tail):
@@ -105,7 +105,7 @@ def drift():
 
 
 def versions():
-    m = re.search(r"DEFAULT = '[^@']+@(engine-v[\d.]+)'", (SKILL / 'scripts/engine.py').read_text())
+    m = re.search(r"DEFAULT = '[^@']+@(engine-v[\d.]+)'", (SKILL / 'scripts/engine.py').read_text(encoding='utf-8'))
     if not m:
         return say(SKILL / 'scripts/engine.py', 'no DEFAULT = \'OWNER/REPO@engine-vX.Y\' to check the docs against')
     for f in DOCS + sorted(p for p in (SKILL / 'assets').rglob('*') if p.suffix in ('.json', '.html', '.js', '.md')):
