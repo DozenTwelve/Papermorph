@@ -28,23 +28,6 @@ const RIVER_BED = x => x < 600 ? 700 : x < 690 ? 700 + 20 * (x - 600) / 90 + 18 
 // of the tree (Squirrel sits on its branch) and behind the water and the near faces of the banks.
 const setCam = (p, set, v0 = {}) => paperCam(p, set, v0, set === 'river' ? { after: 'tree' } : {});
 
-// Moving a four-legged puppet along the ground: keys [[t, x], …] on the scene clock, eased between keys. Returns x, the
-// distance walked in the puppet's own units (d, for pose: x = x0 + turn·s·d keeps the hooves planted) and stand, 1 at
-// rest, blending to 0 within a quarter second of setting off and back to 1 after stopping.
-function route(q, keys, s = 1) {
-  let x = keys[0][1], d = 0, moving = false, since = 1e9;
-  for (let i = 1; i < keys.length; i++) {
-    const [t0, a] = keys[i - 1], [t1, b] = keys[i];
-    if (q >= t1) { d += Math.abs(b - a) / s; x = b; if (a !== b) since = q - t1; continue; }
-    if (q > t0 && a !== b) { const u = ease((q - t0) / (t1 - t0)); x = a + (b - a) * u; d += Math.abs(b - a) * u / s; moving = true; since = 0; }
-    break;
-  }
-  const start = keys.find((k, i) => i && keys[i - 1][1] !== k[1] && q >= keys[i - 1][0] && q < k[0]);
-  const into = start ? q - keys[keys.indexOf(start) - 1][0] : 1e9;
-  const stand = moving ? Math.max(0, 1 - into / .25) : Math.min(1, since / .25);
-  return { x, d, stand };
-}
-
 // The mill's water wheel, a paper wheel that turns on the scene clock: wheel(q) poses it.
 function millWheel(parent, x = 1340, y = 650, r = 150) {
   const spokes = Array.from({ length: 8 }, (_, i) => { const a = i * Math.PI / 4; return `<path d="M0,0 L${(r * Math.cos(a)).toFixed(1)},${(r * Math.sin(a)).toFixed(1)}" stroke="#6e4a30" stroke-width="12"/>`; }).join('');
