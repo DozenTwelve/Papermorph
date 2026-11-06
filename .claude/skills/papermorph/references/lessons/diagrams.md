@@ -9,4 +9,4 @@ For abstract and procedural ideas (tier 1, the maths books). The picture explain
 - **Show the common mistake** where one exists (squaring the coefficient too), visibly crossed out, then the right way.
 - **Vary the composition with the content.** One centred formula after another feels monotonous; a number line, a table, a picture of the quantity and a worked line each have their own layout.
 
-Storyboard these beats like any other ([scenes.md](scenes.md#storyboard-layout-first-then-motion)). The maths helpers (number lines, tiles, fraction rows, planes, data plots) are in `lib/math.js`, listed in [engine.md](../core/engine.md#drawing).
+Storyboard these beats like any other ([scenes.md](scenes.md#storyboard-layout-first-then-motion)). The maths helpers (number lines, tiles, fraction rows, planes, data plots) are in `lib/math.js`, listed in [maths.md](maths.md).

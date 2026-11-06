@@ -7,7 +7,6 @@ Each chapter is a short animated lesson film where the picture carries the expla
 - Project layout
 - Pipeline
 - Chapter loop
-- LaTeX
 - Team
 
 ## Project layout
@@ -46,17 +45,9 @@ A course book may also want verified citation links, a reviewed question bank or
 1. **Read** this chapter's `pages/chNN/text.md`; render pages with `split_pages.py … --only chNN` when diagrams or missing text need images. Choose the ideas, examples and sections to teach.
 2. **Beats and narration**: list beats in `chapters/chNN.md` with what each says and which word triggers which action ([authoring.md](authoring.md)). Write `content/<book>/chNN/narration.<lang>.json` and voice it with `tts.py` ([core/sound.md](../core/sound.md#voices)).
 3. **Storyboard, layout first**: one to three key moments per beat, placed in the real page without motion and captured into one sheet ([scenes.md](scenes.md#storyboard-layout-first-then-motion), [diagrams.md](diagrams.md)). Whatever the chapter needs beyond the library is drawn or added to the image requests ([assets.md](assets.md#chapter-level-needs-noticed-while-storyboarding)).
-4. **Motion**: add the motion, the camera and the questions ([questions.md](questions.md)); API and replay invariants are in [core/engine.md](../core/engine.md).
+4. **Motion**: add the motion, the camera and the questions ([questions.md](questions.md)); API and replay invariants are in [core/engine.md](../core/engine.md), mathematics and LaTeX in [maths.md](maths.md).
 5. **Delivery pass**: watch it against the storyboard ([core/review.md](../core/review.md)), run the lesson checks ([checks.md](checks.md)), correct, recheck, deliver; report unresolved problems.
 6. **Register**: add the chapter to the contents (`units` in `Contents.book` in `index.html`, [cover.md](cover.md)), set the previous chapter's `CHAPTER.next`, update `chapters.md` and `chapters/chNN.md`. Promote new shared decisions and recurring elements to `style.json` and the library. With subagents the coordinator owns this step.
-
-## LaTeX
-
-For formulas that need LaTeX ([core/engine.md](../core/engine.md#latex)), add MathJax (with its licence) to `lib/` and load `../lib/mathjax.js` in every chapter, right after `engine.js` (after `math.js` when the chapter loads it):
-
-```sh
-python3 SKILL/scripts/engine.py site/<book> --latex   # lib/mathjax.js; later syncs keep it in step
-```
 
 ## Team
 
