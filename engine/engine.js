@@ -1718,6 +1718,7 @@ function clearCards() {
 // Rebuild the scene from scratch and fast-forward every earlier beat, so any step starts from its exact picture.
 function seek(i, play = P.playing) {
   stopAudio(); clearCards(); reset();
+  P.back = 0;   // the earlier beats' tails end where they would without music lag, not where the last beat left it
   seeking = true;
   try {
     for (let k = 0; k < i; k++) { runBeat(k); evalTo(Infinity); }
