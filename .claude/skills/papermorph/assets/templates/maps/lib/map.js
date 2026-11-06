@@ -179,11 +179,12 @@ const { paperMap, mapBand, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCi
     // labels are placed every frame from the view (cheap: put() writes only what changed), so a seek and a played
     // frame agree; in list order, each on its side, else the other, else hidden while it would cover an earlier one
     const said = new Set();
+    const OFF = { x: -999, y: -999, o: 0 };   // a hidden label parked in one place, so a seek and a played frame agree
     function placeLabels(s, a, t) {
       const boxes = [];
       labels.forEach((l, i) => {
         const P = s.roll ? mapXY(l.ll, s) : mapXY(l.ll, { ...s, roll: 0 });   // the canvas is turned by the roll, the SVG labels are not
-        if (!a[i] || !P || P[0] < safe[0] || P[0] > safe[2] || P[1] < safe[1] || P[1] > safe[3]) return put(l.e, { o: 0 });
+        if (!a[i] || !P || P[0] < safe[0] || P[0] > safe[2] || P[1] < safe[1] || P[1] > safe[3]) return put(l.e, OFF);
         const y = Math.max(safe[1] + labelSize * .8, Math.min(safe[3], P[1] + labelSize * .3));
         const at = side => { let x = side === 'l' ? P[0] - 14 - l.w : P[0] + 14;
           if (x + l.w > safe[2]) x = P[0] - 14 - l.w; if (x < safe[0]) x = P[0] + 14;
@@ -193,7 +194,7 @@ const { paperMap, mapBand, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCi
         if (x === undefined) {
           const b = hit(at(l.side));
           if (!said.has(l.name + b.name)) { said.add(l.name + b.name); console.warn(`paperMap: label ${l.name} hidden from ${t.toFixed(1)} s, on top of ${b.name}: give one an end (cities: [name, t0, side, t1])`); }
-          return put(l.e, { o: 0 });
+          return put(l.e, OFF);
         }
         boxes.push({ name: l.name, x0: x, x1: x + l.w, y0: y - labelSize * .8, y1: y + labelSize * .25 });
         put(l.e, { x, y, o: a[i] });
