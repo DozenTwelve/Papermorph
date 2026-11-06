@@ -2024,8 +2024,14 @@ fit();
 // ?beat=N&t=S opens a paused frame, for reviewing a single moment.
 function boot() {
   // a beat with no narration: { dur } in its fourth slot stands in for its clip and its TIMINGS entry
+  const loaded = !!window.TIMINGS;
   window.TIMINGS ??= {};
   for (const b of BEATS) if (!TIMINGS[b.id] && b.dur != null) TIMINGS[b.id] = { dur: b.dur, marks: {}, cues: [], silent: true };
+  const untimed = BEATS.filter(b => !TIMINGS[b.id]).map(b => b.id);
+  if (untimed.length) {
+    const at = `audio/${CHAPTER.language || 'en'}/timings.js`;
+    throw new Error(`${loaded ? `${at} has no timings for beat ${untimed.join(', ')}` : `no ${at} loaded, so no beat has timings`}: make the clips and timings with tts.py or eleven.py from the chapter's narration (core/sound.md), or give a beat with no narration { dur: s } in its fourth slot`);
+  }
   for (const m of SND.bgm) {   // music() above BEATS plays under every beat
     m.beats ??= BEATS.map(b => b.id);
     const lost = m.beats.filter(id => !BEATS.some(b => b.id === id));
