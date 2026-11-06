@@ -27,7 +27,9 @@ page that declares its own SFX, BGM, sfx(), music() or MUSIC_OFF (an older book'
 engine: the run names each such global and says that sound is not in the video.
 Odd sizes (an upright --height 720 is 405 wide) are cut to even ones, as H.264 needs. The video is written to
 OUT/chNN.tmp.mp4 and renamed when done, so a failed run leaves an earlier OUT/chNN.mp4 alone. Captions are not burned
-in: upload OUT/chNN.srt with the video. Needs ffmpeg; serve the site over HTTP first.
+in: upload OUT/chNN.srt with the video. Needs ffmpeg; serve the site over HTTP first (a wrong port or book path stops
+the run with a plain message). A page load, script or screenshot that takes over --timeout seconds (default 120; a busy
+machine draws slowly) stops the run with a message naming the pass, beat and frame it was on, and exit status 1.
 
 An upright film (a short) goes out with its source and AI-illustration tags (the page's ?tags query), since a video
 leaves the page that credits them; --no-tags leaves them out. A landscape chapter shows them only with --query tags.
@@ -40,8 +42,8 @@ VideoToolbox), else libx264; the run prints which.
 import argparse, asyncio, functools, json, os, shutil, subprocess, sys, tempfile, wave
 import numpy as np
 from pathlib import Path
-from playwright.async_api import async_playwright
-from browsers import exe
+from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeout
+from browsers import answers, exe
 import level as lv
 
 END_SECONDS = 4
@@ -117,6 +119,7 @@ CLASH_JS = """(() => {
 
 
 QUERY = ''   # extra page query (--query), e.g. 'tags&'
+STEP = 'opening the chapter'   # what the run is doing, named when a step times out
 
 
 async def open_beat(pg, base, i):
@@ -126,14 +129,15 @@ async def open_beat(pg, base, i):
 
 
 async def main(a):
-    global QUERY
+    global QUERY, STEP
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
+    base = f'{a.url}{a.chapter}/index.html'
+    answers(base)   # a wrong port or book path stops here with a plain message, not a page error
     async with async_playwright() as p:
         kw = exe(); kw['args'] = kw.get('args', []) + ['--enable-gpu']   # headless Chromium draws in software unless asked
         b = await p.chromium.launch(**kw)
-        base = f'{a.url}{a.chapter}/index.html'
         # The stage is 1600 x 900, or 900 x 1600 for a book with <html data-stage="portrait">.
-        probe = await b.new_page()
+        probe = await b.new_page(); probe.set_default_timeout(a.timeout * 1000)
         await probe.goto(base + f'?{QUERY}beat=0&t=0')
         sw, sh = await probe.evaluate('[SW, SH]')
         await probe.close()
@@ -142,6 +146,7 @@ async def main(a):
         scale = (a.height or 1080 * sh / min(sw, sh)) / sh
         # The page fits the stage plus its control strip at scale 1, rendered at the requested height.
         pg = await b.new_page(viewport={'width': sw + 40, 'height': sh + 100}, device_scale_factor=scale)
+        pg.set_default_timeout(a.timeout * 1000)
         errs = []
         pg.on('pageerror', lambda e: errs.append(str(e)))
         await pg.goto(base + f'?{QUERY}beat=0&t=0'); await pg.wait_for_timeout(500)
@@ -182,6 +187,7 @@ async def main(a):
         end_s = END_SECONDS if asks or a.link else 0   # a picture book ends on its own last scene
         lengths, starts, counts, music_off, cues, offset, waits, silent = [], [], [], [], [], 0.0, {}, set()
         for i, bid in beats:
+            STEP = f'pass 1 (the sound), beat {bid}'
             await open_beat(pg, base, i)
             end, T = await pg.evaluate('[P.end, TIMINGS[BEATS[P.i].id]]')
             if T.get('silent'): silent.add(bid)   # { dur } in the beat's fourth slot: no clip, its sound is silence
@@ -282,11 +288,14 @@ async def main(a):
         for _ in range(a.jobs - 1):
             more.append(await p.chromium.launch(**kw))
             w = await more[-1].new_page(viewport={'width': sw + 40, 'height': sh + 100}, device_scale_factor=scale)
+            w.set_default_timeout(a.timeout * 1000)
             w.on('pageerror', lambda e: errs.append(str(e)))
             pages.append(w)
         opened, last = {}, {}
 
         async def shoot(w, i, f):
+            global STEP
+            STEP = f"pass 2 (the frames), beat {info['beats'][i]['id']} frame {f}"
             if opened.get(w) != i:
                 await open_beat(w, base, i); opened[w], last[w] = i, -1
             # evalTo only runs forward and a tween takes its start value when first reached, so overlapping tweens
@@ -309,6 +318,7 @@ async def main(a):
                 while done < len(beats) and frames >= sum(counts[:done + 1]):
                     print(f'{beats[done][1]}: {counts[done]} frames', flush=True); done += 1
             if end_s:
+                STEP = 'the end card'
                 await pg.evaluate(END_CARD, [a.link or '', asks])
                 end = await pg.screenshot(clip=clip, type='jpeg', quality=92)
                 for _ in range(end_s * a.fps):
@@ -352,7 +362,13 @@ if __name__ == '__main__':
                     help="integrated loudness of the video's sound (default -16; off: as the page mixes it)")
     ap.add_argument('--to', metavar='BEAT', help='stop after this beat (its id): a first part of the film, e.g. one scene to check')
     ap.add_argument('--no-tags', action='store_true', help="an upright film without its source and AI tags (shown by default)")
+    ap.add_argument('--timeout', type=float, default=120, metavar='S',
+                    help='seconds a page load, script or screenshot may take before the run stops (default 120)')
     args = ap.parse_args()
     QUERY = args.query + '&' if args.query else ''
     args.url = args.url.rstrip('/') + '/'
-    asyncio.run(main(args))
+    try:
+        asyncio.run(main(args))
+    except PlaywrightTimeout as e:
+        sys.exit(f'stopped: {STEP} took over {args.timeout:g} s ({str(e).splitlines()[0]}). A busy machine is slow to draw: '
+                 f'rerun with --timeout {args.timeout * 2:g} or fewer --jobs (now {args.jobs}); a page that hangs at the same beat every time has an error of its own')
