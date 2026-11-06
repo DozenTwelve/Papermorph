@@ -177,6 +177,7 @@ kbd { display: inline-block; min-width: 1.5em; padding: 0 .4em; margin-inline-st
 .grid .row.cur { background: color-mix(in srgb, var(--chalk) 5%, transparent); box-shadow: inset 4px 0 var(--quiz); }
 .help { position: absolute; left: 0; top: 0; width: var(--sw, 1600px); height: var(--sh, 900px); display: grid; place-items: center; background: color-mix(in srgb, var(--veil) 72%, transparent); }
 .help[hidden] { display: none; }
+.help-box:focus { outline: none; }   /* focused as the open dialog, not as a control */
 .help-box { width: min(1120px, calc(var(--sw, 1600px) - 80px)); padding: 40px 50px; border-radius: 22px; background: var(--panel); border: 1.5px solid var(--edge); }
 .help h2 { margin: 0 0 22px; font-size: 32px; font-weight: 600; }
 .help h3 { margin: 0 0 12px; font-size: 20px; font-weight: 600; color: var(--quiz); }

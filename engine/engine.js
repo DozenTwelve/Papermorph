@@ -238,8 +238,8 @@ document.body.insertAdjacentHTML('afterbegin', `<div id="frame">
   <div id="ui"></div>
   <div class="paused-mark"><div>${translate('paused')}</div></div>
   <div class="caption" id="caption" hidden></div>
-  <div class="help" id="help" hidden role="dialog" aria-label="${translate('shortcuts')}">
-    <div class="help-box">
+  <div class="help" id="help" hidden role="dialog" aria-modal="true" aria-label="${translate('shortcuts')}">
+    <div class="help-box" tabindex="-1">
       <h2>${translate('shortcuts')}</h2>
       <div class="help-cols">
         <div><h3>${translate('lesson')}</h3><dl>
@@ -2001,12 +2001,19 @@ document.addEventListener('fullscreenchange', () => {
 let wakeT = 0;
 function wake() { $('frame').classList.add('awake'); clearTimeout(wakeT); wakeT = setTimeout(() => $('frame').classList.remove('awake'), 2500); }
 for (const type of ['pointermove', 'pointerdown', 'keydown']) addEventListener(type, wake, true);
-let helpResume = false;
+let helpResume = false, helpFrom = null;
+// The help takes the focus while open (Tab stays in it: it has no controls) and gives it back when it closes.
 function toggleHelp() {
   const open = $('help').hidden;
   $('help').hidden = !open;
-  if (open) { helpResume = P.playing; if (P.playing) setPlaying(false); }
-  else if (helpResume) setPlaying(true);
+  if (open) {
+    helpResume = P.playing; if (P.playing) setPlaying(false);
+    helpFrom = document.activeElement; $('help').querySelector('.help-box').focus({ preventScroll: true });
+  } else {
+    if (helpFrom && helpFrom !== document.body && helpFrom.isConnected) helpFrom.focus({ preventScroll: true });
+    helpFrom = null;
+    if (helpResume) setPlaying(true);
+  }
 }
 // Review notes, only with ?review in the URL: N pauses and asks for a note on this moment, Shift+N copies every
 // note of the chapter (one line each, with the ?beat=N&t=S that reopens it) and offers to clear them.
@@ -2029,7 +2036,7 @@ function reviewCopy() {
 document.addEventListener('keydown', e => {
   if (e.altKey || e.metaKey || e.ctrlKey) return;
   const k = e.key;
-  if (!$('help').hidden) { if (k === 'Escape' || k === '?') { e.preventDefault(); toggleHelp(); } return; }
+  if (!$('help').hidden) { if (k === 'Escape' || k === '?' || k === 'Tab') { e.preventDefault(); if (k !== 'Tab') toggleHelp(); } return; }
   if (e.target.matches?.('input')) {        // Keep native input keys; only answer boxes use Enter to check.
     if (k === 'Enter' && e.target.type !== 'range' && P.keys) { e.preventDefault(); P.keys(e); }
     else if (k === ' ' && e.target.type === 'range') { e.preventDefault(); togglePlay(); }   // the volume slider has no use for Space
