@@ -115,6 +115,7 @@ def sound_end(src):
 def last_note(src):
     """The last moment the recording is within 10 LU of its body (median momentary loudness)."""
     M = [(t, m) for t, m in momentary(src) if not math.isnan(m)]
+    if not any(m > -70 for _, m in M): sys.exit(f"{src}: no sound above -70 LUFS to find a last note in (silent, or not a recording?)")
     body = statistics.median(m for _, m in M if m > -70)
     return max(.0, max(t for t, m in M if m >= body - 10) - .2)   # the 400 ms window of frame t ends at t + .1: an abrupt end reads .2 s late
 
