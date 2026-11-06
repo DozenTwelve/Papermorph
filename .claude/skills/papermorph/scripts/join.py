@@ -7,7 +7,9 @@
 Each argument is SCENE=CLIP,CLIP,...; a clip may be CLIP@T+S@T+S: S seconds of silence inserted T seconds into it
 (room for an action in the middle of a line; T may be 0, silence before the line), and NAME:S is S seconds of
 silence with no clip of its own (a stare or a tag after the last line; its start is in `parts` like a clip's). A
-hole belongs after a word's sound has ended, not where the next word starts. A short pause (0.35 s) goes between clips. Writes AUDIO_DIR/SCENE.mp3 and
+hole belongs after a word's sound has ended, not where the next word starts; one that falls inside the sound (within
+30 dB of the clip's loud parts) gets a WARNING naming the scene, the clip and time, the word (with --words) and the
+nearest pause to move it to. A short pause (0.35 s) goes between clips. Writes AUDIO_DIR/SCENE.mp3 and
 AUDIO_DIR/shots.js: TIMINGS.SCENE = {dur, marks, cues, parts} with each clip's start in `parts` (marks become
 "clip.mark") and the caption cues moved along; the mouth cues of clips with holes are moved too (MOUTHS.clip). Load
 shots.js after timings.js and mouths.js. A scene not on the command line keeps what an earlier run wrote for it in
@@ -18,18 +20,27 @@ every word's heard time in the joined scene clip, which a scene's author times a
 scene's `pre` plus these). Keep the join command in a script beside the book's notes and rerun it after any change.
 Run after tts.py and mouths.py; needs ffmpeg.
 """
-import json, re, subprocess, sys, pathlib, tempfile
+import array, json, math, re, subprocess, sys, pathlib, tempfile
 if len(sys.argv) < 3 or sys.argv[1] in ('-h', '--help'):
     print(__doc__); sys.exit(0 if sys.argv[1:2] in (['-h'], ['--help']) else 2)
 GAP = .35
 LAG = .12   # Edge's word times run ~0.12–0.25 s ahead of the sound: captions (and mouths.py's cues) start this much later
-from silence import speech_end, pauses   # a caption ends at the pause after its words
+from silence import speech_end, pauses, silences   # a caption ends at the pause after its words
 from tts import duration, js_object
 d = pathlib.Path(sys.argv[1]); T = js_object(d / 'timings.js')
 args, words = sys.argv[2:], None
 if '--words' in args:
     k = args.index('--words'); words = pathlib.Path(args[k + 1]); del args[k:k + 2]
 WB = json.loads(words.with_suffix('.timings.json').read_text(encoding='utf-8')) if words else {}   # per-beat word times, to place caption ends
+def level_at(f, ts):
+    """The sound at each time in ts: the loudest 10 ms within 20 ms of it, in dB against the clip's loud level (its
+    95th-percentile 10 ms). Between words a clip sits 30 dB or more under it (Millions of Cats: -33 to -54); inside a
+    word, 0 to -25."""
+    x = array.array('f', subprocess.run(['ffmpeg', '-v', 'error', '-i', str(f), '-ac', '1', '-ar', '16000', '-f', 'f32le', '-'],
+                                        capture_output=True, check=True).stdout)   # ponytail: native byte order, little-endian machines
+    fr = [10 * math.log10(sum(v * v for v in x[i:i + 160]) / 160 + 1e-12) for i in range(0, len(x) - 160, 160)]
+    top = sorted(fr)[int(len(fr) * .95)] if fr else 0
+    return [max(fr[max(0, round(t * 100) - 2):round(t * 100) + 3] or [-120]) - top for t in ts]
 def silence(path, sec):
     subprocess.run(['ffmpeg', '-v', 'error', '-y', '-f', 'lavfi', '-i', 'anullsrc=r=24000:cl=mono', '-t', str(sec), '-b:a', '64k', str(path)], check=True)
 out, H = {}, {}   # H: every shot's holes, for the mouths
@@ -42,6 +53,16 @@ for arg in args:
             T[name] = {'dur': float(sec), 'marks': {}, 'cues': [], 'silent': True}; continue
         name, *ins = b.split('@'); beats[i] = name
         holes[name] = sorted(tuple(map(float, x.split('+'))) for x in ins)
+        inner = [at for at, _ in holes[name] if 0 < at < T[name]['dur'] - .05]   # a hole at 0 or the end cuts no word
+        for at, db in zip(inner, level_at(d / f'{name}.mp3', inner) if inner else []):
+            if db > -30:   # a hole here splits a word ("la- [0.8 s] -st"), heard as the voice sticking
+                said = [(t + (WB.get(name) or {}).get('lag', LAG), w) for t, w in (WB.get(name) or {}).get('words', [])]
+                word = max((tw for tw in said if tw[0] <= at), default=None)
+                near = min(silences(d / f'{name}.mp3', .1), key=lambda g: min(abs(g[0] - at), abs(g[1] - at)), default=None)
+                print(f"WARNING {shot}: {name}@{at} is inside the clip's sound ({db:+.0f} dB against its loud parts"
+                      + (f", in {word[1]!r} heard at {word[0]:.2f} s" if word else "") + ")"
+                      + (f"; the nearest pause is {near[0]:.2f}-{near[1]:.2f} s: put the hole there" if near else "; put it in a pause after a word"),
+                      file=sys.stderr)
     with tempfile.TemporaryDirectory() as tmp:
         def piece(b):   # the clip's file, cut at its holes with silence between
             if T[b].get('silent'):
