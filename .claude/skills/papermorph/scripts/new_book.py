@@ -6,6 +6,7 @@
     python3 new_book.py picture fox --painted          # with painted.json, painted.py's manifest, for a painted look
     python3 new_book.py documentary film               # a documentary: film.js kit, series page for the credits
     python3 new_book.py shorts short --maps            # upright shorts, here with the map kit (documentaries take --maps too)
+    python3 new_book.py scroll story                   # a scroll page: scroll.js kit and a four-step sample, no engine
     python3 new_book.py lesson stats --chapter 9 --lang ja --root ~/work
 
 Run it from the folder that holds site/, books/, content/ and tools/ (or pass --root). It refuses a book that
@@ -22,7 +23,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 T = HERE.parent / 'assets' / 'templates'
-PB, DK, SK, MK = T / 'picture-book', T / 'documentary', T / 'shorts', T / 'maps'
+PB, DK, SK, MK, SC = T / 'picture-book', T / 'documentary', T / 'shorts', T / 'maps', T / 'scroll'
 
 
 def copy(src: Path, dst: Path):
@@ -35,7 +36,7 @@ def copy(src: Path, dst: Path):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('kind', choices=['lesson', 'picture', 'documentary', 'shorts'])
+    ap.add_argument('kind', choices=['lesson', 'picture', 'documentary', 'shorts', 'scroll'])
     ap.add_argument('book', help='the book slug, e.g. history')
     ap.add_argument('--chapter', type=int, default=1, help='the pilot chapter number (default 1)')
     ap.add_argument('--lang', default='en', help="the book's language code (default en): it names the narration file, the audio folder, <html lang> and CHAPTER.language; the template's text and voice stay English until translated")
@@ -54,7 +55,7 @@ def main():
     if a.painted and a.kind != 'picture':
         sys.exit('--painted is for picture books')
     try:
-        start(a, root, ch, site, work, content)
+        start_scroll(a, root, site, work) if a.kind == 'scroll' else start(a, root, ch, site, work, content)
     except BaseException:
         shutil.rmtree(site, ignore_errors=True)   # a half-made site/<book>/ would block the rerun
         raise
@@ -131,6 +132,31 @@ def start(a, root, ch, site, work, content):
         print(f'  later, the series page\'s img/cover.webp (hidden until it exists): uv run --with playwright --with pillow '
               f'python {S}/shot.py {ch} --out {q(work / "review" / "stills")} BEAT:SECONDS --webp 1400 --name cover '
               f'--url http://localhost:8765/{a.book}/, copied to {q(site / "img")}/')
+
+
+
+def start_scroll(a, root, site, work):
+    """A scroll page lives outside the engine: no engine.py, no chapters, no narration (references/films/scroll.md)."""
+    if a.chapter != 1:
+        print('--chapter is ignored: a scroll page is one page, not chapters', file=sys.stderr)
+    for f in ('index.html', 'story.js', 'lib', 'img'):
+        copy(SC / f, site / f)
+    copy(DK / 'lib' / 'fonts.css', site / 'lib' / 'fonts.css')
+    copy(DK / 'lib' / 'fonts', site / 'lib' / 'fonts')
+    if not (work / 'style.json').exists():
+        copy(SC / 'style.json', work / 'style.json')
+    copy(SC / 'e2e.py', root / 'tools' / a.book / 'e2e_scroll.py')
+    if a.lang != 'en':
+        f = site / 'index.html'
+        f.write_text(f.read_text(encoding='utf-8').replace('lang="en"', f'lang="{a.lang}"'), encoding='utf-8')
+    q = lambda p: shlex.quote(str(p.relative_to(root) if p.is_relative_to(root) else p))
+    S = q(HERE)
+    print(f'\nscroll page started: {q(site)}/ (the four-step sample: index.html, story.js), style.json template in '
+          f'{q(work / "style.json")}; next:')
+    print(f'  python3 {S}/serve.py 8765 site   # then open http://localhost:8765/{a.book}/')
+    print(f'  uv run --with playwright python3 {q(root / "tools" / a.book / "e2e_scroll.py")} http://localhost:8765/{a.book}/ '
+          f'--out {q(work / "review" / "scroll")}')
+    print(f'  your own map data, over the sample\'s img/geo-lite.js: python3 {S}/geo.py {q(site / "img")} [--regions ...] [--cities ...]')
 
 
 if __name__ == '__main__':

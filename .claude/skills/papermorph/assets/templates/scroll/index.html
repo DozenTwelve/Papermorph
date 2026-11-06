@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nineteen Cities</title>
+<meta name="description" content="The scroll page kit's sample: the world's cities of ten million, on Natural Earth's map.">
+<link rel="stylesheet" href="lib/scroll.css">
+<!-- this book's colours and fonts: scroll.js draws with the same ones -->
+<style>:root { --accent: #c4321f; }</style>
+</head>
+<body>
+<!-- The scroll page kit's sample (assets/templates/scroll/). Each <section class="step"> is one step of the story; its
+     data-key is the name story.js reaches it by, at('cities', .5). Every word the picture says is in a card too: the
+     canvas is aria-hidden, so a screen reader, and a reader who skips the picture, get the story from the cards. -->
+<div class="progress" aria-hidden="true"><i></i></div>
+
+<header class="hero">
+  <nav class="shelf"><a href="../">← Bookshelf</a></nav>
+  <h1>Nineteen Cities</h1>
+  <p class="kicker">Papermorph: a scroll story</p>
+  <p class="dek">Where the world's biggest cities are, on a free map of the world.</p>
+  <p class="more">Scroll down to start; scroll back to rewind.</p>
+  <p class="cue" aria-hidden="true">↓</p>
+</header>
+
+<main class="scrolly">
+  <figure class="graphic" aria-hidden="true"><canvas></canvas><div class="grain"></div></figure>
+  <div class="steps">
+    <section class="step" id="step-1" data-key="world">
+      <div class="card">
+        <p><b>Natural Earth</b>, a public-domain map of the world, draws it as 177 countries.</p>
+      </div>
+    </section>
+    <section class="step" id="step-2" data-key="cities">
+      <div class="card">
+        <p>Nineteen of its cities have <b>ten million people</b> or more, counting the whole urban area around each.</p>
+        <p class="src">Each circle's area is the city's people.</p>
+      </div>
+    </section>
+    <section class="step" id="step-3" data-key="asia">
+      <div class="card">
+        <p><b>Ten of the nineteen are in Asia</b>: Tokyo and Osaka, Shanghai and Beijing, Manila, Dhaka, Kolkata, Delhi, Mumbai and Karachi.</p>
+      </div>
+    </section>
+    <section class="step" id="step-4" data-key="rank">
+      <div class="card">
+        <p>And one is far ahead. <b class="accent">Tokyo</b>: about 36 million people, nearly twice New York, the next.</p>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer class="credits">
+  <h2>Sources and credits</h2>
+  <p>Map and populations: <a href="https://www.naturalearthdata.com/">Natural Earth</a> (public domain): the 1:110 million countries, and the populated places' estimates of each city's whole urban area (<code>pop_max</code>).</p>
+  <p>Fonts: Oswald and EB Garamond (SIL Open Font License 1.1). Code MIT.</p>
+</footer>
+
+<script src="img/geo-lite.js"></script>
+<script src="lib/scroll.js"></script>
+<script src="story.js"></script>
+</body>
+</html>
