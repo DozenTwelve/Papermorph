@@ -1,14 +1,25 @@
-/* The Map Redrawn: a map you explore. Each year plays its events on the map (camera, pin, card, a region lit), then the
-   four people walk their routes; the map itself changes state (domains, prefectures, ...) as the story says.
-   Engine adapted from "Time of the Magicians" (Papermorph, MIT licence, LICENSE-engine.txt).
-   Data: data/japan-1868.topo.json and domains-1868.json (the map), lib/states.js (STATES), lib/story.js (INTRO, PEOPLE,
-   PLACES, START, YEARS), lib/events.js (EVENTS), lib/voiced.js (VOICED clips, MUSIC tracks), lib/sprite.js (figureSprite).
-   World units are kilometres on one Lambert conic; SVG y points down. */
+/* A map you explore (Papermorph's explore kit, from The Map Redrawn and Time of the Magicians). Each year plays its
+   events on the map (camera, pin, card, a region lit), then the people walk their routes; the map itself changes state
+   (which areas group into which country, province or domain) as the story says; a place with a card can be clicked.
+   This file is the same in every book; a book's own things are data:
+     lib/states.js   ATLAS (the map file and how to show it), STATES, PALETTES, KIND_COLOR
+     lib/story.js    INTRO, PEOPLE, PLACES, START, YEARS, and if wanted PLACE_CARDS, RENAMED, WORDS
+     lib/events.js   EVENTS
+     lib/sprite.js   figureSprite(id): how a walking figure is drawn
+     audio/<lang>/timings.js (tts.py, eleven.py): which clips exist; or lib/voiced.js (VOICED, MUSIC)
+   It runs on its own clock (timers and requestAnimationFrame), not the engine's beat clock: no seek, no export.
+   World units are kilometres on one Lambert conic; SVG y points down. window.MAP at the end is for explore.py. */
 'use strict';
 (async () => {
   const NS = 'http://www.w3.org/2000/svg';
   const $ = s => document.querySelector(s);
   const svg = $('#map'), params = new URLSearchParams(location.search);
+  // the data files' optional names (a top-level const is not on window, so each is asked for by typeof)
+  /* global ATLAS, PALETTES, KIND_COLOR, PLACE_CARDS, RENAMED, WORDS */
+  const A = Object.assign({ topo: 'data/map.topo.json', areas: 'areas', regions: 'regions', regionKey: 'name', rotate: [0, 0] }, typeof ATLAS !== 'undefined' ? ATLAS : {});
+  const LANG = document.documentElement.lang || 'en', CLIP = id => `audio/${LANG}/${id}.mp3`;
+  const SAY = Object.assign({ listen: '▶ Listen', pause: '❚❚ Pause', open: 'open their card', openPlace: 'open its card', gone: name => `${name} is no longer on the map; the card tells why` }, typeof WORDS !== 'undefined' ? WORDS : {});
+  const CARDS = typeof PLACE_CARDS !== 'undefined' ? PLACE_CARDS : {}, RENAME = typeof RENAMED !== 'undefined' ? RENAMED : {};
   const el = (tag, attrs = {}, parent) => {
     const e = document.createElementNS(NS, tag);
     for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
@@ -38,31 +49,35 @@
   }
 
   /* ---------- the map data ---------- */
-  const [topo, info] = await Promise.all([fetch('data/japan-1868.topo.json').then(r => r.json()), fetch('data/domains-1868.json').then(r => r.json())]);
+  const topo = await fetch(A.topo).then(r => { if (!r.ok) throw new Error(`explore: no map file ${A.topo} (${r.status}): make it with topo.py`); return r.json(); });
+  if (!topo.objects[A.areas]) throw new Error(`explore: ${A.topo} has no object '${A.areas}' (it has ${Object.keys(topo.objects).join(', ')}): set ATLAS.areas`);
   const PORTRAIT = innerWidth <= 700 && innerHeight > 520;   // a phone held upright
-  const ROT = (params.has('rot') ? +params.get('rot') : PORTRAIT ? -60 : 30) * Math.PI / 180, COS = Math.cos(ROT), SIN = Math.sin(ROT);   // the map is turned clockwise so the islands lie across the screen; on an upright phone, 60 degrees the other way so they stand along it
+  // ATLAS.rotate: [degrees on a wide screen, on an upright phone], clockwise; turn a long country to lie across the screen
+  const ROT = (params.has('rot') ? +params.get('rot') : PORTRAIT ? A.rotate[1] : A.rotate[0]) * Math.PI / 180, COS = Math.cos(ROT), SIN = Math.sin(ROT);
   const arcs = Topo.decode(topo), M = (m => [COS * m[0], SIN * m[0], -SIN * m[3], COS * m[3], COS * m[4] - SIN * m[5], SIN * m[4] + COS * m[5]])(Topo.matrix(topo));
   const toKm = q => [M[0] * q[0] + M[2] * q[1] + M[4], M[1] * q[0] + M[3] * q[1] + M[5]];   // quantised file units -> km on screen
   const toQ = p => { const det = M[0] * M[3] - M[1] * M[2], x = p[0] - M[4], y = p[1] - M[5]; return [(M[3] * x - M[2] * y) / det, (M[0] * y - M[1] * x) / det]; };
-  const infoOf = Object.fromEntries(info.map(d => [d.lord, d]));
-  const domGeoms = topo.objects.domains.geometries, provGeoms = topo.objects.provinces.geometries;
-  // one piece per lord, 1871 prefecture (ken) and 1876 prefecture (k76); provinces: the ones this piece covers, biggest first
-  const domains = domGeoms.map(g => ({ lord: g.properties.lord, kind: g.properties.kind, ken: g.properties.ken, k76: g.properties.k76, provinces: g.properties.provs ? g.properties.provs.split('、') : infoOf[g.properties.lord]?.provinces || [] }));
+  const domGeoms = topo.objects[A.areas].geometries, provGeoms = topo.objects[A.regions]?.geometries || [];
+  // one area per piece of the map (a domain, a province); what states.js groups. d: the piece's properties in the file
+  const domains = domGeoms.map(g => ({ ...g.properties }));
   const owner = Topo.owners(domGeoms);
-  const nbr = domGeoms.map(() => new Set());   // domains that touch
+  const nbr = domGeoms.map(() => new Set());   // areas that touch
   for (const gs of owner.values()) if (gs.length === 2) { nbr[gs[0]].add(gs[1]); nbr[gs[1]].add(gs[0]); }
 
-  /* projection: the one the map was built with (Lambert conic, parallels 33 and 38, origin 36N 136E, GRS80) */
+  /* projection: the one the map was built with, a Lambert conformal conic on GRS80 (topo.py writes it in the file) */
+  const cone = A.lambert || topo.projection?.lambert;
+  if (!cone) throw new Error(`explore: ${A.topo} names no projection: set ATLAS.lambert [lat1, lat2, lat0, lon0]`);
   const xy = (() => {
-    const a = 6378137, f = 1 / 298.257222101, e = Math.sqrt(f * (2 - f)), r = Math.PI / 180;
+    const [p1, p2, p0, l0] = cone, a = 6378137, f = 1 / 298.257222101, e = Math.sqrt(f * (2 - f)), r = Math.PI / 180;
     const mm = p => Math.cos(r * p) / Math.sqrt(1 - e * e * Math.sin(r * p) ** 2);
     const tt = p => Math.tan(Math.PI / 4 - r * p / 2) / ((1 - e * Math.sin(r * p)) / (1 + e * Math.sin(r * p))) ** (e / 2);
-    const n = (Math.log(mm(33)) - Math.log(mm(38))) / (Math.log(tt(33)) - Math.log(tt(38)));
-    const F = mm(33) / (n * tt(33) ** n), rho = p => a * F * tt(p) ** n;
-    return (lon, lat) => { const th = n * r * (lon - 136), x = rho(lat) * Math.sin(th) / 1000, y = -(rho(36) - rho(lat) * Math.cos(th)) / 1000; return [COS * x - SIN * y, SIN * x + COS * y]; };
+    const n = p1 === p2 ? Math.sin(r * p1) : (Math.log(mm(p1)) - Math.log(mm(p2))) / (Math.log(tt(p1)) - Math.log(tt(p2)));
+    const F = mm(p1) / (n * tt(p1) ** n), rho = p => a * F * tt(p) ** n;
+    return (lon, lat) => { const th = n * r * (lon - l0), x = rho(lat) * Math.sin(th) / 1000, y = -(rho(p0) - rho(lat) * Math.cos(th)) / 1000; return [COS * x - SIN * y, SIN * x + COS * y]; };
   })();
-  const P = {};   // the placeholder route stops, projected
-  for (const [key, [name, lon, lat, side]] of Object.entries(PLACES)) P[key] = { key, name, side: side || 'r', p: xy(lon, lat), p0: xy(lon, lat) };   // p0: where it truly lies; p may be moved to keep it on screen
+  const P = {};   // the route stops and places with cards, projected; a fifth entry true: off the map, kept in the frame (placeOff)
+  for (const [key, [name, lon, lat, side, off]] of Object.entries(PLACES)) P[key] = { key, name, side: side || 'r', off: !!off, p: xy(lon, lat), p0: xy(lon, lat) };   // p0: where it truly lies; p may be moved to keep it on screen
+  for (const k of Object.keys(CARDS)) if (!P[k]) console.error(`story.js: PLACE_CARDS.${k}: no place '${k}' in PLACES`);
 
   /* ---------- checks: say what the story asks for that the map cannot do ---------- */
   const where = { [FIRST - 1]: { ...START } };   // where[y][w]: the resting place at the end of year y
@@ -82,15 +97,20 @@
 
   /* ---------- the map layers ---------- */
   const geo = el('g', { id: 'geo', transform: `matrix(${M.join(' ')})` }, svg);   // quantised file units -> km
-  // each shape twice: as the file has it, and coarser for while the camera moves (to about 1 km, islets under 2 km left out)
-  const rough = Topo.simplify(arcs, 20), shape = polys => [Topo.rings(arcs, polys), Topo.rings(rough, polys, 40)];
-  const landD = shape(Topo.polygons(topo.objects.land.geometries[0]));
+  // each shape twice: as the file has it, and coarser for while the camera moves (to about 1 km, islets under 2 km left out);
+  // ATLAS.rough [tolerance, smallest islet] and ATLAS.coastCell in the file's units set them by hand
+  const unit = topo.transform.scale[0], [tol, islet] = A.rough || [1000 / unit, 2000 / unit], cell = A.coastCell || 50000 / unit;
+  const rough = Topo.simplify(arcs, tol), shape = polys => [Topo.rings(arcs, polys), Topo.rings(rough, polys, islet)];
+  // the land: the file's own outline (topo.py writes one), else every area; its coast is the arcs only one of them has
+  const landGeoms = topo.objects.land?.geometries || domGeoms;
+  if (!topo.objects.land) console.warn(`explore: ${A.topo} has no land object: the coast is drawn from the areas' outer edges`);
+  const landD = shape(landGeoms.flatMap(Topo.polygons));
   const landEl = el('path', { class: 'land', d: landD[0] }, geo);
   const isLand = p => landEl.isPointInFill(new DOMPoint(...toQ(p)));
   const domG = el('g', {}, geo);
   const domD = domGeoms.map(g => shape(Topo.polygons(g)));
   const domEl = domD.map(d => { const p = el('path', { class: 'dom', d: d[0] }, domG); el('title', {}, p); return p; });
-  // province lines: the arcs between two provinces
+  // region lines (a state with provinceLines): the arcs between two regions
   const provOwner = Topo.owners(provGeoms);
   const provLines = el('path', { class: 'prov', d: Topo.lines(arcs, [...provOwner].filter(([, g]) => g.length === 2).map(([id]) => id)) }, geo);
   const bordKept = el('path', { class: 'bord' }, geo), bordGone = el('path', { class: 'bord gone' }, geo), bordNew = el('path', { class: 'bord new' }, geo);
@@ -98,8 +118,9 @@
   // the coast as short lines, each the coast inside a square of about 50 km: Firefox strokes a path once for every raster tile
   // it reaches, and the whole coast as one path cost about 150 ms each time the map was drawn
   const coastCells = new Map();
-  for (const id of Topo.owners(topo.objects.land.geometries).keys()) {
-    const a = arcs[id], k = `${Math.floor(a[0] / 1000)},${Math.floor(a[1] / 1000)}`;
+  for (const [id, gs] of Topo.owners(landGeoms)) {
+    if (gs.length > 1) continue;   // between two areas: a border, not the coast
+    const a = arcs[id], k = `${Math.floor(a[0] / cell)},${Math.floor(a[1] / cell)}`;
     coastCells.set(k, [...coastCells.get(k) || [], id]);
   }
   const coastD = [...coastCells.values()].map(ids => [Topo.lines(arcs, ids), Topo.lines(rough, ids)]);
@@ -127,17 +148,16 @@
     const m = el('marker', { id: `arrow-${w}`, viewBox: '0 0 10 10', refX: 5, refY: 5, markerWidth: 3, markerHeight: 3, orient: 'auto' }, defs);
     el('path', { d: 'M0,1L10,5L0,9z', fill: PEOPLE[w].color }, m);
   }
+  const spotsG = el('g', { id: 'spots' }, svg);   // the places with a card (PLACE_CARDS), drawn at screen size
   const labelsG = el('g', { id: 'labels' }, svg), pinsG = el('g', { id: 'pins' }, svg), figsG = el('g', { id: 'figs' }, svg);
 
-  /* ---------- map states: the grouping of lords, recoloured and re-lined as the story moves ---------- */
-  // the page's own woodblock colours for the palette names a state asks for (states.js says which, this says what)
-  const PAL = {
-    domains: ['#d3a88f', '#a2b7b2', '#cdc597', '#b9aabb', '#a9bb98', '#97aac0', '#d8b682', '#cba0a0', '#bbbfa6', '#a3bec8'],
-    prefectures: ['#bc8a72', '#86a19c', '#b2ae78', '#a08ca6', '#8fa781', '#7791ab', '#c8a164', '#b58c91', '#939f88', '#82a6b2'],
-    consolidated: ['#e0a98f', '#9cc0bd', '#d6cc8c', '#bba7c6', '#a5c48f', '#8fadcf', '#e2b86e', '#d29ca3', '#b3bd9c', '#8dbfd2'],
-  };
-  const KINDS = { bakufu: '#f1e8d2', hatamoto: '#d2b98c', religious: '#c4bcae', court: '#dfcbc6', other: '#e5d8b0', unknown: '#a9aaa3' };
-  const built = {};   // state id -> { of: group of each domain, groups, borders: the arcs between different groups }
+  /* ---------- map states: the grouping of areas, recoloured and re-lined as the story moves ---------- */
+  // colours from states.js: PALETTES by name (a state names one; the first is the default) for groups without a colour of
+  // their own, KIND_COLOR for a group whose areas share one `kind` property
+  const PAL = typeof PALETTES !== 'undefined' ? PALETTES : { default: ['#d3a88f', '#a2b7b2', '#cdc597', '#b9aabb', '#a9bb98', '#97aac0', '#d8b682', '#cba0a0', '#bbbfa6', '#a3bec8'] };
+  const KINDS = typeof KIND_COLOR !== 'undefined' ? KIND_COLOR : {};
+  for (const s of STATES) if (s.palette && !PAL[s.palette]) console.error(`states.js: state ${s.id}: no palette '${s.palette}' in PALETTES`);
+  const built = {};   // state id -> { of: group of each area, groups, borders: the arcs between different groups }
   function buildState(s) {
     const byKey = new Map(), groups = [], of = [];
     domains.forEach((d, i) => {
@@ -147,10 +167,10 @@
       G.kinds.add(d.kind); of[i] = G;
     });
     nbr.forEach((set, i) => { for (const j of set) if (of[j] !== of[i]) of[i].nbr.add(of[j]); });
-    // han take palette colours, most-connected first, each avoiding what its neighbours already wear
-    const pal = PAL[s.palette] || PAL.domains, used = new Map(pal.map(c => [c, 0]));
-    // land that is not han keeps its colour by kind; a group of mixed kinds (a prefecture) is coloured like han
-    for (const g of groups) { g.kind ||= g.kinds.size === 1 ? [...g.kinds][0] : 'han'; if (!g.color && g.kind !== 'han' && KINDS[g.kind]) g.color = KINDS[g.kind]; }
+    // groups without a colour take palette colours, most-connected first, each avoiding what its neighbours already wear
+    const pal = PAL[s.palette] || Object.values(PAL)[0], used = new Map(pal.map(c => [c, 0]));
+    // a group whose areas are all of one kind with a KIND_COLOR keeps that colour; a group of mixed kinds takes the palette
+    for (const g of groups) { g.kind ||= g.kinds.size === 1 ? [...g.kinds][0] : null; if (!g.color && g.kind != null && KINDS[g.kind]) g.color = KINDS[g.kind]; }
     for (const g of groups.filter(g => !g.color).sort((a, b) => b.nbr.size - a.nbr.size)) {
       const near = new Set([...g.nbr].map(n => n.color));
       g.color = pal.filter(c => !near.has(c)).sort((a, b) => used.get(a) - used.get(b))[0] || pal[groups.indexOf(g) % pal.length];
@@ -190,17 +210,21 @@
       shownBorders = b.borders; settleTimer = later(commitBorders, 2800);
     } else { shownBorders = b.borders; commitBorders(); }
     provLines.classList.toggle('off', !s.provinceLines);
-    stateId = id; lineFloor = b.groups.length <= 120 ? .55 : 0; lineStyle();
-    const cap = $('#mapstate'); cap.textContent = s.label;
+    // a state of few big areas keeps its lines at every zoom (s.lines, 0 to 1, sets it by hand)
+    stateId = id; lineFloor = s.lines ?? (b.groups.length <= 120 ? .55 : 0); lineStyle();
+    const cap = $('#mapstate');
+    if (!cap) return;
+    cap.textContent = s.label;
     if (s.note) { const n = document.createElement('span'); n.className = 'note'; n.textContent = s.note; cap.append(n); }
   }
 
-  /* a province to light for an event: its outline, filled, above the lords' colours */
+  /* a region to light for an event (an object of the map file, ATLAS.regions, named by ATLAS.regionKey): its outline,
+     filled, above the areas' colours */
   const provEl = {};
   function glow(name, on) {
     if (!provEl[name]) {
-      const g = provGeoms.find(g => g.properties.prov === name);
-      if (!g) { console.error(`events.js: no province '${name}'`); return null; }
+      const g = provGeoms.find(g => g.properties?.[A.regionKey] === name);
+      if (!g) { console.error(`events.js: no region '${name}' in ${A.topo} (object ${A.regions}, by ${A.regionKey})`); return null; }
       provEl[name] = { g, p: el('path', { class: 'glow', d: Topo.rings(arcs, Topo.polygons(g)) }, glowG), c: Topo.centre(arcs, g) };
     }
     provEl[name].p.classList.toggle('on', on);
@@ -230,19 +254,30 @@
     $('#people').appendChild(b);
   }
 
+  /* ---------- places with a card: a dot to click; its card and clip ('place-<key>') say what happened there ---------- */
+  // PLACE_CARDS[key]: { text, title?, from?, to? (the years it shows), pic? }
+  const spots = Object.entries(CARDS).filter(([k]) => P[k]).map(([key, c]) => {
+    const g = el('g', { class: 'spot off', 'data-key': key, tabindex: 0, role: 'button', 'aria-label': `${c.title || P[key].name}: ${SAY.openPlace}` }, spotsG);
+    el('circle', { class: 'halo', r: 13 }, g); el('circle', { class: 'dot', r: 6 }, g);
+    g.addEventListener('click', e => { e.stopPropagation(); openPlace(key); });
+    g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPlace(key); } });
+    return { key, c, g, at: P[key].p };
+  });
+  const spotOn = (c, y) => (c.from ?? -Infinity) <= y && y <= (c.to ?? Infinity);
+
   /* ---------- the view: what part of the map the screen shows ---------- */
   let view = [0, 0, 1, 1], home = view;   // [x, y, width, height] in km
   const W = () => svg.clientWidth, H = () => svg.clientHeight;
   const Kpx = () => view[2] / W();   // km per screen pixel
-  let FHN = 65, FHX = 110, FH = FHN;   // a figure's height in screen px: FHN at the whole-Japan view, growing with the zoom up to FHX
+  let FHN = 65, FHX = 110, FH = FHN;   // a figure's height in screen px: FHN at the whole-map view, growing with the zoom up to FHX
   const narrow = () => W() <= 700 && H() > 520;   // a phone held upright: cards go under the map
   function setView(v) {
     view = v; svg.setAttribute('viewBox', v.join(' '));
     FH = Math.min(FHX, FHN * Math.sqrt(home[2] / v[2]));
     lineStyle(); rescale();
   }
-  // parcel outlines come in with the zoom: none at the whole-Japan view, full when close. A state of few big areas
-  // (the 75 prefectures) keeps its outlines at every zoom.
+  // the lines between groups come in with the zoom: none at the whole-map view, full when close. A state of few big areas
+  // keeps its outlines at every zoom (lineFloor).
   let lineFloor = 0;
   function lineStyle() {
     const t = Math.max(lineFloor, clamp((home[2] / view[2] - 1.3) / 2, 0, 1));
@@ -255,7 +290,7 @@
   function freeRect(side) {
     const w = W(), h = H();
     let top = rectOf('#yearbar').bottom + 4, bottom = h - 8, left = 0, right = w;
-    if (narrow()) {   // below the year plate, above the four (and the replay button above them) or the card's sheet
+    if (narrow()) {   // below the year plate, above the people (and the replay button above them) or the card's sheet
       top = rectOf('#top').bottom + 8;
       bottom = side === 'bottom' ? h - sheetH - 14 : rectOf('#people').top - 58;
     } else { bottom = h - 56; if (!side) top = rectOf('#top').bottom + 16; }   // the whole-map frame clears the hint
@@ -272,27 +307,28 @@
     const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
     return [cx - (l + fw / 2) / s, cy - (t + fh / 2) / s, W() / s, H() / s];
   }
-  // everything that is ever drawn (not Okinawa), for the whole-Japan frame
-  const JAPAN = [[129.6, 31.0], [129.7, 34.6], [141.6, 41.6], [142.2, 39.5], [140.9, 35.0], [135.7, 33.4], [131, 31.1]].map(([lo, la]) => xy(lo, la));
+  // the whole-map frame: ATLAS.frame, [lon, lat] points it must hold, else every place on the map
+  const FRAME = (A.frame || Object.values(PLACES).filter(p => !p[4]).map(p => [p[1], p[2]])).map(([lo, la]) => xy(lo, la));
   function fit() {
     const w = W(), h = H();
     [FHN, FHX] = narrow() ? [40, 64] : h < 520 ? [34, 52] : [50, 84];
-    home = viewFor(JAPAN, null, 0);
-    placeAbroad();
+    home = viewFor(FRAME, null, 0);
+    placeOff();
     if (!film && !walking && !zoomed) setView(home); else setView(view);
     for (const wh of WHO) sizeFigure(wh);
     standIn(); layout();
   }
   let zoomed = false;   // the camera is on a close-up
-  // 'abroad' is a marker in the sea for people overseas. It sits where it truly lies if the whole-Japan frame shows that with
-  // room around it for the name and the figures; otherwise it is moved to the nearest spot inside the frame that does.
-  function placeAbroad() {
-    const a = P.abroad;
-    if (!a) return;
-    const [l, t, r, b] = freeRect(null), k = home[2] / W(), mx = 70, my = 90;
-    // on a wide screen a person's card stands in the bottom right: keep the marker above where it reaches
-    const px = clamp((a.p0[0] - home[0]) / k, l + mx, r - mx), py = clamp((a.p0[1] - home[1]) / k, t + my, narrow() ? b - 30 : Math.min(b - 30, H() * .6));
-    a.p[0] = home[0] + px * k; a.p[1] = home[1] + py * k;
+  // a place off the map (PLACES entry with a fifth item true: 'America' for people overseas) is a marker in the sea. It sits
+  // where it truly lies if the whole-map frame shows that with room around it for the name and the figures; otherwise it
+  // is moved to the nearest spot inside the frame that does.
+  function placeOff() {
+    for (const a of Object.values(P).filter(p => p.off)) {
+      const [l, t, r, b] = freeRect(null), k = home[2] / W(), mx = 70, my = 90;
+      // on a wide screen a person's card stands in the bottom right: keep the marker above where it reaches
+      const px = clamp((a.p0[0] - home[0]) / k, l + mx, r - mx), py = clamp((a.p0[1] - home[1]) / k, t + my, narrow() ? b - 30 : Math.min(b - 30, H() * .6));
+      a.p[0] = home[0] + px * k; a.p[1] = home[1] + py * k;
+    }
   }
 
   /* the camera: ease the view to another; a wake() jumps it to the end */
@@ -347,6 +383,7 @@
     const k = Kpx();
     for (const w of WHO) setFig(w, k);
     trails.style.setProperty('--k', k.toFixed(4));
+    for (const p of spots) p.g.setAttribute('transform', `translate(${p.at[0].toFixed(2)},${p.at[1].toFixed(2)}) scale(${k.toFixed(4)})`);
     for (const p of pinList) p.g.setAttribute('transform', `translate(${p.at[0].toFixed(2)},${p.at[1].toFixed(2)}) scale(${k.toFixed(4)})`);
     for (const L of labels) L.g.setAttribute('transform', `translate(${L.at[0].toFixed(2)},${L.at[1].toFixed(2)}) scale(${k.toFixed(4)})`);
   }
@@ -363,7 +400,7 @@
     const f = F[w];
     setFig(w);
     f.bob.setAttribute('transform', `translate(0,${bobY.toFixed(2)}) rotate(${tilt.toFixed(2)})`);
-    f.g.setAttribute('aria-label', `${PEOPLE[w].name}, ${year}, ${P[where[year][w]].name}: open their card`);
+    f.g.setAttribute('aria-label', `${PEOPLE[w].name}, ${year}, ${P[where[year][w]].name}: ${SAY.open}`);
   }
   const face = (w, dx) => { if (Math.abs(dx) > .001) F[w].flip.setAttribute('transform', dx < 0 ? 'scale(-1,1)' : ''); };
 
@@ -525,7 +562,7 @@
   // what the page draws over the map, in km, so names keep out from under it
   function screenBoxes() {
     const k = Kpx(), sr = svg.getBoundingClientRect(), out = [];
-    for (const s of ['#yearbar', '#mapstate', '#north', '#brand', '#corner', '#people', '#event:not([hidden])', '#person:not([hidden])', '#credits:not([hidden])', '#intro:not([hidden])',
+    for (const s of ['#yearbar', '#mapstate', '#north', '#brand', '#corner', '#people', '#event:not([hidden])', '#person:not([hidden])', '#place:not([hidden])', '#credits:not([hidden])', '#intro:not([hidden])',
       '#filmbar:not([hidden])', '#move:not([hidden])', '#replay:not([hidden])', '#hint']) {
       const e = $(s);
       if (!e || getComputedStyle(e).opacity === '0' || getComputedStyle(e).visibility === 'hidden') continue;
@@ -545,6 +582,7 @@
     const dots = {};
     for (const key of onPlaces) { const [x, y] = P[key].p; dots[key] = [x - 4 * k, y - 4 * k, x + 4 * k, y + 4 * k]; }
     for (const p of pinList) { const [x, y] = p.at; solid.push([x - 8 * k, y - 8 * k, x + 8 * k, y + 8 * k]); }
+    if (showFigs) for (const p of spots) if (spotOn(p.c, year)) { const [x, y] = p.at; solid.push([x - 8 * k, y - 8 * k, x + 8 * k, y + 8 * k]); }
     const tags = [];
     for (const w of live) {   // name tags: above the head, beside it, higher, or under the feet: where no figure, tag or panel is
       const f = F[w], x = fx(w), y = fy(w), top0 = -FH - 24, sh = f.tw * .6 + 4;
@@ -595,14 +633,16 @@
     $('#year').textContent = y;
     $('#prev').disabled = y <= FIRST; $('#next').disabled = y >= LAST;
     $('#replay span').textContent = y;
-    const on = new Set(), nm = k => (k === 'edo' && y >= 1869 ? 'tokyo' : k);   // same spot, and the city is Tokyo from 1869
+    // RENAMED: { edo: [1869, 'tokyo'] }: the same spot, named by the other place from that year
+    const on = new Set(), nm = k => (RENAME[k] && y >= RENAME[k][0] ? RENAME[k][1] : k);
     WHO.forEach((w, i) => {
       const gone = !!YEARS[y][w].gone;
       const chip = $('#people').children[i];   // the legend chip stays and opens the card, drawn hollow: the figure is not on the map
-      chip?.classList.toggle('gone', gone); if (chip) chip.title = gone ? `${PEOPLE[w].short} is no longer on the map; the card tells why` : '';
+      chip?.classList.toggle('gone', gone); if (chip) chip.title = gone ? SAY.gone(PEOPLE[w].short) : '';
       if (gone) return;
       on.add(nm(where[y - 1][w])); for (const k of YEARS[y][w].route) on.add(nm(k)); on.add(nm(where[y][w]));
     });
+    for (const p of spots) { const shown = spotOn(p.c, y); p.g.classList.toggle('off', !shown); if (shown) on.add(nm(p.key)); }
     onPlaces = on;
     document.dispatchEvent(new CustomEvent('year', { detail: y }));   // the music listens: its track depends on the year
   }
@@ -610,7 +650,7 @@
   /* ---------- cards ---------- */
   const evCard = $('#event'), voice = $('#voice');
   let opener = null;
-  const dialogs = () => [...document.querySelectorAll('#person, #credits')];
+  const dialogs = () => [...document.querySelectorAll('#person, #place, #credits')];
   const openDialog = () => dialogs().find(c => !c.hidden);
   let peeked = false;   // the camera moved aside so that a person's sheet does not cover the figure
   function closeCards(restore = true) {
@@ -636,9 +676,11 @@
     card.style.setProperty('--c', who.color);
     const portrait = card.querySelector('.head img');
     portrait.onload = () => layout();   // the card changes size when the portrait arrives
-    portrait.src = who.img;
+    portrait.hidden = !who.img;   // PEOPLE[w].img: a portrait for the card, if there is one
+    if (who.img) portrait.src = who.img;
     card.querySelector('h2').textContent = who.name;
-    card.querySelector('.jp').textContent = who.jp;
+    const jp = card.querySelector('.jp');   // a second name line (the name in its own script), if the page has one
+    if (jp) jp.textContent = who.jp || '';
     card.querySelector('.where').textContent = `${year} · ${c.place}`;
     card.querySelector('.text').textContent = c.text;
     openCard(card, from || F[w].g);
@@ -649,7 +691,19 @@
       const dy = Math.min(feet - room, headRoom);
       if (dy > 1) { peeked = true; cam([view[0], view[1] + dy * k, view[2], view[3]], 450); }
     }
-    speak(`${year}-${w}`);
+    speak(`${year}-${w}`, card);
+  }
+  // a place's card: its title, the year, the text, a picture if it has one, and its clip
+  function openPlace(key, from) {
+    const card = $('#place'), p = spots.find(s => s.key === key);
+    if (film || walking || !card || !p) return;
+    card.querySelector('h2').textContent = p.c.title || P[key].name;
+    card.querySelector('.where').textContent = `${year} · ${P[key].name}`;
+    card.querySelector('.text').textContent = p.c.text;
+    const fig = card.querySelector('figure');
+    if (fig) { fig.hidden = !p.c.pic; if (p.c.pic) { const im = fig.querySelector('img'); im.onload = () => layout(); im.src = p.c.pic; } }
+    openCard(card, from || p.g);
+    speak(`place-${key}`, card);
   }
   for (const c of document.querySelectorAll('.card')) {
     c.querySelector('.close')?.addEventListener('click', () => closeCards());
@@ -658,17 +712,19 @@
   $('#credits-open').addEventListener('click', e => { e.stopPropagation(); openCard($('#credits'), e.currentTarget); });
 
   /* ---------- sound: a narration clip if one is listed, else a reading time; music if there are tracks ---------- */
-  const VOICED = new Set(window.VOICED || []);
+  // the clips that exist: lib/voiced.js's VOICED, else every clip in audio/<lang>/timings.js (tts.py and eleven.py write it)
+  const VOICED = new Set(window.VOICED || Object.keys(window.TIMINGS || {}));
   const readMs = text => clamp(1800 + text.length * 55, 2400, 12000);
-  // play a person's clip, with a Listen / Pause button on their card
-  const playBtn = $('#person .play');
-  function speak(id) {
-    stopVoice(); playBtn.hidden = !VOICED.has(id);
-    if (playBtn.hidden) return;
-    voice.src = `audio/en/${id}.mp3`; voice.play().catch(() => {});
+  // play a card's clip, with a Listen / Pause button on the card; a card with no clip shows no button
+  const playBtns = [...document.querySelectorAll('.card .play')];
+  function speak(id, card) {
+    const btn = card.querySelector('.play');
+    stopVoice(); btn.hidden = !VOICED.has(id);
+    if (btn.hidden) return;
+    voice.src = CLIP(id); voice.play().catch(() => {});
   }
-  playBtn.addEventListener('click', () => { if (voice.paused) { if (voice.ended) voice.currentTime = 0; voice.play().catch(() => {}); } else voice.pause(); });
-  for (const ev of ['play', 'pause', 'ended', 'emptied']) voice.addEventListener(ev, () => { playBtn.textContent = voice.paused ? '▶ Listen' : '❚❚ Pause'; });
+  for (const b of playBtns) b.addEventListener('click', () => { if (voice.paused) { if (voice.ended) voice.currentTime = 0; voice.play().catch(() => {}); } else voice.pause(); });
+  for (const ev of ['play', 'pause', 'ended', 'emptied']) voice.addEventListener(ev, () => { for (const b of playBtns) b.textContent = voice.paused ? SAY.listen : SAY.pause; });
   function stopVoice() { voice.onended = voice.onerror = null; voice.pause(); voice.removeAttribute('src'); voice.load(); }
   // a card's narration in the film: the clip to its end, or a pause as long as the text takes to read
   function narrate(id, text) {
@@ -680,7 +736,7 @@
       const late = () => { console.warn(`film: clip ${id} did not play`); t = setTimeout(done, readMs(text) / SPEED); timers.add(t); };
       waits.add(done);
       voice.onended = done; voice.onerror = late;
-      voice.src = `audio/en/${id}.mp3`;
+      voice.src = CLIP(id);
       voice.play().catch(err => { if (err.name !== 'AbortError') late(); });
     });
   }
@@ -690,6 +746,7 @@
   const BGM = +(params.get('bgm') ?? .45), DUCK = .3, FADE = 1.2;   // ?bgm= to set the level by ear
   let musicOn = true, actx = null, gain = null, fading = 0, swapT = 0;
   bgm.loop = true;
+  if (!eras.length) $('#music').hidden = true;   // no tracks (window.MUSIC): no music button
   const eraFor = y => eras.filter(e => e.from <= y).pop() || eras[0];
   function level() {
     const v = fading ? 0 : BGM * (!voice.paused && !voice.ended ? DUCK : 1);
@@ -722,9 +779,7 @@
     if (musicOn) startMusic(); else bgm.pause();
   });
 
-  /* ---------- the film: a new year plays its events on the map, then the four walk on ---------- */
-  // what a picture is, where it is not a photograph of the moment
-  const PIC_NOTES = { 'img/journey.jpg': 'illustration published in 1869' };
+  /* ---------- the film: a new year plays its events on the map, then the people walk on ---------- */
   const pinList = [];   // { g, at, label, region }
   // an event's pin: drops at its place, the name beside it
   function pin(ev, k) {
@@ -750,7 +805,7 @@
     evCard.querySelector('h2').textContent = e.title;
     fig.hidden = e.pic === false;
     if (!fig.hidden) { img.onerror = () => { console.error(`events: no ${e.pic}`); fig.hidden = true; }; img.src = e.pic; }
-    fig.querySelector('figcaption').textContent = (e.caption || `${e.at[0]}, ${y}${PIC_NOTES[e.pic] ? ' · ' + PIC_NOTES[e.pic] : ''}`).replace(/–/g, '\u2060–\u2060');   // no line break inside a year range
+    fig.querySelector('figcaption').textContent = (e.caption || `${e.at[0]}, ${y}`).replace(/–/g, '\u2060–\u2060');   // no line break inside a year range
     evCard.querySelector('.text').textContent = e.text;
   }
   // on a phone: fill the card unseen and measure it, so the camera can leave the place clear above the sheet
@@ -770,7 +825,7 @@
     clearPins(false); trails.replaceChildren();
     const yr = $('#year'); yr.classList.remove('pop'); void yr.offsetWidth; yr.classList.add('pop');
     layout();
-    await hold(700);   // the four fade out
+    await hold(700);   // the people fade out
     const evs = EVENTS[y];
     for (let i = 0; i < evs.length && live() && !run.skip; i++) {
       const e = evs[i], spot = xy(e.at[1], e.at[2]);
@@ -799,7 +854,7 @@
     if (live()) endFilm();
   }
 
-  // the four come back; each who travels this year walks it in a close-up the camera follows, one after another
+  // the people come back; each who travels this year walks it in a close-up the camera follows, one after another
   async function moves(run) {
     const y = run.y, live = () => film === run;
     evCard.hidden = true;
@@ -831,7 +886,7 @@
     $('#move').hidden = true;
     standAt(y); fullTrails(y);   // anyone who did not walk (or the year was skipped) stands where the year ends
   }
-  // the film ends: the camera back on the whole map; the four can be clicked
+  // the film ends: the camera back on the whole map; the people can be clicked
   function endFilm() {
     const run = film;
     clearFilmUi(true);
@@ -841,7 +896,7 @@
     $('#replay').hidden = false;
     to.then(() => { layout(); });
   }
-  // everything the film put on screen goes; the caller says what the four do next
+  // everything the film put on screen goes; the caller says what the people do next
   function clearFilmUi(fade) {
     evCard.hidden = true; $('#filmbar').hidden = true; $('#move').hidden = true;
     document.body.classList.remove('film', 'moves');
@@ -888,7 +943,7 @@
     if (d > 0) { standAt(from); setState(stateEnd(from), false); playYear(to); }
     else backTo(from, to);
   }
-  // going back: the map state returns, and the four walk back along the year they leave
+  // going back: the map state returns, and the people walk back along the year they leave
   async function backTo(from, to) {
     const ep = epoch;
     standAt(from); setState(stateEnd(to), true);
@@ -935,7 +990,13 @@
   }
   // turning the phone changes the map's own rotation, which is fixed at load: start over, as a fresh visit
   addEventListener('resize', () => { if (!params.has('rot') && PORTRAIT !== (innerWidth <= 700 && innerHeight > 520)) location.reload(); else fit(); });
+  // names are measured in the font they show in: when the fonts are ready, and again when a font arrives later (a font
+  // starts loading only when text first needs it, so ready can come before the labels' font); then laid out if nothing moves
   document.fonts?.ready.then(() => { labels.forEach(measure); fit(); });
+  document.fonts?.addEventListener('loadingdone', () => {
+    labels.forEach(measure); for (const w of WHO) sizeFigure(w);
+    if (!film && !walking) layout();
+  });
 
   /* ---------- start: 1868 under the title sheet, the film waiting for Begin ---------- */
   $('#intro-h').textContent = INTRO.title; $('#intro .sub').textContent = INTRO.sub; $('#intro .text').textContent = INTRO.text;
@@ -949,7 +1010,8 @@
   document.body.classList.add('ready');
   // for the checks: the engine's hands and a count of what is still waiting
   window.MAP = {
-    go, skip, replay, next: nextStep, begin, setState, openPerson, cam, viewFor, xy, F, P, where, view: () => view, home: () => home,
+    go, skip, replay, next: nextStep, begin, setState, openPerson, openPlace, cam, viewFor, xy, F, P, where, view: () => view, home: () => home,
+    spots: () => spots.filter(p => spotOn(p.c, year)).map(p => p.key), first: FIRST, last: LAST, voiced: [...VOICED],
     get year() { return year; }, get film() { return film; }, get walking() { return walking; }, get state() { return stateId; },
     pending: () => ({ timers: timers.size, frames: frames.size, waits: waits.size, audio: !voice.paused }),
   };
