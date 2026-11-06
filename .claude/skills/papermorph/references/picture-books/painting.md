@@ -19,11 +19,8 @@ Everything goes through `painted.py` (manifest `books/<book>/art/painted.json`, 
 
 ## Cost
 
-The money is the user's, so the user sets a ceiling and sees every cent:
+The key, the prices, the ledger and the balance rules are in [core/style.md](../core/style.md#paid-steps). A set painted from its sketch takes the sketch as a reference (about $0.016 at low quality), and the style picture as a second reference keeps every set in one look (about $0.026).
 
-- `paint.py --q` is `low` or `medium` (the default; high is refused). Try `--q low` first: in these books low was often good enough for the final set (about $0.016 a picture with one reference, about $0.026 with the style picture as a second; medium about $0.02–0.03; high cost five times as much and, once used in a film, looked the same).
-- `paint.py` reads the OpenRouter key from `~/.config/openrouter/key` or `$OPENROUTER_API_KEY`. Every picture is logged with its cost (`--ledger books/<book>/art/costs.tsv`; `paint.py --total books/<book>/art/costs.tsv` sums it). Before a batch, say how many pictures and what they will cost; after it, report the real balance from the provider (OpenRouter's credits page, or `GET https://openrouter.ai/api/v1/credits` with the key), not an estimate; it can lag a batch by some minutes, so read it again before reporting. OpenRouter refuses any image request while the balance is under one dollar. `paint.py` will not write over an existing picture (it may be an approved, paid one); `--force` replaces it.
-- Without an OpenRouter account, `paint_openai.py` calls OpenAI's image API directly with the same arguments and ledger (key in `$OPENAI_API_KEY`, `--env FILE` or `~/.config/papermorph/.env`). OpenAI returns no price, so its ledger lines are estimates: read the real spend from OpenAI's usage page.
 - After every batch, put the pictures on one contact sheet and open it for the user (Finder, the browser), even when working on your own, so the user sees each stage.
 
 ## Credits and licences

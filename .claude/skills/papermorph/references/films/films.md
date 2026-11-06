@@ -45,10 +45,10 @@ Then agree the models ([core/style.md](../core/style.md#models)) and write `book
   - *line*: an engraving's dark lines take the ground's ink colour and the paper drops out, so the figure stands on the ground itself. Woodcuts and engravings with clean lines.
   - *full*: sized for a full-bleed shot on the upright stage.
   - Films made at the same time each keep their own sizes file (`prep.py … --art ch03-art.js`, loaded after `img/art.js`), so no two edit the same line.
-- **Generated pictures** fill what no archive has: note each prompt and cost in the ledger, quote the batch before paying, and show the user the pictures as they come. Low quality is usually enough (94 pictures cost $0.84 for a three-episode series); one made from a reference picture, to keep a figure or a style, costs about four times as much ($0.016 against $0.004), since the reference counts as input.
+- **Generated pictures** fill what no archive has: `paint.py` (prices, ledger and balance in [core/style.md](../core/style.md#paid-steps)), each prompt noted beside its cost, the batch quoted before paying, the pictures shown to the user as they come. Low quality is usually enough (94 pictures cost $0.84 for a three-episode series); one made from a reference picture, to keep a figure or a style, costs about four times as much.
 - **One figure per role**, so a figure coming back means something (a callback), not that the cast ran out.
 - **Line drawings that draw themselves.** `trace.py` turns a line drawing into ordered strokes; `traced()` draws it on over a few seconds. Striking once or twice; on every picture, a tic.
-- **A still that moves.** For one or two moments, `video.py` makes a five-second clip from a still (about $0.42; Kling kept the engraving style), and `frames.py` gives every frame the same treatment on one sprite sheet, played by `anim()` on the beat clock so pause, seek and the export agree. A job takes minutes; `video.py --resume JOBID` picks up an interrupted one. It worked best when rare.
+- **A still that moves.** For one or two moments, `video.py` makes a five-second clip from a still (paid, [core/style.md](../core/style.md#paid-steps); Kling kept the engraving style), and `frames.py` gives every frame the same treatment on one sprite sheet, played by `anim()` on the beat clock so pause, seek and the export agree. A job takes minutes; `video.py --resume JOBID` picks up an interrupted one. It worked best when rare.
 
 ## Maps
 
@@ -66,7 +66,7 @@ A map earns its place when the narration talks about where (the Rhine, the leper
 
 The mechanics are in [core/sound.md](../core/sound.md). For films:
 
-- **The narrator carries the film**, so offer both kinds by ear: free voices (Edge, or Kokoro, local) and ElevenLabs v4 (`eleven.py`, paid, about $0.07 a minute), the accepted voice on the films so far. Characters can have their own voices for a line or a laugh (the Fool's giggle, a king's edict).
+- **The narrator carries the film**, so offer both kinds by ear: free voices (Edge, or Kokoro, local) and ElevenLabs v4 (`eleven.py`, paid, [core/style.md](../core/style.md#paid-steps)), the accepted voice on the films so far. Characters can have their own voices for a line or a laugh (the Fool's giggle, a king's edict).
 - **Every clip at −14 LUFS** ([core/sound.md](../core/sound.md#levels)); a series that speaks faster than the voice's own pace (*The Pandemic*'s narrator at ×1.1) sets `"tempo"` in each narration file.
 - **Music**: classical recordings suit found pictures. A documentary and a short use it differently ([documentary.md](documentary.md#the-order-of-work), [shorts.md](shorts.md#the-order-of-work)).
 

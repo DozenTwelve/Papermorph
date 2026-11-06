@@ -32,7 +32,7 @@ Every tier shares the core:
 
 | File | What it holds |
 |---|---|
-| [core/style.md](references/core/style.md) | how to ask the user, the models step, `style.json` |
+| [core/style.md](references/core/style.md) | how to ask the user, the models step, the paid steps (keys, prices, ledger, balance), `style.json` |
 | [core/publish.md](references/core/publish.md) | `new_book.py`, language, minutes, preview and delivery, video export |
 | [core/sound.md](references/core/sound.md) | the narration file, voices, levels, effects, music, captions |
 | [core/review.md](references/core/review.md) | seeing your own work in motion, frames, smoothness, director rounds |
