@@ -12,11 +12,13 @@ bounding box, and the box of text or of a rotated piece differs between browsers
 and in Firefox and both sets are kept. Pieces already baked are not encoded again, and files this run did not produce
 are kept (a piece another chapter or an earlier run made); --clean (after changing the paper filter itself) re-encodes
 every piece and then removes the files no chapter asked for. --url defaults to the book under http://localhost:8765/.
+A page error is printed and the run exits 1: the scenes after the one that threw asked for no pieces, so the page
+bakes those live.
 """
-import argparse, base64, io, json, pathlib
+import argparse, base64, io, json, pathlib, sys
 from PIL import Image
 from playwright.sync_api import sync_playwright
-from browsers import exe
+from browsers import answers, exe, firefox
 
 READY = """async () => {
   let n = -1; while (bakedJobs.size !== n) { n = bakedJobs.size; await Promise.all([...bakedJobs.values()]); await new Promise(r => setTimeout(r, 300)); }
@@ -32,18 +34,22 @@ def main():
     a = ap.parse_args()
     site = pathlib.Path(a.site); out = site / 'img/puppets'
     url = (a.url or f'http://localhost:8765/{site.resolve().name}/').rstrip('/') + '/'
-    got, clean = {}, a.clean
+    got, clean, errs = {}, a.clean, []
+    chs = sorted(d.name for d in site.glob('ch[0-9][0-9]'))
+    if not chs: sys.exit(f'{site}: no chNN folders: give the book folder in site/')
+    for ch in chs: answers(f'{url}{ch}/')
     with sync_playwright() as p:
         for kind in (p.chromium, p.firefox):
             try:
-                b = kind.launch(**exe()) if kind is p.chromium else kind.launch()
+                b = kind.launch(**exe()) if kind is p.chromium else kind.launch(**firefox())
             except Exception as e:   # Playwright's Firefox may not run on this system: the Chromium pieces still stand
                 if kind is p.chromium: raise
                 print(f'{kind.name} did not start, so Firefox bakes its own few pieces in the page:', str(e).splitlines()[0])
                 if clean: print('--clean is off: the Firefox pieces baked before stay'); clean = False
                 continue
             pg = b.new_page(viewport={'width': 1600, 'height': 900})
-            for ch in sorted(d.name for d in site.glob('ch[0-9][0-9]')):
+            pg.on('pageerror', lambda e, k=kind.name: errs.append(f'{k} {pg.url}: {e}'))
+            for ch in chs:
                 pg.goto(f'{url}{ch}/?bake', timeout=600000)
                 last = pg.evaluate('BEATS.length - 1')
                 pg.goto(f'{url}{ch}/?bake&beat={last}&t=0.1', timeout=600000)
@@ -66,6 +72,9 @@ def main():
         for f in out.glob('*.webp'):
             if f.name not in man.values(): f.unlink()
     print(len(got), 'pieces asked for,', new, 'encoded,', len(man), 'listed,', sum((out / f).stat().st_size for f in man.values()) // 1024, 'KB')
+    if errs:   # a scene that threw asked for no pieces after it: those are missing here, and baked live by the page
+        print('PAGE ERRORS (the pieces of the scenes after one are not baked):', *errs[:10], sep='\n  ')
+        sys.exit(1)
 
 
 if __name__ == '__main__':
