@@ -87,7 +87,7 @@ function dateChip(p, year, topic, t0 = .2) {
   const g = G(p, { x: 80, y: 112, o: 0 });
   T(g, year, { size: 72, font: SER, weight: 400, fill: HOT }).setAttribute('font-style', 'italic');
   const tw_ = wid(topic.toUpperCase(), 26, SER) * 1.3 + 8;   // letter-spacing .28em widens the caps by about 30 %
-  const rule = path(g, `M3 22H${Math.max(220, tw_)}`, { stroke: CREAM, 'stroke-width': 1.4, opacity: .7 }, { d: 0 });
+  const rule = path(g, `M3 22H${Math.max(220, tw_)}`, { stroke: CREAM, 'stroke-width': 1.4 }, { d: 0 });
   T(g, topic.toUpperCase(), { x: 3, y: 58, size: 26, font: SER, weight: 400, fill: CREAM }).setAttribute('letter-spacing', '.28em');
   tw(g, { o: 1 }, t0, .6); draw(rule, t0 + .2, .6);
   return g;
@@ -97,7 +97,7 @@ const line = (p, d, t0, dur = .8, w = 3, extra = {}) => { const e = path(p, d, {
 // wavy water lines that flow forever (pure function of the beat clock); amp may be a function of t
 function water(p, y0, D, { rows = 3, amp = 8, len = 1700, x0 = -50, gap = 26, o = .75 } = {}) {
   const g = G(p, { o: 0 }); tw(g, { o }, 0, .6);
-  const ps = [...Array(rows)].map((_, i) => path(g, '', { stroke: CREAM, 'stroke-width': 2.2, opacity: 1 - i * .25 }));
+  const ps = [...Array(rows)].map((_, i) => path(g, '', { stroke: CREAM, 'stroke-width': 2.2 }));
   clockRun(t => { const a = typeof amp === 'function' ? amp(t) : amp; ps.forEach((e, i) => {
     let d = ''; for (let x = 0; x <= len; x += 20) d += `${x ? 'L' : 'M'}${x0 + x} ${(y0 + i * gap * (a / 8) ** .5 + a * Math.sin(x / 70 + t * 1.6 + i)).toFixed(1)}`;
     e.setAttribute('d', d);
@@ -158,7 +158,7 @@ function doc(p, label, x, y, r, t0, seed) {
   mk('rect', { x: -150, y: -200, width: 300, height: 400, fill: CREAM, stroke: '#cdbfa6' }, g);
   for (let i = 0; i < 13; i++) {
     const yy = -130 + i * 24, ww = 160 + R() * 70;
-    path(g, `M-118 ${yy}q${ww / 4} ${-3 + R() * 6} ${ww / 2} 0t${ww / 2} 0`, { stroke: INK, 'stroke-width': 2, opacity: .7 });
+    path(g, `M-118 ${yy}q${ww / 4} ${-3 + R() * 6} ${ww / 2} 0t${ww / 2} 0`, { stroke: INK, 'stroke-width': 2 });
   }
   T(g, label.toUpperCase(), { y: -160, size: 22, font: KEY, weight: 600, fill: '#7a1a20', anchor: 'middle' }).setAttribute('letter-spacing', '.06em');
   tw(g, { x, o: 1 }, t0, .8, out);
