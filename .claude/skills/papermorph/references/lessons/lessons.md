@@ -1,6 +1,6 @@
 # Lessons: from a textbook PDF to animated chapters
 
-Each chapter is a short animated lesson film where the picture carries the explanation, the narration says it, and quick checks and practice happen inside the picture. The maths books (`site/elementary-algebra/`, `site/math-notebook/`) show tier 1, the science book (`site/science/`) tier 2. A new book starts with [intake.md](intake.md).
+Each chapter is a short animated lesson film where the picture carries the explanation, the narration says it, and quick checks and practice happen inside the picture. The reference books for each tier are listed in [SKILL.md](../../SKILL.md#reference-books). A new book starts with [intake.md](intake.md).
 
 ## Contents
 

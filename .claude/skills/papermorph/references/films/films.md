@@ -1,8 +1,6 @@
 # Films: documentaries and shorts
 
-A film is a narrated argument told in pictures moved in step with a voice. It comes in two shapes that share almost everything: a **documentary** on the wide stage, two minutes for one idea or ten to fifteen for a book's argument ([documentary.md](documentary.md)), and a **short** on the upright 900 × 1600 stage for a phone feed, one point in one to three minutes ([shorts.md](shorts.md)). Read this file first, then the one for the shape.
-
-The approved references, levels to reach rather than formats to copy: *Madness and Civilization* (after Foucault, ten minutes, `site/madness/`) for documentaries, *Shooting an Elephant* (`site/shooting-an-elephant/`) for one the reader acts in, and *Madness and Civilization* episode 1, *The Ship* (`site/madness-shorts/ch01/`), for shorts.
+A film is a narrated argument told in pictures moved in step with a voice. It comes in two shapes that share almost everything: a **documentary** on the wide stage, two minutes for one idea or ten to fifteen for a book's argument ([documentary.md](documentary.md)), and a **short** on the upright 900 × 1600 stage for a phone feed, one point in one to three minutes ([shorts.md](shorts.md)). Read this file first, then the one for the shape. The reference films are listed in [SKILL.md](../../SKILL.md#reference-books).
 
 ## Contents
 

@@ -30,7 +30,7 @@ A film's recommended split is already strongest everywhere, so a film offers thr
 | Review | middle | strong director, middle picture and sound reviewers | strong director, fresh: contact sheets, then the exported MP4 | strong director per episode, fresh, on the exported MP4 |
 | Rework | strong | middle, per scene | strong (the builder) | strong (the episode's worker) |
 | Register | small | small | strong (the coordinator) | strong (the coordinator) |
-| Made this way | physics ch14, at about half the cost of one strong agent | *Joke Collection* episodes 5–6 | *Madness and Civilization*, *The Pandemic* | *Madness and Civilization* shorts 2–4, *The Pandemic* shorts 1–6 |
+| Made this way | *Science* chapter 6 (`science/ch14/`), at about half the cost of one strong agent | *Joke Collection* episodes 5–6 | *Madness and Civilization*, *The Pandemic* | *Madness and Civilization* shorts 2–4, *The Pandemic* shorts 1–6 |
 
 **small**, **middle** and **strong** stand for the user's current fast, balanced and most capable models. Each option names the actual models, not only their strength: Claude Code starts a subagent on `opus`, `sonnet`, `haiku` or `fable`, so a lesson's recommended option reads "opus for the picture and rework, sonnet for narration and review, haiku for the rest". Where you cannot tell which models the host can start, ask the user once which is their strong, middle and small model. A model the host cannot start is named to the user, not swapped for another.
 

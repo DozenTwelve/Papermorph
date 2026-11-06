@@ -39,7 +39,20 @@ Every tier shares the core:
 | [core/team.md](references/core/team.md) | making chapters with subagents, the coordinator, workers in parallel |
 | [core/engine.md](references/core/engine.md) | the player and drawing API, timing, camera, performance, traps |
 
-Start with the tier's intake whenever `books/<book>/style.json` does not exist yet; reuse answers and approvals already given. The reference books on https://papermorph.diamonddoge.org/ are the bar: the maths and science books for lessons, *The Little Horse Crosses the River*, *Little Red Riding Hood* and *Joke Collection* for picture books, *Madness and Civilization*, *Shooting an Elephant* (interactive) and *The Pandemic* for documentaries, the *Madness and Civilization* shorts for shorts.
+Start with the tier's intake whenever `books/<book>/style.json` does not exist yet; reuse answers and approvals already given.
+
+## Reference books
+
+The reference books are the bar: levels to reach, not formats to copy. Each is the folder `site/<slug>/` of the Papermorph repository (https://github.com/DozenTwelve/Papermorph), served at `https://papermorph.diamonddoge.org/<slug>/`, so its source can be read in a checkout or fetched from either address when the Skill is installed on its own. The tier files name the file in a book worth opening for a given step.
+
+| Tier | Books (slug) |
+|---|---|
+| Lessons | tier 1: *Elementary Algebra* (`elementary-algebra`), *Math Notebook* (`math-notebook`); tier 2: *Science* (`science`); a light board with dark ink: `physics-notebook` |
+| Picture books | *The Little Horse Crosses the River* (`little-horse`) and *Little Red Riding Hood* (`little-red-riding-hood`): all in code, a cast voiced by ElevenLabs, a listen-and-find stop, the newest and the bar; *Joke Collection* (`joke-collection`): painted sets, puppets in code, a series of episodes; *Millions of Cats* (`millions-of-cats`, Wanda Gág, 1928): a scanned book's own pictures lifted into sets and puppets (not on the shelf) |
+| Documentaries | *Madness and Civilization* (`madness`, after Foucault, ten minutes), *The Pandemic* (`pandemic`), *Shooting an Elephant* (`shooting-an-elephant`, one the reader acts in) |
+| Shorts | the *Madness and Civilization* shorts (`madness-shorts`; episode 1, *The Ship*, is the worked example), *The Pandemic* shorts (`pandemic-shorts`) |
+
+*Tulip Mania* (`tulip-mania`) is a test film made from the Skill alone, with no help beyond these files; the files cite what it ran into.
 
 ## Project layout
 

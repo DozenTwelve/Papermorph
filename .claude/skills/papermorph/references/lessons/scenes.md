@@ -1,6 +1,6 @@
 # Illustrated scenes
 
-For physical, spatial and narrative ideas: people and things act out the idea, the camera shows what matters, and the words live inside the picture (the science book, `site/science/`).
+For physical, spatial and narrative ideas: people and things act out the idea, the camera shows what matters, and the words live inside the picture (tier 2, the science book).
 
 ## Each moment is one picture
 

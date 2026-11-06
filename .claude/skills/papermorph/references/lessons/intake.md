@@ -14,10 +14,10 @@ If the book is for a course, notice it here: a book that cites other works can g
 
 ## 3. Tier
 
-Offer the animation tiers as reference points, linking the books at https://papermorph.diamonddoge.org/ that show each:
+Offer the animation tiers as reference points, linking the books that show each ([SKILL.md](../../SKILL.md#reference-books)):
 
-1. **Diagrams that change**: symbols, number lines, graphs and shapes built in code, rearranged as the narration explains (the maths books, `site/elementary-algebra/` and `site/math-notebook/`). The lightest; a smaller model can do most steps.
-2. **Illustrated scenes**: characters act out the idea, the camera moves, external images and a storyboard before motion (the science book, `site/science/`). Several times the work of tier 1 per chapter, and the picture step wants a strong model.
+1. **Diagrams that change**: symbols, number lines, graphs and shapes built in code, rearranged as the narration explains (the maths books). The lightest; a smaller model can do most steps.
+2. **Illustrated scenes**: characters act out the idea, the camera moves, external images and a storyboard before motion (the science book). Several times the work of tier 1 per chapter, and the picture step wants a strong model.
 3. **Custom**: the user describes what they want; you judge which abilities it needs and say so.
 
 Recommend one from the chapter's content: abstract and procedural ideas fit tier 1 ([diagrams.md](diagrams.md)), physical and narrative ones tier 2 ([scenes.md](scenes.md)). Any tier may mix per beat.

@@ -1,6 +1,6 @@
 # Shorts: one point, under three minutes, upright, for a phone feed
 
-A short is a narrated film on the upright 900 × 1600 stage (`<html data-stage="portrait">`, [core/engine.md](../core/engine.md#stage-and-state)) for YouTube Shorts, TikTok, Reels or X: one point in one to three minutes, a new picture every one to three seconds (full-bleed photographs or generated pictures, big words, cut-out figures, a number counting up, a chart, a map), and no questions. It differs from a documentary in pace, picture grammar and where it ends up; the rest is in [films.md](films.md). Watch the worked example, *The Ship* (`site/madness-shorts/ch01/`, the ten-minute documentary recut as a series), before making one.
+A short is a narrated film on the upright 900 × 1600 stage (`<html data-stage="portrait">`, [core/engine.md](../core/engine.md#stage-and-state)) for YouTube Shorts, TikTok, Reels or X: one point in one to three minutes, a new picture every one to three seconds (full-bleed photographs or generated pictures, big words, cut-out figures, a number counting up, a chart, a map), and no questions. It differs from a documentary in pace, picture grammar and where it ends up; the rest is in [films.md](films.md). Watch the worked example, *The Ship* (`madness-shorts/ch01/`, [SKILL.md](../../SKILL.md#reference-books); the ten-minute documentary recut as a series), before making one.
 
 The kit is `assets/templates/shorts/` (`chapter.html`, `narration.en.json`, `style.json`; `lib/shorts.js`, `book.css`, `icons.js`; fonts from the documentary kit).
 
