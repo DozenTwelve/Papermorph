@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "tier": "scroll",
+  "book": { "title": "Page title", "slug": "pandemic-scroll", "language": "en", "readers": "curious adults, no background needed", "from": "the film or source this page is made from" },
+  "words": [
+    "The user's own words about the subject, the angle and the look, verbatim.",
+    "Later words that changed the bar, with the draft they came from."
+  ],
+  "angle": "The one thing a reader should leave with, and what must be on the page (a number, a map, an ending)",
+  "look": {
+    "palette": { "paper": "#f3ede0", "ink": "#2b2520", "night": "#04060a", "accent": "#c4321f" },
+    "fonts": { "key words": "Oswald 600", "text": "EB Garamond" },
+    "pictures": "maps and numbers drawn on the canvas; found photographs covering it, toned to the palette"
+  },
+  "voice": "none: the cards are read, not heard",
+  "pacing": { "steps": 12, "words": "40 to 90 words a card; one picture change a step" },
+  "models": { "script": "opus", "pictures": "opus", "checks": "sonnet" },
+  "approved": []
+}
