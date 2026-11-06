@@ -236,7 +236,8 @@ function spStep(tau, { L = 52, A = 20, period = 2 / 3 } = {}) {
    fua, ffa  the far arm (profile), shoulder and elbow like ua / fa; null hides it (it hangs behind the body at rest).
              To pick something off the ground: { lean: 60, crouch: .7, fua: -50, ffa: 10 } puts the far hand there
    hat       true / false: the hat on its head. The hair is drawn under the hat on both heads, so a hat that comes off
-             leaves hair, never a bald head (the hat on its own is hatSVG, for a hand or the ground)
+             leaves hair, never a bald head (the hat on its own: heldHat, centred on (0, 0), for holds or the ground;
+             hatSVG where it sits on the head, for a peg at head height)
    hold      a key of holds, shown in the near hand (profile) and the screen-right hand (front), kept upright; each
              svg is drawn around the hand's centre (0, 0)
    To add a character with another build, copy figurePuppet, change its paths and pins, and keep its pose to common()
@@ -312,6 +313,8 @@ function bigStep(u, L = 166, reach = 30) {
 
 // A hat on its own, drawn where it sits on the profile head at puppet scale 1 (for a hand, a peg or the ground).
 const hatSVG = (hat = '#c8322f', band = '#8a2420') => `<g filter="url(#paper)"><path d="M-30,-222 C-28,-262 40,-268 50,-222 Z" fill="${hat}"/><rect x="-40" y="-228" width="102" height="11" rx="5" fill="${band}"/></g>`;
+// The same hat centred on (0, 0): in a hand (holds: { hat: heldHat() }, hold: 'hat') or put down on the ground.
+const heldHat = (hat, band) => `<g transform="translate(-11,242)">${hatSVG(hat, band)}</g>`;
 const REST_FIGURE = { ...REST_FIG, look: 0, fua: null, ffa: -10, crouch: 0, sit: false, hat: true, hold: null };
 function figurePuppet(parent, { skin = '#f6d2b5', coat = '#3d6fa8', coatFar = '#335d8d', legs = '#f2ede1', legsFar = '#d8d1c2', shoe = '#3a2418',
   hair = '#6b3b22', hat = '#c8322f', band = '#8a2420', cheek = '#ef9a8a', skirt = true, holds = {} } = {}) {
