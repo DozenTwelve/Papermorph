@@ -240,7 +240,7 @@ const BEATS = [
     { id: 'c-depth', prompt: ['The submarine is at ', $m('−120'), ' feet. How many feet below sea level is it?'],
       build: blanks([{ parts: [{ box: '120' }, ' feet'], why: 'Its depth is the distance from sea level: |−120| = 120 feet.',
         hint: 'How far is −120 from 0? Leave off the sign.',
-        fx: () => { const L = S.q || qlayer(); avVTape(L, 360, Q2Y(0), Q2Y(-120), fx); floatText('depth 120 ft', 440, Q2Y(-60), COL.good); } }]) },
+        fx: () => { const L = S.q || qlayer(); avVTape(L, 360, Q2Y(0), Q2Y(-120), 0, fx); floatText('depth 120 ft', 440, Q2Y(-60), COL.good); } }]) },
     { id: 'c-debt', prompt: ['Leo’s account balance is ', $m('−$18.25'), '. How much money does he owe?'],
       build: blanks([{ parts: ['$', { box: '18.25' }], why: 'He owes the size of the balance: |−18.25| = 18.25 dollars.',
         hint: 'A negative balance is a debt. The amount owed is its absolute value.' }]) },
