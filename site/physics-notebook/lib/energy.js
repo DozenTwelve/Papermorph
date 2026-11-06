@@ -11,7 +11,7 @@ function blip(p, { x = 0, y = 0, s = 1, form = 'kinetic', o = 1, face = 1 } = {}
   const g = G(p, { x, y, s, o });
   const shape = mk('g', {}, g);                         // squash and stretch (non-uniform, so set directly)
   const body = path(shape, BLIP_BODY, { fill: EN[form], stroke: INK, 'stroke-width': 5 });
-  path(shape, 'M-40 -40C-42 -62 -28 -80 -10 -84', { stroke: '#ffffff', 'stroke-width': 7, opacity: .55 });
+  path(shape, 'M-40 -40C-42 -62 -28 -80 -10 -84', { stroke: '#ffffff', 'stroke-width': 7 });
   const faceG = G(shape, { o: face });
   const eyes = mk('g', {}, faceG), pupils = G(eyes);
   for (const ex of [-20, 18]) {
