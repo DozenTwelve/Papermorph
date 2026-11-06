@@ -1,7 +1,8 @@
 """Which Chromium the scripts launch: Playwright's own, or the one $CHROME names.
 
-    from browsers import exe
+    from browsers import answers, exe, firefox
     b = await p.chromium.launch(**exe())       # or sync_api
+    b = await p.firefox.launch(**firefox())    # sound plays without a click
     answers(f"{url}{chapter}/")                # before opening it: a wrong server or path stops with a plain message
 
 Set CHROME to an installed Chrome, Chromium, Brave or Edge where Playwright's own build does not run (some Linux
@@ -18,6 +19,11 @@ def exe():
     """kwargs for p.chromium.launch(...): $CHROME with its flags, or {} for Playwright's bundled browser."""
     path = os.environ.get("CHROME")
     return {"executable_path": path, "args": ARGS} if path else {}
+
+
+def firefox():
+    """kwargs for p.firefox.launch(...): sound plays without a click, as the books need."""
+    return {"firefox_user_prefs": {"media.autoplay.default": 0}}
 
 
 def answers(url):

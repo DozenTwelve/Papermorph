@@ -2,9 +2,9 @@
 """Find opening blanks: the narration has started but the picture is still empty.
 
     python3 SKILL/scripts/serve.py 8765 site &
-    uv run --with playwright check_blank.py site                       # every chapter of the book in site/
+    uv run --with playwright check_blank.py site/<book> --url http://localhost:8765/<book>/    # every chapter
     uv run --with playwright check_blank.py site/history ch05 ch06 --url http://localhost:8765/history/
-    LIMIT=0.6 uv run --with playwright check_blank.py site             # stricter
+    LIMIT=0.6 uv run --with playwright check_blank.py site/<book> --url ...                     # stricter
 
 book_dir holds the chNN folders; --url is where that folder is served. For each lesson beat
 (question beats are skipped) whose picture stays empty longer than LIMIT seconds (default 1)
@@ -16,7 +16,7 @@ skipped with a note; check its openings with strip.py and still.py.
 import argparse, asyncio, os, sys
 from pathlib import Path
 from playwright.async_api import async_playwright
-from browsers import exe
+from browsers import answers, exe
 
 LIMIT = float(os.environ.get("LIMIT", "1.0"))
 PROBE = r"""
@@ -43,6 +43,8 @@ PROBE = r"""
 
 async def main(book: Path, chapters, url):
     found, checked = [], []
+    for ch in chapters:
+        answers(f"{url}{ch}/index.html")
     async with async_playwright() as p:
         browser = await p.chromium.launch(**exe())
         pg = await browser.new_page(viewport={"width": 1600, "height": 960})

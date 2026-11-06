@@ -16,7 +16,7 @@ its dur as its voice and is labelled so.
 """
 import argparse, asyncio, re, sys
 from playwright.async_api import async_playwright
-from browsers import answers, exe
+from browsers import answers, exe, firefox
 
 HARMLESS = re.compile(r"GPU stall due to ReadPixels|THREE\.WebGLProgram|WEBGL_debug_renderer_info is deprecated")
 HOLD = .6
@@ -59,7 +59,7 @@ async def main(a):
     bad, lengths = 0, {}
     async with async_playwright() as p:
         for name in a.browsers.split(","):
-            b = await (p.firefox.launch(firefox_user_prefs={"media.autoplay.default": 0}) if name == "firefox"
+            b = await (p.firefox.launch(**firefox()) if name == "firefox"
                        else p.chromium.launch(**exe()) if name == "chromium" else p.webkit.launch())
             pg = await b.new_page(viewport={"width": 1600, "height": 960}, reduced_motion="reduce")
             pg.set_default_timeout(120000)   # a loaded machine renders slowly; it is not an error
