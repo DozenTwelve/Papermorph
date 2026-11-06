@@ -1192,7 +1192,7 @@ const BEATS = [
 
 let PRACTICE;   // the practice beat's panel: its question pictures are drawn there
 const PICS = {
-  'p-roy': g => { path(g, 'M800 760L740 870H860Z', { fill: '#c8e0ff', opacity: .3, stroke: '#c8e0ff', 'stroke-width': 4 }); path(g, 'M660 840L772 812', { stroke: '#ffffff', 'stroke-width': 5 }); },
+  'p-roy': g => { path(g, 'M800 760L740 870H860Z', { fill: '#c8e0ff', stroke: '#c8e0ff', 'stroke-width': 4 }); path(g, 'M660 840L772 812', { stroke: '#ffffff', 'stroke-width': 5 }); },
   'p-amp': g => { waveLine(g, { x0: 660, x1: 940, y: 820, color: SOUND, w: 5 }).set(40, 90, 0); path(g, 'M682 820V780', { stroke: AMP, 'stroke-width': 6 }); },
   'p-solid': g => { let d = ''; for (let x = 680; x < 920; x += 16) for (let y = 790; y < 870; y += 16) d += `M${x - 4} ${y}a4 4 0 1 0 8 0a4 4 0 1 0 -8 0`; path(g, d, { fill: COL.dim }); },
   'p-micro': g => { path(g, 'M730 820Q800 900 870 820Z', { fill: '#e4e0d4', ...phLine() }); mk('rect', { x: 736, y: 812, width: 128, height: 10, fill: '#c0504d' }, g); put(riseLines(g, 800, 800, { n: 3, c: COL.chalk }), { o: 1 }); },
