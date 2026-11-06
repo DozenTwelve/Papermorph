@@ -9,7 +9,8 @@ import asyncio, os
 from playwright.async_api import async_playwright
 URL = os.environ.get("URL", "http://localhost:8765/BOOK/ch01/")
 # Question beat id -> one step per question in turn: '1'..'9' picks a choice; '=a,b' fills the boxes and checks;
-# '#2;1+3' answers a grid (rows split by ';', each row's columns counted from 1, '+' for several, '#2;;1' a row left empty) and checks.
+# '#2;1+3' answers a grid (rows split by ';', each row's columns counted from 1, '+' for several, '#2;;1' a row left empty) and checks;
+# '@2' clicks the 2nd target ring on the stage (tap, tapEls, pickEls: in the order of their values, idx or items).
 ANSWERS = {"q1": ["=7"], "final1": ["1"]}
 
 # The frame reached by seeking straight to t equals the one reached by stepping through the beat (replays are exact).
@@ -21,7 +22,8 @@ SAME_FRAME = r"""
   return a === snap();
 }
 """
-# The open quiz card: prompt width and lines, every control inside the card, card bottom on the 900-high stage.
+# The open quiz card: prompt width and lines, every control inside the card (a stage-tap question's card has none:
+# its targets are on the picture), card bottom on the 900-high stage.
 # Lines count the prompt's prose: a table, figure or picture in the prompt is taken out of its height.
 CARD = r"""
 () => {
@@ -32,7 +34,7 @@ CARD = r"""
   const lines = prose / (parseFloat(getComputedStyle(pe).lineHeight) * k);
   const ctl = [...c.querySelectorAll('.opt, input.box, .btn:not([hidden])')].map(b => b.getBoundingClientRect());
   const inside = b => b.width > 0 && b.left >= cr.left - 1 && b.right <= cr.right + 1 && b.top >= cr.top - 1 && b.bottom <= cr.bottom + 1;
-  return { promptW: pr.width / k, lines, ok: ctl.length > 0 && ctl.every(inside), bottom: (cr.bottom - st.top) / k };
+  return { promptW: pr.width / k, lines, ok: ctl.every(inside), bottom: (cr.bottom - st.top) / k };
 }
 """
 
@@ -80,6 +82,7 @@ async def main():
                     for r, cols in enumerate(s[1:].split(";")):
                         for c in filter(None, cols.split("+")): await rows.nth(r).locator(".opt").nth(int(c) - 1).click()   # '' = a row left empty
                     await key("Enter")
+                elif s.startswith("@"): await pg.locator("#stage .ring").nth(int(s[1:]) - 1).click()   # grades on the click
                 else: await key(s)
                 assert "Correct" in await pg.inner_text(".card .fb"), (bid, s)
                 await key("Enter"); await pg.wait_for_timeout(250)
