@@ -12,7 +12,8 @@ Only public domain and CC0 are downloaded: the licence (Commons' LicenseShortNam
 is downloaded with a WARN: free to copy is not free to show a logo or a living person. Each download writes a row to
 the sources log (--sources, default OUT/SOURCES.tsv, with a header row; a new download of the same name replaces its
 row): file, Commons title (and page), licence, author (or credit), file page URL, restrictions, credit (often the
-holding collection), licence URL, date of the work. Commons serves only standard widths: JPEG, PNG, GIF and
+holding collection), licence URL, date of the work. URLs in the log keep no query string (a download link's
+payment_id or sig would be published with a credit made from it), and dates lose Commons' hidden Wikidata code. Commons serves only standard widths: JPEG, PNG, GIF and
 WebP up to 1920 px come as the original, wider ones as a 1920 px rendering; SVG, DjVu and PDF come as a 1920 px
 rendering (--page picks a page of a scan), TIFF as the largest standard width it has (1280 px for a 1500 px TIFF).
 The name's extension must be the served one (.png for an SVG; leave it off to have it added). Recordings come as the
@@ -44,7 +45,14 @@ def fetch(url, path, timeout=120):
 ok = lambda lic: bool(re.match(r"(public domain|cc0|pd)", lic.strip(), re.I))
 licence = lambda ii: ii.get("extmetadata", {}).get("LicenseShortName", {}).get("value", "?")
 meta = lambda ii, k: ii.get("extmetadata", {}).get(k, {}).get("value", "")
-strip = lambda s, n=70: re.sub(r" (?=[,.;:])", "", " ".join(html.unescape(re.sub(r"<[^>]+>", " ", s or "")).split()))[:n]
+strip = lambda s, n=70: tidy(re.sub(r" (?=[,.;:])", "", " ".join(html.unescape(re.sub(r"<[^>]+>", " ", s or "")).split())))[:n]
+
+
+def tidy(s):
+    """A sources-log field fit to publish: a URL's query and fragment cut (a download link's payment_id or sig), and
+    Commons' hidden Wikidata date code dropped ("1924 date QS:P571,+1924-00-00T00:00:00Z/9" -> "1924")."""
+    s = re.sub(r"(https?://[^\s?#]+)[?#]\S*", r"\1", s)
+    return re.sub(r"\s*(?:date\s+)?QS:P\d+\S*", "", s).strip()
 IMG = dict(prop="imageinfo", iiprop="url|size|extmetadata|mime", iiurlwidth=1920)
 AUD = dict(prop="imageinfo", iiprop="url|size|extmetadata|mime|mediatype")
 RAW = ("image/jpeg", "image/png", "image/gif", "image/webp")   # served as the original up to 1920 px
@@ -106,7 +114,7 @@ def get(title, name, out, sources, page, audio):
     rows = [l for l in open(log, encoding="utf-8")] if os.path.exists(log) else []
     rows = [HEAD] + [l for l in rows if l.split("\t", 1)[0] not in (name, "file")]   # a new download of a name replaces its row
     rows.append("\t".join([name, p["title"] + (f" (page {page})" if page else ""), lic,
-                           strip(meta(ii, "Artist") or meta(ii, "Credit"), 200) or "?", ii.get("descriptionurl", ""), rights,
+                           strip(meta(ii, "Artist") or meta(ii, "Credit"), 200) or "?", tidy(ii.get("descriptionurl", "")), rights,
                            strip(meta(ii, "Credit"), 200), meta(ii, "LicenseUrl"), strip(meta(ii, "DateTimeOriginal"), 60)]) + "\n")
     with open(log, "w", encoding="utf-8") as f:
         f.writelines(rows)
