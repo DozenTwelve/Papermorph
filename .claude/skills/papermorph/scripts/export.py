@@ -10,7 +10,7 @@ recording playback: the video is exact and the same on every run. The sound is m
 each beat's clip from its `pre` on, and in a film (a picture book or a documentary) the sfx() effects (cut at the end
 of their scene, as a scene change stops them; a bed, { loop: true }, laid again and again to its `to` or the beat's end) and the BGM tracks with their crossfades, ducking and MUSIC_OFF. Question beats (quick
 checks and practice) are left out, and then the video ends on a card saying they are in the interactive lesson
-(--link adds its address); in a film with interactive moments (CHAPTER.film, e.g. the reader fires a rifle) they stay in,
+(--link adds its address; such a lesson plays no music() on the page, so none in the video either); in a film with interactive moments (CHAPTER.film, e.g. the reader fires a rifle) they stay in,
 each holding its picture for its `hold` seconds (1.5 by default; the scene's breathing and blinking go on and its beds
 play, the music up at 70 %, as the page plays it while it waits) before the next beat plays as if the reader had acted. A beat with `video: false` in its fourth slot is left
 out, and `video: S` ends it S seconds into its clock, sound and captions cut there, with no wait: a game that only
@@ -87,8 +87,10 @@ def encoder():
 @functools.lru_cache(maxsize=None)
 def decode(src):
     """Any audio file or URL as float32 stereo samples at RATE."""
-    raw = subprocess.run(['ffmpeg', '-v', 'error', '-i', src, '-f', 'f32le', '-ac', '2', '-ar', str(RATE), '-'],
-                         capture_output=True, check=True).stdout
+    r = subprocess.run(['ffmpeg', '-v', 'error', '-i', src, '-f', 'f32le', '-ac', '2', '-ar', str(RATE), '-'], capture_output=True)
+    if r.returncode:   # a beat not voiced yet, or a moved effect: say which file
+        sys.exit(f'{src}: ffmpeg could not read it ({r.stderr.decode(errors="replace").strip().splitlines()[-1] if r.stderr.strip() else "no output"})')
+    raw = r.stdout
     return np.frombuffer(raw, np.float32).reshape(-1, 2)
 
 
@@ -180,6 +182,8 @@ async def main(a):
                       'waiting picture, then plays on; give it video: false, or video: S to keep its lead-in line', flush=True)
         info['sfx'] = []
         asks = not info['film'] and any(x['ask'] for x in info['beats'])   # a lesson's questions, left out: the end card says where they are
+        if asks and info['bgm']:   # the engine plays no music in a lesson with questions, so neither does the video
+            print('a lesson with questions: its music() is not played (as on the page)'); info['bgm'] = []
         box = await pg.locator('#stage').bounding_box()
         clip = {k: box[k] for k in ('x', 'y', 'width', 'height')}
         audio_dir = Path(tempfile.mkdtemp(prefix='export-'))
@@ -261,8 +265,11 @@ async def main(a):
         with wave.open(str(mix), 'wb') as w:
             w.setnchannels(2); w.setsampwidth(2); w.setframerate(RATE)
             w.writeframes((np.clip(track, -1, 1) * 32767).astype('<i2').tobytes())
+        i0, tp0 = lv.measure(mix)[:2] if a.lufs is not None else (None, None)
+        if i0 is not None and not np.isfinite(i0):   # nothing voiced yet: no loudness to level to
+            print('the mix is silent (no clip, effect or music sounds): not levelled', flush=True); a.lufs = None
         if a.lufs is not None:   # levelled as level.py levels a clip: a gain, a limiter, measured and redone
-            wav, (i0, tp0) = audio_dir / 'track.wav', lv.measure(mix)[:2]
+            wav = audio_dir / 'track.wav'
             def render(g, lim):
                 subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', str(mix), '-af', lv.limiter(g, lim), '-c:a', 'pcm_s16le', str(wav)], check=True)
                 return lv.measure(wav)[:2]
