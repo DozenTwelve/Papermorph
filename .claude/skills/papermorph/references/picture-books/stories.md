@@ -35,12 +35,13 @@ Then agree on the models ([core/style.md](../core/style.md#models)) and write `s
 
 For a look drawn in code or painted:
 
-1. Intake, then the script and storyboard, shown to the user.
+1. Intake, then the script and storyboard, with its shot count ([Scenes, shots, cuts](#scenes-shots-cuts)), shown to the user.
 2. Start the folder.
 3. Sound: voices, mouth shapes, one joined clip per scene with its word times, sound effects ([Sound](#sound)).
-4. Sets: sketch them in `sets.js`, bake them, and for a painted look paint them from the baked sketches ([painting.md](painting.md)).
-5. The cast and the scenes, one script per scene ([puppets.md](puppets.md)); bake the puppet pieces.
-6. Review rounds, then the user's viewing, then registering the episode.
+4. Sets: sketch them in `sets.js`, bake them, and for a painted look paint them from the baked sketches ([painting.md](painting.md)). `bake_sets.py --ref` gives each set as one picture to show the user.
+5. The cast, shown to the user before the scenes are built on it: there is no cast-sheet script, but a scratch beat that stands every puppet in a row, at rest and in two of its key poses, taken with `shot.py --clean`, makes one. Then the scenes, one script per scene ([puppets.md](puppets.md)); bake the puppet pieces.
+6. Music, once the scenes' lengths have settled: `music.py cut` reads the episode's length from the page, so a track cut earlier has to be cut again after every change of length. Find or bring the track, cut it, then uncomment the `music()` line in `chapter.html` ([core/sound.md](../core/sound.md#music)).
+7. Review rounds, then the user's viewing, then registering the episode.
 
 ### From a scanned book's own pictures
 
@@ -51,11 +52,11 @@ When the sets and puppets are the book's own drawings ([puppets.md](puppets.md#l
 3. **The pages as pictures.** `uv run --with pymupdf SKILL/scripts/split_pages.py books/<book>/book.pdf --pages 1-N --dpi D --out books/<book>/pages` writes `pages/preview/page_NNNN.png` (PDF page order from 1). `lift.py` reads a manifest's `"page": "page_0005"` as `page_0005.png` in its `--pages` folder (`books/<book>/pages/preview`), so the names need no renaming. Resolution decides how sharp a close-up is: `lift.py` fits a page's height to the 900 px frame and writes 2.5 pixels per frame pixel (`res`), so a page image under 2250 px tall is enlarged and goes soft. Choose `D` so the height clears that: 2250 ÷ the page's height in inches, about 300 dpi for an eight-inch page (*Millions of Cats*' scans were 2516 px tall).
 4. **The script and storyboard**, as for any picture book ([The script comes first](#the-script-comes-first)), with two more columns: the page each shot uses, and for every figure on screen what it does (speaks, walks, turns its head, swishes its tail, smokes). That list is what the lifting is for: a figure lifted whole can only breathe and rock.
 5. **Start the folder** with `new_book.py picture <book>` (no `--painted`), and add to the chapter page, after `paper.js`: `<script src="../img/cut/cut.js"></script>` and `<script src="../lib/cut.js"></script>`. `lift.py` writes `img/sets/sets.js` itself, so the sketch file `books/<book>/art/sets.js` and `bake_sets.py` are not used.
-6. **Sound**, as in step 3 above.
+6. **Sound**, as in step 3 above, and the music last, as in step 6.
 7. **Lift** the sets, the figures with the parts the storyboard's actions need, and the lettering, one manifest per group of pages in `books/<book>/art/lift/` ([puppets.md](puppets.md#lifted-from-the-books-own-pictures)). Look at the run's `--sheet` and at each set's `page.webp` after every run.
 8. **Holes** a lifted figure leaves in a drawn background are inpainted by the set's `fill`, which is a stand-in. Where one shows on screen, have the image model paint it from the page (paid, [painting.md](painting.md#a-hole-in-a-scanned-page)), or keep the figure near its spot and frame the hole out.
 9. **The scenes**, one script per scene, placing each figure back where it was drawn (`pagePos`), then the motion audit ([puppets.md](puppets.md#seeing-your-own-work)): every figure on screen acts the whole time it is on screen. The lifted pieces are bitmaps already, so `bake_puppets.py` has nothing to bake for them.
-10. Review rounds, the user's viewing, registering the episode, as in step 6 above.
+10. Review rounds, the user's viewing, registering the episode, as in step 7 above.
 
 ## The book folder
 
@@ -102,7 +103,7 @@ One scene is one beat with one joined audio clip ([Sound](#sound)); cuts inside 
 - an insert to make a detail readable (a coin on the counter, the clock, a face in a door crack);
 - held silences: the beat where nobody speaks is often the joke. Blinks, eyes and a tiny head turn carry it.
 
-Reviewers of the later episodes kept finding the same few things, all about what the viewer can read. Give every object the joke hangs on its own insert; the best episodes ran ten to fourteen shots a half minute. Keep whoever is spoken to in the shot: the listener's face is half the line. Someone following stays far enough behind that the delay itself reads; people pass in front of or behind each other, never through. A face half cut by the frame edge, or a blink on the frame that carries the joke, reads as a mistake.
+Reviewers of the later episodes kept finding the same few things, all about what the viewer can read. Give every object the joke hangs on its own insert; the best episodes ran ten to fourteen shots a half minute. Count them on the storyboard before building: the shots in each scene against its length from the words ([core/sound.md](../core/sound.md#length-from-words)). A first cut at about six a half minute drew a director's first note, close-ups for the faces the story turns on, which the count would have shown at the storyboard. Keep whoever is spoken to in the shot: the listener's face is half the line. Someone following stays far enough behind that the delay itself reads; people pass in front of or behind each other, never through. A face half cut by the frame edge, or a blink on the frame that carries the joke, reads as a mistake.
 
 Everybody in the shot stays alive and stays there: extras blink and glance about in close-ups too (an early cut lost the whole class whenever someone spoke). Between places, cut or use a paper-theatre wipe; at the end, a title card.
 
