@@ -53,7 +53,7 @@ A course book may also want verified citation links, a reviewed question bank or
 
 The general shape and the coordinator's job are in [core/team.md](../core/team.md); a lesson splits by step of the chapter loop, chapters one after another.
 
-In the pilot the picture worker stops when the storyboard sheet is ready and replies with it; the coordinator shows it to the user, then continues the same worker with the user's changes to add motion.
+In the pilot ([core/team.md](../core/team.md#the-coordinator)), a picture worker stops when the storyboard sheet is ready and replies with it; the coordinator shows it to the user, then continues the same worker with the user's changes to add motion.
 
 1. **Extract — small.** From `pages/chNN/text.md` and the page images it needs, write the source material into `chapters/chNN.md` in the shape of the previous chapter's: concepts in book order with the book's wording and examples, vocabulary, each figure (labels, arrows, purpose), every end-of-chapter question with its answer, and possible problems in the source (flagged, not decided).
 2. **Narration — middle.** From chNN.md, [authoring.md](authoring.md), `style.json` and the previous approved chapter (its beat table and narration as the worked example): decide each flagged problem (`## Errata`), choose what to teach for the book's pacing (and say what was dropped), write the beat table (what the picture shows and does, each `[[mark]]` and the action it triggers, where the eye goes, new visual elements needed), all questions and the narration file, then run `tts.py` and confirm every mark is in timings.js. The plan must be concrete enough for a different model to build from.

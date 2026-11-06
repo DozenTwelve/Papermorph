@@ -87,6 +87,6 @@ All in `SKILL/scripts/`; each prints its usage with `--help` when run with the `
 
 ## Context
 
-- Talk with the user from the main conversation: intake, and every sheet and choice of the pilot. When subagents are available, later chapters are made as a team, each step on the model the user chose ([core/team.md](references/core/team.md)); without them, run the same steps in the current agent with file-based state.
+- Talk with the user from the main conversation: intake, and every sheet and choice of the pilot. When subagents are available, chapters are made as a team, each step on the model the user chose, with the main conversation as the pilot's coordinator ([core/team.md](references/core/team.md#the-coordinator) says what that allows); without them, run the same steps in the current agent with file-based state.
 - Use the engine API and inspect individual functions when needed; copy kit files rather than reading their full source as instructions.
 - Keep `style.json` current and short; chapter status, errata and historical feedback stay in `chapters.md` and `chapters/chNN.md`.

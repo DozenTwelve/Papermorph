@@ -124,7 +124,7 @@ A picture book for young children can stop and play a finding game in the pictur
 
 ## Team
 
-[core/team.md](../core/team.md)'s shape, split by scene instead of by step. The **strong** coordinator writes the script with the user and builds what every scene shares: cast, sets and their painting, the episode's helpers, the voices and the joined audio with its word times (`join.py --words`). Then it writes one brief for all scene workers:
+[core/team.md](../core/team.md)'s shape, split by scene instead of by step; in the pilot the main conversation is the coordinator and may write the scenes itself ([core/team.md](../core/team.md#the-coordinator)). The **strong** coordinator writes the script with the user and builds what every scene shares: cast, sets and their painting, the episode's helpers, the voices and the joined audio with its word times (`join.py --words`). Then it writes one brief for all scene workers:
 
 - the story in a paragraph, and the user's words that set the bar;
 - the episode kit's API, to read and not edit;
