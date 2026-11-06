@@ -20,6 +20,7 @@ and the run names them.
 import argparse, asyncio, io
 from playwright.async_api import async_playwright
 from PIL import Image, ImageChops, ImageStat
+from browsers import answers, firefox
 
 ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
 ap.add_argument("chapter"); ap.add_argument("beats", nargs="*")
@@ -49,8 +50,9 @@ STEADY = r"""(() => {
 })()"""
 
 async def main():
+    answers(URL)
     async with async_playwright() as p:
-        b = await p.firefox.launch(firefox_user_prefs={"media.autoplay.default": 0})
+        b = await p.firefox.launch(**firefox())
         pg = await b.new_page(viewport={"width": 1600, "height": 960}, reduced_motion="reduce")
         await pg.goto(URL + "?beat=0&t=0"); await pg.wait_for_timeout(800)
         ids = await pg.evaluate("BEATS.map(b => b.id)")
@@ -66,7 +68,7 @@ async def main():
             async def frame(t, cam=None):
                 hold = "null" if cam is None else cam   # the clock skips a frame it drew last: draw another one first
                 await pg.evaluate(f"window.HOLDCAM = {hold}; evalTo({t + .25}); P.t = {t}; evalTo({t})"); await pg.wait_for_timeout(40)
-                return Image.open(io.BytesIO(await pg.screenshot(clip=r))).convert("L").resize((400, 240))
+                return Image.open(io.BytesIO(await pg.screenshot(clip=r))).convert("L").resize((400, round(400 * r["height"] / r["width"])))   # the stage's shape, upright too
             prev, diffs, t = None, [], 0.0
             while t <= dur + 1e-6:
                 if a.hold_cam:   # both frames of the pair seen through the camera of the first

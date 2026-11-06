@@ -62,10 +62,17 @@ other sets. --sheet writes a contact sheet per run (pieces on grey, parts outlin
 look at before using them.
 
 The run names what it could not do: a polygon outside its page, a part that took no ink, a piece whose silhouette is
-much bigger than its ink (an outline that did not close: raise `close` or draw a tighter poly), an unknown page.
+much bigger than its ink (an outline that did not close: raise `close` or draw a tighter poly), an unknown page, and
+for an auto mask: a silhouette that runs along its lasso (sky or ground hatching taken in, or a light figure on dark
+ground, which auto cannot cut: there is no seed mask yet), and an outline left open (the silhouette nearly all ink
+while a 4x `close` fills much paper: the figure would be see-through; there is no seal line yet), with the parts it is in.
 A piece re-lifted with other parts has its old pictures removed, each named.
 """
-import argparse, fcntl, hashlib, json, pathlib, re, sys, tempfile
+import argparse, hashlib, json, pathlib, re, sys, tempfile
+try:
+    import fcntl
+except ImportError:   # Windows: no flock, so runs into one book are not serialised (said when it matters)
+    fcntl = None
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 import cv2
@@ -146,6 +153,32 @@ def silhouette(t, region, close, mode):
     return filled
 
 
+def audit_auto(name, P, t, region, sil, x0, y0):
+    """Say where an auto mask likely went wrong, naming the piece or part: the silhouette runs along the lasso (ink
+    beyond the figure was taken in: sky or ground hatching, or a light figure on dark ground), or a much larger `close`
+    fills much more paper (an outline left open, so the paper inside shows the set through). lift.py has no seal or seed
+    option yet, so the way out is a tighter poly, holes, or "mask": "poly"."""
+    edge = region & ~cv2.erode(region.astype(np.uint8), np.ones((5, 5), np.uint8)).astype(bool)
+    if edge.sum() and (sil & edge).sum() > 0.25 * edge.sum():
+        dark = ((t > 0.25) & region).sum() / region.sum()
+        why = 'a light figure on dark ground? (auto keeps the dark ground)' if dark > 0.6 else \
+              'ink beyond the figure (sky, ground, a neighbour) was taken in'
+        print(f'WARNING {name}: the silhouette runs along {(sil & edge).sum() / edge.sum():.0%} of its lasso: {why}; '
+              f'draw the poly tighter there, or use "mask": "poly"', file=sys.stderr)
+    # see-through: the silhouette is little more than its ink, and closing 4x wider gaps adds much paper inside it
+    close = P.get('close', 9); big = 4 * close
+    ink = sil & (t > 0.25)
+    if sil.sum() > 200 and ink.sum() > 0.85 * sil.sum():
+        wide = silhouette(t, region, big, 'auto'); added = wide & ~sil
+        if added.sum() > 0.5 * sil.sum():
+            parts = {pn: poly_mask(sil.shape, D['poly'], x0, y0) for pn, D in P.get('parts', {}).items() if 'poly' in D}
+            where = [pn for pn, own in parts.items() if (added & own).sum() > 0.25 * max(1, (sil & own).sum())]
+            print(f'WARNING {name}: an outline seems open{" (in " + ", ".join(where) + ")" if where else ""}: the '
+                  f'silhouette is nearly all ink, and closing gaps of {big} px instead of {close} adds '
+                  f'{added.sum() / sil.sum():.1f}x its area, so the paper inside would be see-through; raise "close", '
+                  f'or trace it with "mask": "poly" (if it is a dark figure with open shapes, ignore this)', file=sys.stderr)
+
+
 def lift_piece(book, name, P, res, out, sheet):
     lum = book.page(P['page']).copy(); H, W = lum.shape
     for e in P.get('erase', []): check_poly(f'{name} erase', e, W, H); lum[poly_mask(lum.shape, e)] = 255
@@ -163,6 +196,7 @@ def lift_piece(book, name, P, res, out, sheet):
         if inked and sil.sum() > 12 * inked:
             print(f'WARNING {name}: silhouette is {sil.sum() / inked:.0f}x its ink; an outline may not have closed '
                   f'(raise "close" or draw a tighter poly, or use "mask": "poly")', file=sys.stderr)
+        audit_auto(name, P, t, region, sil, x0, y0)
     alpha = (t if mode == 'ink' else sil.astype(float)) * sil
     alpha = cv2.GaussianBlur(alpha.astype(np.float32), (3, 3), 0.7) if mode != 'ink' else alpha
     rgb = book.rgb(t)
@@ -281,9 +315,10 @@ def lift_set(book, name, S, res, out):
         m = cv2.GaussianBlur(m.astype(np.float32), (0, 0), 3)[..., None]
         rgb = rgb * (1 - m) + book.rgb(book.tone(src, S.get('levels'))) * m
     x0, y0, x1, y1 = S.get('box', [0, 0, W, H])
-    wx, wy, ww = S.get('world') or [None, None, None]
+    wx, wy, ww = [*(S.get('world') or []), None, None, None][:3]   # [x, y] alone: w is fitted, as with no world
     if ww is None:
-        ww = (x1 - x0) * 900 / (y1 - y0); wx, wy = 800 - ww / 2, 0
+        ww = (x1 - x0) * 900 / (y1 - y0)
+        wx, wy = 800 - ww / 2 if wx is None else wx, 0 if wy is None else wy
     s = ww / (x1 - x0)
     taken = np.zeros(lum.shape, bool); made = []
     for Lr in S.get('layers', []):
@@ -339,7 +374,11 @@ def main():
     out = pathlib.Path(a.out)
     # several workers may lift into one book at once: one run at a time, so no run's cut.js or sets.js is lost
     key = hashlib.md5(str(out.resolve()).encode()).hexdigest()[:10]
-    lock = open(pathlib.Path(tempfile.gettempdir()) / f'lift-{key}.lock', 'w'); fcntl.flock(lock, fcntl.LOCK_EX)
+    lock = open(pathlib.Path(tempfile.gettempdir()) / f'lift-{key}.lock', 'w')
+    if fcntl:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+    else:
+        print('note: no file lock on this system (fcntl): run one lift.py into this book at a time, or one run loses the other\'s cut.js/sets.js entries')
     book = Book(m, a.pages); res = m.get('res', 2.5); set_res = m.get('setRes', 2)
     want = lambda n: not a.only or n in a.only
     cut_js = out / 'cut' / 'cut.js'

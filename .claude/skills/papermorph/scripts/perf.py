@@ -12,6 +12,7 @@ before and after the run, e.g. a beat measured on a quiet machine: read the chap
 """
 import argparse, asyncio, os, sys
 from playwright.async_api import async_playwright
+from browsers import answers, firefox
 SETUP = r"""
 () => { window.__d = []; let last = performance.now();
   const loop = now => { window.__d.push(now - last); last = now; requestAnimationFrame(loop); }; requestAnimationFrame(loop); }
@@ -26,6 +27,7 @@ async ([i, t, ms]) => {
 }
 """
 def load():
+    if not hasattr(os, "getloadavg"): return "load average unknown on this system (Windows): measure when the machine is quiet"
     l1, l5, _ = os.getloadavg(); n = os.cpu_count()
     return f"load average {l1:.1f} (1 min), {l5:.1f} (5 min) on {n} cores" + (
         "  WARNING busy machine: frame times read high; compare with --ref or measure when it is quiet" if l1 > n else "")
@@ -49,9 +51,10 @@ async def reference(b, base, ref):
 
 
 async def main(ch, out, base, ref):
+    answers(f"{base}{ch}/")
     head = [load()]; print(head[0], flush=True)
     async with async_playwright() as p:
-        b = await p.firefox.launch(firefox_user_prefs={"media.autoplay.default": 0})
+        b = await p.firefox.launch(**firefox())
         if ref: head.append(await reference(b, base, ref) + " (before)"); print(head[-1], flush=True)
         pg = await page(b, f"{base}{ch}/?beat=0&t=0")
         beats = await pg.evaluate("BEATS.map(b => [b.id, !!b.ask, (b.pre || 0) + TIMINGS[b.id].dur])")

@@ -7,7 +7,10 @@
 - SKILL.md links every reference file directly, so none is reachable only through another;
 - every script in scripts/ is named in SKILL.md, and every script compiles;
 - a flag written next to a script (`level.py --lufs -14`) appears in that script's source;
-- a `scripts/x.py` or `assets/templates/...` path named in the docs exists.
+- a `scripts/x.py` or `assets/templates/...` path named in the docs exists;
+- every engine version written with its minor number (`engine-v2.9`) in the Skill's docs and kits is engine.py's
+  DEFAULT, so a release bump cannot leave a doc or a style.json template behind (an older tag is named by its major
+  alone, `engine-v1`, or the line is changed with the bump).
 
 Prints each problem with its file and exits 1 if there are any.
 """
@@ -32,7 +35,7 @@ def slug(heading):
 
 def anchors(path):
     out, fence = set(), False
-    for line in path.read_text().splitlines():
+    for line in path.read_text(encoding='utf-8').splitlines():
         if line.startswith('```'):
             fence = not fence
         elif not fence and (m := re.match(r'#{1,6} (.*)', line)):
@@ -46,7 +49,7 @@ def without_fences(text):
 
 def links():
     for doc in DOCS + REPO_DOCS:
-        for target in re.findall(r'\]\(([^)\s]+)\)', without_fences(doc.read_text())):
+        for target in re.findall(r'\]\(([^)\s]+)\)', without_fences(doc.read_text(encoding='utf-8'))):
             if re.match(r'[a-z]+:', target):
                 continue
             path, _, frag = target.partition('#')
@@ -58,7 +61,7 @@ def links():
 
 
 def routing():
-    text = (SKILL / 'SKILL.md').read_text()
+    text = (SKILL / 'SKILL.md').read_text(encoding='utf-8')
     linked = {(SKILL / t.split('#')[0]).resolve() for t in re.findall(r'\]\((references/[^)#\s]+)', text)}
     for ref in DOCS[1:]:
         if ref.resolve() not in linked:
@@ -67,7 +70,7 @@ def routing():
         if f'`{script.name}`' not in text:
             say(script, 'not named in SKILL.md')
         try:
-            compile(script.read_text(), str(script), 'exec')
+            compile(script.read_text(encoding='utf-8'), str(script), 'exec')
         except SyntaxError as e:
             say(script, f'does not compile: line {e.lineno}: {e.msg}')
 
@@ -82,7 +85,7 @@ def code_spans(text):
 
 def drift():
     for doc in DOCS:
-        for span in code_spans(doc.read_text()):
+        for span in code_spans(doc.read_text(encoding='utf-8')):
             for p in re.findall(r'(?:^|[\s"]|SKILL/)(scripts/\w+\.py)', span):
                 if not (SKILL / p).exists():
                     say(doc, f'names a missing script: {p}')
@@ -93,12 +96,22 @@ def drift():
                 src = SKILL / 'scripts' / name
                 if not src.exists():
                     continue
-                code = src.read_text()
+                code = src.read_text(encoding='utf-8')
                 # a flag right after this script's name and before the next script or pipe belongs to it
                 tail = re.split(r'\b\w+\.py\b|\|', span.split(name, 1)[1])[0]
                 for flag in re.findall(r'(?<![\w-])(--[a-z][\w-]*)', tail):
                     if flag != '--help' and flag not in code:
                         say(doc, f'{name} has no {flag}')
+
+
+def versions():
+    m = re.search(r"DEFAULT = '[^@']+@(engine-v[\d.]+)'", (SKILL / 'scripts/engine.py').read_text(encoding='utf-8'))
+    if not m:
+        return say(SKILL / 'scripts/engine.py', 'no DEFAULT = \'OWNER/REPO@engine-vX.Y\' to check the docs against')
+    for f in DOCS + sorted(p for p in (SKILL / 'assets').rglob('*') if p.suffix in ('.json', '.html', '.js', '.md')):
+        for v in re.findall(r'engine-v\d+\.\d+', f.read_text(encoding='utf-8')):
+            if v != m[1]:
+                say(f, f'names {v}, but engine.py\'s DEFAULT is {m[1]}')
 
 
 def selftest():
@@ -110,6 +123,6 @@ def selftest():
 
 if __name__ == '__main__':
     selftest()
-    links(); routing(); drift()
+    links(); routing(); drift(); versions()
     print('\n'.join(problems) or 'ok', f'\n{len(problems)} problems in {len(DOCS) + len(REPO_DOCS)} docs')
     sys.exit(1 if problems else 0)

@@ -18,14 +18,16 @@
 
 A whole-beat strip whose first frame is mostly one flat colour (a beat that swipes or fades its first shot in) takes that
 frame at 0.2 s instead, labelled so, when its step is 0.2 s or more.
-Without --sheet each beat gets OUT/strip_<beat>.jpg (onion skins OUT/onion_<beat>.jpg). Frames are labelled "beat t" and shown at 1/3 size, four
+Without --sheet each beat gets OUT/strip_<beat>.jpg (onion skins OUT/onion_<beat>.jpg, motion OUT/motion_<beat>.webp);
+a spec with moments or a range names them too, OUT/strip_<beat>_<moments>.jpg (strip_push_4..6.jpg), so a range
+never overwrites the whole beat's strip. Frames are labelled "beat t" and shown at 1/3 size, four
 a row. Firefox by default: it is the slowest common browser and the one to judge by. --url is where the book is served;
 --query adds to the page's query (tags: the source and AI tags an upright film's export shows).
 """
-import argparse, asyncio, re, sys, tempfile
+import argparse, asyncio, io, re, sys
 from pathlib import Path
 from playwright.async_api import async_playwright
-from browsers import answers, exe
+from browsers import IMAGES_READY, answers, exe, firefox
 from PIL import Image, ImageDraw
 
 def sheet(ims, path, cols=4):
@@ -64,10 +66,9 @@ def onion_skin(ims):
 
 async def main(a):
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
-    tmp = Path(tempfile.mkdtemp()) / "f.png"
     answers(f"{a.url}{a.chapter}/")
     async with async_playwright() as p:
-        b = await (p.firefox.launch(firefox_user_prefs={"media.autoplay.default": 0}) if a.browser == "firefox" else p.chromium.launch(**exe()))
+        b = await (p.firefox.launch(**firefox()) if a.browser == "firefox" else p.chromium.launch(**exe()))
         pg = await b.new_page(viewport={"width": 1600, "height": 960}, reduced_motion="reduce")   # no wall-clock CSS motion
         errs = []; pg.on("pageerror", lambda e: errs.append(str(e)))
         await pg.goto(f"{a.url}{a.chapter}/?{a.query + '&' if a.query else ''}beat=0&t=0"); await pg.wait_for_timeout(800)
@@ -81,10 +82,9 @@ async def main(a):
             at["t"] = t
             await pg.evaluate(f"P.t = {t}; evalTo({t})")
             if cam["off"]: await pg.evaluate(CAMERA_OFF)
-            await pg.wait_for_timeout(60)
+            await pg.evaluate(IMAGES_READY); await pg.wait_for_timeout(60)
             r = await pg.evaluate("(() => { const r = document.getElementById('stage').getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; })()")
-            await pg.screenshot(path=str(tmp), clip={"x": r[0], "y": r[1], "width": r[2], "height": r[3]})
-            im = Image.open(tmp).convert("RGB")
+            im = Image.open(io.BytesIO(await pg.screenshot(clip={"x": r[0], "y": r[1], "width": r[2], "height": r[3]}))).convert("RGB")
             return im.resize((im.width // scale, im.height // scale))
         allims = []
         for spec in a.specs:
@@ -93,9 +93,10 @@ async def main(a):
             m = re.fullmatch(r"([^:/]+)(?::([^/]+))?(?:/([\d.]+))?", spec)
             if not m or (m[2] and m[3] and ".." not in m[2]): sys.exit(f"bad spec {spec!r}")
             bid, moments, step = m.groups()
+            tag = bid + ("_" + re.sub(r"[^\w.,+-]", "-", moments) if moments else "")   # a range or moments: their own file
             i = await pg.evaluate(f"BEATS.findIndex(b => b.id === '{bid}')")
             if i < 0: sys.exit(f"no beat {bid!r}")
-            tm = await pg.evaluate(f"TIMINGS['{bid}']")
+            tm = await pg.evaluate(f"TIMINGS['{bid}']") or {}   # a beat not voiced yet has no marks
             await pg.evaluate(f"seek({i}, false)"); await pg.wait_for_timeout(300); at.update(i=i, t=0.0)
             dur, pre = await pg.evaluate("[P.end, BEATS[P.i].pre || 0]")   # the whole beat; marks start after `pre`
             def when(x):
@@ -121,15 +122,15 @@ async def main(a):
                                "shots; give it the range of one shot, or @c for a pan")
                 skin = onion_skin([await shot(t, 2) for t in ts] if len(ts) > 1 else raw)
                 ImageDraw.Draw(skin).text((8, 6), f"{bid} onion t={ts[0]:.2f}..{ts[-1]:.2f}, {len(ts)} frames{', camera off' if cam['off'] else ''}", fill=(255, 230, 120))
-                skin.save(out / f"onion_{bid}.jpg", quality=86)
+                skin.save(out / f"onion_{tag}.jpg", quality=86)
             if a.sheet: allims += ims
-            else: sheet(ims, out / f"strip_{bid}.jpg")
+            else: sheet(ims, out / f"strip_{tag}.jpg")
             if webp:
                 fr, t = [], t0
                 while t <= t1 + 1e-6:
                     fr.append(await shot(t, 2)); t += .25
-                fr[0].save(out / f"motion_{bid}.webp", save_all=True, append_images=fr[1:], duration=250, loop=0, quality=60)
-            print(bid, len(ims), "frames")
+                fr[0].save(out / f"motion_{tag}.webp", save_all=True, append_images=fr[1:], duration=250, loop=0, quality=60)
+            print(tag, len(ims), "frames")
         if a.sheet and allims: sheet(allims, out / f"{a.sheet}.jpg"); print("sheet", out / f"{a.sheet}.jpg")
         await b.close()
     if errs: print("PAGE ERRORS:", errs); return 1

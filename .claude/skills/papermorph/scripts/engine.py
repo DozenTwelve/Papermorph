@@ -11,13 +11,14 @@
 The engine is not part of this skill: it is the engine/ folder of a repository, versioned by tags (engine-v2,
 engine-v2.1, ...; a new major number means books may need a change), and anyone may fork it. Without --from, the
 engine/ folder here or above the target is used (a checkout of that repository), otherwise DEFAULT, the latest release
-compatible with this Skill (its docs and the picture-book kit); the source used is printed.
+compatible with this Skill (its docs and the picture-book kit); the source used is printed. A release tag fetched
+from GitHub is kept in ~/.cache/papermorph/ ($XDG_CACHE_HOME), so only the first book outside a checkout waits for it.
 Each book keeps a full copy in lib/, so it runs on its own; fix the engine at its source and sync, never edit the
 copies. lib/book.css holds the book's own settings and overrides; it is created from the default and never
 overwritten. MathJax (engine/vendor/mathjax) goes only into books that ask for it with --latex; after that, a book
 with lib/mathjax.js keeps it in step like the rest.
 """
-import argparse, filecmp, io, shutil, sys, tarfile, tempfile, urllib.request
+import argparse, filecmp, io, os, shutil, sys, tarfile, tempfile, urllib.request
 from pathlib import Path
 
 DEFAULT = 'DozenTwelve/Papermorph@engine-v2.9'   # follows the latest compatible release
@@ -27,7 +28,15 @@ LATEX = {'vendor/mathjax/tex-svg-full.js': 'mathjax.js', 'vendor/mathjax/LICENSE
 
 def fetch(spec: str) -> Path:
     repo, _, ref = spec.partition('@')
+    # a release tag never changes, so its engine is kept: the next book starts without the download
+    cache = Path(os.environ.get('XDG_CACHE_HOME') or Path.home() / '.cache') / 'papermorph' / repo.replace('/', '-') / ref \
+        if ref.startswith('engine-v') else None
+    if cache and (cache / 'engine.js').exists():
+        print(f'engine {spec} from the cache {cache}', file=sys.stderr)
+        return cache
     url = f'https://codeload.github.com/{repo}/tar.gz/{ref or "main"}'
+    print(f'downloading {url} for its engine/ (the whole repository: can take minutes on a slow line)'
+          + (f'; kept in {cache}' if cache else ''), file=sys.stderr, flush=True)
     try:
         data = urllib.request.urlopen(url, timeout=60).read()
     except OSError as e:
@@ -42,6 +51,13 @@ def fetch(spec: str) -> Path:
                 dst.write_bytes(tar.extractfile(m).read())
     if not (out / 'engine.js').exists():
         sys.exit(f'{spec} has no engine/engine.js')
+    if cache:
+        try:   # whole or not at all: a half-written cache would be taken for the engine
+            cache.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(out, tmp := cache.with_name(cache.name + f'.{os.getpid()}'))
+            os.replace(tmp, cache)
+        except OSError as e:
+            print(f'note: the engine was not cached ({e}); the next book downloads it again', file=sys.stderr)
     return out
 
 

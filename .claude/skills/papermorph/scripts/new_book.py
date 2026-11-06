@@ -3,6 +3,7 @@
 
     python3 new_book.py lesson history                 # a textbook: cover and contents, ch01 from the lesson template
     python3 new_book.py picture jokes                  # a picture book: series page, paper kit, scene1, sets.js
+    python3 new_book.py picture fox --painted          # with painted.json, painted.py's manifest, for a painted look
     python3 new_book.py documentary film               # a documentary: film.js kit, series page for the credits
     python3 new_book.py shorts short --maps            # upright shorts, here with the map kit (documentaries take --maps too)
     python3 new_book.py lesson stats --chapter 9 --lang ja --root ~/work
@@ -11,9 +12,12 @@ Run it from the folder that holds site/, books/, content/ and tools/ (or pass --
 already has a site/<book>/ folder, so it never overwrites work; resume an existing book from its own files.
 When a step fails (engine.py without network or a local engine/), the new site/<book>/ is removed, so a rerun works.
 The engine comes from engine.py (the repository's engine/ when at hand, else the latest compatible release).
-It copies and creates files only; the voice, effects and baking steps it prints come next.
+It copies and creates files only; the voice, effects and baking steps it prints come next. It also copies the tier's
+style.json template into books/<book>/ (kept if one is there), the file the style conversation fills (core/style.md).
+A picture book's or a documentary's series page shows img/cover.webp, which no step makes on its own: the output
+says how (a shot.py still).
 """
-import argparse, shutil, subprocess, sys
+import argparse, shlex, shutil, subprocess, sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -36,6 +40,7 @@ def main():
     ap.add_argument('--chapter', type=int, default=1, help='the pilot chapter number (default 1)')
     ap.add_argument('--lang', default='en', help="the book's language code (default en): it names the narration file, the audio folder, <html lang> and CHAPTER.language; the template's text and voice stay English until translated")
     ap.add_argument('--maps', action='store_true', help='add the map kit (documentaries and shorts)')
+    ap.add_argument('--painted', action='store_true', help="a picture book with a painted look: add painted.json, painted.py's manifest")
     ap.add_argument('--root', default='.', help='folder holding site/, books/, content/, tools/ (default .)')
     a = ap.parse_args()
 
@@ -46,6 +51,8 @@ def main():
         sys.exit(f'{site} exists: resume from its own files, or choose another slug')
     if a.maps and a.kind not in ('documentary', 'shorts'):
         sys.exit('--maps is for documentaries and shorts')
+    if a.painted and a.kind != 'picture':
+        sys.exit('--painted is for picture books')
     try:
         start(a, root, ch, site, work, content)
     except BaseException:
@@ -60,6 +67,9 @@ def start(a, root, ch, site, work, content):
     if subprocess.run([sys.executable, str(HERE / 'engine.py'), str(site)]).returncode:
         sys.exit(f'engine.py failed; {site} removed, rerun once the engine is reachable')
     narration = content / f'narration.{a.lang}.json'
+    style = work / 'style.json'   # the tier's template, the start of the style conversation (core/style.md)
+    if not style.exists():
+        copy({'lesson': T, 'picture': PB, 'documentary': DK, 'shorts': SK}[a.kind] / 'style.json', style)
 
     if a.kind == 'lesson':
         for d in ('chapters', 'images/inbox'):
@@ -77,7 +87,8 @@ def start(a, root, ch, site, work, content):
         copy(PB / 'chapter.html', site / ch / 'index.html')
         copy(PB / 'scene1.js', site / ch / 'scene1.js')
         copy(PB / 'sets.js', work / 'art' / 'sets.js')
-        copy(PB / 'painted.json', work / 'art' / 'painted.json')
+        if a.painted:   # painted.py's manifest: only a painted look places generated pictures
+            copy(PB / 'painted.json', work / 'art' / 'painted.json')
         copy(PB / 'narration.en.json', narration)
         (site / 'img' / 'puppets' / 'baked.js').write_text('window.BAKED = {};\n')   # until bake_puppets.py runs
     else:
@@ -104,17 +115,22 @@ def start(a, root, ch, site, work, content):
                 f.write_text(s.replace('lang="en"', f'lang="{a.lang}"').replace("language: 'en'", f"language: '{a.lang}'")
                              .replace('audio/en/', f'audio/{a.lang}/'), encoding='utf-8')
 
-    S, A = HERE, site / ch / 'audio' / a.lang
-    print(f'\n{a.kind} book started: {site.relative_to(root)}/ (pilot {ch}); next:')
-    print(f'  uv run --with edge-tts python3 {S}/tts.py {narration.relative_to(root)} {A.relative_to(root)}')
+    q = lambda p: shlex.quote(str(p.relative_to(root) if p.is_relative_to(root) else p))   # a path with spaces still pastes
+    S, A = q(HERE), site / ch / 'audio' / a.lang
+    print(f'\n{a.kind} book started: {q(site)}/ (pilot {ch}), style.json template in {q(style)}; next:')
+    print(f'  uv run --with edge-tts python3 {S}/tts.py {q(narration)} {q(A)}')
     if a.kind == 'picture':
-        print(f'  uv run --with numpy python3 {S}/sfx.py {(site / ch / "audio" / "sfx").relative_to(root)} knock chime room   # the template scene\'s knock, the find stop\'s chime, the room-tone bed')
+        print(f'  uv run --with numpy python3 {S}/sfx.py {q(site / ch / "audio" / "sfx")} knock chime room   # the template scene\'s knock, the find stop\'s chime, the room-tone bed')
         print(f'  then level.py, mouths.py, join.py in tools/{a.book}/audio.sh; bake_sets.py, scenes, bake_puppets.py')
     if a.kind == 'shorts':
-        print(f'  uv run --with numpy python3 {S}/sfx.py {(site / ch / "audio" / "sfx").relative_to(root)} whoosh bang tick thud')
+        print(f'  uv run --with numpy python3 {S}/sfx.py {q(site / ch / "audio" / "sfx")} whoosh bang tick thud')
     if a.maps:
-        print(f'  uv run --with pillow python3 {S}/geo.py {(site / "img").relative_to(root)} --globe {(site / "lib").relative_to(root)}')
+        print(f'  uv run --with pillow python3 {S}/geo.py {q(site / "img")} --globe {q(site / "lib")}')
     print(f'  python3 {S}/serve.py 8765 site   # then open http://localhost:8765/{a.book}/{ch}/')
+    if a.kind in ('picture', 'documentary'):   # the series page's header picture: no step makes it on its own
+        print(f'  later, the series page\'s img/cover.webp (hidden until it exists): uv run --with playwright --with pillow '
+              f'python {S}/shot.py {ch} --out {q(work / "review" / "stills")} BEAT:SECONDS --webp 1400 --name cover '
+              f'--url http://localhost:8765/{a.book}/, copied to {q(site / "img")}/')
 
 
 if __name__ == '__main__':

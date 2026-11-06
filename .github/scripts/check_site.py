@@ -48,7 +48,7 @@ def main():
     inline = 0
     with tempfile.TemporaryDirectory() as tmp:
         for f in pages:
-            html = (ROOT / f).read_text(errors='replace')
+            html = (ROOT / f).read_text(encoding='utf-8', errors='replace')
             for i, (attrs, body) in enumerate(re.findall(r'<script(\s[^>]*)?>(.*?)</script>', html, flags=re.S)):
                 attrs = attrs or ''
                 if 'src=' in attrs or not body.strip() or re.search(r'type=["\']?(?!text/javascript|module)', attrs):

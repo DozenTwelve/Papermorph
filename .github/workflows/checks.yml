@@ -21,6 +21,21 @@ jobs:
       - name: Python scripts (pyflakes errors, no unused-import noise)
         run: pipx run ruff check --select F,E9 --ignore F401 --output-format concise .claude/skills/papermorph/scripts .github engine
 
+  sound:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+      - name: ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Sound tools' self-tests (levelling, music cut, effect recipes)
+        working-directory: .claude/skills/papermorph/scripts
+        run: |
+          python3 level.py --selftest
+          uv run --with numpy python music.py --selftest
+          uv run --with numpy python sfx.py --selftest
+
   site:
     runs-on: ubuntu-latest
     timeout-minutes: 10

@@ -4,8 +4,9 @@
     uv run --with playwright python check.py ch03 [ch04 ...] --url http://localhost:8765/<book>/ [--browsers chromium,firefox]
 
 In each browser every beat is opened (?beat=N) and drawn at its middle and its last frame, so errors from building a
-beat and from its frame functions both show, each with the beat it came from. Prints the page errors (any makes the
-exit status 1), the console errors, and the console warnings apart, those known to be harmless marked: Chromium's "GPU
+beat and from its frame functions both show, each with the beat it came from. Prints the page errors and the files the page
+asked for that the server lacks (missing file (404): URL, named as shot.py names them; any of either makes the exit
+status 1), the console errors, and the console warnings apart, those known to be harmless marked: Chromium's "GPU
 stall due to ReadPixels" (preserveDrawingBuffer, which the export needs) and three.js's shader-info warning in Firefox.
 
 Then, from the first browser, each beat's voice length (pre + its clip) against its real length (P.end). A beat runs to
@@ -16,7 +17,7 @@ its dur as its voice and is labelled so.
 """
 import argparse, asyncio, re, sys
 from playwright.async_api import async_playwright
-from browsers import answers, exe
+from browsers import LOAD_FAILED, answers, exe, firefox, missing
 
 HARMLESS = re.compile(r"GPU stall due to ReadPixels|THREE\.WebGLProgram|WEBGL_debug_renderer_info is deprecated")
 HOLD = .6
@@ -24,7 +25,7 @@ HOLD = .6
 
 async def chapter(pg, cur, url):
     """[(beat id, voice length, real length)]; page errors and console messages land in cur."""
-    cur.update(beat="(load)", errs=[], cons=[])
+    cur.update(beat="(load)", errs=[], cons=[], miss=[])
     await pg.goto(f"{url}?beat=0&t=0"); await pg.wait_for_timeout(500)
     try:
         ids = await pg.evaluate("BEATS.map(b => b.id)")
@@ -59,27 +60,29 @@ async def main(a):
     bad, lengths = 0, {}
     async with async_playwright() as p:
         for name in a.browsers.split(","):
-            b = await (p.firefox.launch(firefox_user_prefs={"media.autoplay.default": 0}) if name == "firefox"
+            b = await (p.firefox.launch(**firefox()) if name == "firefox"
                        else p.chromium.launch(**exe()) if name == "chromium" else p.webkit.launch())
             pg = await b.new_page(viewport={"width": 1600, "height": 960}, reduced_motion="reduce")
             pg.set_default_timeout(120000)   # a loaded machine renders slowly; it is not an error
             cur = {}
             pg.on("pageerror", lambda e: cur["errs"].append((cur["beat"], str(e))))
             pg.on("console", lambda m: m.type in ("error", "warning") and not m.location.get("url", "").endswith("/favicon.ico")
-                  and cur["cons"].append((m.type, cur["beat"], m.text)))
+                  and not m.text.startswith(LOAD_FAILED) and cur["cons"].append((m.type, cur["beat"], m.text)))
+            missing(pg, lambda s: cur["miss"].append((cur["beat"], s)))   # counted as errors, as shot.py does
             for ch in a.chapters:
                 url = f"{a.url}{ch}/"
                 answers(url)
                 rows = await chapter(pg, cur, url)
                 lengths.setdefault(ch, rows)
-                errs = summary(cur["errs"])
+                errs, miss = summary(cur["errs"]), summary(cur["miss"])
                 cerr = summary((bt, t) for k, bt, t in cur["cons"] if k == "error")
                 warn = summary((bt, t) for k, bt, t in cur["cons"] if k == "warning")
-                print(f"== {name} {ch}: {len(errs)} page errors, {len(cerr)} console errors, {len(warn)} console warnings")
+                print(f"== {name} {ch}: {len(errs)} page errors, {len(miss)} missing files, {len(cerr)} console errors, {len(warn)} console warnings")
                 for e in errs: print("  page error   ", e)
+                for e in miss: print("  missing      ", e)
                 for e in cerr: print("  console error", e)
                 for w in warn: print("  warning      ", ("[harmless] " if HARMLESS.search(w) else "") + w)
-                bad += len(errs)
+                bad += len(errs) + len(miss)
             await b.close()
     for ch, rows in lengths.items():
         if not rows: continue

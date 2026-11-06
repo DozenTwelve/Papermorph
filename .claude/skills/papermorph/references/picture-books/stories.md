@@ -44,7 +44,7 @@ Then agree on the models ([core/style.md](../core/style.md#models)) and write `s
 
 `books/<book>/` holds `story.md` (the user's telling, verbatim), `storyboard.md` and `art/` (`sets.js` with the set sketches, generated pictures, `painted.json`, `costs.tsv`). `site/<book>/lib/` holds the paper kit (`paper.js`, `cast.js`, `shared.js` from `assets/templates/picture-book/`) beside the engine, and `img/` the baked sets, props and puppet pieces; each episode `chNN/` has one script per scene and `audio/<lang>/`, `audio/sfx/`, `audio/bgm/`. The book's `index.html` is the series page.
 
-`python3 SKILL/scripts/new_book.py picture <book>` makes it ([core/publish.md](../core/publish.md#start-a-book-folder)): the series page, the kit, `ch01/` with the sample `scene1.js`, `sets.js` and `painted.json` in `books/<book>/art/` (the second only for a painted look), and an empty `img/puppets/baked.js` that stands in until `bake_puppets.py` has run. Then the sound and the pictures, in this order, with the preview server on 8765:
+`python3 SKILL/scripts/new_book.py picture <book>` makes it ([core/publish.md](../core/publish.md#start-a-book-folder)): the series page, the kit, `ch01/` with the sample `scene1.js`, `sets.js` in `books/<book>/art/` (and with `--painted`, for a painted look, `painted.json`, [painting.md](painting.md)'s manifest), and an empty `img/puppets/baked.js` that stands in until `bake_puppets.py` has run. Then the sound and the pictures, in this order, with the preview server on 8765:
 
 ```sh
 BOOK=jokes; A="site/$BOOK/ch01/audio/en"; N="content/$BOOK/ch01/narration.en.json"
