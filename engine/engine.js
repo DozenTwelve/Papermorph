@@ -1145,7 +1145,7 @@ function findWords(things, asks, done, { end = 'q-done', there = 'q-there', hint
   });
   const praise = clip(end, 'the praise (end)'), help = clip(there, 'the give-up line (there)'), chime = new Audio('audio/sfx/chime.mp3');
   const L = mk('g', { class: 'findw' }, stage);   // the hit boxes, over the whole picture
-  let on = false, alive = true, finished = false, k = 0, word = null, lastAct = 0, askedAt = 0, wiggling = null, playing = null;
+  let on = false, alive = true, finished = false, k = 0, word = null, lastAct = 0, askedAt = 0, wiggling = null, playing = null, held = null;
   let misses = 0, blanks = 0, turn = 0, stars = null, enabled = false;
   const now = () => performance.now();
   const finish = () => { if (finished || P.gen !== gen) return; finished = true; done(); };
@@ -1168,7 +1168,7 @@ function findWords(things, asks, done, { end = 'q-done', there = 'q-there', hint
     askLine = talk ? (TIMINGS[a.clipName]?.cues || []).map(c => c[1]).join(' ') : '';
     a.onended = () => { if (SND.word === a) SND.word = null; if (FIND.saying === a.clipName) FIND.saying = null; if (talk) askLine = ''; ok(); };
     SND.word = a;
-    a.play().catch(ok);
+    if (P.playing) a.play().catch(ok); else held = a;   // paused: the line waits for play
   });
   let wordTimer = 0;
   const hideWord = (after = 1500) => { clearTimeout(wordTimer); const w = word; wordTimer = setTimeout(() => w?.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300 }).finished.then(() => w.remove()), after); };
@@ -1287,10 +1287,18 @@ function findWords(things, asks, done, { end = 'q-done', there = 'q-there', hint
     Object.assign(FIND, { saying: null, target: null, found: null, foundAt: -1e9 });
   };
   P.cleanup.push(cleanup);
+  let lastTick = now();
   const tick = () => {
     if (!alive) return;
     if (P.gen !== gen) { cleanup(); return; }   // a seek away, or the beat replayed
     if (P.waiting && !enabled) { enabled = true; enable(); }
+    const t = now(), dt = t - lastTick; lastTick = t;
+    if (!P.playing) {   // paused (the help is open): the hint and give-up times and the line being said wait too
+      lastAct += dt; askedAt += dt; FIND.t0 += dt / 1000; FIND.foundAt += dt / 1000;
+      if (playing && !playing.paused) { playing.pause(); held = playing; }
+      requestAnimationFrame(tick); return;
+    }
+    if (held) { const a = held; held = null; a.play().catch(() => a.onended?.()); }
     if (list[0]?.hit) place();
     if (stars) {
       const b = box(stars.t), cx = b.x + b.w / 2, cy = b.y + b.h / 2, R = Math.max(b.w, b.h) * .38 + 24, a0 = now() / 900;
@@ -1731,7 +1739,10 @@ function start(i, play) {
   if (b.ask) b.ask(() => {
     if (P.gen !== gen || P.done) return;
     evalTo(Infinity);
-    if (i + 1 < BEATS.length) start(i + 1, true);
+    // done() under the help (a stop's time ran out there): the next beat waits, and closing the help plays it
+    const wait = !$('help').hidden;
+    if (wait) helpResume = true;
+    if (i + 1 < BEATS.length) start(i + 1, !wait);
     else { P.done = true; setPlaying(false); filmDone(); }
   });
   setPlaying(play);
