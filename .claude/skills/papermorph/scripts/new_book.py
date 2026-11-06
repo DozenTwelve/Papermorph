@@ -7,6 +7,7 @@
     python3 new_book.py documentary film               # a documentary: film.js kit, series page for the credits
     python3 new_book.py shorts short --maps            # upright shorts, here with the map kit (documentaries take --maps too)
     python3 new_book.py scroll story                   # a scroll page: scroll.js kit and a four-step sample, no engine
+    python3 new_book.py explore italy                  # an explorable map: the explore kit and its sample (no engine, no chapters)
     python3 new_book.py lesson stats --chapter 9 --lang ja --root ~/work
 
 Run it from the folder that holds site/, books/, content/ and tools/ (or pass --root). It refuses a book that
@@ -15,7 +16,9 @@ When a step fails (engine.py without network or a local engine/), the new site/<
 The engine comes from engine.py (the repository's engine/ when at hand, else the latest compatible release).
 It copies and creates files only; the voice, effects and baking steps it prints come next. It also copies the tier's
 style.json template into books/<book>/ (kept if one is there), the file the style conversation fills (core/style.md).
-A picture book's or a documentary's series page shows img/cover.webp, which no step makes on its own: the output
+An explorable map (explore) is one page, site/<book>/index.html, on its own player (lib/explore.js), not the engine: no
+engine.py, no chapter folder; its narration file is content/<book>/narration.<lang>.json, which explore.py fills from
+the page's cards. A picture book's or a documentary's series page shows img/cover.webp, which no step makes on its own: the output
 says how (a shot.py still).
 """
 import argparse, shlex, shutil, subprocess, sys
@@ -23,7 +26,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 T = HERE.parent / 'assets' / 'templates'
-PB, DK, SK, MK, SC = T / 'picture-book', T / 'documentary', T / 'shorts', T / 'maps', T / 'scroll'
+PB, DK, SK, MK, SC, EK = T / 'picture-book', T / 'documentary', T / 'shorts', T / 'maps', T / 'scroll', T / 'explore'
 
 
 def copy(src: Path, dst: Path):
@@ -36,7 +39,7 @@ def copy(src: Path, dst: Path):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('kind', choices=['lesson', 'picture', 'documentary', 'shorts', 'scroll'])
+    ap.add_argument('kind', choices=['lesson', 'picture', 'documentary', 'shorts', 'scroll', 'explore'])
     ap.add_argument('book', help='the book slug, e.g. history')
     ap.add_argument('--chapter', type=int, default=1, help='the pilot chapter number (default 1)')
     ap.add_argument('--lang', default='en', help="the book's language code (default en): it names the narration file, the audio folder, <html lang> and CHAPTER.language; the template's text and voice stay English until translated")
@@ -48,6 +51,8 @@ def main():
     root = Path(a.root).expanduser().resolve()
     ch = f'ch{a.chapter:02d}'
     site, work, content = root / 'site' / a.book, root / 'books' / a.book, root / 'content' / a.book / ch
+    if a.kind == 'explore':   # one page, no chapters
+        content = root / 'content' / a.book
     if site.exists():
         sys.exit(f'{site} exists: resume from its own files, or choose another slug')
     if a.maps and a.kind not in ('documentary', 'shorts'):
@@ -55,7 +60,8 @@ def main():
     if a.painted and a.kind != 'picture':
         sys.exit('--painted is for picture books')
     try:
-        start_scroll(a, root, site, work) if a.kind == 'scroll' else start(a, root, ch, site, work, content)
+        if a.kind == 'scroll': start_scroll(a, root, site, work)
+        else: (explore if a.kind == 'explore' else start)(a, root, ch, site, work, content)
     except BaseException:
         shutil.rmtree(site, ignore_errors=True)   # a half-made site/<book>/ would block the rerun
         raise
@@ -157,6 +163,29 @@ def start_scroll(a, root, site, work):
     print(f'  uv run --with playwright python3 {q(root / "tools" / a.book / "e2e_scroll.py")} http://localhost:8765/{a.book}/ '
           f'--out {q(work / "review" / "scroll")}')
     print(f'  your own map data, over the sample\'s img/geo-lite.js: python3 {S}/geo.py {q(site / "img")} [--regions ...] [--cities ...]')
+
+
+def explore(a, root, ch, site, work, content):
+    """An explorable map: the kit's page, its player and the sample's data, copied whole; it runs before any voice step."""
+    for d in (content, work / 'review', root / 'tools' / a.book):
+        d.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(EK, site, ignore=shutil.ignore_patterns('style.json'))
+    if not (work / 'style.json').exists():
+        copy(EK / 'style.json', work / 'style.json')
+    audio = site / 'audio' / a.lang
+    audio.mkdir(parents=True, exist_ok=True)
+    (audio / 'timings.js').write_text('window.TIMINGS = {};\n')   # until tts.py or eleven.py writes the clips: cards hold a reading time
+    page = site / 'index.html'
+    s = page.read_text(encoding='utf-8')
+    page.write_text(s.replace('lang="en"', f'lang="{a.lang}"').replace('audio/en/', f'audio/{a.lang}/'), encoding='utf-8')
+    q = lambda p: shlex.quote(str(p.relative_to(root) if p.is_relative_to(root) else p))
+    S, url, nar = q(HERE), f'http://localhost:8765/{a.book}/', content / f'narration.{a.lang}.json'
+    print(f'\nexplore page started: {q(site)}/ (the sample, Italy 1859-1861: replace its data), style.json template in {q(work / "style.json")}; next:')
+    print(f'  python3 {S}/serve.py 8765 site   # then open {url}')
+    print(f'  python3 {S}/topo.py {q(site / "data" / "map.topo.json")} --iso ... --bbox ... --keep ... --cone ...   # the book\'s own map')
+    print(f'  uv run --with playwright python {S}/explore.py narration {url} {q(nar)}')
+    print(f'  uv run --with edge-tts python3 {S}/tts.py {q(nar)} {q(audio)}')
+    print(f'  uv run --with playwright python {S}/explore.py check {url}   # then shots and perf (references/explore/explore.md)')
 
 
 if __name__ == '__main__':

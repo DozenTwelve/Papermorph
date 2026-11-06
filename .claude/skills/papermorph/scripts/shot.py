@@ -33,7 +33,7 @@ import argparse, asyncio, io
 import sys
 from pathlib import Path
 from playwright.async_api import async_playwright
-from browsers import IMAGES_READY, LOAD_FAILED, answers, exe, missing
+from browsers import IMAGES_READY, LOAD_FAILED, answers, exe, missing, not_beats
 from PIL import Image, ImageDraw
 
 CLEAN = """#bar, #caption, #ui, #soundNote, #help, #cover, .paused-mark { display: none !important; }
@@ -54,6 +54,8 @@ async def main(a):
         missing(pg, miss.append)   # a missing file is named, and the shots are still taken
         base = f"{a.url}{a.chapter}/index.html?{a.query + '&' if a.query else ''}"
         await pg.goto(base + "beat=0&t=0"); await pg.wait_for_timeout(500)
+        if msg := await not_beats(pg, base):
+            print(msg); await b.close(); return 1
         if errs:
             print("page errors, so no shots:", *errs, *miss, sep="\n  "); await b.close(); return 1
         ids = await pg.evaluate("BEATS.map(b => b.id)")

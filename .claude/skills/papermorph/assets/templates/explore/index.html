@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Italy Made: 1859–1861</title>
+<meta name="description" content="A map of Italy, 1859 to 1861: seven states become one kingdom, and Garibaldi and Cavour move across it.">
+<link rel="stylesheet" href="lib/page.css">
+</head>
+<body>
+<!-- An explorable map (Papermorph's explore kit): lib/explore.js plays it from the data files below; this page holds the
+     controls and cards it fills, by id. The words here are the book's: translate them with <html lang>. -->
+<main id="stage">
+  <svg id="map" role="group" tabindex="-1" aria-label="Map of Italy"></svg>
+  <div id="paper"></div>
+
+  <svg id="north" viewBox="-22 -26 44 52" role="img" aria-label="North" hidden><path d="M0,-12 L5,10 L0,6 L-5,10Z"/><text>N</text></svg>
+
+  <div id="brand">
+    <p id="title">Italy Made <span>1859–1861</span></p>
+  </div>
+  <header id="top">
+    <div id="yearbar">
+      <button id="prev" class="step" aria-label="Previous year" title="Previous year (←)">‹</button>
+      <h1 id="year" aria-live="polite">1859</h1>
+      <button id="next" class="step" aria-label="Next year" title="Next year (→)">›</button>
+    </div>
+    <p id="mapstate"></p>
+    <button id="replay" class="link" hidden>▶ Play <span>1859</span> again</button>
+  </header>
+  <p id="hint">Click a figure or a ringed city to hear its year. → for the next year.</p>
+  <div id="corner">
+    <button id="music" class="link" aria-pressed="true" title="Music on or off">♪<span class="wide"> Music</span></button>
+    <button id="credits-open" class="link">Sources<span class="wide"> and credits</span></button>
+  </div>
+
+  <nav id="people" aria-label="The people"></nav>
+
+  <section id="event" class="card" aria-live="polite" hidden>
+    <h2></h2>
+    <figure><img alt=""><figcaption></figcaption></figure>
+    <p class="text"></p>
+  </section>
+  <p id="move" aria-live="polite" hidden><b></b> <span></span></p>
+  <div id="filmbar" hidden><button id="skip">Skip<span class="wide"> to the people</span> ▸▸</button></div>
+  <audio id="voice" preload="none"></audio>
+  <audio id="bgm" preload="none"></audio>
+
+  <section id="intro" class="card" role="dialog" aria-modal="true" aria-labelledby="intro-h">
+    <h2 id="intro-h"></h2>
+    <p class="sub"></p>
+    <p class="text"></p>
+    <div class="row"><button class="go" id="begin" disabled>▶ Begin in 1859</button></div>
+  </section>
+
+  <section id="person" class="card" role="dialog" aria-modal="true" aria-labelledby="person-h" hidden>
+    <button class="close" aria-label="Close">×</button>
+    <div class="head">
+      <img alt="">
+      <div>
+        <h2 id="person-h"></h2>
+        <p class="where"></p>
+      </div>
+    </div>
+    <p class="text"></p>
+    <div class="row"><button class="play" hidden>▶ Listen</button></div>
+  </section>
+
+  <section id="place" class="card" role="dialog" aria-modal="true" aria-labelledby="place-h" hidden>
+    <button class="close" aria-label="Close">×</button>
+    <h2 id="place-h"></h2>
+    <p class="where"></p>
+    <figure hidden><img alt=""></figure>
+    <p class="text"></p>
+    <div class="row"><button class="play" hidden>▶ Listen</button></div>
+  </section>
+
+  <section id="credits" class="card" role="dialog" aria-modal="true" aria-labelledby="credits-h" hidden>
+    <button class="close" aria-label="Close">×</button>
+    <h2 id="credits-h">Sources and credits</h2>
+    <p><b>The map:</b> today's provinces and coasts from <a href="https://www.naturalearthdata.com/">Natural Earth</a>
+      (public domain); the borders of 1859–1861 are drawn along the nearest modern province, so they are approximate.</p>
+    <p><b>The story:</b> in our own words. <b>Voice:</b> Microsoft Edge text to speech.</p>
+  </section>
+</main>
+
+<script src="audio/en/timings.js"></script>
+<script src="lib/topo.js"></script>
+<script src="lib/states.js"></script>
+<script src="lib/story.js"></script>
+<script src="lib/events.js"></script>
+<script src="lib/sprite.js"></script>
+<script src="lib/explore.js"></script>
+</body>
+</html>

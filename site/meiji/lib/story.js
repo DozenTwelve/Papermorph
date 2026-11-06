@@ -24,8 +24,10 @@ const PLACES = {
   hakodate: ['Hakodate', 140.73, 41.77, 'r'], osaka: ['Osaka', 135.50, 34.69, 'b'], kumamoto: ['Kumamoto', 130.71, 32.80, 'l'],
   hitoyoshi: ['Hitoyoshi', 130.76, 32.21, 'l'], nobeoka: ['Nobeoka', 131.66, 32.58, 'r'],
   // off the map: a marker in the Pacific for anyone gone overseas
-  abroad: ['America', 145.2, 33.6, 'b'],
+  abroad: ['America', 145.2, 33.6, 'b', true],
 };
+// the same spot as Edo, named Tokyo from 1869
+const RENAMED = { edo: [1869, 'tokyo'] };
 
 // where each of the four stands before the first year
 const START = { fukuzawa: 'edo', ito: 'hagi', saigo: 'kagoshima', tsuda: 'edo' };

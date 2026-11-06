@@ -17,7 +17,7 @@ its dur as its voice and is labelled so.
 """
 import argparse, asyncio, re, sys
 from playwright.async_api import async_playwright
-from browsers import LOAD_FAILED, answers, exe, firefox, missing
+from browsers import LOAD_FAILED, answers, exe, firefox, missing, not_beats
 
 HARMLESS = re.compile(r"GPU stall due to ReadPixels|THREE\.WebGLProgram|WEBGL_debug_renderer_info is deprecated")
 HOLD = .6
@@ -27,6 +27,8 @@ async def chapter(pg, cur, url):
     """[(beat id, voice length, real length)]; page errors and console messages land in cur."""
     cur.update(beat="(load)", errs=[], cons=[], miss=[])
     await pg.goto(f"{url}?beat=0&t=0"); await pg.wait_for_timeout(500)
+    if msg := await not_beats(pg, url):
+        cur["errs"].append(("(load)", msg)); return []
     try:
         ids = await pg.evaluate("BEATS.map(b => b.id)")
     except Exception as e:

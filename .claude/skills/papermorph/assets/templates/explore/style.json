@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "tier": "explore",
+  "book": { "title": "Map title", "slug": "italy-made", "language": "en", "readers": "curious adults, no background needed" },
+  "words": [
+    "The user's own words about the subject, the stretch of time, the people and the look, verbatim."
+  ],
+  "angle": "What a reader should see change on the map, and whose path they follow through it",
+  "map": { "data": "topo.py: Natural Earth admin-1 for ITA and its neighbours, dissolved by region", "years": "1859-1861", "states": "five, one per border change" },
+  "look": {
+    "palette": { "sea": "#b9c9cc", "land": "#f1ead9", "ink": "#24211c", "accent": "#b2352a" },
+    "fonts": { "headings and labels": "Georgia bold", "text": "Georgia" },
+    "figures": "paper cut-outs in each person's colour (lib/sprite.js), or painted cut-outs"
+  },
+  "voice": { "engine": "edge", "voice": "en-GB-RyanNeural", "rate": "-4%" },
+  "music": "none, or one public-domain track per era (window.MUSIC)",
+  "models": { "story": "opus", "data": "opus", "checks": "opus" },
+  "approved": []
+}
