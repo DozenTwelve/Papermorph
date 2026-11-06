@@ -65,7 +65,11 @@ The run names what it could not do: a polygon outside its page, a part that took
 much bigger than its ink (an outline that did not close: raise `close` or draw a tighter poly), an unknown page.
 A piece re-lifted with other parts has its old pictures removed, each named.
 """
-import argparse, fcntl, hashlib, json, pathlib, re, sys, tempfile
+import argparse, hashlib, json, pathlib, re, sys, tempfile
+try:
+    import fcntl
+except ImportError:   # Windows: no flock, so runs into one book are not serialised (said when it matters)
+    fcntl = None
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 import cv2
@@ -339,7 +343,11 @@ def main():
     out = pathlib.Path(a.out)
     # several workers may lift into one book at once: one run at a time, so no run's cut.js or sets.js is lost
     key = hashlib.md5(str(out.resolve()).encode()).hexdigest()[:10]
-    lock = open(pathlib.Path(tempfile.gettempdir()) / f'lift-{key}.lock', 'w'); fcntl.flock(lock, fcntl.LOCK_EX)
+    lock = open(pathlib.Path(tempfile.gettempdir()) / f'lift-{key}.lock', 'w')
+    if fcntl:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+    else:
+        print('note: no file lock on this system (fcntl): run one lift.py into this book at a time, or one run loses the other\'s cut.js/sets.js entries')
     book = Book(m, a.pages); res = m.get('res', 2.5); set_res = m.get('setRes', 2)
     want = lambda n: not a.only or n in a.only
     cut_js = out / 'cut' / 'cut.js'
