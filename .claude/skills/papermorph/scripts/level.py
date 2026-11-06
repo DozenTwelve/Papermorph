@@ -8,34 +8,58 @@
 Needs ffmpeg. Each clip is measured (EBU R128 integrated loudness and true peak), raised or lowered to --lufs (default
 -18, a speaking voice for headphones and laptop speakers), and run through a lookahead limiter with its delay
 compensated, so the clip keeps its length and every word stays where timings.js says; the encoded result is measured
-again and redone from the original until its true peak is at most --peak dBTP (default -1). A clip already within
-0.5 dB of the target with its peak at or under --peak is left alone, so a rerun touches only the clips tts.py
-regenerated (join.py's scene*.mp3 included): put it in the episode's audio script after tts.py and before join.py
+again and redone from the original (up to six tries) until its true peak is at most --peak dBTP (default -1) and its
+loudness within 0.3 LU, and the best try is kept. A clip already within 0.5 dB of the target with its peak at or under
+--peak is left alone, and so is one no try brings nearer than it was ("left as is"), so a rerun never makes a clip
+worse, the one after it changes nothing, and a rerun touches only the clips tts.py regenerated (join.py's scene*.mp3 included): put it in the episode's audio script after tts.py and before join.py
 (which joins the levelled clips). A clip shorter than 0.4 s (a tick, a clack, a pop) has no integrated loudness and is
 left as it is with a note (--gain still applies to it). Effects from sfx.py are peak-normalised, not loudness-matched;
 level them with their own --lufs if a set of them sounds uneven. Prints, per clip, the loudness and peak before and
-after. --selftest checks all this on synthetic clips.
+after (a clip that is not an .mp3 is named and left as is), and a WARNING where the peak stays over --peak or the loudness more than 0.5 LU off (the limiter holds a clip
+with sharp peaks back; a second run often gets nearer). --selftest checks all this on synthetic clips.
 """
 import argparse, json, math, os, re, subprocess, sys, tempfile
 from pathlib import Path
+from tts import duration
 
 
 def measure(f):
     """Integrated loudness (LUFS), true peak (dBTP), duration (s) and bit rate of a clip."""
     r = subprocess.run(["ffmpeg", "-hide_banner", "-nostats", "-i", str(f), "-vn", "-af", "loudnorm=print_format=json",
-                        "-f", "null", "-"], capture_output=True, text=True, check=True)
-    m = json.loads(re.search(r"\{[^{}]*\"input_i\"[^{}]*\}", r.stderr).group(0))
-    p = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration,bit_rate", "-of", "json", str(f)],
-                       capture_output=True, text=True, check=True)
-    fmt = json.loads(p.stdout)["format"]
-    return float(m["input_i"]), float(m["input_tp"]), float(fmt["duration"]), int(fmt.get("bit_rate") or 64000)
+                        "-f", "null", "-"], capture_output=True, text=True)
+    m = re.search(r"\{[^{}]*\"input_i\"[^{}]*\}", r.stderr)
+    if r.returncode or not m:
+        sys.exit(f"{f}: ffmpeg could not measure its loudness ({r.stderr.strip().splitlines()[-1] if r.stderr.strip() else 'no output'})")
+    m = json.loads(m.group(0))
+    rate = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=bit_rate", "-of", "csv=p=0", str(f)],
+                          capture_output=True, text=True).stdout.strip()
+    return float(m["input_i"]), float(m["input_tp"]), duration(f), int(rate) if rate.isdigit() else 64000
 
 
-def level(f, out, gain, limit, rate):
-    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(f), "-af",
-                    f"volume={gain:.2f}dB,alimiter=limit={10 ** (limit / 20):.4f}:level=0:latency=1",
-                    "-b:a", f"{max(32, round(rate / 1000))}k", "-f", "mp3", str(out)], check=True)
-    return measure(out)
+def limiter(gain, lim):
+    """The gain and the lookahead limiter (its delay compensated, so no word moves) every levelling uses."""
+    return f"volume={gain:.2f}dB,alimiter=limit={10 ** (lim / 20):.4f}:level=0:latency=1"
+
+
+def level_to(render, lufs, peak, gain):
+    """The one levelling loop (this script, export.py's mix and music.py cut): render(gain dB, limiter ceiling dBFS)
+    encodes the result from the original and returns its measure (LUFS, dBTP, ...). The limiter starts 0.3 dB under
+    `peak` (encoding overshoots it); while the peak is over it goes lower, and while the loudness is more than 0.3 LU off
+    `lufs` (None: the gain stays as given) the gain takes up what the limiter took. Up to six tries; the best one is
+    kept (its peak under `peak` first, then nearest the target), never simply the last, which can be the worst when
+    the limiter and the gain chase each other (a low-rate MP3's peak jumps by a dB or more between ceilings 0.4 dB
+    apart, so no rule walks straight to the target). Returns the kept try's measure plus its gain and ceiling."""
+    lim, tries = peak - .3, []
+    for _ in range(6):
+        m = render(gain, lim)
+        off = 0 if lufs is None else lufs - m[0]
+        tries.append(((m[1] > peak, abs(off)), m, gain, lim))
+        if m[1] <= peak and abs(off) <= .3: break
+        if m[1] > peak: lim -= m[1] - peak + .2
+        if abs(off) > .3: gain += off   # the limiter took some of the loudness
+    best = min(tries, key=lambda x: x[0])
+    if best is not tries[-1]: best = (best[0], render(best[2], best[3]), best[2], best[3])   # the same encode again
+    return (*best[1], best[2], best[3])
 
 
 def one(f, dest, a):
@@ -49,19 +73,23 @@ def one(f, dest, a):
         if dest != f: dest.write_bytes(f.read_bytes())
         return f"{head}  {skip}"
     tmp = dest.with_name(f".{dest.stem}.level.tmp")   # beside dest, then replaced in one step
+    def render(gain, lim):
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(f), "-af", limiter(gain, lim),
+                        "-b:a", f"{max(32, round(rate / 1000))}k", "-f", "mp3", str(tmp)], check=True)
+        return measure(tmp)
     try:
-        lim = a.peak - .3   # MP3 encoding overshoots the limiter; measure and redo from the original until under --peak
-        for _ in range(6):
-            i2, tp2, dur2, _ = level(f, tmp, g, lim, rate)
-            off = a.lufs - i2 if a.gain is None else 0
-            if tp2 <= a.peak and abs(off) <= .3: break
-            if tp2 > a.peak: lim -= tp2 - a.peak + .2
-            if abs(off) > .3: g += off   # the limiter took some of the loudness
+        i2, tp2, dur2, _, g, _ = level_to(render, None if a.gain is not None else a.lufs, a.peak, g)
+        # a clip the tries bring no nearer than it was (a rerun on a clip already as near as its limiter allows) stays
+        # as it is: a rerun never makes a clip worse, and the one after it changes nothing
+        if a.gain is None and (tp2 > a.peak, abs(a.lufs - i2)) >= (tp > a.peak, abs(a.lufs - i)):
+            if dest != f: dest.write_bytes(f.read_bytes())
+            return f"{head}  left as is: levelling came no nearer ({i2:.1f} LUFS, {tp2:.1f} dBTP at best)"
         os.replace(tmp, dest)
     finally:
         tmp.unlink(missing_ok=True)
     warn = f"  WARNING length {dur:.3f} -> {dur2:.3f} s" if abs(dur2 - dur) > .03 else ""
     warn += f"  WARNING peak {tp2:.1f} over {a.peak}" if tp2 > a.peak else ""
+    warn += f"  WARNING {a.lufs - i2:+.1f} LU from {a.lufs:g}: the limiter holds it back" if a.gain is None and abs(a.lufs - i2) > .5 else ""
     return f"{head} -> {i2:6.1f} LUFS {tp2:5.1f} dBTP ({g:+.1f} dB){warn}"
 
 
@@ -87,6 +115,11 @@ def selftest():
         print("\n".join(one(f, f, a) for f in clips))
         assert all(f.read_bytes() == after[f] for f in clips), "a rerun changes nothing"
         assert not list(d.glob(".*")), "no temp files left"
+    # tries whose peaks jump about (a low-rate MP3): the best one is kept and encoded again, not the last
+    got, calls = iter([(-14.2, -1.0), (-14.5, -1.7), (-13.0, -0.4), (-15.5, -0.9), (-16.0, -0.2), (-13.5, -0.6)]), {}
+    render = lambda g, lim: calls[(g, lim)] if (g, lim) in calls else calls.setdefault((g, lim), next(got))
+    i, tp, g, lim = level_to(render, -14, -1.5, .5)
+    assert (i, tp) == (-14.5, -1.7) and calls[(g, lim)] == (i, tp), (i, tp, calls)
     print("level.py selftest passed")
 
 
@@ -104,6 +137,8 @@ def main():
     if a.out:
         a.out.mkdir(parents=True, exist_ok=True)
     for f in a.clips:
+        if f.suffix.lower() != ".mp3":   # the result is encoded as MP3, which a .wav name would hide
+            print(f"{f.name:16s} not an .mp3, left as is: level.py writes MP3; convert it to one first", flush=True); continue
         print(one(f, (a.out / f.name) if a.out else f, a), flush=True)
 
 

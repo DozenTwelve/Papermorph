@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Export a chapter (a lesson or a picture-book episode) as an MP4 video with an .srt caption file, for video sites.
+"""Export a chapter (a lesson, a picture-book episode, a documentary or a short) as an MP4 video with an .srt caption file, for video sites.
 
     uv run --with playwright --with numpy export.py ch12 --url http://localhost:8765/<book>/ --out OUT
-    ... --fps 30 --height 1080 --link https://example.org/<book>/ch12/
+    ... --fps 30 --height 1080 --link https://example.org/<book>/ch12/   # a lesson: its address on the end card
     ... --lufs -14 (the sound's loudness; default -16, off: as mixed) --to scene1 (stop after that beat)
 
 The engine draws every frame as a pure function of the beat time, so frames are rendered by seeking, not by
@@ -10,12 +10,13 @@ recording playback: the video is exact and the same on every run. The sound is m
 each beat's clip from its `pre` on, and in a film (a picture book or a documentary) the sfx() effects (cut at the end
 of their scene, as a scene change stops them; a bed, { loop: true }, laid again and again to its `to` or the beat's end) and the BGM tracks with their crossfades, ducking and MUSIC_OFF. Question beats (quick
 checks and practice) are left out, and then the video ends on a card saying they are in the interactive lesson
-(--link adds its address); in a film with interactive moments (CHAPTER.film, e.g. the reader fires a rifle) they stay in,
+(--link adds its address; such a lesson plays no music() on the page, so none in the video either); in a film with interactive moments (CHAPTER.film, e.g. the reader fires a rifle) they stay in,
 each holding its picture for its `hold` seconds (1.5 by default; the scene's breathing and blinking go on and its beds
 play, the music up at 70 %, as the page plays it while it waits) before the next beat plays as if the reader had acted. A beat with `video: false` in its fourth slot is left
 out, and `video: S` ends it S seconds into its clock, sound and captions cut there, with no wait: a game that only
 works on the page (a listen-and-find stop, findWords) stays out of the video. With --link and no question beats left
-out, the end card shows the title and the link only.
+out (a picture book or a film, which otherwise ends on its own last scene), it adds a 4 s card with the title and
+the link only: leave --link off a film.
 
 Loudness: the mix is levelled to --lufs integrated (default -16, a level video sites and phones play without turning
 it up much; YouTube plays louder ones at -14) with its true peak under -1.5 dBTP, by a gain and a limiter as level.py
@@ -27,7 +28,9 @@ page that declares its own SFX, BGM, sfx(), music() or MUSIC_OFF (an older book'
 engine: the run names each such global and says that sound is not in the video.
 Odd sizes (an upright --height 720 is 405 wide) are cut to even ones, as H.264 needs. The video is written to
 OUT/chNN.tmp.mp4 and renamed when done, so a failed run leaves an earlier OUT/chNN.mp4 alone. Captions are not burned
-in: upload OUT/chNN.srt with the video. Needs ffmpeg; serve the site over HTTP first.
+in: upload OUT/chNN.srt with the video. Needs ffmpeg; serve the site over HTTP first (a wrong port or book path stops
+the run with a plain message). A page load, script or screenshot that takes over --timeout seconds (default 120; a busy
+machine draws slowly) stops the run with a message naming the pass, beat and frame it was on, and exit status 1.
 
 An upright film (a short) goes out with its source and AI-illustration tags (the page's ?tags query), since a video
 leaves the page that credits them; --no-tags leaves them out. A landscape chapter shows them only with --query tags.
@@ -40,8 +43,8 @@ VideoToolbox), else libx264; the run prints which.
 import argparse, asyncio, functools, json, os, shutil, subprocess, sys, tempfile, wave
 import numpy as np
 from pathlib import Path
-from playwright.async_api import async_playwright
-from browsers import exe
+from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeout
+from browsers import answers, exe
 import level as lv
 
 END_SECONDS = 4
@@ -84,8 +87,10 @@ def encoder():
 @functools.lru_cache(maxsize=None)
 def decode(src):
     """Any audio file or URL as float32 stereo samples at RATE."""
-    raw = subprocess.run(['ffmpeg', '-v', 'error', '-i', src, '-f', 'f32le', '-ac', '2', '-ar', str(RATE), '-'],
-                         capture_output=True, check=True).stdout
+    r = subprocess.run(['ffmpeg', '-v', 'error', '-i', src, '-f', 'f32le', '-ac', '2', '-ar', str(RATE), '-'], capture_output=True)
+    if r.returncode:   # a beat not voiced yet, or a moved effect: say which file
+        sys.exit(f'{src}: ffmpeg could not read it ({r.stderr.decode(errors="replace").strip().splitlines()[-1] if r.stderr.strip() else "no output"})')
+    raw = r.stdout
     return np.frombuffer(raw, np.float32).reshape(-1, 2)
 
 
@@ -117,6 +122,7 @@ CLASH_JS = """(() => {
 
 
 QUERY = ''   # extra page query (--query), e.g. 'tags&'
+STEP = 'opening the chapter'   # what the run is doing, named when a step times out
 
 
 async def open_beat(pg, base, i):
@@ -126,14 +132,15 @@ async def open_beat(pg, base, i):
 
 
 async def main(a):
-    global QUERY
+    global QUERY, STEP
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
+    base = f'{a.url}{a.chapter}/index.html'
+    answers(base)   # a wrong port or book path stops here with a plain message, not a page error
     async with async_playwright() as p:
         kw = exe(); kw['args'] = kw.get('args', []) + ['--enable-gpu']   # headless Chromium draws in software unless asked
         b = await p.chromium.launch(**kw)
-        base = f'{a.url}{a.chapter}/index.html'
         # The stage is 1600 x 900, or 900 x 1600 for a book with <html data-stage="portrait">.
-        probe = await b.new_page()
+        probe = await b.new_page(); probe.set_default_timeout(a.timeout * 1000)
         await probe.goto(base + f'?{QUERY}beat=0&t=0')
         sw, sh = await probe.evaluate('[SW, SH]')
         await probe.close()
@@ -142,6 +149,7 @@ async def main(a):
         scale = (a.height or 1080 * sh / min(sw, sh)) / sh
         # The page fits the stage plus its control strip at scale 1, rendered at the requested height.
         pg = await b.new_page(viewport={'width': sw + 40, 'height': sh + 100}, device_scale_factor=scale)
+        pg.set_default_timeout(a.timeout * 1000)
         errs = []
         pg.on('pageerror', lambda e: errs.append(str(e)))
         await pg.goto(base + f'?{QUERY}beat=0&t=0'); await pg.wait_for_timeout(500)
@@ -174,6 +182,8 @@ async def main(a):
                       'waiting picture, then plays on; give it video: false, or video: S to keep its lead-in line', flush=True)
         info['sfx'] = []
         asks = not info['film'] and any(x['ask'] for x in info['beats'])   # a lesson's questions, left out: the end card says where they are
+        if asks and info['bgm']:   # the engine plays no music in a lesson with questions, so neither does the video
+            print('a lesson with questions: its music() is not played (as on the page)'); info['bgm'] = []
         box = await pg.locator('#stage').bounding_box()
         clip = {k: box[k] for k in ('x', 'y', 'width', 'height')}
         audio_dir = Path(tempfile.mkdtemp(prefix='export-'))
@@ -182,6 +192,7 @@ async def main(a):
         end_s = END_SECONDS if asks or a.link else 0   # a picture book ends on its own last scene
         lengths, starts, counts, music_off, cues, offset, waits, silent = [], [], [], [], [], 0.0, {}, set()
         for i, bid in beats:
+            STEP = f'pass 1 (the sound), beat {bid}'
             await open_beat(pg, base, i)
             end, T = await pg.evaluate('[P.end, TIMINGS[BEATS[P.i].id]]')
             if T.get('silent'): silent.add(bid)   # { dur } in the beat's fourth slot: no clip, its sound is silence
@@ -240,27 +251,29 @@ async def main(a):
                 duck += max(-1 / fps, min(1 / fps, want - duck))
                 if current: pos = sum(beat_len.get(b, 0) for b in m['beats'][:m['beats'].index(bid)]) + t
                 else: pos += 1 / fps
-                gain[f], at[f] = v * m['gain'] * duck, round(pos * RATE) % len(song)
-            step = RATE / fps
+                # the song's sample for the frame's first track sample: while the song runs on with the film, the
+                # frames' pieces of it then join sample to sample, at any --fps
+                gain[f], at[f] = v * m['gain'] * duck, (round((pos - f / fps) * RATE) + round(f * RATE / fps)) % len(song)
             for f in np.nonzero(gain)[0]:
-                i = round(f * step); seg = np.take(song, np.arange(at[f], at[f] + round(step)), axis=0, mode='wrap')
-                put(track, i / RATE, seg, gain[f])
+                # frame f covers track samples [round(f*RATE/fps), round((f+1)*RATE/fps)): at 24, 48 or 120 fps a frame is
+                # not a whole number of samples, and a piece of round(RATE/fps) left a 1-sample gap or overlap (a click)
+                i0, i1 = round(f * RATE / fps), round((f + 1) * RATE / fps)
+                put(track, i0 / RATE, np.take(song, np.arange(at[f], at[f] + i1 - i0), axis=0, mode='wrap'), gain[f])
         peak = float(np.abs(track).max())
         if peak > 1: track *= .98 / peak   # a mix that would clip, turned down as a whole
         wav = mix = audio_dir / 'mix.wav'
         with wave.open(str(mix), 'wb') as w:
             w.setnchannels(2); w.setsampwidth(2); w.setframerate(RATE)
             w.writeframes((np.clip(track, -1, 1) * 32767).astype('<i2').tobytes())
+        i0, tp0 = lv.measure(mix)[:2] if a.lufs is not None else (None, None)
+        if i0 is not None and not np.isfinite(i0):   # nothing voiced yet: no loudness to level to
+            print('the mix is silent (no clip, effect or music sounds): not levelled', flush=True); a.lufs = None
         if a.lufs is not None:   # levelled as level.py levels a clip: a gain, a limiter, measured and redone
-            wav, (i0, tp0) = audio_dir / 'track.wav', lv.measure(mix)[:2]
-            g, lim = a.lufs - i0, PEAK - .3
-            for _ in range(5):
-                subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', str(mix), '-af',
-                                f'volume={g:.2f}dB,alimiter=limit={10 ** (lim / 20):.4f}:level=0:latency=1', '-c:a', 'pcm_s16le', str(wav)], check=True)
-                i1, tp1 = lv.measure(wav)[:2]
-                if tp1 <= PEAK and abs(a.lufs - i1) <= .3: break
-                if tp1 > PEAK: lim -= tp1 - PEAK + .2
-                if abs(a.lufs - i1) > .3: g += a.lufs - i1   # the limiter took some of the loudness
+            wav = audio_dir / 'track.wav'
+            def render(g, lim):
+                subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', str(mix), '-af', lv.limiter(g, lim), '-c:a', 'pcm_s16le', str(wav)], check=True)
+                return lv.measure(wav)[:2]
+            i1, tp1, g, lim = lv.level_to(render, a.lufs, PEAK, a.lufs - i0)
             print(f'loudness {i0:.1f} LUFS, {tp0:.1f} dBTP as the page mixes it; levelled to {i1:.1f} LUFS, {tp1:.1f} dBTP '
                   f'({g:+.1f} dB, limiter at {lim:.1f} dBFS; --lufs {a.lufs:g})'
                   + ('' if abs(a.lufs - i1) <= .5 else f': WARNING {a.lufs - i1:+.1f} LU from the target, the limiter holds it back'), flush=True)
@@ -283,11 +296,14 @@ async def main(a):
         for _ in range(a.jobs - 1):
             more.append(await p.chromium.launch(**kw))
             w = await more[-1].new_page(viewport={'width': sw + 40, 'height': sh + 100}, device_scale_factor=scale)
+            w.set_default_timeout(a.timeout * 1000)
             w.on('pageerror', lambda e: errs.append(str(e)))
             pages.append(w)
         opened, last = {}, {}
 
         async def shoot(w, i, f):
+            global STEP
+            STEP = f"pass 2 (the frames), beat {info['beats'][i]['id']} frame {f}"
             if opened.get(w) != i:
                 await open_beat(w, base, i); opened[w], last[w] = i, -1
             # evalTo only runs forward and a tween takes its start value when first reached, so overlapping tweens
@@ -310,6 +326,7 @@ async def main(a):
                 while done < len(beats) and frames >= sum(counts[:done + 1]):
                     print(f'{beats[done][1]}: {counts[done]} frames', flush=True); done += 1
             if end_s:
+                STEP = 'the end card'
                 await pg.evaluate(END_CARD, [a.link or '', asks])
                 end = await pg.screenshot(clip=clip, type='jpeg', quality=92)
                 for _ in range(end_s * a.fps):
@@ -353,7 +370,13 @@ if __name__ == '__main__':
                     help="integrated loudness of the video's sound (default -16; off: as the page mixes it)")
     ap.add_argument('--to', metavar='BEAT', help='stop after this beat (its id): a first part of the film, e.g. one scene to check')
     ap.add_argument('--no-tags', action='store_true', help="an upright film without its source and AI tags (shown by default)")
+    ap.add_argument('--timeout', type=float, default=120, metavar='S',
+                    help='seconds a page load, script or screenshot may take before the run stops (default 120)')
     args = ap.parse_args()
     QUERY = args.query + '&' if args.query else ''
     args.url = args.url.rstrip('/') + '/'
-    asyncio.run(main(args))
+    try:
+        asyncio.run(main(args))
+    except PlaywrightTimeout as e:
+        sys.exit(f'stopped: {STEP} took over {args.timeout:g} s ({str(e).splitlines()[0]}). A busy machine is slow to draw: '
+                 f'rerun with --timeout {args.timeout * 2:g} or fewer --jobs (now {args.jobs}); a page that hangs at the same beat every time has an error of its own')

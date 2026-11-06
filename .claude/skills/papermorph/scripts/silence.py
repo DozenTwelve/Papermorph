@@ -1,5 +1,6 @@
 """Where speech stops and pauses in a narration clip, from ffmpeg's silencedetect; shared by join.py and mouths.py."""
 import re, subprocess
+from tts import duration   # a clip ffprobe cannot read stops the run, not a length of 0 (the mouth shut at 0 s)
 
 
 def _detect(f, d):
@@ -13,8 +14,7 @@ def speech_end(f):
     Only a silence that never ends, or ends at the file's end (just inside the mp3's priming padding), is trailing;
     an internal silence means speech resumes after it. A silence in the first 0.2 s is the lead-in, not an end."""
     starts, ends = _detect(f, .15)
-    dur = float(subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', str(f)],
-                               capture_output=True, text=True).stdout or 0)
+    dur = duration(f)
     return starts[-1] if starts and (len(ends) < len(starts) or ends[-1] > dur - .2) and starts[-1] > .2 else dur
 
 
