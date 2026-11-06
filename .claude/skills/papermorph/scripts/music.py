@@ -41,6 +41,7 @@ track runs under every beat, whether it was cut for this film's length: it says 
 import argparse, asyncio, json, math, pathlib, re, statistics, subprocess, sys, tempfile
 import level as lv
 from browsers import answers, exe
+from tts import duration
 
 XF, TAIL, DUCK, OFF_HZ = .15, 2.0, .3, 20
 EVEN = "dynaudnorm=f=400:g=21:p=0.6:m=8,acompressor=threshold=-24dB:ratio=2.5:attack=40:release=400:makeup=2"
@@ -93,7 +94,7 @@ def silences(src, db, d, ss=0.0, t=None):
 def sound_end(src):
     """Where the recording's trailing silence (under -50 dB) starts, or its end."""
     s = silences(src, -50, .5)
-    dur = lv.measure(src)[2]
+    dur = duration(src)
     return s[-1][0] if s and (s[-1][1] is None or s[-1][1] > dur - .1) else dur
 
 
@@ -243,7 +244,7 @@ def gaps(a):
         print(f"ending: {L - last:.2f} s after the last word, {m:6.1f} LUFS momentary median ({m - med:+5.1f})"
               + ("  <- quiet ending: the track decays before the end (music.py cut picks its last note by loudness; or --end)" if m <= med - 8 else ""))
     if not a.bed and len(bgm) == 1 and len(bgm[0][2]) == len(beats):   # the page's one track under every beat: was it cut for this length?
-        dur = lv.measure(bgm[0][0])[2]
+        dur = duration(bgm[0][0])
         if dur > L / 2 and abs(dur - TAIL - L) > .15:   # ponytail: a track under half the film is a loop, not a cut
             print(f"the track is {dur:.2f} s, cut for a {dur - TAIL:.2f} s film; this one is {L:.2f} s: recut it (music.py cut)")
     return rows, med

@@ -195,10 +195,15 @@ def caption_cues(clean, words):
 
 
 def duration(mp3):
+    """An audio file's (or URL's) length in seconds, the one ffprobe reading every script uses; a file ffprobe cannot
+    read stops the run with its name rather than passing on a length of 0."""
     r = subprocess.run(
         ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(mp3)],
-        capture_output=True, text=True, check=True)
-    return round(float(r.stdout), 3)
+        capture_output=True, text=True)
+    try:
+        return round(float(r.stdout), 3)
+    except ValueError:
+        raise SystemExit(f"{mp3}: ffprobe read no duration ({r.stderr.strip()[:300] or r.stdout.strip() or 'no output'})") from None
 
 
 def write_atomic(path, text):

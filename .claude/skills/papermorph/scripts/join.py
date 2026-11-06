@@ -24,6 +24,7 @@ GAP = .35
 LAG = .12   # Edge's word times run ~0.12–0.25 s ahead of the sound: captions (and mouths.py's cues) start this much later
 d = pathlib.Path(sys.argv[1]); T = json.loads((d / 'timings.js').read_text(encoding='utf-8').split('=', 1)[1].rstrip().rstrip(';'))
 from silence import speech_end, pauses   # a caption ends at the pause after its words
+from tts import duration
 args, words = sys.argv[2:], None
 if '--words' in args:
     k = args.index('--words'); words = pathlib.Path(args[k + 1]); del args[k:k + 2]
@@ -80,7 +81,7 @@ for arg in args:
             cues.append([round(shift(b, t) + at + (WB.get(b) or {}).get('lag', LAG), 3), c, round(shift(b, stop - 1e-3) + at + .3, 3)] + [1] * bool(T[b].get('forced')))
         marks.update({f'{b}.{k}': round(shift(b, v) + at, 3) for k, v in T[b]['marks'].items()})
         at += T[b]['dur'] + sum(sec for _, sec in holes[b]) + GAP
-    dur = float(subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', str(d / f'{shot}.mp3')], capture_output=True, text=True).stdout)
+    dur = duration(d / f'{shot}.mp3')
     H.update(holes)
     out[shot] = {'dur': round(dur, 3), 'marks': marks, 'cues': cues, 'parts': parts}
 # a clip with holes gets its mouth cues moved the same way (and shut at each hole), after mouths.js in the page

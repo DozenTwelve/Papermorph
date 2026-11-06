@@ -18,17 +18,20 @@ after. --selftest checks all this on synthetic clips.
 """
 import argparse, json, math, os, re, subprocess, sys, tempfile
 from pathlib import Path
+from tts import duration
 
 
 def measure(f):
     """Integrated loudness (LUFS), true peak (dBTP), duration (s) and bit rate of a clip."""
     r = subprocess.run(["ffmpeg", "-hide_banner", "-nostats", "-i", str(f), "-vn", "-af", "loudnorm=print_format=json",
-                        "-f", "null", "-"], capture_output=True, text=True, check=True)
-    m = json.loads(re.search(r"\{[^{}]*\"input_i\"[^{}]*\}", r.stderr).group(0))
-    p = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration,bit_rate", "-of", "json", str(f)],
-                       capture_output=True, text=True, check=True)
-    fmt = json.loads(p.stdout)["format"]
-    return float(m["input_i"]), float(m["input_tp"]), float(fmt["duration"]), int(fmt.get("bit_rate") or 64000)
+                        "-f", "null", "-"], capture_output=True, text=True)
+    m = re.search(r"\{[^{}]*\"input_i\"[^{}]*\}", r.stderr)
+    if r.returncode or not m:
+        sys.exit(f"{f}: ffmpeg could not measure its loudness ({r.stderr.strip().splitlines()[-1] if r.stderr.strip() else 'no output'})")
+    m = json.loads(m.group(0))
+    rate = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=bit_rate", "-of", "csv=p=0", str(f)],
+                          capture_output=True, text=True).stdout.strip()
+    return float(m["input_i"]), float(m["input_tp"]), duration(f), int(rate) if rate.isdigit() else 64000
 
 
 def level(f, out, gain, limit, rate):
