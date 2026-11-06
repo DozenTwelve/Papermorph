@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Export a chapter (a lesson or a picture-book episode) as an MP4 video with an .srt caption file, for video sites.
+"""Export a chapter (a lesson, a picture-book episode, a documentary or a short) as an MP4 video with an .srt caption file, for video sites.
 
     uv run --with playwright --with numpy export.py ch12 --url http://localhost:8765/<book>/ --out OUT
-    ... --fps 30 --height 1080 --link https://example.org/<book>/ch12/
+    ... --fps 30 --height 1080 --link https://example.org/<book>/ch12/   # a lesson: its address on the end card
     ... --lufs -14 (the sound's loudness; default -16, off: as mixed) --to scene1 (stop after that beat)
 
 The engine draws every frame as a pure function of the beat time, so frames are rendered by seeking, not by
@@ -15,7 +15,8 @@ each holding its picture for its `hold` seconds (1.5 by default; the scene's bre
 play, the music up at 70 %, as the page plays it while it waits) before the next beat plays as if the reader had acted. A beat with `video: false` in its fourth slot is left
 out, and `video: S` ends it S seconds into its clock, sound and captions cut there, with no wait: a game that only
 works on the page (a listen-and-find stop, findWords) stays out of the video. With --link and no question beats left
-out, the end card shows the title and the link only.
+out (a picture book or a film, which otherwise ends on its own last scene), it adds a 4 s card with the title and
+the link only: leave --link off a film.
 
 Loudness: the mix is levelled to --lufs integrated (default -16, a level video sites and phones play without turning
 it up much; YouTube plays louder ones at -14) with its true peak under -1.5 dBTP, by a gain and a limiter as level.py
