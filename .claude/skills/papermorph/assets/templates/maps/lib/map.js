@@ -22,7 +22,9 @@
                                         [lon, lat] (mapCircle(ll, km) is one); at a time (shown over .35 s) or (t) -> 0..1;
                                         style { fill: 'hatch' | colour | null, line: MAP_COL.ink | null, width: 3 }
      detail: 'Wuhan' | true             rivers, lakes and built-up areas of a place cut by geo.py --detail, faded in as
-                                        the view closes in (H .22 to .06) and drawn under the marks
+                                        the view closes in (H .22 to .06); the built-up areas under lit countries and
+                                        regions, rivers and lakes over them, all under the marks
+     urban: false                       leave out the built-up areas (today's: Schiphol in 1637), keep rivers and lakes
      dots: [[lon, lat, t0, r = 7, colour]]   dots popping in at t0, r px, in MAP_COL.hot or colour: a colour or
                                         (t) => colour (greyed later: t => mix(MAP_COL.hot, MAP_COL.dim, ramp01(t, 4, 4.5)))
      routes: [[a, b, t0, dur = .8, style]]   an arc drawn from [lon, lat] a to b; a dot lands at b when it arrives.
@@ -158,7 +160,7 @@ const { paperMap, mapBand, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCi
   const backEase = typeof back === 'function' ? back : out;
 
   function paperMap(p, D, view, { lit, litFill, region, regions = false, hatch, areas = [], detail, dots = [], routes = [],
-    cities = [], labelSize = 36, safe = SAFE, on = shotOn(p), bg = MAP_COL.night, px = 1 } = {}) {
+    cities = [], urban = true, labelSize = 36, safe = SAFE, on = shotOn(p), bg = MAP_COL.night, px = 1 } = {}) {
     const fillOf = typeof litFill === 'function' ? litFill : () => litFill || MAP_COL.hot;
     const geo = data();
     const g = G(p, {}), fo = mk('foreignObject', { x: 0, y: 0, width: SW, height: SH }, g);
@@ -273,6 +275,9 @@ const { paperMap, mapBand, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCi
       const all = shape('all', keys.flatMap(c => L[c]), v);
       ctx.fillStyle = land; ctx.fill(all);
       ctx.strokeStyle = MAP_COL.line; ctx.lineWidth = 1; ctx.lineJoin = 'bevel'; ctx.stroke(all);   // round joins: most of a 10 ms stroke
+      if (vals.det && urban) for (const [j, d] of details.entries()) {   // under the lit countries, never blotching them
+        ctx.globalAlpha = .8 * vals.det; ctx.fillStyle = MAP_COL.urban; ctx.fill(shape('du' + j, d.urban, v)); ctx.globalAlpha = 1;
+      }
       const fillA = (P, a, f) => { if (a > 0) { ctx.globalAlpha = a * .85; ctx.fillStyle = f; ctx.fill(P); ctx.globalAlpha = 1; } };
       keys.forEach((c, i) => vals.lit[i] && fillA(shape('c' + c, L[c], v), vals.lit[i], fillOf(c)));
       regionSets.forEach((R, i) => vals.reg[i] && fillA(shape('r' + R.c + R.n, R.rs, v), vals.reg[i], fillOf(R.n)));
@@ -281,7 +286,6 @@ const { paperMap, mapBand, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCi
         ctx.setLineDash([4, 3]); ctx.lineWidth = .9; ctx.strokeStyle = MAP_COL.line; ctx.stroke(P); ctx.setLineDash([]);
       }
       if (vals.det) for (const [j, d] of details.entries()) {
-        ctx.globalAlpha = .8 * vals.det; ctx.fillStyle = MAP_COL.urban; ctx.fill(shape('du' + j, d.urban, v));
         ctx.globalAlpha = vals.det; ctx.fillStyle = sea; const lk = shape('dl' + j, d.lakes, v); ctx.fill(lk);
         ctx.strokeStyle = MAP_COL.river; ctx.lineJoin = 'round'; ctx.lineWidth = 1; ctx.stroke(lk);
         ctx.lineWidth = Math.min(5, k / 4000); ctx.lineCap = 'round'; ctx.stroke(shape('dr' + j, d.rivers, v, true));
