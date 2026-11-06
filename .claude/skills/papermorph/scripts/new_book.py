@@ -3,6 +3,7 @@
 
     python3 new_book.py lesson history                 # a textbook: cover and contents, ch01 from the lesson template
     python3 new_book.py picture jokes                  # a picture book: series page, paper kit, scene1, sets.js
+    python3 new_book.py picture fox --painted          # with painted.json, painted.py's manifest, for a painted look
     python3 new_book.py documentary film               # a documentary: film.js kit, series page for the credits
     python3 new_book.py shorts short --maps            # upright shorts, here with the map kit (documentaries take --maps too)
     python3 new_book.py lesson stats --chapter 9 --lang ja --root ~/work
@@ -39,6 +40,7 @@ def main():
     ap.add_argument('--chapter', type=int, default=1, help='the pilot chapter number (default 1)')
     ap.add_argument('--lang', default='en', help="the book's language code (default en): it names the narration file, the audio folder, <html lang> and CHAPTER.language; the template's text and voice stay English until translated")
     ap.add_argument('--maps', action='store_true', help='add the map kit (documentaries and shorts)')
+    ap.add_argument('--painted', action='store_true', help="a picture book with a painted look: add painted.json, painted.py's manifest")
     ap.add_argument('--root', default='.', help='folder holding site/, books/, content/, tools/ (default .)')
     a = ap.parse_args()
 
@@ -49,6 +51,8 @@ def main():
         sys.exit(f'{site} exists: resume from its own files, or choose another slug')
     if a.maps and a.kind not in ('documentary', 'shorts'):
         sys.exit('--maps is for documentaries and shorts')
+    if a.painted and a.kind != 'picture':
+        sys.exit('--painted is for picture books')
     try:
         start(a, root, ch, site, work, content)
     except BaseException:
@@ -83,7 +87,8 @@ def start(a, root, ch, site, work, content):
         copy(PB / 'chapter.html', site / ch / 'index.html')
         copy(PB / 'scene1.js', site / ch / 'scene1.js')
         copy(PB / 'sets.js', work / 'art' / 'sets.js')
-        copy(PB / 'painted.json', work / 'art' / 'painted.json')
+        if a.painted:   # painted.py's manifest: only a painted look places generated pictures
+            copy(PB / 'painted.json', work / 'art' / 'painted.json')
         copy(PB / 'narration.en.json', narration)
         (site / 'img' / 'puppets' / 'baked.js').write_text('window.BAKED = {};\n')   # until bake_puppets.py runs
     else:

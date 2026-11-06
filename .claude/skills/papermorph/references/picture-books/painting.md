@@ -15,7 +15,7 @@ Puppets stand at fixed places, counters must hide the right legs, and cuts must 
 - **Leave signs blank.** Image models garble text, Chinese and Japanese worst. Paint the banner, the shop sign, the blackboard empty and let `painted.py` write the words in a real font.
 - **Paint wider than the frame.** Shakes and zooms see past the edge; `painted.py` pads full frames by mirroring their edges (`pad`, 60 px at the sides and 34 at top and bottom), enough for a shake but not a pan: a camera that travels further zooms in enough to keep its view inside the picture (a follow shot needed about 1.4×), and when something near an edge (a post box) shows twice in a close-up, `"edge": "stretch"` on that layer pads it with its own outermost pixels instead.
 
-Everything goes through `painted.py` (manifest `books/<book>/art/painted.json`): sets resized to the 1600×900 frame, blurred copies for close-ups, cut-outs placed, words written, props written to `img/props/`. Stand the puppets in a frame and look before going on.
+Everything goes through `painted.py` (manifest `books/<book>/art/painted.json`, which `new_book.py picture <book> --painted` starts from the kit's sample): sets resized to the 1600×900 frame, blurred copies for close-ups, cut-outs placed, words written, props written to `img/props/`. Stand the puppets in a frame and look before going on.
 
 ## Cost
 
