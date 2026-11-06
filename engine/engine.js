@@ -342,6 +342,10 @@ function mk(tag, attrs = {}, parent) {
 }
 // Every animated element keeps a small state object; render() writes it to the DOM.
 // Keys: x y s r o (transform/opacity), d (0..1 stroke drawn), a_<attr> numeric attr, c_<attr> hex colour.
+const warned = new Set();
+const warnOnce = (key, msg) => { if (!warned.has(key)) { warned.add(key); console.warn(msg); } };
+// a tween key that is none of these does nothing: name it
+const isKey = k => 'xysrod'.includes(k) && k.length === 1 || /^[ac]_./.test(k);
 function st(e) { return e._st || (e._st = { x: 0, y: 0, s: 1, r: 0, o: 1 }); }
 function put(e, o) { Object.assign(st(e), o); render(e); return e; }
 // Unchanged transform/opacity are not rewritten: per-frame updates of still elements cost repaints (notably in Firefox).
@@ -349,7 +353,11 @@ function render(e) {
   const s = e._st, tf = s.x || s.y || s.s !== 1 || s.r ? `translate(${s.x},${s.y}) rotate(${s.r}) scale(${s.s})` : null;
   // _tf starts unset: an element never moved keeps a transform attribute it was made with
   if (tf !== (e._tf ?? null)) { if (tf) e.setAttribute('transform', tf); else e.removeAttribute('transform'); e._tf = tf; }
-  if (s.o !== e._o) { e.setAttribute('opacity', s.o); e._o = s.o; }
+  if (s.o !== e._o) {
+    // the first render writes o over an opacity the element was made with (mk or path attributes): name it once
+    if (e._o === undefined && e.hasAttribute('opacity') && +e.getAttribute('opacity') !== s.o) warnOnce('opacity', `an element made with opacity ${e.getAttribute('opacity')} shows at o = ${s.o}: the state's o replaces the attribute, so give it as o (put(e, { o }), path's fourth argument)`);
+    e.setAttribute('opacity', s.o); e._o = s.o;
+  }
   if (s.d !== undefined) {
     e.setAttribute('stroke-dashoffset', 1 - s.d);
     e.style.visibility = s.d < .002 ? 'hidden' : '';
@@ -652,7 +660,10 @@ const secs = v => typeof v === 'number' && Number.isFinite(v);
 function when(call, t0, dur) {
   if (!secs(t0) || !secs(dur) || dur < 0) throw new Error(`${typeof call === 'function' ? call() : call} in ${beatName()}: start ${t0}, length ${dur}; both must be numbers of seconds (show, hide, draw, pop, pulse and stream take their start the same way)`);
 }
-function tw(e, to, t0, dur = .6, ease = io) { when(() => `tw(e, ${JSON.stringify(to)}, t0, dur)`, t0, dur); TW.push({ e, to, t0, dur, ease }); }
+function badKeys(call, to) {
+  for (const k in to) if (!isKey(k)) warnOnce('key ' + k, `${call} in ${beatName()}: "${k}" is not a state key (x y s r o d, a_<attr>, c_<attr>), so it does nothing${k === 'opacity' ? ': use o' : ''}`);
+}
+function tw(e, to, t0, dur = .6, ease = io) { when(() => `tw(e, ${JSON.stringify(to)}, t0, dur)`, t0, dur); badKeys('tw', to); TW.push({ e, to, t0, dur, ease }); }
 function prog(pf, t0, dur, ease = io) { when('prog(f, t0, dur)', t0, dur); TW.push({ pf, t0, dur, ease }); }
 const show = (e, t0, dur = .5, ease) => tw(e, { o: 1 }, t0, dur, ease);
 const hide = (e, t0, dur = .5, ease) => tw(e, { o: 0 }, t0, dur, ease);
@@ -815,7 +826,7 @@ function header(p, str, t0, x = 1000, y = 170) {
 
 /* ---------- question effects: run on wall time, independent of the lesson clock ---------- */
 let FX = [], clock = 0;
-function fx(e, to, delay = 0, dur = .5, ease = io) { when(() => `fx(e, ${JSON.stringify(to)}, delay, dur)`, delay, dur); FX.push({ e, to, t0: clock + delay, dur, ease }); }
+function fx(e, to, delay = 0, dur = .5, ease = io) { when(() => `fx(e, ${JSON.stringify(to)}, delay, dur)`, delay, dur); badKeys('fx', to); FX.push({ e, to, t0: clock + delay, dur, ease }); }
 function fxp(pf, delay, dur, ease = io) { when('fxp(f, delay, dur)', delay, dur ?? 0); FX.push({ pf, t0: clock + delay, dur, ease }); }
 function finishFx() { FX.sort((a, b) => a.t0 - b.t0); evalTo(Infinity, FX); FX = []; }
 const pulseFx = (e, k = 1.8) => { if (!e) return; fx(e, { s: k }, 0, .22, out); fx(e, { s: 1 }, .22, .45); };
