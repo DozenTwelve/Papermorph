@@ -1,5 +1,5 @@
 /* paper.js — a paper-cutout stop-motion kit on top of the engine.
-   Sets are baked bitmaps (img/sets/, from the Skill's scripts/bake_sets.py or painted.py); puppets are live SVG pieces with the
+   Sets are baked bitmaps (img/sets/, from SKILL/scripts/bake_sets.py or painted.py); puppets are live SVG pieces with the
    same paper filter. Everything moves on a 12 fps clock (on twos), each frame with its own small hand jitter, so
    pause, seek and ?beat=N&t=S show exactly the frame a viewer would see. */
 'use strict';
@@ -41,27 +41,44 @@ const ease = x => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);
 const span = (t, a, b) => ease((t - a) / (b - a));
 
 // draw(q, f) runs once per 12 fps frame with q the frame's time; a pure function of time, like every beat clock.
-function stopClock(D, draw) { let last = null; clockRun(t => { const f = Math.floor(t * FPS + 1e-6); if (f === last) return; last = f; draw(f / FPS, f); }, D); }
+// It runs to the beat's end, through the engine's hold after D (HOLD s), so a scene poses sensibly for q up to D + HOLD.
+function stopClock(D, draw) { let last = null; clockRun(t => { const f = Math.floor(t * FPS + 1e-6); if (f === last) return; last = f; draw(f / FPS, f); }, D, { tail: true }); }
 
 /* ---------- camera over a baked set ----------
    A view {x, y, z} is the world point at the frame's centre and the zoom. Moves: to(view, t0, dur) eases each given
    key from where the camera is at t0 (zooms keep one world point still, as the engine's camera does); cut(view, t0).
    Layers slide by their parallax factor k against the base view. soft(t0, on) swaps the far layers (k < 1) for their
-   blurred copies: shallow focus on close shots (on = 'all' blurs the puppets' plane too, for a set seen behind a close-up). Puppets go in cam.stage, on the k = 1 plane in front of `after`. */
+   blurred copies: shallow focus on close shots (on = 'all' blurs the puppets' plane too, for a set seen behind a close-up).
+   Puppets go in cam.stage, a k = 1 plane drawn just after the layer named `after`. Without one it is the set's layer
+   marked stage: true in sets.js (bake_sets.py and painted.py keep the mark), else the first layer with k 1, so a set
+   that always needs the same place for its puppets says so once (a river's tree in front of the bank, a house whose
+   front hides whoever is inside). stages: [layer names] adds a plane after each of those layers too, cam.stageAt[name],
+   for things that stand further back: ducks on a pond in front of its water, a grandmother at the window of a house
+   layer drawn over cam.stage. cam.onPlane(name, sx, sy) is where to put a thing on the plane of layer `name` so that
+   it shows at screen point (sx, sy) of the 1600 × 900 frame the last apply() drew: the sun or a far bird on
+   stages: ['clouds'], kept at one spot of the sky while the camera pans (pose it after cam.apply each frame). */
 function paperCam(p, setName, v0 = {}, { after = null, stages = [] } = {}) {
   const root = mk('g', {}, p), view = mk('g', {}, root), world = mk('g', {}, view), layers = [], ops = [], softs = [], shakes = [];
-  let stage = null; const stageAt = {};
-  for (const L of SETS[setName]) {
+  let stage = null; const stageAt = {}, set = SETS[setName];
+  if (!set) throw new Error(`paperCam: no set '${setName}' in img/sets/sets.js (${Object.keys(SETS).join(', ')})`);
+  after ??= (set.find(L => L.stage) || set.find(L => L.k === 1) || set[set.length - 1]).name;
+  for (const n of [after, ...stages]) if (!set.some(L => L.name === n)) console.warn(`paperCam: set '${setName}' has no layer '${n}' (${set.map(L => L.name).join(', ')})`);
+  // A set whose first layer names its paper colour (lift.py's sets: a book's page, narrower than the frame) lies on an
+  // endless sheet of it, so a pan, a zoom out or a shake never sees past the picture.
+  if (set[0]?.paper) mk('rect', { x: -6000, y: -6000, width: 13600, height: 12900, fill: set[0].paper }, world);
+  for (const L of set) {
     const g = mk('g', {}, world), [x, y, width, height] = L.box, img = { x, y, width, height, preserveAspectRatio: 'none' };
     const sharp = mk('image', { href: `../img/sets/${setName}/${L.name}.webp`, ...img }, g);
     const blur = L.soft ? mk('image', { href: `../img/sets/${setName}/${L.name}-soft.webp`, ...img, visibility: 'hidden' }, g) : null;
     layers.push({ g, k: L.k, sharp, blur, name: L.name });
     if (stages.includes(L.name)) layers.push({ g: stageAt[L.name] = mk('g', {}, world), k: L.k });
-    if (L.name === (after || 'house') || (!after && L.k === 1 && !stage)) layers.push({ g: stage = mk('g', {}, world), k: 1 });
+    if (L.name === after) layers.push({ g: stage = mk('g', {}, world), k: 1 });
   }
-  mk('rect', { width: 1600, height: 900, fill: 'url(#vignette)' }, root);
+  if (!stage) layers.push({ g: stage = mk('g', {}, world), k: 1 });   // an unknown `after` (warned above): in front of everything
+  mk('rect', { width: 1600, height: 900, fill: 'url(#vignette)', 'pointer-events': 'none' }, root);   // a tap goes through to the picture
   // Parallax is measured from the set's own framing (base), wherever the beat's first view is.
   const base = { x: 800, y: 450, z: 1 }, start = { ...base, ...v0 };
+  let shown = start;   // the view the last apply() drew
   function at(t, n = ops.length) {
     const s = { ...start };
     for (let i = 0; i < n && ops[i].t0 <= t; i++) {
@@ -77,17 +94,26 @@ function paperCam(p, setName, v0 = {}, { after = null, stages = [] } = {}) {
     to(v, t0, dur = 1) { ops.push({ v, t0, dur }); ops.sort((a, b) => a.t0 - b.t0); ops.forEach(o => delete o.from); return cam; },
     cut: (v, t0) => cam.to(v, t0, 0),
     show(name, on) { for (const L of layers) if (L.name === name) vis(L.g, on); return cam; },   // swap a set layer (weather)
+    layer: name => layers.find(L => L.name === name)?.g,   // a set layer's group, to move, clip or fade one layer (a pond draining)
+    // move(name, q => transform) adds a transform to a set layer each frame, after its parallax: grass swaying from its
+    // foot (q => `translate(0 860) skewX(${1.5 * Math.sin(q * 1.9)}) translate(0 -860)`), clouds drifting (q => `translate(${q * 6} 0)`).
+    move(name, fn) { const L = layers.filter(L => L.name === name); if (!L.length) console.warn(`paperCam.move: set '${setName}' has no layer '${name}'`); L.forEach(L => L.fx = fn); return cam; },
+    onPlane(name, sx, sy) {
+      const L = layers.find(L => L.name === name), s = shown;
+      if (!L) { console.warn(`paperCam.onPlane: set '${setName}' has no layer '${name}'`); return { x: sx, y: sy }; }
+      return { x: (sx - 800) / s.z + s.x - (1 - L.k) * (s.x - base.x), y: (sy - 450) / s.z + s.y - (1 - L.k) * (s.y - base.y) };
+    },
     soft(t0, on) { softs.push([t0, on]); softs.sort((a, b) => a[0] - b[0]); return cam; },
     shake(t0, dur, amp = 10) { shakes.push([t0, dur, amp]); return cam; },
-    apply(q, f) {
-      const s = at(q);
+    apply(q, f, camQ = q) {   // camQ: the time the camera itself is posed at (still.py --hold-cam holds it; layers' move() keep q)
+      const s = shown = at(camQ);
       let sx = 0, sy = 0;
-      for (const [t0, d, amp] of shakes) if (q >= t0 && q < t0 + d) { sx += jit(f, 91) * amp; sy += jit(f, 92) * amp; }
+      for (const [t0, d, amp] of shakes) if (camQ >= t0 && camQ < t0 + d) { sx += jit(f, 91) * amp; sy += jit(f, 92) * amp; }
       view.setAttribute('transform', `translate(${800 + sx} ${450 + sy}) scale(${s.z}) translate(${-s.x} ${-s.y})`);
       const dx = s.x - base.x, dy = s.y - base.y;
-      let soft = false; for (const [t0, on] of softs) if (q >= t0) soft = on;
+      let soft = false; for (const [t0, on] of softs) if (camQ >= t0) soft = on;
       for (const L of layers) {
-        L.g.setAttribute('transform', `translate(${((1 - L.k) * dx).toFixed(1)} ${((1 - L.k) * dy).toFixed(1)})`);
+        L.g.setAttribute('transform', `translate(${((1 - L.k) * dx).toFixed(1)} ${((1 - L.k) * dy).toFixed(1)})${L.fx ? ' ' + L.fx(Math.floor(q * FPS / 2) * 2 / FPS) : ''}`);
         if (L.blur) { const b = soft === 'all' || (soft && L.k < 1); vis(L.blur, b); vis(L.sharp, !b); }   // never 'visible': it would show through a hidden camera
       }
       FLICKER.style.opacity = (.02 + .02 * jit(f, 30)).toFixed(3);   // the exposure flicker of real frames
@@ -113,8 +139,8 @@ const mouthAt = (clip, t) => { let m = 'X'; if (t < 0) return m; for (const [at,
 
 /* ---------- puppets ----------
    A puppet is paper pieces on brass pins, built at its hip (0, 0) facing right, feet near y 166. pose(o, f) sets the
-   whole state for frame f; any key left out keeps its rest value. turn (1 … -1) squashes the flat figure to turn it
-   round: through the thin middle (|turn| < .55) the front head shows, past it the figure is the mirrored profile. */
+   whole state for frame f; any key left out keeps its rest value. A profile puppet that turns round squashes its
+   side figure, shows its whole front figure through the thin middle of the turn and comes out mirrored (puppets.md). */
 const pinAt = (x, y) => `<circle cx="${x}" cy="${y}" r="3.4" fill="#caa24c" stroke="#7d5f22" stroke-width="1.2"/>`;
 const tf = (el, s) => { if (el._t !== s) el.setAttribute('transform', el._t = s); };
 const vis = (el, on) => { const v = on ? 'inherit' : 'hidden'; if (el._v !== v) el.setAttribute('visibility', el._v = v); };
@@ -132,7 +158,7 @@ const blinking = (q, times) => times.some(b => q >= b && q < b + 2 / FPS);
    piece is drawn once to a bitmap (at RES px per unit) and replaced by that image. Parts that change (eyes, mouths,
    brows, pieces with data-p) stay live; a filtered live part is baked on its own. Identical pieces share one bitmap. */
 const RES = 4, bakedReady = new Map(), bakedJobs = new Map(), PAPER_EXTRA = [];   // extra defs (patterns) other files add
-// Pieces baked ahead of time (the Skill's scripts/bake_puppets.py): img/puppets/<hash>.webp, listed in
+// Pieces baked ahead of time (SKILL/scripts/bake_puppets.py): img/puppets/<hash>.webp, listed in
 // window.BAKED. A piece missing from it (just edited) is baked here in the browser; ?bake ignores the list.
 const BAKED = new URLSearchParams(location.search).has('bake') ? {} : (window.BAKED || {});
 const keyHash = k => { let h = 2166136261; for (let i = 0; i < k.length; i++) h = Math.imul(h ^ k.charCodeAt(i), 16777619); return (h >>> 0).toString(16).padStart(8, '0'); };
@@ -208,4 +234,25 @@ function iris(p, t0, dur, cx, cy) {
     const r = Math.max(0, 1900 * (1 - ease(Math.min(1, u))));
     e.setAttribute('d', `M-50,-50 H1650 V950 H-50 Z M${cx - r},${cy} a${r},${r} 0 1 0 ${2 * r},0 a${r},${r} 0 1 0 ${-2 * r},0 Z`);
   };
+}
+// A scene change: a tree trunk (or any dark foreground, redraw it) passing close in front of the camera, right to left: 'in' ends with the frame covered (a scene
+// ends), 'out' starts covered and uncovers it (the next scene begins).
+function trunkWipe(p, t0, dur, mode = 'in') {
+  const g = mk('g', {}, p);
+  g.innerHTML = `<g filter="url(#paper)"><path d="M0,-40 C40,200 -30,600 20,940 L2100,940 L2100,-40 Z" fill="#5a3b24"/>
+    ${[160, 420, 700, 980, 1300, 1600].map((x, i) => `<path d="M${x},-40 C${x + 30},${200 + i * 40} ${x - 40},${560 - i * 30} ${x + 10},940" stroke="#46301d" stroke-width="${10 + (i % 3) * 5}" fill="none"/>`).join('')}</g>`;
+  bakeAll(g);
+  const [a, b] = mode === 'in' ? [1650, -200] : [-200, -2150];
+  return q => { const u = Math.min(1, Math.max(0, (q - t0) / dur)); vis(g, mode === 'in' ? u > 0 : u < 1); tf(g, `translate(${(a + (b - a) * ease(u)).toFixed(0)},0)`); };
+}
+// The title card at the end: a paper label that drops in on its pin, as wide as its words. Give the words in the book's
+// language; { x, y } is the card's centre (default the frame's centre), size the letters' height in px (a title too long
+// for the frame gets smaller letters). Put it where it covers nothing the last shot needs (a score, a face).
+function endCard(p, t0, words = 'The End', { x = 800, y = 450, size = 78 } = {}) {
+  const c = document.createElement('canvas').getContext('2d'), wide = s => (c.font = `italic ${s}px Georgia, serif`, c.measureText(words).width + 2.2 * s);
+  if (wide(size) > 1500) size = Math.floor(size * 1500 / wide(size));
+  const w = Math.max(480, Math.ceil(wide(size))), h = Math.round(size * 3.08), L = Math.round(x - w / 2), T = Math.round(y - h / 2);
+  const g = prop(p, `<g filter="url(#paper)"><rect x="${L}" y="${T}" width="${w}" height="${h}" rx="14" fill="#f3e9d2"/><rect x="${L + 20}" y="${T + 20}" width="${w - 40}" height="${h - 40}" rx="8" fill="none" stroke="#c8322f" stroke-width="5"/></g>
+    <text x="${x}" y="${Math.round(y + size * .36)}" text-anchor="middle" font-family="Georgia, serif" font-size="${size}" font-style="italic" fill="#5a2a1e">${words}</text>${pinAt(x, T + 12)}`);
+  return q => { const u = (q - t0) * FPS; vis(g, u >= 0); const d = [-60, -20, 8, -3, 0][Math.min(4, Math.max(0, Math.floor(u / 2)))]; tf(g, `translate(0,${d})`); };
 }
