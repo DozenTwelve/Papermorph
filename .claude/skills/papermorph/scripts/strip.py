@@ -25,7 +25,7 @@ a row. Firefox by default: it is the slowest common browser and the one to judge
 import argparse, asyncio, re, sys, tempfile
 from pathlib import Path
 from playwright.async_api import async_playwright
-from browsers import answers, exe, firefox
+from browsers import IMAGES_READY, answers, exe, firefox
 from PIL import Image, ImageDraw
 
 def sheet(ims, path, cols=4):
@@ -81,7 +81,7 @@ async def main(a):
             at["t"] = t
             await pg.evaluate(f"P.t = {t}; evalTo({t})")
             if cam["off"]: await pg.evaluate(CAMERA_OFF)
-            await pg.wait_for_timeout(60)
+            await pg.evaluate(IMAGES_READY); await pg.wait_for_timeout(60)
             r = await pg.evaluate("(() => { const r = document.getElementById('stage').getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; })()")
             await pg.screenshot(path=str(tmp), clip={"x": r[0], "y": r[1], "width": r[2], "height": r[3]})
             im = Image.open(tmp).convert("RGB")

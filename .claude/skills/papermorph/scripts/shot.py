@@ -22,8 +22,10 @@ the sheets first). --out is required: give each review its own folder (books/<bo
   --webp W    also write each shot as a W-wide WebP of the stage's shape (implies --clean): a series-page still or a cover
               (stories.md: 1400 wide); --name NAME names it OUT/NAME.webp (one moment only)
 
+A file the page asks for and the server lacks is named (missing file (404): URL) and makes the exit status 1; the
+shots are still taken. Any other page error at load stops the run before the shots.
 --query adds to the page's query (tags: the source and AI tags an upright film's export shows). Uses ?beat=N&t=0,
-then sets the beat clock to the moment, as playback would reach it. The page runs with reduced
+then sets the beat clock to the moment, as playback would reach it, and waits for the stage's pictures to decode. The page runs with reduced
 motion, which stops the CSS-only motion that runs on the wall clock (page cross-fades, cards sliding in, the mascot):
 a shot is the same picture however busy the machine is, so several runs at once (parallel scene workers) are safe.
 """
@@ -31,7 +33,7 @@ import argparse, asyncio, io
 import sys
 from pathlib import Path
 from playwright.async_api import async_playwright
-from browsers import answers, exe
+from browsers import IMAGES_READY, LOAD_FAILED, answers, exe, missing
 from PIL import Image, ImageDraw
 
 CLEAN = """#bar, #caption, #ui, #soundNote, #help, #cover, .paused-mark { display: none !important; }
@@ -44,14 +46,16 @@ async def main(a):
     async with async_playwright() as p:
         b = await p.chromium.launch(**exe())
         pg = await b.new_page(viewport={"width": 1600, "height": 960}, reduced_motion="reduce")
-        errs = []
+        errs, miss = [], []
         pg.on("pageerror", lambda e: errs.append(str(e)))
         # a desktop browser ($CHROME) also asks the server for /favicon.ico, which is not the book's
-        pg.on("console", lambda m: m.type == "error" and not m.location.get("url", "").endswith("/favicon.ico") and errs.append(m.text))
+        pg.on("console", lambda m: m.type == "error" and not m.location.get("url", "").endswith("/favicon.ico")
+              and not m.text.startswith(LOAD_FAILED) and errs.append(m.text))
+        missing(pg, miss.append)   # a missing file is named, and the shots are still taken
         base = f"{a.url}{a.chapter}/index.html?{a.query + '&' if a.query else ''}"
         await pg.goto(base + "beat=0&t=0"); await pg.wait_for_timeout(500)
         if errs:
-            print("page errors:", errs); await b.close(); return 1
+            print("page errors, so no shots:", *errs, *miss, sep="\n  "); await b.close(); return 1
         ids = await pg.evaluate("BEATS.map(b => b.id)")
         SW, SH = await pg.evaluate("[SW, SH]")   # 1600 x 900, or 900 x 1600 upright
         await pg.set_viewport_size({"width": SW + 40, "height": SH + 100})   # the page then draws the stage at scale 1
@@ -64,7 +68,7 @@ async def main(a):
             sec = float(t) if sec is None else sec
             await pg.evaluate(f"P.t = {sec}; evalTo({sec})")
             if clean: await pg.add_style_tag(content=CLEAN)
-            await pg.wait_for_timeout(450)
+            await pg.evaluate(IMAGES_READY); await pg.wait_for_timeout(450)
             clip = await pg.evaluate("(() => { const r = document.getElementById('stage').getBoundingClientRect(); return {x: r.x, y: r.y, width: r.width, height: r.height}; })()") if clean else None
             im = Image.open(io.BytesIO(await pg.screenshot(clip=clip))).convert("RGB")
             return (im.resize((SW, SH), Image.LANCZOS) if clean else im), sec   # stage pixels = stage coordinates
@@ -79,6 +83,7 @@ async def main(a):
         if a.name and not a.webp: sys.exit("--name names the --webp still: give --webp too")
         if a.name and len(specs) != 1: sys.exit("--name names one moment: give exactly one BEAT:TIME")
         for s in specs:
+            if ":" not in s: sys.exit(f"{s!r}: a moment is BEAT:TIME, e.g. {s}:open or {s}:end")
             i, t = s.rsplit(":", 1); i = beat(i)
             im, _ = await grab(i, t, clean)
             f = a.out / f"{a.chapter}_b{i:02d}_{t}.png"
@@ -117,6 +122,7 @@ async def main(a):
             for j, f in enumerate(fs[k:k + 4]):
                 sheet.paste(Image.open(f).resize((w, h)), ((j % 2) * w, (j // 2) * h))
             sheet.save(a.out / f"{a.chapter}_sheet_{t}_{k // 4}.png")
+    errs += miss
     print("errors:", sorted(set(errs))[:8] or "none", "| shots in", a.out)
     return 1 if errs else 0
 
