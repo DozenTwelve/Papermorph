@@ -15,7 +15,7 @@ worse, the one after it changes nothing, and a rerun touches only the clips tts.
 (which joins the levelled clips). A clip shorter than 0.4 s (a tick, a clack, a pop) has no integrated loudness and is
 left as it is with a note (--gain still applies to it). Effects from sfx.py are peak-normalised, not loudness-matched;
 level them with their own --lufs if a set of them sounds uneven. Prints, per clip, the loudness and peak before and
-after, and a WARNING where the peak stays over --peak or the loudness more than 0.5 LU off (the limiter holds a clip
+after (a clip that is not an .mp3 is named and left as is), and a WARNING where the peak stays over --peak or the loudness more than 0.5 LU off (the limiter holds a clip
 with sharp peaks back; a second run often gets nearer). --selftest checks all this on synthetic clips.
 """
 import argparse, json, math, os, re, subprocess, sys, tempfile
@@ -137,6 +137,8 @@ def main():
     if a.out:
         a.out.mkdir(parents=True, exist_ok=True)
     for f in a.clips:
+        if f.suffix.lower() != ".mp3":   # the result is encoded as MP3, which a .wav name would hide
+            print(f"{f.name:16s} not an .mp3, left as is: level.py writes MP3; convert it to one first", flush=True); continue
         print(one(f, (a.out / f.name) if a.out else f, a), flush=True)
 
 
