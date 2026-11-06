@@ -25,7 +25,7 @@ Ask as [core/style.md](../core/style.md#asking) says, skipping whatever the tell
 2. **The look** is the user's choice; there is no house style. Paper puppets moved in code ([puppets.md](puppets.md)) have worked best so far, so offer them first, in two ways, and welcome any other idea:
    - *Painted world, paper actors* (recommended when an image budget is fine): an image model paints the sets and everything that stays still; the puppets and anything that moves stay in code (Joke Collection, under a dollar of pictures per episode). Ask for a budget ceiling and keep to it ([painting.md](painting.md)).
    - *Paper, all in code*: sets and props drawn as SVG paper too. No image cost, plainer, very consistent (Little Red Riding Hood).
-   - *The book's own pictures*, when the user brings an illustrated story book whose pictures may be reused (public domain, like *Millions of Cats*, 1928): its pages become the sets and its drawn figures the puppets, lifted off the scans ([puppets.md](puppets.md#lifted-from-the-books-own-pictures)). An image model only fills what the book cannot give, such as the drawing hidden behind a lifted figure.
+   - *The book's own pictures*, when the user brings an illustrated story book whose pictures may be reused (public domain, like Wanda Gág's *Millions of Cats*, 1928): its pages become the sets and its drawn figures the puppets, lifted off the scans ([puppets.md](puppets.md#lifted-from-the-books-own-pictures)). An image model only fills what the book cannot give, such as the drawing hidden behind a lifted figure.
 3. **Language and voices**: the narration language, one voice per character ([core/sound.md](../core/sound.md#voices)).
 4. **A series or one film.** A series shares cast, sets and the series page; each episode is a chapter (`chNN`).
 
@@ -33,12 +33,29 @@ Then agree on the models ([core/style.md](../core/style.md#models)) and write `s
 
 ## The order of work
 
+For a look drawn in code or painted:
+
 1. Intake, then the script and storyboard, shown to the user.
 2. Start the folder.
 3. Sound: voices, mouth shapes, one joined clip per scene with its word times, sound effects ([Sound](#sound)).
 4. Sets: sketch them in `sets.js`, bake them, and for a painted look paint them from the baked sketches ([painting.md](painting.md)).
 5. The cast and the scenes, one script per scene ([puppets.md](puppets.md)); bake the puppet pieces.
 6. Review rounds, then the user's viewing, then registering the episode.
+
+### From a scanned book's own pictures
+
+When the sets and puppets are the book's own drawings ([puppets.md](puppets.md#lifted-from-the-books-own-pictures)), steps 4 and 5 change, and two come before them: the pages become pictures, and the text comes off the pages. *Millions of Cats* (`millions-of-cats/`) was made this way.
+
+1. **Intake.** Check that the pictures may be reused where the film will be published (public domain there, or the rights holder's leave). A classic picture book read nearly whole runs longer than the usual two to four minutes: give the user the length its text makes ([core/sound.md](../core/sound.md#length-from-words)) and ask whether to trim, keeping every refrain whole.
+2. **The text.** A scan usually has no text layer, or a garbled one (`split_pages.py … --text-only` writes an empty or unreadable `text.md`). Transcribe the story by eye from the page images into `books/<book>/story.md`, page by page (`p05  Once upon a time …`), noting what each page shows: the script and the storyboard are written against that list.
+3. **The pages as pictures.** `uv run --with pymupdf SKILL/scripts/split_pages.py books/<book>/book.pdf --pages 1-N --dpi D --out books/<book>/pages` writes `pages/preview/page_NNNN.png` (PDF page order from 1). `lift.py` reads a manifest's `"page": "page_0005"` as `page_0005.png` in its `--pages` folder (`books/<book>/pages/preview`), so the names need no renaming. Resolution decides how sharp a close-up is: `lift.py` fits a page's height to the 900 px frame and writes 2.5 pixels per frame pixel (`res`), so a page image under 2250 px tall is enlarged and goes soft. Choose `D` so the height clears that: 2250 ÷ the page's height in inches, about 300 dpi for an eight-inch page (*Millions of Cats*' scans were 2516 px tall).
+4. **The script and storyboard**, as for any picture book ([The script comes first](#the-script-comes-first)), with two more columns: the page each shot uses, and for every figure on screen what it does (speaks, walks, turns its head, swishes its tail, smokes). That list is what the lifting is for: a figure lifted whole can only breathe and rock.
+5. **Start the folder** with `new_book.py picture <book>` (no `--painted`), and add to the chapter page, after `paper.js`: `<script src="../img/cut/cut.js"></script>` and `<script src="../lib/cut.js"></script>`. `lift.py` writes `img/sets/sets.js` itself, so the sketch file `books/<book>/art/sets.js` and `bake_sets.py` are not used.
+6. **Sound**, as in step 3 above.
+7. **Lift** the sets, the figures with the parts the storyboard's actions need, and the lettering, one manifest per group of pages in `books/<book>/art/lift/` ([puppets.md](puppets.md#lifted-from-the-books-own-pictures)). Look at the run's `--sheet` and at each set's `page.webp` after every run.
+8. **Holes** a lifted figure leaves in a drawn background are inpainted by the set's `fill`, which is a stand-in. Where one shows on screen, have the image model paint it from the page (paid, [painting.md](painting.md#a-hole-in-a-scanned-page)), or keep the figure near its spot and frame the hole out.
+9. **The scenes**, one script per scene, placing each figure back where it was drawn (`pagePos`), then the motion audit ([puppets.md](puppets.md#seeing-your-own-work)): every figure on screen acts the whole time it is on screen. The lifted pieces are bitmaps already, so `bake_puppets.py` has nothing to bake for them.
+10. Review rounds, the user's viewing, registering the episode, as in step 6 above.
 
 ## The book folder
 
