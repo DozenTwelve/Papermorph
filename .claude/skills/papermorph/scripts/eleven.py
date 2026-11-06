@@ -78,6 +78,8 @@ tempo = a.tempo or spec.get("tempo", 1)
 if not .5 <= tempo <= 2: sys.exit(f"--tempo {tempo}: give 0.5 to 2")
 model = a.model or spec.get("model", "elevenlabs/eleven-v4")
 lang = pathlib.Path(a.narration).stem.split(".")[-1]
+if not re.fullmatch(r"[a-z]{2,3}", lang):   # Whisper is told the language: "narration" would stop it with a ValueError
+    sys.exit(f"{a.narration}: name the file narration.<language>.json (narration.en.json, narration.zh.json); the transcript's language comes from it")
 out = pathlib.Path(a.out); out.mkdir(parents=True, exist_ok=True)
 cache = pathlib.Path(a.narration).parent / ".eleven"; cache.mkdir(exist_ok=True)
 only = set(filter(None, a.only.split(",")))
