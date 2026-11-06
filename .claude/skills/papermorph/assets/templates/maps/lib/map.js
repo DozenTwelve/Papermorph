@@ -43,6 +43,9 @@
    frame, and its projected shapes are kept while the view holds. Labels, dots and routes may start at any time.
    Move a map through its view(t), never by scaling a group above it: Gecko re-rasters a canvas under a scaled parent.
 
+   mapBand(p, str, x, y, t0, { size: 64, sub, anchor, ground: COL.board, fill: COL.chalk, t1 }) -> g   a word or two
+                                        on a band of the film's ground (its palette's board and chalk), readable over
+                                        the map: titles, a number, a name; `sub` a smaller line under it
    globeShot(p, D, view, dotsOn, arcsOn, { on })   the night globe here (one WebGL canvas for the whole film, moved into
                                         each beat); marks from Globe.clearMarks() / Globe.dot(lon, lat) / Globe.arc(a, b);
                                         dotsOn(i, t), arcsOn(i, t) -> 0..1; the view may add gain (city lights, 1.6) and
@@ -58,7 +61,7 @@
    MAP_COL                              land, sea, ink, line, night, hot (marks; book.css --red), mark, dim, urban, river:
                                         each from book.css --map-<name> when set (--map-land: #ece3cd) */
 'use strict';
-const { paperMap, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCircle, CITIES, MAP_COL } = (() => {
+const { paperMap, mapBand, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCircle, CITIES, MAP_COL } = (() => {
   const DEG = Math.PI / 180, R0 = Math.min(SW, SH) / 2;   // the Earth's radius at H = 1, in stage px
   const X = document.createElement('canvas').getContext('2d');
   const css = (k, d) => { X.fillStyle = d; X.fillStyle = bookSetting(k) || d; return X.fillStyle; };
@@ -331,6 +334,20 @@ const { paperMap, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCircle, CIT
     return { g, view: vf, xy: (ll, t) => mapXY(ll, vf(t)) };
   }
 
+  // words on a band of the film's ground, readable over the paper map (cream words vanish on its land); centred on
+  // (x, y) or anchored 'start' / 'end', a smaller second line `sub` under it; faded in at t0, out at t1 when given
+  function mapBand(p, str, x, y, t0, { size = 64, sub, anchor = 'middle', ground = COL.board, fill = COL.chalk, o = .94, t1 } = {}) {
+    str = str.toUpperCase();
+    const w = Math.max(measure(str, size) * 1.02, sub ? measure(sub, size * .42) : 0) + size * .9, g = G(p, { x, y, o: 0 });
+    const x0 = anchor === 'middle' ? -w / 2 : anchor === 'end' ? -w : 0;
+    mk('rect', { x: x0, y: -size * 1.02, width: w, height: size * 1.32 + (sub ? size * .62 : 0), fill: ground, opacity: o }, g);
+    T(g, str, { x: x0 + w / 2, y: 0, size, fill, font: FONT, weight: 600, anchor: 'middle' }).setAttribute('letter-spacing', '.02em');
+    if (sub) T(g, sub, { x: x0 + w / 2, y: size * .66, size: size * .42, fill: COL.dim, font: FONT, anchor: 'middle' });
+    g._w = w; tw(g, { o: 1 }, t0, .35, out);
+    if (t1 !== undefined) hide(g, t1, .4);
+    return g;
+  }
+
   /* ---------- the globe ---------- */
   function globeShot(p, D, view, dotsOn, arcsOn, { on = shotOn(p) } = {}) {
     if (!window.Globe) throw new Error('globeShot: the globe is not loaded; start the chapter with loadGlobe().then(...)');
@@ -349,5 +366,5 @@ const { paperMap, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCircle, CIT
       window.Globe = { missing: true, draw: none, dot: none, arc: none, vec: none, clearMarks: none, mount: p => G(p, {}) };
     });
 
-  return { paperMap, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCircle, CITIES: GL.cities, MAP_COL };
+  return { paperMap, mapBand, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCircle, CITIES: GL.cities, MAP_COL };
 })();
