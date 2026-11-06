@@ -12,7 +12,7 @@ const waveY = (x, x0, A, wl, ph) => -A * Math.sin(TAU * (x - x0) / wl - ph);
 // (from/to clip it; env(x) scales the height, e.g. a front that has not reached x yet). w.at(x) is the screen y at x
 // of the last drawn wave. fill: a colour fills under the surface down to y + depth (water).
 function waveLine(p, { x0, x1, y, color = COL.chalk, w = 6, step = 5, fill, depth = 300, o = 1 } = {}) {
-  const g = G(p, { o }), body = fill ? path(g, '', { fill, opacity: .5 }) : null;
+  const g = G(p, { o }), body = fill ? path(g, '', { fill }) : null;
   const el = path(g, '', { stroke: color, 'stroke-width': w, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
   let last = [0, 100, 0, null];
   return Object.assign(g, {

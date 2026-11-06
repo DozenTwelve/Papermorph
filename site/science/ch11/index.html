@@ -58,7 +58,7 @@ function space(p, n = 80, seed = 1) {
   mk('rect', { x: 0, y: 0, width: 1600, height: 900, fill: SKY }, p);
   let d = '';
   for (let i = 0; i < n; i++) { const k = 2 + Math.round(3 * phHash(i, seed + 3)); d += `M${Math.round(1600 * phHash(i, seed))} ${Math.round(900 * phHash(i, seed + 1))}h${k}v${k}h${-k}Z`; }
-  path(p, d, { fill: COL.chalk, opacity: .55 });
+  path(p, d, { fill: COL.chalk });
 }
 // A pixel disc (rock, moon, planet) of radius r in cells of c px: lit from the top left, a few craters. One path per
 // colour keeps it cheap. lump > 0 makes an uneven rock.
@@ -140,7 +140,7 @@ const HAIR_C = '#3e4751';
 // release it flies on along the tangent at the same speed.
 function whirl(p, cx, cy, R, P, { release = Infinity, pull = Infinity } = {}) {
   const W = 2 * Math.PI / P, you = phTop(p, 'you_top', { x: cx, y: cy, s: 3.2 }), str = path(p, '', { stroke: COL.chalk, 'stroke-width': 3 });
-  const ball = ballEl(p, 24), v = forceArrow(p, { color: VEL, w: 12, size: 30 }), f = forceArrow(p, { w: 14, size: 30 }), trail = path(p, '', { stroke: COL.chalk, 'stroke-width': 3, 'stroke-dasharray': '10 10', opacity: .6 });
+  const ball = ballEl(p, 24), v = forceArrow(p, { color: VEL, w: 12, size: 30 }), f = forceArrow(p, { w: 14, size: 30 }), trail = path(p, '', { stroke: COL.chalk, 'stroke-width': 3, 'stroke-dasharray': '10 10' });
   mk('circle', { cx, cy, r: R, fill: 'none', stroke: COL.faint, 'stroke-width': 2, 'stroke-dasharray': '4 10' }, p);
   p.appendChild(str); p.appendChild(you); p.appendChild(ball); p.appendChild(v); p.appendChild(f);
   return { at(t) {
@@ -239,7 +239,7 @@ const BEATS = [
   const planet = pixDisc(p, 120, { base: '#c98a5a', craters: 0, seed: 5, o: { x: 1340, y: cy } });
   phLabel(p, 'small moon', { x: 520, y: cy - 80, size: 34 }); phLabel(p, 'planet: much more mass', { x: 1190, y: cy - 156, size: 34, anchor: 'start' });   // right of the path in, so the passing rock's pull arrow stays clear
   const passes = [[520, 2.5e6, 260, ts, COL.dim, 'bends a little'], [1340, 1e7, 260, tb, COL.chalk, 'bends a lot'], [1340, 1e7, 460, tf, COL.int, 'bends less']].map(([cx, GM, b, t0, col, verdict]) => {
-    const at = fly(cx, GM, b, t0), trail = path(p, '', { stroke: col, 'stroke-width': 4, 'stroke-dasharray': '10 10', opacity: .8 });
+    const at = fly(cx, GM, b, t0), trail = path(p, '', { stroke: col, 'stroke-width': 4, 'stroke-dasharray': '10 10' });
     const rock = pixDisc(p, 30, { c: 6, base: '#cfc6b2', seed: b, lump: 1 }), f = forceArrow(p, { w: 12, size: 28 });
     const pts = []; for (let u = t0; u < D; u += 1 / 30) pts.push(at(u));
     const end = pts.find(([x, y]) => y > 840 || x > 1580 || x < 20) || pts[pts.length - 1];
@@ -808,7 +808,7 @@ const BEATS = [
   // From "center" the string's pull (orange) points to the centre. At "go" you let go: the ball leaves along the
   // tangent in a straight line. From "moon": Earth and the Moon, where gravity is the centripetal force.
   const s1 = G(p), w = whirl(s1, cx, cy, R, P, { release: tg, pull: tc - .1 });
-  const snap = G(s1, { o: 0 }); for (let k = 0; k < 8; k++) { const q = k * Math.PI / 4, x = cx + R * Math.cos(q), y = cy + R * Math.sin(q); arrowAt(path(snap, '', { stroke: VEL, 'stroke-width': 6, opacity: .35 }), x, y, 80, q * 57.3 + 90, 14); }
+  const snap = G(s1, { o: 0 }); for (let k = 0; k < 8; k++) { const q = k * Math.PI / 4, x = cx + R * Math.cos(q), y = cy + R * Math.sin(q); arrowAt(path(snap, '', { stroke: VEL, 'stroke-width': 6 }), x, y, 80, q * 57.3 + 90, 14); }
   show(snap, 3.4); hide(snap, tc - .4, .3); show(snap, tc + 3, .4);   // the faint copies step back while 'string pull' rides past them
   const t1 = G(s1, { o: 0 }); phLabel(t1, 'same speed, but the direction keeps changing:', { x: 800, y: 70, size: 40 }); phLabel(t1, 'the velocity changes, so it is accelerating', { x: 800, y: 122, size: 36, fill: VEL, weight: 600 }); show(t1, 2.4); hide(t1, tc - .3, .3);
   const t2 = G(s1, { o: 0 }); phLabel(t2, 'Centripetal force', { x: 800, y: 80, size: 60, fill: FORCE }); phLabel(t2, 'always points toward the center of the circle', { x: 800, y: 132, size: 36, weight: 600 }); show(t2, tc + .2); hide(t2, tg - .3, .3);

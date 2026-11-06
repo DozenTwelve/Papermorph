@@ -35,7 +35,7 @@ function turbineGen(p, { x = 0, y = 0, s = 1, r = 0, o = 1, R = 80, L = 140, row
       mk('rect', { x: wx0, y: -wy, width: wx1 - wx0, height: 2 * wy, rx: 8, fill: '#1b2422' }, q);
       mk('rect', { x: wx0, y: -wy, width: wx1 - wx0, height: 16, fill: MAG_N }, q);
       mk('rect', { x: wx0, y: wy - 16, width: wx1 - wx0, height: 16, fill: MAG_S }, q);
-      path(q, [.25, .5, .75].map(k => `M${wx0 + (wx1 - wx0) * k} ${-wy + 18}V${wy - 18}`).join(''), { stroke: MAGF, 'stroke-width': 2.5, 'stroke-dasharray': '7 8', opacity: .7 });
+      path(q, [.25, .5, .75].map(k => `M${wx0 + (wx1 - wx0) * k} ${-wy + 18}V${wy - 18}`).join(''), { stroke: MAGF, 'stroke-width': 2.5, 'stroke-dasharray': '7 8' });
       phBlock(q, x0 + GW / 2 - 9, -gh - 16, 18, 16, '#c3ccce', { top: 0 });
     });
     lx0 = wx0 + 14; lx1 = wx1 - 14;
@@ -130,7 +130,7 @@ function pipeFlow(p, R, { w = 26, color = WATER, dash = [28, 24], walls = true }
 // Wind: n short streaks drifting right across [x0, x1] between rows y0 and y1, wrapping round. wl.set(s) moves them
 // s px along (each at its own pace around that). One path.
 function windLines(p, { x0 = 0, x1 = 1600, y0 = 100, y1 = 600, n = 16, len = 110, color = '#cfe6f0', w = 4 } = {}) {
-  const g = G(p), el = path(g, '', { stroke: color, 'stroke-width': w, fill: 'none', 'stroke-linecap': 'round', opacity: .8 }), W = x1 - x0;
+  const g = G(p), el = path(g, '', { stroke: color, 'stroke-width': w, fill: 'none', 'stroke-linecap': 'round' }), W = x1 - x0;
   const rows = Array.from({ length: n }, (_, i) => [phHash(i, 3) * W, y0 + (y1 - y0) * phHash(i, 11), .75 + .5 * phHash(i, 7)]);
   return Object.assign(g, {
     set(s) {

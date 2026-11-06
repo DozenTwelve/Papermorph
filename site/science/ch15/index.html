@@ -54,7 +54,7 @@ function summary(p, m, rows, next) {
 const frameBox = (p, x, y, w, h, fill = BOX, stroke = COL.faint) => mk('rect', { x, y, width: w, height: h, rx: 18, fill, stroke, 'stroke-width': 3 }, p);
 function starsIn(p, x, y, w, h, n = 60, seed = 1) {
   let d = ''; for (let i = 0; i < n; i++) { const sx = x + phHash(i, seed) * w, sy = y + phHash(i, seed + 1) * h, r = .8 + 1.6 * phHash(i, seed + 2); d += `M${(sx - r).toFixed(1)} ${sy.toFixed(1)}a${r} ${r} 0 1 0 ${2 * r} 0a${r} ${r} 0 1 0 ${-2 * r} 0`; }
-  return path(p, d, { fill: '#dfe6ff', opacity: .8 });
+  return path(p, d, { fill: '#dfe6ff' });
 }
 const spaceBox = (p, x, y, w, h, seed = 3) => { const g = G(p); frameBox(g, x, y, w, h, SPACE, '#2a3a66'); starsIn(g, x + 10, y + 10, w - 20, h - 20, Math.round(w * h / 6000), seed); return g; };
 // Arcs of a sound or radio wave around (cx, cy) facing dir (1 right, −1 left), one path each: a.set(radii, opacities).
@@ -104,7 +104,7 @@ function speedboat(p, o = {}) {   // a speedboat facing right, origin at the wat
   const g = G(p, o);
   path(g, 'M-120 -40H90L130 -40L100 4H-110Z', { fill: '#f4f1e8', ...phLine() });
   mk('rect', { x: -110, y: -24, width: 210, height: 10, fill: '#e2553f' }, g);
-  path(g, 'M-40 -40L-10 -76H40L60 -40Z', { fill: '#86c9e8', opacity: .8, ...phLine(2) });
+  path(g, 'M-40 -40L-10 -76H40L60 -40Z', { fill: '#86c9e8', ...phLine(2) });
   return g;
 }
 function tuningFork(p, x, y, s = 1) {   // a fork standing on (x, y); f.ring(dx) spreads its prongs by dx
@@ -401,7 +401,7 @@ const BEATS = [
       if (bg) mk('rect', { x: x0 + 110, y: y - 40, width: 560, height: 80, rx: 10, fill: WATER, opacity: .35 }, g);
       phLabel(g, name, { x: x0 + 96, y: y + 10, size: 30, anchor: 'end' });
       path(g, `M${x0 + 120}${' '}${y}H${x0 + 660}`, { stroke: COL.faint, 'stroke-width': 3, 'stroke-dasharray': '6 8' });
-      const tr = path(g, '', { stroke: col, 'stroke-width': 8, opacity: .6 }), d = mk('circle', { r: 15, fill: col, ...phLine(2) }, g);
+      const tr = path(g, '', { stroke: col, 'stroke-width': 8 }), d = mk('circle', { r: 15, fill: col, ...phLine(2) }, g);
       const rip = waveLine(g, { x0: x0 + 120, x1: x0 + 660, y, color: col, w: 4, o: .9 });   // the wave itself keeps travelling at the lane's speed
       return { y, v, tr, d, rip };
     });
@@ -519,7 +519,7 @@ const BEATS = [
   mk('rect', { x: 620, y: 470, width: 940, height: 360, fill: WATER, opacity: .4 }, bg);
   path(bg, 'M620 470H1560', { stroke: '#a9d4ec', 'stroke-width': 4 });
   phLabel(bg, 'air', { x: 650, y: 440, size: 32, anchor: 'start' }); phLabel(bg, 'water', { x: 650, y: 520, size: 32, anchor: 'start', fill: '#a9d4ec' });
-  const fronts = path(bg, '', { stroke: LIGHT, 'stroke-width': 4, opacity: .85 });
+  const fronts = path(bg, '', { stroke: LIGHT, 'stroke-width': 4 });
   const seg = (c, d, w, keep) => {   // a front through c perpendicular to d, half-width w, clipped to keep(y)
     const n = [-d[1], d[0]]; let a = [c[0] - n[0] * w, c[1] - n[1] * w], b = [c[0] + n[0] * w, c[1] + n[1] * w];
     const ka = keep(a[1]), kb = keep(b[1]); if (!ka && !kb) return '';
@@ -704,8 +704,8 @@ const BEATS = [
   const AX = [180, 1420], Y0 = 470, EA = 140, BA = 140, WL = 420, DV = [-.42, .32];
   path(B, `M${AX[0]} ${Y0}H${AX[1]}`, { stroke: COL.dim, 'stroke-width': 4 });
   path(B, arrowPath(AX[1] - 10, Y0, AX[1] + 60), { stroke: COL.dim, 'stroke-width': 4, fill: 'none' });
-  const eS = path(B, '', { stroke: ELEC, 'stroke-width': 2, opacity: .6 }), eL = path(B, '', { stroke: ELEC, 'stroke-width': 6, fill: 'none' });
-  const bS = path(B, '', { stroke: MAG, 'stroke-width': 2, opacity: .6 }), bL = path(B, '', { stroke: MAG, 'stroke-width': 6, fill: 'none' });
+  const eS = path(B, '', { stroke: ELEC, 'stroke-width': 2 }), eL = path(B, '', { stroke: ELEC, 'stroke-width': 6, fill: 'none' });
+  const bS = path(B, '', { stroke: MAG, 'stroke-width': 2 }), bL = path(B, '', { stroke: MAG, 'stroke-width': 6, fill: 'none' });
   phLabel(B, 'electric field', { x: 300, y: 260, size: 32, fill: ELEC }); phLabel(B, 'magnetic field', { x: 300, y: 690, size: 32, fill: MAG });
   phLabel(B, 'travel', { x: 1500, y: 525, size: 30, fill: COL.dim });
   const ra = G(B, { o: 0 }); path(ra, `M${AX[0] + 26} ${Y0}V${Y0 - 26}M${AX[0]} ${Y0 - 26}`, { stroke: COL.chalk, 'stroke-width': 3 });
@@ -842,7 +842,7 @@ const BEATS = [
   // raindrop does the same with a bounce off its back. Then light crosses from the Sun to Earth in about 8 minutes.
   const A = G(p); hide(A, tr - .3);
   const P = [[720, 250], [520, 600], [920, 600]];
-  path(A, `M${P[0]}L${P[1]}L${P[2]}Z`, { fill: '#c8e0ff', opacity: .18 }); path(A, `M${P[0]}L${P[1]}L${P[2]}Z`, { stroke: '#c8e0ff', 'stroke-width': 5, fill: 'none' });
+  path(A, `M${P[0]}L${P[1]}L${P[2]}Z`, { fill: '#c8e0ff' }); path(A, `M${P[0]}L${P[1]}L${P[2]}Z`, { stroke: '#c8e0ff', 'stroke-width': 5, fill: 'none' });
   phLabel(A, 'glass prism', { x: 720, y: 660, size: 30, fill: '#c8e0ff' });
   const start = [80, 620], dir = [Math.cos(-.42), Math.sin(-.42)], cols = prismPaths(P, start, dir);
   const white = lightRay(A, [start, cols[0][0]], { color: '#ffffff', w: 8 }); draw(white.line, tw_ + .2, 1.2); put(white.head, { o: 0 }); show(white.head, tw_ + 1);

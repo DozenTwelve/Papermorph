@@ -226,7 +226,7 @@ function armature(p, { x = 0, y = 0, R = 130, dep = [190, -120], gap = 70 } = {}
     return m;
   };
   const W = 120, left = mag(-R - gap - W, W, MAG_N, 'N');
-  const lines = path(g, '', { stroke: MAGF, 'stroke-width': 3, 'stroke-dasharray': '10 12', opacity: .8 });
+  const lines = path(g, '', { stroke: MAGF, 'stroke-width': 3, 'stroke-dasharray': '10 12' });
   const axle = path(g, `M${-dx * .9} ${-dy * .9}L${dx * 1.15} ${dy * 1.15}`, { stroke: '#9aa5a8', 'stroke-width': 10 });
   const back = path(g, '', { stroke: dk(COPPER, .3), 'stroke-width': 11, fill: 'none' });
   const loopF = path(g, '', { stroke: COPPER, 'stroke-width': 12, fill: 'none', 'stroke-linejoin': 'round' });

@@ -598,7 +598,7 @@ const BEATS = [
   const level = t => 450 + 70 * Math.cos(Math.PI * (t + 2) / P_);   // y of the surface: 520 low, 380 high
   const flowS = t => 3.2 * (520 - level(t));                         // distance the water has moved toward the shore
   const shoreX = L => -40 + (L - 300) / 260 * 560;                   // where the surface meets the beach
-  const water = path(p, '', { fill: WATER, opacity: .92 });
+  const water = path(p, '', { fill: WATER });
   const surf = path(p, '', { stroke: lt(WATER, .5), 'stroke-width': 4, fill: 'none' });
   const fl = windLines(p, { x0: 420, x1: 1700, y0: 600, y1: 830, n: 12, len: 90, color: lt(WATER, .55) });
   path(p, 'M-40 300L520 560L760 840L1640 872V940H-40Z', { fill: '#a08a5c', ...phLine() });
