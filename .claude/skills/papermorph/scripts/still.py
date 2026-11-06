@@ -68,7 +68,7 @@ async def main():
             async def frame(t, cam=None):
                 hold = "null" if cam is None else cam   # the clock skips a frame it drew last: draw another one first
                 await pg.evaluate(f"window.HOLDCAM = {hold}; evalTo({t + .25}); P.t = {t}; evalTo({t})"); await pg.wait_for_timeout(40)
-                return Image.open(io.BytesIO(await pg.screenshot(clip=r))).convert("L").resize((400, 240))
+                return Image.open(io.BytesIO(await pg.screenshot(clip=r))).convert("L").resize((400, round(400 * r["height"] / r["width"])))   # the stage's shape, upright too
             prev, diffs, t = None, [], 0.0
             while t <= dur + 1e-6:
                 if a.hold_cam:   # both frames of the pair seen through the camera of the first

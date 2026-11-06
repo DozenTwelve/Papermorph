@@ -51,7 +51,7 @@ async def main(sets_js, site, only, ref):
                     im = Image.open(io.BytesIO(base64.b64decode(png.split(',')[1]))); im.save(f, quality=86, method=6)
                     print(f.relative_to(out), f.stat().st_size // 1024, 'KB')
                     if not soft:
-                        x, y, w, h = L['box']; lay = im.convert('RGBA').resize((w, h)); frame.paste(lay, (x, y), lay)
+                        x, y, w, h = map(round, L['box']); lay = im.convert('RGBA').resize((w, h)); frame.paste(lay, (x, y), lay)
             man[n] = layers
             if ref:
                 pathlib.Path(ref).mkdir(parents=True, exist_ok=True); frame.convert('RGB').save(pathlib.Path(ref) / f'ref-{n}.png')

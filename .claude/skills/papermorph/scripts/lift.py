@@ -315,9 +315,10 @@ def lift_set(book, name, S, res, out):
         m = cv2.GaussianBlur(m.astype(np.float32), (0, 0), 3)[..., None]
         rgb = rgb * (1 - m) + book.rgb(book.tone(src, S.get('levels'))) * m
     x0, y0, x1, y1 = S.get('box', [0, 0, W, H])
-    wx, wy, ww = S.get('world') or [None, None, None]
+    wx, wy, ww = [*(S.get('world') or []), None, None, None][:3]   # [x, y] alone: w is fitted, as with no world
     if ww is None:
-        ww = (x1 - x0) * 900 / (y1 - y0); wx, wy = 800 - ww / 2, 0
+        ww = (x1 - x0) * 900 / (y1 - y0)
+        wx, wy = 800 - ww / 2 if wx is None else wx, 0 if wy is None else wy
     s = ww / (x1 - x0)
     taken = np.zeros(lum.shape, bool); made = []
     for Lr in S.get('layers', []):
