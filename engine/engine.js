@@ -276,7 +276,7 @@ document.body.insertAdjacentHTML('afterbegin', `<div id="frame">
     <a class="icon" id="bHome" href="../" aria-label="${translate('allChapters')}" title="${translate('allChapters')}">
       <svg viewBox="0 0 18 18"><path d="M2 2h6v6H2zM10 2h6v6h-6zM2 10h6v6H2zM10 10h6v6h-6z"/></svg>
     </a>
-    <button class="icon" id="bPlay" aria-label="${translate('playLabel')}">
+    <button class="icon" id="bPlay" aria-pressed="false" aria-label="${translate('playLabel')}">
       <svg class="i-play" viewBox="0 0 18 18"><path d="M4 2v14l12-7z"/></svg>
       <svg class="i-pause" viewBox="0 0 18 18"><path d="M3.5 2h4v14h-4zM10.5 2h4v14h-4z"/></svg>
     </button>
@@ -289,7 +289,7 @@ document.body.insertAdjacentHTML('afterbegin', `<div id="frame">
     <div class="segs" id="segs"></div>
     <div class="step" id="stepName"></div>
     <button class="icon txt" id="bHelp" aria-label="${translate('helpLabel')}" title="${translate('helpLabel')}">?</button>
-    <button class="icon txt speed" id="bSpeed" aria-label="${translate('speedLabel')}" title="${translate('speedLabel')}">1×</button>
+    <button class="icon txt speed" id="bSpeed" aria-label="${translate('speedLabel')} 1×" title="${translate('speedLabel')}">1×</button>
     <button class="icon cc" id="bCC" aria-pressed="false" aria-label="${translate('captionsLabel')}" title="${translate('captionsLabel')}">CC</button>
     <button class="icon" id="bFull" aria-label="${translate('fullScreenLabel')}">
       <svg viewBox="0 0 18 18"><path d="M1 1h6v2H3v4H1zM11 1h6v6h-2V3h-4zM1 11h2v4h4v2H1zM15 11h2v6h-6v-2h4z"/></svg>
@@ -1789,6 +1789,7 @@ const SPEEDS = [.75, 1, 1.25, 1.5];
 function setSpeed(r) {
   P.rate = r;
   $('bSpeed').textContent = r + '×';
+  $('bSpeed').setAttribute('aria-label', `${translate('speedLabel')} ${num(r)}×`);   // the label hides the text: a screen reader hears the speed here
   if (P.audio) P.audio.playbackRate = r;
   try { localStorage.setItem('speed', String(r)); } catch {}
 }
@@ -1796,6 +1797,7 @@ const stepSpeed = d => setSpeed(SPEEDS[Math.max(0, Math.min(SPEEDS.length - 1, S
 function soundFailed() { P.afail = true; $('soundNote').hidden = false; }
 function setPlaying(v) {
   P.playing = v;
+  $('bPlay').setAttribute('aria-pressed', String(v));   // one button for both: a screen reader hears whether it plays
   const a = P.audio;
   if (!a) return;
   const lead = v && P.t < (BEATS[P.i]?.pre || 0);
