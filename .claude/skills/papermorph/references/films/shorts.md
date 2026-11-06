@@ -25,7 +25,7 @@ The films' intake ([films.md](films.md#intake)): the point, who watches on which
 
 ## From a long film
 
-When the user wants an existing film recut as shorts (*Madness and Civilization* became four), its script is the outline, and its checked quotes, found pictures, voice and music carry over. Read its `style.json`, narration and `SOURCES.tsv` before asking anything they answer. The first questions become how many episodes, where the film's turns divide them, and each episode's one point; propose the split and episode 1's outline together, then go on as below. Where a short's habits and the film's differ, ask the user: the documentary's one Fool through the centuries is a recurring figure, which the short's one figure per role would break.
+When the user wants an existing film recut as shorts (*Madness and Civilization* became four), its script is the outline, and its checked quotes, found pictures, voice and music carry over. Keep what the source said (the book's quotes, the film's facts) and leave out the long film's own asides about it: a short has no time for commentary on its source. Read its `style.json`, narration and `SOURCES.tsv` before asking anything they answer. The first questions become how many episodes, where the film's turns divide them, and each episode's one point; propose the split and episode 1's outline together, then go on as below. Where a short's habits and the film's differ, ask the user: the documentary's one Fool through the centuries is a recurring figure, which the short's one figure per role would break.
 
 ## The order of work
 
@@ -58,7 +58,9 @@ What made the first shorts work:
 
 - **One figure per role**, so a figure coming back means something (a callback), not that the cast ran out.
 - **One idea per shot, one to three seconds a shot**, full bleed (`prep.py`'s *full* treatment sizes a picture for it); words inside x 50–810, y 130–1290, since the platform draws its title, caption and buttons over the rest.
+- **Words go on the picture.** A word or a number is set over a picture in motion, not on a flat card: a text card reads as a text post, and one episode whose frames were half flat cards (50 %, against 28 % in the first) lost its pace, which only the MP4 round saw. Count the flat frames on the contact sheet.
 - **Say it literally.** When the narration describes a mechanism, draw each link as the voice names it. The "everyone is cheap" loop read as a vague circle until it became three people, each handing the next their product and its price, A to B, B to C, C back to A.
 - **Numbers move.** A count, a bar growing, a price tag swapped: a number arrives the moment it is said. A big denominator can be drawn literally: "2 in 100,000" as a field of 100,000 dots in one SVG `<pattern>` fill with the two real circles over it, played at 17 ms a frame in both browsers.
 - **A series says where it is.** A few seconds after the hook, the series card with this episode lit ("1 · The Ship"), then the argument.
-- **The ending points on.** The last beat answers the hook and names the next episode.
+- **The ending points on.** The last beat answers the hook and names the next episode; a series' last episode answers the series' question instead and points back to the first.
+- **Look between the keys.** A pan or a `wide()` move passes over everything between its two views: check its middle frames on a strip, not only where it starts and lands (one swept across a face it should have left out). A generated print often comes with its own paper border, which a move to the picture's edge shows: crop it off before `prep.py`. A landscape painting too wide for the upright frame may have a detail photographed on its own on Commons, which crops better than the whole.

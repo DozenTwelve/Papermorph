@@ -22,7 +22,7 @@ The general shape is in [core/team.md](../core/team.md), the director passes in 
 
 - `pic()` places a picture with an entrance; `leave()`, `push()` (a slow Ken Burns move), which work on what `pic()`, `traced()` and `doc()` return (they remember where they were put), and `dissolve()` (one picture turning into another in place);
 - `key()` big words in the condensed font, `strike()` a line through one, `say()` a quote typed word by word as it is spoken (Chinese and Japanese character by character; the kit's fonts are Latin only, so such a film adds a CJK font to `fonts.css`), `tag()` a small caption, `dateChip()` the year and place at the top left;
-- `closeups()` pushes into a print onto each thing as it is named, with a label, and back out to the whole picture when given its `home` (`{ x, y }`); without it the camera stays on the last close-up;
+- `closeups()` pushes into a print onto each thing as it is named, with a label, and back out to the whole picture when given its `home` (`{ x, y }`); without it the camera stays on the last close-up. A close-up's zoom keeps the view inside the picture only while the picture, at that zoom, is wider than the frame: on a tall picture give a zoom of at least 1600 ÷ its drawn width, or the ground shows at the sides;
 - `epigraph()`, `doc()` (an old document), `balloon()`, `dots()`, `water()` and `bob()`, `anim()`, `along()`.
 
 Add the film's own recurring pieces at the end of the book's `film.js` (Foucault's guide peeking up from the bottom edge, the Europe map). The kit's chapter sets `lead: false`: every opening is timed by hand.

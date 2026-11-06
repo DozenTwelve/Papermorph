@@ -38,7 +38,7 @@ Pick with the user. The two reference books' own `cast.js` files show the second
 
 ## Cameras
 
-`paperCam(parent, set, view, { after, stages })` is one camera on one set: layers slide with parallax, `to`/`cut` move it on the scene's clock, `soft` swaps in the blurred copy of the set for close-ups, `shake(t0, dur, amp = 10)` jolts it (the engine's `cam.shake` takes the amplitude first), `show(layer, on)` swaps a layer (rain and snow versions of the same street). `move(layer, q => transform)` adds a transform to one layer each frame, after its parallax: grass swaying from its foot (a skew about the layer's ground line), clouds drifting, a pond's water shrinking about its middle. A scene can hold several cameras; cut between places by showing one `cam.root` and hiding the others. Close-ups zoom the same set and blur it, so the speaker stays sharp.
+`paperCam(parent, set, view, { after, stages })` is one camera on one set. A view `{ x, y, z }` is the world point at the frame's centre and the zoom, and any of its keys may be a function of the scene's clock, which makes a follow shot; a layer's `box` in `sets.js` is `[x, y, w, h]`, not two corners. Its layers slide with parallax, `to`/`cut` move it on the scene's clock, `soft` swaps in the blurred copy of the set for close-ups, `shake(t0, dur, amp = 10)` jolts it (the engine's `cam.shake` takes the amplitude first), `show(layer, on)` swaps a layer (rain and snow versions of the same street). `move(layer, q => transform)` adds a transform to one layer each frame, after its parallax: grass swaying from its foot (a skew about the layer's ground line), clouds drifting, a pond's water shrinking about its middle. A scene can hold several cameras; cut between places by showing one `cam.root` and hiding the others. Close-ups zoom the same set and blur it, so the speaker stays sharp.
 
 ## Lifted from the book's own pictures
 
@@ -63,6 +63,7 @@ Paper filters are expensive live, so every finished piece is baked to a bitmap; 
 - A series shares one folder for every episode's pieces. `bake_puppets.py` encodes only pieces it has not baked before; `--clean` (after changing the paper filter itself) re-encodes them all and removes only what no episode asks for any more. Leave the folder to it: a hand-written prune once deleted a published episode's pieces.
 - Rebake after changing any piece or adding an episode. A piece missing from `baked.js` is baked in the browser and stalls; `shot.py` says how many pieces a chapter still bakes live.
 - Full-frame effects that change every frame (the flicker) live outside the SVG, so the picture isn't redrawn each frame.
+- In Firefox a mask or a clip-path over a big image is redrawn in software whenever its content or its own transform changes, and the image with it: a swaying grass picture under a mask that changed every frame cost 55 ms a frame, a close shot with live clip-paths on two lifted bodies 99 ms, where Chromium drew both at 17 ms. Cut the image once instead of clipping it live, or keep the clip still and move what lies over it. Hundreds of rotated images cost the same way (a sea of 664 rocking cats, 46 ms). Measure each episode with `perf.py` ([core/review.md](../core/review.md#smoothness)).
 
 ## Seeing your own work
 
