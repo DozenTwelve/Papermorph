@@ -213,7 +213,8 @@ function spStep(tau, { L = 52, A = 20, period = 2 / 3 } = {}) {
    its pose (place and jitter, turn, the profile legs and near arm, the two front arms, the head, eyes and mouth):
    rig = { neck, sh, el (the near shoulder and elbow pins), fsh (the front right shoulder), fup (its upper arm length),
    knee (the knee pin's y in legPiece), waist (the y that lean bends about, default 0) }. The common keys (REST_FIG):
-   x y s turn; near, far (the profile legs, degrees, + forward) and kNear, kFar (knee bends); ua, fa (the near arm's
+   x y s turn; near, far (the profile legs, degrees from hanging straight down: - swings the foot forward, the way the
+   figure faces, + back) and kNear, kFar (knee bends, + folds the shin back as a knee does); ua, fa (the near arm's
    shoulder and elbow); rua, rfa, lua, lfa (the front figure's screen-right and screen-left arms; 0 hangs down); head
    ('P' | 'F'), headR (degrees), nod (+ lowers the head); mouth, shut (blink: blinking(q, times) in paper.js); hop
    (+ moves the whole figure down, - up; the arc of a hop is yours); lean; brow.
