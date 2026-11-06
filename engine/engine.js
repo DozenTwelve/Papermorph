@@ -1612,7 +1612,7 @@ function soundTick(dt) {
 }
 
 /* ---------- player ---------- */
-const P = { i: 0, t: 0, end: 1, back: 0, idle: 0, playing: false, waiting: false, done: false, started: false, audio: null, afail: false, stall: 0, cleanup: [], rate: 1, nextClip: null };
+const P = { i: 0, t: 0, end: 1, back: 0, idle: 0, playing: false, waiting: false, done: false, started: false, audio: null, afail: false, stall: 0, ct: 0, cleanup: [], rate: 1, nextClip: null };
 function runBeat(i) {
   TW = [];
   const b = BEATS[i], tm = TIMINGS[b.id], pre = b.pre || 0;   // pre: seconds of picture before the narration starts
@@ -1684,7 +1684,7 @@ function start(i, play) {
   stopAudio(); clearCards();
   // P.gen counts starts: a done() kept from an earlier start of this same beat (a step replayed) no longer counts
   const gen = P.gen = (P.gen || 0) + 1;
-  Object.assign(P, { i, t: 0, idle: 0, waiting: false, done: false, afail: false, stall: 0, lost: 0, back: 0 });
+  Object.assign(P, { i, t: 0, idle: 0, waiting: false, done: false, afail: false, stall: 0, ct: 0, lost: 0, back: 0 });
   P.end = runBeat(i);
   evalTo(0);
   const a = P.audio = beatClip(i, true);
@@ -1796,8 +1796,10 @@ function frameStep(now, most) {
       P.t += dt * P.rate;
       if (P.t >= pre && !P.afail) { a.muted = false; a.currentTime = P.t - pre; a.play().catch(e => { if (P.audio === a && e.name === 'NotAllowedError') soundFailed(); }); }
     } else if (a && !P.afail && !a.ended) {
-      if (a.currentTime > 0) { P.t = Math.max(P.t, pre + a.currentTime); P.stall = 0; }
-      else if ((P.stall += dt) > (a.readyState < 2 ? 8 : 15)) soundFailed();   // nothing to play after 8 s, or stuck for 15
+      // the clip moving on drives the clock; one standing still (not started, or run dry mid-way on a lost connection)
+      // counts as a stall: nothing to play after 8 s, or stuck for 15, and the picture goes on by wall time
+      if (a.currentTime > P.ct) { P.ct = a.currentTime; P.t = Math.max(P.t, pre + a.currentTime); P.stall = 0; }
+      else if ((P.stall += dt) > (a.readyState < 2 ? 8 : 15)) soundFailed();
     } else P.t += dt * P.rate;
     // P.lost: how long the clock stood still while the film played (a clip getting going, buffering). Music runs on
     // through it, so a beat under music gives that time back from its closing hold: each beat then lasts as long in
