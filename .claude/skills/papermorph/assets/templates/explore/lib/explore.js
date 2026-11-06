@@ -990,7 +990,13 @@
   }
   // turning the phone changes the map's own rotation, which is fixed at load: start over, as a fresh visit
   addEventListener('resize', () => { if (!params.has('rot') && PORTRAIT !== (innerWidth <= 700 && innerHeight > 520)) location.reload(); else fit(); });
+  // names are measured in the font they show in: when the fonts are ready, and again when a font arrives later (a font
+  // starts loading only when text first needs it, so ready can come before the labels' font); then laid out if nothing moves
   document.fonts?.ready.then(() => { labels.forEach(measure); fit(); });
+  document.fonts?.addEventListener('loadingdone', () => {
+    labels.forEach(measure); for (const w of WHO) sizeFigure(w);
+    if (!film && !walking) layout();
+  });
 
   /* ---------- start: 1868 under the title sheet, the film waiting for Begin ---------- */
   $('#intro-h').textContent = INTRO.title; $('#intro .sub').textContent = INTRO.sub; $('#intro .text').textContent = INTRO.text;
