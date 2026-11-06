@@ -41,6 +41,20 @@ IMAGES_READY = r"""() => Promise.race([new Promise(r => setTimeout(r, 5000)), Pr
   }))])"""
 
 
+# A page with no BEATS is not a beat chapter: an explorable map (the explore kit) runs on its own clock, with nothing to seek
+NO_BEATS = "typeof BEATS === 'undefined'"
+NOT_BEATS = ("{url}: no BEATS, so not a beat chapter{explore}; check.py, shot.py and perf.py seek beats and cannot run on it. "
+             "An explorable map is checked with explore.py check, shots and perf (references/explore/explore.md)")
+
+
+async def not_beats(pg, url):
+    """The message for a page with no BEATS, or None for a beat chapter."""
+    if not await pg.evaluate(NO_BEATS):
+        return None
+    explore = await pg.evaluate("!!window.MAP")
+    return NOT_BEATS.format(url=url, explore=" (it has window.MAP: an explorable map)" if explore else "")
+
+
 def missing(pg, sink):
     """Report each request the server answers with 400 or more as 'missing file (404): URL' to sink. check.py and
     shot.py both use it, so a missing file reads the same in both and counts as an error in both."""

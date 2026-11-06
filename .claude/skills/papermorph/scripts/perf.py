@@ -12,7 +12,7 @@ before and after the run, e.g. a beat measured on a quiet machine: read the chap
 """
 import argparse, asyncio, os, sys
 from playwright.async_api import async_playwright
-from browsers import answers, firefox
+from browsers import answers, firefox, not_beats
 SETUP = r"""
 () => { window.__d = []; let last = performance.now();
   const loop = now => { window.__d.push(now - last); last = now; requestAnimationFrame(loop); }; requestAnimationFrame(loop); }
@@ -57,6 +57,7 @@ async def main(ch, out, base, ref):
         b = await p.firefox.launch(**firefox())
         if ref: head.append(await reference(b, base, ref) + " (before)"); print(head[-1], flush=True)
         pg = await page(b, f"{base}{ch}/?beat=0&t=0")
+        if msg := await not_beats(pg, f"{base}{ch}/"): sys.exit(msg)
         beats = await pg.evaluate("BEATS.map(b => [b.id, !!b.ask, (b.pre || 0) + TIMINGS[b.id].dur])")
         res = []
         for i, (bid, ask, dur) in enumerate(beats):

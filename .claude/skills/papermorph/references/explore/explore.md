@@ -61,7 +61,7 @@ The bar is a median frame under 20 ms in Firefox while the camera moves, measure
 
 ## Seeing your own page
 
-`check.py`, `shot.py` and `perf.py` seek beats, which an explore page does not have. `explore.py` drives the page through `window.MAP` instead (`python3 SKILL/scripts/serve.py 8765 site` first):
+`check.py`, `shot.py` and `perf.py` seek beats; on an explore page they stop and say so. `explore.py` drives the page through `window.MAP` instead (`python3 SKILL/scripts/serve.py 8765 site` first):
 
 | | What it shows |
 |---|---|
