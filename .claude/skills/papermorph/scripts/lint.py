@@ -15,6 +15,9 @@ Errors (exit status 1):
   mark      m('name') is not a mark of any beat
   stale     the narration's text differs from timings.js, or a narration [[mark]] is missing there: run tts.py again
   style     style.json is not valid JSON or lacks schema, tier, book, words, look or voice
+  sound     sfx(beat, t, 'name') names an audio/sfx/<name>.mp3 that is missing, or music('file') a file that is (calls
+            in the chapter's own scripts; commented-out calls, names built at run time and a book library's calls are
+            not checked)
   path      a chapter named on the command line has no index.html; no chNN folder at all stops the run
   word      a listen-and-find stop (findWords) plays a clip that is missing: a thing's (clip:, else w-<word>), an
             ask's question (its clip:) and its again (r-<word> by default), the stop's end (q-done) and there (q-there)
@@ -38,6 +41,8 @@ NEXT = re.compile(r',\s*([A-Za-z_$][\w$]*)\s*=(?!=)')   # a later declarator: , 
 SRC = re.compile(r'<script\s+src="([^"]+)"')
 INLINE = re.compile(r'<script>(.*?)</script>', re.S)
 BEAT = re.compile(r"\[\s*'(\w+)'\s*,\s*(['\"`])(?:\\.|(?!\2).)*\2\s*,\s*(?:\(\s*(?:m\b|\))|m\s*=>)")   # ['id', 'title', (m, D) =>
+SFXCALL = re.compile(r"""(?<![\w$.])sfx\(\s*(?:'[^']*'|"[^"]*"|[\w$.\[\]]+)\s*,\s*[^'"`\n]*?,\s*['"]([\w.-]+)['"]\s*[,)]""")   # a literal name only
+MUSICCALL = re.compile(r"""(?<![\w$.])music\(\s*['"]([^'"]+)['"]""")
 MCALL = re.compile(r"(?<![\w$.])m\(\s*'(\w+)'\s*[,)]")
 MARK = re.compile(r'\[\[(\w+)\]\]')
 TAG = re.compile(r'(?<!\[)\[[^\[\]]+\](?!\])')   # an ElevenLabs v4 audio tag, [whispers]: performed, not in captions (eleven.py's)
@@ -200,6 +205,15 @@ def lint_chapter(ch, content, out):
         used = sorted({w for c in code for w in USE.findall(c)} & names - local)
         if used:
             err('math', f"uses {', '.join(used)} from lib/math.js: load ../lib/math.js right after engine.js")
+    # sound files the page names: sfx(beat, t, 'name') plays audio/sfx/name.mp3, music('file') a file beside the page
+    # the chapter's own code: a book library's sfx() plays only in the chapters that call its helper
+    here = [inline] + [(ch / x).read_text(encoding='utf-8') for x in SRC.findall(html)
+                       if (ch / x).suffix == '.js' and (ch / x).exists() and (ch / x).resolve().parent == ch.resolve() and Path(x).name != 'timings.js']
+    code = '\n'.join(re.sub(r'(?<![:\\])//[^\n]*', '', re.sub(r'/\*.*?\*/', '', c, flags=re.S)) for c in here)   # not commented out
+    names = {('sfx', f'audio/sfx/{n}.mp3') for n in SFXCALL.findall(code)} | {('music', f) for f in MUSICCALL.findall(code)}
+    for kind, f in sorted(names):
+        if not (ch / f).exists():
+            err('sound', f'{kind}() names {f}, which is missing' + (' (make it with sfx.py)' if kind == 'sfx' else ''))
     # beats, audio, marks
     lang = (re.search(r"""language:\s*['"](\w+)['"]""", inline) or [None, 'en'])[1]
     tpath = ch / 'audio' / lang / 'timings.js'
