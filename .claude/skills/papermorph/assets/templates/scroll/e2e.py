@@ -11,7 +11,7 @@ and end at both sizes (from the first browser): open them, they are the only way
 The engine's tools (check.py, shot.py, strip.py, still.py, perf.py, export.py, lint.py) read a chapter's BEATS and
 do not work on a scroll page; this file is its check. Exit status 1 on any error.
 """
-import argparse, asyncio, os, sys
+import argparse, asyncio, os, sys, urllib.request
 from pathlib import Path
 from playwright.async_api import async_playwright
 
@@ -74,6 +74,10 @@ async def shots(pg, where, n, out):
 
 
 async def main():
+    try:   # a wrong port or path would otherwise show up later as an unrelated error
+        urllib.request.urlopen(a.url, timeout=10).close()
+    except OSError as e:
+        sys.exit(f'{a.url} does not answer ({e}): start the preview with serve.py PORT site, from the folder that holds site/')
     out = Path(a.out) if a.out else None
     if out:
         out.mkdir(parents=True, exist_ok=True)
@@ -91,6 +95,8 @@ async def main():
                     pg.on('response', lambda r, where=where: r.status >= 400 and not r.url.endswith('favicon.ico') and bad(f'{where}: missing file ({r.status}): {r.url}'))
                     await pg.goto(a.url, wait_until='load')
                     await pg.evaluate("() => document.fonts.ready"); await pg.evaluate(WAIT)
+                    if not await pg.evaluate("() => typeof scrollySteps === 'function'"):
+                        sys.exit(f'{a.url} is not a scroll page: lib/scroll.js did not load, or the page is not the kit\'s')
                     if motion == 'reduce':   # each step shows its finished picture: P is whole numbers only
                         ps = []
                         for i in range(await pg.evaluate("() => scrollySteps().length")):
