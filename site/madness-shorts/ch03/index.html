@@ -286,7 +286,7 @@ const BEATS = [
     T(s, '— FOUCAULT', { x: CX, y: 1060, size: 56, fill: MUTED, font: SANS, weight: 500, anchor: 'middle', o: 0 });
     show(s.lastChild, q + .8, .3);
     for (let i = 0; i < 6; i++) {
-      const x = 120 + i * 132, l = path(bars, `M${x} 0V1600`, { stroke: DARK, 'stroke-width': 22, 'stroke-linecap': 'round', opacity: .9 }, { d: 0 });
+      const x = 120 + i * 132, l = path(bars, `M${x} 0V1600`, { stroke: DARK, 'stroke-width': 22, 'stroke-linecap': 'round' }, { d: 0 });
       draw(l, q + 1.6 + i * .12, .45, out);
     }
     sfx('moral', q + 1.6, 'clang', .7);
@@ -299,7 +299,7 @@ const BEATS = [
     label(s, 'Antiphrasis', CX, 420, op - .1, { size: 48, fill: DARK, colour: MUTED });
     strike(s, lw, CX, 700, op + .2, 150);
     for (let i = 0; i < 6; i++) {
-      const x = 120 + i * 132, l = path(bars2, `M${x} 0V1600`, { stroke: DARK, 'stroke-width': 26, 'stroke-linecap': 'round', opacity: .92 }, { d: 0 });
+      const x = 120 + i * 132, l = path(bars2, `M${x} 0V1600`, { stroke: DARK, 'stroke-width': 26, 'stroke-linecap': 'round' }, { d: 0 });
       draw(l, op + .45 + i * .08, .4, out);
     }
     word(s, 'Prison', CX, 960, op + .5, { maxW: 640, size: 220, fill: RED, stroke: DARK });
