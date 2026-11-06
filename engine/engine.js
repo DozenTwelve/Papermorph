@@ -2023,6 +2023,8 @@ fit();
 // Start the lesson once the chapter page has defined CHAPTER and BEATS.
 // ?beat=N&t=S opens a paused frame, for reviewing a single moment.
 function boot() {
+  // a beat written as [id, title, run, extra], as the docs show it, becomes { id, title, run, ...extra }
+  BEATS.forEach((b, i) => { if (Array.isArray(b)) { const [id, title, run, extra] = b; BEATS[i] = { id, title, run, ...extra }; } });
   // a beat with no narration: { dur } in its fourth slot stands in for its clip and its TIMINGS entry
   const loaded = !!window.TIMINGS;
   window.TIMINGS ??= {};
