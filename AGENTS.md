@@ -26,7 +26,7 @@ Write Skill guidance as intent, reasons and examples, and give the model ways to
 
 CI (`.github/workflows/checks.yml`) runs these on every pull request; run them before you push:
 
-- `python3 .github/scripts/check_skill.py` checks links and anchors, that `SKILL.md` links every reference and names every script, that scripts compile, and that flags and paths named in the docs exist.
+- `python3 .github/scripts/check_skill.py` checks links and anchors, that `SKILL.md` links every reference and names every script, that scripts compile, that flags and paths named in the docs exist, and that every `engine-vX.Y` the Skill names is `engine.py`'s DEFAULT.
 - `python3 .github/scripts/check_site.py` (needs Node) checks that every book's engine copy matches `engine/`, runs `lint.py` on every book, and runs `node --check` on every script, inline page scripts included.
 - `level.py --selftest`, `music.py --selftest` and `sfx.py --selftest` (in `.claude/skills/papermorph/scripts`; ffmpeg, and `uv run --with numpy` for the last two) check the sound tools on synthetic clips.
 - `pipx run ruff check --select F,E9 --ignore F401 .claude/skills/papermorph/scripts .github engine` catches undefined names and other pyflakes errors in the Python tools.
