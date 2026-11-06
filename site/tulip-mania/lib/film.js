@@ -226,8 +226,8 @@ function townDots(p, M, names, times, D, r = 11) {
 }
 // a route in ink, for what is not the tulip trade (grain, spices, a court's referral, the story): the kit's routes
 // are always red. pts is [[lon, lat]...], drawn on through a curve between t0 and t0 + dur, following the map's view
-function inkRoute(p, M, pts, t0, dur, D, { width = 3.5, dash = '10 8', o = .9 } = {}) {
-  const e = path(p, '', { stroke: MAP_COL.ink, 'stroke-width': width, 'stroke-dasharray': dash, 'stroke-linecap': 'round', opacity: o });
+function inkRoute(p, M, pts, t0, dur, D, { width = 3.5, dash = '10 8' } = {}) {
+  const e = path(p, '', { stroke: MAP_COL.ink, 'stroke-width': width, 'stroke-dasharray': dash, 'stroke-linecap': 'round' });
   let last = '';
   clockRun(t => {
     const q = Math.min(1, Math.max(0, (t - t0) / dur)), P = pts.map(ll => M.xy(ll, t));
