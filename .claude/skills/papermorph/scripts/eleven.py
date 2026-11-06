@@ -27,7 +27,8 @@ sound comes back, and the run prints it. Audio is decoded with ffmpeg, not PyAV 
 v4 audio tags such as [cackles] or [whispers] act: they are performed, not read aloud, and left out of captions.
 Price: about $0.00008 per character (about $0.65 for a ten-minute film). Before paying, the run prints the characters
 it will synthesize and their estimated cost; --dry stops there. --ledger appends the characters the run synthesized
-(also when it stops partway, when timings.js is written for the beats it finished and the rest are named) and their estimated cost to the ledger paint.py writes (OpenRouter reports no cost for
+(also when it stops partway, say on a 402 for credit: timings.js then has the beats it finished, the beats it did not reach keep
+their old timings, as their clips are unchanged, and the run names each beat still on its old take or not voiced at all) and their estimated cost to the ledger paint.py writes (OpenRouter reports no cost for
 speech).
 
 Each beat's clip is cached beside the narration as .eleven/<beat>.<hash>.mp3 (hash of model, voice and text), so
@@ -135,6 +136,7 @@ if tf.exists():
 tk = cache / "takes.json"   # output clip -> the cached take it was copied from
 clip_key = lambda f: "/".join(pathlib.Path(f).parts[-2:])   # en/open.mp3: the same in any clone (older runs: the full path)
 takes = {clip_key(k): v for k, v in json.loads(tk.read_text()).items()} if tk.exists() else {}
+takes0 = dict(takes)   # as the run found them: a clip whose take this run has not replaced still matches its old timings
 beats = []
 for beat, raw in spec["beats"].items():
     who = raw.get("speaker") if isinstance(raw, dict) else None
@@ -168,8 +170,16 @@ done = []
 
 def save():
     """timings.js, takes and word times for every beat finished so far: a run stopped partway (a 402 for credit) keeps
-    what it paid for usable, and says what is missing."""
-    write_atomic(tf, "window.TIMINGS = " + json.dumps(timings, indent=1, ensure_ascii=False) + ";\n")
+    what it paid for usable, keeps the old timings of the beats it did not reach (their clips are the ones those
+    timings were made on), and says what is missing."""
+    stale = []
+    for beat, *_, fresh in beats:
+        mp3 = out / f"{beat}.mp3"
+        if beat not in timings and beat in old and mp3.exists() and takes.get(clip_key(mp3)) == takes0.get(clip_key(mp3)):
+            timings[beat] = old[beat]; stale += [beat] if fresh else []
+    if stale: print(f"WARNING {len(stale)} beats keep their old take, not voiced again: {', '.join(stale)}", file=sys.stderr)
+    ordered = {b[0]: timings[b[0]] for b in beats if b[0] in timings}
+    write_atomic(tf, "window.TIMINGS = " + json.dumps(ordered, indent=1, ensure_ascii=False) + ";\n")
     write_atomic(tk, json.dumps(takes, indent=1))
     write_atomic(wc_path, json.dumps(wcache, indent=1, ensure_ascii=False))
     left = [b[0] for b in beats if b[0] not in timings]
