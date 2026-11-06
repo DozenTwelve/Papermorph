@@ -7,7 +7,10 @@
 - SKILL.md links every reference file directly, so none is reachable only through another;
 - every script in scripts/ is named in SKILL.md, and every script compiles;
 - a flag written next to a script (`level.py --lufs -14`) appears in that script's source;
-- a `scripts/x.py` or `assets/templates/...` path named in the docs exists.
+- a `scripts/x.py` or `assets/templates/...` path named in the docs exists;
+- every engine version written with its minor number (`engine-v2.9`) in the Skill's docs and kits is engine.py's
+  DEFAULT, so a release bump cannot leave a doc or a style.json template behind (an older tag is named by its major
+  alone, `engine-v1`, or the line is changed with the bump).
 
 Prints each problem with its file and exits 1 if there are any.
 """
@@ -101,6 +104,16 @@ def drift():
                         say(doc, f'{name} has no {flag}')
 
 
+def versions():
+    m = re.search(r"DEFAULT = '[^@']+@(engine-v[\d.]+)'", (SKILL / 'scripts/engine.py').read_text())
+    if not m:
+        return say(SKILL / 'scripts/engine.py', 'no DEFAULT = \'OWNER/REPO@engine-vX.Y\' to check the docs against')
+    for f in DOCS + sorted(p for p in (SKILL / 'assets').rglob('*') if p.suffix in ('.json', '.html', '.js', '.md')):
+        for v in re.findall(r'engine-v\d+\.\d+', f.read_text(encoding='utf-8')):
+            if v != m[1]:
+                say(f, f'names {v}, but engine.py\'s DEFAULT is {m[1]}')
+
+
 def selftest():
     assert slug('Performance (Firefox)') == 'performance-firefox'
     assert slug('Cover and contents (`index.html`)') == 'cover-and-contents-indexhtml'
@@ -110,6 +123,6 @@ def selftest():
 
 if __name__ == '__main__':
     selftest()
-    links(); routing(); drift()
+    links(); routing(); drift(); versions()
     print('\n'.join(problems) or 'ok', f'\n{len(problems)} problems in {len(DOCS) + len(REPO_DOCS)} docs')
     sys.exit(1 if problems else 0)
