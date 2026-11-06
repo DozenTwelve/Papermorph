@@ -678,17 +678,37 @@ function mix(a, b, q) {
 }
 // A colour or attribute tween with no starting value in the state starts from the element's attribute.
 const fromAttr = (e, k) => k.startsWith('c_') ? e.getAttribute(k.slice(2)) : k.startsWith('a_') ? parseFloat(e.getAttribute(k.slice(2))) : undefined;
+// one tween's picture at time t; returns how far it has gone (1 at its end)
+function tweenAt(w, t) {
+  const p = w.dur ? Math.min(1, (t - w.t0) / w.dur) : 1, q = w.ease(p);
+  if (w.e) {
+    const s = st(w.e);
+    for (const k in w.to) s[k] = k.startsWith('c_') ? mix(w.from[k], w.to[k], q) : w.from[k] + (w.to[k] - w.from[k]) * q;
+    render(w.e);
+  } else w.pf(q);
+  return p;
+}
 function evalTo(t, list = TW) {
-  for (const w of list) {
+  for (let i = 0; i < list.length; i++) {   // a run may add tweens as it goes: they count in this pass too
+    const w = list[i];
     if (w.done || t < w.t0) continue;
-    if (!w.go) { w.go = 1; if (w.e) { const s = st(w.e); w.from = {}; for (const k in w.to) w.from[k] = s[k] ?? fromAttr(w.e, k); } }
-    const p = w.dur ? Math.min(1, (t - w.t0) / w.dur) : 1, q = w.ease(p);
-    if (w.e) {
-      const s = st(w.e);
-      for (const k in w.to) s[k] = k.startsWith('c_') ? mix(w.from[k], w.to[k], q) : w.from[k] + (w.to[k] - w.from[k]) * q;
-      render(w.e);
-    } else w.pf(q);
-    if (p >= 1) w.done = 1;
+    if (!w.go) {
+      w.go = 1;
+      if (w.e) {
+        // A tween first reached after its start, while an earlier one on the same keys still ran at that start, begins
+        // where the earlier one was at its t0, not at whichever frame got here first: playing, a seek, ?beat=N&t=S and a
+        // hidden tab's long steps then draw the same picture. The earlier ones go back to t afterwards.
+        const before = [];
+        if (t > w.t0) for (let j = 0; j < i; j++) {
+          const v = list[j];
+          if (v.e === w.e && v.go && v.t0 <= w.t0 && v.t0 + v.dur > w.t0 && Object.keys(w.to).some(k => k in v.to)) before.push(v);
+        }
+        for (const v of before) tweenAt(v, w.t0);
+        const s = st(w.e); w.from = {}; for (const k in w.to) w.from[k] = s[k] ?? fromAttr(w.e, k);
+        for (const v of before) tweenAt(v, t);
+      }
+    }
+    if (tweenAt(w, t) >= 1) w.done = 1;
   }
 }
 
