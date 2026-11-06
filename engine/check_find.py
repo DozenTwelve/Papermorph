@@ -8,7 +8,7 @@ Little Horse (one word clip is left missing on purpose). It checks that the thin
 narration is over; the character's ask with its caption and mouth (FIND.saying); a wrong tap (it says its name, then
 the short ask); blank taps (ripples, two count as a miss); the shake at the second miss and the stars at the third; a
 tap inside the asked thing's box under a smaller thing; the give-up line; the praise and the film going on; the keys;
-the warnings; that the scene keeps drawing and a bed keeps playing (and is laid again) while the page waits, and a bed
+the warnings; that the help pauses the stop's times and its line; that the scene keeps drawing and a bed keeps playing (and is laid again) while the page waits, and a bed
 with `to` stops there; and that a seek away mid-stop clears everything, the caption too, and a seek back starts afresh.
 """
 import asyncio
@@ -179,6 +179,15 @@ async def main():
         await page.wait_for_function(f"P.waiting && {hits}.length === 4", timeout=5000)
         assert await js("document.querySelectorAll('#stage .findw').length") == 1 and await js(state) == 0
         print("PASS seeks: away mid-line clears hit boxes, word, keys, sound and the caption; back starts afresh")
+
+        await page.keyboard.press("Shift+Slash")   # the help pauses the stop: no give-up under it, and the line waits
+        await page.wait_for_timeout(4000)
+        assert await js("!$('help').hidden && !P.playing && P.i === 0") and await js(state) == 0, "the stop went on under the help"
+        assert await js("!SND.word || SND.word.paused"), "the ask played on under the help"
+        await page.keyboard.press("Escape")
+        await page.wait_for_timeout(100)
+        assert await js("P.playing && P.waiting && P.i === 0"), "closing the help did not play on"
+        print("PASS the help pauses the stop: no give-up under it (4 s > giveUpAfter), the line waits; closing it plays on")
 
         await page.wait_for_timeout(1500)
         await page.keyboard.press("ArrowRight")   # left to right: ball, tree, bee, ice cream

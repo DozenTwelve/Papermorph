@@ -238,8 +238,8 @@ document.body.insertAdjacentHTML('afterbegin', `<div id="frame">
   <div id="ui"></div>
   <div class="paused-mark"><div>${translate('paused')}</div></div>
   <div class="caption" id="caption" hidden></div>
-  <div class="help" id="help" hidden role="dialog" aria-label="${translate('shortcuts')}">
-    <div class="help-box">
+  <div class="help" id="help" hidden role="dialog" aria-modal="true" aria-label="${translate('shortcuts')}">
+    <div class="help-box" tabindex="-1">
       <h2>${translate('shortcuts')}</h2>
       <div class="help-cols">
         <div><h3>${translate('lesson')}</h3><dl>
@@ -276,7 +276,7 @@ document.body.insertAdjacentHTML('afterbegin', `<div id="frame">
     <a class="icon" id="bHome" href="../" aria-label="${translate('allChapters')}" title="${translate('allChapters')}">
       <svg viewBox="0 0 18 18"><path d="M2 2h6v6H2zM10 2h6v6h-6zM2 10h6v6H2zM10 10h6v6h-6z"/></svg>
     </a>
-    <button class="icon" id="bPlay" aria-label="${translate('playLabel')}">
+    <button class="icon" id="bPlay" aria-pressed="false" aria-label="${translate('playLabel')}">
       <svg class="i-play" viewBox="0 0 18 18"><path d="M4 2v14l12-7z"/></svg>
       <svg class="i-pause" viewBox="0 0 18 18"><path d="M3.5 2h4v14h-4zM10.5 2h4v14h-4z"/></svg>
     </button>
@@ -289,7 +289,7 @@ document.body.insertAdjacentHTML('afterbegin', `<div id="frame">
     <div class="segs" id="segs"></div>
     <div class="step" id="stepName"></div>
     <button class="icon txt" id="bHelp" aria-label="${translate('helpLabel')}" title="${translate('helpLabel')}">?</button>
-    <button class="icon txt speed" id="bSpeed" aria-label="${translate('speedLabel')}" title="${translate('speedLabel')}">1×</button>
+    <button class="icon txt speed" id="bSpeed" aria-label="${translate('speedLabel')} 1×" title="${translate('speedLabel')}">1×</button>
     <button class="icon cc" id="bCC" aria-pressed="false" aria-label="${translate('captionsLabel')}" title="${translate('captionsLabel')}">CC</button>
     <button class="icon" id="bFull" aria-label="${translate('fullScreenLabel')}">
       <svg viewBox="0 0 18 18"><path d="M1 1h6v2H3v4H1zM11 1h6v6h-2V3h-4zM1 11h2v4h4v2H1zM15 11h2v6h-6v-2h4z"/></svg>
@@ -342,6 +342,10 @@ function mk(tag, attrs = {}, parent) {
 }
 // Every animated element keeps a small state object; render() writes it to the DOM.
 // Keys: x y s r o (transform/opacity), d (0..1 stroke drawn), a_<attr> numeric attr, c_<attr> hex colour.
+const warned = new Set();
+const warnOnce = (key, msg) => { if (!warned.has(key)) { warned.add(key); console.warn(msg); } };
+// a tween key that is none of these does nothing: name it
+const isKey = k => 'xysrod'.includes(k) && k.length === 1 || /^[ac]_./.test(k);
 function st(e) { return e._st || (e._st = { x: 0, y: 0, s: 1, r: 0, o: 1 }); }
 function put(e, o) { Object.assign(st(e), o); render(e); return e; }
 // Unchanged transform/opacity are not rewritten: per-frame updates of still elements cost repaints (notably in Firefox).
@@ -349,7 +353,11 @@ function render(e) {
   const s = e._st, tf = s.x || s.y || s.s !== 1 || s.r ? `translate(${s.x},${s.y}) rotate(${s.r}) scale(${s.s})` : null;
   // _tf starts unset: an element never moved keeps a transform attribute it was made with
   if (tf !== (e._tf ?? null)) { if (tf) e.setAttribute('transform', tf); else e.removeAttribute('transform'); e._tf = tf; }
-  if (s.o !== e._o) { e.setAttribute('opacity', s.o); e._o = s.o; }
+  if (s.o !== e._o) {
+    // the first render writes o over an opacity the element was made with (mk or path attributes): name it once
+    if (e._o === undefined && e.hasAttribute('opacity') && +e.getAttribute('opacity') !== s.o) warnOnce('opacity', `an element made with opacity ${e.getAttribute('opacity')} shows at o = ${s.o}: the state's o replaces the attribute, so give it as o (put(e, { o }), path's fourth argument)`);
+    e.setAttribute('opacity', s.o); e._o = s.o;
+  }
   if (s.d !== undefined) {
     e.setAttribute('stroke-dashoffset', 1 - s.d);
     e.style.visibility = s.d < .002 ? 'hidden' : '';
@@ -642,8 +650,21 @@ const io = p => p < .5 ? 4 * p * p * p : 1 - (-2 * p + 2) ** 3 / 2;
 const out = p => 1 - (1 - p) ** 3;
 const back = p => 1 + 2.2 * (p - 1) ** 3 + 1.2 * (p - 1) ** 2;
 const lin = p => p;
-function tw(e, to, t0, dur = .6, ease = io) { TW.push({ e, to, t0, dur, ease }); }
-function prog(pf, t0, dur, ease = io) { TW.push({ pf, t0, dur, ease }); }
+// A start or length that is not a number would leave the beat's end NaN, and the beat would never end: say so at once,
+// naming the call and the beat (the one being built, else the one playing).
+let building = null;
+function beatName() {
+  try { const i = building ?? P.i, b = BEATS[i]; return b ? `beat ${i} '${b.id}'` : 'this page'; } catch { return 'this page'; }
+}
+const secs = v => typeof v === 'number' && Number.isFinite(v);
+function when(call, t0, dur) {
+  if (!secs(t0) || !secs(dur) || dur < 0) throw new Error(`${typeof call === 'function' ? call() : call} in ${beatName()}: start ${t0}, length ${dur}; both must be numbers of seconds (show, hide, draw, pop, pulse and stream take their start the same way)`);
+}
+function badKeys(call, to) {
+  for (const k in to) if (!isKey(k)) warnOnce('key ' + k, `${call} in ${beatName()}: "${k}" is not a state key (x y s r o d, a_<attr>, c_<attr>), so it does nothing${k === 'opacity' ? ': use o' : ''}`);
+}
+function tw(e, to, t0, dur = .6, ease = io) { when(() => `tw(e, ${JSON.stringify(to)}, t0, dur)`, t0, dur); badKeys('tw', to); TW.push({ e, to, t0, dur, ease }); }
+function prog(pf, t0, dur, ease = io) { when('prog(f, t0, dur)', t0, dur); TW.push({ pf, t0, dur, ease }); }
 const show = (e, t0, dur = .5, ease) => tw(e, { o: 1 }, t0, dur, ease);
 const hide = (e, t0, dur = .5, ease) => tw(e, { o: 0 }, t0, dur, ease);
 const draw = (e, t0, dur = .9, ease) => tw(e, { d: 1 }, t0, dur, ease);
@@ -657,17 +678,37 @@ function mix(a, b, q) {
 }
 // A colour or attribute tween with no starting value in the state starts from the element's attribute.
 const fromAttr = (e, k) => k.startsWith('c_') ? e.getAttribute(k.slice(2)) : k.startsWith('a_') ? parseFloat(e.getAttribute(k.slice(2))) : undefined;
+// one tween's picture at time t; returns how far it has gone (1 at its end)
+function tweenAt(w, t) {
+  const p = w.dur ? Math.min(1, (t - w.t0) / w.dur) : 1, q = w.ease(p);
+  if (w.e) {
+    const s = st(w.e);
+    for (const k in w.to) s[k] = k.startsWith('c_') ? mix(w.from[k], w.to[k], q) : w.from[k] + (w.to[k] - w.from[k]) * q;
+    render(w.e);
+  } else w.pf(q);
+  return p;
+}
 function evalTo(t, list = TW) {
-  for (const w of list) {
+  for (let i = 0; i < list.length; i++) {   // a run may add tweens as it goes: they count in this pass too
+    const w = list[i];
     if (w.done || t < w.t0) continue;
-    if (!w.go) { w.go = 1; if (w.e) { const s = st(w.e); w.from = {}; for (const k in w.to) w.from[k] = s[k] ?? fromAttr(w.e, k); } }
-    const p = w.dur ? Math.min(1, (t - w.t0) / w.dur) : 1, q = w.ease(p);
-    if (w.e) {
-      const s = st(w.e);
-      for (const k in w.to) s[k] = k.startsWith('c_') ? mix(w.from[k], w.to[k], q) : w.from[k] + (w.to[k] - w.from[k]) * q;
-      render(w.e);
-    } else w.pf(q);
-    if (p >= 1) w.done = 1;
+    if (!w.go) {
+      w.go = 1;
+      if (w.e) {
+        // A tween first reached after its start, while an earlier one on the same keys still ran at that start, begins
+        // where the earlier one was at its t0, not at whichever frame got here first: playing, a seek, ?beat=N&t=S and a
+        // hidden tab's long steps then draw the same picture. The earlier ones go back to t afterwards.
+        const before = [];
+        if (t > w.t0) for (let j = 0; j < i; j++) {
+          const v = list[j];
+          if (v.e === w.e && v.go && v.t0 <= w.t0 && v.t0 + v.dur > w.t0 && Object.keys(w.to).some(k => k in v.to)) before.push(v);
+        }
+        for (const v of before) tweenAt(v, w.t0);
+        const s = st(w.e); w.from = {}; for (const k in w.to) w.from[k] = s[k] ?? fromAttr(w.e, k);
+        for (const v of before) tweenAt(v, t);
+      }
+    }
+    if (tweenAt(w, t) >= 1) w.done = 1;
   }
 }
 
@@ -681,7 +722,7 @@ const soft = p => (1 - Math.cos(Math.PI * p)) / 2;   // gentle in-out, for camer
 // (for a tail, the beat's real end), so a move can land on it, as a whip at the end of a beat does. Under music that
 // end is where the beat really leaves, up to HOLD early (P.back, see frameStep), so the move is still seen landing.
 // A tail's own D does not lengthen the beat: it runs to the end whatever it is (so D + HOLD adds no second hold).
-const clockRun = (f, D, { tail = false } = {}) => { const w = { t0: 0, dur: D, ease: lin, tail }; f(0, D); w.pf = q => f(q * w.dur, w.tail ? w.dur - P.back : w.dur); TW.push(w); };
+const clockRun = (f, D, { tail = false } = {}) => { const w = { t0: 0, dur: D, ease: lin, tail, call: tail === 'follow' ? 'camera(p, D)' : 'clockRun(f, D)' }; f(0, D); w.pf = q => f(q * w.dur, w.tail ? w.dur - P.back : w.dur); TW.push(w); };
 // A camera looks at a world group through the stage (or a box, for split screen and picture-in-picture).
 // The view {x, y, z, r} is the world point at the centre, the zoom (screen px per world px) and the roll in degrees.
 // Moves are keyed on the beat clock: to(view, t0, dur, ease) blends each given key from its value at t0; a key may be a
@@ -730,9 +771,9 @@ function camera(p, D, { box, x = SW / 2, y = SH / 2, z, r = 0, bg = COL.board } 
     for (const L of layers) put(L.g, { x: L.wrap ? dx - ((L.k * dx) % L.wrap + L.wrap) % L.wrap : (1 - L.k) * dx, y: (1 - L.k) * dy });
   }
   const cam = { el, world, at,
-    to(v, t0, dur = 1, ease = soft) { ops.push({ v, t0, dur, ease }); ops.sort((a, b) => a.t0 - b.t0); ops.forEach(o => delete o.from); return cam; },
+    to(v, t0, dur = 1, ease = soft) { when('cam.to(view, t0, dur)', t0, dur); ops.push({ v, t0, dur, ease }); ops.sort((a, b) => a.t0 - b.t0); ops.forEach(o => delete o.from); return cam; },
     cut: (v, t0) => cam.to(v, t0, 0),
-    shake(amp, t0, dur, hz = 7) { shakes.push({ amp, t0, dur, hz }); return cam; },
+    shake(amp, t0, dur, hz = 7) { when('cam.shake(amp, t0, dur)', t0, dur); shakes.push({ amp, t0, dur, hz }); return cam; },
     // Parallax layer: k < 1 is far (moves slower than the camera), k > 1 near. With wrap = W the layer's content
     // repeats every W world px: draw one period plus the widest view, and the layer never runs out.
     layer(k = 1, wrap) { const g = G(world); layers.push({ g, k, wrap }); return g; },
@@ -805,8 +846,8 @@ function header(p, str, t0, x = 1000, y = 170) {
 
 /* ---------- question effects: run on wall time, independent of the lesson clock ---------- */
 let FX = [], clock = 0;
-function fx(e, to, delay = 0, dur = .5, ease = io) { FX.push({ e, to, t0: clock + delay, dur, ease }); }
-function fxp(pf, delay, dur, ease = io) { FX.push({ pf, t0: clock + delay, dur, ease }); }
+function fx(e, to, delay = 0, dur = .5, ease = io) { when(() => `fx(e, ${JSON.stringify(to)}, delay, dur)`, delay, dur); badKeys('fx', to); FX.push({ e, to, t0: clock + delay, dur, ease }); }
+function fxp(pf, delay, dur, ease = io) { when('fxp(f, delay, dur)', delay, dur ?? 0); FX.push({ pf, t0: clock + delay, dur, ease }); }
 function finishFx() { FX.sort((a, b) => a.t0 - b.t0); evalTo(Infinity, FX); FX = []; }
 const pulseFx = (e, k = 1.8) => { if (!e) return; fx(e, { s: k }, 0, .22, out); fx(e, { s: 1 }, .22, .45); };
 const shakeFx = e => { if (!e) return; const x0 = st(e).x; fxp(q => put(e, { x: x0 + Math.sin(q * Math.PI * 6) * (1 - q) * 12 }), 0, .55, lin); };
@@ -1124,7 +1165,7 @@ function findWords(things, asks, done, { end = 'q-done', there = 'q-there', hint
   });
   const praise = clip(end, 'the praise (end)'), help = clip(there, 'the give-up line (there)'), chime = new Audio('audio/sfx/chime.mp3');
   const L = mk('g', { class: 'findw' }, stage);   // the hit boxes, over the whole picture
-  let on = false, alive = true, finished = false, k = 0, word = null, lastAct = 0, askedAt = 0, wiggling = null, playing = null;
+  let on = false, alive = true, finished = false, k = 0, word = null, lastAct = 0, askedAt = 0, wiggling = null, playing = null, held = null;
   let misses = 0, blanks = 0, turn = 0, stars = null, enabled = false;
   const now = () => performance.now();
   const finish = () => { if (finished || P.gen !== gen) return; finished = true; done(); };
@@ -1147,7 +1188,7 @@ function findWords(things, asks, done, { end = 'q-done', there = 'q-there', hint
     askLine = talk ? (TIMINGS[a.clipName]?.cues || []).map(c => c[1]).join(' ') : '';
     a.onended = () => { if (SND.word === a) SND.word = null; if (FIND.saying === a.clipName) FIND.saying = null; if (talk) askLine = ''; ok(); };
     SND.word = a;
-    a.play().catch(ok);
+    if (P.playing) a.play().catch(ok); else held = a;   // paused: the line waits for play
   });
   let wordTimer = 0;
   const hideWord = (after = 1500) => { clearTimeout(wordTimer); const w = word; wordTimer = setTimeout(() => w?.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300 }).finished.then(() => w.remove()), after); };
@@ -1266,10 +1307,18 @@ function findWords(things, asks, done, { end = 'q-done', there = 'q-there', hint
     Object.assign(FIND, { saying: null, target: null, found: null, foundAt: -1e9 });
   };
   P.cleanup.push(cleanup);
+  let lastTick = now();
   const tick = () => {
     if (!alive) return;
     if (P.gen !== gen) { cleanup(); return; }   // a seek away, or the beat replayed
     if (P.waiting && !enabled) { enabled = true; enable(); }
+    const t = now(), dt = t - lastTick; lastTick = t;
+    if (!P.playing) {   // paused (the help is open): the hint and give-up times and the line being said wait too
+      lastAct += dt; askedAt += dt; FIND.t0 += dt / 1000; FIND.foundAt += dt / 1000;
+      if (playing && !playing.paused) { playing.pause(); held = playing; }
+      requestAnimationFrame(tick); return;
+    }
+    if (held) { const a = held; held = null; a.play().catch(() => a.onended?.()); }
     if (list[0]?.hit) place();
     if (stars) {
       const b = box(stars.t), cx = b.x + b.w / 2, cy = b.y + b.h / 2, R = Math.max(b.w, b.h) * .38 + 24, a0 = now() / 900;
@@ -1612,7 +1661,7 @@ function soundTick(dt) {
 }
 
 /* ---------- player ---------- */
-const P = { i: 0, t: 0, end: 1, back: 0, idle: 0, playing: false, waiting: false, done: false, started: false, audio: null, afail: false, stall: 0, cleanup: [], rate: 1, nextClip: null };
+const P = { i: 0, t: 0, end: 1, back: 0, idle: 0, playing: false, waiting: false, done: false, started: false, audio: null, afail: false, stall: 0, ct: 0, cleanup: [], rate: 1, nextClip: null, lead: {} };
 function runBeat(i) {
   TW = [];
   const b = BEATS[i], tm = TIMINGS[b.id], pre = b.pre || 0;   // pre: seconds of picture before the narration starts
@@ -1621,14 +1670,18 @@ function runBeat(i) {
     return pre + tm.marks[k] + off;
   };
   S.cleared = false;
-  b.run(m, pre + tm.dur);
-  if (S.cleared && b.lead !== false && CHAPTER.lead !== false && !pre) leadIn();   // CHAPTER.lead false: no beat gets one (a film)
+  building = i;
+  try { b.run(m, pre + tm.dur); } finally { building = null; }
+  if (S.cleared && b.lead !== false && CHAPTER.lead !== false && !pre) leadIn(b.id);   // CHAPTER.lead false: no beat gets one (a film)
   TW.sort((a, c) => a.t0 - c.t0);
   // runs that last to the end anyway (tails, follow cameras) do not set it: only the narration and the other tweens do,
   // and minDur, the least the whole beat lasts (two mirrored beats run the same seconds)
   const end = Math.max(Math.max(pre + tm.dur, ...TW.filter(w => !w.tail).map(w => w.t0 + w.dur)) + HOLD, b.minDur || 0);
   const tail = TW.some(w => w.tail === true);
   for (const w of TW) if (w.tail === true || tail && w.tail === 'follow') w.dur = end - w.t0;
+  const bad = TW.find(w => !secs(w.dur));
+  if (bad) throw new Error(`${bad.call || 'a tween'} in beat ${i} '${b.id}': its length is ${bad.dur}; give D in seconds`);
+  if (!secs(end)) throw new Error(`beat ${i} '${b.id}': its end is ${end} (narration ${tm.dur} s, pre ${b.pre}, minDur ${b.minDur}): each must be a number of seconds`);
   return SND.len[i] = end;   // the music places itself by how long each beat really runs
 }
 const HOLD = .6;
@@ -1636,7 +1689,9 @@ const HOLD = .6;
 // If nothing appears before LEAD_MAX, the opening group (every tween that starts within LEAD_GROUP s of the
 // first reveal) moves earlier so it begins at LEAD_AT, just after the old panel has faded. Later steps keep their word timing.
 const LEAD_AT = .4, LEAD_MAX = .8, LEAD_GROUP = 1.2;
-function leadIn() {
+// P.lead[beat id] = { moved, by }: what the lead-in did to that beat (tweens moved, seconds earlier), for tools to read;
+// the first time a beat's opening moves, a console.info line says so.
+function leadIn(id) {
   const reveals = TW.filter(w => {
     if (!w.e) return false;
     const s = st(w.e), to = w.to;
@@ -1645,7 +1700,10 @@ function leadIn() {
   if (!reveals.length) return;
   const first = Math.min(...reveals.map(w => w.t0));
   if (first <= LEAD_MAX) return;
-  for (const w of TW) if (w.t0 >= first && w.t0 < first + LEAD_GROUP) w.t0 -= first - LEAD_AT;
+  const by = first - LEAD_AT, moved = TW.filter(w => w.t0 >= first && w.t0 < first + LEAD_GROUP);
+  for (const w of moved) w.t0 -= by;
+  if (!P.lead[id]) console.info(`lead-in: beat '${id}' had nothing on screen until ${first.toFixed(2)} s, so its opening ${moved.length} tweens start ${by.toFixed(2)} s earlier, ahead of the words they were timed to ({ lead: false } keeps them)`);
+  P.lead[id] = { moved: moved.length, by: +by.toFixed(3) };
 }
 function stopAudio() {
   const a = P.audio;
@@ -1665,16 +1723,18 @@ function clearCards() {
 // Rebuild the scene from scratch and fast-forward every earlier beat, so any step starts from its exact picture.
 function seek(i, play = P.playing) {
   stopAudio(); clearCards(); reset();
+  P.back = 0;   // the earlier beats' tails end where they would without music lag, not where the last beat left it
   seeking = true;
   try {
     for (let k = 0; k < i; k++) { runBeat(k); evalTo(Infinity); }
     start(i, play);
   } finally { seeking = false; }
 }
-// Jump to a point inside beat i (frac of its narration); question beats always start at their beginning.
+// Jump to a point inside beat i, frac of its length on screen: the measure its segment's fill shows (P.t / P.end), so a
+// click lands where the fill reaches; at most its last frame, held HOLD s. Question beats always start at their beginning.
 function seekInto(i, frac) {
   seek(i, true);
-  const pre = BEATS[i].pre || 0, t = BEATS[i].ask && !CHAPTER.film ? 0 : frac * (pre + TIMINGS[BEATS[i].id].dur);   // a film's question beats seek like any other
+  const pre = BEATS[i].pre || 0, t = BEATS[i].ask && !CHAPTER.film ? 0 : Math.min(frac * P.end, P.end - HOLD);   // a film's question beats seek like any other
   if (t < .3) return;
   P.t = t;
   evalTo(t);
@@ -1684,7 +1744,7 @@ function start(i, play) {
   stopAudio(); clearCards();
   // P.gen counts starts: a done() kept from an earlier start of this same beat (a step replayed) no longer counts
   const gen = P.gen = (P.gen || 0) + 1;
-  Object.assign(P, { i, t: 0, idle: 0, waiting: false, done: false, afail: false, stall: 0, lost: 0, back: 0 });
+  Object.assign(P, { i, t: 0, idle: 0, waiting: false, done: false, afail: false, stall: 0, ct: 0, lost: 0, back: 0 });
   P.end = runBeat(i);
   evalTo(0);
   const a = P.audio = beatClip(i, true);
@@ -1693,7 +1753,9 @@ function start(i, play) {
     a.playbackRate = P.rate;
     // An aborted or superseded load (fast stepping, a reload) is not a failure: only a real error for the current clip
     // shows the note, and the note goes away as soon as a clip plays.
-    a.onerror = () => { if (P.audio === a && a.error && a.error.code !== MediaError.MEDIA_ERR_ABORTED) soundFailed(); };
+    const failed = () => a.error && a.error.code !== MediaError.MEDIA_ERR_ABORTED;
+    a.onerror = () => { if (P.audio === a && failed()) soundFailed(); };
+    if (failed()) soundFailed();   // a preloaded clip may have failed before it had this handler
     a.onplaying = () => {
       if (P.audio !== a) return;
       $('soundNote').hidden = true;
@@ -1704,7 +1766,10 @@ function start(i, play) {
   if (b.ask) b.ask(() => {
     if (P.gen !== gen || P.done) return;
     evalTo(Infinity);
-    if (i + 1 < BEATS.length) start(i + 1, true);
+    // done() under the help (a stop's time ran out there): the next beat waits, and closing the help plays it
+    const wait = !$('help').hidden;
+    if (wait) helpResume = true;
+    if (i + 1 < BEATS.length) start(i + 1, !wait);
     else { P.done = true; setPlaying(false); filmDone(); }
   });
   setPlaying(play);
@@ -1729,6 +1794,7 @@ const SPEEDS = [.75, 1, 1.25, 1.5];
 function setSpeed(r) {
   P.rate = r;
   $('bSpeed').textContent = r + '×';
+  $('bSpeed').setAttribute('aria-label', `${translate('speedLabel')} ${num(r)}×`);   // the label hides the text: a screen reader hears the speed here
   if (P.audio) P.audio.playbackRate = r;
   try { localStorage.setItem('speed', String(r)); } catch {}
 }
@@ -1736,6 +1802,7 @@ const stepSpeed = d => setSpeed(SPEEDS[Math.max(0, Math.min(SPEEDS.length - 1, S
 function soundFailed() { P.afail = true; $('soundNote').hidden = false; }
 function setPlaying(v) {
   P.playing = v;
+  $('bPlay').setAttribute('aria-pressed', String(v));   // one button for both: a screen reader hears whether it plays
   const a = P.audio;
   if (!a) return;
   const lead = v && P.t < (BEATS[P.i]?.pre || 0);
@@ -1796,8 +1863,10 @@ function frameStep(now, most) {
       P.t += dt * P.rate;
       if (P.t >= pre && !P.afail) { a.muted = false; a.currentTime = P.t - pre; a.play().catch(e => { if (P.audio === a && e.name === 'NotAllowedError') soundFailed(); }); }
     } else if (a && !P.afail && !a.ended) {
-      if (a.currentTime > 0) { P.t = Math.max(P.t, pre + a.currentTime); P.stall = 0; }
-      else if ((P.stall += dt) > (a.readyState < 2 ? 8 : 15)) soundFailed();   // nothing to play after 8 s, or stuck for 15
+      // the clip moving on drives the clock; one standing still (not started, or run dry mid-way on a lost connection)
+      // counts as a stall: nothing to play after 8 s, or stuck for 15, and the picture goes on by wall time
+      if (a.currentTime > P.ct) { P.ct = a.currentTime; P.t = Math.max(P.t, pre + a.currentTime); P.stall = 0; }
+      else if ((P.stall += dt) > (a.readyState < 2 ? 8 : 15)) soundFailed();
     } else P.t += dt * P.rate;
     // P.lost: how long the clock stood still while the film played (a clip getting going, buffering). Music runs on
     // through it, so a beat under music gives that time back from its closing hold: each beat then lasts as long in
@@ -1819,13 +1888,21 @@ function buildSegs() {
   s.title = b.title;
   s.setAttribute('aria-label', translate('goToStep', { n: i + 1, title: b.title }));
   // A click lands at that point of the step; keyboard activation (no pointer position) starts the step.
-  s.onclick = e => {
-    const r = s.getBoundingClientRect();
-    hideCover(); seekInto(i, e.detail ? (e.clientX - r.left) / r.width : 0);
-  };
+  s.onclick = e => goSeg(i, e.detail ? e.clientX : null);
   $('segs').append(s);
   return s.firstChild;
   });
+  // The track is 8 px, too thin for a finger: a click anywhere on the bar's 30 px height, above, below or between
+  // segments, goes to the segment under it (or the nearest).
+  $('segs').onclick = e => {
+    if (e.target !== $('segs')) return;
+    const k = segs.findIndex(f => e.clientX < f.parentNode.getBoundingClientRect().right + 2);
+    goSeg(k < 0 ? segs.length - 1 : k, e.clientX);
+  };
+}
+function goSeg(i, x) {
+  const r = segs[i].parentNode.getBoundingClientRect();
+  hideCover(); seekInto(i, x == null ? 0 : Math.max(0, Math.min(1, (x - r.left) / r.width)));
 }
 // ui() runs on every frame, paused or not: it writes only what changed, so an idle lesson does no layout work.
 let stepText = '';
@@ -1929,12 +2006,19 @@ document.addEventListener('fullscreenchange', () => {
 let wakeT = 0;
 function wake() { $('frame').classList.add('awake'); clearTimeout(wakeT); wakeT = setTimeout(() => $('frame').classList.remove('awake'), 2500); }
 for (const type of ['pointermove', 'pointerdown', 'keydown']) addEventListener(type, wake, true);
-let helpResume = false;
+let helpResume = false, helpFrom = null;
+// The help takes the focus while open (Tab stays in it: it has no controls) and gives it back when it closes.
 function toggleHelp() {
   const open = $('help').hidden;
   $('help').hidden = !open;
-  if (open) { helpResume = P.playing; if (P.playing) setPlaying(false); }
-  else if (helpResume) setPlaying(true);
+  if (open) {
+    helpResume = P.playing; if (P.playing) setPlaying(false);
+    helpFrom = document.activeElement; $('help').querySelector('.help-box').focus({ preventScroll: true });
+  } else {
+    if (helpFrom && helpFrom !== document.body && helpFrom.isConnected) helpFrom.focus({ preventScroll: true });
+    helpFrom = null;
+    if (helpResume) setPlaying(true);
+  }
 }
 // Review notes, only with ?review in the URL: N pauses and asks for a note on this moment, Shift+N copies every
 // note of the chapter (one line each, with the ?beat=N&t=S that reopens it) and offers to clear them.
@@ -1957,9 +2041,10 @@ function reviewCopy() {
 document.addEventListener('keydown', e => {
   if (e.altKey || e.metaKey || e.ctrlKey) return;
   const k = e.key;
-  if (!$('help').hidden) { if (k === 'Escape' || k === '?') { e.preventDefault(); toggleHelp(); } return; }
+  if (!$('help').hidden) { if (k === 'Escape' || k === '?' || k === 'Tab') { e.preventDefault(); if (k !== 'Tab') toggleHelp(); } return; }
   if (e.target.matches?.('input')) {        // Keep native input keys; only answer boxes use Enter to check.
     if (k === 'Enter' && e.target.type !== 'range' && P.keys) { e.preventDefault(); P.keys(e); }
+    else if (k === ' ' && e.target.type === 'range') { e.preventDefault(); togglePlay(); }   // the volume slider has no use for Space
     else if (k === 'Escape') e.target.blur();
     return;
   }
@@ -1994,9 +2079,17 @@ fit();
 // Start the lesson once the chapter page has defined CHAPTER and BEATS.
 // ?beat=N&t=S opens a paused frame, for reviewing a single moment.
 function boot() {
+  // a beat written as [id, title, run, extra], as the docs show it, becomes { id, title, run, ...extra }
+  BEATS.forEach((b, i) => { if (Array.isArray(b)) { const [id, title, run, extra] = b; BEATS[i] = { id, title, run, ...extra }; } });
   // a beat with no narration: { dur } in its fourth slot stands in for its clip and its TIMINGS entry
+  const loaded = !!window.TIMINGS;
   window.TIMINGS ??= {};
   for (const b of BEATS) if (!TIMINGS[b.id] && b.dur != null) TIMINGS[b.id] = { dur: b.dur, marks: {}, cues: [], silent: true };
+  const untimed = BEATS.filter(b => !TIMINGS[b.id]).map(b => b.id);
+  if (untimed.length) {
+    const at = `audio/${CHAPTER.language || 'en'}/timings.js`;
+    throw new Error(`${loaded ? `${at} has no timings for beat ${untimed.join(', ')}` : `no ${at} loaded, so no beat has timings`}: make the clips and timings with tts.py or eleven.py from the chapter's narration (core/sound.md), or give a beat with no narration { dur: s } in its fourth slot`);
+  }
   for (const m of SND.bgm) {   // music() above BEATS plays under every beat
     m.beats ??= BEATS.map(b => b.id);
     const lost = m.beats.filter(id => !BEATS.some(b => b.id === id));
@@ -2021,7 +2114,8 @@ function boot() {
     try { for (let k = 0; k < BEATS.length; k++) { runBeat(k); evalTo(Infinity); } } finally { seeking = false; }
     console.log(`?lengths: beat, voice (pre + clip), on screen (hold included), and the time past voice + ${HOLD} s hold\n` + BEATS.map((b, i) => {
       const v = (b.pre || 0) + TIMINGS[b.id].dur, over = SND.len[i] - HOLD - v;
-      return `${b.id.padEnd(16)} ${v.toFixed(2).padStart(6)} ${SND.len[i].toFixed(2).padStart(6)}${over > .005 ? `  +${over.toFixed(2)}` : ''}`;
+      const ld = P.lead[b.id];
+      return `${b.id.padEnd(16)} ${v.toFixed(2).padStart(6)} ${SND.len[i].toFixed(2).padStart(6)}${over > .005 ? `  +${over.toFixed(2)}` : ''}${ld ? `  lead-in: ${ld.moved} tweens ${ld.by.toFixed(2)} s earlier` : ''}`;
     }).join('\n'));
   }
   if (qs.has('beat')) {

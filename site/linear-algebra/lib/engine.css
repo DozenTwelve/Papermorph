@@ -56,7 +56,7 @@ button[hidden] { display: none; }
 .band .fb { grid-area: fb; align-self: start; }
 .band .body { grid-area: body; }
 .band .acts { grid-area: acts; }
-.side .mascot { float: right; margin: -2px -4px 6px 10px; }
+.side .mascot { float: inline-end; margin-block: -2px 6px; margin-inline: 10px -4px; }
 .kicker { margin: 0 0 4px; font-size: 20px; font-weight: 600; color: var(--quiz); }
 .prompt { margin: 0; font-size: 28px; line-height: 1.35; }
 .side .prompt { font-size: 24px; }
@@ -85,7 +85,7 @@ button[hidden] { display: none; }
 .btn.go { background: var(--quiz); color: var(--on-fill, #10242e); }   /* --on-fill: text on a coloured fill */
 .btn:disabled { background: var(--edge); color: var(--dim); cursor: default; }
 
-.grid .row { display: grid; grid-template-columns: 170px minmax(0, 1fr) 34px; gap: 16px; align-items: center; padding: 5px 0 5px 12px; border-bottom: 1px solid var(--rule); }
+.grid .row { display: grid; grid-template-columns: 170px minmax(0, 1fr) 34px; gap: 16px; align-items: center; padding: 5px 0; padding-inline-start: 12px; border-bottom: 1px solid var(--rule); }
 .grid .num { display: flex; justify-content: flex-end; align-items: center; font-size: 26px; }
 .grid.text .row { grid-template-columns: minmax(0, 1fr) auto 34px; }
 .grid.text .num { justify-content: flex-start; }
@@ -171,12 +171,13 @@ button[hidden] { display: none; }
 .box.bad { border-color: var(--bad); }
 .box:disabled { opacity: 1; }
 kbd { display: inline-block; min-width: 1.5em; padding: 0 .4em; margin-inline-start: .5em; border: 1.5px solid currentColor; border-radius: 6px; font: 600 .7em/1.5 var(--ui); text-align: center; vertical-align: .12em; opacity: .6; }
-.opt kbd { margin: 0 .6em 0 0; }
+.opt kbd { margin: 0; margin-inline-end: .6em; }
 .keys { margin: 6px 0 0; font-size: 18px; color: var(--dim); }
 .keys kbd { margin: 0 .15em; }
 .grid .row.cur { background: color-mix(in srgb, var(--chalk) 5%, transparent); box-shadow: inset 4px 0 var(--quiz); }
 .help { position: absolute; left: 0; top: 0; width: var(--sw, 1600px); height: var(--sh, 900px); display: grid; place-items: center; background: color-mix(in srgb, var(--veil) 72%, transparent); }
 .help[hidden] { display: none; }
+.help-box:focus { outline: none; }   /* focused as the open dialog, not as a control */
 .help-box { width: min(1120px, calc(var(--sw, 1600px) - 80px)); padding: 40px 50px; border-radius: 22px; background: var(--panel); border: 1.5px solid var(--edge); }
 .help h2 { margin: 0 0 22px; font-size: 32px; font-weight: 600; }
 .help h3 { margin: 0 0 12px; font-size: 20px; font-weight: 600; color: var(--quiz); }
@@ -184,7 +185,7 @@ kbd { display: inline-block; min-width: 1.5em; padding: 0 .4em; margin-inline-st
 .help-cols:has(> [hidden]) { grid-template-columns: 1fr; }
 .help dl { margin: 0; display: grid; grid-template-columns: 150px 1fr; row-gap: 10px; font-size: 22px; }
 .help dt { text-align: end; padding-inline-end: 18px; white-space: nowrap; }
-.help dt kbd { margin: 0 0 0 .3em; opacity: .9; }
+.help dt kbd { margin: 0; margin-inline-start: .3em; opacity: .9; }
 .help dd { margin: 0; color: var(--dim); }
 .help-close { margin: 26px 0 0; font-size: 18px; color: var(--dim); }
 .icon.txt { font-size: 20px; font-weight: 700; color: var(--dim); }
@@ -218,7 +219,7 @@ svg.m { display: inline-block; overflow: visible; }
 .card.screen:not(.sort):not(.fin) > .head, .card.screen:not(.sort):not(.fin) > .fb { flex: none; }
 .card.screen:not(.sort):not(.fin) > .body { flex: 0 1 auto; min-height: 0; overflow-y: auto; }
 .screen .acts { position: absolute; inset-inline-end: 70px; bottom: 48px; }
-.screen .grid .row { grid-template-columns: 200px minmax(0, 1fr) 40px; padding: 9px 0 9px 12px; }
+.screen .grid .row { grid-template-columns: 200px minmax(0, 1fr) 40px; padding: 9px 0; padding-inline-start: 12px; }
 /* a long label (a system of equations) widens the label column for every row instead of running off the card's left */
 .screen .grid:not(.text) { display: grid; grid-template-columns: minmax(200px, max-content) minmax(0, 1fr) 40px; }
 .screen .grid:not(.text) > .row { grid-column: 1 / -1; grid-template-columns: subgrid; }
@@ -296,6 +297,7 @@ a.btn { text-decoration: none; display: inline-block; }
    language (the bar's step label reads "3 / 6  title" as the bar does). Mathematics reads left to right inside Arabic
    text, as in Arabic school books: an expression (svg.m) and an answer line (.bline: "3 + 4 = [box] ✗") keep their order. */
 [dir="rtl"] :is(#stage, #bar, svg.m, .bline) { direction: ltr; }
+[dir="rtl"] .grid .row.cur { box-shadow: inset -4px 0 var(--quiz); }   /* the current row's bar at its start, the right */
 /* Arabic letters join: letter spacing breaks the words apart. The faces are each system's own Arabic UI and book faces;
    no font file is loaded. A book's own lib/book.css :root still wins (these have no specificity). */
 :where(:root:lang(ar)) { --ui: "Segoe UI", "SF Arabic", "Geeza Pro", "Noto Sans Arabic", Tahoma, sans-serif; }

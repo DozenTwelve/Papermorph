@@ -189,7 +189,7 @@ async def check_russian_lesson(browser, errors):
     assert await text("#bSpeed") == "1.25×", "Ю (the > key) plays faster"
     await press(page, "б", "Comma")
     assert await text("#bSpeed") == "1×", "Б (the < key) plays slower"
-    assert await page.get_attribute("#bSpeed", "aria-label") == "Скорость воспроизведения (< и >)"
+    assert await page.get_attribute("#bSpeed", "aria-label") == "Скорость воспроизведения (< и >) 1×"   # the speed is in the label
 
     # The template's quick check: labels, hint, wrong answer, Show answer by Ы.
     await page.evaluate("seek(2, false)")
