@@ -253,14 +253,10 @@ async def main(a):
             w.writeframes((np.clip(track, -1, 1) * 32767).astype('<i2').tobytes())
         if a.lufs is not None:   # levelled as level.py levels a clip: a gain, a limiter, measured and redone
             wav, (i0, tp0) = audio_dir / 'track.wav', lv.measure(mix)[:2]
-            g, lim = a.lufs - i0, PEAK - .3
-            for _ in range(5):
-                subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', str(mix), '-af',
-                                f'volume={g:.2f}dB,alimiter=limit={10 ** (lim / 20):.4f}:level=0:latency=1', '-c:a', 'pcm_s16le', str(wav)], check=True)
-                i1, tp1 = lv.measure(wav)[:2]
-                if tp1 <= PEAK and abs(a.lufs - i1) <= .3: break
-                if tp1 > PEAK: lim -= tp1 - PEAK + .2
-                if abs(a.lufs - i1) > .3: g += a.lufs - i1   # the limiter took some of the loudness
+            def render(g, lim):
+                subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', str(mix), '-af', lv.limiter(g, lim), '-c:a', 'pcm_s16le', str(wav)], check=True)
+                return lv.measure(wav)[:2]
+            i1, tp1, g, lim = lv.level_to(render, a.lufs, PEAK, a.lufs - i0)
             print(f'loudness {i0:.1f} LUFS, {tp0:.1f} dBTP as the page mixes it; levelled to {i1:.1f} LUFS, {tp1:.1f} dBTP '
                   f'({g:+.1f} dB, limiter at {lim:.1f} dBFS; --lufs {a.lufs:g})'
                   + ('' if abs(a.lufs - i1) <= .5 else f': WARNING {a.lufs - i1:+.1f} LU from the target, the limiter holds it back'), flush=True)

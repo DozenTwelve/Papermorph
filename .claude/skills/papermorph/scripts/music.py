@@ -135,22 +135,22 @@ def cut(a):
     lift = "volume='pow(10,(" + "+".join(f"{db}*exp(-pow((t-{t})/0.9,2))" for t, db in lifts) + ")/20)':eval=frame" if lifts else ""
     chain = ",".join(filter(None, [f"atrim=0:{a.length + TAIL:.3f}", a.af, EVEN if a.even else "", lift, "afade=t=in:d=0.4"]))
     out = pathlib.Path(a.out); out.parent.mkdir(parents=True, exist_ok=True)
-    def render(gain):   # one encode from the recording: each MP3 generation loses some loudness, so none is levelled twice
-        lim = f",volume={gain:.2f}dB,alimiter=limit={10 ** ((a.peak - .3) / 20):.4f}:level=0:latency=1" if a.lufs is not None else ""
-        subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(a.src), "-filter_complex", ";".join(f + [f"[{last}]{chain}{lim}[o]"]),
+    seen = []
+    def render(gain, lim=None):   # one encode from the recording: each MP3 generation loses some loudness, so none is levelled twice
+        subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(a.src), "-filter_complex",
+                        ";".join(f + [f"[{last}]{chain}{',' + lv.limiter(gain, lim) if lim is not None else ''}[o]"]),
                         "-map", "[o]", "-ar", "44100", "-ac", "2", "-b:a", "160k", str(out)], check=True)
-        return lv.measure(out)[:2]
-    g = 0.0; i, tp = render(g); i0 = i
-    for _ in range(4 if a.lufs is not None else 0):   # measured and redone until within 0.3 LU, as level.py does
-        if abs(a.lufs - i) <= .3 and tp <= a.peak: break
-        g += a.lufs - i if abs(a.lufs - i) > .3 else 0
-        if tp > a.peak: g -= .2
-        i, tp = render(g)
+        seen.append(lv.measure(out)[:2]); return seen[-1]
+    # levelled by level.py's own loop (the limiter lowered while the peak is over, the best try kept)
+    i, tp, g, _ = lv.level_to(render, a.lufs, a.peak, 0.0) if a.lufs is not None else (*render(0.0), 0.0, None)
+    i0 = seen[0][0]
     print(f"film {a.length:.2f} s; recording from {keep[0][0]:.2f} s, its last note ({end:.2f} s) at {at:.2f} s of the cut"
           + (f"; its sound ends at {ends:.2f} s (--end {ends:.2f} lands that on the end instead)" if ends and ends - end > .5 else ""))
     if a.rests is not None:
         print(f"rests taken out: {', '.join(f'{x:.2f}-{y:.2f}' for x, y in used) or 'none'}")
-    print(f"{out}: {i:.1f} LUFS, {tp:.1f} dBTP" + (f" ({i0:.1f} before levelling, {g:+.1f} dB)" if a.lufs is not None else ""))
+    print(f"{out}: {i:.1f} LUFS, {tp:.1f} dBTP" + (f" ({i0:.1f} before levelling, {g:+.1f} dB)" if a.lufs is not None else "")
+          + (f": WARNING {a.lufs - i:+.1f} LU from --lufs {a.lufs:g}" if a.lufs is not None and abs(a.lufs - i) > .5 else "")
+          + (f": WARNING peak over --peak {a.peak:g}" if a.lufs is not None and tp > a.peak else ""))
     return keep, used
 
 
