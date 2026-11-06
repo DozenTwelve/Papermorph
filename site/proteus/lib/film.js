@@ -306,7 +306,7 @@ const DECOR = {
   boar: [[poly([[-200, -170], [-160, -196], [-145, -212], [-120, -206], [-100, -226], [-75, -219], [-55, -242], [-30, -231],
     [-5, -247], [20, -229], [45, -236], [70, -211], [110, -192], [70, -186], [0, -206], [-80, -196], [-160, -176]]), '#9c6a16'],
     [poly([[244, -64], [262, -40], [234, -52]]), SHEET]],
-  stream: [['M150 -126Q190 -170 238 -172Q266 -164 276 -138', 'none', { stroke: SHEET, 'stroke-width': 7, 'stroke-linecap': 'round', opacity: .8 }]],
+  stream: [['M150 -126Q190 -170 238 -172Q266 -164 276 -138', 'none', { stroke: SHEET, 'stroke-width': 7, 'stroke-linecap': 'round' }]],
   tree: [['M-30 -90h22M10 -150h26M-34 -230h18M8 -330h24M-30 -430h20M6 -540h18M-200 -232h30M180 -320h28M-180 -416h24M160 -482h26',
     'none', { stroke: '#3b2a1c', 'stroke-width': 6, 'stroke-linecap': 'round' }]],
 };
@@ -426,7 +426,7 @@ const CARDS = {
     path(g, 'M-220 110H220M-140 -130V140', { stroke: '#b9ad97', 'stroke-width': 3 });
     arrowTo(g, -140, 110, 20, 70, RED, t0 + .2);
     arrowTo(g, -140, 110, -80, -40, RED, t0 + .7);
-    draw(path(g, 'M20 70L80 -80M-80 -40L80 -80', { stroke: RED, 'stroke-width': 3, 'stroke-dasharray': '8 8', opacity: .6 }, { d: 0 }), t0 + 1.2, .5);
+    draw(path(g, 'M20 70L80 -80M-80 -40L80 -80', { stroke: RED, 'stroke-width': 3, 'stroke-dasharray': '8 8' }, { d: 0 }), t0 + 1.2, .5);
     arrowTo(g, -140, 110, 80, -80, '#7d2326', t0 + 1.6, 7);
     [['a', 0, 104], ['b', -126, -40], ['a + b', 96, -84]].forEach(([s, x, y], i) =>
       show(T(g, s, { x, y, size: 30, fill: i === 2 ? '#7d2326' : RED, font: SER, o: 0 }), t0 + [.6, 1.1, 2][i], .3));
@@ -486,8 +486,8 @@ const CARDS = {
     path(g, 'M-260 -155H120L90 -100L130 -40L60 10L100 80L20 165H-260Z', { fill: '#e8dcc0', stroke: BROWN, 'stroke-width': 3 });
     path(g, 'M150 -60L230 -90L250 20L180 60Z', { fill: '#e8dcc0', stroke: BROWN, 'stroke-width': 3 });
     const reg = path(g, 'M-90 -40L10 -60L40 20L-40 60L-110 20Z', { fill: TEAL, stroke: TEAL, 'stroke-width': 2 }, { o: 0 });
-    path(g, 'M-90 -40L-170 -90M10 -60L30 -155M40 20L80 80M-110 20L-200 70M-40 60L-60 165', { stroke: BROWN, 'stroke-width': 2, 'stroke-dasharray': '6 6', opacity: .6 });
-    path(g, 'M-90 -40L10 -60L40 20L-40 60L-110 20Z', { fill: 'none', stroke: BROWN, 'stroke-width': 2, opacity: .6 });
+    path(g, 'M-90 -40L-170 -90M10 -60L30 -155M40 20L80 80M-110 20L-200 70M-40 60L-60 165', { stroke: BROWN, 'stroke-width': 2, 'stroke-dasharray': '6 6' });
+    path(g, 'M-90 -40L10 -60L40 20L-40 60L-110 20Z', { fill: 'none', stroke: BROWN, 'stroke-width': 2 });
     ['M-240 -130Q-150 -60 -100 -20T20 40T75 130', 'M-60 -150Q-40 -90 -30 -50T-20 40'].forEach((d, i) =>
       draw(path(g, d, { stroke: DEEP, 'stroke-width': 5, fill: 'none', 'stroke-linecap': 'round' }, { d: 0 }), t0 + .1 + i * .3, 1));
     const cur = G(g, { x: 180, y: 140, o: 0 });
