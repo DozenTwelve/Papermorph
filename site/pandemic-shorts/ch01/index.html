@@ -250,7 +250,7 @@ const BEATS = [
     for (let i = 0; i < 128; i++) {
       const a = R() * 2 * Math.PI, d = (.03 + .8 * Math.sqrt(i / 128)) * (.75 + .5 * R());
       const [x, y] = M.xy([WUHAN[0] + d * Math.cos(a) * 1.15, WUHAN[1] + d * Math.sin(a)]), t = times[i < 2 ? 0 : Math.floor(Math.log2(i))] + R() * .25;
-      tw(put(mk('circle', { cx: x.toFixed(1), cy: y.toFixed(1), r: 0, fill: RED, opacity: .9 }, M.g), { a_r: 0 }), { a_r: 11 }, t, .25, back);
+      tw(put(mk('circle', { cx: x.toFixed(1), cy: y.toFixed(1), r: 0, fill: RED }, M.g), { a_r: 0 }), { a_r: 11 }, t, .25, back);
     }
     times.forEach(t => sfx('double', t, 'tick', .5));
     label(s, 'Meanwhile', XC, 260, .05, { size: 80, fill: DARK, colour: LIGHT });
@@ -311,7 +311,7 @@ const BEATS = [
     CN.forEach(n => { const [x, y] = M.xy(CITIES[n]); path(M.under, `M${wx} ${wy}L${x} ${y}`, { stroke: MAPINK, 'stroke-width': 5 }); });
     const top = G(M.g, {});
     // 10:00 as a target: a dashed ring; the solid ring closes with the clock
-    const goal = mk('circle', { cx: wx, cy: wy, r: 90, fill: 'none', stroke: MARK, 'stroke-width': 4, 'stroke-dasharray': '10 9', opacity: 0 }, top);
+    const goal = put(mk('circle', { cx: wx, cy: wy, r: 90, fill: 'none', stroke: MARK, 'stroke-width': 4, 'stroke-dasharray': '10 9' }, top), { o: 0 });
     show(goal, tn, .3);
     const ring = mk('circle', { cx: wx, cy: wy, r: 90, fill: 'none', stroke: MARK, 'stroke-width': 8, pathLength: 1, 'stroke-dasharray': '1 1', 'stroke-dashoffset': 1, transform: `rotate(-90 ${wx} ${wy})` }, top);
     mk('circle', { cx: wx, cy: wy, r: 10, fill: RED }, top);
@@ -343,7 +343,7 @@ const BEATS = [
     prog(q => { C.set(2 + 8 * q); ring.setAttribute('stroke-dashoffset', 1 - q); }, run0, close - run0, lin);
     hide(goal, close, .2);
     label(s, 'Before 10:00', XC, 1040, bf, { size: 54, fill: LIGHT, colour: DARK });
-    rect(s, 60, 1095, 740, 190, { fill: DARK, opacity: 0, rx: 6 }); show(s.lastChild, bf + .1, .2);
+    put(rect(s, 60, 1095, 740, 190, { fill: DARK, rx: 6 }), { o: 0 }); show(s.lastChild, bf + .1, .2);
     const n = counter(s, 300000, XC, 1205, run0 + .2, { size: 110, fill: LIGHT, dur: k3 + .7 - run0 - .2 });
     const lt = T(s, 'LEFT BY TRAIN BEFORE 10:00', { x: XC, y: 1262, size: 36, fill: MUTED, font: SANS, weight: 500, anchor: 'middle', o: 0 });
     show(lt, k3 + .7, .3);
@@ -384,7 +384,7 @@ const BEATS = [
       routes: [...dests.map((n, i) => [WUHAN, CITIES[n], bt + .25 + i * .08, .45]), ...F.slice(1).map(f => [WUHAN, f[1], f[3] - .45, .45])],
     });
     // Antarctica, drawn over the paper when it faces the camera; it stays clear
-    const ant = path(s, '', { fill: MAPLAND, stroke: LIGHT, 'stroke-width': 3, opacity: 0 });
+    const ant = path(s, '', { fill: MAPLAND, stroke: LIGHT, 'stroke-width': 3 });
     clockRun(t => {
       const v = view(t), P = ANT.map(ll => mapXY(ll, v));
       if (P.some(q => !q)) return ant.setAttribute('opacity', 0);

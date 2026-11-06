@@ -32,8 +32,8 @@ function roll(t, v0, v1, t0, dur, pre = '') {
 }
 // the film's dots: one dot for 100,000 people, cols across from (x, y), cell c; returns the circles, empty and hidden
 function dotGrid(g, n, cols, x, y, c, r = c * .36) {
-  return Array.from({ length: n }, (_, i) => mk('circle', { cx: x + (i % cols + .5) * c, cy: y + (Math.floor(i / cols) + .5) * c, r,
-    fill: 'none', stroke: LIGHT, 'stroke-width': 1.6, opacity: 0 }, g));
+  return Array.from({ length: n }, (_, i) => put(mk('circle', { cx: x + (i % cols + .5) * c, cy: y + (Math.floor(i / cols) + .5) * c, r,
+    fill: 'none', stroke: LIGHT, 'stroke-width': 1.6 }, g), { o: 0 }));
 }
 // set a big number's text, narrowed to maxW so it stays inside the safe area
 function fitNum(t, str, size, maxW = 720) { t.textContent = str; t.setAttribute('font-size', Math.min(size, size * maxW / inkW(str, size))); }
@@ -146,7 +146,7 @@ const BEATS = [
     T(nb, 'YEAR', { x: x1 + bw / 2, y: B + 100, size: 40, fill: MAPINK, font: SANS, weight: 600, anchor: 'middle' });
     tw(nb, { o: 1 }, tN - .1, .25);
     // the normal level carried across; what is above it is the excess, in red
-    const ln = mk('path', { d: `M${x1} ${B - hN}H${x2 + bw + 30}`, stroke: MAPINK, 'stroke-width': 4, 'stroke-dasharray': '14 10', opacity: 0 }, s);
+    const ln = put(mk('path', { d: `M${x1} ${B - hN}H${x2 + bw + 30}`, stroke: MAPINK, 'stroke-width': 4, 'stroke-dasharray': '14 10' }, s), { o: 0 });
     tw(ln, { o: 1 }, tN + .3, .2);
     const ex = rect(s, x2, B - hN, bw, 0, { fill: RED });
     prog(q => { ex.setAttribute('y', B - hN - (hP - hN) * q); ex.setAttribute('height', (hP - hN) * q); }, tN + .5, .4, out);

@@ -77,7 +77,7 @@ function curve(g, rows, cursor, ymax, { colour = RED, x0 = 80, x1 = 790, base = 
   const c = G(g, {}), n = rows.length, X = i => x0 + (x1 - x0) * i / (n - 1);
   path(c, `M${x0} ${base}H${x1}`, { stroke: '#6a6258', 'stroke-width': 3 });
   if (years) rows.forEach(([d], i) => { if (d.slice(5, 7) === '01' && +d.slice(8) <= 7) T(c, d.slice(0, 4), { x: X(i), y: base + 46, size: 30, fill: MUTED, font: SANS, weight: 500, anchor: 'middle' }); });
-  const area = path(c, '', { fill: colour, opacity: .28 }), line = path(c, '', { fill: 'none', stroke: colour, 'stroke-width': 6, 'stroke-linejoin': 'round' });
+  const area = path(c, '', { fill: colour }), line = path(c, '', { fill: 'none', stroke: colour, 'stroke-width': 6, 'stroke-linejoin': 'round' });
   const Y = (v, t) => base - h * v / ymax(t);
   clockRun(t => {
     const k = Math.min(n - 1, cursor(t)), pts = [];
@@ -139,7 +139,7 @@ const BEATS = [
     s = shot(p, po, undefined, { bg: DARK, swipe: true });
     const g5 = G(s, { x: CX - 20, y: 560 }), in5 = G(g5, { x: -(CX - 20), y: -560 });
     for (let i = 0; i < 500; i++) {
-      const d = mk('circle', { cx: 146 + (i % 20) * 30, cy: 170 + Math.floor(i / 20) * 28, r: 10, fill: '#5d564b', opacity: 0 }, in5);
+      const d = put(mk('circle', { cx: 146 + (i % 20) * 30, cy: 170 + Math.floor(i / 20) * 28, r: 10, fill: '#5d564b' }, in5), { o: 0 });
       show(d, po + .02 + (i % 20) * .012 + Math.floor(i / 20) * .02, .12, lin);
     }
     const lit = G(in5, { x: 146 + 13 * 30, y: 170 + 17 * 28, o: 0, s: 3 });

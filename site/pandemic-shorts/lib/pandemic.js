@@ -210,7 +210,7 @@ function seriesCard(s, t0, n, tLit) {
   sfx(BEAT_ID, t0, 'thud', 1);
   const tiles = EP_POS.map(([x, y], i) => { const c = epTile(s, i, x, y); tw(c, { o: 1 }, t0 + .25 + i * .1, .25); return c; });
   const [x, y] = EP_POS[n - 1];
-  const rim = rect(s, x - EP_W / 2 - 10, y - EP_H / 2 - 10, EP_W + 20, EP_H + 20, { rx: 22, fill: 'none', stroke: MARK, 'stroke-width': 10, opacity: 0 });
+  const rim = put(rect(s, x - EP_W / 2 - 10, y - EP_H / 2 - 10, EP_W + 20, EP_H + 20, { rx: 22, fill: 'none', stroke: MARK, 'stroke-width': 10 }), { o: 0 });
   show(rim, tLit, .15, lin); sfx(BEAT_ID, tLit, 'tick', 1.2);
   tiles.forEach((c, i) => { if (i !== n - 1) tw(c, { o: .3 }, tLit, .3); else tw(c, { s: 1.06 }, tLit, .25, back); });
   return tiles;
