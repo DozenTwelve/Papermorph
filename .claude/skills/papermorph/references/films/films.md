@@ -42,7 +42,7 @@ Then agree the models ([core/style.md](../core/style.md#models)) and write `book
 ## Pictures
 
 - **Find, then record.** `commons.py` searches Wikimedia Commons, downloads only public-domain and CC0 files, and logs each in `SOURCES.tsv`: name, Commons title, licence, author, source URL, any use restriction such as a trademark (it warns), credit line, licence URL and the work's date. The book's credits come from it; one subagent with it found all twenty of Foucault's storyboard pictures in thirteen minutes. The Library of Congress, Old Book Illustrations and the Internet Archive are good too; record those by hand the same way.
-- **Treatments**, made by `prep.py`, which also writes `img/art.js` with each picture's size:
+- **Treatments**, made by `prep.py`, which also writes `img/art.js` with each picture's size (the kit's picture helpers read it; a name it lacks, such as a picture resized by hand, draws at a stand-in size and warns in the console by name, which `check.py` lists):
   - *print*: the picture keeps its paper, with a border and a soft shadow, like a photograph laid on the ground. Paintings, photographs, title pages.
   - *line*: an engraving's dark lines take the ground's ink colour and the paper drops out, so the figure stands on the ground itself. Woodcuts and engravings with clean lines.
   - *full*: sized for a full-bleed shot on the upright stage.

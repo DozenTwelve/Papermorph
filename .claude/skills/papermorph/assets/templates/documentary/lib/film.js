@@ -12,9 +12,17 @@ const KEY = '"Oswald", "Arial Narrow", sans-serif', SER = '"EB Garamond", Georgi
 const CREAM = COL.chalk, SOFT = COL.dim, HOT = bookSetting('--accent') || '#f08a4b', PAPER = bookSetting('--paper') || CREAM,
   INK = bookSetting('--paper-ink') || '#3a2a24', STAMP = bookSetting('--stamp') || '#7a1a20';
 
+// a picture's [width, height] from ART (img/art.js, from prep.py). A name ART lacks (a picture added or resized by hand)
+// warns once, by name, and stands in at 16:9, so its beat still draws and check.py lists the warning
+const ART_MISSED = new Set();
+function artSize(name) {
+  if (typeof ART !== 'undefined' && ART[name]) return ART[name];   // looked up when a beat builds: art.js may load after the kit
+  if (!ART_MISSED.has(name)) { ART_MISSED.add(name); console.warn(`no '${name}' in ART (img/art.js): prep.py writes each picture's size there; one made by hand needs its [width, height]`); }
+  return [1600, 900];
+}
 // a picture from img/: centred on (x, y), h or w in stage px; `at` makes it enter (from offset dx, dy) at that time
 function pic(p, name, { x = 800, y = 450, h = 600, w, r = 0, s = 1, at, from = [0, 40], dur = .9, o = 1, back = false } = {}) {
-  const sz = ART[name];
+  const sz = artSize(name);
   const g = G(p, at === undefined ? { x, y, r, s, o } : { x: x + from[0], y: y + from[1], r, s, o: 0 });
   const k = w ? w / sz[0] : h / sz[1], W = sz[0] * k, H = sz[1] * k;
   if (back) mk('rect', { x: -W / 2 + 4, y: -H / 2 + 4, width: W - 8, height: H - 8, fill: COL.board }, g);   // a solid line drawing (a door)
@@ -127,7 +135,7 @@ function dots(p, n, box, r, seed, fill = CREAM) {
 // close-ups inside a print as their words are spoken: shots [[mark, fx, fy, label, zoom]], fx/fy the point in the picture
 // (0..1 of the picture inside its border); the view never leaves the picture; a band names each one; back to the whole after
 function closeups(p, g, name, shots, m, tBack, home) {
-  const [W, H] = ART[name], k = g._w / W, iw = (W - 112) * k, ih = (H - 112) * k;   // a print's picture sits 56 px in
+  const [W, H] = artSize(name), k = g._w / W, iw = (W - 112) * k, ih = (H - 112) * k;   // a print's picture sits 56 px in
   const clamp = (v, lim) => Math.max(-lim, Math.min(lim, v));
   shots.forEach(([mark, fx, fy, label, Z = 3], i) => {
     const dx = clamp((fx - .5) * iw, iw / 2 - 800 / Z), dy = clamp((fy - .5) * ih, ih / 2 - 450 / Z), t0 = m(mark) - .15;

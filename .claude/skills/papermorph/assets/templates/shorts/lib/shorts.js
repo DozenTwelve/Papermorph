@@ -81,10 +81,18 @@ function found(g, name, source, t0, t1, opts = {}) {
   srcTag(g, source, 50, 150, t0);
   return im;
 }
+// a picture's [width, height] from ART (img/art.js, from prep.py). A name ART lacks (a picture added or resized by hand)
+// warns once, by name, and stands in at the frame's size, so its beat still draws and check.py lists the warning
+const ART_MISSED = new Set();
+function artSize(name) {
+  if (typeof ART !== 'undefined' && ART[name]) return ART[name];   // looked up when a beat builds: art.js may load after the kit
+  if (!ART_MISSED.has(name)) { ART_MISSED.add(name); console.warn(`no '${name}' in ART (img/art.js): prep.py writes each picture's size there; one made by hand needs its [width, height]`); }
+  return [W, H];
+}
 // a picture sized by ART (img/art.js): centred on (x, y), h (or w) px; enters at t0 rising from dy, or is there when
 // t0 is undefined. A picture whose point is its text (a sign, a headline) goes in whole like this, not full bleed
 function plate(g, name, x, y, { h, w, t0, dy = 60, r = 0 } = {}) {
-  const [iw, ih] = ART[name], k = w ? w / iw : h / ih, e = G(g, { x, y: t0 === undefined ? y : y + dy, r, o: t0 === undefined ? 1 : 0 });
+  const [iw, ih] = artSize(name), k = w ? w / iw : h / ih, e = G(g, { x, y: t0 === undefined ? y : y + dy, r, o: t0 === undefined ? 1 : 0 });
   mk('image', { href: `../img/${name}.webp`, x: -iw * k / 2, y: -ih * k / 2, width: iw * k, height: ih * k }, e);
   if (t0 !== undefined) tw(e, { y, o: 1 }, t0, .35, out);
   e._x = x; e._y = y;
@@ -94,7 +102,7 @@ function plate(g, name, x, y, { h, w, t0, dy = 60, r = 0 } = {}) {
 // (fractions of its width and height) at the frame's centre at scale s; eased between keys, the first held from 0.
 // No edge ever shows (ART gives its size)
 function wide(g, name, keys) {
-  const [iw, ih] = ART[name], k = Math.max(H / ih, W / iw), Ws = iw * k, Hs = ih * k;
+  const [iw, ih] = artSize(name), k = Math.max(H / ih, W / iw), Ws = iw * k, Hs = ih * k;
   const im = G(g, {});
   mk('image', { href: `../img/${name}.webp`, x: -Ws / 2, y: -Hs / 2, width: Ws, height: Hs }, im);
   const clamp = (v, size, frame) => size < frame ? frame / 2 : Math.min(size / 2, Math.max(frame - size / 2, v));
