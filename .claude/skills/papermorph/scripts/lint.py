@@ -15,6 +15,7 @@ Errors (exit status 1):
   mark      m('name') is not a mark of any beat
   stale     the narration's text differs from timings.js, or a narration [[mark]] is missing there: run tts.py again
   style     style.json is not valid JSON or lacks schema, tier, book, words, look or voice
+  path      a chapter named on the command line has no index.html; no chNN folder at all stops the run
   word      a listen-and-find stop (findWords) plays a clip that is missing: a thing's (clip:, else w-<word>), an
             ask's question (its clip:) and its again (r-<word> by default), the stop's end (q-done) and there (q-there)
             lines, audio/sfx/chime.mp3 after each find; or an ask's word is no thing's word. Each clip is a narration line, "w-<word>": "<word>", voiced by tts.py
@@ -338,9 +339,13 @@ def main():
             content, brief = (d, brief) if name == 'content' else (content, d)
     chs = [a.book / c for c in a.chapters] if a.chapters else sorted(a.book.glob('ch[0-9]*'))
     out = []
+    if not chs:
+        sys.exit(f'{a.book}: no chNN folders here: is this the book folder in site/?')
     for ch in chs:
         if (ch / 'index.html').exists():
             lint_chapter(ch, content, out)
+        else:
+            out.append(('E', 'path', f'{ch}: no index.html (a wrong chapter name?)'))
     lint_style(brief, out)
     for level, kind, msg in out:
         print(f'{"error" if level == "E" else "warn "} {kind:6} {msg}')
