@@ -8,7 +8,7 @@ A documentary is a narrated film on the wide stage about a book, an idea or a st
 2. **The folder** ([films.md](films.md#the-folder)).
 3. **Pictures**: find, record, treat ([films.md](films.md#pictures)).
 4. **Voice**: `tts.py` or `eleven.py` ([core/sound.md](../core/sound.md#voices)).
-5. **Music.** One recording per part of the film, changing at the turns, never abruptly; open with something short and rhythmic so the start is not slow. Find recordings (`commons.py --audio`), bring them to one loudness (`level.py`), and give each part its track with `music(file, beats, gain, fade)` ([core/sound.md](../core/sound.md#music)).
+5. **Music.** One recording per part of the film, changing at the turns, never abruptly; open with something short and rhythmic so the start is not slow. Find recordings (`commons.py --audio`), bring each to the film's music level with `music.py cut` (−16 LUFS; a track for one part takes that part's seconds as `--length`, from `?lengths`), and give each part its track with `music(file, beats, gain, fade)`, starting around a gain of 0.4 ([core/sound.md](../core/sound.md#music)).
 6. **The beats**, built from the kit's helpers and timed to the marks (below).
 7. **Review rounds** ([films.md](films.md#review-rounds)), the user's viewing, then `export.py` if the user wants a video ([core/publish.md](../core/publish.md#video-export)).
 

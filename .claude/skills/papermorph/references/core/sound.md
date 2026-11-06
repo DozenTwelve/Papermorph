@@ -6,6 +6,7 @@ Voices carry every book and everything else sits under them: in early cuts music
 
 - The narration file
 - Voices
+- Length from words
 - Levels
 - Sound effects
 - Music
@@ -40,9 +41,23 @@ Voices carry every book and everything else sits under them: in early cuts music
 - **Several voices.** List them under `voices` in the narration file and write each line as `{"speaker": name, "text": …}`; a line without a speaker takes the file's own `voice`, and a speaker missing from `voices` stops the run, naming it. Both scripts do this. Voices need pitches apart (a dog at 113 Hz under a 110 Hz narrator read as the same person).
 - Let the user pick a voice by ear from a few short samples in the book's own words.
 
+## Length from words
+
+A length the user asks for becomes a word count before the script is written: minutes × 60 × the pace below, less what the tier adds. A script written to the minute is cheaper to cut on paper than after a paid voice run.
+
+| Book | Voice | Words a second | What else adds time |
+|---|---|---|---|
+| Lesson | Edge `en-US-AndrewNeural` (or the Multilingual voice the reference books use) at −4 % | about 2.4 of voice (reference chapters 2.3–2.7) | `HOLD` (0.6 s) after each beat, about 15 s per question ([core/publish.md](publish.md#every-book)) |
+| Picture book | an ElevenLabs cast | about 2.6 of voice (*The Little Horse* 2.62, *Little Red Riding Hood* 2.64) | each scene's `pre`, the holes `join.py` inserts, a listen-and-find stop's wait |
+| Documentary | Edge `en-GB-RyanNeural` (the documentary kit's) at −4 % | about 2.4 of finished film, holds and titles included (*Tulip Mania*: 475 words ran 3:19 in 18 beats; 445 words at +4 % ran 3:04) | already counted |
+| Short | an ElevenLabs narrator | about 2.6 of voice | about 1.4 s a beat: the hold (0.6 s) and the camera's tail (0.8 s in the worked example) |
+| Short | Edge `en-US-AndrewNeural` (the shorts kit's) at +4 % | about 3.2 of voice (128 words in 39.6 s in one test) | the same 1.4 s a beat |
+
+So three minutes of documentary is about 430 words, and a twelve-beat short of 300 words at ElevenLabs' pace runs about 115 + 17 s. A book read nearly whole runs longer than its tier's usual length: *Millions of Cats*' 1,000 words are about 6.5 minutes of voice before any holds. Another voice or rate changes the pace: voice a paragraph of the book and divide.
+
 ## Levels
 
-`level.py <clips>` brings clips to one loudness under a limiter without moving a word, and leaves an already level clip, or one under 0.4 s, as it is, so it can be rerun: it keeps the best of its tries and never makes a clip worse than it was, so a second run changes nothing or brings a clip nearer. A clip whose sharp peaks the limiter holds back from the target gets a WARNING with how far off it is. A film's voice goes out at −14 LUFS with its peak under −1.5 dBTP: `eleven.py` levels its clips and prints what it delivered (the service alone gives about −23 LUFS, which sank one episode under its music; `--lufs` for another level, `--no-level` to keep the service's); after `tts.py`, run `level.py --lufs -14 --peak -1.5`. A picture book's scene clips sit at `level.py`'s default −18 LUFS ([stories.md](../picture-books/stories.md#sound)). A line that must sit above the rest gets its own target and stays out of the others' list, so a rerun leaves it alone; `--gain` adds again on every run, so it suits a one-off fix.
+`level.py <clips>` brings clips to one loudness under a limiter without moving a word, and leaves an already level clip, or one under 0.4 s, as it is, so it can be rerun: it keeps the best of its tries and never makes a clip worse than it was, so a second run changes nothing or brings a clip nearer. A clip whose sharp peaks the limiter holds back from the target gets a WARNING with how far off it is. A film's voice goes out at −14 LUFS with its peak under −1.5 dBTP: `eleven.py` levels its clips and prints what it delivered (the service alone gives about −23 LUFS, which sank one episode under its music; `--lufs` for another level, `--no-level` to keep the service's); after `tts.py`, run `level.py --lufs -14 --peak -1.5`. A picture book's scene clips sit at `level.py`'s default −18 LUFS ([stories.md](../picture-books/stories.md#sound)). A lesson has no music to sit over: Edge gives its clips at about −21 LUFS, within a dB of each other, and the reference lesson books play them as they come; run `level.py --lufs -21` only on a clip that stands out (a take from another engine, a quiet re-voice). A film's music is levelled by `music.py cut` ([Music](#music)), and the exported video as a whole by `export.py` ([core/publish.md](publish.md#video-export)). A line that must sit above the rest gets its own target and stays out of the others' list, so a rerun leaves it alone; `--gain` adds again on every run, so it suits a one-off fix.
 
 ## Sound effects
 

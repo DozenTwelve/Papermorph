@@ -1,6 +1,6 @@
 # Picture books: from a story to an episode
 
-A picture book is a two-to-four-minute animated film of paper puppets in front of sets, made from a story: a fairy tale, a joke, something that happened to the user, or a story book's PDF. The reference books, one for each look, are listed in [SKILL.md](../../SKILL.md#reference-books).
+A picture book is a two-to-four-minute animated film (at most about 300 to 600 words of voice: [core/sound.md](../core/sound.md#length-from-words)) of paper puppets in front of sets, made from a story: a fairy tale, a joke, something that happened to the user, or a story book's PDF. The reference books, one for each look, are listed in [SKILL.md](../../SKILL.md#reference-books).
 
 This file covers the story, the shots, the sound and the team; [puppets.md](puppets.md) the paper puppets and the stop-motion look; [painting.md](painting.md) sets and props painted by an image model. The engine, player, checks, voices and music are shared with every book ([core/sound.md](../core/sound.md), [core/review.md](../core/review.md), [core/engine.md](../core/engine.md)).
 

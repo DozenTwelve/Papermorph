@@ -2,7 +2,7 @@
 
 ## Shape
 
-Chapters have run 5–18 minutes with 5–40 second beats; a long chapter can hold several parts (each a short title beat, lessons, a quick check and a wrap). Let the content set the length and the number of checks and practice sets.
+Chapters have run 5–18 minutes with 5–40 second beats; a long chapter can hold several parts (each a short title beat, lessons, a quick check and a wrap). Let the content set the length and the number of checks and practice sets, and check the script against the book's `pacing` before voicing it: about 2.4 words a second of narration, plus 0.6 s a beat and about 15 s a question ([core/sound.md](../core/sound.md#length-from-words)), so an eight-minute chapter with ten questions holds about 750 words.
 
 | Beat | Purpose |
 | --- | --- |
