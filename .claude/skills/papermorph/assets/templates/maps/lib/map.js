@@ -23,8 +23,12 @@
                                         style { fill: 'hatch' | colour | null, line: MAP_COL.ink | null, width: 3 }
      detail: 'Wuhan' | true             rivers, lakes and built-up areas of a place cut by geo.py --detail, faded in as
                                         the view closes in (H .22 to .06) and drawn under the marks
-     dots: [[lon, lat, t0, r = 7]]      dots in MAP_COL.hot popping in at t0, r px
-     routes: [[[lon, lat], [lon, lat], t0, dur = .8]]   an arc drawn from a to b; a dot lands at b when it arrives
+     dots: [[lon, lat, t0, r = 7, colour]]   dots popping in at t0, r px, in MAP_COL.hot or colour: a colour or
+                                        (t) => colour (greyed later: t => mix(MAP_COL.hot, MAP_COL.dim, ramp01(t, 4, 4.5)))
+     routes: [[a, b, t0, dur = .8, style]]   an arc drawn from [lon, lat] a to b; a dot lands at b when it arrives.
+                                        style { colour: MAP_COL.hot, width: 3.5, dash: [10, 8], via: [[lon, lat]...]
+                                        (a sea route round a cape: one line through them), dot: false (no landing dot) };
+                                        what is not the subject goes in ink: { colour: MAP_COL.ink, dash: [10, 8] }
      cities: [[name, t0, side, t1]]     an ink dot and a label (CITIES; side 'l' or 'r', default 'r'), faded out at t1
                                         when given (a camera pulling out: towns that would pile up); labels keep inside
                                         the safe box, hide when their city is off it, take the other side when theirs
@@ -51,7 +55,7 @@
    mapRings(key) -> [[lon, lat]...][]   a country's ('ITA') or region's ('ITA/Lombardia') outline, for areas or SVG
    mapCircle([lon, lat], km) -> ring    a circle on the ground, for areas
    CITIES {name: [lon, lat]}            from geo-lite.js (capitals, big cities, geo.py --cities)
-   MAP_COL                              land, sea, ink, line, night, hot (marks; book.css --red), mark, urban, river:
+   MAP_COL                              land, sea, ink, line, night, hot (marks; book.css --red), mark, dim, urban, river:
                                         each from book.css --map-<name> when set (--map-land: #ece3cd) */
 'use strict';
 const { paperMap, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCircle, CITIES, MAP_COL } = (() => {
@@ -60,7 +64,7 @@ const { paperMap, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCircle, CIT
   const css = (k, d) => { X.fillStyle = d; X.fillStyle = bookSetting(k) || d; return X.fillStyle; };
   const MAP_COL = { land: css('--map-land', '#ece3cd'), sea: css('--map-sea', '#bfcac6'), ink: css('--map-ink', '#2b2520'),
     line: css('--map-line', '#9a8a70'), night: css('--map-night', '#04060a'), hot: css('--map-hot', css('--red', '#c8281e')),
-    mark: css('--map-mark', css('--mark', '#f4c430')), urban: css('--map-urban', '#cdb995'), river: css('--map-river', '#8fa9ad') };
+    mark: css('--map-mark', css('--mark', '#f4c430')), dim: css('--map-dim', '#6f6a62'), urban: css('--map-urban', '#cdb995'), river: css('--map-river', '#8fa9ad') };
   const FONT = bookSetting('--map-font') || '"Oswald", "Arial Narrow", sans-serif';
   const PORTRAIT = SH > SW, SAFE = PORTRAIT ? [50, 150, 810, 1290] : [60, 60, SW - 60, SH - 230];
   const clamp01 = v => Math.min(1, Math.max(0, v)), ramp = (t, a, b) => clamp01((t - a) / (b - a));
@@ -242,6 +246,7 @@ const { paperMap, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCircle, CIT
         det: details.length ? ramp(k, R0 / .22, R0 / .06) : 0,
         route: routes.map(([, , t0, dur = .8]) => ramp(t, t0, t0 + dur) + pop(t0 + dur)),
         dot: dots.map(d => pop(d[2])),
+        dotc: dots.map(d => typeof d[4] === 'function' ? d[4](t) : d[4]),
         lab: labels.map(l => ramp(t, l.t0, l.t0 + .3) * (l.t1 === undefined ? 1 : 1 - ramp(t, l.t1, l.t1 + .4))),
       };
       placeLabels(s, vals.lab, t);
@@ -294,27 +299,33 @@ const { paperMap, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCircle, CIT
       // marks in stage px, so they keep their size at every zoom
       const xy = ll => mapXY(ll, { ...s, roll: 0 });
       ctx.save(); ctx.clip(disc);   // arcs over the rim would float in space
-      ctx.strokeStyle = MAP_COL.hot; ctx.lineWidth = 3.5; ctx.lineCap = 'round';
-      routes.forEach(([a, b, t0, dur = .8]) => {
-        const q = ramp(t, t0, t0 + dur), A = xy(a), B = xy(b);
-        if (!q || !A || !B) return;
-        const lift = Math.hypot(B[0] - A[0], B[1] - A[1]) * .25, mx = (A[0] + B[0]) / 2, my = (A[1] + B[1]) / 2 - lift;
-        ctx.beginPath(); ctx.moveTo(...A);
-        for (let i = 1; i <= 24 * q; i++) { const u = i / 24; ctx.lineTo((1 - u) ** 2 * A[0] + 2 * u * (1 - u) * mx + u * u * B[0], (1 - u) ** 2 * A[1] + 2 * u * (1 - u) * my + u * u * B[1]); }
-        ctx.stroke();
-        if (q >= 1) dotAt(B, 7 * pop(t0 + dur));
+      ctx.lineCap = 'round';
+      routes.forEach(([a, b, t0, dur = .8, { colour = MAP_COL.hot, width = 3.5, dash, via = [], dot = true } = {}]) => {
+        const q = ramp(t, t0, t0 + dur), P = [a, ...via, b].map(xy);
+        if (!q || P.some(x => !x)) return;
+        // a gentle arc through each leg (a quarter of its length high; an eighth of that through via points), sampled,
+        // and the first q of the samples drawn
+        const S = [P[0]];
+        P.slice(1).forEach((B, i) => { const A = P[i], lift = Math.hypot(B[0] - A[0], B[1] - A[1]) * (via.length ? .08 : .25),
+          mx = (A[0] + B[0]) / 2, my = (A[1] + B[1]) / 2 - lift, n = via.length ? 16 : 24;
+          for (let j = 1; j <= n; j++) { const u = j / n; S.push([(1 - u) ** 2 * A[0] + 2 * u * (1 - u) * mx + u * u * B[0], (1 - u) ** 2 * A[1] + 2 * u * (1 - u) * my + u * u * B[1]]); } });
+        ctx.strokeStyle = colour; ctx.lineWidth = width; ctx.setLineDash(dash || []);
+        ctx.beginPath(); ctx.moveTo(...S[0]);
+        for (let i = 1; i <= (S.length - 1) * q; i++) ctx.lineTo(...S[i]);
+        ctx.stroke(); ctx.setLineDash([]);
+        if (q >= 1 && dot) dotAt(P[P.length - 1], 7 * pop(t0 + dur), colour);
       });
       ctx.restore();
-      dots.forEach(([lon, lat, , r = 7], i) => { const P = xy([lon, lat]); if (P) dotAt(P, r * vals.dot[i]); });
+      dots.forEach(([lon, lat, , r = 7], i) => { const P = xy([lon, lat]); if (P) dotAt(P, r * vals.dot[i], vals.dotc[i]); });
       ctx.fillStyle = MAP_COL.ink;
       labels.forEach((l, i) => {
         const P = xy(l.ll), a = vals.lab[i];
         if (P && a) { ctx.globalAlpha = a; ctx.beginPath(); ctx.arc(P[0], P[1], 5, 0, 2 * Math.PI); ctx.fill(); ctx.globalAlpha = 1; }
       });
     }, D, { tail: true });
-    function dotAt([x, y], r) {
+    function dotAt([x, y], r, colour = MAP_COL.hot) {
       if (r <= 0) return;
-      ctx.fillStyle = MAP_COL.hot; ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); ctx.fill();
+      ctx.fillStyle = colour; ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); ctx.fill();
       ctx.globalAlpha = .25; ctx.beginPath(); ctx.arc(x, y, r * 2.2, 0, 2 * Math.PI); ctx.fill(); ctx.globalAlpha = 1;
     }
     return { g, view: vf, xy: (ll, t) => mapXY(ll, vf(t)) };
