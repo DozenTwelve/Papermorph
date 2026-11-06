@@ -6,7 +6,8 @@
 
 Each argument is SCENE=CLIP,CLIP,...; a clip may be CLIP@T+S@T+S: S seconds of silence inserted T seconds into it
 (room for an action in the middle of a line; T may be 0, silence before the line), and NAME:S is S seconds of
-silence with no clip of its own (a stare or a tag after the last line; its start is in `parts` like a clip's). A
+silence with no clip of its own (a stare or a tag after the last line; its start is in `parts` like a clip's). Each
+name appears once in a scene (its start and marks are keyed by it), and a scene is not named like a clip. A
 hole belongs after a word's sound has ended, not where the next word starts; one that falls inside the sound (within
 30 dB of the clip's loud parts) gets a WARNING naming the scene, the clip and time, the word (with --words) and the
 nearest pause to move it to. A short pause (0.35 s) goes between clips. Writes AUDIO_DIR/SCENE.mp3 and
@@ -46,6 +47,12 @@ def silence(path, sec):
 out, H = {}, {}   # H: every shot's holes, for the mouths
 for arg in args:
     shot, beats = arg.split('='); beats = beats.split(',')
+    if shot in T and not T[shot].get('silent'):   # SCENE.mp3 would be written over the clip
+        sys.exit(f"{shot}: a clip of that name is in timings.js, and the scene's {shot}.mp3 would replace it: name the scene otherwise")
+    names = [re.split(r'[@:]', b)[0] for b in beats]
+    if dup := sorted({n for n in names if names.count(n) > 1}):   # its start in parts, its marks, would be overwritten
+        sys.exit(f"{shot}: {', '.join(dup)} more than once; each clip or silence in a scene needs a name of its own "
+                 "(a repeated line: voice it again as a beat of its own; a silence: hush1:1, hush2:1)")
     holes = {}   # beat -> [(at, seconds)]: silences inserted inside a clip, room for action
     for i, b in enumerate(beats):
         if ':' in b:   # NAME:S, a stretch of silence
