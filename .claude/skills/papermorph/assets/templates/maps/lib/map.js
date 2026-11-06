@@ -41,7 +41,8 @@
                                         each beat); marks from Globe.clearMarks() / Globe.dot(lon, lat) / Globe.arc(a, b);
                                         dotsOn(i, t), arcsOn(i, t) -> 0..1; the view may add gain (city lights, 1.6) and
                                         dotScale. on as for paperMap
-   loadGlobe() -> Promise               loads lib/globe.js and its texture: loadGlobe().then(startShorts) (or boot)
+   loadGlobe() -> Promise               loads lib/globe.js and its texture: loadGlobe().then(startShorts) (or boot); when
+                                        a file is missing it names it in the console and resolves, Globe drawing nothing (Globe.missing)
    mapXY(ll, v) -> [x, y] | null       a lon/lat to stage px for a view (globe and map alike), null on the far side
    mapKeys([[t, lon, lat, H, dx, dy]...], ease = io) -> view(t)   a camera through keys, eased between them, the first
                                         held from 0 and the last after; lon takes the short way round, H changes evenly
@@ -305,7 +306,16 @@ const { paperMap, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCircle, CIT
     clockRun(t => within(t, on) && Globe.draw({ H: 1.15, ...view(t) }, dotsOn && (i => dotsOn(i, t)), arcsOn && (i => arcsOn(i, t))), D, { tail: true });
     return g;
   }
-  const loadGlobe = () => import('./globe.js').then(() => new Promise(r => { (function w() { window.GLOBE_READY ? r() : setTimeout(w, 30); })(); }));
+  // a globe that fails to load is said, file by file, and the film plays on: each globeShot() then shows nothing
+  const HERE = document.currentScript?.src || location.href;
+  const loadGlobe = () => import('./globe.js').then(() => new Promise(r => { (function w() { window.GLOBE_READY ? r() : setTimeout(w, 30); })(); }))
+    .catch(async e => {
+      const files = ['globe.js', 'vendor/three.module.js', 'vendor/three.core.js'];
+      const gone = (await Promise.all(files.map(f => fetch(new URL(f, HERE), { method: 'HEAD' }).then(r => !r.ok, () => true)))).map((g, i) => g && 'lib/' + files[i]).filter(Boolean);
+      console.error(`map.js: the globe did not load (${gone.length ? 'missing ' + gone.join(', ') + ': geo.py --globe <book>/lib makes them' : e.message}); its shots stay empty`);
+      const none = () => {};   // a Globe that draws nothing, so the chapter's own Globe.dot() calls and globeShot() run
+      window.Globe = { missing: true, draw: none, dot: none, arc: none, vec: none, clearMarks: none, mount: p => G(p, {}) };
+    });
 
   return { paperMap, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCircle, CITIES: GL.cities, MAP_COL };
 })();
