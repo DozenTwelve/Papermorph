@@ -1,0 +1,249 @@
+/* An explorable map's page (Papermorph's explore kit, from The Map Redrawn). This file is the book's look: change the
+   colours and fonts in :root first. explore.js relies on the ids in index.html and on these classes: .lite (the camera
+   moving: thin lines off), .cam (labels and pins hidden while it moves), .dom, .bord, .coast, .glow, .lab, .fig, .spot,
+   .pin, .route, and body.film / body.moves / body.card-open. */
+:root {
+  /* sea, paper and ink; the accent only for the live year, the live pin and a border as it changes */
+  --sea: #b9c9cc; --base: #f1ead9; --paper: #f4eee0; --ink: #24211c; --shu: #b2352a; --gold: #a88a55; --ink2: #4a4438;
+  --head: Georgia, 'Times New Roman', serif; --serif: Georgia, 'Times New Roman', serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--sea); color: var(--ink); overflow: hidden; }
+body { font: 18px/1.4 var(--serif); }
+button { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+#stage { position: fixed; inset: 0; }
+#map { position: absolute; inset: 0; width: 100%; height: 100%; display: block; background: var(--sea); user-select: none; -webkit-user-select: none; }
+#map:focus { outline: none; }
+#paper { position: absolute; inset: 0; pointer-events: none; opacity: .03; }
+
+/* the map: land as the base, each group a patch of colour, lines only where groups meet */
+.land { fill: var(--base); fill-rule: evenodd; }
+.coast { fill: none; stroke: var(--ink); stroke-width: 1px; vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; pointer-events: none; }
+.dom { stroke-width: .8px; vector-effect: non-scaling-stroke; stroke-linejoin: round; transition: fill .9s, stroke .9s; }
+.bord { fill: none; stroke: var(--ink); stroke-width: .8px; vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; transition: opacity 1s; pointer-events: none; }
+.bord.gone, .bord.new { stroke: var(--shu); }
+.prov { fill: none; stroke: rgba(27, 26, 23, .24); stroke-width: .5px; vector-effect: non-scaling-stroke; transition: opacity 1s; pointer-events: none; }
+/* while the camera moves the thousands of thin lines are not drawn (stroking them is what costs frames); they return when it stops.
+   The shapes are coarser then too (setLite in app.js) */
+#map.lite .dom { stroke: none !important; }
+#map.lite .bord, #map.lite .prov { display: none; }
+.prov.off { opacity: 0; }
+.glow { fill: rgba(176, 141, 87, .5); stroke: var(--ink); stroke-width: 1.6px; vector-effect: non-scaling-stroke; stroke-linejoin: round; opacity: 0; transition: opacity .5s; pointer-events: none; }
+.glow.on { opacity: 1; }
+
+/* names: set in screen px inside a group scaled to the view; the layout pass moves them and hides what has no room */
+.lab { pointer-events: none; transition: opacity .35s; }
+.lab.drop, .lab.gone { opacity: 0; }
+#map.cam .lab, #map.cam .pin { opacity: 0; }
+.lab text { font: 700 13px var(--head); fill: var(--ink); paint-order: stroke; stroke: rgba(243, 237, 224, .94); stroke-width: 3.5px; stroke-linejoin: round; }
+.lab.pinname text { font: 700 15px var(--head); letter-spacing: .06em; text-transform: uppercase; }
+.lab.region text { font: 700 24px var(--serif); letter-spacing: .24em; fill: var(--ink); stroke-width: 4px; }
+.route { pointer-events: none; }
+.route path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.route .case { stroke: var(--paper); stroke-width: calc(8px * var(--k, 1)); opacity: .9; }
+.trail { stroke-width: calc(4px * var(--k, 1)); stroke-dasharray: calc(11px * var(--k, 1)) calc(7px * var(--k, 1)); }
+.route.old { opacity: .3; }
+.pin { pointer-events: none; transition: opacity .6s; }
+.pin .drop { animation: drop .5s cubic-bezier(.3, 1.5, .5, 1); }
+@keyframes drop { from { transform: translateY(-40px); opacity: 0; } }
+.pin .dot { fill: var(--shu); stroke: var(--paper); stroke-width: 2; }
+.pin .pulse { fill: none; stroke: var(--shu); stroke-width: 2.5; transform-box: fill-box; transform-origin: center; animation: pulse 1.6s ease-out infinite; }
+@keyframes pulse { from { transform: scale(1); opacity: .9; } to { transform: scale(3.4); opacity: 0; } }
+.pin.past .pulse { display: none; }
+.pin.past .dot { opacity: .55; }
+.pin.gone { opacity: 0; }
+/* places with a card: a ringed dot to click, hidden in the film like the figures */
+.spot { cursor: pointer; outline: none; transition: opacity .4s; }
+.spot.off { opacity: 0; pointer-events: none; }
+.spot .halo { fill: rgba(244, 238, 224, .55); stroke: var(--ink); stroke-width: 1.5; }
+.spot .dot { fill: var(--ink); stroke: var(--paper); stroke-width: 2; }
+.spot:hover .halo, .spot:focus-visible .halo { fill: #fff; stroke-width: 2.5; }
+#map.cam .spot { opacity: 0; }
+body.film #spots { opacity: 0; pointer-events: none; }
+
+/* the film: the people step aside while the year's events play */
+#figs, #trails, #people, #hint, #replay { transition: opacity .6s; }
+body.film #figs, body.film #trails, body.film #people, body.film #hint { opacity: 0; pointer-events: none; }
+body.moves #figs { pointer-events: none; }
+body.moves #people, body.moves #hint { opacity: 0; pointer-events: none; }
+.fig { cursor: pointer; outline: none; transition: opacity .5s; }
+.fig.aside { opacity: .45; }
+/* gone from the map (YEARS gone: true): fades out and takes no clicks; the legend chip and its card remain */
+.fig.gone, .lead.gone { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .8s, visibility 0s .8s; }
+.fig .tag { transition: opacity .3s; }
+.fig .tag.off { opacity: 0; }
+.fig .tag rect { fill: var(--paper); stroke: var(--ink); stroke-width: 1; }
+.fig .tag text { font: 700 11px var(--head); letter-spacing: .08em; text-anchor: middle; text-transform: uppercase; fill: var(--ink); }
+.fig:hover .tag rect, .fig:focus-visible .tag rect { fill: #fff; stroke-width: 2; }
+.fig .ring { fill: none; stroke: var(--paper); stroke-width: 3; opacity: 0; }
+.fig:focus-visible .ring { opacity: 1; }
+.fig.idle .sway { animation: sway 3.2s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes sway { from { transform: rotate(-1.2deg); } to { transform: rotate(1.2deg); } }
+@media (prefers-reduced-motion: reduce) { .fig.idle .sway, .pin .drop, .pin .pulse { animation: none; } }
+
+/* the year, top middle; the title top left; music and credits top right */
+/* every control sits on a paper plate with an ink edge, so it reads on the sea and on the land alike */
+.plate { background: var(--paper); border: 1.5px solid var(--ink); box-shadow: 3px 4px 0 rgba(27, 26, 23, .35); }
+#top { position: absolute; z-index: 1; left: 0; right: 0; margin: 0 auto; top: 10px; text-align: center; width: max-content; max-width: calc(100% - 32px); padding: 4px 18px 8px;
+  background: var(--paper); border: 1.5px solid var(--ink); box-shadow: 3px 4px 0 rgba(27, 26, 23, .35); }
+#yearbar { display: flex; align-items: center; justify-content: center; gap: 14px; }
+#year { font: 700 64px/1 var(--head); margin: 0; letter-spacing: .03em; min-width: 3.2ch; text-align: center; color: var(--shu); }
+#year.pop { animation: pop .7s cubic-bezier(.2, 1.4, .4, 1); }
+@keyframes pop { from { transform: scale(1.35); } }
+.step { width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--ink); background: var(--paper); font: 700 28px/1 var(--head); cursor: pointer; padding: 0 0 4px; }
+.step:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
+.step:disabled { opacity: .3; cursor: default; }
+#mapstate { margin: 6px 0 0; font: italic 16px/1.2 var(--serif); color: var(--ink); max-width: 30em; }
+#mapstate .note { display: block; font-size: 14px; margin-top: 2px; color: var(--ink2); }
+#replay { margin-top: 6px; }
+#hint { position: absolute; z-index: 1; left: 0; right: 0; margin: 0 auto; bottom: 14px; width: max-content; max-width: calc(100% - 420px); padding: 2px 12px 3px; font: italic 15px/1.3 var(--serif);
+  background: var(--paper); border: 1.5px solid var(--ink); }
+#brand { position: absolute; z-index: 1; left: max(16px, env(safe-area-inset-left)); top: 10px; max-width: 14em; padding: 5px 12px 6px; background: var(--paper); border: 1.5px solid var(--ink); box-shadow: 3px 4px 0 rgba(27, 26, 23, .35); }
+#title { margin: 0; font: 700 16px/1.2 var(--head); letter-spacing: .06em; text-transform: uppercase; }
+#title span { display: block; font-weight: 500; font-size: 13px; color: var(--ink2); }
+#north { position: absolute; z-index: 1; left: max(16px, env(safe-area-inset-left)); top: 76px; width: 52px; height: 60px; pointer-events: none; background: var(--paper); border: 1.5px solid var(--ink); border-radius: 50%; }
+#north text { font: 700 12px var(--head); fill: var(--ink); text-anchor: middle; }
+#north path { fill: var(--ink); }
+#corner { position: absolute; z-index: 1; right: max(16px, env(safe-area-inset-right)); top: 12px; display: flex; gap: 6px; }
+.link { background: var(--paper); border: 1.5px solid var(--ink); padding: 3px 10px 4px; font: 700 14px/1.3 var(--head); letter-spacing: .05em; text-transform: uppercase; cursor: pointer; }
+.link:hover { background: var(--ink); color: var(--paper); }
+#music[aria-pressed="false"] { opacity: .55; text-decoration: line-through; }
+
+/* the people in a row, a second way to reach them */
+#people { position: absolute; z-index: 1; left: max(16px, env(safe-area-inset-left)); bottom: 12px; display: flex; gap: 6px; flex-wrap: wrap; }
+#people button { border: 1.5px solid var(--ink); background: var(--paper); border-radius: 16px; box-shadow: 2px 3px 0 rgba(27, 26, 23, .35); padding: 2px 10px 3px; font: 700 14px/1.3 var(--head); letter-spacing: .05em; text-transform: uppercase; cursor: pointer; }
+#people button::before { content: ''; display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--c); margin-right: 6px; vertical-align: 1px; }
+#people button:hover { background: #fff; }
+#people button.gone::before { background: transparent; border: 2px solid var(--c); }
+
+/* cards */
+.card { position: absolute; z-index: 2; background: var(--paper); border: 2px solid var(--ink); box-shadow: 5px 6px 0 rgba(27, 26, 23, .4); padding: 18px 20px 16px; max-height: calc(100% - 24px); overflow: auto; }
+.card:focus { outline: none; }
+.card h2 { font: 700 26px/1.1 var(--head); margin: 0 26px 8px 0; letter-spacing: .02em; }
+.card .close { position: absolute; right: 6px; top: 4px; width: 40px; height: 40px; border: 0; background: none; font: 700 30px/1 var(--head); cursor: pointer; }
+.card .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+.card .row button { border: 2px solid var(--ink); background: var(--ink); color: var(--paper); padding: 4px 14px 6px; font: 700 16px/1.2 var(--head); letter-spacing: .04em; cursor: pointer; }
+.card .row button:hover:not(:disabled) { background: var(--ink2); border-color: var(--ink2); }
+.card .row button:disabled { opacity: .5; cursor: default; }
+/* an event: a framed print in ink and gold, a title bar, a picture, the line */
+#event { width: min(440px, 40vw); top: 52%; transform: translateY(-50%); padding: 0; background: #ece4d0; border: 3px solid var(--ink);
+  box-shadow: 0 0 0 4px var(--gold), 0 0 0 7px var(--ink), 10px 14px 26px rgba(0, 0, 0, .45); cursor: pointer; }
+#event.left { left: max(4vw, 16px); }
+#event.right { right: max(4vw, 16px); }
+#event.bottom { left: 16px; right: 16px; bottom: 16px; top: auto; transform: none; width: auto; max-height: 46%; }
+#event:not([hidden]) { animation: evin .55s cubic-bezier(.2, .8, .2, 1); }
+@keyframes evin { from { opacity: 0; translate: 0 22px; } }
+#event h2 { background: var(--ink); color: var(--paper); margin: 0; padding: 10px 16px 11px; text-align: center; font: 700 23px/1.15 var(--head); letter-spacing: .08em; text-transform: uppercase; }
+#event figure { margin: 14px 14px 0; border: 3px solid var(--ink); background: var(--ink); }
+/* pictures keep their own shape (a long print, a tall portrait) on a mount of ink; the caption sits under the picture, never over it */
+#event img { display: block; width: 100%; height: auto; max-height: 34vh; object-fit: contain; filter: sepia(.25) contrast(1.04); }
+#event figcaption { color: var(--paper); font: 500 14px/1.25 var(--head); letter-spacing: .02em; padding: 5px 9px 6px; }
+#event .text { margin: 12px 18px 16px; font-size: 19px; line-height: 1.38; }
+#move { position: absolute; z-index: 3; left: 50%; bottom: 58px; transform: translateX(-50%); margin: 0; max-width: calc(100% - 32px); width: max-content;
+  background: var(--paper); border: 2px solid var(--ink); border-left: 10px solid var(--c, var(--ink)); padding: 6px 16px 8px;
+  font: 700 21px/1.2 var(--head); letter-spacing: .04em; text-transform: uppercase; box-shadow: 4px 5px 0 rgba(27, 26, 23, .4); }
+#move:not([hidden]) { animation: evin .45s cubic-bezier(.2, .8, .2, 1); }
+#move b { font-weight: 600; color: var(--c); margin-right: .5em; }
+#filmbar { position: absolute; z-index: 3; left: 50%; bottom: 14px; transform: translateX(-50%); }
+#skip { white-space: nowrap; background: var(--paper); border: 1.5px solid var(--ink); padding: 4px 14px 5px; font: 700 14px/1.3 var(--head); letter-spacing: .06em; text-transform: uppercase; cursor: pointer; }
+#skip:hover { background: var(--ink); color: var(--paper); }
+#intro { left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(560px, calc(100% - 32px)); border-top: 8px solid var(--gold); }
+#intro h2 { font-size: 34px; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 2px; }
+#intro .sub { margin: 0 0 10px; font: 700 16px/1.2 var(--head); letter-spacing: .08em; text-transform: uppercase; color: #5b5042; }
+#intro .text { margin: 0 0 6px; }
+#intro .go { font-size: 19px; padding: 6px 18px 8px; }
+#person { right: max(16px, env(safe-area-inset-right)); bottom: 12px; width: min(420px, 46vw); border-top: 8px solid var(--c, var(--ink)); }
+#person .head { display: flex; gap: 12px; align-items: flex-end; }
+#person .head img { height: 92px; width: auto; flex: none; }
+#person .jp { margin: 0; font: 700 17px/1.2 var(--serif); }
+#person .where { margin: 2px 0 0; font: 700 16px/1.25 var(--head); letter-spacing: .04em; color: #5b5042; text-transform: uppercase; }
+#person .text { margin: 10px 0 0; }
+#place { right: max(16px, env(safe-area-inset-right)); bottom: 12px; width: min(420px, 46vw); border-top: 8px solid var(--ink); }
+#place .where { margin: 2px 0 0; font: 700 16px/1.25 var(--head); letter-spacing: .04em; color: #5b5042; text-transform: uppercase; }
+#place figure { margin: 10px 0 0; }
+#place img { display: block; width: 100%; height: auto; max-height: 30vh; object-fit: contain; }
+#place .text { margin: 10px 0 0; }
+#credits { left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(620px, calc(100% - 32px)); font-size: 16px; line-height: 1.3; }
+#credits h2 { margin-bottom: 6px; }
+#credits p { margin: 0 0 7px; }
+#credits a { color: var(--ink); }
+:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; box-shadow: 0 0 0 2px var(--paper); }
+.wide { display: inline; }
+body:not(.ready) #top, body:not(.ready) #people { opacity: 0; }
+
+/* a phone held sideways, and other short screens */
+@media (max-height: 520px) {
+  body { font-size: 15px; line-height: 1.32; }
+  #year { font-size: 42px; }
+  .step { width: 44px; height: 44px; font-size: 26px; }
+  #title { font-size: 12px; } #brand { top: 8px; }
+  #corner { top: 8px; }
+  #replay { margin-top: 2px; font-size: 12px; padding: 1px 7px 2px; }
+  #mapstate { font-size: 13px; }
+  #event { width: min(360px, 44vw); top: 76px; transform: none; max-height: calc(100% - 76px - 52px); }   /* under the year plate, above the Skip button */
+  #event h2 { font-size: 17px; padding: 6px 10px 7px; }
+  #event figure { margin: 8px 8px 0; }
+  #event img { max-height: 16vh; }
+  #event .text { margin: 8px 12px 10px; font-size: 15px; }
+  #intro h2 { font-size: 24px; }
+  #move { font-size: 15px; bottom: 50px; padding: 3px 10px 5px; }
+  #hint { display: none; }
+  #people { bottom: 8px; gap: 4px; }
+  #people button { font-size: 12px; padding: 1px 7px 2px; }
+  .card { padding: 10px 14px 10px; max-height: calc(100% - 16px); }
+  .card h2 { font-size: 20px; margin-bottom: 4px; }
+  .card .row { margin-top: 6px; }
+  #person, #place { top: 56px; bottom: auto; right: max(8px, env(safe-area-inset-right)); width: min(380px, 48vw); max-height: calc(100% - 64px); }
+  #mapstate .note { display: none; }
+  body.film #mapstate { visibility: hidden; }   /* an event card stands over the plate here; its caption comes back with the people */
+  /* a card open on a short screen: the year plate, the title and the people step back so the card never covers half of them */
+  body.card-open #top, body.card-open #brand, body.card-open #north, body.card-open #people, body.card-open #replay, body.credits-open #corner { opacity: 0; pointer-events: none; }
+  #person .head img { height: 60px; }
+  #credits { width: calc(100% - 24px); font-size: 12.5px; line-height: 1.25; padding: 8px 14px 8px; }
+  #credits p { margin-bottom: 5px; }
+  #credits h2 { min-height: 40px; margin-bottom: 4px; }   /* the × has a line of its own above the first paragraph */
+  #credits .close { top: 2px; }
+  .link { font-size: 12px; padding: 1px 9px 2px; min-height: 44px; }
+  #skip { min-height: 44px; }
+  #people button { min-height: 44px; }
+  .card .close { width: 44px; height: 44px; }
+  #north { top: 70px; }
+}
+/* a phone held upright: the map is the page. A small year plate and two buttons on top, the people along the foot, and every
+   card a sheet at the bottom (the camera keeps the event's place above it). Every control is at least 44 px. */
+@media (max-width: 700px) and (min-height: 521px) {
+  #brand { display: none; }
+  #top { top: max(8px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); right: auto; margin: 0; max-width: calc(100% - 156px); padding: 1px 8px 4px 6px; text-align: left; box-shadow: 2px 3px 0 rgba(27, 26, 23, .35); }
+  #yearbar { justify-content: flex-start; gap: 4px; }
+  #year { font-size: 36px; min-width: 2.9ch; }
+  #mapstate { font-size: 12px; margin: 0 0 0 4px; }
+  #mapstate .note { display: none; }
+  #hint { display: none; }
+  #corner { top: max(8px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right)); gap: 4px; }
+  #corner .link { min-height: 44px; min-width: 44px; font-size: 12px; padding: 4px 9px 5px; box-shadow: 2px 3px 0 rgba(27, 26, 23, .35); }
+  .wide { display: none; }
+  #north { top: 64px; left: auto; right: 12px; bottom: auto; width: 34px; height: 40px; }
+  body.card-open #north { opacity: 0; }
+  body.film #corner { display: none; }
+  #filmbar { top: max(8px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right)); left: auto; bottom: auto; transform: none; }
+  #skip { min-height: 44px; min-width: 44px; padding: 4px 14px 5px; box-shadow: 2px 3px 0 rgba(27, 26, 23, .35); }
+  #people { top: auto; bottom: max(10px, env(safe-area-inset-bottom)); left: 0; right: 0; justify-content: center; gap: 5px; flex-wrap: nowrap; }
+  #people button { min-height: 44px; padding: 2px 9px 3px; font-size: 13px; letter-spacing: .03em; border-radius: 22px; }
+  #people button::before { margin-right: 5px; }
+  body.card-open #people { opacity: 0; pointer-events: none; }
+  #replay { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(max(10px, env(safe-area-inset-bottom)) + 52px); margin: 0; min-height: 44px; padding: 4px 16px 5px; font-size: 13px; }
+  body.card-open #replay { opacity: 0; pointer-events: none; }
+  /* cards: a sheet from the bottom edge */
+  .card .close { width: 44px; height: 44px; right: 2px; top: 2px; }
+  #person, #place { left: 8px; right: 8px; width: auto; bottom: max(8px, env(safe-area-inset-bottom)); top: auto; max-height: 48%; padding: 14px 16px 12px; }
+  #person .head img { height: 72px; }
+  #event.bottom { left: 8px; right: 8px; bottom: max(8px, env(safe-area-inset-bottom)); max-height: 48%; box-shadow: 0 0 0 3px var(--gold), 0 0 0 5px var(--ink), 4px 8px 18px rgba(0, 0, 0, .45); }
+  #event img { max-height: 16vh; }
+  #event h2 { font-size: 18px; padding: 7px 12px 8px; }
+  #event .text { font-size: 17px; margin: 8px 14px 12px; }
+  #event figure { margin: 10px 12px 0; }
+  #move { bottom: max(12px, env(safe-area-inset-bottom)); font-size: 16px; }
+  #credits { font-size: 14px; padding: 14px 16px 12px; }
+  body.credits-open #top { opacity: 0; pointer-events: none; }   /* the long dialog reaches up over the year plate */
+}
