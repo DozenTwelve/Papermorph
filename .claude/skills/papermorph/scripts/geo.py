@@ -14,6 +14,8 @@ regions[ISO][name] admin-1 at 0.02 deg, by English name ('Hubei'), or merged by 
 shapely, each is dissolved into one outline, else its provinces' borders show inside it); cities {name: [lon, lat]};
 detail[name] {c: centre, lakes, urban, rivers} at 10m. Rings are
 delta-encoded integers (hundredths of a degree, detail ten-thousandths). Only outer rings: holes are lakes, the sea shows.
+The data are today's world: coasts (Flevoland land, the Haarlemmermeer drained), borders and built-up areas; geo.py
+says so each run, and a film of another century redraws what changed (films.md, Maps).
 The world alone is about 400 KB; each region set and detail cut adds to it, so ask for the ones the film shows.
 
 Natural Earth's GeoJSON is downloaded once from github.com/nvkelso/natural-earth-vector into ~/.cache/papermorph/ne
@@ -214,6 +216,8 @@ def main():
           *(f'detail {n}' for n in geo.get('detail', {})))
     for c, v in geo.get('regions', {}).items():   # the names region() and hatch() are called with: a name not here lights nothing
         print(f'{c} region names:', ', '.join(sorted(v)))
+    print('the coasts, borders and built-up areas are today\'s (Natural Earth): a film set in another century redraws '
+          'what changed as paperMap areas (films.md, Maps: another century)', file=sys.stderr)
     if a.globe:
         globe(pathlib.Path(a.globe), img, a.night_width)
 
