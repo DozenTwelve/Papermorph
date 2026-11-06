@@ -165,7 +165,7 @@ function linsys(p, { A = [[2, -1], [-1, 2]], b = [0, 3], eq = [90, 250], mat = [
   // The meeting point's trail: dotted amber, under the point. A trail from to(…, { trail: true }) is its own path,
   // drawn from the tween's progress, so seeking shows the same frame; sys.trail(true) records the reader's moves.
   const trailG = G(ROWV, {});
-  const trailAttrs = { stroke: COL.task, 'stroke-width': 5, 'stroke-dasharray': '0 13', 'stroke-linecap': 'round', fill: 'none', opacity: .75 };
+  const trailAttrs = { stroke: COL.task, 'stroke-width': 5, 'stroke-dasharray': '0 13', 'stroke-linecap': 'round', fill: 'none' };
   const liveTrail = path(trailG, '', trailAttrs);
   let liveOn = false, livePts = [];
   const meetBox = G(ROWV, {});   // the chapter can hide the point (meetBox) while draw() keeps setting meet itself
