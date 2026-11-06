@@ -642,8 +642,18 @@ const io = p => p < .5 ? 4 * p * p * p : 1 - (-2 * p + 2) ** 3 / 2;
 const out = p => 1 - (1 - p) ** 3;
 const back = p => 1 + 2.2 * (p - 1) ** 3 + 1.2 * (p - 1) ** 2;
 const lin = p => p;
-function tw(e, to, t0, dur = .6, ease = io) { TW.push({ e, to, t0, dur, ease }); }
-function prog(pf, t0, dur, ease = io) { TW.push({ pf, t0, dur, ease }); }
+// A start or length that is not a number would leave the beat's end NaN, and the beat would never end: say so at once,
+// naming the call and the beat (the one being built, else the one playing).
+let building = null;
+function beatName() {
+  try { const i = building ?? P.i, b = BEATS[i]; return b ? `beat ${i} '${b.id}'` : 'this page'; } catch { return 'this page'; }
+}
+const secs = v => typeof v === 'number' && Number.isFinite(v);
+function when(call, t0, dur) {
+  if (!secs(t0) || !secs(dur) || dur < 0) throw new Error(`${typeof call === 'function' ? call() : call} in ${beatName()}: start ${t0}, length ${dur}; both must be numbers of seconds (show, hide, draw, pop, pulse and stream take their start the same way)`);
+}
+function tw(e, to, t0, dur = .6, ease = io) { when(() => `tw(e, ${JSON.stringify(to)}, t0, dur)`, t0, dur); TW.push({ e, to, t0, dur, ease }); }
+function prog(pf, t0, dur, ease = io) { when('prog(f, t0, dur)', t0, dur); TW.push({ pf, t0, dur, ease }); }
 const show = (e, t0, dur = .5, ease) => tw(e, { o: 1 }, t0, dur, ease);
 const hide = (e, t0, dur = .5, ease) => tw(e, { o: 0 }, t0, dur, ease);
 const draw = (e, t0, dur = .9, ease) => tw(e, { d: 1 }, t0, dur, ease);
@@ -681,7 +691,7 @@ const soft = p => (1 - Math.cos(Math.PI * p)) / 2;   // gentle in-out, for camer
 // (for a tail, the beat's real end), so a move can land on it, as a whip at the end of a beat does. Under music that
 // end is where the beat really leaves, up to HOLD early (P.back, see frameStep), so the move is still seen landing.
 // A tail's own D does not lengthen the beat: it runs to the end whatever it is (so D + HOLD adds no second hold).
-const clockRun = (f, D, { tail = false } = {}) => { const w = { t0: 0, dur: D, ease: lin, tail }; f(0, D); w.pf = q => f(q * w.dur, w.tail ? w.dur - P.back : w.dur); TW.push(w); };
+const clockRun = (f, D, { tail = false } = {}) => { const w = { t0: 0, dur: D, ease: lin, tail, call: tail === 'follow' ? 'camera(p, D)' : 'clockRun(f, D)' }; f(0, D); w.pf = q => f(q * w.dur, w.tail ? w.dur - P.back : w.dur); TW.push(w); };
 // A camera looks at a world group through the stage (or a box, for split screen and picture-in-picture).
 // The view {x, y, z, r} is the world point at the centre, the zoom (screen px per world px) and the roll in degrees.
 // Moves are keyed on the beat clock: to(view, t0, dur, ease) blends each given key from its value at t0; a key may be a
@@ -730,9 +740,9 @@ function camera(p, D, { box, x = SW / 2, y = SH / 2, z, r = 0, bg = COL.board } 
     for (const L of layers) put(L.g, { x: L.wrap ? dx - ((L.k * dx) % L.wrap + L.wrap) % L.wrap : (1 - L.k) * dx, y: (1 - L.k) * dy });
   }
   const cam = { el, world, at,
-    to(v, t0, dur = 1, ease = soft) { ops.push({ v, t0, dur, ease }); ops.sort((a, b) => a.t0 - b.t0); ops.forEach(o => delete o.from); return cam; },
+    to(v, t0, dur = 1, ease = soft) { when('cam.to(view, t0, dur)', t0, dur); ops.push({ v, t0, dur, ease }); ops.sort((a, b) => a.t0 - b.t0); ops.forEach(o => delete o.from); return cam; },
     cut: (v, t0) => cam.to(v, t0, 0),
-    shake(amp, t0, dur, hz = 7) { shakes.push({ amp, t0, dur, hz }); return cam; },
+    shake(amp, t0, dur, hz = 7) { when('cam.shake(amp, t0, dur)', t0, dur); shakes.push({ amp, t0, dur, hz }); return cam; },
     // Parallax layer: k < 1 is far (moves slower than the camera), k > 1 near. With wrap = W the layer's content
     // repeats every W world px: draw one period plus the widest view, and the layer never runs out.
     layer(k = 1, wrap) { const g = G(world); layers.push({ g, k, wrap }); return g; },
@@ -805,8 +815,8 @@ function header(p, str, t0, x = 1000, y = 170) {
 
 /* ---------- question effects: run on wall time, independent of the lesson clock ---------- */
 let FX = [], clock = 0;
-function fx(e, to, delay = 0, dur = .5, ease = io) { FX.push({ e, to, t0: clock + delay, dur, ease }); }
-function fxp(pf, delay, dur, ease = io) { FX.push({ pf, t0: clock + delay, dur, ease }); }
+function fx(e, to, delay = 0, dur = .5, ease = io) { when(() => `fx(e, ${JSON.stringify(to)}, delay, dur)`, delay, dur); FX.push({ e, to, t0: clock + delay, dur, ease }); }
+function fxp(pf, delay, dur, ease = io) { when('fxp(f, delay, dur)', delay, dur ?? 0); FX.push({ pf, t0: clock + delay, dur, ease }); }
 function finishFx() { FX.sort((a, b) => a.t0 - b.t0); evalTo(Infinity, FX); FX = []; }
 const pulseFx = (e, k = 1.8) => { if (!e) return; fx(e, { s: k }, 0, .22, out); fx(e, { s: 1 }, .22, .45); };
 const shakeFx = e => { if (!e) return; const x0 = st(e).x; fxp(q => put(e, { x: x0 + Math.sin(q * Math.PI * 6) * (1 - q) * 12 }), 0, .55, lin); };
@@ -1621,7 +1631,8 @@ function runBeat(i) {
     return pre + tm.marks[k] + off;
   };
   S.cleared = false;
-  b.run(m, pre + tm.dur);
+  building = i;
+  try { b.run(m, pre + tm.dur); } finally { building = null; }
   if (S.cleared && b.lead !== false && CHAPTER.lead !== false && !pre) leadIn();   // CHAPTER.lead false: no beat gets one (a film)
   TW.sort((a, c) => a.t0 - c.t0);
   // runs that last to the end anyway (tails, follow cameras) do not set it: only the narration and the other tweens do,
@@ -1629,6 +1640,9 @@ function runBeat(i) {
   const end = Math.max(Math.max(pre + tm.dur, ...TW.filter(w => !w.tail).map(w => w.t0 + w.dur)) + HOLD, b.minDur || 0);
   const tail = TW.some(w => w.tail === true);
   for (const w of TW) if (w.tail === true || tail && w.tail === 'follow') w.dur = end - w.t0;
+  const bad = TW.find(w => !secs(w.dur));
+  if (bad) throw new Error(`${bad.call || 'a tween'} in beat ${i} '${b.id}': its length is ${bad.dur}; give D in seconds`);
+  if (!secs(end)) throw new Error(`beat ${i} '${b.id}': its end is ${end} (narration ${tm.dur} s, pre ${b.pre}, minDur ${b.minDur}): each must be a number of seconds`);
   return SND.len[i] = end;   // the music places itself by how long each beat really runs
 }
 const HOLD = .6;
