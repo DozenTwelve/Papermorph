@@ -16,7 +16,7 @@ One page: no hash or `#book` shows the cover, `#references` the reference list, 
 - `hues`: one colour per unit, cycling.
 - A book that cites works gets a `#references` view ([courses.md](courses.md#citations)).
 - The infinity guide on the cover and beside the question cards comes with the engine (`mascotEl` in `engine.js`, the cover's in `contents.js`), so a book's copy is replaced at every sync. A custom guide needs a hook in the engine itself, agreed with the user and made at the engine's source.
-- A book with its own look overrides the tokens of `lib/contents.css` (`--board`, `--chalk`, `--top-bg`, …) in a `<style>` after it, as the template's comment shows, rather than copying the stylesheet into the page.
+- A book with its own look overrides the tokens of `lib/contents.css` (`--board`, `--chalk`, `--top-bg`, …) in a `<style>` after it, as the template's comment shows, rather than copying the stylesheet into the page. A light look sets every token in that comment and replaces the chalkboard vignette (`body::before`); with only the board and ink changed, the chapter cards stay dark under dark text.
 
 ## Unit sketches (`unit-art.js`)
 
