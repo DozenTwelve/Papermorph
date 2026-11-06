@@ -70,7 +70,7 @@ function seriesCard(s, t0, n, tLit) {
     return c;
   });
   const [x, y] = pos[n - 1];
-  const rim = rect(s, x - sz / 2 - 8, y - sz / 2 - 8, sz + 16, sz + 16, { rx: 24, fill: 'none', stroke: RED, 'stroke-width': 10, opacity: 0 });
+  const rim = put(rect(s, x - sz / 2 - 8, y - sz / 2 - 8, sz + 16, sz + 16, { rx: 24, fill: 'none', stroke: RED, 'stroke-width': 10 }), { o: 0 });
   show(rim, tLit, .15, lin); sfx(BEAT_ID, tLit, 'tick', 1.2);
   tiles.forEach((c, i) => { if (i !== n - 1) tw(c, { o: .3 }, tLit, .3); else tw(c, { s: 1.06 }, tLit, .25, back); });
   return tiles;
