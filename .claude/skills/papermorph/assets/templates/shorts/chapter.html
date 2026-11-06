@@ -36,7 +36,8 @@ const BEATS = [
   ['hook', 'The hook', (m, D) => {
     const p = panel(0);
     const s = shot(p, 0, undefined);
-    photo(s, 'hook-picture', 0, D, { s0: 1.0, s1: 1.15, dim: .2 });
+    if (ART['hook-picture'])   // the kit's sample picture: until prep.py writes one by that name into img/art.js, the word stands alone
+      photo(s, 'hook-picture', 0, D, { s0: 1.0, s1: 1.15, dim: .2 });
     word(s, 'Big word', CX, 640, m('big'), { size: 140, fill: '#fff', stroke: DARK });
     label(s, 'Series · part 1', CX, 1200, .3, { size: 44, fill: RED });
   }, { pre: OPEN_PRE }],
