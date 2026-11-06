@@ -16,7 +16,7 @@ A lesson's mathematics (`lib/math.js`, math parts in `M()`, LaTeX) is in [lesson
 - Player: keys, full screen, films with questions, sound, progress
 - Traps
 
-The question types and their API (`quiz()`, cards, grading) are in [lessons/questions.md](../lessons/questions.md); a film's interactive moment uses its own `ask` ([documentary.md](../films/documentary.md#interactive-moments)), and a picture book's listen-and-find stop `findWords(things, asks, done)` ([picture-books/stories.md](../picture-books/stories.md#listen-and-find)).
+The question types and their API (`quiz()`, cards, grading) are in [lessons/questions.md](../lessons/questions.md); a film's interactive moment uses its own `ask` ([documentary.md](../films/documentary.md#interactive-moments)), and a picture book's listen-and-find stop `findWords(things, asks, done)` ([picture-books/listen-and-find.md](../picture-books/listen-and-find.md)).
 
 ## Stage and state
 
