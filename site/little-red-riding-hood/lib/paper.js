@@ -54,13 +54,18 @@ function stopClock(D, draw) { let last = null; clockRun(t => { const f = Math.fl
    that always needs the same place for its puppets says so once (a river's tree in front of the bank, a house whose
    front hides whoever is inside). stages: [layer names] adds a plane after each of those layers too, cam.stageAt[name],
    for things that stand further back: ducks on a pond in front of its water, a grandmother at the window of a house
-   layer drawn over cam.stage. */
+   layer drawn over cam.stage. cam.onPlane(name, sx, sy) is where to put a thing on the plane of layer `name` so that
+   it shows at screen point (sx, sy) of the 1600 × 900 frame the last apply() drew: the sun or a far bird on
+   stages: ['clouds'], kept at one spot of the sky while the camera pans (pose it after cam.apply each frame). */
 function paperCam(p, setName, v0 = {}, { after = null, stages = [] } = {}) {
   const root = mk('g', {}, p), view = mk('g', {}, root), world = mk('g', {}, view), layers = [], ops = [], softs = [], shakes = [];
   let stage = null; const stageAt = {}, set = SETS[setName];
   if (!set) throw new Error(`paperCam: no set '${setName}' in img/sets/sets.js (${Object.keys(SETS).join(', ')})`);
   after ??= (set.find(L => L.stage) || set.find(L => L.k === 1) || set[set.length - 1]).name;
   for (const n of [after, ...stages]) if (!set.some(L => L.name === n)) console.warn(`paperCam: set '${setName}' has no layer '${n}' (${set.map(L => L.name).join(', ')})`);
+  // A set whose first layer names its paper colour (lift.py's sets: a book's page, narrower than the frame) lies on an
+  // endless sheet of it, so a pan, a zoom out or a shake never sees past the picture.
+  if (set[0]?.paper) mk('rect', { x: -6000, y: -6000, width: 13600, height: 12900, fill: set[0].paper }, world);
   for (const L of set) {
     const g = mk('g', {}, world), [x, y, width, height] = L.box, img = { x, y, width, height, preserveAspectRatio: 'none' };
     const sharp = mk('image', { href: `../img/sets/${setName}/${L.name}.webp`, ...img }, g);
@@ -73,6 +78,7 @@ function paperCam(p, setName, v0 = {}, { after = null, stages = [] } = {}) {
   mk('rect', { width: 1600, height: 900, fill: 'url(#vignette)', 'pointer-events': 'none' }, root);   // a tap goes through to the picture
   // Parallax is measured from the set's own framing (base), wherever the beat's first view is.
   const base = { x: 800, y: 450, z: 1 }, start = { ...base, ...v0 };
+  let shown = start;   // the view the last apply() drew
   function at(t, n = ops.length) {
     const s = { ...start };
     for (let i = 0; i < n && ops[i].t0 <= t; i++) {
@@ -88,17 +94,26 @@ function paperCam(p, setName, v0 = {}, { after = null, stages = [] } = {}) {
     to(v, t0, dur = 1) { ops.push({ v, t0, dur }); ops.sort((a, b) => a.t0 - b.t0); ops.forEach(o => delete o.from); return cam; },
     cut: (v, t0) => cam.to(v, t0, 0),
     show(name, on) { for (const L of layers) if (L.name === name) vis(L.g, on); return cam; },   // swap a set layer (weather)
+    layer: name => layers.find(L => L.name === name)?.g,   // a set layer's group, to move, clip or fade one layer (a pond draining)
+    // move(name, q => transform) adds a transform to a set layer each frame, after its parallax: grass swaying from its
+    // foot (q => `translate(0 860) skewX(${1.5 * Math.sin(q * 1.9)}) translate(0 -860)`), clouds drifting (q => `translate(${q * 6} 0)`).
+    move(name, fn) { const L = layers.filter(L => L.name === name); if (!L.length) console.warn(`paperCam.move: set '${setName}' has no layer '${name}'`); L.forEach(L => L.fx = fn); return cam; },
+    onPlane(name, sx, sy) {
+      const L = layers.find(L => L.name === name), s = shown;
+      if (!L) { console.warn(`paperCam.onPlane: set '${setName}' has no layer '${name}'`); return { x: sx, y: sy }; }
+      return { x: (sx - 800) / s.z + s.x - (1 - L.k) * (s.x - base.x), y: (sy - 450) / s.z + s.y - (1 - L.k) * (s.y - base.y) };
+    },
     soft(t0, on) { softs.push([t0, on]); softs.sort((a, b) => a[0] - b[0]); return cam; },
     shake(t0, dur, amp = 10) { shakes.push([t0, dur, amp]); return cam; },
-    apply(q, f) {
-      const s = at(q);
+    apply(q, f, camQ = q) {   // camQ: the time the camera itself is posed at (still.py --hold-cam holds it; layers' move() keep q)
+      const s = shown = at(camQ);
       let sx = 0, sy = 0;
-      for (const [t0, d, amp] of shakes) if (q >= t0 && q < t0 + d) { sx += jit(f, 91) * amp; sy += jit(f, 92) * amp; }
+      for (const [t0, d, amp] of shakes) if (camQ >= t0 && camQ < t0 + d) { sx += jit(f, 91) * amp; sy += jit(f, 92) * amp; }
       view.setAttribute('transform', `translate(${800 + sx} ${450 + sy}) scale(${s.z}) translate(${-s.x} ${-s.y})`);
       const dx = s.x - base.x, dy = s.y - base.y;
-      let soft = false; for (const [t0, on] of softs) if (q >= t0) soft = on;
+      let soft = false; for (const [t0, on] of softs) if (camQ >= t0) soft = on;
       for (const L of layers) {
-        L.g.setAttribute('transform', `translate(${((1 - L.k) * dx).toFixed(1)} ${((1 - L.k) * dy).toFixed(1)})`);
+        L.g.setAttribute('transform', `translate(${((1 - L.k) * dx).toFixed(1)} ${((1 - L.k) * dy).toFixed(1)})${L.fx ? ' ' + L.fx(Math.floor(q * FPS / 2) * 2 / FPS) : ''}`);
         if (L.blur) { const b = soft === 'all' || (soft && L.k < 1); vis(L.blur, b); vis(L.sharp, !b); }   // never 'visible': it would show through a hidden camera
       }
       FLICKER.style.opacity = (.02 + .02 * jit(f, 30)).toFixed(3);   // the exposure flicker of real frames

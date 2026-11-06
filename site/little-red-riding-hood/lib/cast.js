@@ -215,14 +215,14 @@ function puppet(parent, svg, rest, pose) {
   g.innerHTML = svg;
   bakeAll(g);
   const P = pieces(g);
-  return { g, pose(o, f) { o = { ...rest, ...o }; pose(P, o, k => jit(f, k), g); } };
+  return { g, P, pose(o, f) { o = { ...rest, ...o }; pose(P, o, k => jit(f, k), g); } };
 }
 // What every puppet does with its pose: place, jitter, turn, legs, arms, head; returns whether it faces us.
-function common(P, o, j, g, { neck, sh, el, hand, fsh, fup, knee }) {
+function common(P, o, j, g, { neck, sh, el, fsh, fup, knee, waist = 0 }) {
   const front = o.head === 'F' || Math.abs(o.turn) < .55;
   tf(g, `translate(${(o.x + j(1) * .8).toFixed(1)},${(o.y + o.hop + j(2) * .6).toFixed(1)}) scale(${o.s}) rotate(${(j(3) * .5).toFixed(2)})`);
   tf(P.body, `scale(${o.turn.toFixed(3)},1)`); vis(P.body, !front); vis(P.bodyF, front);
-  if (P.upper) tf(P.upper, `rotate(${o.lean.toFixed(2)})`);
+  if (P.upper) tf(P.upper, `rotate(${o.lean.toFixed(2)},0,${waist})`);
   if (P.legN) {
     tf(P.legN, `rotate(${(o.near + j(4) * .6).toFixed(2)})`); tf(P.legNk, `rotate(${o.kNear.toFixed(2)},0,${knee})`);
     tf(P.legF, `rotate(${(o.far + j(5) * .6).toFixed(2)})`); tf(P.legFk, `rotate(${o.kFar.toFixed(2)},0,${knee})`);
