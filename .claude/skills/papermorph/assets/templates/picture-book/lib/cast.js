@@ -213,7 +213,8 @@ function spStep(tau, { L = 52, A = 20, period = 2 / 3 } = {}) {
    its pose (place and jitter, turn, the profile legs and near arm, the two front arms, the head, eyes and mouth):
    rig = { neck, sh, el (the near shoulder and elbow pins), fsh (the front right shoulder), fup (its upper arm length),
    knee (the knee pin's y in legPiece), waist (the y that lean bends about, default 0) }. The common keys (REST_FIG):
-   x y s turn; near, far (the profile legs, degrees, + forward) and kNear, kFar (knee bends); ua, fa (the near arm's
+   x y s turn; near, far (the profile legs, degrees from hanging straight down: - swings the foot forward, the way the
+   figure faces, + back) and kNear, kFar (knee bends, + folds the shin back as a knee does); ua, fa (the near arm's
    shoulder and elbow); rua, rfa, lua, lfa (the front figure's screen-right and screen-left arms; 0 hangs down); head
    ('P' | 'F'), headR (degrees), nod (+ lowers the head); mouth, shut (blink: blinking(q, times) in paper.js); hop
    (+ moves the whole figure down, - up; the arc of a hop is yours); lean; brow.
@@ -228,10 +229,15 @@ function spStep(tau, { L = 52, A = 20, period = 2 / 3 } = {}) {
    lean      bends it at the waist, degrees forward (profile only): 60–80 reaches the ground
    crouch    0 … 1: knees up and hip down, the feet kept on the ground (a duck, a bend to pick something up, the squash
              before and after a hop)
+   sit       false, or the height of the seat in the figure's units above its feet (true: 86, a chair; 0: on the
+             ground): the hip comes down onto the seat, the thighs go forward and the shins reach down to the ground at
+             y, so place it with the same y as standing. near, far, kNear and kFar still add to the seated legs. A long
+             coat (skirt: true) hangs below a seat lower than about 56: sit that figure behind a bank or the set's edge
    fua, ffa  the far arm (profile), shoulder and elbow like ua / fa; null hides it (it hangs behind the body at rest).
              To pick something off the ground: { lean: 60, crouch: .7, fua: -50, ffa: 10 } puts the far hand there
    hat       true / false: the hat on its head. The hair is drawn under the hat on both heads, so a hat that comes off
-             leaves hair, never a bald head (the hat on its own is hatSVG, for a hand or the ground)
+             leaves hair, never a bald head (the hat on its own: heldHat, centred on (0, 0), for holds or the ground;
+             hatSVG where it sits on the head, for a peg at head height)
    hold      a key of holds, shown in the near hand (profile) and the screen-right hand (front), kept upright; each
              svg is drawn around the hand's centre (0, 0)
    To add a character with another build, copy figurePuppet, change its paths and pins, and keep its pose to common()
@@ -307,7 +313,9 @@ function bigStep(u, L = 166, reach = 30) {
 
 // A hat on its own, drawn where it sits on the profile head at puppet scale 1 (for a hand, a peg or the ground).
 const hatSVG = (hat = '#c8322f', band = '#8a2420') => `<g filter="url(#paper)"><path d="M-30,-222 C-28,-262 40,-268 50,-222 Z" fill="${hat}"/><rect x="-40" y="-228" width="102" height="11" rx="5" fill="${band}"/></g>`;
-const REST_FIGURE = { ...REST_FIG, look: 0, fua: null, ffa: -10, crouch: 0, hat: true, hold: null };
+// The same hat centred on (0, 0): in a hand (holds: { hat: heldHat() }, hold: 'hat') or put down on the ground.
+const heldHat = (hat, band) => `<g transform="translate(-11,242)">${hatSVG(hat, band)}</g>`;
+const REST_FIGURE = { ...REST_FIG, look: 0, fua: null, ffa: -10, crouch: 0, sit: false, hat: true, hold: null };
 function figurePuppet(parent, { skin = '#f6d2b5', coat = '#3d6fa8', coatFar = '#335d8d', legs = '#f2ede1', legsFar = '#d8d1c2', shoe = '#3a2418',
   hair = '#6b3b22', hat = '#c8322f', band = '#8a2420', cheek = '#ef9a8a', skirt = true, holds = {} } = {}) {
   const ink = '#22150e', held = (side, x, y) => Object.entries(holds).map(([k, s]) => `<g data-p="hold${side}_${k}" transform="translate(${x},${y})">${s}</g>`).join('');
@@ -353,6 +361,13 @@ function figurePuppet(parent, { skin = '#f6d2b5', coat = '#3d6fa8', coatFar = '#
     <use class="mouth" href="#mX" transform="translate(0,-166)"/>
     ${hat ? `<g data-p="hatF"><g filter="url(#paper)"><path d="M-46,-224 C-44,-276 44,-276 46,-224 Z" fill="${hat}"/><ellipse cx="0" cy="-224" rx="62" ry="9" fill="${band}"/></g></g>` : ''}</g>`,
   REST_FIGURE, (P, o, j, g) => {
+    // seated: thigh a degrees forward of hanging, the shin from the knee down to the ground; a seat below 10 is taken as
+    // 10, half a leg's width, so legs stretched out on the ground lie on it rather than in it
+    if (o.sit !== false) {
+      const H = Math.max(10, Math.min(86, o.sit === true ? 86 : +o.sit)), r = Math.PI / 180;
+      const knee = a => a - Math.acos(Math.max(0, Math.min(1, (H - 86 * Math.cos(a * r)) / 86))) / r;
+      o = { ...o, near: o.near - 90, far: o.far - 84, kNear: o.kNear + knee(90), kFar: o.kFar + knee(84), hop: o.hop + (172 - H) * o.s };
+    }
     if (o.crouch) {   // the hip sinks as far as the folded legs shorten, so the feet stay on the ground
       const c = o.crouch, r = Math.PI / 180, n = { near: o.near - 62 * c, far: o.far - 50 * c, kNear: o.kNear + 104 * c, kFar: o.kFar + 100 * c };
       const reach = (a, k) => 86 * Math.cos(a * r) + 86 * Math.cos((a + k) * r), drop = 172 - Math.max(reach(n.near, n.kNear), reach(n.far, n.kFar));

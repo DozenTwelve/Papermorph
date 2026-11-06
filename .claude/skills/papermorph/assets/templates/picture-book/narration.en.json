@@ -9,7 +9,7 @@
   "beats": {
     "s01": "Once upon a time, a kid knocked on the door.",
     "s02": { "speaker": "kid", "text": "Dad? Are you home?" },
-    "s02b": { "speaker": "dad", "text": "[[open]]Of course I am. Come in." },
+    "s02b": { "speaker": "dad", "text": "Of course I am. [[open]]Come in." },
     "s03": { "speaker": "kid", "text": "Good. I brought you a cat." },
     "q-cat": "Can you find the cat? Touch it!",
     "r-cat": "Where's the cat?",

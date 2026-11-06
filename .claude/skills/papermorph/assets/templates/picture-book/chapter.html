@@ -30,7 +30,8 @@ try { if (localStorage.getItem('captions') === null) setCaptions(true, false); }
 
 /* ---------- beats: one per scene ----------
    [id, title, run, { lead: false, pre }]: id names audio/en/<id>.mp3 (the joined scene clip) and its TIMINGS entry;
-   `pre` is the seconds of picture before the speech starts (the scene's PRE constant).
+   `pre` is the seconds of picture before the speech starts (the scene's PRE constant). run gets m, the engine's mark
+   clock: m('s02b.open') is the beat-clock time of the [[open]] mark in line s02b of the joined scene, pre included.
    A listen-and-find stop for young readers (references/picture-books/stories.md) is a beat's `ask`: after the scene,
    the picture stays alive and the engine's findWords(things, asks, done) asks for one thing at a time. The scene fills
    its things ({ g, word }: THINGS1 in scene1.js); each thing says audio/en/w-<word>.mp3 when tapped, each ask plays
@@ -39,7 +40,7 @@ try { if (localStorage.getItem('captions') === null) setCaptions(true, false); }
    lint.py names any clip that is missing. Write words and clips as literals so lint can check them. */
 const FIND1 = [{ word: 'cat', clip: 'q-cat' }, { word: 'dad', clip: 'q-dad' }];
 const BEATS = [
-  ['scene1', 'The visit', (m, D) => scene1(panel(0), D), { lead: false, pre: PRE1, ask: done => findWords(THINGS1, FIND1, done),
+  ['scene1', 'The visit', (m, D) => scene1(panel(0), D, m), { lead: false, pre: PRE1, ask: done => findWords(THINGS1, FIND1, done),
     video: PRE1 + TIMINGS.scene1.dur }],   // export.py cannot tap: the video keeps the scene and skips the game
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
 

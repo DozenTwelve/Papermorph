@@ -13,9 +13,14 @@
 <script src="unit-art.js"></script>
 <!-- <script src="refs.js"></script>  a book that cites works: its reference list, built by the skill's scripts/refs.py -->
 <link rel="expect" href="#ch01" blocking="render">
-<!-- The book's own look, if it differs from the chalkboard: override the tokens of lib/contents.css here, e.g.
+<!-- The book's own look, if it differs from the chalkboard: override the tokens of lib/contents.css here. A light look
+     sets them all, since the chapter cards (--panel) and their text (--chalk, --dim) change together, and replaces the
+     chalkboard's dark vignette (body::before); the notebook books' cover (site/physics-notebook/) draws lined paper there:
 <style>
-:root { --board: #fcfaf3; --chalk: #26241f; --top-bg: rgba(252, 250, 243, .9); --top-line: #ddd5c3; color-scheme: light; }
+:root { --page: #d9d3c4; --board: #fcfaf3; --panel: #fffdf8; --edge: #d4ccb8;
+  --chalk: #26241f; --dim: #6c665a; --faint: #a39b8a; --task: #c4327a; --quiz: #2a7dbb; --good: #2f8a54;
+  --top-bg: rgba(252, 250, 243, .9); --top-line: #ddd5c3; --lift: rgba(60, 50, 30, .18); color-scheme: light; }
+body::before { background: none; }
 </style> -->
 </head>
 <body>
