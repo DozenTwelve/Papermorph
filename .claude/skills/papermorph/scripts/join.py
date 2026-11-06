@@ -10,7 +10,8 @@ silence with no clip of its own (a stare or a tag after the last line; its start
 hole belongs after a word's sound has ended, not where the next word starts. A short pause (0.35 s) goes between clips. Writes AUDIO_DIR/SCENE.mp3 and
 AUDIO_DIR/shots.js: TIMINGS.SCENE = {dur, marks, cues, parts} with each clip's start in `parts` (marks become
 "clip.mark") and the caption cues moved along; the mouth cues of clips with holes are moved too (MOUTHS.clip). Load
-shots.js after timings.js and mouths.js. Captions start 0.12 s after Edge's word times (the sound starts that much
+shots.js after timings.js and mouths.js. A scene not on the command line keeps what an earlier run wrote for it in
+shots.js (and in the words file), so one scene can be joined again alone; the run names the scenes it kept. Captions start 0.12 s after Edge's word times (the sound starts that much
 later; mouths.py moves its cues the same) and end at the first pause of 0.45 s or more after their last word — a
 pause inside the sentence, or the clip's silence without word times, never ends one early. With --words, writes NARRATION.words.txt next to the narration (outside the site): each clip's start, its holes and
 every word's heard time in the joined scene clip, which a scene's author times actions against (the beat clock is the
@@ -22,9 +23,9 @@ if len(sys.argv) < 3 or sys.argv[1] in ('-h', '--help'):
     print(__doc__); sys.exit(0 if sys.argv[1:2] in (['-h'], ['--help']) else 2)
 GAP = .35
 LAG = .12   # Edge's word times run ~0.12–0.25 s ahead of the sound: captions (and mouths.py's cues) start this much later
-d = pathlib.Path(sys.argv[1]); T = json.loads((d / 'timings.js').read_text(encoding='utf-8').split('=', 1)[1].rstrip().rstrip(';'))
 from silence import speech_end, pauses   # a caption ends at the pause after its words
-from tts import duration
+from tts import duration, js_object
+d = pathlib.Path(sys.argv[1]); T = js_object(d / 'timings.js')
 args, words = sys.argv[2:], None
 if '--words' in args:
     k = args.index('--words'); words = pathlib.Path(args[k + 1]); del args[k:k + 2]
@@ -85,11 +86,22 @@ for arg in args:
     H.update(holes)
     out[shot] = {'dur': round(dur, 3), 'marks': marks, 'cues': cues, 'parts': parts}
 # a clip with holes gets its mouth cues moved the same way (and shut at each hole), after mouths.js in the page
-mp = d / 'mouths.js'; M = json.loads(mp.read_text(encoding='utf-8').split('=', 1)[1].rstrip().rstrip(';')) if mp.exists() else {}
+mp = d / 'mouths.js'; M = js_object(mp) if mp.exists() else {}
 sh = lambda b, t: t + sum(sec for at, sec in H[b] if t >= at)
 moved = {b: sorted([[round(sh(b, t), 3), k] for t, k in M[b]] + [[round(sh(b, at - 1e-3), 3), 'X'] for at, _ in H[b]])
          for b in H if H[b] and b in M}
-(d / 'shots.js').write_text(''.join(f'TIMINGS.{k} = {json.dumps(v)};\n' for k, v in out.items()) + ''.join(f'MOUTHS.{b} = {json.dumps(v)};\n' for b, v in moved.items()))
+# the scenes joined before and not in this run stay (rejoining one scene keeps the others), and so do the moved mouths
+# of their clips; a clip of this run is moved afresh, or back to mouths.js's own cues when it has no holes now
+sp, mine = d / 'shots.js', {b for b in H}
+old = {}   # (TIMINGS or MOUTHS, name) -> value, as an earlier run wrote them
+if sp.exists():
+    for line in sp.read_text(encoding='utf-8').splitlines():
+        if m := re.fullmatch(r'(TIMINGS|MOUTHS)\.(\w+) = (.*);', line): old[m[1], m[2]] = json.loads(m[3])
+kept = [k for (w, k) in old if w == 'TIMINGS' and k not in out]
+scenes = {**{k: v for (w, k), v in old.items() if w == 'TIMINGS' and k not in out}, **out}
+mouths = {**{k: v for (w, k), v in old.items() if w == 'MOUTHS' and k not in mine}, **moved}
+sp.write_text(''.join(f'TIMINGS.{k} = {json.dumps(v)};\n' for k, v in scenes.items()) + ''.join(f'MOUTHS.{b} = {json.dumps(v)};\n' for b, v in mouths.items()), encoding='utf-8')
+if kept: print(f"kept from the earlier shots.js (not joined this run): {', '.join(kept)}")
 if words:   # every word where it is heard in its scene clip
     W, lines = json.loads(words.with_suffix('.timings.json').read_text(encoding='utf-8')), []
     for sc, v in out.items():
@@ -98,5 +110,9 @@ if words:   # every word where it is heard in its scene clip
             hs = ' '.join(f'[hole {round(p + sh(b, at - 1e-6), 2)}…{round(p + sh(b, at - 1e-6) + sec, 2)}]' for at, sec in H.get(b, []))
             ws = W.get(b, {}).get('words', [])
             lines.append(f"   {b} @{p} {hs} | " + (' '.join(f'{w}@{round(p + sh(b, t) + W.get(b, {}).get("lag", LAG), 2)}' for t, w in ws) or '(silence)'))
-    words.with_suffix('.words.txt').write_text('\n'.join(lines) + '\n', encoding='utf-8')
+    wf = words.with_suffix('.words.txt')   # the earlier run's lines of the scenes kept in shots.js stay
+    if wf.exists():
+        blocks = re.split(r'\n(?=\S)', wf.read_text(encoding='utf-8').strip('\n'))
+        lines = [x for x in blocks if x.split(' ', 1)[0] in kept] + lines
+    wf.write_text('\n'.join(lines) + '\n', encoding='utf-8')
 print({k: (v['dur'], v['parts']) for k, v in out.items()})

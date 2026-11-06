@@ -54,7 +54,7 @@ rerun keeps a sped clip, and a changed tempo makes it again from the cached take
 import argparse, atexit, hashlib, json, pathlib, re, subprocess, sys, urllib.error, urllib.request
 from paint import key
 from ledger import append
-from tts import split_marks, mark_times, duration, write_atomic, tokens, sentences
+from tts import split_marks, mark_times, duration, write_atomic, tokens, sentences, js_object
 from silence import silences
 import level as lv
 
@@ -134,7 +134,7 @@ asr = {}
 tf = out / "timings.js"
 old = {}
 if tf.exists():
-    t = tf.read_text(encoding="utf-8"); old = json.loads(t[t.index("{"):t.rindex("}") + 1])
+    old = js_object(tf)
 tk = cache / "takes.json"   # output clip -> the cached take it was copied from
 clip_key = lambda f: "/".join(pathlib.Path(f).parts[-2:])   # en/open.mp3: the same in any clone (older runs: the full path)
 takes = {clip_key(k): v for k, v in json.loads(tk.read_text()).items()} if tk.exists() else {}

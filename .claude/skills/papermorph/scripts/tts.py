@@ -222,6 +222,13 @@ def duration(mp3):
         raise SystemExit(f"{mp3}: ffprobe read no duration ({r.stderr.strip()[:300] or r.stdout.strip() or 'no output'})") from None
 
 
+def js_object(path):
+    """The one object a data file such as timings.js or mouths.js assigns (window.TIMINGS = {...};), read as JSON from
+    its first { to its last }, so a comment before it does no harm."""
+    t = Path(path).read_text(encoding="utf-8")
+    return json.loads(t[t.index("{"):t.rindex("}") + 1])
+
+
 def write_atomic(path, text):
     """Replace output only after its complete contents have been written."""
     with tempfile.NamedTemporaryFile(dir=path.parent, prefix=f".{path.name}-", delete=False) as f:
