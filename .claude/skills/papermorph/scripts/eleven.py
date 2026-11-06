@@ -15,8 +15,9 @@ Whisper detects that line's language.
 
 ElevenLabs returns no word timings, so each clip is transcribed locally (faster-whisper base.en, or base for another
 language, from the file name narration.<lang>.json; the first run downloads the model) and the script's words are
-matched to the heard words in order; each [[mark]] is the start of the word after it, and there is one caption cue per
-sentence and per clause after a colon ("Mr." and "e.g." do not end one, as in tts.py). Whisper writes spoken numbers in
+matched to the heard words in order (Chinese and Japanese, which have no spaces between words, character by
+character); each [[mark]] is the start of the word after it, and there is one caption cue per sentence (。！？ end
+one too) and per clause after a colon, split by tts.py's own rules ("Mr." and "e.g." do not end one). Whisper writes spoken numbers in
 digits ("a hundred and twenty" heard as "120"): a number's first word is matched to such a heard number, so a mark on it
 lands on the number's start. A rerun prints the marks that moved more than 0.1 s against the old timings.js. Every word's heard time also goes
 in the .timings.json beside the narration, as tts.py writes it, so a picture book's mouths.py and join.py --words work
@@ -52,7 +53,7 @@ rerun keeps a sped clip, and a changed tempo makes it again from the cached take
 import argparse, atexit, hashlib, json, pathlib, re, subprocess, sys, urllib.error, urllib.request
 from paint import key
 from ledger import append
-from tts import ABBREV, split_marks, mark_times, duration, write_atomic
+from tts import split_marks, mark_times, duration, write_atomic, tokens, sentences
 from silence import silences
 import level as lv
 
@@ -198,10 +199,14 @@ for beat, voice, sub, clean, marks, cached, fresh in beats:
     pcm = subprocess.run(["ffmpeg", "-v", "error", "-i", str(mp3), "-f", "f32le", "-ac", "1", "-ar", "16000", "-"],
                          capture_output=True, check=True).stdout
     segs, _ = asr[m].transcribe(np.frombuffer(pcm, np.float32), word_timestamps=True, language=None if sub else lang)
-    heard = [(norm(w.word), w.start) for s in segs for w in s.words if norm(w.word)]
+    heard = []   # each heard word; a Chinese or Japanese one split into characters spread over its time, as the script is
+    for s in segs:
+        for w in s.words:
+            ts = [norm(t) for t in tokens(w.word) if norm(t)]
+            heard += [(t, round(w.start + (w.end - w.start) * k / len(ts), 3)) for k, t in enumerate(ts)]
     # the script's words (audio tags blanked out, positions kept), matched to heard words in order with a small look-ahead
     spoken = TAG.sub(lambda m: " " * len(m.group()), clean)
-    toks = [w for w in re.findall(r"\S+", spoken) if norm(w)]
+    toks = [w for w in tokens(spoken) if norm(w)]
     ws, times, j, run = [norm(w) for w in toks], [], 0, None
     for i, w in enumerate(ws):
         win = range(j, min(j + 6, len(heard)))
@@ -241,13 +246,11 @@ for beat, voice, sub, clean, marks, cached, fresh in beats:
             times[i] = round(prev + (nxt - prev) * .5, 3)
     words = list(zip(times, toks))
     # caption cues: one per sentence or clause after a colon (long documentary sentences), at its first word
-    cues, i, sents = [], 0, []
-    for sent in re.split(r"(?<=[.?!:])(?<!\.\.\.)\s+", re.sub(r"\s+", " ", TAG.sub(" ", clean)).strip()):   # a tag parts words; "I... I can't" stays one line
-        if sents and ABBREV.search(sents[-1]): sents[-1] += " " + sent   # "Mr. Lee", "e.g. a lot" go on
-        else: sents.append(sent)
-    for sent in sents:
-        n = len([w for w in sent.split() if norm(w)])
-        if n: cues.append([round(times[i], 3) if i < len(times) else 0, sent]); i += n
+    # (tts.py's own splitter, so "Mr. Lee" goes on, "I... I can't" stays one line and 。！？ end a sentence)
+    cues, i = [], 0
+    for s0, s1 in sentences(spoken, colon=True):   # spoken: a tag parts words
+        n = len([w for w in tokens(spoken[s0:s1]) if norm(w)])
+        if n: cues.append([round(times[i], 3) if i < len(times) else 0, re.sub(r"\s+", " ", spoken[s0:s1]).strip()]); i += n
     if cues: cues[0][0] = min(cues[0][0], .1)
     timings[beat] = {"dur": dur, "marks": mark_times(clean, marks, words), "cues": [[0, sub]] if sub else cues}
     if sub: timings[beat]["forced"] = True

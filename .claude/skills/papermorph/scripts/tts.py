@@ -176,22 +176,38 @@ def mark_times(clean, marks, words):
     return out
 
 
-SENTENCE_END = re.compile(r"[.?!؟]\s+|[。！？]\s*")   # ؟ is the Arabic question mark
+# tts.py and eleven.py split narration with these, so their captions and marks cannot drift apart
+SENTENCE_END = re.compile(r"(?<!\.\.)[.?!؟]\s+|[。！？]\s*")   # ؟ is the Arabic question mark; "I... I can't" is one line
+CLAUSE_END = re.compile(r"(?<!\.\.)[.?!؟:]\s+|[。！？：]\s*")   # eleven.py's cues: a clause after a colon too
 ABBREV = re.compile(r"(?<![\w.])(?:Mr|Mrs|Ms|Dr|Prof|St|vs|approx|e\.g|i\.e|cf)\.$")
+CJK = "　-ヿ㐀-䶿一-鿿豈-﫿＀-￯"   # kana, ideographs, CJK and full-width punctuation
+TOKEN = re.compile(rf"[{CJK}]|[^\s{CJK}]+")
+
+
+def tokens(text):
+    """A text's words: the runs between spaces, and each Chinese or Japanese character on its own (those scripts put
+    no spaces between words, so a character is the unit a mark can sit before and a transcript can be matched by)."""
+    return TOKEN.findall(text)
+
+
+def sentences(text, colon=False):
+    """(start, end) of each sentence in text (with colon, of each clause after a colon too); the space after one goes
+    with it. "Mr. Lee" and "e.g. a lot" go on."""
+    spans, start = [], 0
+    for m in list((CLAUSE_END if colon else SENTENCE_END).finditer(text)) + [None]:
+        if m and ABBREV.search(text, 0, m.start() + 1):
+            continue
+        end = m.end() if m else len(text)
+        if text[start:end].strip():
+            spans.append((start, end))
+        start = end
+    return spans
 
 
 def caption_cues(clean, words):
     """One cue per sentence: [start seconds, sentence]."""
-    at, cues, start = time_at(clean, words, estimate=True), [], 0
-    for m in list(SENTENCE_END.finditer(clean)) + [None]:
-        if m and ABBREV.search(clean, 0, m.start() + 1):   # "Mr. Lee", "e.g. a lot" go on
-            continue
-        end = m.end() if m else len(clean)
-        text = clean[start:end].strip()
-        if text:
-            cues.append([at(start) or 0, text])
-        start = end
-    return cues
+    at = time_at(clean, words, estimate=True)
+    return [[at(s) or 0, clean[s:e].strip()] for s, e in sentences(clean)]
 
 
 def duration(mp3):
