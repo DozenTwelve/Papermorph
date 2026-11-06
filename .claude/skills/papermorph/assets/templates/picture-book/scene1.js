@@ -8,7 +8,7 @@
 const PRE1 = 1.0;   // seconds of picture before the first word (the beat's `pre`)
 let THINGS1 = [];   // what can be tapped in this picture, filled each time the scene builds; the beat's findWords reads it
 
-function scene1(p, D) {
+function scene1(p, D, m) {
   const cam = paperCam(p, 'room');                       // the set 'room' from img/sets/sets.js; puppets go in cam.stage
   cam.cut({ x: 800, y: 450, z: 1 }, 0).to({ x: 860, y: 470, z: 1.12 }, 1, 9);   // a slow push-in
   const kid = kidPuppet(cam.stage, { coat: '#c94a3c', stripe: '#c94a3c' });
@@ -21,6 +21,9 @@ function scene1(p, D) {
                                                          // through the find stop's wait too (sound.md)
   sfx('scene1', .3, 'knock');                            // audio/sfx/knock.mp3 (SKILL/scripts/sfx.py)
   const enter = clipAt('scene1', PRE1, 's02');           // when the kid's first line starts
+  // a word inside a line: m('line.mark') is the beat-clock time of [[mark]] in that line (pre and the line's place in
+  // the joined clip already counted: adding clipAt to it times the action late by the line's start)
+  const come = m('s02b.open');                           // Dad waves the kid in on "Come in"
   // the kid side-steps in from the left with planted feet (spStep, cast.js): whole steps (2/3 s each) that end at x 580
   // just before the line; x comes from the distance the steps cover, so the feet never slide
   const STEP = 2 / 3, steps = Math.max(0, Math.floor((enter - .2) / STEP)), far = spStep(steps * STEP).d;
@@ -36,6 +39,7 @@ function scene1(p, D) {
     cat.pose({ x: r.x, y: 800, s: 1.3, d: r.d, stand: r.stand, tail: 10 * Math.sin(q * 2), look: q > enter ? 1 : 0,
                shut: blinking(q, [3.0, 7.2]) }, f);
     dad.pose({ x: 1250, y: 800, s: 1, look: -.6, mouth: lips(q, 'scene1', PRE1, 's02b'), brow: q > enter ? -.3 : 0,
+               armL: tween(q, come, .4, 0, 70) - tween(q, come + 1.2, .5, 0, 70),
                shut: blinking(q, [3.3]) }, f);
   });
 }
