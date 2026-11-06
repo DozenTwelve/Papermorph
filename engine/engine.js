@@ -1724,10 +1724,11 @@ function seek(i, play = P.playing) {
     start(i, play);
   } finally { seeking = false; }
 }
-// Jump to a point inside beat i (frac of its narration); question beats always start at their beginning.
+// Jump to a point inside beat i, frac of its length on screen: the measure its segment's fill shows (P.t / P.end), so a
+// click lands where the fill reaches; at most its last frame, held HOLD s. Question beats always start at their beginning.
 function seekInto(i, frac) {
   seek(i, true);
-  const pre = BEATS[i].pre || 0, t = BEATS[i].ask && !CHAPTER.film ? 0 : frac * (pre + TIMINGS[BEATS[i].id].dur);   // a film's question beats seek like any other
+  const pre = BEATS[i].pre || 0, t = BEATS[i].ask && !CHAPTER.film ? 0 : Math.min(frac * P.end, P.end - HOLD);   // a film's question beats seek like any other
   if (t < .3) return;
   P.t = t;
   evalTo(t);
