@@ -93,7 +93,7 @@ const BEATS = [
     const p = panel(0);
     const top = tag(p, 'Pascal', 800, 115, 0, { anchor: 'middle', size: 34, fill: SOFT });
     const bot = tag(p, 'Dostoevsky', 800, 835, 0, { anchor: 'middle', size: 34, fill: SOFT });
-    const r1 = line(p, 'M300 140H1300', .4, .9, 2, { opacity: .6 }), r2 = line(p, 'M300 790H1300', .6, .9, 2, { opacity: .6 });
+    const r1 = line(p, 'M300 140H1300', .4, .9, 2), r2 = line(p, 'M300 790H1300', .6, .9, 2);
     const C = TIMINGS.thesis.cues;
     const mi = key(p, 'A history of mental illness', 800, 470, C[1][0] + .2, { size: 74 });
     const ms = strike(p, mi, 800, 470, C[1][0] + 2, 74);
@@ -103,7 +103,7 @@ const BEATS = [
     const l = line(p, 'M800 360V500', m('sane') + .6, .6, 3);
     [a, b, l, top, bot, r1, r2].forEach(e => hide(e, C[3][0] - .2, .6));
     // the timeline the fool will walk
-    line(p, 'M240 860H1360', C[3][0] + .2, 1.2, 2, { opacity: .6 });
+    line(p, 'M240 860H1360', C[3][0] + .2, 1.2, 2);
     [['1400', 240], ['1500', 470], ['1656', 760], ['1790', 1020], ['1889', 1360]].forEach(([y, x], i) =>
       tag(p, y, x, 840, C[3][0] + .4 + i * .2, { anchor: 'middle', size: 22 }));
     pic(p, 'fool', { x: 300, y: 560, h: 520, at: m('fool') - .4, from: [0, 30], dur: .8 });
@@ -500,7 +500,7 @@ const BEATS = [
   ['anti', 'Antiphrasis', (m, D) => {
     const p = panel(0);
     const R = rng(3);
-    for (let x = 80; x < 1600; x += 110) line(p, `M${x} 0V900`, m('prison') + R() * .5, .8, 2, { 'stroke-dasharray': '4 14', opacity: .55 });
+    for (let x = 80; x < 1600; x += 110) line(p, `M${x} 0V900`, m('prison') + R() * .5, .8, 2, { 'stroke-dasharray': '4 14' });
     tag(p, 'antiphrasis: calling a thing by its opposite', 800, 200, .3, { anchor: 'middle', size: 40, fill: CREAM });
     key(p, 'Liberation', 800, 400, m('opp') - .2, { size: 150 });
     line(p, 'M340 345H1260', m('prison') - .1, .5, 10, { stroke: HOT });
@@ -585,7 +585,7 @@ const BEATS = [
     tag(p, 'Michel Foucault, 1961', tx, ty + 50, 1, { anchor: 'middle', size: 28 });
     // every fool of the film, one after another, in order of the centuries: outside reason's walls
     const fools = [['fool', '1494'], ['fool-1656', '1656'], ['fool-1735', '1735'], ['fool-1795', '1795'], ['fool-goya', '1819'], ['fool-vangogh', '1889']];
-    line(p, 'M80 760H1520', .3, 1.2, 2, { opacity: .5 });
+    line(p, 'M80 760H1520', .3, 1.2, 2);
     const H = 330, GAP = 28, ws = fools.map(([n]) => ART[n][0] * H / ART[n][1]);   // laid out by each picture's own width
     let x = 800 - (ws.reduce((s, w) => s + w, 0) + GAP * (ws.length - 1)) / 2;
     fools.forEach(([n, y], i) => {
