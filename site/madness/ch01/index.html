@@ -159,6 +159,7 @@ const BEATS = [
     const p = panel(0);
     dateChip(p, '1494', 'The Ship of Fools');
     water(p, 690, D + 1);
+    prog(() => {}, 0, D + 1);   // the water runs a second past the voice: the kit's water() no longer holds the beat
     const b = pic(p, 'fool-boat', { x: 800, y: 560, h: 380, at: .1, from: [-1100, 0], dur: 2.6 });
     bob(b, D + 1);
     key(p, 'The Ship of Fools', 800, 300, m('ship'), { size: 110 });
@@ -200,6 +201,7 @@ const BEATS = [
     const p = panel(0);
     const C = TIMINGS.passage.cues;
     water(p, 650, D + 1);
+    prog(() => {}, 0, D + 1);   // the water runs a second past the voice: the kit's water() no longer holds the beat
     pic(p, 'town', { x: 160, y: 600, w: 700, at: .1, from: [-300, 0] });
     pic(p, 'town', { x: 1440, y: 600, w: 700, at: .1, from: [300, 0] });
     const b = pic(p, 'fool-boat', { x: 330, y: 560, h: 280, at: .3, from: [0, 0] });
@@ -219,6 +221,7 @@ const BEATS = [
   ['water', 'Water', (m, D) => {
     const p = panel(0);
     water(p, 640, D + 1, { rows: 5, gap: 30, amp: t => 10 + 18 * smooth01(span01(t, m('unknown') - .3, m('unknown') + 1.5)) });
+    prog(() => {}, 0, D + 1);   // the water runs a second past the voice: the kit's water() no longer holds the beat
     const b = pic(p, 'fool-boat', { x: 980, y: 520, h: 300 });
     bob(b, D + 1, 9, t => 980 + 900 * smooth01(span01(t, m('carry') - .2, m('carry') + 3)));
     key(p, 'Washes', 120, 260, m('wash'), { size: 84, anchor: 'start' });
@@ -243,6 +246,7 @@ const BEATS = [
     const C = TIMINGS.voice.cues;
     const SING = 5.9;   // the fool's own line after the narrator (ElevenLabs v4 'callum'; books/madness/voices/fool/sings-a)
     water(p, 700, D + SING + 1);
+    prog(() => {}, 0, D + SING + 1);   // the water runs a second past the voice: the kit's water() no longer holds the beat
     const b = pic(p, 'fool-boat', { x: 600, y: 580, h: 360 });
     bob(b, D + SING + 1, 5);
     key(p, 'Knowledge', 1180, 230, m('know'), { size: 90 });
@@ -265,6 +269,7 @@ const BEATS = [
     dateChip(p, '1656', 'The Great Confinement');
     line(p, 'M1000 900C1060 760 1160 690 1600 680', .1, 1);
     water(p, 720, D + 1, { len: 1150 });
+    prog(() => {}, 0, D + 1);   // the water runs a second past the voice: the kit's water() no longer holds the beat
     const b = pic(p, 'fool-boat', { x: 260, y: 600, h: 300 });
     tw(b, { x: 960 }, .2, m('ashore') + .2, io);
     tw(b, { r: -4 }, m('ashore') + .4, .25, out); tw(b, { r: 0 }, m('ashore') + .65, .5, io);
