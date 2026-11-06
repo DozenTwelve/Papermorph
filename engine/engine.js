@@ -1879,13 +1879,21 @@ function buildSegs() {
   s.title = b.title;
   s.setAttribute('aria-label', translate('goToStep', { n: i + 1, title: b.title }));
   // A click lands at that point of the step; keyboard activation (no pointer position) starts the step.
-  s.onclick = e => {
-    const r = s.getBoundingClientRect();
-    hideCover(); seekInto(i, e.detail ? (e.clientX - r.left) / r.width : 0);
-  };
+  s.onclick = e => goSeg(i, e.detail ? e.clientX : null);
   $('segs').append(s);
   return s.firstChild;
   });
+  // The track is 8 px, too thin for a finger: a click anywhere on the bar's 30 px height, above, below or between
+  // segments, goes to the segment under it (or the nearest).
+  $('segs').onclick = e => {
+    if (e.target !== $('segs')) return;
+    const k = segs.findIndex(f => e.clientX < f.parentNode.getBoundingClientRect().right + 2);
+    goSeg(k < 0 ? segs.length - 1 : k, e.clientX);
+  };
+}
+function goSeg(i, x) {
+  const r = segs[i].parentNode.getBoundingClientRect();
+  hideCover(); seekInto(i, x == null ? 0 : Math.max(0, Math.min(1, (x - r.left) / r.width)));
 }
 // ui() runs on every frame, paused or not: it writes only what changed, so an idle lesson does no layout work.
 let stepText = '';
