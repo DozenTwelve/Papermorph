@@ -1661,7 +1661,7 @@ function soundTick(dt) {
 }
 
 /* ---------- player ---------- */
-const P = { i: 0, t: 0, end: 1, back: 0, idle: 0, playing: false, waiting: false, done: false, started: false, audio: null, afail: false, stall: 0, ct: 0, cleanup: [], rate: 1, nextClip: null };
+const P = { i: 0, t: 0, end: 1, back: 0, idle: 0, playing: false, waiting: false, done: false, started: false, audio: null, afail: false, stall: 0, ct: 0, cleanup: [], rate: 1, nextClip: null, lead: {} };
 function runBeat(i) {
   TW = [];
   const b = BEATS[i], tm = TIMINGS[b.id], pre = b.pre || 0;   // pre: seconds of picture before the narration starts
@@ -1672,7 +1672,7 @@ function runBeat(i) {
   S.cleared = false;
   building = i;
   try { b.run(m, pre + tm.dur); } finally { building = null; }
-  if (S.cleared && b.lead !== false && CHAPTER.lead !== false && !pre) leadIn();   // CHAPTER.lead false: no beat gets one (a film)
+  if (S.cleared && b.lead !== false && CHAPTER.lead !== false && !pre) leadIn(b.id);   // CHAPTER.lead false: no beat gets one (a film)
   TW.sort((a, c) => a.t0 - c.t0);
   // runs that last to the end anyway (tails, follow cameras) do not set it: only the narration and the other tweens do,
   // and minDur, the least the whole beat lasts (two mirrored beats run the same seconds)
@@ -1689,7 +1689,9 @@ const HOLD = .6;
 // If nothing appears before LEAD_MAX, the opening group (every tween that starts within LEAD_GROUP s of the
 // first reveal) moves earlier so it begins at LEAD_AT, just after the old panel has faded. Later steps keep their word timing.
 const LEAD_AT = .4, LEAD_MAX = .8, LEAD_GROUP = 1.2;
-function leadIn() {
+// P.lead[beat id] = { moved, by }: what the lead-in did to that beat (tweens moved, seconds earlier), for tools to read;
+// the first time a beat's opening moves, a console.info line says so.
+function leadIn(id) {
   const reveals = TW.filter(w => {
     if (!w.e) return false;
     const s = st(w.e), to = w.to;
@@ -1698,7 +1700,10 @@ function leadIn() {
   if (!reveals.length) return;
   const first = Math.min(...reveals.map(w => w.t0));
   if (first <= LEAD_MAX) return;
-  for (const w of TW) if (w.t0 >= first && w.t0 < first + LEAD_GROUP) w.t0 -= first - LEAD_AT;
+  const by = first - LEAD_AT, moved = TW.filter(w => w.t0 >= first && w.t0 < first + LEAD_GROUP);
+  for (const w of moved) w.t0 -= by;
+  if (!P.lead[id]) console.info(`lead-in: beat '${id}' had nothing on screen until ${first.toFixed(2)} s, so its opening ${moved.length} tweens start ${by.toFixed(2)} s earlier, ahead of the words they were timed to ({ lead: false } keeps them)`);
+  P.lead[id] = { moved: moved.length, by: +by.toFixed(3) };
 }
 function stopAudio() {
   const a = P.audio;
@@ -2109,7 +2114,8 @@ function boot() {
     try { for (let k = 0; k < BEATS.length; k++) { runBeat(k); evalTo(Infinity); } } finally { seeking = false; }
     console.log(`?lengths: beat, voice (pre + clip), on screen (hold included), and the time past voice + ${HOLD} s hold\n` + BEATS.map((b, i) => {
       const v = (b.pre || 0) + TIMINGS[b.id].dur, over = SND.len[i] - HOLD - v;
-      return `${b.id.padEnd(16)} ${v.toFixed(2).padStart(6)} ${SND.len[i].toFixed(2).padStart(6)}${over > .005 ? `  +${over.toFixed(2)}` : ''}`;
+      const ld = P.lead[b.id];
+      return `${b.id.padEnd(16)} ${v.toFixed(2).padStart(6)} ${SND.len[i].toFixed(2).padStart(6)}${over > .005 ? `  +${over.toFixed(2)}` : ''}${ld ? `  lead-in: ${ld.moved} tweens ${ld.by.toFixed(2)} s earlier` : ''}`;
     }).join('\n'));
   }
   if (qs.has('beat')) {
