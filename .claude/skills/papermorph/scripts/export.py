@@ -240,11 +240,14 @@ async def main(a):
                 duck += max(-1 / fps, min(1 / fps, want - duck))
                 if current: pos = sum(beat_len.get(b, 0) for b in m['beats'][:m['beats'].index(bid)]) + t
                 else: pos += 1 / fps
-                gain[f], at[f] = v * m['gain'] * duck, round(pos * RATE) % len(song)
-            step = RATE / fps
+                # the song's sample for the frame's first track sample: while the song runs on with the film, the
+                # frames' pieces of it then join sample to sample, at any --fps
+                gain[f], at[f] = v * m['gain'] * duck, (round((pos - f / fps) * RATE) + round(f * RATE / fps)) % len(song)
             for f in np.nonzero(gain)[0]:
-                i = round(f * step); seg = np.take(song, np.arange(at[f], at[f] + round(step)), axis=0, mode='wrap')
-                put(track, i / RATE, seg, gain[f])
+                # frame f covers track samples [round(f*RATE/fps), round((f+1)*RATE/fps)): at 24, 48 or 120 fps a frame is
+                # not a whole number of samples, and a piece of round(RATE/fps) left a 1-sample gap or overlap (a click)
+                i0, i1 = round(f * RATE / fps), round((f + 1) * RATE / fps)
+                put(track, i0 / RATE, np.take(song, np.arange(at[f], at[f] + i1 - i0), axis=0, mode='wrap'), gain[f])
         peak = float(np.abs(track).max())
         if peak > 1: track *= .98 / peak   # a mix that would clip, turned down as a whole
         wav = mix = audio_dir / 'mix.wav'
