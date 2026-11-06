@@ -1693,7 +1693,9 @@ function start(i, play) {
     a.playbackRate = P.rate;
     // An aborted or superseded load (fast stepping, a reload) is not a failure: only a real error for the current clip
     // shows the note, and the note goes away as soon as a clip plays.
-    a.onerror = () => { if (P.audio === a && a.error && a.error.code !== MediaError.MEDIA_ERR_ABORTED) soundFailed(); };
+    const failed = () => a.error && a.error.code !== MediaError.MEDIA_ERR_ABORTED;
+    a.onerror = () => { if (P.audio === a && failed()) soundFailed(); };
+    if (failed()) soundFailed();   // a preloaded clip may have failed before it had this handler
     a.onplaying = () => {
       if (P.audio !== a) return;
       $('soundNote').hidden = true;
