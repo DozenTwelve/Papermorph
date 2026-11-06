@@ -25,8 +25,10 @@
                                         the view closes in (H .22 to .06) and drawn under the marks
      dots: [[lon, lat, t0, r = 7]]      dots in MAP_COL.hot popping in at t0, r px
      routes: [[[lon, lat], [lon, lat], t0, dur = .8]]   an arc drawn from a to b; a dot lands at b when it arrives
-     cities: [[name, t0, side]]         an ink dot and a label (CITIES; side 'l' or 'r', default 'r'); labels keep
-                                        inside the safe box and hide when their city is off it
+     cities: [[name, t0, side, t1]]     an ink dot and a label (CITIES; side 'l' or 'r', default 'r'), faded out at t1
+                                        when given (a camera pulling out: towns that would pile up); labels keep inside
+                                        the safe box, hide when their city is off it, take the other side when theirs
+                                        covers an earlier label, and hide while both would (said in the console)
      labelSize: 36 · safe: [x0, y0, x1, y1] (the shorts' 50,150,810,1290 upright; 60,60,SW-60,SH-230 landscape)
      on: [t0, t1]                       drawn only then. Default: the shot's window when p is a shorts shot(), else the
                                         whole beat. A layer that is covered (the globe after the hand-over, a map under
@@ -158,13 +160,36 @@ const { paperMap, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCircle, CIT
     fo.appendChild(cv);
     const ctx = cv.getContext('2d'), land = grained(ctx, MAP_COL.land), sea = grained(ctx, MAP_COL.sea), hatchFill = hatchPattern(ctx);
     const lab = G(g, {});
-    const labels = cities.map(([name, t0, side = 'r']) => {
+    const labels = cities.map(([name, t0, side = 'r', t1]) => {
       if (!CITIES[name]) throw new Error(`paperMap: no city ${name} in geo-lite.js (geo.py --cities)`);
       const e = G(lab, { o: 0 }), w = measure(name.toUpperCase(), labelSize);
       const tx = T(e, name.toUpperCase(), { x: 0, y: 0, size: labelSize, fill: MAP_COL.ink, font: FONT, weight: 600, anchor: 'start' });
       tx.setAttribute('stroke', MAP_COL.land); tx.setAttribute('stroke-width', labelSize / 5); tx.setAttribute('paint-order', 'stroke'); tx.setAttribute('stroke-linejoin', 'round');
-      return { e, ll: CITIES[name], t0, side, w };
+      return { e, name, ll: CITIES[name], t0, t1, side, w };
     });
+    // labels are placed every frame from the view (cheap: put() writes only what changed), so a seek and a played
+    // frame agree; in list order, each on its side, else the other, else hidden while it would cover an earlier one
+    const said = new Set();
+    function placeLabels(s, a, t) {
+      const boxes = [];
+      labels.forEach((l, i) => {
+        const P = s.roll ? mapXY(l.ll, s) : mapXY(l.ll, { ...s, roll: 0 });   // the canvas is turned by the roll, the SVG labels are not
+        if (!a[i] || !P || P[0] < safe[0] || P[0] > safe[2] || P[1] < safe[1] || P[1] > safe[3]) return put(l.e, { o: 0 });
+        const y = Math.max(safe[1] + labelSize * .8, Math.min(safe[3], P[1] + labelSize * .3));
+        const at = side => { let x = side === 'l' ? P[0] - 14 - l.w : P[0] + 14;
+          if (x + l.w > safe[2]) x = P[0] - 14 - l.w; if (x < safe[0]) x = P[0] + 14;
+          return Math.max(safe[0], Math.min(safe[2] - l.w, x)); };
+        const hit = x => boxes.find(b => x < b.x1 + 6 && x + l.w > b.x0 - 6 && y - labelSize * .8 < b.y1 && y + labelSize * .25 > b.y0);
+        const x = [at(l.side), at(l.side === 'l' ? 'r' : 'l')].find(x => !hit(x));
+        if (x === undefined) {
+          const b = hit(at(l.side));
+          if (!said.has(l.name + b.name)) { said.add(l.name + b.name); console.warn(`paperMap: label ${l.name} hidden from ${t.toFixed(1)} s, on top of ${b.name}: give one an end (cities: [name, t0, side, t1])`); }
+          return put(l.e, { o: 0 });
+        }
+        boxes.push({ name: l.name, x0: x, x1: x + l.w, y0: y - labelSize * .8, y1: y + labelSize * .25 });
+        put(l.e, { x, y, o: a[i] });
+      });
+    }
     const rkeys = regions === true ? Object.keys(geo.regions) : regions || [];
     const regionSets = Object.entries(geo.regions).flatMap(([c, R]) => Object.entries(R).map(([n, rs]) => ({ c, n, rs })));
     const AREAS = areas.map(([shape, at, style = {}]) => {
@@ -217,9 +242,10 @@ const { paperMap, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCircle, CIT
         det: details.length ? ramp(k, R0 / .22, R0 / .06) : 0,
         route: routes.map(([, , t0, dur = .8]) => ramp(t, t0, t0 + dur) + pop(t0 + dur)),
         dot: dots.map(d => pop(d[2])),
-        lab: labels.map(l => ramp(t, l.t0, l.t0 + .3)),
+        lab: labels.map(l => ramp(t, l.t0, l.t0 + .3) * (l.t1 === undefined ? 1 : 1 - ramp(t, l.t1, l.t1 + .4))),
       };
-      const vsig = [s.lon, s.lat, s.H, s.dx || 0, s.dy || 0, s.roll || 0].map(n => n.toFixed(5)).join();
+      placeLabels(s, vals.lab, t);
+      const vsig = [s.lon, s.lat, s.H, s.dx || 0, s.dy || 0, s.roll || 0].map(n => n.toPrecision(9)).join();   // relative: H .006 is a city
       const sig = vsig + JSON.stringify(vals);
       if (sig === drawn) return;
       drawn = sig;
@@ -284,11 +310,6 @@ const { paperMap, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCircle, CIT
       labels.forEach((l, i) => {
         const P = xy(l.ll), a = vals.lab[i];
         if (P && a) { ctx.globalAlpha = a; ctx.beginPath(); ctx.arc(P[0], P[1], 5, 0, 2 * Math.PI); ctx.fill(); ctx.globalAlpha = 1; }
-        const Q = s.roll ? mapXY(l.ll, s) : P;   // the canvas is turned by the roll, the SVG labels are not
-        if (!Q || Q[0] < safe[0] || Q[0] > safe[2] || Q[1] < safe[1] || Q[1] > safe[3]) return put(l.e, { o: 0 });
-        let x = l.side === 'l' ? Q[0] - 14 - l.w : Q[0] + 14;
-        if (x + l.w > safe[2]) x = Q[0] - 14 - l.w; if (x < safe[0]) x = Q[0] + 14;
-        put(l.e, { x: Math.max(safe[0], Math.min(safe[2] - l.w, x)), y: Math.max(safe[1] + labelSize * .8, Math.min(safe[3], Q[1] + labelSize * .3)), o: a });
       });
     }, D, { tail: true });
     function dotAt([x, y], r) {
