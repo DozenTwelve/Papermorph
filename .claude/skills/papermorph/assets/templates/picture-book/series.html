@@ -57,7 +57,9 @@
 </head>
 <body>
 <header class="hero">
-  <a class="cover" href="ch01/" tabindex="-1"><img src="img/cover.webp" width="1400" height="788" alt="Describe the cover still."></a>
+  <!-- img/cover.webp is a still no script makes on its own: shot.py chNN ... --webp 1400 --name cover (stories.md, series page),
+       copied to img/. Until it exists the picture hides itself (the console still shows its 404) -->
+  <a class="cover" href="ch01/" tabindex="-1"><img src="img/cover.webp" width="1400" height="788" alt="Describe the cover still." onerror="this.hidden = true"></a>
   <div>
     <a class="back" href="../">← Back to the bookshelf</a>
     <h1>SERIES TITLE</h1>
