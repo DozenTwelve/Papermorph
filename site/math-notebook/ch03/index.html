@@ -29,7 +29,7 @@ const pnCol = v => v > 0 ? POS : v < 0 ? NEG : COL.chalk;
 // Flip a dot across zero from a to b along an arc whose top is at y = peak (from ch02).
 function pnFlip(p, a, b, t0, { peak = 420, dur = 1.5, g } = {}) {
   const x1 = X(a), x2 = X(b), cx = (x1 + x2) / 2, cy = 2 * peak - Y0;
-  draw(path(p, `M${x1} ${Y0}Q${cx} ${cy} ${x2} ${Y0}`, { stroke: COL.task, 'stroke-width': 3, opacity: .85 }, { d: 0 }), t0, dur, io);
+  draw(path(p, `M${x1} ${Y0}Q${cx} ${cy} ${x2} ${Y0}`, { stroke: COL.task, 'stroke-width': 3 }, { d: 0 }), t0, dur, io);
   if (!g) {
     g = G(p, { x: x1, y: Y0, o: 0 });
     mk('circle', { r: 12, fill: pnCol(a), stroke: COL.board, 'stroke-width': 2 }, g);
@@ -65,7 +65,7 @@ const pnBlanks = rows => (body, api) => {
 function avTape(p, a, b, y, t0, { label, run = tw, w = 10 } = {}) {
   const g = G(p, { x: 0, y }), x0 = X(a), x1 = X(b), dur = .4 + Math.abs(b - a) * .1;
   const c0 = path(g, `M${x0} -15V15`, { stroke: COL.task, 'stroke-width': 3 }, { o: 0 });
-  const bar = path(g, `M${x0} 0H${x1}`, { stroke: COL.task, 'stroke-width': w, 'stroke-linecap': 'butt', opacity: .9 }, { d: 0 });
+  const bar = path(g, `M${x0} 0H${x1}`, { stroke: COL.task, 'stroke-width': w, 'stroke-linecap': 'butt' }, { d: 0 });
   const c1 = path(g, `M${x1} -15V15`, { stroke: COL.task, 'stroke-width': 3 }, { o: 0 });
   run(c0, { o: 1 }, t0, .2); run(bar, { d: 1 }, t0, dur, lin); run(c1, { o: 1 }, t0 + dur - .1, .2);
   if (label) run(T(g, label, { x: (x0 + x1) / 2, y: -26, size: 30, fill: COL.task, anchor: 'middle', weight: 600, font: MATH, o: 0 }), { o: 1 }, t0 + dur, .3);
@@ -75,7 +75,7 @@ function avTape(p, a, b, y, t0, { label, run = tw, w = 10 } = {}) {
 function avVTape(p, x, y0, y1, t0, run = tw) {
   const dur = .5 + Math.abs(y1 - y0) / 500;
   run(path(p, `M${x - 15} ${y0}H${x + 15}`, { stroke: COL.task, 'stroke-width': 3 }, { o: 0 }), { o: 1 }, t0, .2);
-  run(path(p, `M${x} ${y0}V${y1}`, { stroke: COL.task, 'stroke-width': 10, 'stroke-linecap': 'butt', opacity: .9 }, { d: 0 }), { d: 1 }, t0, dur, lin);
+  run(path(p, `M${x} ${y0}V${y1}`, { stroke: COL.task, 'stroke-width': 10, 'stroke-linecap': 'butt' }, { d: 0 }), { d: 1 }, t0, dur, lin);
   run(path(p, `M${x - 15} ${y1}H${x + 15}`, { stroke: COL.task, 'stroke-width': 3 }, { o: 0 }), { o: 1 }, t0 + dur - .1, .2);
 }
 // Absolute value bars: an amber token, so the bars and the distance tapes share one colour.
