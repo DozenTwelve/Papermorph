@@ -1905,6 +1905,7 @@ function frameStep(now, most) {
       // counts as a stall: nothing to play after 8 s, or stuck for 15, and the picture goes on by wall time
       if (a.currentTime > P.ct) { P.ct = a.currentTime; P.t = Math.max(P.t, pre + a.currentTime); P.stall = 0; }
       else if ((P.stall += dt) > (a.readyState < 2 ? 8 : 15)) soundFailed();
+      else if (a.paused && (P.stall * 2 | 0) !== ((P.stall - dt) * 2 | 0)) voicePlay(a);   // a play that never took: ask again, twice a second
     } else P.t += dt * P.rate;
     // P.lost: how long the clock stood still while the film played (a clip getting going, buffering). Music runs on
     // through it, so a beat under music gives that time back from its closing hold: each beat then lasts as long in
