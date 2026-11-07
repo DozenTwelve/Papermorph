@@ -1572,9 +1572,11 @@ function bgmWire(m) {
 // SAY and its chime through CHIME, the music through its own track's element. A new Audio() played later is refused.
 const VOICE = [new Audio(), new Audio()], SAY = new Audio(), CHIME = new Audio();
 for (const a of VOICE) a.preload = 'auto';
-const SILENT = 'data:audio/wav;base64,UklGRiwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQgAAACAgICAgICAgA==';
-// play a muted, then pause it, unless keep() says it is wanted playing by then; refused (not a click on iOS: a
-// pointerdown), or cut short, the next click tries again
+// a tenth of a second of silence, for an element with nothing loaded yet (an MP3: iOS cannot decode a tiny WAV)
+const SILENT = 'data:audio/mpeg;base64,//NAxAAAAANIAAAAAExBTUU0LjBVVVVVVVVVVVVVVVVMQU1FNC4wVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/80LEWwAAA0gAAAAAVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FNC4wVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/80DEpAAAA0gAAAAAVVVVVVVVVVVVVVVVVVVVVVVVVUxBTUU0LjBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsSjAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVUxBTUU0LjBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NCxKMAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV';
+// play a muted, then pause it, unless keep() says it is wanted playing by then; refused or cut short, the next click
+// tries again. Only inside a click, a tap's touchend or a key: iOS plays a muted element anywhere, so a muted play
+// that worked says nothing about the element being ready.
 function bless(a, keep) {
   if (a._blessed) return;
   a._blessed = true;
@@ -1592,7 +1594,8 @@ const voiceKeep = a => () => {
 };
 // A browser starts sound only after a click or a key: the first one builds the graph (films only) and readies the music
 // and the elements above.
-function soundUnlock() {
+let inTap = false;
+function soundUnlock(e) {
   if (typeof BEATS === 'undefined') return;   // the chapter's script has not run yet
   if (!SND.ctx && window.AudioContext && (!BEATS.some(b => b.ask) || CHAPTER.film)) {   // a film with a question (CHAPTER.film) keeps its sound
     if (navigator.audioSession) navigator.audioSession.type = 'playback';   // iOS: the silent switch must not mute the film
@@ -1603,12 +1606,13 @@ function soundUnlock() {
     for (const m of SND.bgm) bgmWire(m);
   }
   if (SND.ctx && SND.ctx.state !== 'running' && SND.ctx.state !== 'closed') SND.ctx.resume().catch(() => {});   // also iOS 'interrupted'
+  if (e.type === 'pointerdown' && e.pointerType !== 'mouse') return;   // a touch is a gesture at its touchend, not here
+  inTap = true; setTimeout(() => { inTap = false; });   // until this event's handlers have run (setPlaying)
   for (const m of SND.bgm) bless(m.a, () => m.cur);
   // the clip playing now is readied by the click that plays it (setPlaying)
   for (const a of VOICE) if (a !== P.audio) bless(a, voiceKeep(a));
   bless(SAY, () => false); bless(CHIME, () => false);
 }
-// a touch activates the page on touchend or click, not on pointerdown
 for (const type of ['pointerdown', 'touchend', 'click', 'keydown']) addEventListener(type, soundUnlock, true);
 // Safari (and every iOS browser) stops a media element for .3-.6 s at each playbackRate change, so easing the music
 // back would only push it further out: there it keeps the film's rate and seeks instead.
@@ -1843,7 +1847,7 @@ function setPlaying(v) {
   if (!a) return;
   const lead = v && P.t < (BEATS[P.i]?.pre || 0);
   if (v && !P.waiting && !a.ended && !P.afail && !lead) voicePlay(a);
-  else if (lead && !a._blessed) bless(a, voiceKeep(a));   // the clip starts later, outside this click: play it silently now so the browser allows that
+  else if (lead && !a._blessed && inTap) bless(a, voiceKeep(a));   // the clip starts later, outside this click: play it silently now so the browser allows that
   else a.pause();
 }
 // A film's ask beat waiting for the reader (CHAPTER.film): P.idle counts the seconds it has waited, playing (a pause
@@ -1901,6 +1905,7 @@ function frameStep(now, most) {
       // counts as a stall: nothing to play after 8 s, or stuck for 15, and the picture goes on by wall time
       if (a.currentTime > P.ct) { P.ct = a.currentTime; P.t = Math.max(P.t, pre + a.currentTime); P.stall = 0; }
       else if ((P.stall += dt) > (a.readyState < 2 ? 8 : 15)) soundFailed();
+      else if (a.paused && (P.stall * 2 | 0) !== ((P.stall - dt) * 2 | 0)) voicePlay(a);   // a play that never took: ask again, twice a second
     } else P.t += dt * P.rate;
     // P.lost: how long the clock stood still while the film played (a clip getting going, buffering). Music runs on
     // through it, so a beat under music gives that time back from its closing hold: each beat then lasts as long in
