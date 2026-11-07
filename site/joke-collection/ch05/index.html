@@ -37,37 +37,13 @@ const BEATS = [
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
 
 /* ---------- background music ----------
-   The Three Little Pigs' score (Lyria), reused from episode 2's folder: one track per listed scene, its position the
-   time since the track's first scene began, so pausing and seeking keep it in step; 0.8 s crossfades; lower under
-   speech. The home theme carries the walk through town (scenes 1–2; scene 2 may fade it for its tail with S2_HUSH);
-   scene 3 (the punchline) has no music; the march comes in for the beach and stops before the policeman's last stare
-   (scene 4 sets S4_STOP). */
-const BGM = [['m1-home', ['scene1', 'scene2'], .3], ['m3-chimney', ['scene4'], .3]]
-  .map(([n, beats, gain]) => ({ n, beats, gain, a: Object.assign(new Audio(`../ch02/audio/bgm/${n}.mp3`), { preload: 'auto', loop: true, volume: 0 }), v: 0 }));
+   The Three Little Pigs' score (Lyria), reused from episode 2's folder: one track per listed scene (the engine's
+   music(), 0.8 s crossfades), lower under speech. The home theme carries the walk through town (scenes 1–2; scene 2
+   may fade it for its tail with S2_HUSH); scene 3 (the punchline) has no music; the march comes in for the beach and
+   stops before the policeman's last stare (scene 4 sets S4_STOP). */
+music('../ch02/audio/bgm/m1-home.mp3', ['scene1', 'scene2'], .3);
+music('../ch02/audio/bgm/m3-chimney.mp3', ['scene4'], .3);
 window.MUSIC_OFF = { scene2: t => t > (window.S2_HUSH ?? 1e9), scene4: t => t > (window.S4_STOP ?? 1e9) };
-const beatLen = id => { const b = BEATS.find(x => x.id === id); return (b.pre || 0) + TIMINGS[id].dur + .6; };
-let lastTick = performance.now(), duck = .3;
-function bgmTick(now) {
-  const dt = Math.min(.1, (now - lastTick) / 1000); lastTick = now;
-  const id = BEATS[P.i]?.id, on = P.started && P.playing && !P.waiting && !P.done;
-  // the music ducks well under the voices for the whole of a scene that has them (its silent opening and tail too, so
-  // it does not swell between lines), easing over about half a second
-  duck += Math.max(-dt, Math.min(dt, (P.audio ? .3 : .7) - duck));
-  const vol = +(document.getElementById('volume')?.value ?? 1) * duck;
-  for (const m of BGM) {
-    const k = m.beats.indexOf(id), current = on && k >= 0 && !(window.MUSIC_OFF?.[id]?.(P.t));
-    m.v = Math.max(0, Math.min(1, m.v + (current ? 1 : -1) * dt / .8));
-    m.a.volume = m.v * m.gain * vol;
-    if (current) {
-      const want = (m.beats.slice(0, k).reduce((s, b) => s + beatLen(b), 0) + P.t) % (m.a.duration || 1e9);
-      if (Math.abs(m.a.currentTime - want) > .5) m.a.currentTime = want;
-      if (m.a.paused) m.a.play().catch(() => {});
-    } else if (m.v === 0 && !m.a.paused) m.a.pause();
-  }
-  if (!on && !P.done) for (const m of BGM) m.a.pause();
-  requestAnimationFrame(bgmTick);
-}
-requestAnimationFrame(bgmTick);
 paperWarm(g => { manPuppet(g, { holds: { fish: fishSVG, bucket: bucketSVG, photo: photoSVG } }); copPuppet(g, { holds: { chips: chipsSVG, chip: chipSVG } }); penguinPuppet(g); prop(g, posterSVG); });
 boot();
 </script>
