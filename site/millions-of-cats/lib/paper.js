@@ -133,7 +133,8 @@ const mouthAt = (clip, t) => { let m = 'X'; if (t < 0) return m; for (const [at,
    A puppet is paper pieces on brass pins, built at its hip (0, 0) facing right, feet near y 166. pose(o, f) sets the
    whole state for frame f; any key left out keeps its rest value. A profile puppet that turns round squashes its
    side figure, shows its whole front figure through the thin middle of the turn and comes out mirrored (puppets.md). */
-const pinAt = (x, y) => `<circle cx="${x}" cy="${y}" r="3.4" fill="#caa24c" stroke="#7d5f22" stroke-width="1.2"/>`;
+const tack = (x, y) => `<circle cx="${x}" cy="${y}" r="3.4" fill="#caa24c" stroke="#7d5f22" stroke-width="1.2"/>`;   // a brass pin: the title card hangs on one
+const pinAt = (x, y) => window.PUPPET_PINS ? tack(x, y) : '';   // the joints' pins show only where a book sets window.PUPPET_PINS = true
 const tf = (el, s) => { if (el._t !== s) el.setAttribute('transform', el._t = s); };
 const vis = (el, on) => { const v = on ? 'inherit' : 'hidden'; if (el._v !== v) el.setAttribute('visibility', el._v = v); };
 
@@ -245,6 +246,6 @@ function endCard(p, t0, words = 'The End', { x = 800, y = 450, size = 78 } = {})
   if (wide(size) > 1500) size = Math.floor(size * 1500 / wide(size));
   const w = Math.max(480, Math.ceil(wide(size))), h = Math.round(size * 3.08), L = Math.round(x - w / 2), T = Math.round(y - h / 2);
   const g = prop(p, `<g filter="url(#paper)"><rect x="${L}" y="${T}" width="${w}" height="${h}" rx="14" fill="#f3e9d2"/><rect x="${L + 20}" y="${T + 20}" width="${w - 40}" height="${h - 40}" rx="8" fill="none" stroke="#c8322f" stroke-width="5"/></g>
-    <text x="${x}" y="${Math.round(y + size * .36)}" text-anchor="middle" font-family="Georgia, serif" font-size="${size}" font-style="italic" fill="#5a2a1e">${words}</text>${pinAt(x, T + 12)}`);
+    <text x="${x}" y="${Math.round(y + size * .36)}" text-anchor="middle" font-family="Georgia, serif" font-size="${size}" font-style="italic" fill="#5a2a1e">${words}</text>${tack(x, T + 12)}`);
   return q => { const u = (q - t0) * FPS; vis(g, u >= 0); const d = [-60, -20, 8, -3, 0][Math.min(4, Math.max(0, Math.floor(u / 2)))]; tf(g, `translate(0,${d})`); };
 }

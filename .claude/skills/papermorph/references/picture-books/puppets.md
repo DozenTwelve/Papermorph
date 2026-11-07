@@ -23,7 +23,7 @@ Pick with the user. The two reference books' own `cast.js` files show the second
 
 - **Twelve frames a second, on twos.** `stopClock` samples every movement into steps; the slight jerk is the style, not a defect. Big moves still ease in and out across the steps. It draws through the beat's 0.6 s hold after the clip too (`clockRun`'s tail: [core/engine.md](../core/engine.md#world-clock-and-camera)), so a scene's pose functions run to about `D + 0.6` and the frame the next scene cuts from is still alive.
 - **The animator's hand.** Each frame nudges every puppet by a tiny random amount (`jit(frame, k)`, the same nudge for the same frame, so pause, seek and `?beat=N&t=S` show exactly what playback shows), and the picture flickers faintly. At full strength it reads as shaking; about a third of a pixel, held for two frames, felt hand-made.
-- **Paper you can feel.** Grain, torn edges and a soft drop shadow on every piece (the `#paper` filter), brass pins at the joints, and a soft contact shadow under the feet so a puppet stands on the ground, leaning the way the set's light falls.
+- **Paper you can feel.** Grain, torn edges and a soft drop shadow on every piece (the `#paper` filter; the joints' brass pins are off, since they read as dots on the figure, and `window.PUPPET_PINS = true` brings them back), and a soft contact shadow under the feet so a puppet stands on the ground, leaning the way the set's light falls.
 - **Replacement, not morphing.** Mouths are swapped shapes timed to the words; a blink is two closed frames; a door opens through a few boards of different widths; a bitten bun is a different picture.
 
 ## Acting
