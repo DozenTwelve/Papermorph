@@ -34,8 +34,8 @@ Formulas, diagrams and scenes change step by step as the narration explains, wit
 
 ### Picture books, from a story, a joke or a fairy tale
 
-Paper puppets in front of sets drawn in code or painted by an image model, with acted voices, subtitles, sound effects, music and camera work. For children who can't read yet, the film stops for a game: a character asks for one thing at a time, the child touches it in the picture, and nothing is ever called wrong.
-[The Little Horse Crosses the River](https://papermorph.diamonddoge.org/little-horse/) (小马过河) · [Little Red Riding Hood](https://papermorph.diamonddoge.org/little-red-riding-hood/) · [Joke Collection](https://papermorph.diamonddoge.org/joke-collection/) (7 episodes)
+Paper puppets in front of sets drawn in code or painted by an image model, with acted voices, subtitles, sound effects, music and camera work. For children who can't read yet, the film stops for a game: a character asks for one thing at a time, the child touches it in the picture, and nothing is ever called wrong. A scanned picture book can bring its own art: the figures, sets and hand lettering are cut from the pages and moved as puppets.
+[The Little Horse Crosses the River](https://papermorph.diamonddoge.org/little-horse/) (小马过河) · [Little Red Riding Hood](https://papermorph.diamonddoge.org/little-red-riding-hood/) · [Millions of Cats](https://papermorph.diamonddoge.org/millions-of-cats/) (Wanda Gág, 1928, cut from the book's own pages) · [Joke Collection](https://papermorph.diamonddoge.org/joke-collection/) (7 episodes)
 
 <p align="center">
   <a href="https://papermorph.diamonddoge.org/little-horse/ch01/"><img src="img/readme/little-horse.webp" alt="The Little Horse Crosses the River: by the river the foal asks for the bird; a tap on the ox says 'ox', a tap on the bird finds it" width="49%"></a>
@@ -54,8 +54,8 @@ Public-domain engravings, paintings, maps and charts, moved in step with the voi
 
 ### Pages you play
 
-A film can stop and hand the reader the next move, and a map can be walked a year at a time.
-[Shooting an Elephant](https://papermorph.diamonddoge.org/shooting-an-elephant/) (Orwell's essay; you hold the rifle) · [Time of the Magicians](https://papermorph.diamonddoge.org/time-of-the-magicians/) (Europe 1919–1929, four philosophers on the map)
+A film can stop and hand the reader the next move, a map can be walked a year at a time, and a story can unfold as the reader scrolls. The Skill makes all three: explorable maps and scroll stories have their own starting kits.
+[Shooting an Elephant](https://papermorph.diamonddoge.org/shooting-an-elephant/) (Orwell's essay; you hold the rifle) · [Explorable maps](https://papermorph.diamonddoge.org/maps/): [Time of the Magicians](https://papermorph.diamonddoge.org/time-of-the-magicians/) (Europe 1919–1929, four philosophers on the map) and [The Map Redrawn](https://papermorph.diamonddoge.org/meiji/) (Japan 1868–1878) · [The Pandemic as a scroll story](https://papermorph.diamonddoge.org/pandemic-scroll/)
 
 <p align="center">
   <a href="https://papermorph.diamonddoge.org/shooting-an-elephant/"><img src="img/readme/elephant.webp" alt="Shooting an Elephant: where to aim, then the view through the rifle sight, click to fire" width="49%"></a>
@@ -74,7 +74,7 @@ Then type `/papermorph`. It finds the PDF in your project (or asks for your stor
 
 In OpenCode, a clone of this repository already has the command (`.opencode/commands/papermorph.md`) and the Skill; with a global install, copy that file to `~/.config/opencode/commands/`.
 
-You need [uv](https://docs.astral.sh/uv/), ffmpeg, and Playwright's browsers (`uv run --with playwright playwright install chromium firefox`). Narration uses Edge TTS (online) or Kokoro (local), free. A few steps are paid, optional and need an API key: acted ElevenLabs voices for picture books and documentaries, clips made from a still ([OpenRouter](https://openrouter.ai/)), and painted sets for picture books (OpenRouter or OpenAI). The two newest picture books cost under $0.35 each in voices.
+You need [uv](https://docs.astral.sh/uv/), ffmpeg, and Playwright's browsers (`uv run --with playwright playwright install chromium firefox`). Narration uses Edge TTS (online) or Kokoro (local), free. A few steps are paid, optional and need an API key: acted ElevenLabs voices for picture books and documentaries, clips made from a still ([OpenRouter](https://openrouter.ai/)), and painted sets for picture books (OpenRouter or OpenAI). The newest picture books cost under $0.45 each in voices.
 
 ## How it works
 
@@ -86,9 +86,9 @@ Any chapter or episode also renders to a 1080p MP4 with an `.srt`, frame by fram
 
 ## Roadmap
 
-The first roadmap is done: maths books, science books, picture books, a model of your choice for every step, documentaries, and upright shorts. So are picture books for children who can't read yet: layered paper sets, four-legged puppets and listen-and-find games, in *The Little Horse* and the second *Little Red Riding Hood*. A rifle, a map and a scroll story came along the way. Next:
+The first roadmap is done: maths books, science books, picture books, a model of your choice for every step, documentaries, and upright shorts. So are picture books for children who can't read yet: layered paper sets, four-legged puppets and listen-and-find games, in *The Little Horse* and the second *Little Red Riding Hood*; and a picture book cut from a scanned book's own pages, *Millions of Cats*. A rifle, explorable maps and a scroll story came along the way, and the Skill now makes the maps and scroll stories too. Next:
 
-- **Picture books from a PDF of pictures.** Bring an illustrated book and make its pages move: tap to hear names over the painting, layers that drift in parallax, characters cut into paper puppets, the printed text read aloud. For your own books or a publisher's; our own examples will use public-domain books or pictures we draw.
+- **More from a PDF of pictures.** *Millions of Cats* cut its figures into puppets; next, tap to hear names over the painting and layers that drift in parallax. For your own books or a publisher's; our own examples use public-domain books or pictures we draw.
 - **Lessons with their own examples.** The textbook sets what is taught, in what order and how hard; the Skill writes new worked examples and exercises, with answers computed in code, so nothing is copied from the book.
 - **One source, every shape.** A single Wikipedia article made into a documentary, shorts, an interactive page and a scroll story, side by side.
 - **Elementary Physics, remade** with what the newer books can do.
