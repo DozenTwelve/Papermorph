@@ -21,8 +21,8 @@ Read the tier's first file, then only what the current step needs. Every file be
 
 | The user brings | Tier | Start with | Then, as the step needs |
 |---|---|---|---|
-| A textbook PDF (a course book too) | Lessons | [lessons.md](references/lessons/lessons.md) | [intake.md](references/lessons/intake.md) · [authoring.md](references/lessons/authoring.md) · [diagrams.md](references/lessons/diagrams.md) (tier 1) · [scenes.md](references/lessons/scenes.md) (tier 2) · [assets.md](references/lessons/assets.md) · [questions.md](references/lessons/questions.md) · [figures.md](references/lessons/figures.md) (figures the reader moves) · [checks.md](references/lessons/checks.md) · [cover.md](references/lessons/cover.md) · [courses.md](references/lessons/courses.md) (citations, item bank, SCORM: only when the book calls for them) |
-| A story, a joke, a fairy tale, or a story book's PDF | Picture books | [stories.md](references/picture-books/stories.md) | [puppets.md](references/picture-books/puppets.md) · [painting.md](references/picture-books/painting.md) (a painted look) |
+| A textbook PDF (a course book too) | Lessons | [lessons.md](references/lessons/lessons.md) | [intake.md](references/lessons/intake.md) · [authoring.md](references/lessons/authoring.md) · [diagrams.md](references/lessons/diagrams.md) (tier 1) · [scenes.md](references/lessons/scenes.md) (tier 2) · [assets.md](references/lessons/assets.md) · [maths.md](references/lessons/maths.md) (math.js, math parts, LaTeX) · [questions.md](references/lessons/questions.md) · [figures.md](references/lessons/figures.md) (figures the reader moves) · [checks.md](references/lessons/checks.md) · [cover.md](references/lessons/cover.md) · [courses.md](references/lessons/courses.md) (citations, item bank, SCORM: only when the book calls for them) |
+| A story, a joke, a fairy tale, or a story book's PDF (its own scanned pictures: [stories.md](references/picture-books/stories.md#from-a-scanned-books-own-pictures)) | Picture books | [stories.md](references/picture-books/stories.md) | [puppets.md](references/picture-books/puppets.md) · [painting.md](references/picture-books/painting.md) (a painted look) · [listen-and-find.md](references/picture-books/listen-and-find.md) (a finding game for young children) |
 | A book, an idea or a stretch of history to explain as a narrated film | Films: documentary | [films.md](references/films/films.md) | [documentary.md](references/films/documentary.md) |
 | One point to make in under three minutes, upright, for a phone feed (YouTube Shorts, TikTok, Reels), or a long film to recut | Films: shorts | [films.md](references/films/films.md) | [shorts.md](references/films/shorts.md) |
 | A film's material, or an idea that is mostly maps and numbers, to read at the reader's own pace on a page whose picture changes as it scrolls (a scroll story) | Films: scroll page | [films.md](references/films/films.md) | [scroll.md](references/films/scroll.md) |
@@ -32,14 +32,27 @@ Every tier shares the core:
 
 | File | What it holds |
 |---|---|
-| [core/style.md](references/core/style.md) | how to ask the user, the models step, `style.json` |
+| [core/style.md](references/core/style.md) | how to ask the user, the models step, the paid steps (keys, prices, ledger, balance), `style.json` |
 | [core/publish.md](references/core/publish.md) | `new_book.py`, language, minutes, preview and delivery, video export |
 | [core/sound.md](references/core/sound.md) | the narration file, voices, levels, effects, music, captions |
 | [core/review.md](references/core/review.md) | seeing your own work in motion, frames, smoothness, director rounds |
 | [core/team.md](references/core/team.md) | making chapters with subagents, the coordinator, workers in parallel |
 | [core/engine.md](references/core/engine.md) | the player and drawing API, timing, camera, performance, traps |
 
-Start with the tier's intake whenever `books/<book>/style.json` does not exist yet; reuse answers and approvals already given. The reference books on https://papermorph.diamonddoge.org/ are the bar: the maths and science books for lessons, *The Little Horse Crosses the River*, *Little Red Riding Hood* and *Joke Collection* for picture books, *Madness and Civilization*, *Shooting an Elephant* (interactive) and *The Pandemic* for documentaries, the *Madness and Civilization* shorts for shorts.
+Start with the tier's intake whenever `books/<book>/style.json` does not exist yet; reuse answers and approvals already given.
+
+## Reference books
+
+The reference books are the bar: levels to reach, not formats to copy. Each is the folder `site/<slug>/` of the Papermorph repository (https://github.com/DozenTwelve/Papermorph), served at `https://papermorph.diamonddoge.org/<slug>/`, so its source can be read in a checkout or fetched from either address when the Skill is installed on its own. The tier files name the file in a book worth opening for a given step.
+
+| Tier | Books (slug) |
+|---|---|
+| Lessons | tier 1: *Elementary Algebra* (`elementary-algebra`), *Math Notebook* (`math-notebook`); tier 2: *Science* (`science`); a light board with dark ink: `physics-notebook` |
+| Picture books | *The Little Horse Crosses the River* (`little-horse`) and *Little Red Riding Hood* (`little-red-riding-hood`): all in code, a cast voiced by ElevenLabs, a listen-and-find stop, the newest and the bar; *Joke Collection* (`joke-collection`): painted sets, puppets in code, a series of episodes; *Millions of Cats* (`millions-of-cats`, Wanda Gág, 1928): a scanned book's own pictures lifted into sets and puppets (not on the shelf) |
+| Documentaries | *Madness and Civilization* (`madness`, after Foucault, ten minutes), *The Pandemic* (`pandemic`), *Shooting an Elephant* (`shooting-an-elephant`, one the reader acts in) |
+| Shorts | the *Madness and Civilization* shorts (`madness-shorts`; episode 1, *The Ship*, is the worked example), *The Pandemic* shorts (`pandemic-shorts`) |
+
+*Tulip Mania* (`tulip-mania`) is a test film made from the Skill alone, with no help beyond these files; the files cite what it ran into.
 
 ## Project layout
 
@@ -74,6 +87,6 @@ All in `SKILL/scripts/`; each prints its usage with `--help` when run with the `
 
 ## Context
 
-- Talk with the user from the main conversation: intake, and every sheet and choice of the pilot. When subagents are available, later chapters are made as a team, each step on the model the user chose ([core/team.md](references/core/team.md)); without them, run the same steps in the current agent with file-based state.
+- Talk with the user from the main conversation: intake, and every sheet and choice of the pilot. When subagents are available, chapters are made as a team, each step on the model the user chose, with the main conversation as the pilot's coordinator ([core/team.md](references/core/team.md#the-coordinator) says what that allows); without them, run the same steps in the current agent with file-based state.
 - Use the engine API and inspect individual functions when needed; copy kit files rather than reading their full source as instructions.
 - Keep `style.json` current and short; chapter status, errata and historical feedback stay in `chapters.md` and `chapters/chNN.md`.

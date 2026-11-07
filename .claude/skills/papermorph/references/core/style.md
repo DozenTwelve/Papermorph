@@ -1,6 +1,6 @@
 # The conversation and style.json
 
-Left to guess what the user wants, an agent's guesses diverge from run to run. So every book starts with a short conversation that ends in `books/<book>/style.json`, the anchor every chapter is made against. It fixes *what* the book looks and sounds like; *how* each moment is animated stays free. Each tier's intake says what to ask ([lessons](../lessons/intake.md), [picture books](../picture-books/stories.md#intake-for-a-story), [films](../films/films.md#intake)); this file covers how to ask, the models step and the file itself.
+Left to guess what the user wants, an agent's guesses diverge from run to run. So every book starts with a short conversation that ends in `books/<book>/style.json`, the anchor every chapter is made against. It fixes *what* the book looks and sounds like; *how* each moment is animated stays free. Each tier's intake says what to ask ([lessons](../lessons/intake.md), [picture books](../picture-books/stories.md#intake-for-a-story), [films](../films/films.md#intake)); this file covers how to ask, the models step, the paid steps and the file itself.
 
 ## Asking
 
@@ -30,7 +30,7 @@ A film's recommended split is already strongest everywhere, so a film offers thr
 | Review | middle | strong director, middle picture and sound reviewers | strong director, fresh: contact sheets, then the exported MP4 | strong director per episode, fresh, on the exported MP4 |
 | Rework | strong | middle, per scene | strong (the builder) | strong (the episode's worker) |
 | Register | small | small | strong (the coordinator) | strong (the coordinator) |
-| Made this way | physics ch14, at about half the cost of one strong agent | *Joke Collection* episodes 5–6 | *Madness and Civilization*, *The Pandemic* | *Madness and Civilization* shorts 2–4, *The Pandemic* shorts 1–6 |
+| Made this way | *Science* chapter 6 (`science/ch14/`), at about half the cost of one strong agent | *Joke Collection* episodes 5–6 | *Madness and Civilization*, *The Pandemic* | *Madness and Civilization* shorts 2–4, *The Pandemic* shorts 1–6 |
 
 **small**, **middle** and **strong** stand for the user's current fast, balanced and most capable models. Each option names the actual models, not only their strength: Claude Code starts a subagent on `opus`, `sonnet`, `haiku` or `fable`, so a lesson's recommended option reads "opus for the picture and rework, sonnet for narration and review, haiku for the rest". Where you cannot tell which models the host can start, ask the user once which is their strong, middle and small model. A model the host cannot start is named to the user, not swapped for another.
 
@@ -39,6 +39,28 @@ Every step runs at high reasoning effort unless the user asks for another; effor
 A host that cannot choose a subagent's model, or has no subagents, runs every step on the conversation's model; one that cannot set a subagent's effort runs it at the host's default. Say so to the user, let `models` record the model that runs, and report what ran at delivery ([core/team.md](team.md#before-delivering)): the conversation's model, and "host default" rather than "high" for effort.
 
 Write into `models` the name the host's launcher takes (in Claude Code, the names above), keyed by step as in the [lesson](../../assets/templates/style.json) or [picture-book](../../assets/templates/picture-book/style.json) template (a picture book's keys name its roles: `script`, `kit`, `scenes`, `sound`, `director`, `reviewers`; a [documentary](../../assets/templates/documentary/style.json)'s and a [short](../../assets/templates/shorts/style.json)'s: `script`, `pictures`, `beats`, `checks`, `director`). The user can change a model at any time; later chapters follow `models` as it stands.
+
+## Paid steps
+
+Three scripts spend the user's money: `paint.py` (a picture from an image model), `eleven.py` (an ElevenLabs voice) and `video.py` (a moving clip from a still), all through one OpenRouter account. Every other step is free (Edge or Kokoro voices, `sfx.py`, found pictures and recordings). The money is the user's, so at intake the user chooses whether to pay at all and sets a ceiling (`illustration.budget` or `words`), and sees every cent after:
+
+- **The key** is read from `~/.config/openrouter/key` or `$OPENROUTER_API_KEY`. Without an OpenRouter account, `paint_openai.py` paints with OpenAI's image API directly, with the same arguments and ledger (key in `$OPENAI_API_KEY`, `--env FILE` or `~/.config/papermorph/.env`); OpenAI returns no price, so its ledger lines are estimates and the real spend is on OpenAI's usage page.
+- **What it costs**, from the books made so far:
+
+  | Script | Unit | Cost |
+  |---|---|---|
+  | `paint.py --q low` | a picture with no reference | about $0.004 |
+  | `paint.py --q low` | with one reference picture (a sketch, a crop), which counts as input | about $0.016; with the style picture as a second, about $0.026 |
+  | `paint.py --q medium` (the default) | a picture | about $0.02–0.03; high is refused: it cost five times as much and looked the same in a film |
+  | `eleven.py` | a minute of voice | about $0.07 ($0.00008 a character, about $0.65 for a ten-minute film) |
+  | `video.py` | a 5 s clip (Kling 3.0 std) | about $0.42 |
+
+  Low quality was often good enough for a final picture: test the cheapest first.
+- **Before paying**, say what the batch is and what it will cost; `eleven.py` prints its characters and price first (`--dry` stops there).
+- **One ledger**, `books/<book>/art/costs.tsv`: every paid script takes `--ledger` and appends date, chapter, file, model, what and cost (`ledger.py`); `paint.py --total books/<book>/art/costs.tsv` sums it, per model and overall.
+- **After paying**, report the real balance from the provider (OpenRouter's credits page, or `GET https://openrouter.ai/api/v1/credits` with the key), not an estimate; it can lag a batch by some minutes, so read it again before reporting.
+- **One balance for pictures and voice.** OpenRouter refuses an image request while the balance is under $1.00 (`paint.py` says so and prints what is left), but voice goes on spending below it and can run the balance into debt (one book went from $0.04 to −$0.21 before ElevenLabs stopped with a 402). So keep the balance above a dollar plus the next voice batch, and when several workers share it, make the pictures before the voices ([core/team.md](team.md#workers-in-parallel)).
+- `paint.py` never writes over an existing picture (it may be an approved, paid one) unless `--force` is given, and a cached `eleven.py` clip costs nothing on a rerun.
 
 ## style.json
 

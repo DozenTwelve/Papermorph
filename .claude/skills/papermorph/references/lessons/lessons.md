@@ -1,13 +1,12 @@
 # Lessons: from a textbook PDF to animated chapters
 
-Each chapter is a short animated lesson film where the picture carries the explanation, the narration says it, and quick checks and practice happen inside the picture. The maths books (`site/elementary-algebra/`, `site/math-notebook/`) show tier 1, the science book (`site/science/`) tier 2. A new book starts with [intake.md](intake.md).
+Each chapter is a short animated lesson film where the picture carries the explanation, the narration says it, and quick checks and practice happen inside the picture. The reference books for each tier are listed in [SKILL.md](../../SKILL.md#reference-books). A new book starts with [intake.md](intake.md).
 
 ## Contents
 
 - Project layout
 - Pipeline
 - Chapter loop
-- LaTeX
 - Team
 
 ## Project layout
@@ -46,25 +45,17 @@ A course book may also want verified citation links, a reviewed question bank or
 1. **Read** this chapter's `pages/chNN/text.md`; render pages with `split_pages.py … --only chNN` when diagrams or missing text need images. Choose the ideas, examples and sections to teach.
 2. **Beats and narration**: list beats in `chapters/chNN.md` with what each says and which word triggers which action ([authoring.md](authoring.md)). Write `content/<book>/chNN/narration.<lang>.json` and voice it with `tts.py` ([core/sound.md](../core/sound.md#voices)).
 3. **Storyboard, layout first**: one to three key moments per beat, placed in the real page without motion and captured into one sheet ([scenes.md](scenes.md#storyboard-layout-first-then-motion), [diagrams.md](diagrams.md)). Whatever the chapter needs beyond the library is drawn or added to the image requests ([assets.md](assets.md#chapter-level-needs-noticed-while-storyboarding)).
-4. **Motion**: add the motion, the camera and the questions ([questions.md](questions.md)); API and replay invariants are in [core/engine.md](../core/engine.md).
+4. **Motion**: add the motion, the camera and the questions ([questions.md](questions.md)); API and replay invariants are in [core/engine.md](../core/engine.md), mathematics and LaTeX in [maths.md](maths.md).
 5. **Delivery pass**: watch it against the storyboard ([core/review.md](../core/review.md)), run the lesson checks ([checks.md](checks.md)), correct, recheck, deliver; report unresolved problems.
 6. **Register**: add the chapter to the contents (`units` in `Contents.book` in `index.html`, [cover.md](cover.md)), set the previous chapter's `CHAPTER.next`, update `chapters.md` and `chapters/chNN.md`. Promote new shared decisions and recurring elements to `style.json` and the library. With subagents the coordinator owns this step.
-
-## LaTeX
-
-For formulas that need LaTeX ([core/engine.md](../core/engine.md#latex)), add MathJax (with its licence) to `lib/` and load `../lib/mathjax.js` in every chapter, right after `engine.js` (after `math.js` when the chapter loads it):
-
-```sh
-python3 SKILL/scripts/engine.py site/<book> --latex   # lib/mathjax.js; later syncs keep it in step
-```
 
 ## Team
 
 The general shape and the coordinator's job are in [core/team.md](../core/team.md); a lesson splits by step of the chapter loop, chapters one after another.
 
-In the pilot the picture worker stops when the storyboard sheet is ready and replies with it; the coordinator shows it to the user, then continues the same worker with the user's changes to add motion.
+In the pilot ([core/team.md](../core/team.md#the-coordinator)), a picture worker stops when the storyboard sheet is ready and replies with it; the coordinator shows it to the user, then continues the same worker with the user's changes to add motion.
 
-1. **Extract — small.** From `pages/chNN/text.md` and the page images it needs, write the source material into `chapters/chNN.md` in the shape of the previous chapter's: concepts in book order with the book's wording and examples, vocabulary, each figure (labels, arrows, purpose), every end-of-chapter question with its answer, and possible problems in the source (flagged, not decided).
+1. **Extract — small.** From `pages/chNN/text.md` and the page images it needs, write the source material into `chapters/chNN.md` in the shape of the previous chapter's: the concepts in book order as points to teach and how hard the book makes them, vocabulary, each figure's purpose (what it shows, its labels and arrows), what each end-of-chapter question tests and how hard it is, and possible problems in the source (flagged, not decided). Record what the book teaches, not its wording: the lesson writes its own explanations and examples, and the question beats their own questions, with answers worked out in code where they are computed, so nothing on screen repeats the book. A page that is nearly empty in `text.md` (a heading and a number) is usually a diagram with no text layer: render it.
 2. **Narration — middle.** From chNN.md, [authoring.md](authoring.md), `style.json` and the previous approved chapter (its beat table and narration as the worked example): decide each flagged problem (`## Errata`), choose what to teach for the book's pacing (and say what was dropped), write the beat table (what the picture shows and does, each `[[mark]]` and the action it triggers, where the eye goes, new visual elements needed), all questions and the narration file, then run `tts.py` and confirm every mark is in timings.js. The plan must be concrete enough for a different model to build from.
 3. **Picture — strong.** From the plan, `style.json`, the previous approved chapter's page and the library: storyboard layout first, then motion, camera and questions, new shared elements in the library, a quick self-view of the busiest beats and lint. The plan is a plan, not a cage. Storyboard and motion stay in one step, or the next worker would have to read the whole page again. Look at the storyboard sheet yourself when it comes back; problems visible there are cheapest to name now.
 4. **Checks — small, report-only**, in parallel with 5: lint, `check.py`, `check_blank.py`, `overlap.py`, `still.py`, `perf.py` in Firefox, and an e2e test adapted from the previous chapter's (the first from `assets/templates/e2e.py`, [checks.md](checks.md#interaction-tests)), in Chromium and Firefox. It reports problems with beat and time and changes only its own test.

@@ -1,6 +1,6 @@
 # Illustrated scenes
 
-For physical, spatial and narrative ideas: people and things act out the idea, the camera shows what matters, and the words live inside the picture (the science book, `site/science/`).
+For physical, spatial and narrative ideas: people and things act out the idea, the camera shows what matters, and the words live inside the picture (tier 2, the science book).
 
 ## Each moment is one picture
 
@@ -13,6 +13,8 @@ Worked example, the push in the science book's chapter 10:
 Vary the composition with the content (a close-up, a wide shot, a split screen, a view from above); a chapter of the same frame over and over felt monotonous. Light atmosphere is welcome: favour objects and moves that carry the idea, and trim a bystander, dense scenery or a flourish that competes with it.
 
 ## Storyboard: layout first, then motion
+
+The point is that composition is judged, and changed, before motion is tuned around it: a layout moved after its motion is written means writing the motion again. An agent may write a beat with its tweens from the start, putting each key moment's positions in as the tweens' end values, and capture the sheet at those moments; that is the same storyboard, as long as the sheet is looked at, and in the pilot shown to the user, before the motion is polished.
 
 1. With narration and beats written, place everything for one to three key moments per beat in the real page: real elements at their real sizes, positions written as the moment's values, no tweens yet.
 2. Capture those moments into one sheet (`strip.py chNN OUT force:push,dir net:add … --sheet storyboard --url http://localhost:8765/<book>/`; times may be marks). Write one line per frame in `chapters/chNN.md`: what it says and where the eye goes. That sheet is the storyboard; composition is cheapest to change now.

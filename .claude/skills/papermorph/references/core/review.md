@@ -42,7 +42,7 @@ uv run --with playwright --with pillow SKILL/scripts/shot.py chNN --url http://l
 
 ## Review rounds
 
-After the first cut, before the user watches, an independent director pass: a fresh agent on a strong model, report-only, given contact sheets of every beat and the approved chapters or reference film, knowing nothing of how the beats were built.
+After the first cut, before the user watches, an independent director pass: a fresh agent, report-only, given contact sheets of every beat and the approved chapters or reference film, knowing nothing of how the beats were built. It runs on the model `models` gives the review: a strong director for a picture book or a film; for a lesson, the team's review step is this pass, on the middle model unless the user chose another ([core/style.md](style.md#models)).
 
 - **Reports** are ranked: chapter or scene, beat-clock time, what is wrong as a viewer sees it, a concrete fix. Earlier good reports serve as examples. About half of what a director finds is usually the picture saying something other than the voice.
 - **A second round on the exported video** (`export.py`, then the director watches the MP4's frames) finds what the sheets hide; on the shorts it found the most.

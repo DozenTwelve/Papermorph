@@ -16,11 +16,12 @@ New types are welcome when the content calls for one; each needs keyboard play.
 ## Writing them
 
 - Ids: `c-…` for quick checks, `p-…` for practice; the score card adds them up.
-- The prompt is rich text ([core/engine.md](../core/engine.md#traps)).
+- Prompts, feedback, `grid` text rows and `choice` options are rich text in HTML cards: a string is shown as written (`<` is a character, never markup, so `3 < 5` is safe), math goes in `$m(...)` ([maths.md](maths.md#math-parts)), and anything richer (a table) is an element made with `h()` and passed as a part.
 - Feedback: right → `why` (and an animation via `fx`/`onRight`); wrong → a hint aimed at that mistake; after a wrong try, Show answer.
 - Grade meaning: equal values match (6/8 = 3/4) unless the lowest form is asked for; sets and pairs in any order; no denominators of zero; never judge irrationality from finitely many digits.
 - The built-in numeric parser compares exact integer products of safe-integer numerators and denominators; for answers outside that range, use a subject-specific input and grader rather than letting rounded values pass.
 - Compose the question beat around its card so the picture it asks about stays visible (in the top 60 % above a `BAND` card, or beside a `{x, y, w, cls: 'side'}` card); `SCREEN` for practice.
+- A card whose content is too long for `BAND` becomes several `blanks` rows in a wider side card.
 - Units in typed answers: write the unit as a word after the box (`{ box: '60' }, ' kilograms'`) so it is not set as a math variable.
 
 ## API
@@ -33,8 +34,8 @@ quiz(position, [{ id: 'c-mean', prompt: ['Find the mean of ', $m('7, 3, 9'), '.'
 - `choice(options, right, why, wrongWhys[], onRight?)` — number keys.
 - `mcq(id, onRight?)` — (course option, [courses.md](courses.md)) a whole quiz entry (`{id, prompt, build: choice(...)}`) from the chapter's item bank: `quiz(TOPR, [mcq('c-attrib'), mcq('c-cause')], done)`. Needs `items.js` (built by `scripts/items.py`) loaded after `engine.js`; an unknown id throws.
 - `blanks(rows)` — rows `{parts: [..., {box: '21'}, ...], why, hint?, fx?, test?}`; accepts −5, 3/4, 2 1/4, 0.75 as exact values, also with a currency sign ($60, 5 €) and thousands grouped by spaces of any kind (1 250, as [authoring.md](authoring.md#content-rules) shows numbers) or, where the decimal sign is a point, by commas (1,250); `{box, lowest: true}` demands lowest terms; `test(values)` judges the whole row (e.g. two factors in either order). `hint` is one message for any wrong value in its row; when different mistakes need their own answers, split the step into rows or ask it as a `choice` with `wrongWhys`. Tab moves between boxes, Enter checks, Esc leaves a box.
-- `grid(rows, cols, {multi, text})` — rows `{parts, ans: [keys], why, fx?}`, cols `[[key, label, colour?, hotkey?]]`; with `text: true` parts are rich text (math via `$m`). ↑/↓ change rows.
+- `grid(rows, cols, {multi, text})` — rows `{parts, ans: [keys], why, fx?}`, cols `[[key, label, colour?, hotkey?]]`. `multi` is true by default: a row may take several columns; give `{ multi: false }` when each row has one answer (one category per item). Without `text: true` a row's parts are set as maths; with it they are rich text (math via `$m`). ↑/↓ change rows.
 - `tap(values, right, why, v => wrongWhy, onRight?)` points on the number line; `tapEls(row, idx, right, …)` tokens of a `tokens` row; `pickEls([{el, box: [x,y,w,h], label}], right, …)` any drawn objects; `pickPoint(P, [x,y], why, (x,y) => wrongWhy, onRight?, test?)` grid points (arrows + Enter or click); `sorter(items, trayXY)` drag into the set diagram (keys 1–6). `pickPoint` and `sorter` are in math.js.
-- Answer animations run on their own clock: `fx`, `fxp`, `pulseFx`, `shakeFx`, `floatText`, `qlayer()` (a layer cleared with the question). They finish automatically when the beat is left.
+- Answer animations run on their own clock: `fx`, `fxp`, `pulseFx`, `shakeFx`, `floatText`, `qlayer()` (a layer cleared with the question). They finish automatically when the beat is left; when a question beat is continued early, the engine finishes the beat's pending tweens first, so don't rely on half-finished fades.
 - A new type: `build(body, api)` returns `{ reveal, check?, lock?, key?(e), hint? }` and calls `api.grade(ok, message, {right, total})`. `key` handles its shortcuts (return true when used); `hint` lists the keys under the prompt. Every action needs a key; the help overlay (`?`) lists the global ones.
 - Scores: `SCORE[id]` keeps the first try across revisits and step jumps; restarting the chapter clears it. A multi-row question scores one per row. A correct retry changes the feedback, not the first-attempt score.
