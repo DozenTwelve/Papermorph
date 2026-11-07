@@ -10,6 +10,8 @@ Once per new slug, from the folder that holds `site/`, `books/`, `content/` and 
 python3 SKILL/scripts/new_book.py lesson|picture|documentary|shorts <book> [--chapter N] [--lang xx] [--maps] [--painted]
 ```
 
+`scroll` and `explore` start the two pages that run without the engine (a scroll story, a map you explore); their own files say what they copy: [films/scroll.md](../films/scroll.md), [explore/explore.md](../explore/explore.md). The rest of this section is about the engine's tiers.
+
 It runs `engine.py` into `site/<book>/lib/` (the engine, plus `lib/book.css` for this book's settings), copies the tier's kit and templates (chapter page, cover or series page, sample narration, a picture book's paper kit and `sets.js`, a film's `film.js` or `shorts.js`, with `--maps` the map kit, with `--painted` a picture book's `painted.json`), copies the tier's `style.json` template into `books/<book>/` (an existing one is kept), makes the working folders and prints the next commands, among them the `shot.py` still that becomes a series page's `img/cover.webp`. It refuses a slug whose `site/<book>/` exists; resume an existing book from its own files. Each tier's file says what comes next.
 
 ## Every book
