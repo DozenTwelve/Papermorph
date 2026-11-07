@@ -1563,7 +1563,32 @@ function bgmWire(m) {
   SND.ctx.createMediaElementSource(m.a).connect(m.g).connect(SND.out);
   m.a.volume = 1;
 }
-// A browser starts sound only after a click or a key: the first one builds the graph (films only) and readies the music.
+// iOS (WebKit, so every browser there) lets a media element play outside a click only if that same element once played
+// inside one. So the sound that starts on its own goes through elements made once and played muted inside the first
+// click: the narration through VOICE (the clip playing and the next one loading, in turn), the music through its own
+// track's element. A new Audio() played later is refused.
+const VOICE = [new Audio(), new Audio()];
+for (const a of VOICE) a.preload = 'auto';
+const SILENT = 'data:audio/wav;base64,UklGRiwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQgAAACAgICAgICAgA==';
+// play a muted, then pause it, unless keep() says it is wanted playing by then; refused (not a click on iOS: a
+// pointerdown), or cut short, the next click tries again
+function bless(a, keep) {
+  if (a._blessed) return;
+  a._blessed = true;
+  if (!a.paused) return;   // playing already, so allowed
+  a.muted = true;
+  if (!a.getAttribute('src')) a.src = SILENT;
+  a.play().then(() => { if (!keep()) a.pause(); a.muted = false; }, () => { a.muted = false; a._blessed = false; });
+}
+// a narration element blessed while another plays: at rest again at its start, unless start() took it to play by now
+const voiceKeep = a => () => {
+  const pre = BEATS[P.i]?.pre || 0;
+  if (a === P.audio && P.playing && !P.waiting && !P.done && !P.afail && P.t >= pre) return true;
+  a.currentTime = a === P.audio ? Math.max(0, P.t - pre) : 0;
+  return false;
+};
+// A browser starts sound only after a click or a key: the first one builds the graph (films only) and readies the music
+// and the elements above.
 function soundUnlock() {
   if (typeof BEATS === 'undefined') return;   // the chapter's script has not run yet
   if (!SND.ctx && window.AudioContext && (!BEATS.some(b => b.ask) || CHAPTER.film)) {   // a film with a question (CHAPTER.film) keeps its sound
@@ -1575,10 +1600,9 @@ function soundUnlock() {
     for (const m of SND.bgm) bgmWire(m);
   }
   if (SND.ctx && SND.ctx.state !== 'running' && SND.ctx.state !== 'closed') SND.ctx.resume().catch(() => {});   // also iOS 'interrupted'
-  for (const m of SND.bgm) if (!m.blessed) {   // iOS lets an element play later only if it once played inside a click
-    m.blessed = true; m.a.muted = true;
-    m.a.play().then(() => { if (!m.cur) m.a.pause(); m.a.muted = false; }, () => { m.a.muted = false; m.blessed = false; });
-  }
+  for (const m of SND.bgm) bless(m.a, () => m.cur);
+  // the clip playing now is readied by the click that plays it (setPlaying)
+  for (const a of VOICE) if (a !== P.audio) bless(a, voiceKeep(a));
 }
 // a touch activates the page on touchend or click, not on pointerdown
 for (const type of ['pointerdown', 'touchend', 'click', 'keydown']) addEventListener(type, soundUnlock, true);
@@ -1708,7 +1732,8 @@ function leadIn(id) {
 function stopAudio() {
   const a = P.audio;
   if (!a) return;
-  a.onerror = null; a.pause(); a.removeAttribute('src'); a.load();
+  // the element stays in VOICE for a later clip: emptied, with no handler left to act for this one
+  a.onerror = a.onplaying = null; a.pause(); a.removeAttribute('src'); a.load(); a._src = null;
   P.audio = null;
 }
 function clearCards() {
@@ -1752,12 +1777,13 @@ function start(i, play) {
     a.volume = +($('volume')?.value ?? 1);
     a.playbackRate = P.rate;
     // An aborted or superseded load (fast stepping, a reload) is not a failure: only a real error for the current clip
-    // shows the note, and the note goes away as soon as a clip plays.
-    const failed = () => a.error && a.error.code !== MediaError.MEDIA_ERR_ABORTED;
-    a.onerror = () => { if (P.audio === a && failed()) soundFailed(); };
+    // shows the note, and the note goes away as soon as a clip plays. The element is reused for later clips: the
+    // handlers act only while this start is the current one.
+    const failed = () => a.error && a.error.code !== MediaError.MEDIA_ERR_ABORTED, mine = () => P.audio === a && P.gen === gen;
+    a.onerror = () => { if (mine() && failed()) soundFailed(); };
     if (failed()) soundFailed();   // a preloaded clip may have failed before it had this handler
     a.onplaying = () => {
-      if (P.audio !== a) return;
+      if (!mine()) return;
       $('soundNote').hidden = true;
       if (P.afail) { P.afail = false; a.currentTime = Math.max(0, P.t - (BEATS[P.i].pre || 0)); }   // sound came back late: rejoin the picture where it is
     };
@@ -1775,16 +1801,17 @@ function start(i, play) {
   setPlaying(play);
   if (i + 1 < BEATS.length) beatClip(i + 1);
 }
-// The next beat's clip starts loading while this one plays, so a slow connection does not stall between beats.
+// The next beat's clip starts loading while this one plays, so a slow connection does not stall between beats. Both go
+// through VOICE: a clip goes into the element not playing now.
 function beatClip(i, take) {
   if (TIMINGS[BEATS[i].id]?.silent) return null;
   // the clip's length rides on the URL: regenerated narration gets a new address, so a browser cache cannot pair new
   // timings with an old clip
   const src = `audio/${CHAPTER.language || 'en'}/${BEATS[i].id}.mp3?v=${TIMINGS[BEATS[i].id]?.dur ?? ''}`;
   let a = P.nextClip?._src === src ? P.nextClip : null;
-  if (!a) {
-    if (P.nextClip && P.nextClip !== P.audio) { P.nextClip.removeAttribute('src'); P.nextClip.load(); }   // abandon a stale preload
-    a = Object.assign(new Audio(src), { preload: 'auto', _src: src });
+  if (!a) {   // a stale preload in that element is abandoned
+    a = VOICE.find(x => x !== P.audio);
+    a.src = a._src = src;
   }
   P.nextClip = take ? null : a;
   return a;
@@ -1800,17 +1827,20 @@ function setSpeed(r) {
 }
 const stepSpeed = d => setSpeed(SPEEDS[Math.max(0, Math.min(SPEEDS.length - 1, SPEEDS.indexOf(P.rate) + d))]);
 function soundFailed() { P.afail = true; $('soundNote').hidden = false; }
+// a clip refused (the browser wants a click first) shows the note, for the start that played it only
+function voicePlay(a) {
+  const gen = P.gen;
+  a.play().catch(e => { if (P.audio === a && P.gen === gen && e.name === 'NotAllowedError') soundFailed(); });
+}
 function setPlaying(v) {
   P.playing = v;
   $('bPlay').setAttribute('aria-pressed', String(v));   // one button for both: a screen reader hears whether it plays
   const a = P.audio;
   if (!a) return;
   const lead = v && P.t < (BEATS[P.i]?.pre || 0);
-  if (v && !P.waiting && !a.ended && !P.afail && !lead) a.play().catch(e => { if (P.audio === a && e.name === 'NotAllowedError') soundFailed(); });
-  else if (lead && !a._unlocked) {   // the clip starts later, outside this click: play it silently now so the browser allows that
-    a._unlocked = true; a.muted = true;
-    a.play().then(() => { if (P.t < (BEATS[P.i].pre || 0)) { a.pause(); a.currentTime = 0; } a.muted = false; }, () => { a.muted = false; });
-  } else a.pause();
+  if (v && !P.waiting && !a.ended && !P.afail && !lead) voicePlay(a);
+  else if (lead && !a._blessed) bless(a, voiceKeep(a));   // the clip starts later, outside this click: play it silently now so the browser allows that
+  else a.pause();
 }
 // A film's ask beat waiting for the reader (CHAPTER.film): P.idle counts the seconds it has waited, playing (a pause
 // holds it, as it holds the music), and the beat's continuous motion (stopClock, clockRun with tail: true) runs on past
@@ -1861,7 +1891,7 @@ function frameStep(now, most) {
     const pre = BEATS[P.i].pre || 0;
     if (a && P.t < pre) {   // the picture's lead before the narration, on wall time; then the clip starts
       P.t += dt * P.rate;
-      if (P.t >= pre && !P.afail) { a.muted = false; a.currentTime = P.t - pre; a.play().catch(e => { if (P.audio === a && e.name === 'NotAllowedError') soundFailed(); }); }
+      if (P.t >= pre && !P.afail) { a.muted = false; a.currentTime = P.t - pre; voicePlay(a); }
     } else if (a && !P.afail && !a.ended) {
       // the clip moving on drives the clock; one standing still (not started, or run dry mid-way on a lost connection)
       // counts as a stall: nothing to play after 8 s, or stuck for 15, and the picture goes on by wall time
