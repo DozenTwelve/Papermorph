@@ -18,6 +18,8 @@ python3 SKILL/scripts/new_book.py scroll <book> [--lang xx] [--root DIR]
 
 It copies the kit, [`assets/templates/scroll/`](../../assets/templates/scroll/), into `site/<book>/`: `index.html` (the page and its four sample steps), `story.js` (the sample's pictures), `lib/scroll.js` and `lib/scroll.css` (the kit, which a book leaves alone), the documentary kit's fonts, and `img/geo-lite.js` (Natural Earth's 1:110m countries, for the sample's map). It copies the kit's `style.json` into `books/<book>/` and its check, `e2e.py`, to `tools/<book>/e2e_scroll.py`. It runs no `engine.py` and makes no chapter or narration folders. Open the sample before changing anything: four steps, a world map that fades in, nineteen cities that appear one by one, a dive to Asia, a bar chart over the darkened map. Each is one of the things a step usually does.
 
+The kit is a starting point, not a form to fill: *The Pandemic*'s scroll page was written before it with its own code. Change it, or write the page another way when the story wants something the kit does not do; keep the check (`e2e_scroll.py`) or one like it, so you can see every step.
+
 ## The order of work
 
 1. **Intake and the angle**, as for a film ([films.md](films.md#intake)): what the reader should leave with, the look, where the material comes from. If the page is recut from a film the user approved, its `style.json`, sources and pictures are the start; ask only what changes (the angle of a read is often one turn shorter).
