@@ -1147,6 +1147,7 @@ const slug = word => word.toLowerCase().trim().replace(/[^\p{L}\p{N}]+/gu, '-').
 function findWords(things, asks, done, { end = 'q-done', there = 'q-there', hintAfter = 5, giveUpAfter = 20, minBox = 120 } = {}) {
   const gen = P.gen, stage = $('stage'), lang = CHAPTER.language || 'en';
   if (!CHAPTER.film) console.warn('findWords: CHAPTER.film is not true, so the chapter plays as a lesson: no music or effects');
+  // each clip loads (and says when it is missing) in its own element, and plays through SAY (soundUnlock)
   const clip = (name, who) => {
     const a = new Audio(`audio/${lang}/${name}.mp3`);
     a.preload = 'auto'; a.clipName = name;
@@ -1163,7 +1164,8 @@ function findWords(things, asks, done, { end = 'q-done', there = 'q-there', hint
     if (!list.some(t => t.word === q.word)) console.warn(`findWords: the ask for "${q.word}" has no thing with that word: it is found when its time runs out`);
     return { ...q, a: clip(q.clip, `the ask for "${q.word}"`), again: clip(q.again || 'r-' + slug(q.word), `the short ask for "${q.word}"`) };
   });
-  const praise = clip(end, 'the praise (end)'), help = clip(there, 'the give-up line (there)'), chime = new Audio('audio/sfx/chime.mp3');
+  const praise = clip(end, 'the praise (end)'), help = clip(there, 'the give-up line (there)'), chime = CHIME;
+  chime.src = 'audio/sfx/chime.mp3';
   const L = mk('g', { class: 'findw' }, stage);   // the hit boxes, over the whole picture
   let on = false, alive = true, finished = false, k = 0, word = null, lastAct = 0, askedAt = 0, wiggling = null, playing = null, held = null;
   let misses = 0, blanks = 0, turn = 0, stars = null, enabled = false;
@@ -1180,13 +1182,13 @@ function findWords(things, asks, done, { end = 'q-done', there = 'q-there', hint
   const want = () => list.find(t => t.word === qs[k]?.word);
   // one sound at a time, ducking the music like the narration (SND.word); the character's own lines move its mouth and
   // are captioned; resolves when the sound ends
-  const say = (a, talk = false) => new Promise(ok => {
+  const say = (c, talk = false) => new Promise(ok => {
     if (!alive) return ok();
-    playing?.pause(); playing = a;
-    a.currentTime = 0; a.volume = +($('volume')?.value ?? 1);
-    FIND.saying = talk ? a.clipName : null; FIND.t0 = now() / 1000;
-    askLine = talk ? (TIMINGS[a.clipName]?.cues || []).map(c => c[1]).join(' ') : '';
-    a.onended = () => { if (SND.word === a) SND.word = null; if (FIND.saying === a.clipName) FIND.saying = null; if (talk) askLine = ''; ok(); };
+    const a = playing = SAY;
+    a.pause(); a.src = c.src; a.muted = false; a.volume = +($('volume')?.value ?? 1);
+    FIND.saying = talk ? c.clipName : null; FIND.t0 = now() / 1000;
+    askLine = talk ? (TIMINGS[c.clipName]?.cues || []).map(x => x[1]).join(' ') : '';
+    a.onended = () => { if (SND.word === a) SND.word = null; if (FIND.saying === c.clipName) FIND.saying = null; if (talk) askLine = ''; ok(); };
     SND.word = a;
     if (P.playing) a.play().catch(ok); else held = a;   // paused: the line waits for play
   });
@@ -1302,7 +1304,8 @@ function findWords(things, asks, done, { end = 'q-done', there = 'q-there', hint
   };
   const cleanup = () => {
     alive = false; on = false; L.remove(); word?.remove(); starsOff(); clearTimeout(wordTimer); wiggling?.cancel();
-    for (const a of [...list.map(t => t.a), ...qs.map(q => q.a), ...qs.map(q => q.again), praise, help, chime]) { a.onerror = null; a.pause(); }
+    for (const a of [...list.map(t => t.a), ...qs.map(q => q.a), ...qs.map(q => q.again), praise, help]) { a.onerror = null; a.pause(); }
+    SAY.onended = null; SAY.pause(); chime.pause();
     SND.word = null; askLine = '';
     Object.assign(FIND, { saying: null, target: null, found: null, foundAt: -1e9 });
   };
@@ -1565,9 +1568,9 @@ function bgmWire(m) {
 }
 // iOS (WebKit, so every browser there) lets a media element play outside a click only if that same element once played
 // inside one. So the sound that starts on its own goes through elements made once and played muted inside the first
-// click: the narration through VOICE (the clip playing and the next one loading, in turn), the music through its own
-// track's element. A new Audio() played later is refused.
-const VOICE = [new Audio(), new Audio()];
+// click: the narration through VOICE (the clip playing and the next one loading, in turn), findWords' lines through
+// SAY and its chime through CHIME, the music through its own track's element. A new Audio() played later is refused.
+const VOICE = [new Audio(), new Audio()], SAY = new Audio(), CHIME = new Audio();
 for (const a of VOICE) a.preload = 'auto';
 const SILENT = 'data:audio/wav;base64,UklGRiwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQgAAACAgICAgICAgA==';
 // play a muted, then pause it, unless keep() says it is wanted playing by then; refused (not a click on iOS: a
@@ -1603,6 +1606,7 @@ function soundUnlock() {
   for (const m of SND.bgm) bless(m.a, () => m.cur);
   // the clip playing now is readied by the click that plays it (setPlaying)
   for (const a of VOICE) if (a !== P.audio) bless(a, voiceKeep(a));
+  bless(SAY, () => false); bless(CHIME, () => false);
 }
 // a touch activates the page on touchend or click, not on pointerdown
 for (const type of ['pointerdown', 'touchend', 'click', 'keydown']) addEventListener(type, soundUnlock, true);
