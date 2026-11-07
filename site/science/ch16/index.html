@@ -83,9 +83,9 @@ function deskFan(p, x, y) {
   phBlock(g, -9, -150, 18, 126, '#7d8a86', { top: 0 });
   mk('circle', { cy: hub[1], r: 104, fill: 'none', stroke: '#9aa5a8', 'stroke-width': 5 }, g);
   const blades = G(g, { y: hub[1] });
-  [0, 120, 240].forEach(a => path(G(blades, { r: a }), 'M0 -8C30 -20 86 -30 92 0C86 28 30 22 0 8Z', { fill: '#86c9e8', opacity: .9, ...phLine(2) }));
+  [0, 120, 240].forEach(a => path(G(blades, { r: a }), 'M0 -8C30 -20 86 -30 92 0C86 28 30 22 0 8Z', { fill: '#86c9e8', ...phLine(2) }));
   mk('circle', { cy: hub[1], r: 22, fill: '#4a5458', ...phLine() }, g);
-  path(g, 'M-90 -170H90M0 -260V-80M-64 -234L64 -106M64 -234L-64 -106', { stroke: '#9aa5a8', 'stroke-width': 2, opacity: .7 });
+  path(g, 'M-90 -170H90M0 -260V-80M-64 -234L64 -106M64 -234L-64 -106', { stroke: '#9aa5a8', 'stroke-width': 2 });
   return Object.assign(g, { blades, hub: [x, y + hub[1]] });
 }
 // A balloon: origin at its centre; the string hangs from the knot. b.set(dx) bends the string toward dx.

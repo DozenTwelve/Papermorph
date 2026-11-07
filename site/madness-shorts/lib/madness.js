@@ -2,29 +2,8 @@
    europe.js from the documentary's lib). Pure functions of the beat clock, like the kit. */
 'use strict';
 
-// a picture sized by ART: centred on (x, y), h (or w) px; enters at t0 (rising from dy), or is there when t0 is undefined
-function plate(g, name, x, y, { h, w, t0, dy = 60, r = 0 } = {}) {
-  const [iw, ih] = ART[name], k = w ? w / iw : h / ih, e = G(g, { x, y: t0 === undefined ? y : y + dy, r, o: t0 === undefined ? 1 : 0 });
-  mk('image', { href: `../img/${name}.webp`, x: -iw * k / 2, y: -ih * k / 2, width: iw * k, height: ih * k }, e);
-  if (t0 !== undefined) tw(e, { y, o: 1 }, t0, .35, out);
-  e._x = x; e._y = y;
-  return e;
-}
-
-// a picture larger than the frame, filling its height (or width, if narrower), moved by a camera: keys are
-// [t, fx, fy, s], the point (fx, fy) of the picture (fractions of its width and height) at the frame's centre at scale s.
-// Between keys the camera eases; the first key holds from the shot's start.
-function wide(g, name, keys) {
-  const [iw, ih] = ART[name], k = Math.max(H / ih, W / iw), Ws = iw * k, Hs = ih * k;
-  const im = G(g, {});
-  mk('image', { href: `../img/${name}.webp`, x: -Ws / 2, y: -Hs / 2, width: Ws, height: Hs }, im);
-  // the frame stays covered: the picture's centre is kept where no edge shows (when it is big enough to fill the frame)
-  const clamp = (v, size, frame) => size < frame ? frame / 2 : Math.min(size / 2, Math.max(frame - size / 2, v));
-  const at = ([, fx, fy, s]) => ({ x: clamp(CX - s * (fx - .5) * Ws, Ws * s, W), y: clamp(H / 2 - s * (fy - .5) * Hs, Hs * s, H), s });
-  put(im, at(keys[0]));
-  keys.slice(1).forEach((key, i) => { const t = keys[i][0]; tw(im, at(key), t, key[0] - t, io); });
-  return im;
-}
+// the board's burgundy (lib/book.css --board), which the chapters draw with
+const BURG = '#5a0e16';
 
 // a Foucault line drawing (LINES from the documentary's trace.py), drawn on stroke by stroke over `draw` s
 function traced(p, name, { x = CX, y = 800, h = 600, at = 0, draw: dd = 1.5, colour = LIGHT } = {}) {
@@ -70,7 +49,7 @@ function seriesCard(s, t0, n, tLit) {
     return c;
   });
   const [x, y] = pos[n - 1];
-  const rim = rect(s, x - sz / 2 - 8, y - sz / 2 - 8, sz + 16, sz + 16, { rx: 24, fill: 'none', stroke: RED, 'stroke-width': 10, opacity: 0 });
+  const rim = put(rect(s, x - sz / 2 - 8, y - sz / 2 - 8, sz + 16, sz + 16, { rx: 24, fill: 'none', stroke: RED, 'stroke-width': 10 }), { o: 0 });
   show(rim, tLit, .15, lin); sfx(BEAT_ID, tLit, 'tick', 1.2);
   tiles.forEach((c, i) => { if (i !== n - 1) tw(c, { o: .3 }, tLit, .3); else tw(c, { s: 1.06 }, tLit, .25, back); });
   return tiles;

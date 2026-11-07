@@ -21,8 +21,7 @@
      M = { g, xy(ll, t) -> [x, y] screen px or null behind the globe, view(t) }; draw your own marks above M.g with M.xy
    mapXY(ll, v) -> [x, y]                   a lon/lat to screen px for a view (globe and map alike)
    seriesCard(s, t0, n, tLit)               the six episodes, n (1-6) lit at tLit;  endCard(s, t0, n): what comes next
-   found(g, name, source, t0, t1, opts)     a full-bleed found photograph with its source tag (photo() tags 'AI illustration')
-   wide(g, name, keys) · plate(g, name, x, y, opts) · liChip(p, x, y, r, t0, opts)   as in madness.js and the film
+   liChip(p, x, y, r, t0, opts)             a doctor's toned portrait in a ring (found, wide and plate are shorts.js's)
    (series card rim, end card's 'Next' and liChip's ring are MARK: red is the virus only)
    Colours: shorts.js's DARK (night), LIGHT (cream ink), RED (the virus only), MARK (yellow), MUTED; here MAPLAND, MAPSEA,
    MAPINK, MAPLINE for the paper map. Needs ../img/art.js and ../img/geo-lite.js loaded before this file. */
@@ -210,7 +209,7 @@ function seriesCard(s, t0, n, tLit) {
   sfx(BEAT_ID, t0, 'thud', 1);
   const tiles = EP_POS.map(([x, y], i) => { const c = epTile(s, i, x, y); tw(c, { o: 1 }, t0 + .25 + i * .1, .25); return c; });
   const [x, y] = EP_POS[n - 1];
-  const rim = rect(s, x - EP_W / 2 - 10, y - EP_H / 2 - 10, EP_W + 20, EP_H + 20, { rx: 22, fill: 'none', stroke: MARK, 'stroke-width': 10, opacity: 0 });
+  const rim = put(rect(s, x - EP_W / 2 - 10, y - EP_H / 2 - 10, EP_W + 20, EP_H + 20, { rx: 22, fill: 'none', stroke: MARK, 'stroke-width': 10 }), { o: 0 });
   show(rim, tLit, .15, lin); sfx(BEAT_ID, tLit, 'tick', 1.2);
   tiles.forEach((c, i) => { if (i !== n - 1) tw(c, { o: .3 }, tLit, .3); else tw(c, { s: 1.06 }, tLit, .25, back); });
   return tiles;
@@ -225,34 +224,6 @@ function endCard(s, t0, n) {
   return c;
 }
 
-/* ---------- pictures ---------- */
-// a found photograph, full bleed with a slow push, tagged with its source (opts as photo(): s0, s1, dx, dy, dim)
-function found(g, name, source, t0, t1, opts = {}) {
-  const im = photo(g, name, t0, t1, { ...opts, ai: false });
-  srcTag(g, source, 50, 150, t0);
-  return im;
-}
-// a picture sized by ART: centred on (x, y), h (or w) px; enters at t0 (rising from dy), or is there when t0 is undefined
-function plate(g, name, x, y, { h, w, t0, dy = 60, r = 0 } = {}) {
-  const [iw, ih] = ART[name], k = w ? w / iw : h / ih, e = G(g, { x, y: t0 === undefined ? y : y + dy, r, o: t0 === undefined ? 1 : 0 });
-  mk('image', { href: `../img/${name}.webp`, x: -iw * k / 2, y: -ih * k / 2, width: iw * k, height: ih * k }, e);
-  if (t0 !== undefined) tw(e, { y, o: 1 }, t0, .35, out);
-  e._x = x; e._y = y;
-  return e;
-}
-// a landscape picture larger than the frame, moved by a camera: keys [t, fx, fy, s], the point (fx, fy) of the picture
-// (fractions of its width and height) at the frame's centre at scale s; eased between keys, the first held from 0.
-// No edge ever shows.
-function wide(g, name, keys) {
-  const [iw, ih] = ART[name], k = Math.max(H / ih, W / iw), Ws = iw * k, Hs = ih * k;
-  const im = G(g, {});
-  mk('image', { href: `../img/${name}.webp`, x: -Ws / 2, y: -Hs / 2, width: Ws, height: Hs }, im);
-  const clamp = (v, size, frame) => size < frame ? frame / 2 : Math.min(size / 2, Math.max(frame - size / 2, v));
-  const at = ([, fx, fy, s]) => ({ x: clamp(CX - s * (fx - .5) * Ws, Ws * s, W), y: clamp(H / 2 - s * (fy - .5) * Hs, Hs * s, H), s });
-  put(im, at(keys[0]));
-  keys.slice(1).forEach((key, i) => { const t = keys[i][0]; tw(im, at(key), t, key[0] - t, io); });
-  return im;
-}
 // a doctor's chip: a toned portrait in a red ring. li-wenliang is his own selfie (fair use); doctor-1..7 are AI
 // illustrations standing in for the seven others, who are not identified here (tag them)
 function liChip(p, x, y, r, t0, { o = 1, img = 'li-wenliang', ring = MARK } = {}) {

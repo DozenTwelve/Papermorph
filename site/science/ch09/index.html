@@ -113,7 +113,7 @@ function overheadStreet(w) {
   [[1320, 560], [1250, 760], [60, 860]].forEach(([x, y]) => phBlock(w, x, y, 64, 64, '#4e9a5a', { top: 8, right: 8, ol: 0 }));
   const route = `M-300 620H850A${R0} ${R0} 0 0 0 1100 370V-400`;
   path(w, route, { stroke: PH.road, 'stroke-width': 130, 'stroke-linecap': 'butt' });
-  path(w, route, { stroke: PH.line, 'stroke-width': 4, 'stroke-dasharray': '40 40', opacity: .6 });
+  path(w, route, { stroke: PH.line, 'stroke-width': 4, 'stroke-dasharray': '40 40' });
   const pose = d => d < L1 ? [-200 + d, 620, 0] : d < L1 + ARC ? (th => [850 + R0 * Math.sin(th), 370 + R0 * Math.cos(th), -th * 180 / Math.PI])((d - L1) / R0) : [1100, 370 - (d - L1 - ARC), -90];
   return { pose, R0, L1, ARC, cx: 850, cy: 370 };
 }
@@ -333,7 +333,7 @@ const BEATS = [
   const GY = 430;
   phBlock(p, 0, GY + 2, 1600, 10, '#6b5a48', { top: 3, ol: 0 });
   path(p, Array.from({ length: 27 }, (_, i) => `M${i * 60 + 10} ${GY + 12}h34`).join(''), { stroke: '#4a3d31', 'stroke-width': 6 });
-  path(p, [0, 40, 80].map(k => `M${720 - 520} ${GY - 120 - k}H${720 - 620}`).join(''), { stroke: COL.chalk, 'stroke-width': 6, opacity: .6 });
+  path(p, [0, 40, 80].map(k => `M${720 - 520} ${GY - 120 - k}H${720 - 620}`).join(''), { stroke: COL.chalk, 'stroke-width': 6 });
   const train = phCarriage(p, { x: 720, y: GY, w: 1000 });
   put(train, { o: 0 }); show(train, .2);
   const wl = train._wins[2], wx = 720 + wl;
@@ -450,7 +450,7 @@ const BEATS = [
 ['average', 'Average speed', (m, D) => {
   const p = panel(0);
   const X0 = 170, U = 4.2, xm = v => X0 + U * v, LA = 420, LB = 640;
-  const lane = y => { phBlock(p, 0, y - 70, 1600, 100, PH.road, { top: 0, ol: 0 }); path(p, `M0 ${y - 66}H1600M0 ${y + 26}H1600`, { stroke: PH.line, 'stroke-width': 3, opacity: .5 }); };
+  const lane = y => { phBlock(p, 0, y - 70, 1600, 100, PH.road, { top: 0, ol: 0 }); path(p, `M0 ${y - 66}H1600M0 ${y + 26}H1600`, { stroke: PH.line, 'stroke-width': 3 }); };
   lane(LA);
   for (let v = 0; v <= 300; v += 50) T(p, `${v}`, { x: xm(v), y: LA + 66, size: 24, fill: COL.chalk, anchor: 'middle' });
   T(p, 'meters', { x: xm(300) + 40, y: LA + 66, size: 22, fill: COL.dim });
@@ -521,7 +521,7 @@ const BEATS = [
   const p = panel(0);
   const X0 = 170, U = 20, xm = v => X0 + U * v;
   phBlock(p, 0, 170, 1600, 250, '#2f6f9e', { top: 6, ol: 0 });
-  path(p, 'M0 295H1600', { stroke: '#e8eef2', 'stroke-width': 4, 'stroke-dasharray': '18 14', opacity: .7 });
+  path(p, 'M0 295H1600', { stroke: '#e8eef2', 'stroke-width': 4, 'stroke-dasharray': '18 14' });
   for (let v = 0; v <= 60; v += 10) { T(p, `${v}`, { x: xm(v), y: 156, size: 24, fill: COL.chalk, anchor: 'middle' }); mk('rect', { x: xm(v) - 2, y: 170, width: 4, height: 250, fill: '#e8eef2', opacity: .18 }, p); }
   T(p, 'meters', { x: xm(60) + 36, y: 156, size: 22, fill: COL.dim });
   const dol = phSprite(p, 'dolphin', { x: xm(0), y: 270 }), wal = phSprite(p, 'walrus', { x: xm(0), y: 405 });
@@ -587,7 +587,7 @@ const BEATS = [
   const conv = G(p, { o: 0 });
   path(conv, arrowPath(900, TY + 70, 1400), { stroke: VEL, 'stroke-width': 5 });
   T(conv, '+ direction', { x: 1150, y: TY + 120, size: 30, weight: 700, fill: VEL, anchor: 'middle' });
-  path(conv, arrowPath(700, TY + 70, 200), { stroke: VEL, 'stroke-width': 5, opacity: .6 });
+  path(conv, arrowPath(700, TY + 70, 200), { stroke: VEL, 'stroke-width': 5 });
   T(conv, '− direction', { x: 450, y: TY + 120, size: 30, weight: 700, fill: VEL, anchor: 'middle', o: 1 });
   show(conv, m('sign'));
   const you = phPerson(p, { x: XL, y: TY });
@@ -610,7 +610,7 @@ const BEATS = [
   const p = panel(0);
   const LA = 400, LB = 720, sp0 = m('spd'), dr = m('dir', .6);
   txt(p, 'A change in velocity means a change in…', 800, 110, .2, { size: 40 });
-  [LA, LB].forEach(y => { phBlock(p, 0, y - 70, 1600, 100, PH.road, { top: 0, ol: 0 }); path(p, `M0 ${y - 20}H1600`, { stroke: PH.line, 'stroke-width': 4, 'stroke-dasharray': '50 60', opacity: .5 }); });
+  [LA, LB].forEach(y => { phBlock(p, 0, y - 70, 1600, 100, PH.road, { top: 0, ol: 0 }); path(p, `M0 ${y - 20}H1600`, { stroke: PH.line, 'stroke-width': 4, 'stroke-dasharray': '50 60' }); });
   const a = phCar(p, { y: LA + 18, s: .6 }), b = phCar(p, { y: LB + 18, s: .6 });
   const arA = path(p, '', { stroke: VEL, 'stroke-width': 8 }), arB = path(p, '', { stroke: VEL, 'stroke-width': 8 });
   const lA = phLabel(p, '', { size: 28, fill: VEL }), lB = phLabel(p, '', { size: 28, fill: VEL });
@@ -643,7 +643,7 @@ const BEATS = [
   const w = top.world;
   const { pose } = overheadStreet(w);
   // Faint copies of the arrow where the car was: the direction turns, the length (speed) doesn't.
-  const marks = [L1 - 1, L1 + ARC / 2, L1 + ARC].map(dd => { const [x, y, a] = pose(dd); return arrowAt(path(w, '', { stroke: VEL, 'stroke-width': 6, opacity: 0 }), x, y, 150, a); });
+  const marks = [L1 - 1, L1 + ARC / 2, L1 + ARC].map(dd => { const [x, y, a] = pose(dd); return arrowAt(path(w, '', { stroke: VEL, 'stroke-width': 6 }), x, y, 150, a); });
   const car = phTop(w, 'car_top'), arr = path(w, '', { stroke: VEL, 'stroke-width': 9 });
   const spd = phLabel(p, 'speed: 10 m/s', { x: 70, y: 90, size: 40, anchor: 'start', o: 0 });
   const vg = G(p, { o: 0 }), vl = phLabel(vg, '', { size: 30, fill: VEL });

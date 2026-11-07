@@ -1,33 +1,69 @@
 /* cast.js — the animals of The Little Horse Crosses the River, on paper.js: Little Horse, Mother, Uncle Ox (a water
-   buffalo), Squirrel and a little rabbit. All are drawn in profile facing right, at the point on the ground under the
-   body (0, 0); `turn` -1 faces left, and a turn tweened through 0 squashes the whole figure flat and out mirrored,
-   as a cut-out turned over on the table.
-
-   The four-legged ones share one rig (beast): each leg is two pieces on pins and is solved to put its hoof on a point,
-   so a hoof planted on the ground stays exactly there while the body rides over it. Walking and trotting come from the
-   distance covered, not the clock: pose({ d }) with d in the puppet's own units, and the scene moves x by d·s in the
-   facing direction (x = x0 + turn·s·d), so the feet never slide. `stand` (0..1) blends every leg back to its rest
-   place for a stop.
+   buffalo), Squirrel and a little rabbit. The horses and the buffalo are the kit's four-legged animals (kind 3 of the
+   picture-book kit's cast.js, kept here as it is there): route and flipTurn, then the rig, then this book's animals.
+   Squirrel and the rabbit are their own small rigs.
 
    at(name) gives a named point of the drawn pose in the puppet's parent's coordinates ('mouth', 'back', 'eye',
    'head'; a leg's hip 'nf' 'ff' 'nh' 'fh', its knee or hock 'nfk' …, its hoof 'nfHoof' …; Squirrel: 'mouth', 'paw',
-   'eye', 'top'; Rabbit: 'eye', 'top'), so a sack in a mouth or water at a knee lands where the picture is.
-   brow: positive tips the brow down to the nose (cross, determined), negative lifts it (worried, surprised). */
+   'eye', 'top'; Rabbit: 'eye', 'top'), so a sack in a mouth or water at a knee lands where the picture is. */
 'use strict';
 
-// How far a jaw opens for each mouth shape of the cues.
+// How far a jaw opens for each mouth shape of the cues (the kit's, with D at .9: the horses' wide-open shape as approved).
 const JAW = { X: 0, A: 0, B: .25, C: .45, D: .9, E: .6, F: .3, G: .2, H: .35 };
-const tri = x => 1 - Math.abs(((x % 2) + 2) % 2 - 1);   // 0..1..0 every 2
-const frac = x => x - Math.floor(x);
-const deg = r => r * 180 / Math.PI;
 
+/* ---------- moving along the ground (kinds 2 and 3) ---------- */
+// keys [[t, x], …] on the scene clock, eased between keys. Returns x, the distance travelled in the puppet's own units
+// (d: a four-legged puppet's pose({ d }) plants its feet with it) and stand (1 at rest, blending to 0 within a quarter
+// second of setting off and back to 1 after stopping).
+function route(q, keys, s = 1) {
+  let x = keys[0][1], d = 0, moving = false, since = 1e9;
+  for (let i = 1; i < keys.length; i++) {
+    const [t0, a] = keys[i - 1], [t1, b] = keys[i];
+    if (q >= t1) { d += Math.abs(b - a) / s; x = b; if (a !== b) since = q - t1; continue; }
+    if (q > t0 && a !== b) { const u = ease((q - t0) / (t1 - t0)); x = a + (b - a) * u; d += Math.abs(b - a) * u / s; moving = true; since = 0; }
+    break;
+  }
+  const start = keys.find((k, i) => i && keys[i - 1][1] !== k[1] && q >= keys[i - 1][0] && q < k[0]);
+  const into = start ? q - keys[keys.indexOf(start) - 1][0] : 1e9;
+  const stand = moving ? Math.max(0, 1 - into / .25) : Math.min(1, since / .25);
+  return { x, d, stand };
+}
+// A cut-out turned over in the shot: the turn key from face a to face b (1 right, -1 left) over four frames on twos,
+// never quite flat. Turning on a cut (the next shot simply has the other turn) read best of all; use this when the
+// turn has to happen on screen, in a wide shot.
+const flipTurn = (q, t0, a, b) => { const k = Math.floor((q - t0) * FPS + 1e-6); return k < 0 ? a : k >= 4 ? b : [.5 * a, .12 * a, .12 * b, .5 * b][k]; };
+
+/* ---------- 3. four-legged animals ----------
+   Drawn in profile facing right, at the point on the ground under the body (0, 0); turn -1 faces left, and a turn
+   tweened through 0 squashes the whole figure (never thinner than a third) and out mirrored, as a cut-out turned over
+   on the table (flipTurn above does it in four frames).
+   beast(parent, svg, geo, rest) is the rig: each leg is two pieces on pins solved to put its foot on a point, so a
+   foot planted on the ground stays exactly there while the body rides over it. Walking and trotting come from the
+   distance covered, not the clock: pose({ d }) with d in the puppet's own units, and the scene moves x by d·s in the
+   facing direction (x = x0 + turn·s·d; route() above gives x and d together), so the feet never slide.
+   Pose keys (REST_BEAST): x y s turn; d, gait ('walk': one foot at a time; 'trot': diagonal pairs), stand (0 … 1:
+   blends every leg back to its rest place for a stop; route's stand); bob (+ down), tilt (the body about its centre,
+   degrees); neck, nod (degrees about the neck and head pins); mouth (a cue shape: the jaw opens by JAW) or jaw (0 … 1,
+   overrides it), chew (a number that grows with time works the jaw); shut (blink), lid (0 … 1, a sleepy lid), look
+   (the pupil, -1 … 1 along the face), brow (> 0 tips it down to the nose: cross, determined; < 0 lifts it: worried,
+   surprised); ear, tail (degrees: ear × 22, tail as given); legs: { nf: [dx, lift], … } moves a foot from where the
+   gait puts it (a paw raised, a hoof testing the water). Any other true / false key shows or hides the piece of the
+   same data-p name (a saddle cloth, a sack on the back, a tear): give its default in the rest.
+   at(name) gives a named point of the drawn pose in the puppet's parent's coordinates: a leg's hip 'nf' 'ff' 'nh'
+   'fh', its knee or hock 'nfk' …, its foot 'nfHoof' …, and every mark the drawing places (mark('at_<name>', x, y) in
+   the svg: the cat has 'mouth', 'eye', 'head', 'back'), so a thing in its mouth or water at a knee lands where the
+   picture is.
+   geo: { hips: { nf: [x, y], ff, nh, fh }, up, low (the two leg pieces' lengths), L (stride), H (foot lift), body:
+   [x, y] tilt centre, neck, head, jaw: [x, y] pins, jawOpen (degrees at jaw 1), ear, tail: [x, y] pins, rest: { nf: dx,
+   … } each foot's rest place from under its hip, eye: [x, y], lidH (the lid's travel), lookX (the pupil's) }.
+   Legs: nf near fore, ff far fore, nh near hind, fh far hind; a fore knee folds forward, a hind hock backward. The svg
+   names its pieces: trunk (holding tail, neckG > headG > jaw, ear, eyeO, eyeC, pupil, optional lid and brow), and the
+   four legs from legSVG, far legs before the trunk and near legs after it. catPuppet below is the example: copy it and
+   its CAT_GEO for another animal (Little Horse's horses and water buffalo are built this way). */
 const pf = (body, id = '') => `<g${id ? ` data-p="${id}"` : ''} filter="url(#paper)">${body}</g>`;
 const mark = (id, x, y) => `<g data-p="${id}" transform="translate(${x} ${y})"></g>`;
-
-/* ---------- the four-legged rig ----------
-   geo: { hips: { nf: [x, y], ff, nh, fh }, up, low, L (stride), H (hoof lift), neck: [x, y] pivot, head: [x, y] pivot,
-          jaw: [x, y] pivot, ear: [x, y], tail: [x, y], body: [x, y] tilt centre, rest: { nf: dx, … } hoof under hip }
-   Legs: nf near fore, ff far fore, nh near hind, fh far hind. A fore knee folds forward, a hind hock backward. */
+// One leg: the upper piece (data-p id) and the lower one (id + 'k', on the knee pin at y up) with its hoof or paw, and
+// the foot's mark (id + 'Hoof'). sock colours the lower leg's foot end.
 function legSVG(id, up, low, wUp, wLow, col, hoof, sock = null) {
   const u = `<path d="M${-wUp / 2},-6 C${-wUp / 2},${up * .5} ${-wLow / 2 - 1},${up * .8} ${-wLow / 2},${up + 4} L${wLow / 2},${up + 4} C${wLow / 2 + 1},${up * .8} ${wUp / 2},${up * .5} ${wUp / 2},-6 Z" fill="${col}"/>`;
   const l = `<path d="M${-wLow / 2},-3 L${-wLow / 2 + 1},${low - 14} L${wLow / 2 - 1},${low - 14} L${wLow / 2},-3 Z" fill="${col}"/>`
@@ -35,18 +71,16 @@ function legSVG(id, up, low, wUp, wLow, col, hoof, sock = null) {
     + `<path d="M${-wLow / 2 - 2},${low - 15} L${wLow / 2 + 4},${low - 15} L${wLow / 2 + 7},${low} L${-wLow / 2 - 3},${low} Z" fill="${hoof}"/>`;
   return `<g data-p="${id}">${pf(u)}<g data-p="${id}k" transform="translate(0 ${up})">${pf(l)}${pinAt(0, 0)}${mark(id + 'Hoof', 1, low)}</g>${pinAt(0, 0)}</g>`;
 }
-
-// Two-bone reach from a hip to a hoof point (dx, dy from the hip, y down): the upper and lower piece angles in degrees
+// Two-bone reach from a hip to a foot point (dx, dy from the hip, y down): the upper and lower piece angles in degrees
 // (SVG rotate, 0 = straight down). bend +1 puts the joint forward (a fore knee), -1 backward (a hind hock).
 function reach2(dx, dy, up, low, bend) {
   let D = Math.hypot(dx, dy); D = Math.min(up + low - .5, Math.max(Math.abs(up - low) + 1, D));
   const phi0 = Math.atan2(dx, dy), b = Math.acos(Math.max(-1, Math.min(1, (up * up + D * D - low * low) / (2 * up * D))));
   const p1 = phi0 + bend * b, kx = up * Math.sin(p1), ky = up * Math.cos(p1);
   const p2 = Math.atan2(dx - kx, dy - ky);
-  return [-deg(p1), -deg(p2 - p1)];
+  return [-p1 * 180 / Math.PI, -(p2 - p1) * 180 / Math.PI];
 }
-
-// Where each hoof is, relative to its rest place, at walk distance d: [dx, lift]. Walk: one hoof at a time (lateral
+// Where each foot is, relative to its rest place, at walk distance d: [dx, lift]. Walk: one foot at a time (lateral
 // sequence); trot: diagonal pairs.
 const GAITS = {
   walk: { phase: { nh: 0, nf: .25, fh: .5, ff: .75 }, beta: .64, bob: 2.5 },
@@ -55,25 +89,22 @@ const GAITS = {
 function gait(d, kind, L, H) {
   const G = GAITS[kind], out = {}, u0 = d / L;
   for (const k of ['nf', 'ff', 'nh', 'fh']) {
-    const r = frac(u0 + G.phase[k]), b = G.beta, s = L * b;
+    const r = u0 + G.phase[k] - Math.floor(u0 + G.phase[k]), b = G.beta, s = L * b;
     if (r < b) out[k] = [s / 2 - s * (r / b), 0];
     else { const w = (r - b) / (1 - b); out[k] = [-s / 2 + s * ease(w), H * Math.sin(Math.PI * w)]; }
   }
   out.bob = kind === 'trot' ? -G.bob * Math.abs(Math.sin(2 * Math.PI * u0)) : -G.bob * (1 - Math.cos(4 * Math.PI * u0)) / 2;
   return out;
 }
-
 const REST_BEAST = { x: 0, y: 0, s: 1, turn: 1, d: 0, gait: 'walk', stand: 1, bob: 0, tilt: 0, neck: 0, nod: 0, mouth: 'X',
-  jaw: null, shut: false, lid: 0, look: 0, brow: 0, ear: 0, tail: 0, legs: {}, sack: false, cloth: true, grass: false, chew: 0, tear: false };
-
+  jaw: null, chew: 0, shut: false, lid: 0, look: 0, brow: 0, ear: 0, tail: 0, legs: {} };
 function beast(parent, svg, geo, rest) {
   const g = mk('g', {}, parent);
   g.innerHTML = svg;
   bakeAll(g);
   const P = pieces(g), R = { ...REST_BEAST, ...rest };
-  const legs = ['nf', 'ff', 'nh', 'fh'];
-  const pup = {
-    g, P,
+  const legs = ['nf', 'ff', 'nh', 'fh'], toggles = Object.keys(R).filter(k => typeof R[k] === 'boolean' && k !== 'shut' && P[k]);
+  return { g, P,
     pose(o, f) {
       o = { ...R, ...o };
       const j = k => jit(f, k);
@@ -102,14 +133,10 @@ function beast(parent, svg, geo, rest) {
       if (P.lid) { vis(P.lid, !o.shut && o.lid > 0); tf(P.lid, `translate(0,${(-geo.lidH * (1 - o.lid)).toFixed(1)})`); }
       tf(P.pupil, `translate(${(o.look * geo.lookX).toFixed(1)},0)`);
       if (P.brow) tf(P.brow, `rotate(${(o.brow * 14).toFixed(1)},${geo.eye[0]},${geo.eye[1] - 12}) translate(0,${(-4 * Math.max(0, o.brow)).toFixed(1)})`);
-      if (P.sack) vis(P.sack, !!o.sack);
-      if (P.cloth) vis(P.cloth, !!o.cloth);
-      if (P.grass) vis(P.grass, !!o.grass);
-      if (P.tear) vis(P.tear, !!o.tear);
+      for (const k of toggles) vis(P[k], !!o[k]);
     },
     at(name) { const m = P[name] || P['at_' + name]; const M = g.parentNode.getCTM().inverse().multiply(m.getCTM()); return [M.e, M.f]; },
   };
-  return pup;
 }
 
 /* ---------- Little Horse and Mother ----------
@@ -158,8 +185,10 @@ const LITTLE = { coat: '#c8753d', shade: '#b0612f', far: '#a2592b', mane: '#6b3a
   hoof: '#4a2e1e', ear: '#e9a07e', sock: '#f2e6cf', sockF: null, eyeR: 9, cheek: true, lash: false, blaze: false };
 const MAMA = { coat: '#8a5233', shade: '#784529', far: '#6c3e25', mane: '#3a2418', mane2: '#2a1a10', muzzle: '#c99a76', muzzle2: '#b5845f',
   hoof: '#2e1e14', ear: '#c98a6a', sock: '#f2e6cf', sockF: '#f2e6cf', eyeR: 7.5, cheek: false, lash: true, blaze: true };
-function horsePuppet(parent, o = {}) { return beast(parent, horseSVG(LITTLE), HORSE_GEO, { cloth: true, ...o }); }
-function motherPuppet(parent, o = {}) { return beast(parent, horseSVG(MAMA), HORSE_GEO, { cloth: false, gait: 'walk', ...o }); }
+// the pieces a horse or the buffalo shows or hides by pose key, hidden unless the rest or the pose says so
+const PIECES = { sack: false, cloth: false, grass: false, tear: false };
+function horsePuppet(parent, o = {}) { return beast(parent, horseSVG(LITTLE), HORSE_GEO, { ...PIECES, cloth: true, ...o }); }
+function motherPuppet(parent, o = {}) { return beast(parent, horseSVG(MAMA), HORSE_GEO, { ...PIECES, gait: 'walk', ...o }); }
 
 /* ---------- Uncle Ox: an old water buffalo, slate grey, great swept horns, sleepy lids ----------
    chew (a number that grows with time) works the jaw; grass: a tuft in his mouth. */
@@ -197,7 +226,7 @@ function oxSVG() {
   </g></g>
   ${legSVG('nh', 66, 76, 50, 30, C, '#2d2926')}${legSVG('nf', 66, 76, 44, 30, C, '#2d2926')}`;
 }
-function oxPuppet(parent, o = {}) { return beast(parent, oxSVG(), OX_GEO, { cloth: false, lid: .4, ...o }); }
+function oxPuppet(parent, o = {}) { return beast(parent, oxSVG(), OX_GEO, { ...PIECES, lid: .4, ...o }); }
 
 /* ---------- Squirrel: rust red, a great plume of a tail, sits up on his haunches ----------
    Feet at (0, 0), facing right, about 130 tall with the tail. tail / tail2 bend the plume, paw raises the near front

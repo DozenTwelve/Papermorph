@@ -84,7 +84,7 @@ function flagHole(p, x, y) {
 function lamp(p, o = {}) {   // a floor lamp; g.glow is the light cone (fade it in)
   const g = G(p, o);
   phBlock(g, -40, -14, 80, 14, '#4a5458', { top: 3 }); phBlock(g, -5, -250, 10, 236, '#7d8a86', { top: 0 });
-  const glow = path(g, 'M-40 -250L-150 0H150L40 -250Z', { fill: LIGHT, opacity: 0 }); put(glow, { o: 0 });
+  const glow = path(g, 'M-40 -250L-150 0H150L40 -250Z', { fill: LIGHT }); put(glow, { o: 0 });
   path(g, 'M-40 -250L-70 -320H70L40 -250Z', { fill: '#e8c46a', ...phLine() });
   return Object.assign(g, { glow });
 }
@@ -337,7 +337,7 @@ const BEATS = [
   ground(p, Y1);
   const gf = golfer(p, { x: 380, s: 3.2 }), bx = gf.ballX + 18, by = gf.ballY, ball = golfBall(p, 13);
   const rings = G(p, { x: gf.ballX + 6, y: by, o: 0 });
-  [50, 90, 130].forEach((r, i) => path(rings, `M${-r * .94} ${-r * .34}A${r} ${r} 0 0 1 ${r * .94} ${-r * .34}`, { stroke: SOUND, 'stroke-width': 5, fill: 'none', 'stroke-linecap': 'round', opacity: 1 - i * .28 }));
+  [50, 90, 130].forEach((r, i) => path(rings, `M${-r * .94} ${-r * .34}A${r} ${r} 0 0 1 ${r * .94} ${-r * .34}`, { stroke: SOUND, 'stroke-width': 5, fill: 'none', 'stroke-linecap': 'round' }));
   const blk = eBlocks(p, 6, CHEM, { o: 0 }), body = [380, Y1 - 230];
   const tag = txt(p, 'slow motion', 200, 150, .3, { size: 32, fill: COL.dim }); hide(tag, F0);
   const tag2 = txt(p, 'paused', 200, 150, F0, { size: 32, fill: COL.dim }); hide(tag2, F1);

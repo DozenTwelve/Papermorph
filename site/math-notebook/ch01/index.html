@@ -232,7 +232,7 @@ const BEATS = [
   }],
   ['place', 'Rational numbers on the line', (m) => {
     const p = panel(0);
-    const all = path(p, `M${X(-4.7)} ${Y0}H${X(4.7)}`, { stroke: COL.real, 'stroke-width': 9, opacity: .55 }, { d: 0 });   // under the dots
+    const all = path(p, `M${X(-4.7)} ${Y0}H${X(4.7)}`, { stroke: COL.real, 'stroke-width': 9 }, { d: 0 });   // under the dots
     const sub = G(p, { o: 0 });   // quarter steps: room between the integers
     for (let v = -4; v < 4; v += .25) if (v % 1) path(sub, `M${X(v)} ${Y0 - 6}V${Y0 + 6}`, { stroke: COL.faint, 'stroke-width': 2 });
     show(sub, m('f1'), .6);

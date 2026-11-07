@@ -30,7 +30,7 @@ const text = (p, str, x, y, t0, { size = 30, fill = COL.chalk, anchor = 'start',
 const pnCol = v => v > 0 ? POS : v < 0 ? NEG : COL.chalk;
 // One side of the number line tinted in its sign colour, kept under the ticks (lives in S.line).
 function pnBand(v0, v1, col, t0) {
-  const b = path(S.line, `M${X(v0)} ${Y0}H${X(v1)}`, { stroke: col, 'stroke-width': 12, opacity: .45, 'stroke-linecap': 'butt' }, { d: 0 });
+  const b = path(S.line, `M${X(v0)} ${Y0}H${X(v1)}`, { stroke: col, 'stroke-width': 12, 'stroke-linecap': 'butt' }, { d: 0 });
   S.line.insertBefore(b, S.line.firstChild);
   draw(b, t0, 1.1);
   return b;
@@ -49,7 +49,7 @@ function pnHops(p, n, dir, t0, col, step = .28) {
 // Pass g to move an existing dot (from landDot or an earlier flip); returns the dot.
 function pnFlip(p, a, b, t0, { peak = 420, dur = 1.5, g } = {}) {
   const x1 = X(a), x2 = X(b), cx = (x1 + x2) / 2, cy = 2 * peak - Y0;
-  draw(path(p, `M${x1} ${Y0}Q${cx} ${cy} ${x2} ${Y0}`, { stroke: COL.task, 'stroke-width': 3, opacity: .85 }, { d: 0 }), t0, dur, io);
+  draw(path(p, `M${x1} ${Y0}Q${cx} ${cy} ${x2} ${Y0}`, { stroke: COL.task, 'stroke-width': 3 }, { d: 0 }), t0, dur, io);
   if (!g) {
     g = G(p, { x: x1, y: Y0, o: 0 });
     mk('circle', { r: 12, fill: pnCol(a), stroke: COL.board, 'stroke-width': 2 }, g);
@@ -255,7 +255,7 @@ const BEATS = [
     show(sub, m('sub'));
     const ds = G(p, { x: 1150, y: Yf(-30), s: 0, o: 0 }); mk('circle', { r: 10, fill: NEG }, ds); pop(ds, m('sub', .4));
     text(p, '−30 ft', 1356, Yf(-30) + 10, m('sub', .8), { size: 32, fill: NEG, weight: 600 });
-    draw(path(p, `M480 ${Z}H1050`, { stroke: COL.chalk, 'stroke-width': 2, opacity: .5 }, { d: 0 }), m('rule'), .8);
+    draw(path(p, `M480 ${Z}H1050`, { stroke: COL.chalk, 'stroke-width': 2 }, { d: 0 }), m('rule'), .8);
     pnArrow(p, 720, Z - 30, 720, 250, POS, m('rule', .4));
     text(p, 'above 0:', 750, 330, m('rule', .8), { size: 28, fill: COL.dim });
     text(p, 'positive', 750, 372, m('rule', .8), { size: 38, fill: POS, weight: 700 });

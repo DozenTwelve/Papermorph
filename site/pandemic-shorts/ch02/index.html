@@ -36,7 +36,7 @@ if (!document.getElementById('ep2hatch')) {
 }
 // an area on the map, re-projected each frame from M's view: ink hatching and an ink border, shown at t0
 function zone(g, M, rings, D, t0, { fill = 'url(#ep2hatch)', stroke = MAPINK, sw = 3 } = {}) {
-  const e = mk('path', { fill, stroke, 'stroke-width': sw, 'stroke-linejoin': 'round', opacity: 0 }, g);
+  const e = put(mk('path', { fill, stroke, 'stroke-width': sw, 'stroke-linejoin': 'round' }, g), { o: 0 });
   clockRun(t => e.setAttribute('d', rings.map(r => 'M' + r.map(ll => M.xy(ll, t)).filter(Boolean).map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('L') + 'Z').join('')), D, { tail: true });
   show(e, t0, .35, lin);
   return e;
@@ -241,7 +241,7 @@ const BEATS = [
     bar(s, 170, base, 220, hC, 1, '#8e2a20', sn + .15, .5);   // China's deaths, a darker red
     const it = rect(s, 470, base, 220, 0, { fill: RED });
     prog(q => { const h = hC * (.82 * q + .2 * smooth(ramp01(q, .7, 1))); it.setAttribute('y', base - h); it.setAttribute('height', h); }, sn + .4, mo + .4 - sn, lin);
-    const dash = mk('path', { d: `M130 ${base - hC}H730`, stroke: LIGHT, 'stroke-width': 3, 'stroke-dasharray': '10 8', opacity: 0 }, s);
+    const dash = put(mk('path', { d: `M130 ${base - hC}H730`, stroke: LIGHT, 'stroke-width': 3, 'stroke-dasharray': '10 8' }, s), { o: 0 });
     show(dash, mo - .2, .2);
     T(s, 'CHINA', { x: 280, y: base + 70, size: 54, fill: MUTED, font: SANS, weight: 600, anchor: 'middle' });
     T(s, 'ITALY', { x: 580, y: base + 70, size: 54, fill: LIGHT, font: SANS, weight: 600, anchor: 'middle' });
@@ -352,7 +352,7 @@ const BEATS = [
     paperMap(out_, D, t => ({ lon: 60 - 6 * t, lat: 35, H: .8 }), { lit: c => c === 'CHN' ? .5 : 0, on: [0, 1.5] });
     rect(s, dx - 22, dy - 22, dw + 44, dh + 22, { fill: 'none', stroke: '#5a4636', 'stroke-width': 22 });
     const door = rect(s, dx, dy, 0, dh, { fill: '#3a2c22', stroke: '#241a13', 'stroke-width': 4 });
-    const knob = mk('circle', { cx: dx + dw - 40, cy: dy + dh / 2, r: 12, fill: MARK, opacity: 0 }, s);
+    const knob = put(mk('circle', { cx: dx + dw - 40, cy: dy + dh / 2, r: 12, fill: MARK }, s), { o: 0 });
     prog(q => door.setAttribute('width', dw * q), .3, 1.9, io);   // slow: still shutting while the red spreads
     show(knob, 2.2, .1, lin);
     sfx('end', 2.15, 'door', 1.2);

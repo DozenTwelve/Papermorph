@@ -82,7 +82,7 @@ function mapXY(geo, [lon, lat]) {
 
 // §4: every country of the world map as a hatched shape, hidden ([element, [d, first strict day, weekly bits]])
 function worldHatch(M, pat = 'hatchW') {
-  return Object.entries(GEO_W.countries).filter(([, c]) => c[2]).map(([, c]) => [mk('path', { d: c[0], fill: `url(#${pat})`, stroke: RED, 'data-sw': 1, opacity: 0 }, M.marks), c]);
+  return Object.entries(GEO_W.countries).filter(([, c]) => c[2]).map(([, c]) => [put(mk('path', { d: c[0], fill: `url(#${pat})`, stroke: RED, 'data-sw': 1 }, M.marks), { o: 0 }), c]);
 }
 const dateFmt = () => d => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).toUpperCase();
 
@@ -147,7 +147,7 @@ function wavesStage(p, D, keys) {
     },
     peak(date, which, text, ta) {
       const S = strips[which === 'c' ? 0 : 1], i = iOf(date), x = X(i), y = S.Y(WAVES[i][S.col]);
-      mk('circle', { cx: x, cy: y, r: 7, fill: S.fill, opacity: 0 }, g); tw(g.lastChild, { o: 1 }, ta, .2);
+      put(mk('circle', { cx: x, cy: y, r: 7, fill: S.fill }, g), { o: 0 }); tw(g.lastChild, { o: 1 }, ta, .2);
       const r = x > 1000;   // near the right edge the label reads leftwards
       chipLabel(g, text, x + (r ? -40 : 40), y - 30, ta, { tx: x + (r ? -5 : 5), ty: y - 5, fill: S.fill, size: 22, anchor: r ? 'end' : 'start' });
     },
@@ -163,7 +163,7 @@ function wavesStage(p, D, keys) {
 
 // §6: n dots for 100,000 people each, 32 to a row from y0, hidden
 function dotGrid(p, n, y0) {
-  return [...Array(n)].map((_, i) => mk('circle', { cx: 335 + (i % 32) * 30, cy: y0 + Math.floor(i / 32) * 30, r: 10, fill: 'none', stroke: SOFT, 'stroke-width': 2, opacity: 0 }, p));
+  return [...Array(n)].map((_, i) => put(mk('circle', { cx: 335 + (i % 32) * 30, cy: y0 + Math.floor(i / 32) * 30, r: 10, fill: 'none', stroke: SOFT, 'stroke-width': 2 }, p), { o: 0 }));
 }
 
 // the origin: the paper map close over Wuhan, the Huanan market (north) and the Wuhan Institute of Virology (south),
@@ -190,8 +190,8 @@ function originStage(p, D, tQ, tIn) {
     // one answer: its card on the beat of its name, its place lit, a detail, then who leans to it (-1: shown at once)
     side(k, tName, tPlace, tDetail, tWho) {
       const S = SIDES[k], y0 = 310, on = t => t < 0 ? 0 : t;
-      const pin = mk('circle', { cx: S.at[0], cy: S.at[1], r: .4, fill: MAPINK, opacity: 0 }, M.marks);
-      const ring = mk('circle', { cx: S.at[0], cy: S.at[1], r: 1.2, fill: 'none', stroke: MAPINK, 'data-sw': 3, opacity: 0 }, M.marks);
+      const pin = put(mk('circle', { cx: S.at[0], cy: S.at[1], r: .4, fill: MAPINK }, M.marks), { o: 0 });
+      const ring = put(mk('circle', { cx: S.at[0], cy: S.at[1], r: 1.2, fill: 'none', stroke: MAPINK, 'data-sw': 3 }, M.marks), { o: 0 });
       [pin, ring].forEach(e => tw(e, { o: 1 }, on(tPlace), tPlace < 0 ? .01 : .3));
       labels.push(trackLabel(p, cam, S.place, S.at, on(tPlace), D, { size: 22, dy: 44, spacing: '.12em' }));
       const c = G(p, { o: 0 }); cards.push(c);
@@ -463,7 +463,7 @@ const BEATS = [
     const dt = dateTag(p, '31 December 2019', m('d1') - .2, { fill: MAPINK }), dtx = dt.lastChild;
     const day0 = Date.parse('2019-12-31'), day1 = Date.parse('2020-01-20');
     prog(q => { dtx.textContent = new Date(day0 + Math.round(q * 20) * 864e5).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase(); }, m('d1'), D - m('d1') - .2, lin);
-    const band = mk('rect', { x: 0, y: 790, width: SW, height: 100, fill: '#0b0d11', opacity: 0 }, p); tw(band, { o: .85 }, m('week') - .2, .3);
+    const band = put(mk('rect', { x: 0, y: 790, width: SW, height: 100, fill: '#0b0d11' }, p), { o: 0 }); tw(band, { o: .85 }, m('week') - .2, .3);
     key(p, 'Cases double every 7½ days', 800, 860, m('week') - .05, { size: 60, fill: CREAM });
     whipOut(p, D, 1, 'y');
   }],
@@ -710,12 +710,12 @@ const BEATS = [
     hide(cl, m('region') - .4, .3);
     const R = rng(21);
     for (let i = 0; i < 14; i++) {
-      const d = mk('circle', { cx: (R() - .45) * 2.6, cy: (R() - .5) * 2, r: .1, fill: RED, opacity: 0 }, M.marks), t0 = m('codogno') + .35 + i * .06;
+      const d = put(mk('circle', { cx: (R() - .45) * 2.6, cy: (R() - .5) * 2, r: .1, fill: RED }, M.marks), { o: 0 }), t0 = m('codogno') + .35 + i * .06;
       tw(d, { o: 1 }, t0, .1, lin);
     }
     // the red zone: ten towns around Codogno and Vo' in Veneto
     const vo = mapXY(GEO_IT, [11.6406, 45.3281]);
-    const zone = [[.3, .1, 3.2], [vo[0], vo[1], 1]].map(([x, y, r]) => mk('circle', { cx: x, cy: y, r, fill: 'url(#hatchS)', stroke: RED, 'data-sw': 3, opacity: 0 }, M.marks));
+    const zone = [[.3, .1, 3.2], [vo[0], vo[1], 1]].map(([x, y, r]) => put(mk('circle', { cx: x, cy: y, r, fill: 'url(#hatchS)', stroke: RED, 'data-sw': 3 }, M.marks), { o: 0 }));
     zone.forEach((z, i) => tw(z, { o: 1 }, m('eleven') + i * .3, .3));
     const zc = chipLabel(p, 'Eleven towns sealed off: 50,000 people', 800, 830, m('eleven') + .2, { anchor: 'middle', size: 30, fill: MAPINK, line: RED });
     hide(zc, m('region') - .4, .3);
@@ -723,7 +723,7 @@ const BEATS = [
     hide(vl, m('country') - .5, .3);
     tw(lombH, { o: 1 }, m('region') + .1, .4);
     // the whole country, on "the whole country"
-    const itH = mk('path', { d: GEO_IT.countries.ITA ? GEO_IT.countries.ITA : '', fill: 'url(#hatchL)', stroke: 'none', opacity: 0 }, M.marks);
+    const itH = put(mk('path', { d: GEO_IT.countries.ITA ? GEO_IT.countries.ITA : '', fill: 'url(#hatchL)', stroke: 'none' }, M.marks), { o: 0 });
     tw(itH, { o: 1 }, m('country'), .35);
     tw(lombH, { o: 0 }, m('country') + .2, .3);
     cam.shake(5, m('country'), .4);
@@ -800,12 +800,12 @@ const BEATS = [
     const R = rng(31), N = 120;
     for (let i = 0; i < N; i++) {
       const a = R() * 2 * Math.PI, r = 4.2 * Math.sqrt(R());
-      const d = mk('circle', { cx: bg[0] + r * Math.cos(a), cy: bg[1] + r * Math.sin(a) * .8, r: .16, fill: MAPINK, opacity: 0 }, M.marks);
+      const d = put(mk('circle', { cx: bg[0] + r * Math.cos(a), cy: bg[1] + r * Math.sin(a) * .8, r: .16, fill: MAPINK }, M.marks), { o: 0 });
       tw(d, { o: .85 }, .5 + 3.3 * Math.sqrt(i / N), .08, lin);
     }
     // "the army comes": trucks leave in a column, one road to each city
     const tr = DEST.map(([x, y], k) => {
-      const road = mk('path', { d: `M${bg[0]} ${bg[1]}L${x} ${y}`, fill: 'none', stroke: MAPINK, 'data-sw': 1.6, 'data-dash': '6 5', opacity: 0 }, M.marks);
+      const road = put(mk('path', { d: `M${bg[0]} ${bg[1]}L${x} ${y}`, fill: 'none', stroke: MAPINK, 'data-sw': 1.6, 'data-dash': '6 5' }, M.marks), { o: 0 });
       tw(road, { o: .55 }, m('army') + .2 + k * .2, .4);
       mk('circle', { cx: x, cy: y, r: .6, fill: MAPINK }, M.marks);
       return [...Array(4)].map(() => {

@@ -78,7 +78,7 @@ function iceCube(p, sz = 120, o = {}) {
   const g = G(p, o);
   mk('rect', { x: -sz / 2, y: -sz, width: sz, height: sz, rx: sz * .16, fill: '#cfe8f5', opacity: .93, ...phLine(2.5) }, g);
   mk('rect', { x: -sz * .34, y: -sz * .84, width: sz * .3, height: sz * .12, rx: 4, fill: '#fff', opacity: .8 }, g);
-  path(g, `M${sz * .16} ${-sz * .3}l${sz * .16} ${-sz * .16}`, { stroke: '#fff', 'stroke-width': 4, opacity: .7 });
+  path(g, `M${sz * .16} ${-sz * .3}l${sz * .16} ${-sz * .16}`, { stroke: '#fff', 'stroke-width': 4 });
   return g;
 }
 function table(p, x0, x1, top, legTo = Y1) {
@@ -113,7 +113,7 @@ function heater(p, x, o = {}) {   // a radiator standing on the floor at x, 180 
 function brick(p, x, y) { phBlock(p, x - 60, y - 40, 120, 40, '#b5523b', { top: 5, right: 6 }); }
 function stars(p, n = 120) {
   let d = ''; for (let i = 0; i < n; i++) { const x = phHash(i, 1) * 1600, y = phHash(i, 2) * 900, r = .8 + 1.6 * phHash(i, 3); d += `M${(x - r).toFixed(1)} ${y.toFixed(1)}a${r} ${r} 0 1 0 ${2 * r} 0a${r} ${r} 0 1 0 ${-2 * r} 0`; }
-  return path(p, d, { fill: '#dfe6ff', opacity: .8 });
+  return path(p, d, { fill: '#dfe6ff' });
 }
 // A ceiling fan hanging at (x, y): f.spin(angle) turns its two blade pairs (seen from the side).
 function ceilingFan(p, x, y) {

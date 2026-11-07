@@ -98,7 +98,7 @@ const POSE = {
 function ball(p, x, y, r = 24, fill = '#ff6f8f') {
   const g = G(p, { x, y });
   circ(g, 0, 0, r, fill, 4);
-  ink(g, `M${-r * .55} ${-r * .3}Q${-r * .35} ${-r * .62} ${-r * .05} ${-r * .66}`, 3.5, { stroke: '#fff', opacity: .7 });
+  ink(g, `M${-r * .55} ${-r * .3}Q${-r * .35} ${-r * .62} ${-r * .05} ${-r * .66}`, 3.5, { stroke: '#fff' });
   return g;
 }
 function tennisBall(p, x, y, r = 22) {
@@ -281,7 +281,7 @@ const star = (p, x, y, s = 1) => {
   return g;
 };
 const flash = (g, t0, hold = .35) => { tw(g, { s: g._s, o: 1 }, t0, .15, out); tw(g, { o: 0, s: g._s * 1.3 }, t0 + hold, .3); };
-const stripedBall = (p, x, y, r, fill) => { const g = ball(p, x, y, r, fill); ink(g, `M${-r} 0H${r}`, 3, { stroke: '#fff', opacity: .8 }); return g; };
+const stripedBall = (p, x, y, r, fill) => { const g = ball(p, x, y, r, fill); ink(g, `M${-r} 0H${r}`, 3, { stroke: '#fff' }); return g; };
 
 /* ---------- beats: [id, title, run(m, D), { ask }?] ---------- */
 const BEATS = [
@@ -359,7 +359,7 @@ const BEATS = [
       { key: 'sound', label: 'sound', color: EN.sound }, { key: 'heat', label: 'heat', color: EN.thermal }] });
     E.set([1, 0, 0, 0]);
     show(E.g, .2);
-    const mark = (i, c, t) => swipe(under, 254 + i * 114, 728, 86, { h: 34, color: c, t0: t, o: .6 });
+    const mark = (i, c, t) => swipe(under, 254 + i * 114, 728, 86, { h: 34, color: c, t0: t });
     mark(0, HL.pink, m('club'));
     E.to([.12, .76, .04, .08], m('after'), 1.2);
     mark(1, HL.pink, m('after', .3));
@@ -453,7 +453,7 @@ const BEATS = [
     const slow = G(p, { o: 0 });
     term(slow, 'slow motion replay', 470, 470, { size: 30, font: HAND, color: HL.lilac, t0: reset });
     show(slow, reset, .2); hide(slow, m('land', .8));
-    swipe(under, 1374, 726, 102, { h: 34, color: HL.yellow, t0: m('sum'), o: .7 });
+    swipe(under, 1374, 726, 102, { h: 34, color: HL.yellow, t0: m('sum') });
     defCard(p, 1200, 160, 600, 130, [['Mechanical energy', 32, 'head'], ['position or motion', 30]], { color: HL.green, t0: m('mech') });
   }],
   ['hill', 'Up the hill and back', (m, D) => {

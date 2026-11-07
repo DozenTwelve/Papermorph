@@ -360,7 +360,7 @@ const BEATS = [
     const tiles = seriesCard(s, end, 4, end + .6);
     [[250, 640], [650, 640], [250, 1040]].forEach(([x, y], i) => {
       tw(tiles[i], { o: 1 }, end + 1.0 + i * .1, .15, lin);
-      show(rect(s, x - 178, y - 178, 356, 356, { rx: 24, fill: 'none', stroke: RED, 'stroke-width': 10, opacity: 0 }), end + 1.0 + i * .1, .15, lin);
+      show(put(rect(s, x - 178, y - 178, 356, 356, { rx: 24, fill: 'none', stroke: RED, 'stroke-width': 10 }), { o: 0 }), end + 1.0 + i * .1, .15, lin);
     });
     label(s, 'The end · 4 of 4', CX, 1285, end + 1.3, { size: 56, fill: RED, colour: DARK });
     prog(() => {}, D, end + 2.3 - D, lin);   // the voice ends at 10.42 s: the card holds about 2.3 s after it

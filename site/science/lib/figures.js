@@ -139,7 +139,7 @@ function phRoad(cam, { trees = [300, 1100, 1900], lamps = [1500], hills = true, 
   rep(lamps).forEach(x => phSprite(scenery, 'lamp', { x, y: ROAD.side }));
   const side = G(cam.world), surface = cam.layer(1, W);
   mk('rect', { x: x0, y: ROAD.top, width: x1 - x0, height: ROAD.bot - ROAD.top, fill: PH.road }, surface);
-  path(surface, `M${x0} ${ROAD.top + 12}H${x1}M${x0} ${ROAD.bot - 8}H${x1}`, { stroke: PH.line, 'stroke-width': 4, opacity: .65 });
+  path(surface, `M${x0} ${ROAD.top + 12}H${x1}M${x0} ${ROAD.bot - 8}H${x1}`, { stroke: PH.line, 'stroke-width': 4 });
   path(surface, rep(Array.from({ length: 15 }, (_, i) => i * 160)).map(x => `M${x} ${ROAD.mid - 4}h72v8h-72Z`).join(''), { fill: PH.line });
   phBlock(surface, x0, ROAD.bot, x1 - x0, 700, PH.grass, { top: 8, ol: 0 });
   path(surface, rep(Array.from({ length: 10 }, (_, i) => i * 240)).map(x => {

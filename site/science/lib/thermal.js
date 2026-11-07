@@ -39,7 +39,7 @@ function thermoTube(p, { len = 400, w = 30, bulb = 30, o = 1, x = 0, y = 0, s = 
 // f.pos[i] is molecule i's last position; f.dots and f.trails are the two paths (recolour them freely).
 function molField(p, { x, y, w, h, n = 16, r = 9, color = HEAT, trail = KIN, seed = 1, lattice = false, cols = 6, trailK = .09 } = {}) {
   const g = G(p), rnd = i => { const v = Math.sin((i + 1) * 91.7 + seed * 47.3) * 43758.5453; return v - Math.floor(v); };
-  const trails = path(g, '', { stroke: trail, 'stroke-width': 4, fill: 'none', 'stroke-linecap': 'round', opacity: .75 });
+  const trails = path(g, '', { stroke: trail, 'stroke-width': 4, fill: 'none', 'stroke-linecap': 'round' });
   const dots = path(g, '', { fill: color, ...phLine(2) });
   const tri = z => { const m = ((z % 2) + 2) % 2; return m < 1 ? m : 2 - m; };
   const M = Array.from({ length: n }, (_, i) => {

@@ -57,7 +57,7 @@ function augEl(rows, n, { size = 24 } = {}) {
   const svg = mk('svg', { class: 'm', viewBox: `0 0 ${w} ${hh}`, width: w, height: hh });
   svg.style.verticalAlign = 'middle';
   path(svg, `M12 2H3V${hh - 2}H12M${w - 12} 2H${w - 3}V${hh - 2}H${w - 12}`, { stroke: 'currentColor', 'stroke-width': 2.5 });
-  if (m > n) path(svg, `M${8 + cw * n + gap / 2} 4V${hh - 4}`, { stroke: 'currentColor', 'stroke-width': 1.5, 'stroke-dasharray': '4 4', opacity: .6 });
+  if (m > n) path(svg, `M${8 + cw * n + gap / 2} 4V${hh - 4}`, { stroke: 'currentColor', 'stroke-width': 1.5, 'stroke-dasharray': '4 4' });
   rows.forEach((r, i) => r.forEach((v, j) => T(svg, fracTxt(v), { x: 8 + cw * (j + .5) + (j >= n ? gap : 0), y: rh * (i + .5) + size * .5, size: size * (String(fracTxt(v)).length > 3 ? .8 : 1), fill: j >= n ? COL.task : 'currentColor', font: MATH, anchor: 'middle' })));
   return svg;
 }

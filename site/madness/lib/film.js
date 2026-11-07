@@ -1,5 +1,5 @@
 /* film.js — the documentary kit: found pictures, line drawings, words and maps on the engine's beat clock.
-   This is the book's own copy: set its look here (fonts in lib/fonts.css, colours below) and add the film's recurring
+   This is the book's own copy: its look is set in lib/book.css (colours) and lib/fonts.css; add the film's recurring
    pieces at the end. Every helper is a pure function of the beat clock, so pause, seek, ?beat=N&t=S and export.py agree.
    Pictures are img/<name>.webp with their sizes in ART (img/art.js, from prep.py); traced drawings are LINES (lib/lines.js,
    from trace.py); clips are FRAMES (img/frames.js, from frames.py). The fonts must be loaded before boot(): words are
@@ -7,11 +7,22 @@
 'use strict';
 /* ---------- the look ---------- */
 const KEY = '"Oswald", "Arial Narrow", sans-serif', SER = '"EB Garamond", Georgia, serif';   // titles and key words; quotes and captions
-const CREAM = '#f3ede0', HOT = '#f08a4b', SOFT = '#d9b9b0', INK = '#3a2a24';   // ink on the ground, the accent, captions, ink on paper
+// colours from lib/book.css (read by the engine into COL, or with bookSetting): ink on the ground, the accent, captions,
+// a document's paper, ink on paper, a document's heading
+const CREAM = COL.chalk, SOFT = COL.dim, HOT = bookSetting('--accent') || '#f08a4b', PAPER = bookSetting('--paper') || CREAM,
+  INK = bookSetting('--paper-ink') || '#3a2a24', STAMP = bookSetting('--stamp') || '#7a1a20';
 
+// a picture's [width, height] from ART (img/art.js, from prep.py). A name ART lacks (a picture added or resized by hand)
+// warns once, by name, and stands in at 16:9, so its beat still draws and check.py lists the warning
+const ART_MISSED = new Set();
+function artSize(name) {
+  if (typeof ART !== 'undefined' && ART[name]) return ART[name];   // looked up when a beat builds: art.js may load after the kit
+  if (!ART_MISSED.has(name)) { ART_MISSED.add(name); console.warn(`no '${name}' in ART (img/art.js): prep.py writes each picture's size there; one made by hand needs its [width, height]`); }
+  return [1600, 900];
+}
 // a picture from img/: centred on (x, y), h or w in stage px; `at` makes it enter (from offset dx, dy) at that time
 function pic(p, name, { x = 800, y = 450, h = 600, w, r = 0, s = 1, at, from = [0, 40], dur = .9, o = 1, back = false } = {}) {
-  const sz = ART[name];
+  const sz = artSize(name);
   const g = G(p, at === undefined ? { x, y, r, s, o } : { x: x + from[0], y: y + from[1], r, s, o: 0 });
   const k = w ? w / sz[0] : h / sz[1], W = sz[0] * k, H = sz[1] * k;
   if (back) mk('rect', { x: -W / 2 + 4, y: -H / 2 + 4, width: W - 8, height: H - 8, fill: COL.board }, g);   // a solid line drawing (a door)
@@ -57,18 +68,19 @@ function strike(p, e, x, y, t0, size, anchor = 'middle') {
   const x0 = anchor === 'middle' ? x - e._w / 2 : anchor === 'end' ? x - e._w : x;
   return line(p, `M${x0 - 16} ${y - size * .32}H${x0 + e._w + 16}`, t0, .4, Math.max(5, size / 12), { stroke: HOT });
 }
-// serif lines typed word by word between t0 and t1
+// serif lines typed word by word between t0 and t1 (Chinese, Japanese and Korean characters one by one)
+const CJK = /[⺀-鿿가-힯豈-﫿＀-￯]|[^⺀-鿿가-힯豈-﫿＀-￯]+/g;
 function say(p, lines, x, y, t0, t1, { size = 44, fill = CREAM, italic = true, anchor = 'start', lh = 1.3, weight = 400 } = {}) {
   const g = G(p, {}), style = italic ? 'italic' : '', words = [];
   const sp = wid(' ', size, SER, style, weight);
   lines.forEach((ln, i) => {
-    const ws = ln.split(' '), W = wid(ln, size, SER, style, weight);
+    const W = wid(ln, size, SER, style, weight);
     let cx = anchor === 'middle' ? x - W / 2 : anchor === 'end' ? x - W : x;
-    ws.forEach(w => {
+    ln.split(' ').forEach(word => (word.match(CJK) || ['']).forEach((w, j, ws) => {
       const e = T(g, w, { x: cx, y: y + i * size * lh, size, fill, font: SER, weight, o: 0 });
       if (italic) e.setAttribute('font-style', 'italic');
-      words.push(e); cx += wid(w, size, SER, style, weight) + sp;
-    });
+      words.push(e); cx += wid(w, size, SER, style, weight) + (j === ws.length - 1 ? sp : 0);
+    }));
   });
   const chars = words.map(e => e.textContent.length + 1), all = chars.reduce((a, b) => a + b, 0);
   let acc = 0;
@@ -87,7 +99,7 @@ function dateChip(p, year, topic, t0 = .2) {
   const g = G(p, { x: 80, y: 112, o: 0 });
   T(g, year, { size: 72, font: SER, weight: 400, fill: HOT }).setAttribute('font-style', 'italic');
   const tw_ = wid(topic.toUpperCase(), 26, SER) * 1.3 + 8;   // letter-spacing .28em widens the caps by about 30 %
-  const rule = path(g, `M3 22H${Math.max(220, tw_)}`, { stroke: CREAM, 'stroke-width': 1.4, opacity: .7 }, { d: 0 });
+  const rule = path(g, `M3 22H${Math.max(220, tw_)}`, { stroke: CREAM, 'stroke-width': 1.4 }, { d: 0 });
   T(g, topic.toUpperCase(), { x: 3, y: 58, size: 26, font: SER, weight: 400, fill: CREAM }).setAttribute('letter-spacing', '.28em');
   tw(g, { o: 1 }, t0, .6); draw(rule, t0 + .2, .6);
   return g;
@@ -97,16 +109,15 @@ const line = (p, d, t0, dur = .8, w = 3, extra = {}) => { const e = path(p, d, {
 // wavy water lines that flow forever (pure function of the beat clock); amp may be a function of t
 function water(p, y0, D, { rows = 3, amp = 8, len = 1700, x0 = -50, gap = 26, o = .75 } = {}) {
   const g = G(p, { o: 0 }); tw(g, { o }, 0, .6);
-  const ps = [...Array(rows)].map((_, i) => path(g, '', { stroke: CREAM, 'stroke-width': 2.2, opacity: 1 - i * .25 }));
+  const ps = [...Array(rows)].map((_, i) => path(g, '', { stroke: CREAM, 'stroke-width': 2.2 }));
   clockRun(t => { const a = typeof amp === 'function' ? amp(t) : amp; ps.forEach((e, i) => {
     let d = ''; for (let x = 0; x <= len; x += 20) d += `${x ? 'L' : 'M'}${x0 + x} ${(y0 + i * gap * (a / 8) ** .5 + a * Math.sin(x / 70 + t * 1.6 + i)).toFixed(1)}`;
     e.setAttribute('d', d);
   }); }, D, { tail: true });
-  prog(() => {}, 0, D);   // the beat lasts at least D (a tail's own D no longer lengthens it, engine v2.6)
   return g;
 }
 // something that bobs on the water (a boat); x may follow a function of t
-const bob = (g, D, a = 6, xf) => { clockRun(t => put(g, { y: g._y + a * Math.sin(t * 1.6), r: 1.5 * Math.sin(t * 1.1), ...(xf ? { x: xf(t) } : {}) }), D, { tail: true }); prog(() => {}, 0, D); };
+const bob = (g, D, a = 6, xf) => clockRun(t => put(g, { y: g._y + a * Math.sin(t * 1.6), r: 1.5 * Math.sin(t * 1.1), ...(xf ? { x: xf(t) } : {}) }), D, { tail: true });
 const span01 = (t, a, b) => Math.min(1, Math.max(0, (t - a) / (b - a)));
 const smooth01 = q => q * q * (3 - 2 * q);
 // a speech balloon, cream outline, its tail to (tx, ty)
@@ -124,7 +135,7 @@ function dots(p, n, box, r, seed, fill = CREAM) {
 // close-ups inside a print as their words are spoken: shots [[mark, fx, fy, label, zoom]], fx/fy the point in the picture
 // (0..1 of the picture inside its border); the view never leaves the picture; a band names each one; back to the whole after
 function closeups(p, g, name, shots, m, tBack, home) {
-  const [W, H] = ART[name], k = g._w / W, iw = (W - 112) * k, ih = (H - 112) * k;   // a print's picture sits 56 px in
+  const [W, H] = artSize(name), k = g._w / W, iw = (W - 112) * k, ih = (H - 112) * k;   // a print's picture sits 56 px in
   const clamp = (v, lim) => Math.max(-lim, Math.min(lim, v));
   shots.forEach(([mark, fx, fy, label, Z = 3], i) => {
     const dx = clamp((fx - .5) * iw, iw / 2 - 800 / Z), dy = clamp((fy - .5) * ih, ih / 2 - 450 / Z), t0 = m(mark) - .15;
@@ -152,15 +163,15 @@ function anim(p, name, { x = 800, y = 450, size = 600, at = 0, t0 = at, D, o = 1
   tw(g, { o }, at, .8);
   return g;
 }
-// an old document: cream paper, lines of ink, a label
+// an old document: paper, lines of ink, a label
 function doc(p, label, x, y, r, t0, seed) {
   const R = rng(seed), g = G(p, { x: x - 700, y, r, o: 0 });
-  mk('rect', { x: -150, y: -200, width: 300, height: 400, fill: CREAM, stroke: '#cdbfa6' }, g);
+  mk('rect', { x: -150, y: -200, width: 300, height: 400, fill: PAPER, stroke: '#cdbfa6' }, g);
   for (let i = 0; i < 13; i++) {
     const yy = -130 + i * 24, ww = 160 + R() * 70;
-    path(g, `M-118 ${yy}q${ww / 4} ${-3 + R() * 6} ${ww / 2} 0t${ww / 2} 0`, { stroke: INK, 'stroke-width': 2, opacity: .7 });
+    path(g, `M-118 ${yy}q${ww / 4} ${-3 + R() * 6} ${ww / 2} 0t${ww / 2} 0`, { stroke: INK, 'stroke-width': 2 });
   }
-  T(g, label.toUpperCase(), { y: -160, size: 22, font: KEY, weight: 600, fill: '#7a1a20', anchor: 'middle' }).setAttribute('letter-spacing', '.06em');
+  T(g, label.toUpperCase(), { y: -160, size: 22, font: KEY, weight: 600, fill: STAMP, anchor: 'middle' }).setAttribute('letter-spacing', '.06em');
   tw(g, { x, o: 1 }, t0, .8, out);
   g._x = x; g._y = y;
   return g;

@@ -93,7 +93,7 @@ const BEATS = [
     const p = panel(0);
     const top = tag(p, 'Pascal', 800, 115, 0, { anchor: 'middle', size: 34, fill: SOFT });
     const bot = tag(p, 'Dostoevsky', 800, 835, 0, { anchor: 'middle', size: 34, fill: SOFT });
-    const r1 = line(p, 'M300 140H1300', .4, .9, 2, { opacity: .6 }), r2 = line(p, 'M300 790H1300', .6, .9, 2, { opacity: .6 });
+    const r1 = line(p, 'M300 140H1300', .4, .9, 2), r2 = line(p, 'M300 790H1300', .6, .9, 2);
     const C = TIMINGS.thesis.cues;
     const mi = key(p, 'A history of mental illness', 800, 470, C[1][0] + .2, { size: 74 });
     const ms = strike(p, mi, 800, 470, C[1][0] + 2, 74);
@@ -103,7 +103,7 @@ const BEATS = [
     const l = line(p, 'M800 360V500', m('sane') + .6, .6, 3);
     [a, b, l, top, bot, r1, r2].forEach(e => hide(e, C[3][0] - .2, .6));
     // the timeline the fool will walk
-    line(p, 'M240 860H1360', C[3][0] + .2, 1.2, 2, { opacity: .6 });
+    line(p, 'M240 860H1360', C[3][0] + .2, 1.2, 2);
     [['1400', 240], ['1500', 470], ['1656', 760], ['1790', 1020], ['1889', 1360]].forEach(([y, x], i) =>
       tag(p, y, x, 840, C[3][0] + .4 + i * .2, { anchor: 'middle', size: 22 }));
     pic(p, 'fool', { x: 300, y: 560, h: 520, at: m('fool') - .4, from: [0, 30], dur: .8 });
@@ -159,6 +159,7 @@ const BEATS = [
     const p = panel(0);
     dateChip(p, '1494', 'The Ship of Fools');
     water(p, 690, D + 1);
+    prog(() => {}, 0, D + 1);   // the water runs a second past the voice: the kit's water() no longer holds the beat
     const b = pic(p, 'fool-boat', { x: 800, y: 560, h: 380, at: .1, from: [-1100, 0], dur: 2.6 });
     bob(b, D + 1);
     key(p, 'The Ship of Fools', 800, 300, m('ship'), { size: 110 });
@@ -200,6 +201,7 @@ const BEATS = [
     const p = panel(0);
     const C = TIMINGS.passage.cues;
     water(p, 650, D + 1);
+    prog(() => {}, 0, D + 1);   // the water runs a second past the voice: the kit's water() no longer holds the beat
     pic(p, 'town', { x: 160, y: 600, w: 700, at: .1, from: [-300, 0] });
     pic(p, 'town', { x: 1440, y: 600, w: 700, at: .1, from: [300, 0] });
     const b = pic(p, 'fool-boat', { x: 330, y: 560, h: 280, at: .3, from: [0, 0] });
@@ -219,6 +221,7 @@ const BEATS = [
   ['water', 'Water', (m, D) => {
     const p = panel(0);
     water(p, 640, D + 1, { rows: 5, gap: 30, amp: t => 10 + 18 * smooth01(span01(t, m('unknown') - .3, m('unknown') + 1.5)) });
+    prog(() => {}, 0, D + 1);   // the water runs a second past the voice: the kit's water() no longer holds the beat
     const b = pic(p, 'fool-boat', { x: 980, y: 520, h: 300 });
     bob(b, D + 1, 9, t => 980 + 900 * smooth01(span01(t, m('carry') - .2, m('carry') + 3)));
     key(p, 'Washes', 120, 260, m('wash'), { size: 84, anchor: 'start' });
@@ -243,6 +246,7 @@ const BEATS = [
     const C = TIMINGS.voice.cues;
     const SING = 5.9;   // the fool's own line after the narrator (ElevenLabs v4 'callum'; books/madness/voices/fool/sings-a)
     water(p, 700, D + SING + 1);
+    prog(() => {}, 0, D + SING + 1);   // the water runs a second past the voice: the kit's water() no longer holds the beat
     const b = pic(p, 'fool-boat', { x: 600, y: 580, h: 360 });
     bob(b, D + SING + 1, 5);
     key(p, 'Knowledge', 1180, 230, m('know'), { size: 90 });
@@ -265,6 +269,7 @@ const BEATS = [
     dateChip(p, '1656', 'The Great Confinement');
     line(p, 'M1000 900C1060 760 1160 690 1600 680', .1, 1);
     water(p, 720, D + 1, { len: 1150 });
+    prog(() => {}, 0, D + 1);   // the water runs a second past the voice: the kit's water() no longer holds the beat
     const b = pic(p, 'fool-boat', { x: 260, y: 600, h: 300 });
     tw(b, { x: 960 }, .2, m('ashore') + .2, io);
     tw(b, { r: -4 }, m('ashore') + .4, .25, out); tw(b, { r: 0 }, m('ashore') + .65, .5, io);
@@ -500,7 +505,7 @@ const BEATS = [
   ['anti', 'Antiphrasis', (m, D) => {
     const p = panel(0);
     const R = rng(3);
-    for (let x = 80; x < 1600; x += 110) line(p, `M${x} 0V900`, m('prison') + R() * .5, .8, 2, { 'stroke-dasharray': '4 14', opacity: .55 });
+    for (let x = 80; x < 1600; x += 110) line(p, `M${x} 0V900`, m('prison') + R() * .5, .8, 2, { 'stroke-dasharray': '4 14' });
     tag(p, 'antiphrasis: calling a thing by its opposite', 800, 200, .3, { anchor: 'middle', size: 40, fill: CREAM });
     key(p, 'Liberation', 800, 400, m('opp') - .2, { size: 150 });
     line(p, 'M340 345H1260', m('prison') - .1, .5, 10, { stroke: HOT });
@@ -585,7 +590,7 @@ const BEATS = [
     tag(p, 'Michel Foucault, 1961', tx, ty + 50, 1, { anchor: 'middle', size: 28 });
     // every fool of the film, one after another, in order of the centuries: outside reason's walls
     const fools = [['fool', '1494'], ['fool-1656', '1656'], ['fool-1735', '1735'], ['fool-1795', '1795'], ['fool-goya', '1819'], ['fool-vangogh', '1889']];
-    line(p, 'M80 760H1520', .3, 1.2, 2, { opacity: .5 });
+    line(p, 'M80 760H1520', .3, 1.2, 2);
     const H = 330, GAP = 28, ws = fools.map(([n]) => ART[n][0] * H / ART[n][1]);   // laid out by each picture's own width
     let x = 800 - (ws.reduce((s, w) => s + w, 0) + GAP * (ws.length - 1)) / 2;
     fools.forEach(([n, y], i) => {
