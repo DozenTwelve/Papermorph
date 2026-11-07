@@ -251,7 +251,7 @@ function spinner(p, cx, cy, r, t0, cols = SPIN) {
 }
 // Outline some spinner sections: a bright border that fades in.
 function outline(p, sp, ks, color, t0, run = tw) {
-  return ks.map(k => { const e = sp.secs[k].cloneNode(); e.setAttribute('fill', 'none'); e.setAttribute('stroke', color); e.setAttribute('stroke-width', 7); sp.g.insertBefore(e, sp.ptr); put(e, { o: 0 }); run(e, { o: 1 }, t0, .4); return e; });
+  return ks.map(k => { const e = sp.secs[k].cloneNode(); e.removeAttribute('opacity'); e.setAttribute('fill', 'none'); e.setAttribute('stroke', color); e.setAttribute('stroke-width', 7); sp.g.insertBefore(e, sp.ptr); put(e, { o: 0 }); run(e, { o: 1 }, t0, .4); return e; });
 }
 // A coin face.
 function coin(p, side, x, y, t0, r = 34, run = tw) {
