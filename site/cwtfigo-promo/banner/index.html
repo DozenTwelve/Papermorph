@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+<title>CWTFIGO banner</title>
+<link rel="stylesheet" href="../lib/book.css">
+<style>
+  html, body { margin: 0; }
+  svg#banner { display: block; width: 1280px; height: 640px; position: absolute; top: 0; left: 0; }
+  #frame { display: none; }   /* the engine builds its player frame on load; this page has no player */
+</style>
+</head>
+<body>
+<!-- The CWTFIGO repository banner and social preview (1280 × 640): the title in the end card's lettering, filling most
+     of the width, and Claude, the film's own puppet, leaning on its C, a mitten on the letter's top, his shoulder against
+     it. A flat ground: dark (default) or ?theme=light for GitHub's light mode. Rendered to PNG by a screenshot
+     (tools/cwtfigo-promo/banner.py). -->
+<svg id="banner" viewBox="0 0 1280 640" xmlns="http://www.w3.org/2000/svg">
+  <defs><filter id="bnSoft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="7"/></filter></defs>
+  <rect id="ground" width="1280" height="640"/>
+  <g id="shadows" filter="url(#bnSoft)"></g>
+  <g id="title"></g>
+  <g id="contact" filter="url(#bnSoft)"></g>
+  <g id="cast"></g>
+</svg>
+<script src="../lib/engine.js"></script>
+<script src="../lib/paper.js"></script>
+<script src="../lib/cast.js"></script>
+<script src="../lib/cwt.js"></script>
+<script src="../ch01/kit.js"></script>
+<script>
+'use strict';
+{   // a block of its own: the engine and kit scripts above declare globals such as M
+const light = new URLSearchParams(location.search).get('theme') === 'light';
+const $ = id => document.getElementById(id);
+$('ground').setAttribute('fill', light ? '#f4ede0' : '#16130f');
+const shade = light ? '#5a3f2a' : '#000', shadeO = light ? .3 : .65;
+const FLOOR = 512, LEFT = 352, RIGHT = 1218;   // the letters stand on FLOOR between LEFT and RIGHT
+
+document.fonts.ready.then(() => {
+  // the title: sized so it fills LEFT … RIGHT, standing on the floor; the C on its own so Claude can lean on it
+  const t = $('title'), style = `font-family="${MARKER}" fill="#ef601d" stroke="${CW_INK}" stroke-width="7" paint-order="stroke" stroke-linejoin="round"`;
+  t.innerHTML = `<text id="word" ${style} font-size="100">CWTFIGO</text>`;
+  const size = 100 * (RIGHT - LEFT) / $('word').getBBox().width;
+  t.innerHTML = `<text id="c" ${style} font-size="${size.toFixed(1)}">C</text><text id="rest" ${style} font-size="${size.toFixed(1)}">WTFIGO</text>`;
+  const c = $('c'), rest = $('rest');
+  const base = FLOOR - size * .14;   // the letters' feet on the floor (the marker's caps sit a little under the baseline)
+  c.setAttribute('x', LEFT); c.setAttribute('y', base);
+  rest.setAttribute('x', LEFT + c.getComputedTextLength()); rest.setAttribute('y', base);
+  const cap = size * .72, cTop = base - cap, cw = c.getComputedTextLength();   // the C's box: top, width
+  // Claude, leaning his right side on the C: tilted toward it, the right mitten resting on the letter's top
+  const cl = claudePuppet($('cast'));
+  const top = [LEFT + cw * .34, cTop + 6];   // a point on the top of the C
+  const o = { x: LEFT - 110, y: FLOOR, s: 1.72, lids: .45, brow: .25, look: .2, eyeX: .35, mouth: 0, cigar: true, spin: 18 };
+  const lean = 11, k = CW.claude.K * o.s, [sx0, sy0] = CW.claude.shoulders[1], [fx, fy] = CW.claude.feet, r = lean * Math.PI / 180;
+  // the right shoulder once he leans (the puppet turns about his feet), then the arm from there to the C's top
+  const ddx = (sx0 - fx) * k, ddy = (sy0 - fy) * k, shx = o.x + ddx * Math.cos(r) - ddy * Math.sin(r), shy = o.y + ddx * Math.sin(r) + ddy * Math.cos(r);
+  const reachR = Math.hypot(top[0] - shx, top[1] - shy) / (CW.claude.arm * k);
+  const armR = Math.atan2(top[0] - shx, top[1] - shy) * 180 / Math.PI + lean;   // the arm turns with his lean: add it back
+  cl.pose({ ...o, lean, armR, reachR, frontR: true, armL: 8, reachL: .95 }, 0);
+  // shadows: under his feet and the letters on the floor, and where his mitten rests on the C
+  $('shadows').innerHTML = `<ellipse cx="${o.x + 8}" cy="${FLOOR + 3}" rx="95" ry="10" fill="${shade}" opacity="${shadeO}"/>` +
+    `<rect x="${LEFT - 6}" y="${FLOOR - 4}" width="${RIGHT - LEFT + 12}" height="12" rx="6" fill="${shade}" opacity="${shadeO * .7}"/>`;
+  $('contact').innerHTML = `<ellipse cx="${top[0] + 4}" cy="${top[1] + 12}" rx="24" ry="8" fill="${shade}" opacity="${shadeO * .8}"/>` +
+    `<ellipse cx="${LEFT + 8}" cy="${cTop + cap * .45}" rx="10" ry="${cap * .35}" fill="${shade}" opacity="${shadeO * .55}"/>`;
+  document.body.dataset.geom = JSON.stringify({ size: Math.round(size), cTop: Math.round(cTop), top: top.map(Math.round), shoulder: [shx, shy].map(Math.round), reachR: +reachR.toFixed(2), armR: +armR.toFixed(1) });
+  document.body.dataset.ready = '1';
+});
+}
+</script>
+</body>
+</html>
