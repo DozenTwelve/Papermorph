@@ -143,7 +143,7 @@ function termScreen(p, lines, { yolo = false, title = 'martin@omarchy: ~', rows 
 // draw(q, { in: t0, out: t1, pose, text }) poses it; side 'L' (Claude) or 'R' (Martin).
 function comicPanel(p, who, side) {
   const g = mk('g', {}, p), W = 520, H = 470, L = side === 'L';
-  const x0 = L ? 40 : 1600 - 40 - W, y0 = 900 - H + 70, tilt = L ? -3.5 : 3;
+  const x0 = L ? 40 : 1600 - 40 - W, y0 = 900 - H + 70, tilt = 0;   // upright: a turned group makes Firefox redraw its big pictures whenever a mouth changes
   const id = `cwClip${who}${side}${Math.random().toString(36).slice(2, 6)}`;
   const inner = mk('g', {}, g);
   inner.innerHTML = `<clipPath id="${id}"><rect x="${x0}" y="${y0}" width="${W}" height="${H}"/></clipPath>
