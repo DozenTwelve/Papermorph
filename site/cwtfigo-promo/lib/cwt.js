@@ -130,7 +130,11 @@ function cwPuppet(parent, who) {
         continue;
       }
       s += `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="#fbf8f0" ${F.glasses || F.ring ? `stroke="${CW_INK}" stroke-width="${F.glasses ? 10 : 8}"` : ''}/>`;
-      if (lids < 1) s += `<circle cx="${(cx + ex * rx * .45 + (i ? -1 : 1) * rx * .08).toFixed(1)}" cy="${(cy + ey * ry * .45).toFixed(1)}" r="${F.pupil}" fill="${CW_INK}"/>`;
+      if (lids < 1) {   // an open eye always shows its pupil: under a heavy lid it sits just below the lid's edge, half tucked
+        const ryl = ry - (F.glasses ? 5 : 0), edge = cy - ryl + 2 * ryl * lids, r = F.pupil;
+        const py = Math.min(Math.max(cy + ey * ry * .45, edge + r * .15), cy + ry - r * .9);
+        s += `<circle cx="${(cx + ex * rx * .45 + (i ? -1 : 1) * rx * .08).toFixed(1)}" cy="${py.toFixed(1)}" r="${r}" fill="${CW_INK}"/>`;
+      }
       s += cwLid(cx, cy, rx - (F.glasses ? 5 : 0), ry - (F.glasses ? 5 : 0), lids, F.glasses ? spec.skin : (who === 'claude' ? spec.skin : spec.skin));
     }
     if (F.brows) {

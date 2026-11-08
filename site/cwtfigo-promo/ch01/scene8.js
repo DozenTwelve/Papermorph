@@ -26,7 +26,7 @@ function scene8(p, D, m) {
     const up = span(q, snap, snap + .1);
     const cl = { x: PLACE.claude[0], y: PLACE.claude[1], s: CLAUDE_S, eyeY: q < snap ? .9 : 0, eyeX: q < snap ? -.2 : 0,
       lids: q < snap ? .55 : 0, brow: q < snap ? 0 : .7, mouth: q < snap ? 0 : .15, spin: q * 60, shut: q < snap && blinkAt(q, 19),
-      frontL: true, frontR: true, armL: 70, reachL: .8, holdL: { name: 'notebook', w: 240, upright: true, r: -8 },
+      frontL: true, frontR: true, armL: 70, reachL: .8, holdL: { name: 'notebook', w: 240, upright: true, r: -8, x: 108, y: 0 },   // the mitten on its edge, the arm behind it
       armR: 20 + 85 * up, hold: up > 0 ? SIGN('Mind if I look?\n[y/n]') : null };
     st.frame(q, f, { door: cur.kind === 'wide' ? 0 : 1, ledsOk: true, lap: null, plug: { at: [905, 830] } });   // the shut door is off frame in the closes: not drawn there, it costs Firefox every frame
     castPose(st, cur, f, { doc, martin: null, claude: cl });

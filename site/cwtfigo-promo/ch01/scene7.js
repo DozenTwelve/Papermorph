@@ -4,6 +4,8 @@
    drift back over the earlier visits), "Again." */
 'use strict';
 const PRE7 = 3.7;
+// The pen in Claude's writing mitten, its tip reaching left onto the page (source px, kept upright).
+const PEN = { svg: `<path d="M0,-6 L-92,22" stroke="${CW_INK}" stroke-width="22" stroke-linecap="round"/><path d="M0,-6 L-86,20" stroke="#e8582a" stroke-width="13" stroke-linecap="round"/><path d="M-88,21 L-104,26" stroke="${CW_INK}" stroke-width="9" stroke-linecap="round"/>`, upright: true };
 function scene7(p, D, m) {
   const st = garageStage(p), at = (c, t = 0) => clipAt('scene7', PRE7, c, t);
   const L = (t, kind, text, cps = 120) => ({ at: t, kind, text, cps });
@@ -79,12 +81,15 @@ function scene7(p, D, m) {
     // Claude: deadpan, then the notebook
     let cl = { x: PLACE.claude[0], y: PLACE.claude[1], s: CLAUDE_S, lids: .5, mouth: ct === 'X' ? 0 : ct, spin: q * 60, shut: blinkAt(q, 17) };
     if (q < at('m12')) cl = { ...cl, look: -.5, eyeX: -.8, lids: .3 };
-    if (gone) {
-      const pull = span(q, run + .3, run + .7), scrib = q > run + .75 ? 8 * Math.sin(q * 30) : 0;
-      const base = { ...cl, eyeY: .9, eyeX: -.2, lids: .55 };
-      const [nx, ny] = st.claude.point(base, [430, 1050]);
-      cl = { ...base, frontL: true, frontR: true, holdL: pull > 0 ? { name: 'notebook', w: 240, upright: true, r: -8 } : null,
-        ...(pull > 0 ? { ...st.claude.aim(base, 'L', [nx - 40 * (1 - pull), ny + 60 * (1 - pull)]), ...st.claude.aim(base, 'R', [nx + 40 + scrib, ny - 20 + scrib * .5 + 80 * (1 - pull)]) } : { armL: 12, armR: 12 }) };
+    if (gone) {   // pulls the notebook out, holds it open by its left edge, writes on the right page; the arms stay off the cover
+      const pull = span(q, run + .3, run + .7), scrib = q > run + .75 ? Math.sin(q * 30) : 0;
+      const base = { ...cl, eyeY: .9, eyeX: -.2, lids: .55 }, lift = 60 * (1 - pull);
+      const [bx, by] = [478, 1010], NW = 300;   // the open book's centre on his chest (source px) and width
+      const [lx, ly] = st.claude.point(base, [bx - NW / 2 + 12, by]), [wx, wy] = st.claude.point(base, [bx + NW / 2 + 22, by - 24]);
+      cl = { ...base, frontL: true, frontR: true,
+        holdL: pull > 0 ? { name: 'notebook-open', w: NW, upright: true, r: -4, x: NW / 2 - 12, y: 0 } : null,
+        hold: pull > .6 ? PEN : null,
+        ...(pull > 0 ? { ...st.claude.aim(base, 'L', [lx, ly + lift]), ...st.claude.aim(base, 'R', [wx + 3 * scrib, wy + 2 * scrib + lift]) } : { armL: 12, armR: 12 }) };
       if (q >= at('c15', 4.4) - .05) cl = { ...cl, lids: .75, brow: -.5, eyeY: .9 };
     }
     st.frame(q, f, { door: gone ? 1 - span(q, shut0, shut0 + 1) : 1, ledsOk: q >= lights, lap: q < grab ? { open: true, screen: q >= lights ? 'desk' : 9 } : null,
