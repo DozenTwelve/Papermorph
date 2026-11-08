@@ -9,7 +9,8 @@
    opening 0 … 1 or a shape), brow (-1 angry … 1 worried), headR/headY (head tilt and drop; Doc and Martin), bob
    (the whole figure up), squash (1 = none), lean (degrees), armL/armR (degrees, + raises outward, 0 hangs),
    reachL/reachR (arm length, 1 rest), frontL/frontR (draw that arm in front of the body), hold/holdL ({ name, w, x, y,
-   r, upright, text }: a prop picture in the screen-right / screen-left mitten), o (opacity). Claude also takes spin (the ✻'s turn
+   r, upright, text }: a prop picture in the screen-right / screen-left mitten), o (opacity), turn (horizontal scale, 1
+   … -1: a swivel on a stool squeezes through 0), bliss (eyes shut happy: two arcs), back (Claude seen from behind: no face, arms behind him). Claude also takes spin (the ✻'s turn
    in degrees), star (its colour) and puff (cigar smoke on). */
 'use strict';
 const CW_INK = '#1d1a1a';
@@ -24,7 +25,7 @@ const CW = {
     skin: '#f9cf9f', sleeve: '#9ca0a7', shoulders: [[304, 790], [720, 790]], arm: 320, armW: 74, hand: 58,
     face: { eyes: [[428, 526, 86, 98], [601, 526, 86, 98]], pupil: 14, mouth: [514, 684, 2.8], brows: [[428, 402], [601, 402]],
       slide: 80, rest: 'wobble' } },
-  claude: { K: .165, body: [144, 64, 735, 1396], feet: [512, 1459], skin: '#ef601d', sleeve: '#a6a9ae',
+  claude: { K: .165, body: [144, 64, 735, 1396], back: [144, 63, 735, 1397], feet: [512, 1459], skin: '#ef601d', sleeve: '#a6a9ae',
     shoulders: [[196, 742], [828, 742]], arm: 290, armW: 62, hand: 58, hose: true,
     face: { eyes: [[432, 470, 82, 88], [584, 468, 80, 86]], ring: true, pupil: 12, lids: .42, teeth: [556, 640, 214, 96],
       brows: [[432, 372], [584, 352]], slide: 40 }, star: [512, 66] },
@@ -102,7 +103,10 @@ function cwPuppet(parent, who) {
   const fig = mk('g', {}, g), armBack = mk('g', {}, fig), bodyG = mk('g', {}, fig), headG = mk('g', {}, fig), chestG = mk('g', {}, fig), armFront = mk('g', {}, fig);
   let lastChest = '';
   const img = (box, file, into) => mk('image', { href: `../img/cast/${file}.webp`, x: box[0], y: box[1], width: box[2], height: box[3] }, into);
-  img(spec.body, `${who}-body`, bodyG);
+  const front = img(spec.body, `${who}-body`, bodyG);
+  const backImg = spec.back ? img(spec.back, `${who}-back`, bodyG) : null;   // Claude seen from behind (typing)
+  if (backImg) backImg.setAttribute('visibility', 'hidden');
+  let lastBack = false;
   if (spec.head) img(spec.head, `${who}-head`, headG);
   const faceG = mk('g', {}, spec.head ? headG : bodyG);
   const eyesG = mk('g', {}, faceG), mouthG = mk('g', {}, faceG), topG = mk('g', {}, faceG);
@@ -122,6 +126,10 @@ function cwPuppet(parent, who) {
     }
     for (const [i, [cx0, cy, rx, ry]] of F.eyes.entries()) {
       const cx = cx0 + sl;
+      if (o.bliss) {   // eyes shut in bliss: no whites, a curved lash line on each, sagging in the middle
+        s += `<path d="M${cx - rx * .75},${cy - ry * .1} Q${cx},${cy + ry * .55} ${cx + rx * .75},${cy - ry * .1}" fill="none" stroke="${CW_INK}" stroke-width="9" stroke-linecap="round"/>`;
+        continue;
+      }
       s += `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="#fbf8f0" ${F.glasses || F.ring ? `stroke="${CW_INK}" stroke-width="${F.glasses ? 10 : 8}"` : ''}/>`;
       if (lids < 1) s += `<circle cx="${(cx + ex * rx * .45 + (i ? -1 : 1) * rx * .08).toFixed(1)}" cy="${(cy + ey * ry * .45).toFixed(1)}" r="${F.pupil}" fill="${CW_INK}"/>`;
       s += cwLid(cx, cy, rx - (F.glasses ? 5 : 0), ry - (F.glasses ? 5 : 0), lids, F.glasses ? spec.skin : (who === 'claude' ? spec.skin : spec.skin));
@@ -165,7 +173,9 @@ function cwPuppet(parent, who) {
       g.setAttribute('opacity', o.o ?? 1);
       tf(shadow, `scale(${s.toFixed(4)})`);
       const [fx, fy] = spec.feet;
-      tf(fig, `scale(${s.toFixed(4)} ${(s * sq).toFixed(4)}) translate(0 ${(-bob / s).toFixed(1)}) rotate(${o.lean || 0}) translate(${-fx} ${-fy})`);
+      const back = !!(o.back && backImg);   // from behind: the back picture, no face, both arms behind the body
+      if (back !== lastBack) { lastBack = back; backImg.setAttribute('visibility', back ? 'inherit' : 'hidden'); front.setAttribute('visibility', back ? 'hidden' : 'inherit'); faceG.setAttribute('visibility', back ? 'hidden' : 'inherit'); }
+      tf(fig, `scale(${(s * (o.turn ?? 1)).toFixed(4)} ${(s * sq).toFixed(4)}) translate(0 ${(-bob / s).toFixed(1)}) rotate(${o.lean || 0}) translate(${-fx} ${-fy})`);
       if (spec.head) {
         const [nx, ny] = spec.neck;
         tf(headG, `translate(0 ${o.headY || 0}) rotate(${o.headR || 0} ${nx} ${ny})`);
@@ -175,13 +185,13 @@ function cwPuppet(parent, who) {
         tf(star, `translate(${sx} ${sy}) rotate(${o.spin || 0}) scale(${o.starS ?? 1})`);
         star.setAttribute('color', o.star || '#e8582a');
       }
-      const fk = JSON.stringify([o.look, o.eyeX, o.eyeY, o.lids, o.shut, o.brow]);
+      const fk = JSON.stringify([o.look, o.eyeX, o.eyeY, o.lids, o.shut, o.brow, o.bliss]);
       if (fk !== lastFace) { lastFace = fk; eyesG.innerHTML = faceSVG(o); }
       const mk2 = JSON.stringify([o.mouth, o.look, o.cigar]);
       if (mk2 !== lastMouth) { lastMouth = mk2; mouthG.innerHTML = mouthSVG(o); }
       spec.shoulders.forEach(([px, py], i) => {
-        const a = arms[i], side = i ? 'R' : 'L', ang = o['arm' + side] || 0, front = o['front' + side];
-        const into = front ? armFront : armBack;
+        const a = arms[i], side = i ? 'R' : 'L', ang = o['arm' + side] || 0, inFront = o['front' + side] && !o.back;
+        const into = inFront ? armFront : armBack;
         if (a.g.parentNode !== into) into.appendChild(a.g);
         a.set(o['reach' + side] ?? 1);
         tf(a.g, `translate(${px} ${py}) rotate(${i ? -ang : ang})`);

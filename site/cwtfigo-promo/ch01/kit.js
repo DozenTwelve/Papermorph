@@ -6,9 +6,13 @@
 const DESK = 486;   // the desk top in the garage plate
 // Where everyone stands on the stage. Claude is as tall as Doc once he is out (s CLAUDE_S); the laptop sits on the
 // stool in the middle, the router on the top shelf at the right, and a cable runs from the router to the laptop.
-const CLAUDE_S = 1.9;
-const PLACE = { doc: [430, 836], martin: [630, 846], claude: [1050, 846], laptop: [843, 577], door: [150, 770],
-  shelf: [1440, 846], port: [930, 548], routerPort: [1530, 220] };
+// Doc sits at his own solder bench downstage left (his feet are behind it; PLACE.doc is where they would be).
+const CLAUDE_S = 2.1;
+const PLACE = { doc: [430, 905], martin: [630, 846], claude: [1050, 846], laptop: [843, 577], door: [150, 770],
+  shelf: [1440, 846], port: [990, 562], routerPort: [1530, 220] };
+const BENCH = { x0: 236, x1: 600, y: 766 };   // Doc's bench: its top edge; the board lies on it at BOARD
+const BOARD = [452, 758];
+const LAP_W = 300;   // the laptop on the stool, wide enough that Claude's mittens show either side of him from behind
 const LEDS = [1442.5, 1454, 1467.5, 1481.5, 1494, 1508.5];   // the router's lights on the shelf, y 213.7
 const BULB = [903, 109];
 const MONO = 'CW Mono, Menlo, Consolas, monospace', MARKER = 'CW Marker, Comic Sans MS, sans-serif';
@@ -26,11 +30,13 @@ function garageStage(p, { door = 0 } = {}) {
   }).join('');
   const glow = mk('ellipse', { rx: 260, ry: 220, fill: 'url(#cwBulb)', opacity: .5 }, cam.stage);
   const leds = mk('g', {}, cam.stage), cable = mk('g', {}, cam.stage), laptop = mk('g', {}, cam.stage);
-  const doc = docPuppet(cam.stage), martin = martinPuppet(cam.stage), claude = claudePuppet(cam.stage);
+  const doc = docPuppet(cam.stage);
+  const bench = mk('g', {}, cam.stage); bench.innerHTML = benchSVG();   // in front of Doc, behind the others
+  const martin = martinPuppet(cam.stage), claude = claudePuppet(cam.stage);
   const fx = mk('g', {}, cam.stage);
   let cableKey = '';
   let lapKey = '', ledKey = '', lapScr = '';
-  const stage = { cam, doc, martin, claude, laptop, fx, cable,
+  const stage = { cam, doc, martin, claude, laptop, fx, cable, bench,
     // q: time; door: 0 shut … 1 rolled up; bang: door shudder; ledsOk: router lights all green; lap: { open, screen } or null
     frame(q, f, { door = 0, bang = 0, ledsOk = false, lap = null, camQ = q, plug = null, flicker = false } = {}) {
       const top = 160;   // the door's roll is set before the camera draws, so the first frame of a rebuilt beat is right
@@ -67,12 +73,12 @@ document.body.insertAdjacentHTML('afterbegin', `<svg width="0" height="0" style=
 </defs></svg>`);
 
 // The laptop on the desk (world coordinates), open or shut; `screen` is 'term', 'desk' (Martin's loud desktop) or 'off'.
-function laptopSVG({ x = PLACE.laptop[0], y = PLACE.laptop[1], w = 190, open = true, screen = 'term', shown = 1 }) {
+function laptopSVG({ x = PLACE.laptop[0], y = PLACE.laptop[1], w = LAP_W, open = true, screen = 'term', shown = 1 }) {
   if (!open) return `<g transform="translate(${x} ${y})"><image href="../img/props/laptop.webp" x="${-w / 2}" y="${-w * 197 / 348 * .25}" width="${w}" height="${(w * 197 / 348 * .25).toFixed(1)}" preserveAspectRatio="none"/></g>`;
   const h = w * 249 / 415;
   return `<g transform="translate(${x} ${y - h / 2}) scale(${shown})"><image href="../img/props/laptop-open.webp" x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h.toFixed(1)}"/><g class="scr"></g></g>`;
 }
-function lapScreen({ w = 190, screen = 'term' }) { const sx = w / 415; return screenSVG(screen, sx, -33.5 * sx, 303 * sx, 144 * sx); }
+function lapScreen({ w = LAP_W, screen = 'term' }) { const sx = w / 415; return screenSVG(screen, sx, -33.5 * sx, 303 * sx, 144 * sx); }
 // What a laptop screen of w × h centred at (cx, cy) shows.
 function screenSVG(kind, cx, cy, w, h) {
   const x = cx - w / 2, y = cy - h / 2;
@@ -84,6 +90,32 @@ function screenSVG(kind, cx, cy, w, h) {
   return `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#08090b"/>`;
 }
 
+// Doc's solder bench, downstage left: a plank on two legs that hides his legs and the stool, the board on it with a
+// little spool of solder, and a clamp lamp whose cone lights his hands.
+function benchSVG() {
+  const { x0, x1, y } = BENCH, [bx, by] = BOARD, I = CW_INK, sx = 296, sy = 616;   // the lamp's shade
+  return `<path d="M262,${y} L270,590 L${sx},${sy - 18}" fill="none" stroke="${I}" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M262,${y} L270,590 L${sx},${sy - 18}" fill="none" stroke="#5d6470" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M${sx + 18},${sy + 10} L${bx + 20},${y - 10} L${bx - 90},${y - 10} Z" fill="#ffe9a8" opacity=".2"/>
+    <ellipse cx="${bx - 10}" cy="${y - 12}" rx="100" ry="24" fill="#ffe9a8" opacity=".35"/>
+    <path d="M${sx - 26},${sy - 30} L${sx + 26},${sy - 14} L${sx + 18},${sy + 18} L${sx - 30},${sy + 2} Z" fill="#2f6f9e" stroke="${I}" stroke-width="6" stroke-linejoin="round"/>
+    <rect x="${x0 + 10}" y="${y + 20}" width="${x1 - x0 - 20}" height="${920 - y}" fill="#8a5a2b" stroke="${I}" stroke-width="7"/>
+    <rect x="${x0 + 40}" y="${y + 46}" width="${(x1 - x0) / 2 - 56}" height="48" rx="5" fill="#9c6a35" stroke="${I}" stroke-width="5"/>
+    <rect x="${(x0 + x1) / 2 + 16}" y="${y + 46}" width="${(x1 - x0) / 2 - 56}" height="48" rx="5" fill="#9c6a35" stroke="${I}" stroke-width="5"/>
+    <rect x="${(x0 + x1) / 2 - 92}" y="${y + 64}" width="36" height="10" rx="4" fill="${I}"/><rect x="${x1 - 112}" y="${y + 64}" width="36" height="10" rx="4" fill="${I}"/>
+    <rect x="${x0}" y="${y}" width="${x1 - x0}" height="30" rx="4" fill="#b9773a" stroke="${I}" stroke-width="7"/>
+    <path d="M${x0 + 30},${y + 14} H${x1 - 40}" stroke="#8a5a2b" stroke-width="4"/>
+    <path d="M${bx - 58},${y} L${bx - 50},${by - 8} H${bx + 58} L${bx + 62},${y} Z" fill="#2f7d3a" stroke="${I}" stroke-width="5" stroke-linejoin="round"/>
+    <rect x="${bx - 30}" y="${by - 16}" width="22" height="9" fill="#222"/><rect x="${bx + 12}" y="${by - 14}" width="26" height="7" fill="#c9a23a"/>
+    <circle cx="${x1 - 70}" cy="${y - 12}" r="14" fill="#c0c0c0" stroke="${I}" stroke-width="5"/><circle cx="${x1 - 70}" cy="${y - 12}" r="5" fill="#555"/>`;
+}
+// Solder smoke: a thin grey curl rising from the iron's tip (world coordinates).
+function solderSmoke(x, y, q) {
+  return Array.from({ length: 5 }, (_, i) => {
+    const u = ((q / 2.2 + i / 4) % 1 + 1) % 1;
+    return `<circle cx="${(x + 14 * Math.sin(u * 9 + i) + 10 * u).toFixed(1)}" cy="${(y - 110 * u).toFixed(1)}" r="${(5 + 13 * u).toFixed(1)}" fill="#f2efe8" stroke="#9a948a" stroke-width="2" opacity="${(Math.min(1, u * 5) * (1 - u) * .9).toFixed(2)}"/>`;
+  }).join('');
+}
 // Solder sparks at (x, y): a few short yellow strokes that change every frame (on twos).
 function sparks(x, y, f, on = true) {
   if (!on) return '';
@@ -247,9 +279,13 @@ function shooter(st, shots, overlays = {}) {
 }
 // Pose the cast for this frame: in a single only its speaker shows; P.name null leaves that puppet off stage.
 function castPose(st, cur, f, P) {
+  // the props on the set stay sharp while the plate goes soft, so a single shows only its speaker's own: Doc's bench
+  const wide = cur.kind === 'wide';
+  vis(st.laptop, wide); vis(st.cable, wide); vis(st.bench, wide || cur.who === 'doc');
   for (const n of ['doc', 'martin', 'claude']) {
     const o = P[n], on = o && (cur.kind === 'wide' || cur.who === n);
-    st[n].pose(on ? o : { ...(o || {}), o: 0 }, f);
+    vis(st[n].g, !!on);   // one off screen is hidden and left as it is: posing it unseen still costs Firefox a repaint
+    if (on) st[n].pose(o, f);
   }
 }
 const blinkAt = (q, seed) => { const per = 2.6 + (seed % 3) * .7, u = (q + seed * .37) % per; return u < 2 / FPS; };
@@ -283,9 +319,12 @@ function smokeSVG(x, y, q, n = 4, scale = 1) {
 // The cigar's ember for Claude's pose o (it sits at the right corner of his teeth).
 const emberAt = (st, o) => st.claude.point(o, [556 + 107 - 20 + 226 * Math.cos(.21), 640 - 8 + 226 * Math.sin(.21)]);
 
-/* ---------- music slots ----------
-   The coordinator makes the guitar opener and the stings (our own chords, synthesized). Until the files are in, the
-   slots stay empty: name a file here (in audio/bgm/ for the opener, audio/sfx/ for the stings, without .mp3) and it
-   plays: the opener under scene 1, a sting on every cut into a new scene, the uh-oh on rm -rf (scene 5). */
-window.CW_MUSIC = window.CW_MUSIC || { opener: null, sting: null, uhoh: null };
-const stingAt = (scene, t = 0, which = 'sting', vol = 1.2) => { if (CW_MUSIC[which]) sfx(scene, t, CW_MUSIC[which], vol); };
+/* ---------- music ----------
+   The coordinator's score: a 3 s guitar opener (audio/sfx/, played as an effect at the top of scene 1), the bed under
+   the film (audio/bgm/, the chapter page's music()), a sting on a few scene cuts (only those in CW_STINGS: one on
+   every cut got busy) and the uh-oh on rm -rf (scene 5). Swap a track by putting its file in place under the same name. */
+window.CW_MUSIC = window.CW_MUSIC || { opener: 'opener', bgm: 'bgm-a', sting: 'sting-up', uhoh: 'sting-uhoh' };
+const CW_STINGS = ['scene4', 'scene6', 'scene7'];
+const stingAt = (scene, t = 0, which = 'sting', vol = 1.2) => {
+  if (CW_MUSIC[which] && (which !== 'sting' || CW_STINGS.includes(scene))) sfx(scene, t, CW_MUSIC[which], vol, SFX_BED[CW_MUSIC[which]] || 3);
+};

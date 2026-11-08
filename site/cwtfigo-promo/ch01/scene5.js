@@ -32,7 +32,6 @@ function scene5(p, D, m) {
   sfx('scene5', yolo + .1, 'whoosh', .8); sfx('scene5', yolo + .3, 'flap', 1.4); sfx('scene5', smash, 'keysmash', 1.8);
   sfx('scene5', smash + .12, 'chime', .8); sfx('scene5', rmAt + .1, 'typing', .9); sfx('scene5', rmEnd - .12, 'tick', 2);
   sfx('scene5', rmEnd + .25, 'clang', 1.2);
-  // window.CW_MUSIC.uhoh: the uh-oh sting at rmAt (chapter page)
   stopClock(D, (q, f) => {
     const cur = S(q);
     if (cur.over === 'rm') {
@@ -53,8 +52,8 @@ function scene5(p, D, m) {
       lids: .4, shut: blinkAt(q, 12) };
     if (cur.kind === 'wide' && q < rmAt) {   // the giant sign
       const up = span(q, yolo + .05, yolo + .35);
-      cl = { ...cl, look: -.4, eyeX: -.8, lids: 0, brow: .6, armL: 20, armR: 140 * up, reachR: 1.3, frontR: true,
-        hold: up > 0 ? { name: 'sign', w: 1550, x: 420, y: -900, upright: true, text: 'Turn on YOLO\nfor 12 hours?\n[y/n]', size: 160 } : null };
+      cl = { ...cl, look: -.4, eyeX: -.8, lids: 0, brow: .6, armL: 20, armR: 120 * up, reachR: 1.2, frontR: true,
+        hold: up > 0 ? { name: 'sign', w: 1400, x: 60, y: -430, upright: true, text: 'Turn on YOLO\nfor 12 hours?\n[y/n]', size: 145 } : null };
     } else if (q < at('m10')) {   // the salute
       const sal = span(q, at('c08', 1.9), at('c08', 2.2));
       const [bx, by] = st.claude.point(cl, [600, 380]);
@@ -81,12 +80,12 @@ function scene5(p, D, m) {
     // Doc: soldering, looking over at the sign, frozen at rm -rf, his iron on the floor after
     const dropped = q >= rmEnd + .2;
     const doc = docSolder(st, q, f, { look: .6, eyeX: .9, eyeY: q > yolo ? -.2 : 1, lids: frozen ? 0 : .3, mouth: frozen ? 'O' : 'X',
-      ...(dropped ? { hold: null, armR: 8, reachR: 1 } : {}) });
+      ...(dropped ? { hold: null, armR: 8, reachR: 1 } : {}) }, q > yolo ? 1 : glance(q, 3));
     castPose(st, cur, f, { doc, martin: ma, claude: cl });
     let fx = '';
     if (q >= smash && q < smash + .3 && cur.kind === 'wide') fx += `<g transform="translate(${PLACE.laptop[0] - 30} 560) scale(${(1 + 2 * (q - smash)).toFixed(2)})">${
       Array.from({ length: 8 }, (_, i) => `<path d="M0,0 L${(Math.cos(i * .785) * 46).toFixed(0)},${(Math.sin(i * .785) * 46).toFixed(0)}" stroke="#ffd23f" stroke-width="7" stroke-linecap="round"/>`).join('')}</g>`;
-    if (dropped && cur.kind === 'wide') fx += `<image href="../img/props/iron.webp" x="${PLACE.doc[0] + 30}" y="${PLACE.doc[1] - 14}" width="100" height="34" transform="rotate(8 ${PLACE.doc[0] + 80} ${PLACE.doc[1]})"/>`;
+    if (dropped && cur.kind === 'wide') fx += `<image href="../img/props/iron.webp" x="${PLACE.doc[0] + 20}" y="${BENCH.y - 30}" width="100" height="34" transform="rotate(8 ${PLACE.doc[0] + 70} ${BENCH.y - 13})"/>`;
     if (cl.cigar && cur.who === 'claude') fx += smokeSVG(...emberAt(st, cl), q, 5, 1.2);
     st.fxHTML = fx;
   });

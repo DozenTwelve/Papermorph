@@ -36,7 +36,7 @@ function scene3(p, D, m) {
     const startle = span(q, T_POP, T_POP + .2) - span(q, T_LAND + .6, T_LAND + 1.4);
     castPose(st, cur, f, {
       doc: docSolder(st, q, f, { look: .8 * startle, eyeX: startle, eyeY: 1 - startle, lids: .45 * (1 - startle), lean: -7 * startle,
-        mouth: startle > .3 ? 'O' : 'X' }),
+        mouth: startle > .3 ? 'O' : 'X' }, Math.max(startle, span(q, T_LAND + .6, T_LAND + 1)) ),
       martin: { x: PLACE.martin[0], y: PLACE.martin[1], look: .7, eyeX: 1, eyeY: -.3 * startle, brow: 1, lids: 0,
         lean: -9 * startle, mouth: cur.who === 'martin' ? talk(q, 'scene3', PRE3, 'm04') : startle > .3 ? 'O' : 'wobble',
         frontL: true, frontR: true, armL: -18 + 12 * startle, armR: -18 + 12 * startle, reachL: .8, reachR: .8, shut: blinkAt(q, 8),

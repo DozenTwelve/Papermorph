@@ -109,11 +109,11 @@ function paperCam(p, setName, v0 = {}, { after = null, stages = [] } = {}) {
       const s = shown = at(camQ);
       let sx = 0, sy = 0;
       for (const [t0, d, amp] of shakes) if (camQ >= t0 && camQ < t0 + d) { sx += jit(f, 91) * amp; sy += jit(f, 92) * amp; }
-      view.setAttribute('transform', `translate(${800 + sx} ${450 + sy}) scale(${s.z}) translate(${-s.x} ${-s.y})`);
+      tf(view, `translate(${800 + sx} ${450 + sy}) scale(${s.z}) translate(${-s.x} ${-s.y})`);   // tf skips an unchanged value (a repaint in Firefox)
       const dx = s.x - base.x, dy = s.y - base.y;
       let soft = false; for (const [t0, on] of softs) if (camQ >= t0) soft = on;
       for (const L of layers) {
-        L.g.setAttribute('transform', `translate(${((1 - L.k) * dx).toFixed(1)} ${((1 - L.k) * dy).toFixed(1)})${L.fx ? ' ' + L.fx(Math.floor(q * FPS / 2) * 2 / FPS) : ''}`);
+        tf(L.g, `translate(${((1 - L.k) * dx).toFixed(1)} ${((1 - L.k) * dy).toFixed(1)})${L.fx ? ' ' + L.fx(Math.floor(q * FPS / 2) * 2 / FPS) : ''}`);
         if (L.blur) { const b = soft === 'all' || (soft && L.k < 1); vis(L.blur, b); vis(L.sharp, !b); }   // never 'visible': it would show through a hidden camera
       }
       FLICKER.style.opacity = (.02 + .02 * jit(f, 30)).toFixed(3);   // the exposure flicker of real frames
