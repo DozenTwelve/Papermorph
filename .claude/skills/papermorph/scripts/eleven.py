@@ -46,6 +46,12 @@ sentence pauses (0.4 to 1.0 s). It runs before the alignment, so the marks and c
 shortened clip has no pause left to shorten, so a rerun keeps it. One cap for every pause of every beat; a pause that
 should stay long (a turn of the film) needs its beat run without it.
 
+A speaker may also have "af" beside its "voice": an ffmpeg audio filter (a filter graph when it has [labels]) run on
+each of its clips after the tempo and the pauses and before the levelling, a pitch or a robot voice. It belongs to
+the take (takes.json records it), so a rerun never treats a clip twice and a changed filter treats the cached take
+again for free; the words are aligned on the untreated clip, kept as .eleven/<beat>.untreated.mp3, and a filter that
+changes the length by more than 0.06 s is named.
+
 --tempo K (or "tempo": K in the narration file, which a rerun then keeps without the flag) speeds every clip up
 (1.1: a tenth faster) or slows it, pitch kept (ffmpeg atempo, 0.5 to 2), before the pauses, the levelling and the
 alignment, so the marks, cues and loudness come from the clip as heard. takes.json records the tempo with the take, so a
@@ -112,6 +118,20 @@ def atempo(mp3, k):
     tmp.replace(mp3)
 
 
+def treat(mp3, af, beat):
+    """A speaker's own treatment (its "af" in the narration file's voices), in place; warns when it changes the length,
+    since the marks come from the untreated clip."""
+    tmp, d0 = mp3.with_suffix(".part"), duration(mp3)
+    flt = ["-filter_complex", af] if "[" in af else ["-af", af]   # a chain with labels is a filter graph
+    r = subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(mp3), *flt, "-ar", "44100", "-b:a", "128k", "-f", "mp3", str(tmp)],
+                       capture_output=True, text=True)
+    if r.returncode: sys.exit(f"{beat}: its speaker's \"af\" did not run in ffmpeg: {r.stderr.strip().splitlines()[-1] if r.stderr.strip() else 'no output'}")
+    tmp.replace(mp3)
+    if abs((d1 := duration(mp3)) - d0) > .06:
+        print(f"{beat}: WARNING its treatment changed the length {d0:.2f} -> {d1:.2f} s: the marks and captions, aligned on the "
+              "untreated clip, drift by that much (pitch with asetrate and give the length back with atempo)", file=sys.stderr)
+
+
 def speak(text, voice, dst):
     body = json.dumps({"model": model, "input": text, "voice": voice, "response_format": "mp3"}).encode()
     k = key()
@@ -145,12 +165,13 @@ for beat, raw in spec["beats"].items():
     if who is not None and who not in spec.get("voices", {}):
         sys.exit(f"{beat}: speaker {who!r} is not under the narration file's \"voices\"")
     voice = spec["voices"][who]["voice"] if who is not None else a.voice or spec.get("voice", "george")
+    af = spec["voices"][who].get("af") if who is not None else None   # the speaker's own treatment, an ffmpeg filter
     sub = raw.get("sub") if isinstance(raw, dict) else None   # a foreign line's subtitle, its one cue
     raw = raw["text"] if isinstance(raw, dict) else raw
     clean, marks = split_marks(raw)   # clean keeps audio tags: they go to the voice
     cached = cache / f"{beat}.{hashlib.sha1(f'{model}|{voice}|{clean}'.encode()).hexdigest()[:12]}.mp3"
     fresh = beat in only if only else not cached.exists()   # --only takes its beats again, cached or not
-    beats.append((beat, voice, sub, clean, marks, cached, fresh))
+    beats.append((beat, voice, sub, clean, marks, cached, fresh, af))
 todo = sum(len(b[3]) for b in beats if b[6])
 print(f"{sum(b[6] for b in beats)} beats to synthesize, {todo} characters, about ${todo * PRICE:.2f}", flush=True)
 if a.dry:
@@ -175,7 +196,7 @@ def save():
     what it paid for usable, keeps the old timings of the beats it did not reach (their clips are the ones those
     timings were made on), and says what is missing."""
     stale = []
-    for beat, *_, fresh in beats:
+    for beat, *_, fresh, _af in beats:
         mp3 = out / f"{beat}.mp3"
         if beat not in timings and beat in old and mp3.exists() and takes.get(clip_key(mp3)) == takes0.get(clip_key(mp3)):
             timings[beat] = old[beat]; stale += [beat] if fresh else []
@@ -189,7 +210,7 @@ def save():
 
 
 atexit.register(lambda: done or save())   # stopped partway: keep the finished beats
-for beat, voice, sub, clean, marks, cached, fresh in beats:
+for beat, voice, sub, clean, marks, cached, fresh, af in beats:
     if only and beat not in only and beat in old:
         timings[beat] = old[beat]; continue   # --only leaves the other beats alone
     if not fresh and not cached.exists():
@@ -197,18 +218,28 @@ for beat, voice, sub, clean, marks, cached, fresh in beats:
     if fresh:
         speak(clean, voice, cached); spent += len(clean); print(beat, "synthesized")
     mp3 = out / f"{beat}.mp3"
-    take = cached.name + (f"@{tempo:g}" if tempo != 1 else "")
-    if fresh or not mp3.exists() or takes.get(clip_key(mp3)) != take:   # else keep it: perhaps levelled since
-        mp3.write_bytes(cached.read_bytes()); takes[clip_key(mp3)] = take
-        if tempo != 1: atempo(mp3, tempo)
-    if a.max_pause and (cut := tighten(mp3, a.max_pause)): print(f"{beat}: pauses over {a.max_pause} s shortened, -{cut:.2f} s")
+    take = cached.name + (f"@{tempo:g}" if tempo != 1 else "") + (f"|af {hashlib.sha1(af.encode()).hexdigest()[:8]}" if af else "")
+    new = fresh or not mp3.exists() or takes.get(clip_key(mp3)) != take   # else keep it: perhaps levelled since
+    def untreated(dst):   # the take as heard before any treatment: tempo, then the pauses
+        dst.write_bytes(cached.read_bytes())
+        if tempo != 1: atempo(dst, tempo)
+        return a.max_pause and tighten(dst, a.max_pause)
+    raw = cache / f"{beat}.untreated.mp3"   # a treated speaker's words are aligned on this, not on the robot or the echo
+    if new:
+        cut = untreated(mp3); takes[clip_key(mp3)] = take
+        if af: raw.write_bytes(mp3.read_bytes()); treat(mp3, af, beat)
+    elif a.max_pause and not af: cut = tighten(mp3, a.max_pause)   # a treated clip keeps the pauses it was treated with
+    else: cut = 0
+    if af and not raw.exists(): untreated(raw)   # the clip itself stays as it is
+    if cut: print(f"{beat}: pauses over {a.max_pause} s shortened, -{cut:.2f} s")
     if not a.no_level: print(lv.one(mp3, mp3, argparse.Namespace(lufs=a.lufs, gain=None, peak=a.peak)), flush=True)
+    heard_from = raw if af else mp3
     m = "base" if sub or lang != "en" else "base.en"
     if m not in asr:
         import numpy as np
         from faster_whisper import WhisperModel
         asr[m] = WhisperModel(m, device="cpu", compute_type="int8")
-    pcm = subprocess.run(["ffmpeg", "-v", "error", "-i", str(mp3), "-f", "f32le", "-ac", "1", "-ar", "16000", "-"],
+    pcm = subprocess.run(["ffmpeg", "-v", "error", "-i", str(heard_from), "-f", "f32le", "-ac", "1", "-ar", "16000", "-"],
                          capture_output=True, check=True).stdout
     segs, _ = asr[m].transcribe(np.frombuffer(pcm, np.float32), word_timestamps=True, language=None if sub else lang)
     heard = []   # each heard word; a Chinese or Japanese one split into characters spread over its time, as the script is
@@ -235,7 +266,7 @@ for beat, voice, sub, clean, marks, cached, fresh in beats:
     dur = duration(mp3)
     # Whisper starts a word that follows a pause inside the pause (up to 0.7 s early, the mouth moving in silence):
     # a word heard inside a silence starts where the sound comes back
-    gaps = [(a, b) for a, b in silences(mp3) if b < dur - .05]
+    gaps = [(a, b) for a, b in silences(heard_from) if b < dur - .05]
     for i, v in enumerate(times):
         g = next(((a, b) for a, b in gaps if v is not None and a - .02 <= v < b - .02), None)
         if g:
@@ -273,3 +304,6 @@ for beat, voice, sub, clean, marks, cached, fresh in beats:
     print(f"{beat}: {dur} s, {len(marks)} marks")
 save(); done.append(1)
 print(f"{len(timings)} beats in {tf}; synthesized {spent} characters, about ${spent * PRICE:.2f}")
+if a.no_level:   # level.py's own default is a picture book's -18, not the -14 this run would have given
+    print(f"--no-level: the clips stay at the service's loudness (about -23 LUFS). After treating them, level them to the "
+          f"loudness meant here: level.py {out}/*.mp3 --lufs {a.lufs:g} --peak {a.peak:g} (level.py alone uses -18 LUFS)")
