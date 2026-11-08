@@ -14,7 +14,7 @@ function scene3(p, D, m) {
   stingAt('scene3');
   st.cam.shake(T_POP, .35, 8);
   sfx('scene3', 0, 'whirr', .9); sfx('scene3', T_POP, 'pop', 1.8); sfx('scene3', T_POP + .05, 'whoosh', .8);
-  sfx('scene3', T_LAND, 'boing', 1); sfx('scene3', 1.05, 'rain', .3, { loop: true });
+  sfx('scene3', T_LAND, 'boing', 1);
   const flip = at('c02', .25);
   sfx('scene3', flip, 'whoosh', .7); sfx('scene3', flip + .18, 'flap', 1.2);
   stopClock(D, (q, f) => {

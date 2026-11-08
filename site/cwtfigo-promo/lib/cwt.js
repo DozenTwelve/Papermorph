@@ -9,8 +9,7 @@
    opening 0 … 1 or a shape), brow (-1 angry … 1 worried), headR/headY (head tilt and drop; Doc and Martin), bob
    (the whole figure up), squash (1 = none), lean (degrees), armL/armR (degrees, + raises outward, 0 hangs),
    reachL/reachR (arm length, 1 rest), frontL/frontR (draw that arm in front of the body), hold/holdL ({ name, w, x, y,
-   r, upright, text }: a prop picture in the screen-right / screen-left mitten), o (opacity), turn (horizontal scale, 1
-   … -1: a swivel on a stool squeezes through 0), bliss (eyes shut happy: two arcs), back (Claude seen from behind: no face, arms behind him). Claude also takes spin (the ✻'s turn
+   r, upright, text }: a prop picture in the screen-right / screen-left mitten), o (opacity), bliss (eyes shut happy: two arcs), back (Claude seen from behind: no face, arms behind him). Claude also takes spin (the ✻'s turn
    in degrees), star (its colour) and puff (cigar smoke on). */
 'use strict';
 const CW_INK = '#1d1a1a';
@@ -175,7 +174,7 @@ function cwPuppet(parent, who) {
       const [fx, fy] = spec.feet;
       const back = !!(o.back && backImg);   // from behind: the back picture, no face, both arms behind the body
       if (back !== lastBack) { lastBack = back; backImg.setAttribute('visibility', back ? 'inherit' : 'hidden'); front.setAttribute('visibility', back ? 'hidden' : 'inherit'); faceG.setAttribute('visibility', back ? 'hidden' : 'inherit'); }
-      tf(fig, `scale(${(s * (o.turn ?? 1)).toFixed(4)} ${(s * sq).toFixed(4)}) translate(0 ${(-bob / s).toFixed(1)}) rotate(${o.lean || 0}) translate(${-fx} ${-fy})`);
+      tf(fig, `scale(${s.toFixed(4)} ${(s * sq).toFixed(4)}) translate(0 ${(-bob / s).toFixed(1)}) rotate(${o.lean || 0}) translate(${-fx} ${-fy})`);
       if (spec.head) {
         const [nx, ny] = spec.neck;
         tf(headG, `translate(0 ${o.headY || 0}) rotate(${o.headR || 0} ${nx} ${ny})`);

@@ -35,7 +35,6 @@ function scene6(p, D, m) {
   stingAt('scene6');
   const ticks = ['router', 'cable', 'port'].map((k, i) => ({ t: m(`c11.${k}`) + .5, g: stamp(p, `<g transform="translate(1180 ${250 + i * 150}) rotate(-6)"><rect x="-10" y="-50" width="330" height="100" rx="16" fill="#fff" stroke="${CW_INK}" stroke-width="7"/><text x="30" y="20" font-family="${MARKER}" font-size="54" fill="${CW_INK}">${k}</text><circle cx="262" r="36" fill="#2f9e44" stroke="${CW_INK}" stroke-width="6"/><path d="M246,2 L258,16 L282,-14" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></g>`) }));
   const twoAm = { t: m('c11.update') + 1.2, g: stamp(p, `<g transform="translate(1250 700) rotate(5)"><rect x="-190" y="-60" width="380" height="110" rx="14" fill="#1b1030" stroke="#ff4fb4" stroke-width="6"/><text y="20" text-anchor="middle" font-family="${MONO}" font-weight="800" font-size="60" fill="#ff4fb4">02:01 AM</text></g>`) };
-  sfx('scene6', 0, 'rain', .25, { loop: true }); sfx('scene6', 0, 'hum', .3, { loop: true });
   sfx('scene6', .05, 'typing', 1.2); sfx('scene6', 1.0, 'plug', 1.8); sfx('scene6', fly, 'typing', .8);
   ticks.forEach(k => sfx('scene6', k.t, 'pop', 1));
   sfx('scene6', conn + .55, 'chime', 1); sfx('scene6', seat, 'typing', .9); sfx('scene6', seat + .3, 'tick', 1.4); sfx('scene6', find, 'typing', .6);
@@ -52,7 +51,7 @@ function scene6(p, D, m) {
       const tw = span(q, .78, .98);
       if (q < .78) cl = typingBack(st, cl, q, 18);
       else {
-        const o = { ...cl, ...toward(TYPE_AT, CABLE_AT, tw), lean: -6 * tw, eyeY: .8, eyeX: -.6, ...flip(Math.min(1, tw * 1.6), false) };
+        const o = { ...cl, ...toward(TYPE_AT, CABLE_AT, tw), lean: -6 * tw, eyeY: .8, eyeX: -.6, ...swap(q, .78, false) };
         const a = st.claude.aim({ ...o, lean: 0 }, 'L', [PLACE.port[0] + 8, PLACE.port[1] + 4]);
         cl = { ...o, armL: 15 + (a.armL - 15) * tw, reachL: 1 + (a.reachL - 1) * tw, armR: 25 };
       }

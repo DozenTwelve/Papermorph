@@ -13,7 +13,6 @@ function scene8(p, D, m) {
     { ...shot(at('d04', 1.1) - .08, 'close', 'doc'), view: { ...v, z: v.z * 1.15, y: v.y + 18 } }, shot(BLACK8(), 'black')];
   const S = shooter(st, shots, { black });
   stingAt('scene8');
-  sfx('scene8', 0, 'rain', .2, { loop: true }); sfx('scene8', 0, 'hum', .3, { loop: true });
   sfx('scene8', snap - .05, 'whoosh', 1); sfx('scene8', snap + .1, 'flap', 1.5);
   stopClock(D, (q, f) => {
     const cur = S(q);

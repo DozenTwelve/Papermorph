@@ -18,8 +18,12 @@ function typingBack(st, o, q, rate = 10) {
   return { ...b, ...st.claude.aim({ ...b, lean: 0 }, 'L', [lx - kx + 10 * tap, ky - 6 * tap]), ...st.claude.aim({ ...b, lean: 0 }, 'R', [lx + kx - 10 * (1 - tap), ky - 6 * (1 - tap)]),
     spin: q * 200, starS: 1 + .08 * Math.sin(q * rate * 2) };
 }
-// A swivel between front and back: u 0 … 1, the figure squeezes through edge-on and comes out the other side.
-const flip = (u, toBack) => ({ turn: Math.max(.04, Math.abs(Math.cos(Math.PI * u))), back: toBack ? u > .5 : u < .5 });
+// Front to back (or back) in one frame, as the show turns its cut-outs, sold with a little hop and a squash on landing.
+function swap(q, t0, toBack) {
+  const o = { back: toBack ? q >= t0 : q < t0 }, u = (q - t0) / .25;
+  if (u >= 0 && u < 1) { o.bob = 22 * Math.sin(Math.PI * u); if (u > .7) o.squash = .93; }
+  return o;
+}
 const toward = (a, b, u) => ({ x: a[0] + (b[0] - a[0]) * u, y: a[1] + (b[1] - a[1]) * u });
 function scene4(p, D, m) {
   const st = garageStage(p), at = (c, t = 0) => clipAt('scene4', PRE4, c, t), end = c => at(c) + TIMINGS[c].dur;
@@ -61,12 +65,11 @@ function scene4(p, D, m) {
   // round 1: takes the laptop from Martin, sets it on the stool, types; round 2: yanks the plug out of the port and seats
   // it again; round 3: two hops to the shelf, the arm telescopes up, pokes the router
   const take = .4, set = .75, r2 = R[1].work + .1, r3 = R[2].work + .05;
-  sfx('scene4', 0, 'rain', .3, { loop: true }); sfx('scene4', 0, 'hum', .3, { loop: true });
   sfx('scene4', set, 'clack', 1); sfx('scene4', set + .15, 'typing', 1.1);
   sfx('scene4', r2 + .3, 'plug', 1.8); sfx('scene4', r2 + .75, 'plug', 2);
   sfx('scene4', r3 + .1, 'boing', .6); sfx('scene4', r3 + .45, 'boing', .6); sfx('scene4', r3 + .85, 'tick', 1.4); sfx('scene4', r3 + 1.05, 'tick', 1.4);
   R.forEach(r => { sfx('scene4', r.screen, 'typing', .5); sfx('scene4', at(r.ask) - .12, 'whoosh', .5);
-    if (r.ans) { sfx('scene4', at(r.ans) - .05, 'whoosh', .45); sfx('scene4', ok(r.ans), 'tick', 1.2); } });
+    if (r.ans) { sfx('scene4', at(r.ans) - .05, 'whoosh', .3); sfx('scene4', ok(r.ans), 'tick', .6); } });
   stopClock(D, (q, f) => {
     const cur = S(q);
     let ri = 0; R.forEach((r, i) => { if (q >= (r.work ?? r.screen)) ri = i; });
@@ -82,12 +85,11 @@ function scene4(p, D, m) {
         Object.assign(cl0, { armL: 15 + (a.armL - 15) * reach, reachL: 1 + (a.reachL - 1) * reach, armR: 15, lean: -4 * reach, frontL: true });
         carry = `translate(${lx.toFixed(1)} ${ly.toFixed(1)}) scale(${sc.toFixed(3)})`;
       } else {   // turns his back to us and types with both mittens, the keys clacking
-        const tw = span(q, set, set + .2);
-        cl0 = { ...typingBack(st, cl0, q), ...flip(tw, true) };
+        cl0 = { ...typingBack(st, cl0, q), ...swap(q, set, true) };
       }
     } else if (ri === 1) {   // steps right, reaches down to the port, a big yank, a look at the plug, seats it
-      const step = span(q, R[1].work + .1, R[1].work + .3), tw = span(q, R[1].work, R[1].work + .15);
-      Object.assign(cl0, toward(TYPE_AT, CABLE_AT, step), { s: CLAUDE_S, ...flip(tw, false) });
+      const step = span(q, R[1].work + .1, R[1].work + .3);
+      Object.assign(cl0, toward(TYPE_AT, CABLE_AT, step), { s: CLAUDE_S, ...swap(q, R[1].work, false) });
       const out = span(q, r2 + .15, r2 + .3) - span(q, r2 + .6, r2 + .75);
       plug = { at: [PLACE.port[0] + 90 * out, PLACE.port[1] + 30 * out], lit: q > r2 + .75 && Math.floor(q * 6) % 2 === 0 };
       Object.assign(cl0, { eyeX: -.9, eyeY: .9, look: -.5, lean: -6 }, st.claude.aim(cl0, 'L', [plug.at[0] + 12, plug.at[1] + 2]), { armR: 25 + 30 * out });

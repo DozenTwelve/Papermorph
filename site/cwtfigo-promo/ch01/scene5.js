@@ -28,7 +28,6 @@ function scene5(p, D, m) {
   const S = shooter(st, shots, { rm });
   stingAt('scene5'); stingAt('scene5', rmAt, 'uhoh');
   st.cam.shake(at('m11', 2.2), 1.3, 9);
-  sfx('scene5', 0, 'rain', .25, { loop: true }); sfx('scene5', 0, 'hum', .3, { loop: true });
   sfx('scene5', yolo + .1, 'whoosh', .8); sfx('scene5', yolo + .3, 'flap', 1.4); sfx('scene5', smash, 'keysmash', 1.8);
   sfx('scene5', smash + .12, 'chime', .8); sfx('scene5', rmAt + .1, 'typing', .9); sfx('scene5', rmEnd - .12, 'tick', 2);
   sfx('scene5', rmEnd + .25, 'clang', 1.2);

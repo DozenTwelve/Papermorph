@@ -50,13 +50,13 @@ const BEATS = [
 // under the whole film from right after it (its cut starts with that silence, music.py cut --even, -16 LUFS), ducked
 // under the dialogue, drops out for rm -rf until "Kidding." and from Claude's sign through "NO.", comes back on the
 // black and up under the end card, and fades out there.
-music(`audio/bgm/${CW_MUSIC.bgm}.mp3`, undefined, .4, .5);
+music(`audio/bgm/${CW_MUSIC.bgm}.mp3`, undefined, .66, .5);   // under a line (30 %) about -30 LUFS, 12 dB under the -18 LUFS voices
 window.MUSIC_OFF = {
   scene5: t => t >= clipAt('scene5', PRE5, 'm11') - .05 && t < clipAt('scene5', PRE5, 'c10'),
   scene8: t => t >= clipAt('scene8', PRE8, 'd04') - .1 && t < BLACK8(),
   end: t => t > 3.1,   // fades out under the card
 };
-window.MUSIC_UP_IN_PRE = ['end'];   // the card has no voice: the bed comes up from under the dialogue level
+window.MUSIC_UP_IN_PRE = true;   // up to 70 % (about -23 LUFS) in every beat's lead-in with no line: the pop, the terminal, the card
 boot();
 </script>
 </body>

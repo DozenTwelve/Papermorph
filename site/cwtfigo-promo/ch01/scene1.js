@@ -26,7 +26,6 @@ function scene1(p, D, m) {
   const shots = [shot(0, 'wide'), shot(roll1 + .3, 'single', 'martin', door), shot(at('m01', 5.5), 'close', 'martin', door)];
   const S = shooter(st, shots);
   const bangs = [.3, .62, .95, at('m01', .05), at('m01', .52)];
-  sfx('scene1', 0, 'rain', .55, { loop: true }); sfx('scene1', 0, 'hum', .3, { loop: true });
   bangs.forEach((t, i) => sfx('scene1', t, 'knock', i < 3 ? 2.2 : 1.5));
   sfx('scene1', .1, 'sizzle', .35); sfx('scene1', roll0, 'rollup', 1.1);
   stingAt('scene1', 0, 'opener', 1.1);   // the guitar opener, 3 s, then the bed comes in under it (chapter page)

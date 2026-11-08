@@ -25,8 +25,7 @@ function scene7(p, D, m) {
   const S = shooter(st, shots, { term: term.g, book: book.g });
   stingAt('scene7');
   sfx('scene7', 0, 'typing', .7); [1.05, 1.4, 1.75].forEach(t => sfx('scene7', t, 'beep', .5));
-  sfx('scene7', lights + .1, 'chime', 1.2); sfx('scene7', lights, 'rain', .3, { loop: true, to: ins });
-  sfx('scene7', 0, 'hum', .3, { loop: true }); sfx('scene7', run + .05, 'patter', 1.2); sfx('scene7', run + .6, 'rain', .7, { loop: true, to: ins });
+  sfx('scene7', lights + .1, 'chime', 1.2); sfx('scene7', run + .05, 'patter', .7);
   sfx('scene7', shut0, 'shutter', 1.2); sfx('scene7', m('m12.love') + .02, 'latch', 1.3); sfx('scene7', run + .8, 'page', .9); sfx('scene7', ins + .1, 'page', .7);
   stopClock(D, (q, f) => {
     const cur = S(q);

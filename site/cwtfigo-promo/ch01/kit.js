@@ -12,6 +12,9 @@ const PLACE = { doc: [430, 905], martin: [630, 846], claude: [1050, 846], laptop
   shelf: [1440, 846], port: [990, 562], routerPort: [1530, 220] };
 const BENCH = { x0: 236, x1: 600, y: 766 };   // Doc's bench: its top edge; the board lies on it at BOARD
 const BOARD = [452, 758];
+const STAND = [560, 766];   // the iron's stand on Doc's bench (a coil on a foot)
+// The iron resting in its stand, tip down-left in the coil (world coordinates).
+const IRON_IN_STAND = `<image href="../img/props/iron.webp" x="-50" y="-17" width="100" height="34" transform="translate(${STAND[0] + 16} ${STAND[1] - 34}) rotate(-52)"/>`;
 const LAP_W = 300;   // the laptop on the stool, wide enough that Claude's mittens show either side of him from behind
 const LEDS = [1442.5, 1454, 1467.5, 1481.5, 1494, 1508.5];   // the router's lights on the shelf, y 213.7
 const BULB = [903, 109];
@@ -107,7 +110,9 @@ function benchSVG() {
     <path d="M${x0 + 30},${y + 14} H${x1 - 40}" stroke="#8a5a2b" stroke-width="4"/>
     <path d="M${bx - 58},${y} L${bx - 50},${by - 8} H${bx + 58} L${bx + 62},${y} Z" fill="#2f7d3a" stroke="${I}" stroke-width="5" stroke-linejoin="round"/>
     <rect x="${bx - 30}" y="${by - 16}" width="22" height="9" fill="#222"/><rect x="${bx + 12}" y="${by - 14}" width="26" height="7" fill="#c9a23a"/>
-    <circle cx="${x1 - 70}" cy="${y - 12}" r="14" fill="#c0c0c0" stroke="${I}" stroke-width="5"/><circle cx="${x1 - 70}" cy="${y - 12}" r="5" fill="#555"/>`;
+    <circle cx="${x0 + 84}" cy="${y - 12}" r="14" fill="#c0c0c0" stroke="${I}" stroke-width="5"/><circle cx="${x0 + 84}" cy="${y - 12}" r="5" fill="#555"/>
+    <path d="M${STAND[0] - 22},${y} h44 l-8,-10 h-28 Z" fill="#5d6470" stroke="${I}" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M${STAND[0] - 6},${y - 10} l26,-34 M${STAND[0] + 2},${y - 10} l26,-34 M${STAND[0] + 2},${y - 22} l14,0 M${STAND[0] + 10},${y - 32} l14,0" stroke="#9aa2ad" stroke-width="5" stroke-linecap="round"/>`;
 }
 // Solder smoke: a thin grey curl rising from the iron's tip (world coordinates).
 function solderSmoke(x, y, q) {
@@ -321,10 +326,10 @@ const emberAt = (st, o) => st.claude.point(o, [556 + 107 - 20 + 226 * Math.cos(.
 
 /* ---------- music ----------
    The coordinator's score: a 3 s guitar opener (audio/sfx/, played as an effect at the top of scene 1), the bed under
-   the film (audio/bgm/, the chapter page's music()), a sting on a few scene cuts (only those in CW_STINGS: one on
-   every cut got busy) and the uh-oh on rm -rf (scene 5). Swap a track by putting its file in place under the same name. */
-window.CW_MUSIC = window.CW_MUSIC || { opener: 'opener', bgm: 'bgm-a', sting: 'sting-up', uhoh: 'sting-uhoh' };
-const CW_STINGS = ['scene4', 'scene6', 'scene7'];
+   the film (audio/bgm/, the chapter page's music()) and the uh-oh on rm -rf (scene 5); no ambience and no scene-cut
+   stings (the owner's mix). Swap a track by putting its file in place under the same name. */
+window.CW_MUSIC = window.CW_MUSIC || { opener: 'opener', bgm: 'bgm-a', sting: null, uhoh: 'sting-uhoh' };
+const CW_STINGS = [];   // the owner dropped the scene-cut stings: name scenes here (and a sting file) to bring them back
 const stingAt = (scene, t = 0, which = 'sting', vol = 1.2) => {
   if (CW_MUSIC[which] && (which !== 'sting' || CW_STINGS.includes(scene))) sfx(scene, t, CW_MUSIC[which], vol, SFX_BED[CW_MUSIC[which]] || 3);
 };
