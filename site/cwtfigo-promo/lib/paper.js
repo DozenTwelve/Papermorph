@@ -42,6 +42,8 @@ const span = (t, a, b) => ease((t - a) / (b - a));
 
 // draw(q, f) runs once per 12 fps frame with q the frame's time; a pure function of time, like every beat clock.
 // It runs to the beat's end, through the engine's hold after D (HOLD s), so a scene poses sensibly for q up to D + HOLD.
+// D is the beat's narration end on its own clock, the scene's pre already in it (the engine passes pre + clip): a
+// moment `pre + D - x` lies past the end and never shows. stopClock draws the first frame as soon as it is called.
 function stopClock(D, draw) { let last = null; clockRun(t => { const f = Math.floor(t * FPS + 1e-6); if (f === last) return; last = f; draw(f / FPS, f); }, D, { tail: true }); }
 
 /* ---------- camera over a baked set ----------
@@ -79,6 +81,9 @@ function paperCam(p, setName, v0 = {}, { after = null, stages = [] } = {}) {
   // Parallax is measured from the set's own framing (base), wherever the beat's first view is.
   const base = { x: 800, y: 450, z: 1 }, start = { ...base, ...v0 };
   let shown = start;   // the view the last apply() drew
+  let drawn = null;   // the last apply()'s time and pan, so a layer moved after it is placed for the same frame
+  const place = L => { const { q, dx, dy } = drawn;
+    tf(L.g, `translate(${((1 - L.k) * dx).toFixed(1)} ${((1 - L.k) * dy).toFixed(1)})${L.fx ? ' ' + L.fx(Math.floor(q * FPS / 2) * 2 / FPS) : ''}`); };
   function at(t, n = ops.length) {
     const s = { ...start };
     for (let i = 0; i < n && ops[i].t0 <= t; i++) {
@@ -97,7 +102,9 @@ function paperCam(p, setName, v0 = {}, { after = null, stages = [] } = {}) {
     layer: name => layers.find(L => L.name === name)?.g,   // a set layer's group, to move, clip or fade one layer (a pond draining)
     // move(name, q => transform) adds a transform to a set layer each frame, after its parallax: grass swaying from its
     // foot (q => `translate(0 860) skewX(${1.5 * Math.sin(q * 1.9)}) translate(0 -860)`), clouds drifting (q => `translate(${q * 6} 0)`).
-    move(name, fn) { const L = layers.filter(L => L.name === name); if (!L.length) console.warn(`paperCam.move: set '${setName}' has no layer '${name}'`); L.forEach(L => L.fx = fn); return cam; },
+    // Set before or after apply() in a frame, it draws that frame: a layer moved after apply() is placed again at once
+    // (a rebuilt beat's first frame is drawn the moment stopClock is called).
+    move(name, fn) { const L = layers.filter(L => L.name === name); if (!L.length) console.warn(`paperCam.move: set '${setName}' has no layer '${name}'`); L.forEach(L => { L.fx = fn; if (drawn) place(L); }); return cam; },
     onPlane(name, sx, sy) {
       const L = layers.find(L => L.name === name), s = shown;
       if (!L) { console.warn(`paperCam.onPlane: set '${setName}' has no layer '${name}'`); return { x: sx, y: sy }; }
@@ -110,16 +117,52 @@ function paperCam(p, setName, v0 = {}, { after = null, stages = [] } = {}) {
       let sx = 0, sy = 0;
       for (const [t0, d, amp] of shakes) if (camQ >= t0 && camQ < t0 + d) { sx += jit(f, 91) * amp; sy += jit(f, 92) * amp; }
       tf(view, `translate(${800 + sx} ${450 + sy}) scale(${s.z}) translate(${-s.x} ${-s.y})`);   // tf skips an unchanged value (a repaint in Firefox)
-      const dx = s.x - base.x, dy = s.y - base.y;
+      drawn = { q, dx: s.x - base.x, dy: s.y - base.y };
       let soft = false; for (const [t0, on] of softs) if (camQ >= t0) soft = on;
       for (const L of layers) {
-        tf(L.g, `translate(${((1 - L.k) * dx).toFixed(1)} ${((1 - L.k) * dy).toFixed(1)})${L.fx ? ' ' + L.fx(Math.floor(q * FPS / 2) * 2 / FPS) : ''}`);
+        place(L);
         if (L.blur) { const b = soft === 'all' || (soft && L.k < 1); vis(L.blur, b); vis(L.sharp, !b); }   // never 'visible': it would show through a hidden camera
       }
       FLICKER.style.opacity = (.02 + .02 * jit(f, 30)).toFixed(3);   // the exposure flicker of real frames
     },
   };
   return cam;
+}
+
+/* ---------- coverage: wides for what happens, singles for who speaks ----------
+   coverage(cam, shots, { cast, wideOnly, overlays, D }) cuts cam at each shot and returns shot(q): the shot on screen
+   at q, with on(name), whether that puppet shows in it. A shot is { t, kind, who, view }: 'wide' (the whole stage,
+   the set sharp; view defaults to the set's own framing), 'single' or 'close' (the speaker `who` alone, the set behind
+   gone soft; view frames it), or the name of an overlay in `overlays` (an insert or a screen filling the frame, shown
+   only during its shot). In a single only its speaker shows: every other puppet in `cast` ({ name: puppet }) is hidden,
+   and so is every piece in `wideOnly` (props on the puppets' plane, a laptop, a cable, which would stay sharp in front of
+   the soft set). Hidden puppets need no pose: pose only those shot(q).on(name) says show, which Firefox thanks you
+   for. A shot at or past D (the beat's end on its clock, pre included) never shows, and a single of someone not in
+   the cast or an unknown overlay frames nothing: each is named in a console warning, which check.py prints.
+     const shot = coverage(cam, [{ t: 0, kind: 'wide' }, { t: m('s02.ask'), kind: 'single', who: 'kid', view: { x: 640, y: 560, z: 2.2 } },
+       { t: m('s02.look'), kind: 'note' }], { cast: { kid, cat }, wideOnly: [table], overlays: { note: noteInsert.g }, D });
+     stopClock(D, (q, f) => { const s = shot(q); if (s.on('kid')) kid.pose({ ... }, f); if (s.on('cat')) cat.pose({ ... }, f); cam.apply(q, f); }); */
+function coverage(cam, shots, { cast = {}, wideOnly = [], overlays = {}, D = Infinity } = {}) {
+  shots = [...shots].sort((a, b) => a.t - b.t);
+  const framed = k => k === 'single' || k === 'close';
+  for (const s of shots) {
+    if (s.t >= D) console.warn(`coverage: the ${s.kind} shot at ${s.t.toFixed(2)} s is at or past the beat's end (D ${D.toFixed(2)}, pre included): it never shows`);
+    if (framed(s.kind) && !cast[s.who]) console.warn(`coverage: a ${s.kind} of '${s.who}', who is not in the cast (${Object.keys(cast).join(', ') || 'none given'})`);
+    if (s.kind !== 'wide' && !framed(s.kind) && !overlays[s.kind]) console.warn(`coverage: no overlay '${s.kind}' (${Object.keys(overlays).join(', ') || 'none given'})`);
+    if (s.kind === 'wide' || s.view) { cam.cut(s.view || { x: 800, y: 450, z: 1 }, s.t); cam.soft(s.t, s.kind === 'wide' ? false : 'all'); }
+  }
+  let last = null;
+  return q => {
+    let cur = shots[0]; for (const s of shots) if (q >= s.t) cur = s;
+    const wide = cur.kind === 'wide', over = !wide && !framed(cur.kind);
+    if (cur !== last) {   // visibility written only at a cut
+      last = cur;
+      for (const [k, g] of Object.entries(overlays)) vis(g, k === cur.kind);
+      for (const [n, p] of Object.entries(cast)) vis(p.g, wide || !over && cur.who === n);
+      for (const e of wideOnly) vis(e, wide);
+    }
+    return { ...cur, on: n => wide || !over && cur.who === n };
+  };
 }
 
 /* ---------- small live pieces ---------- */
