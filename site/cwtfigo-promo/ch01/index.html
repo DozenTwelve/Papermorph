@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude, what the fuck is going on?</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<!-- The CWTFIGO promo: one beat per scene. Order matters: engine, sets, kit, cast, the audio data (eleven.py: timings.js;
+     mouths.py: mouths.js; join.py: shots.js), shared helpers, the episode kit, then the scenes. -->
+<script src="../lib/engine.js"></script>
+<script src="../img/sets/sets.js"></script>
+<script src="../img/puppets/baked.js" onerror="0"></script>
+<script src="../lib/paper.js"></script>
+<script src="../lib/cast.js"></script>
+<script src="audio/en/timings.js"></script>
+<script src="audio/en/mouths.js"></script>
+<script src="audio/en/shots.js"></script>
+<script src="../lib/shared.js"></script>
+<script src="../lib/cwt.js"></script>
+<script src="kit.js"></script>
+<script src="scene1.js"></script>
+<script src="scene2.js"></script>
+<script src="scene3.js"></script>
+<script src="scene4.js"></script>
+<script src="scene5.js"></script>
+<script src="scene6.js"></script>
+<script src="scene7.js"></script>
+<script src="scene8.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 1, title: 'Claude, what the fuck is going on?', minutes: 2, language: 'en', film: true };
+try { if (localStorage.getItem('captions') === null) setCaptions(true, false); } catch {}   // captions on at the first visit
+
+const BEATS = [
+  ['scene1', 'The door', (m, D) => scene1(panel(0), D, m), { lead: false, pre: PRE1 }],
+  ['scene2', 'You ask Claude', (m, D) => scene2(panel(0), D, m), { lead: false, pre: PRE2 }],
+  ['scene3', 'Pop', (m, D) => scene3(panel(0), D, m), { lead: false, pre: PRE3 }],
+  ['scene4', 'Can I run this?', (m, D) => scene4(panel(0), D, m), { lead: false, pre: PRE4 }],
+  ['scene5', 'YOLO', (m, D) => scene5(panel(0), D, m), { lead: false, pre: PRE5 }],
+  ['scene6', 'Found it', (m, D) => scene6(panel(0), D, m), { lead: false, pre: PRE6 }],
+  ['scene7', 'Online', (m, D) => scene7(panel(0), D, m), { lead: false, pre: PRE7 }],
+  ['scene8', 'Tag', (m, D) => scene8(panel(0), D, m), { lead: false, pre: PRE8 }],
+  ['end', 'CWTFIGO', (m, D) => endScene(panel(0), D), { lead: false, dur: 4.5 }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+// The guitar opener under scene 1 once the coordinator's file is in audio/bgm/ (CW_MUSIC in kit.js names it).
+if (CW_MUSIC.opener) music(`audio/bgm/${CW_MUSIC.opener}.mp3`, ['scene1'], .5);
+boot();
+</script>
+</body>
+</html>
