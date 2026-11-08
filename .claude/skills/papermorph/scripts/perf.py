@@ -4,6 +4,12 @@ three moments in each beat (start, middle, near the end), plus every beat transi
 time and frames over 50 ms; the worst cases come last.
 
     uv run --with playwright perf.py ch11 [OUT.txt] [--url http://localhost:8765/<book>/] [--ref ch00:map@3]
+    uv run --with playwright perf.py ch01 --beat scene8 [--window 0.5]   # one beat end to end in short windows
+
+Each row also names the beat-clock time of its slowest frame (worst @t), so a slow window points at the moment to look
+at. A 2 s window says only which part of a beat is slow; --beat BEAT (its id or index) times that beat from 0 to its
+end in back-to-back windows of --window s (default 0.5), printed in time order, so the stretch that costs shows where
+it starts and stops (a close-up, a cut to black, a layer that appears): then hide or simplify what is on screen there.
 
 The numbers measure the machine as much as the page: other exports or agents on it multiply every frame time. The run
 prints the load average and the core count before and after, with a warning when the load is over the cores. --ref
@@ -15,15 +21,17 @@ from playwright.async_api import async_playwright
 from browsers import answers, firefox, not_beats
 SETUP = r"""
 () => { window.__d = []; let last = performance.now();
-  const loop = now => { window.__d.push(now - last); last = now; requestAnimationFrame(loop); }; requestAnimationFrame(loop); }
+  const loop = now => { window.__d.push([now - last, P.t]); last = now; requestAnimationFrame(loop); }; requestAnimationFrame(loop); }
 """
 RUN = r"""
 async ([i, t, ms]) => {
   seek(i, true); P.afail = true; P.audio && P.audio.pause(); P.t = t < 0 ? P.end + t : t;
   await new Promise(r => setTimeout(r, 300)); window.__d = [];
   await new Promise(r => setTimeout(r, ms));
-  const d = window.__d.slice(1).sort((a, b) => a - b), n = d.length;
-  return { mean: +(d.reduce((a, b) => a + b, 0) / n).toFixed(1), p95: +d[Math.floor(n * .95)].toFixed(1), max: +d[n - 1].toFixed(1), over50: d.filter(x => x > 50).length };
+  const w = window.__d.slice(1), d = w.map(x => x[0]).sort((a, b) => a - b), n = d.length;
+  const worst = w.reduce((a, b) => b[0] > a[0] ? b : a, [0, 0]);   // the slowest frame and the beat time it drew
+  return { mean: +(d.reduce((a, b) => a + b, 0) / n).toFixed(1), p95: +d[Math.floor(n * .95)].toFixed(1), max: +d[n - 1].toFixed(1),
+           over50: d.filter(x => x > 50).length, at: +worst[1].toFixed(2) };
 }
 """
 def load():
@@ -35,6 +43,7 @@ def load():
 
 async def page(b, url):
     pg = await b.new_page(viewport={"width": 1512, "height": 982})
+    pg.errs = []; pg.on("pageerror", lambda e: pg.errs.append(str(e)))
     await pg.goto(url); await pg.wait_for_timeout(800)
     await pg.evaluate(SETUP)
     return pg
@@ -50,6 +59,28 @@ async def reference(b, base, ref):
     return f"reference {ref} @{t:.1f}: mean {v['mean']:5.1f}  p95 {v['p95']:5.1f}  max {v['max']:6.1f}  >50ms {v['over50']}"
 
 
+ROW = lambda k, v: f"{k:28s} mean {v['mean']:5.1f}  p95 {v['p95']:5.1f}  max {v['max']:6.1f}  >50ms {v['over50']}  worst @{v['at']:.2f}"
+
+
+async def one_beat(ch, base, beat, win):
+    """--beat: the beat from 0 to its end in back-to-back windows of win s, in time order."""
+    answers(f"{base}{ch}/"); print(load(), flush=True)
+    async with async_playwright() as p:
+        b = await p.firefox.launch(**firefox())
+        pg = await page(b, f"{base}{ch}/?beat=0&t=0")
+        if msg := await not_beats(pg, f"{base}{ch}/", pg.errs): sys.exit(msg)
+        i = await pg.evaluate(f"BEATS.findIndex((b, i) => b.id === {beat!r} || String(i) === {beat!r})")
+        if i < 0: sys.exit(f"--beat: no beat {beat!r} in {ch} ({', '.join(await pg.evaluate('BEATS.map(b => b.id)'))})")
+        await pg.evaluate(f"seek({i}, true)"); end = await pg.evaluate("P.end")
+        t = 0.0
+        while t < end - .05:
+            v = await pg.evaluate(RUN, [i, max(0, t - .3), round(win * 1000)])   # RUN lets the clock run 0.3 s before it times
+            print(ROW(f"{beat} {t:5.2f}-{min(end, t + win):5.2f}", v) + ("  <-" if v["over50"] else ""), flush=True)
+            t += win
+        await b.close()
+    print(load())
+
+
 async def main(ch, out, base, ref):
     answers(f"{base}{ch}/")
     head = [load()]; print(head[0], flush=True)
@@ -57,7 +88,7 @@ async def main(ch, out, base, ref):
         b = await p.firefox.launch(**firefox())
         if ref: head.append(await reference(b, base, ref) + " (before)"); print(head[-1], flush=True)
         pg = await page(b, f"{base}{ch}/?beat=0&t=0")
-        if msg := await not_beats(pg, f"{base}{ch}/"): sys.exit(msg)
+        if msg := await not_beats(pg, f"{base}{ch}/", pg.errs): sys.exit(msg)
         beats = await pg.evaluate("BEATS.map(b => [b.id, !!b.ask, (b.pre || 0) + TIMINGS[b.id].dur])")
         res = []
         for i, (bid, ask, dur) in enumerate(beats):
@@ -69,7 +100,7 @@ async def main(ch, out, base, ref):
         await b.close()
     head.append(load())
     res.sort(key=lambda r: (r[1]["over50"], r[1]["mean"]))
-    lines = [f"{k:28s} mean {v['mean']:5.1f}  p95 {v['p95']:5.1f}  max {v['max']:6.1f}  >50ms {v['over50']}" for k, v in res]
+    lines = [ROW(k, v) for k, v in res]
     txt = "\n".join(lines); print(txt); print("\n".join(head[1 if not ref else 2:]))
     if out: open(out, "w").write(f"Firefox (Playwright), 1512x982, {ch}\n" + "\n".join(head) + "\n" + txt + "\n")
 
@@ -77,5 +108,8 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("chapter"); ap.add_argument("out", nargs="?"); ap.add_argument("--url", default="http://localhost:8765/")
     ap.add_argument("--ref", metavar="CH:BEAT[@T]", help="a reference moment timed before and after, e.g. ch00:map@3")
+    ap.add_argument("--beat", help="time this beat (id or index) end to end in short windows instead")
+    ap.add_argument("--window", type=float, default=.5, help="--beat's window in s (default 0.5)")
     a = ap.parse_args()
-    asyncio.run(main(a.chapter, a.out, a.url.rstrip("/") + "/", a.ref))
+    if a.beat is not None: asyncio.run(one_beat(a.chapter, a.url.rstrip("/") + "/", a.beat, a.window))
+    else: asyncio.run(main(a.chapter, a.out, a.url.rstrip("/") + "/", a.ref))

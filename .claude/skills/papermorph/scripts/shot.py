@@ -23,19 +23,21 @@ the sheets first). --out is required: give each review its own folder (books/<bo
               (stories.md: 1400 wide); --name NAME names it OUT/NAME.webp (one moment only)
 
 A file the page asks for and the server lacks is named (missing file (404): URL) and makes the exit status 1; the
-shots are still taken. Any other page error at load stops the run before the shots.
+shots are still taken. Before the voice exists (key frames for a storyboard) the voice scripts' own files
+(audio/<lang>/timings.js, mouths.js, shots.js) are named in a note instead and do not count as errors. Any other page error at load stops the run before the shots.
 --query adds to the page's query (tags: the source and AI tags an upright film's export shows). Uses ?beat=N&t=0,
 then sets the beat clock to the moment, as playback would reach it, and waits for the stage's pictures to decode. The page runs with reduced
 motion, which stops the CSS-only motion that runs on the wall clock (page cross-fades, cards sliding in, the mascot):
 a shot is the same picture however busy the machine is, so several runs at once (parallel scene workers) are safe.
 """
-import argparse, asyncio, io
+import argparse, asyncio, io, re
 import sys
 from pathlib import Path
 from playwright.async_api import async_playwright
 from browsers import IMAGES_READY, LOAD_FAILED, answers, exe, missing, not_beats
 from PIL import Image, ImageDraw
 
+VOICE_FILES = re.compile(r"/audio/[\w-]+/(timings|mouths|shots)\.js$")
 CLEAN = """#bar, #caption, #ui, #soundNote, #help, #cover, .paused-mark { display: none !important; }
 #frame { border-radius: 0 !important; box-shadow: none !important; }"""
 
@@ -54,7 +56,7 @@ async def main(a):
         missing(pg, miss.append)   # a missing file is named, and the shots are still taken
         base = f"{a.url}{a.chapter}/index.html?{a.query + '&' if a.query else ''}"
         await pg.goto(base + "beat=0&t=0"); await pg.wait_for_timeout(500)
-        if msg := await not_beats(pg, base):
+        if msg := await not_beats(pg, base, errs):
             print(msg); await b.close(); return 1
         if errs:
             print("page errors, so no shots:", *errs, *miss, sep="\n  "); await b.close(); return 1
@@ -124,7 +126,12 @@ async def main(a):
             for j, f in enumerate(fs[k:k + 4]):
                 sheet.paste(Image.open(f).resize((w, h)), ((j % 2) * w, (j // 2) * h))
             sheet.save(a.out / f"{a.chapter}_sheet_{t}_{k // 4}.png")
-    errs += miss
+    # before the voice (a storyboard's key frames) the voice scripts' files do not exist yet: a note, not an error
+    voice = [m for m in miss if VOICE_FILES.search(m)]
+    if voice:
+        print(f"not voiced yet, so these are missing (tts.py or eleven.py, mouths.py and join.py write them): "
+              f"{', '.join(sorted({m.rsplit('/', 1)[-1] for m in voice}))}; the beats ran at the lengths the page gives them")
+    errs += [m for m in miss if m not in voice]
     print("errors:", sorted(set(errs))[:8] or "none", "| shots in", a.out)
     return 1 if errs else 0
 
