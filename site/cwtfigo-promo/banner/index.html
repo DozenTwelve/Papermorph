@@ -6,25 +6,23 @@
 <title>CWTFIGO banner</title>
 <link rel="stylesheet" href="../lib/book.css">
 <style>
-  html, body { margin: 0; background: #16130f; }
+  html, body { margin: 0; }
   svg#banner { display: block; width: 1280px; height: 640px; position: absolute; top: 0; left: 0; }
   #frame { display: none; }   /* the engine builds its player frame on load; this page has no player */
 </style>
 </head>
 <body>
-<!-- The CWTFIGO repository banner and social preview (1280 × 640), drawn with the film's own puppets and set: Claude on
-     the left with his cigar, Martin on the right holding up his fixed laptop, the title between them in the end card's
-     lettering. ?line=1 adds "Claude, what the fuck is going on?" under the title. Rendered to PNG by a screenshot. -->
+<!-- The CWTFIGO repository banner and social preview (1280 × 640): the title in the end card's lettering, filling most
+     of the width, and Claude, the film's own puppet, leaning on its C, a mitten on the letter's top, his shoulder against
+     it. A flat ground: dark (default) or ?theme=light for GitHub's light mode. Rendered to PNG by a screenshot
+     (tools/cwtfigo-promo/banner.py). -->
 <svg id="banner" viewBox="0 0 1280 640" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <radialGradient id="bnVignette" cx=".5" cy=".5" r=".75"><stop offset=".45" stop-color="#16130f" stop-opacity=".55"/><stop offset="1" stop-color="#16130f" stop-opacity=".92"/></radialGradient>
-    <radialGradient id="bnGlow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ef601d" stop-opacity=".22"/><stop offset="1" stop-color="#ef601d" stop-opacity="0"/></radialGradient>
-  </defs>
-  <image href="../img/sets/garage/bg-soft.webp" x="-40" y="-20" width="1360" height="765" preserveAspectRatio="xMidYMid slice"/>
-  <rect width="1280" height="640" fill="url(#bnVignette)"/>
-  <ellipse cx="640" cy="320" rx="360" ry="170" fill="url(#bnGlow)"/>
-  <g id="cast"></g>
+  <defs><filter id="bnSoft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="7"/></filter></defs>
+  <rect id="ground" width="1280" height="640"/>
+  <g id="shadows" filter="url(#bnSoft)"></g>
   <g id="title"></g>
+  <g id="contact" filter="url(#bnSoft)"></g>
+  <g id="cast"></g>
 </svg>
 <script src="../lib/engine.js"></script>
 <script src="../lib/paper.js"></script>
@@ -34,26 +32,41 @@
 <script>
 'use strict';
 {   // a block of its own: the engine and kit scripts above declare globals such as M
-const line = new URLSearchParams(location.search).has('line');
-const cast = document.getElementById('cast');
-// Claude: front on, half-lidded, the grid-teeth smirk, the cigar, the ✻ on his antenna
-claudePuppet(cast).pose({ x: 194, y: 574, s: 1.75, lids: .45, brow: .2, look: .15, eyeX: .3, mouth: 0, cigar: true, spin: 18,
-  armL: 14, armR: 14 }, 0);
-// Martin: the "My configs!" pose, cleaned up: the open laptop held up at his chest by the sides of its base, his loud
-// desktop on it, a big open grin
-const mart = martinPuppet(cast), M = { x: 1108, y: 574, s: 1.02, lids: 0, brow: .15, mouth: 'D', eyeX: -.1, headR: -4 };
-const k = CW.martin.K * M.s, w = 440, cy = -520, hw = w / 2 + 6;
-const DESK = `<g transform="scale(${(w / 415).toFixed(3)})"><g transform="translate(-152 -106)">${screenSVG('desk', 152, 72, 304, 144)}</g></g>`;
-mart.pose({ ...M, chest: { name: 'laptop-open', w, y: cy, screen: DESK },
-  ...mart.aim(M, 'L', [M.x - hw * k, M.y + (cy + .22 * w) * k]), ...mart.aim(M, 'R', [M.x + hw * k, M.y + (cy + .22 * w) * k]),
-  frontL: true, frontR: true }, 0);
-// the title, in the end card's lettering
-const t = document.getElementById('title');
-t.innerHTML = `<text x="640" y="${line ? 318 : 348}" text-anchor="middle" font-family="${MARKER}" font-size="118" fill="#ef601d"
-    stroke="#16130f" stroke-width="10" paint-order="stroke" letter-spacing="2">CWTFIGO</text>` +
-  (line ? `<text x="640" y="382" text-anchor="middle" font-family="${MARKER}" font-size="30" fill="#f4ede0" stroke="#16130f" stroke-width="6" paint-order="stroke">Claude, what the fuck is going on?</text>` : '');
-document.fonts.ready.then(() => Promise.all([...document.images, ...document.querySelectorAll('image')].map(i => i.decode ? i.decode().catch(() => {}) : 0)))
-  .then(() => document.body.dataset.ready = '1');
+const light = new URLSearchParams(location.search).get('theme') === 'light';
+const $ = id => document.getElementById(id);
+$('ground').setAttribute('fill', light ? '#f4ede0' : '#16130f');
+const shade = light ? '#5a3f2a' : '#000', shadeO = light ? .3 : .65;
+const FLOOR = 512, LEFT = 352, RIGHT = 1218;   // the letters stand on FLOOR between LEFT and RIGHT
+
+document.fonts.ready.then(() => {
+  // the title: sized so it fills LEFT … RIGHT, standing on the floor; the C on its own so Claude can lean on it
+  const t = $('title'), style = `font-family="${MARKER}" fill="#ef601d" stroke="${CW_INK}" stroke-width="7" paint-order="stroke" stroke-linejoin="round"`;
+  t.innerHTML = `<text id="word" ${style} font-size="100">CWTFIGO</text>`;
+  const size = 100 * (RIGHT - LEFT) / $('word').getBBox().width;
+  t.innerHTML = `<text id="c" ${style} font-size="${size.toFixed(1)}">C</text><text id="rest" ${style} font-size="${size.toFixed(1)}">WTFIGO</text>`;
+  const c = $('c'), rest = $('rest');
+  const base = FLOOR - size * .14;   // the letters' feet on the floor (the marker's caps sit a little under the baseline)
+  c.setAttribute('x', LEFT); c.setAttribute('y', base);
+  rest.setAttribute('x', LEFT + c.getComputedTextLength()); rest.setAttribute('y', base);
+  const cap = size * .72, cTop = base - cap, cw = c.getComputedTextLength();   // the C's box: top, width
+  // Claude, leaning his right side on the C: tilted toward it, the right mitten resting on the letter's top
+  const cl = claudePuppet($('cast'));
+  const top = [LEFT + cw * .34, cTop + 6];   // a point on the top of the C
+  const o = { x: LEFT - 110, y: FLOOR, s: 1.72, lids: .45, brow: .25, look: .2, eyeX: .35, mouth: 0, cigar: true, spin: 18 };
+  const lean = 11, k = CW.claude.K * o.s, [sx0, sy0] = CW.claude.shoulders[1], [fx, fy] = CW.claude.feet, r = lean * Math.PI / 180;
+  // the right shoulder once he leans (the puppet turns about his feet), then the arm from there to the C's top
+  const ddx = (sx0 - fx) * k, ddy = (sy0 - fy) * k, shx = o.x + ddx * Math.cos(r) - ddy * Math.sin(r), shy = o.y + ddx * Math.sin(r) + ddy * Math.cos(r);
+  const reachR = Math.hypot(top[0] - shx, top[1] - shy) / (CW.claude.arm * k);
+  const armR = Math.atan2(top[0] - shx, top[1] - shy) * 180 / Math.PI + lean;   // the arm turns with his lean: add it back
+  cl.pose({ ...o, lean, armR, reachR, frontR: true, armL: 8, reachL: .95 }, 0);
+  // shadows: under his feet and the letters on the floor, and where his mitten rests on the C
+  $('shadows').innerHTML = `<ellipse cx="${o.x + 8}" cy="${FLOOR + 3}" rx="95" ry="10" fill="${shade}" opacity="${shadeO}"/>` +
+    `<rect x="${LEFT - 6}" y="${FLOOR - 4}" width="${RIGHT - LEFT + 12}" height="12" rx="6" fill="${shade}" opacity="${shadeO * .7}"/>`;
+  $('contact').innerHTML = `<ellipse cx="${top[0] + 4}" cy="${top[1] + 12}" rx="24" ry="8" fill="${shade}" opacity="${shadeO * .8}"/>` +
+    `<ellipse cx="${LEFT + 8}" cy="${cTop + cap * .45}" rx="10" ry="${cap * .35}" fill="${shade}" opacity="${shadeO * .55}"/>`;
+  document.body.dataset.geom = JSON.stringify({ size: Math.round(size), cTop: Math.round(cTop), top: top.map(Math.round), shoulder: [shx, shy].map(Math.round), reachR: +reachR.toFixed(2), armR: +armR.toFixed(1) });
+  document.body.dataset.ready = '1';
+});
 }
 </script>
 </body>
