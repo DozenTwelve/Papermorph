@@ -361,7 +361,8 @@ def mix(a):
     print(f"film {L:.2f} s, {len(lines)} lines; music {how}. Momentary loudness (400 ms): the voice while it speaks (its windows "
           "within 10 dB of the line's loudest), the music and beds as their median over the line, an effect as its loudest "
           "against the line's loudest")
-    print(f"{'at':>7}  {'beat':10} {'voice':>6} {'music':>6} {'beds':>6} {'fx':>6}  line")
+    print("voice in LUFS; the other columns in dB against it (-12: 12 dB under the voice), fx against the line's loudest")
+    print(f"{'at':>7}  {'beat':10} {'voice':>6} {'music':>7} {'beds':>7} {'fx':>7}  line")
     rows, flags = [], 0
     for t0, t1, bid, text in lines:
         vmax = span("voice", t0, t1, max)
@@ -372,7 +373,7 @@ def mix(a):
                                 ("a bed close to the voice", bd is not None and v - bd < UNDER_BED),
                                 ("an effect as loud as the line", fx is not None and vmax - fx < UNDER_FX)) if bad]
         flags += bool(why)
-        rel = lambda x, ref=v: f"{x - ref:+6.1f}" if x is not None else f"{'-':>6}"
+        rel = lambda x, ref=v: f"{x - ref:+7.1f}" if x is not None else f"{'-':>7}"
         print(f"{t0:7.2f}  {bid:10} {v:6.1f} {rel(mu)} {rel(bd)} {rel(fx, vmax)}  {text[:48]}" + (f"  <- {', '.join(why)}" if why else ""))
         rows.append((v, mu, bd))
     med = lambda xs: statistics.median(xs) if xs else None
