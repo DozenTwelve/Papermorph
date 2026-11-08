@@ -27,8 +27,11 @@ The sound comes from the engine's own lists (sfx(), music(), MUSIC_OFF and MUSIC
 page that declares its own SFX, BGM, sfx(), music() or MUSIC_OFF (an older book's sound player) hides them from the
 engine: the run names each such global and says that sound is not in the video.
 Odd sizes (an upright --height 720 is 405 wide) are cut to even ones, as H.264 needs. The video is written to
-OUT/chNN.tmp.mp4 and renamed when done, so a failed run leaves an earlier OUT/chNN.mp4 alone. Captions are not burned
-in: upload OUT/chNN.srt with the video. Needs ffmpeg; serve the site over HTTP first (a wrong port or book path stops
+OUT/chNN.tmp.mp4 and renamed when done, so a failed run leaves an earlier OUT/chNN.mp4 alone. Captions go out as
+OUT/chNN.srt to upload with the video; --captions also burns them in, as the page draws them with captions on (its own
+font, box and place, a foreign line's subtitle too), with no ffmpeg subtitle filter, which many ffmpeg builds lack
+(Homebrew's ffmpeg 9 has neither subtitles nor drawtext). --stems also writes OUT/chNN.voice.wav, .effects.wav and
+.music.wav, each as the page plays it before the mix is levelled: a bed or an effect measured against the voice. Needs ffmpeg; serve the site over HTTP first (a wrong port or book path stops
 the run with a plain message). A page load, script or screenshot that takes over --timeout seconds (default 120; a busy
 machine draws slowly) stops the run with a message naming the pass, beat and frame it was on, and exit status 1.
 
@@ -115,7 +118,7 @@ CLASH_JS = """(() => {
     if (own(n) !== undefined && own(n) !== v) out.push(`${n} (the page's own, not the engine's sfx()/music() list)`);
   for (const [n, k] of [['sfx', 'SND.sfx'], ['music', 'SND.bgm']])
     if (typeof own(n) === 'function' && !String(own(n)).includes(k)) out.push(`${n}() (the page's own, replacing the engine's)`);
-  for (const n of ['MUSIC_OFF', 'MUSIC_UP_IN_PRE'])
+  for (const n of ['MUSIC_OFF', 'MUSIC_UP_IN_PRE', 'MUSIC_UP', 'MUSIC_LEVELS'])
     if (own(n) !== undefined && own(n) !== window[n]) out.push(`${n} (a const or let: the engine reads window.${n})`);
   return out;
 })()"""
@@ -162,7 +165,7 @@ async def main(a):
           beats: BEATS.map(b => ({id: b.id, ask: !!b.ask, pre: b.pre || 0, hold: b.hold ?? null, video: b.video ?? null,
             find: !!b.ask && /findWords/.test(String(b.ask))})),
           bgm: SND.bgm.map(m => ({src: m.a.src, beats: m.beats, gain: m.gain, fade: m.fade ?? .8})),
-          upInPre: window.MUSIC_UP_IN_PRE || false})""")
+          upInPre: window.MUSIC_UP_IN_PRE || false, levels: window.MUSIC_LEVELS || {}})""")
         # a film's question beats (CHAPTER.film: the reader acts, e.g. fires) stay in the video: their picture holds `hold` s
         # (BEATS[i].hold, 1.5 by default) where the page waits for the reader, then the next beat plays as if they had acted
         beats = [(i, x['id']) for i, x in enumerate(info['beats']) if (not x['ask'] or info['film']) and x['video'] is not False]
@@ -190,7 +193,7 @@ async def main(a):
         video, part = out / f'{a.chapter}.mp4', out / f'{a.chapter}.tmp.mp4'   # renamed to video when the encoder is done
         # Pass 1: the sound track and the captions, beat by beat at the beat's length on screen.
         end_s = END_SECONDS if asks or a.link else 0   # a picture book ends on its own last scene
-        lengths, starts, counts, music_off, cues, offset, waits, silent = [], [], [], [], [], 0.0, {}, set()
+        lengths, starts, counts, music_off, music_up, cues, offset, waits, silent = [], [], [], [], [], [], 0.0, {}, set()
         for i, bid in beats:
             STEP = f'pass 1 (the sound), beat {bid}'
             await open_beat(pg, base, i)
@@ -211,15 +214,18 @@ async def main(a):
             lengths.append(end); starts.append(offset); counts.append(count)
             music_off.append(await pg.evaluate('([id, n, fps]) => Array.from({length: n}, (_, f) => !!window.MUSIC_OFF?.[id]?.(f / fps))',
                                                [bid, count, a.fps]))
+            music_up.append(await pg.evaluate('([id, n, fps]) => Array.from({length: n}, (_, f) => !!window.MUSIC_UP?.[id]?.(f / fps))',
+                                              [bid, count, a.fps]))
             for k, c in enumerate(T['cues']):   # [t, text, end?]: the page shows it at pre + t
                 stop = c[2] if len(c) > 2 else T['cues'][k + 1][0] if k + 1 < len(T['cues']) else T['dur']
                 if pre + c[0] < end: cues.append((offset + pre + c[0], offset + pre + min(stop, end - pre), c[1]))
             offset += end
         total = offset + end_s
-        track = np.zeros((round(total * RATE) + 1, 2), np.float32)
+        # three stems (voice, effects, music), summed into the mix; --stems writes each at the level the page plays it
+        voice, effects, score = (np.zeros((round(total * RATE) + 1, 2), np.float32) for _ in range(3))
         for k, (i, bid) in enumerate(beats):
             o, pre = starts[k], info['beats'][i]['pre']
-            if bid not in silent: put(track, o + pre, decode(f'{a.url}{a.chapter}/audio/{info["lang"]}/{bid}.mp3'), 1, o + lengths[k])
+            if bid not in silent: put(voice, o + pre, decode(f'{a.url}{a.chapter}/audio/{info["lang"]}/{bid}.mp3'), 1, o + lengths[k])
             for e in info['sfx']:   # effects sit at half volume under the voices; a new scene stops them
                 if e['beat'] != bid: continue
                 fx = decode(e['src'])
@@ -227,27 +233,32 @@ async def main(a):
                     stop = lengths[k] if e.get('to') is None else min(lengths[k], e['to'])
                     step, at = max(.5, len(fx) / RATE - BED_OVERLAP), e['at']
                     while 0 <= at < stop:
-                        put(track, o + at, fx, .5 * e['vol'], o + stop); at += step
+                        put(effects, o + at, fx, .5 * e['vol'], o + stop); at += step
                 elif 0 <= e['at'] < waits.get(bid, lengths[k]):   # a one-shot due past the beat's own end never plays
-                    put(track, o + e['at'], fx, .5 * e['vol'], o + lengths[k])
+                    put(effects, o + e['at'], fx, .5 * e['vol'], o + lengths[k])
         # music: the engine's music player (soundTick), frame by frame: crossfades of the track's `fade` (0.8 s by default), ducked to 30 % in a
         # scene with voices; with MUSIC_UP_IN_PRE (true, or a list of beat ids) the music comes up to 70 % while a beat's
-        # picture runs before its narration, and in a film while the page waits for the reader (the hold)
+        # picture runs before its narration, in the moments MUSIC_UP marks, and in a film while the page waits for the
+        # reader (the hold); MUSIC_LEVELS { under, open } gives those two levels in dB
         fps, n = a.fps, sum(len(m) for m in music_off)
         frames_id = [bid for k, (_, bid) in enumerate(beats) for _ in music_off[k]]
         frames_t = [f / fps for m in music_off for f in range(len(m))]
         frames_off = [x for m in music_off for x in m]
+        frames_up = [x for m in music_up for x in m]
+        lv_ = info['levels'] or {}
+        under = 10 ** (lv_['under'] / 20) if lv_.get('under') is not None else .3
+        open_ = 10 ** (lv_['open'] / 20) if lv_.get('open') is not None else .7
         beat_len = {bid: lengths[k] for k, (_, bid) in enumerate(beats)}
         beat_pre = {x['id']: x['pre'] for x in info['beats']}
         for m in info['bgm']:
-            song, v, duck, pos = decode(m['src']), 0.0, .3, 0.0
+            song, v, duck, pos = decode(m['src']), 0.0, .3, 0.0   # the engine starts at 30 % whatever the levels
             gain = np.zeros(n); at = np.zeros(n, int)
             for f in range(n):
                 bid, t = frames_id[f], frames_t[f]
                 current = bid in m['beats'] and not frames_off[f]
                 v = max(0.0, min(1.0, v + (1 if current else -1) / fps / m['fade'])) if m['fade'] > 0 else float(current)   # 0: a cut
                 up = info['upInPre']
-                want = .7 if (up and (up is True or bid in up) and t < beat_pre[bid]) or t >= waits.get(bid, 1e9) else .3
+                want = open_ if (up and (up is True or bid in up) and t < beat_pre[bid]) or t >= waits.get(bid, 1e9) or frames_up[f] else under
                 duck += max(-1 / fps, min(1 / fps, want - duck))
                 if current: pos = sum(beat_len.get(b, 0) for b in m['beats'][:m['beats'].index(bid)]) + t
                 else: pos += 1 / fps
@@ -258,7 +269,15 @@ async def main(a):
                 # frame f covers track samples [round(f*RATE/fps), round((f+1)*RATE/fps)): at 24, 48 or 120 fps a frame is
                 # not a whole number of samples, and a piece of round(RATE/fps) left a 1-sample gap or overlap (a click)
                 i0, i1 = round(f * RATE / fps), round((f + 1) * RATE / fps)
-                put(track, i0 / RATE, np.take(song, np.arange(at[f], at[f] + i1 - i0), axis=0, mode='wrap'), gain[f])
+                put(score, i0 / RATE, np.take(song, np.arange(at[f], at[f] + i1 - i0), axis=0, mode='wrap'), gain[f])
+        track = voice + effects + score
+        if a.stems:   # each stem as the page plays it, before the mix is levelled: measure a bed against the voice
+            for name, x in (('voice', voice), ('effects', effects), ('music', score)):
+                with wave.open(str(out / f'{a.chapter}.{name}.wav'), 'wb') as w:
+                    w.setnchannels(2); w.setsampwidth(2); w.setframerate(RATE)
+                    w.writeframes((np.clip(x, -1, 1) * 32767).astype('<i2').tobytes())
+            print(f'stems: {", ".join(f"{a.chapter}.{n}.wav" for n in ("voice", "effects", "music"))} in {out}, at the page\'s '
+                  'levels (the mix is levelled after; apply its gain to compare with the MP4)', flush=True)
         peak = float(np.abs(track).max())
         if peak > 1: track *= .98 / peak   # a mix that would clip, turned down as a whole
         wav = mix = audio_dir / 'mix.wav'
@@ -306,6 +325,9 @@ async def main(a):
             STEP = f"pass 2 (the frames), beat {info['beats'][i]['id']} frame {f}"
             if opened.get(w) != i:
                 await open_beat(w, base, i); opened[w], last[w] = i, -1
+                if a.captions:   # the page's own captions, drawn as a reader with captions on sees them
+                    await w.add_style_tag(content='.paused-mark { display: none !important; }')
+                    await w.evaluate('P.started = true; setCaptions(true, false)')
             # evalTo only runs forward and a tween takes its start value when first reached, so overlapping tweens
             # depend on the frames before: each browser steps every frame since its last shot, as one browser would
             # past a film ask's wait start the beat's clock stays at its end and the engine draws the wait (P.idleAt), so
@@ -313,6 +335,8 @@ async def main(a):
             await w.evaluate('([ts, wait]) => { for (const t of ts) { if (wait !== null && t > wait && P.idleAt) { P.t = wait; evalTo(wait); P.idleAt(t - wait); } else { P.t = t; evalTo(t); } } }',
                              [[g / a.fps for g in range(last[w] + 1, f + 1)], waits.get(info['beats'][i]['id'])])
             last[w] = f
+            if a.captions:   # the engine sets the caption on its next animation frame
+                await w.evaluate('new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))')
             return await w.screenshot(clip=clip, type='jpeg', quality=92)
 
         jobs = [(k, i, f) for k, (i, _) in enumerate(beats) for f in range(counts[k])]
@@ -370,6 +394,8 @@ if __name__ == '__main__':
                     help="integrated loudness of the video's sound (default -16; off: as the page mixes it)")
     ap.add_argument('--to', metavar='BEAT', help='stop after this beat (its id): a first part of the film, e.g. one scene to check')
     ap.add_argument('--no-tags', action='store_true', help="an upright film without its source and AI tags (shown by default)")
+    ap.add_argument('--captions', action='store_true', help="burn the page's own captions into the frames (the .srt is written too)")
+    ap.add_argument('--stems', action='store_true', help='also write the voice, effects and music stems as WAV, at the page\'s levels')
     ap.add_argument('--timeout', type=float, default=120, metavar='S',
                     help='seconds a page load, script or screenshot may take before the run stops (default 120)')
     args = ap.parse_args()

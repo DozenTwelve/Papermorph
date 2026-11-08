@@ -14,6 +14,22 @@ changes, so a review on one machine matches another's.
 """
 import os, sys, urllib.error, urllib.request
 
+INSTALL = "uv run --with playwright playwright install chromium firefox"
+
+
+def _no_browser(kind, e, tb):
+    """Every script here imports this file, so one hook turns Playwright's long traceback for a browser it has not
+    downloaded yet into the command that downloads it."""
+    if "Executable doesn't exist" in str(e):
+        at = next((ln.split(" at ", 1)[1] for ln in str(e).splitlines() if "Executable doesn't exist at" in ln), "?")
+        sys.stderr.write(f"Playwright's browser is not installed (no {at}).\nInstall it: {INSTALL}\n"
+                         "or set CHROME to an installed Chrome, Chromium, Brave or Edge for the Chromium runs.\n")
+        return   # the exit status stays 1, as for any uncaught error
+    sys.__excepthook__(kind, e, tb)
+
+
+sys.excepthook = _no_browser
+
 ARGS = ["--no-sandbox", "--disable-dev-shm-usage", "--autoplay-policy=no-user-gesture-required"]
 
 
@@ -47,10 +63,15 @@ NOT_BEATS = ("{url}: no BEATS, so not a beat chapter{explore}; check.py, shot.py
              "An explorable map is checked with explore.py check, shots and perf (references/explore/explore.md)")
 
 
-async def not_beats(pg, url):
-    """The message for a page with no BEATS, or None for a beat chapter."""
+async def not_beats(pg, url, errs=()):
+    """The message for a page with no BEATS, or None for a beat chapter. errs: the page errors caught at load; a page
+    that stopped at load (a clash with an engine global, a syntax error) has no BEATS either, and its first error is
+    the one to name, not the missing BEATS that follows from it."""
     if not await pg.evaluate(NO_BEATS):
         return None
+    if errs:
+        return (f"{url}: the page stopped at load, so it has no BEATS. Its page errors, first one first:\n  "
+                + "\n  ".join(dict.fromkeys(map(str, errs))))
     explore = await pg.evaluate("!!window.MAP")
     return NOT_BEATS.format(url=url, explore=" (it has window.MAP: an explorable map)" if explore else "")
 

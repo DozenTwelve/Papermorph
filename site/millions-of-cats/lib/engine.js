@@ -1508,8 +1508,12 @@ const blanks = rowsIn => (body, api) => {
    An effect still loading when it is due plays late, joined part-way, for up to a second (or its bed).
    music(file, beats, gain, fade): a looping track under the listed beats (all of them by default). Its place is the
    length of its earlier beats plus the clock. It ducks to 30 % under the whole beat, or 70 % in the music-only lead-in
-   (`pre`) of the beats in window.MUSIC_UP_IN_PRE (true: every beat). It crossfades over `fade` s (0: a cut), and
-   window.MUSIC_OFF = { beat: t => true } fades it out for a moment.
+   (`pre`) of the beats in window.MUSIC_UP_IN_PRE (true: every beat) and in the moments window.MUSIC_UP = { beat: t =>
+   true } marks (a gap inside a beat, an end card); window.MUSIC_LEVELS = { under: -12, open: -6 } sets those two in dB
+   (30 % is -10.5, 70 % -3.1). It moves between them at 1 a second (down 4 times faster under a find stop's word). It
+   crossfades over `fade` s (0: a cut), and window.MUSIC_OFF = { beat: t => true } fades it out for a moment.
+   SFX holds the effects of the beats built so far (each beat calls its sfx() when it runs): a script that needs them
+   all opens every beat first, as export.py and music.py do.
    export.py reads SFX, BGM and these settings, and mixes the film by the same rules.
    Films only (a chapter without questions): effects and music go through one Web Audio graph, so ducks, fades and the
    volume slider reach them on phones too (iOS ignores an element's .volume). A pause holds them; a seek stops the effects.
@@ -1650,7 +1654,10 @@ function soundTick(dt) {
   const runs = on && same && P.t > L.t, jump = !same && !(L.i === P.i - 1 && P.t < .5);
   // a word said at a listen-and-find stop (findWords) ducks the music at once, as the narration does
   const saying = !!SND.word && !SND.word.paused && !SND.word.ended;
-  if (!held) SND.duck += Math.max(-dt * (saying ? 4 : 1), Math.min(dt, (wait && !saying || P.t < pre && (up === true || up?.includes?.(id)) ? .7 : .3) - SND.duck));
+  // under the voice and up (lead-ins, MUSIC_UP moments, a film's wait): 30 % and 70 %, or MUSIC_LEVELS' dB
+  const lv = window.MUSIC_LEVELS, under = lv?.under != null ? 10 ** (lv.under / 20) : .3, open = lv?.open != null ? 10 ** (lv.open / 20) : .7;
+  const rise = wait && !saying || P.t < pre && (up === true || up?.includes?.(id)) || !saying && !!window.MUSIC_UP?.[id]?.(P.t);
+  if (!held) SND.duck += Math.max(-dt * (saying ? 4 : 1), Math.min(dt, (rise ? open : under) - SND.duck));
   for (const m of SND.bgm) {
     const k = m.beats.indexOf(id), current = (on || wait) && k >= 0 && !window.MUSIC_OFF?.[id]?.(P.t);
     if (jump) m.off = 0;   // a seek or a replay puts every track back where the film's own timing says

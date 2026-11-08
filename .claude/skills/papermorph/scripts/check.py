@@ -7,7 +7,10 @@ In each browser every beat is opened (?beat=N) and drawn at its middle and its l
 beat and from its frame functions both show, each with the beat it came from. Prints the page errors and the files the page
 asked for that the server lacks (missing file (404): URL, named as shot.py names them; any of either makes the exit
 status 1), the console errors, and the console warnings apart, those known to be harmless marked: Chromium's "GPU
-stall due to ReadPixels" (preserveDrawingBuffer, which the export needs) and three.js's shader-info warning in Firefox.
+stall due to ReadPixels" (preserveDrawingBuffer, which the export needs), three.js's shader-info warning in Firefox, and
+Firefox's "downloadable font: download failed ... status=2152398850" (NS_BINDING_ABORTED: the next ?beat= opened before a
+font finished loading; the font loads on the next page, and a rerun is clean). Those marked so print as they come but
+change nothing; a font error with another status is a real missing or broken font.
 
 Then, from the first browser, each beat's voice length (pre + its clip) against its real length (P.end). A beat runs to
 its last tween plus HOLD (0.6 s), so a tween or a clockRun past D lengthens it silently: the overrun past voice + HOLD
@@ -19,7 +22,8 @@ import argparse, asyncio, re, sys
 from playwright.async_api import async_playwright
 from browsers import LOAD_FAILED, answers, exe, firefox, missing, not_beats
 
-HARMLESS = re.compile(r"GPU stall due to ReadPixels|THREE\.WebGLProgram|WEBGL_debug_renderer_info is deprecated")
+HARMLESS = re.compile(r"GPU stall due to ReadPixels|THREE\.WebGLProgram|WEBGL_debug_renderer_info is deprecated"
+                      r"|downloadable font: download failed.*status=2152398850")   # NS_BINDING_ABORTED: a seek cut the load off
 HOLD = .6
 
 
@@ -28,7 +32,8 @@ async def chapter(pg, cur, url):
     cur.update(beat="(load)", errs=[], cons=[], miss=[])
     await pg.goto(f"{url}?beat=0&t=0"); await pg.wait_for_timeout(500)
     if msg := await not_beats(pg, url):
-        cur["errs"].append(("(load)", msg)); return []
+        if not cur["errs"]: cur["errs"].append(("(load)", msg))   # else the page stopped at load: its own errors say why
+        return []
     try:
         ids = await pg.evaluate("BEATS.map(b => b.id)")
     except Exception as e:
@@ -82,7 +87,7 @@ async def main(a):
                 print(f"== {name} {ch}: {len(errs)} page errors, {len(miss)} missing files, {len(cerr)} console errors, {len(warn)} console warnings")
                 for e in errs: print("  page error   ", e)
                 for e in miss: print("  missing      ", e)
-                for e in cerr: print("  console error", e)
+                for e in cerr: print("  console error", ("[harmless] " if HARMLESS.search(e) else "") + e)
                 for w in warn: print("  warning      ", ("[harmless] " if HARMLESS.search(w) else "") + w)
                 bad += len(errs) + len(miss)
             await b.close()

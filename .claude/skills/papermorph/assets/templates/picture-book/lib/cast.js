@@ -5,7 +5,7 @@
       Little Red Riding Hood);
    3. four-legged animals in profile on a two-bone leg rig with distance-driven gaits (beast, catPuppet; The Little Horse
       Crosses the River).
-   Moving along the ground: spStep / spWalk (kind 1), walk() in paper.js with hipOn, walker and bigStep (kind 2), route
+   Turning round: spTurn (kind 1, a pose swap on a hop). Moving along the ground: spStep / spWalk (kind 1), walk() in paper.js with hipOn, walker and bigStep (kind 2), route
    (kinds 2 and 3); flipTurn turns a profile puppet over like a card. Each section's header lists its pose keys.
 
    ---------- 1. round-headed figures ----------
@@ -13,7 +13,8 @@
    (0, 0) facing us. They turn by sliding the face to one side (look -1 … 1), as that show does; the paper pieces never deform, except that a sleeve stretches with
    reach and a seated shin with the seat's height.
    pose(o, f): x, y, s; look (face slide), eyeX/eyeY (pupils, -1 … 1), lids (0 open … 1 shut; .55 is deadpan), shut
-   (blink), mouth (a Rhubarb shape or an expression below), brow (0 none, <0 angry, >0 worried), headR, bob, squash,
+   (blink), back (true: seen from behind, the back of the head and a plain coat; turn with spTurn), mouth (a Rhubarb
+   shape or an expression below), brow (0 none, <0 angry, >0 worried), headR, bob, squash,
    armL/armR (degrees, + raises outward; 0 hangs at the side), reachL/reachR (arm length, 1 rest: the sleeve stretches,
    the mitten slides along it), legL/legR (degrees, + swings outward), lean (degrees, the body about the hip, + leans to
    screen right), headY (+ lowers the head), sit (true: the legs and shadow hidden, for a seat whose front reaches the
@@ -85,7 +86,7 @@ function aimArm(o, side, [px, py], { pin, pivot, drop = 0, rest, len }) {
   const far = Math.hypot(px - sx, py - sy) / (len * s), arm = side === 'L' ? th - rest : -rest - th, reach = Math.min(1.25, Math.max(.6, far));
   return { arm, reach, far, shoulder: [sx, sy], ['arm' + side]: arm, ['reach' + side]: reach };
 }
-const REST_SP = { x: 0, y: 0, s: 1, look: 0, eyeX: 0, eyeY: 0, lids: 0, shut: false, mouth: 'X', brow: 0, headR: 0, headY: 0, lean: 0, bob: 0, squash: 0,
+const REST_SP = { x: 0, y: 0, s: 1, look: 0, eyeX: 0, eyeY: 0, lids: 0, shut: false, back: false, mouth: 'X', brow: 0, headR: 0, headY: 0, lean: 0, bob: 0, squash: 0,
   armL: 0, armR: 0, reachL: 1, reachR: 1, armFrontL: undefined, armFrontR: undefined, legL: 0, legR: 0, sit: false, hold: null, holdL: null };
 // holds: { key: svg } drawn in the hand of the screen-right arm (hold) or screen-left arm (holdL), at the mitten centre
 function spKid(parent, shape, { skin = '#f7d9bb', coat = UNIFORM.coat, stripe = UNIFORM.stripe, pants = UNIFORM.pants, cuff = null, holds = {} } = {}) {
@@ -115,6 +116,7 @@ function spKid(parent, shape, { skin = '#f7d9bb', coat = UNIFORM.coat, stripe = 
     <g data-p="body"><g filter="url(#paper)"><path d="${S.body}" fill="${coat}"/>
       <path d="M-24,${S.sy - 22} L0,${S.sy + 8} L24,${S.sy - 22}" fill="none" stroke="${stripe}" stroke-width="7" stroke-linejoin="round"/>
       ${S.extra || `<path d="M0,${S.sy + 8} V-40" stroke="#26478f" stroke-width="3"/>`}</g></g>
+    <g data-p="bodyB"><g filter="url(#paper)"><path d="${S.body}" fill="${coat}"/></g></g>
     ${lap}${arm('L')}${arm('R')}
     <g data-p="head"><g filter="url(#paper)"><ellipse cx="${hx}" cy="${hy}" rx="${hrx}" ry="${hry}" fill="${skin}"/>
         ${S.chin ? `<path d="${S.chin}" fill="none" stroke="#d9a888" stroke-width="3" stroke-linecap="round"/>` : ''}</g>
@@ -133,6 +135,7 @@ function spKid(parent, shape, { skin = '#f7d9bb', coat = UNIFORM.coat, stripe = 
         <path data-p="browL" d="M${-ex - 16},${browY} L${-ex + 14},${browY + 6}" stroke="${SP_INK}" stroke-width="4" stroke-linecap="round"/>
         <path data-p="browR" d="M${ex + 16},${browY} L${ex - 14},${browY + 6}" stroke="${SP_INK}" stroke-width="4" stroke-linecap="round"/>
         <use class="mouth" href="#spX" transform="translate(${mx},${my})"/></g></g>
+      <g data-p="headB" clip-path="url(#${id})"><g filter="url(#paper)"><ellipse cx="${hx}" cy="${hy - hry * .22}" rx="${hrx + 6}" ry="${hry * .92}" fill="${S.hair[0]}"/></g></g>
       <g data-p="hair"><g filter="url(#paper)"><path d="${S.hair[1]}" fill="${S.hair[0]}"/>${S.hat || ''}</g></g></g></g>`;
   bakeAll(g);
   const P = pieces(g), holdKeys = Object.keys(holds);
@@ -176,8 +179,12 @@ function spKid(parent, shape, { skin = '#f7d9bb', coat = UNIFORM.coat, stripe = 
     tf(P.head, `translate(0,${o.headY.toFixed(1)}) rotate(${(o.headR + j(8) * .6).toFixed(2)},0,${S.neck})`);
     const lx = o.look * S.slide;
     tf(P.feat, `translate(${lx.toFixed(1)},0)`); tf(P.hair, `translate(${(lx * .25).toFixed(1)},0)`);
-    tf(P.pupils, `translate(${(o.eyeX * erx * .5).toFixed(1)},${(o.eyeY * ery * .45).toFixed(1)})`);
+    // an open eye always shows its pupil: under a heavy lid (lids above about .3) a pupil looking up would sit under the
+    // lid and the eye read as blank, so it stays just below the lid's edge, half tucked
+    const pr = erx * .22, py = o.shut ? o.eyeY * ery * .45 : Math.min(Math.max(o.eyeY * ery * .45, -ery + ery2 * o.lids + pr * .15), ery - pr * .9);
+    tf(P.pupils, `translate(${(o.eyeX * erx * .5).toFixed(1)},${py.toFixed(1)})`);
     tf(P.lids, `translate(0,${((o.shut ? SP_SHUT : o.lids) * ery2).toFixed(1)})`);
+    vis(P.feat, !o.back); vis(P.bodyB, !!o.back); vis(P.headB, !!o.back);   // back: the plain coat and the back of the head
     const b = o.brow;
     vis(P.browL, b !== 0); vis(P.browR, b !== 0);
     tf(P.browL, `rotate(${(-14 * b).toFixed(1)},${-ex},${browY + 3})`); tf(P.browR, `rotate(${(14 * b).toFixed(1)},${ex},${browY + 3})`);
@@ -186,6 +193,15 @@ function spKid(parent, shape, { skin = '#f7d9bb', coat = UNIFORM.coat, stripe = 
 }
 const kidPuppet = (p, o) => spKid(p, 'kid', o);   // kidPuppet(parent, { coat, stripe, pants, skin, holds: { key: svg } })
 
+// A front figure turns round in one frame, as cut-outs do: the pose swaps between two drawings (back: true shows the
+// back of the head and the plain coat), sold by a little hop: a crouch on the drawing before, up on the swap, down
+// after. Squeezing it sideways through zero instead leaves a sliver for a frame or two, then nothing, and read wrong.
+// spTurn(q, t0, back = true) → { back, squash, bob } to spread into the pose (add a bob of your own to its bob):
+// before t0 the figure faces the other way, from t0 on `back`. A turn on a cut needs none of it: the next shot has the other pose.
+function spTurn(q, t0, back = true) {
+  const k = Math.floor((q - t0) * FPS / 2), [squash, bob] = { [-1]: [.12, 0], 0: [-.06, -14], 1: [.08, 0] }[k] || [0, 0];
+  return { back: q >= t0 ? back : !back, squash, bob };
+}
 // A walk in the show's manner: the figure bobs on twos and the stubby legs scissor. (For feet that never slide on the
 // ground, use walk() in paper.js, which also tells how far the hip has travelled.)
 function spWalk(q) { const k = Math.floor(q * FPS / 2) % 2 ? 1 : -1; return { legL: 16 * k, legR: -16 * k, bob: k > 0 ? -6 : 0, armL: 8 * k, armR: -8 * k, k }; }

@@ -9,6 +9,9 @@ Errors (exit status 1):
   global    a top-level name in the chapter or a lib file it loads (every name of const a = 1, b = 2) is also
             declared by the engine or another of its scripts; a second const/let/class stops the page script, a
             second function silently replaces one
+  syntax    a script the page loads, or an inline <script>, does not parse (node --check): a // comment that swallows
+            the rest of a line, a brace left open; the browser runs none of that script. Without Node a warning says
+            nothing was parsed
   math      the chapter uses a maths helper from lib/math.js but does not load it after engine.js
   beat      a beat id has no entry in audio/<lang>/timings.js or no MP3 (a silent beat, { dur: s } in its fourth slot,
             needs neither)
@@ -22,8 +25,10 @@ Errors (exit status 1):
   word      a listen-and-find stop (findWords) plays a clip that is missing: a thing's (clip:, else w-<word>), an
             ask's question (its clip:) and its again (r-<word> by default), the stop's end (q-done) and there (q-there)
             lines, audio/sfx/chime.mp3 after each find; or an ask's word is no thing's word. Each clip is a narration line, "w-<word>": "<word>", voiced by tts.py
+With no chapters named, every other page of the book that loads engine.js (a banner, a poster, a scratch page) gets
+the global and syntax checks too: such a page stops at load the same way, and shot.py on it names only the first error.
 Warnings: a top-level name of the page that is one of the engine's sound properties on window (sfx music SFX
-  SFX_BED BGM MUSIC_OFF MUSIC_UP_IN_PRE: const BGM = .4 hides the engine's list from export.py's mix); a chapter that calls findWords() without CHAPTER.film true, or whose things and asks do not write their word
+  SFX_BED BGM MUSIC_OFF MUSIC_UP_IN_PRE MUSIC_UP MUSIC_LEVELS: const BGM = .4 hides the engine's list from export.py's mix); a chapter that calls findWords() without CHAPTER.film true, or whose things and asks do not write their word
   and clip as literals (word: 'bird', clip: 'q-bird'; an ask list built with .map does not), whose clips were not
   checked; a beat's m('name') not among that beat's own marks (beats built by shared helpers can mislead this);
   a mark in timings.js that the narration lacks (added by hand: the next tts.py or eleven.py run drops it, so a
@@ -32,7 +37,7 @@ Warnings: a top-level name of the page that is one of the engine's sound propert
 layout), --brief to books/<book>. Both folders are git-ignored, so in a git worktree that lacks them they are taken
 from the main checkout (the worktree's git common dir), with a note. ElevenLabs audio tags such as [whispers] are not counted as narration text.
 """
-import argparse, json, re, subprocess, sys
+import argparse, json, re, shutil, subprocess, sys, tempfile
 from pathlib import Path
 
 DECL = re.compile(r'(?<![\w$.])(?:async\s+)?(function\*?|const|let|var|class)\s+([A-Za-z_$][\w$]*)')
@@ -46,7 +51,7 @@ MUSICCALL = re.compile(r"""(?<![\w$.])music\(\s*['"]([^'"]+)['"]""")
 MCALL = re.compile(r"(?<![\w$.])m\(\s*'(\w+)'\s*[,)]")
 MARK = re.compile(r'\[\[(\w+)\]\]')
 TAG = re.compile(r'(?<!\[)\[[^\[\]]+\](?!\])')   # an ElevenLabs v4 audio tag, [whispers]: performed, not in captions (eleven.py's)
-WINDOW_PROPS = {'sfx', 'music', 'SFX', 'SFX_BED', 'BGM', 'MUSIC_OFF', 'MUSIC_UP_IN_PRE'}   # set on window by engine.js, not declared
+WINDOW_PROPS = {'sfx', 'music', 'SFX', 'SFX_BED', 'BGM', 'MUSIC_OFF', 'MUSIC_UP_IN_PRE', 'MUSIC_UP', 'MUSIC_LEVELS'}   # set on window by engine.js, not declared
 ENGINE_FILES = {'engine.js', 'math.js', 'volume.js', 'contents.js', 'units.js'}
 LOCAL = re.compile(r'[,(]\s*([A-Za-z_$][\w$]*)\s*=(?![=>])')   # a, name = … or (p, name = 1): declared in a list
 PARAMS = re.compile(r'function\s*[\w$]*\s*\(([^)]*)\)|\(([^()]*)\)\s*=>|([A-Za-z_$][\w$]*)\s*=>')   # parameters
@@ -161,13 +166,12 @@ def words(s):
     return re.sub(r'[^\w]+', ' ', TAG.sub(' ', MARK.sub('', s))).lower().split()
 
 
-def lint_chapter(ch, content, out):
-    err = lambda kind, msg: out.append(('E', kind, f'{ch.name}: {msg}'))
-    warn = lambda kind, msg: out.append(('W', kind, f'{ch.name}: {msg}'))
-    html = re.sub(r'<!--.*?-->', '', (ch / 'index.html').read_text(encoding='utf-8'), flags=re.S)   # a commented-out <script> loads nothing
+def page_globals(page, html, err):
+    """Every top-level name of the scripts a page loads, in order: a second declaration is an error. Returns the
+    names seen (name -> (file, kind)), the book's own code (not the engine's) and the files it loaded."""
+    ch = page.parent
     inline = '\n'.join(INLINE.findall(html))
-    # globals: every script the page loads, in order
-    seen, own = {}, [inline]   # own: the chapter's code and the book's scripts, not the engine's
+    seen, own, files = {}, [inline], []   # own: the chapter's code and the book's scripts, not the engine's
     for src in SRC.findall(html) + ['(chapter)']:
         if src == '(chapter)':
             text, name = inline, 'chapter'
@@ -176,6 +180,7 @@ def lint_chapter(ch, content, out):
             if f.suffix != '.js' or not f.exists() or f.name in ('timings.js', 'mathjax.js'):   # MathJax declares no globals
                 continue
             text, name = f.read_text(encoding='utf-8'), f.name
+            files.append(f)
             if (f.parent.name != 'lib' or f.name not in ENGINE_FILES) and not f.name.endswith('.min.js'):   # a vendored library is not the book's code
                 own.append(text)
         for ident, kind, line in decls(text):
@@ -185,6 +190,60 @@ def lint_chapter(ch, content, out):
                 err('global', f'{name}:{line} {what} {ident} from {first}')
             else:
                 seen[ident] = (name, kind)
+    return seen, own, files
+
+
+NODE = {}   # file -> node --check's first message (None when it parses), so a lib file shared by chapters runs once
+
+
+def node_check(f, label, err, warn):
+    """A syntax error stops the whole script in the browser (a stray // that swallows the rest of a line, a brace
+    left open), which the regex checks here cannot see: node --check parses it as the browser would."""
+    if 'node' not in NODE:
+        NODE['node'] = shutil.which('node')
+        if not NODE['node']:
+            warn('syntax', 'node is not installed, so no script was parsed: a syntax error would pass (install Node to check)')
+    if not NODE['node']:
+        return
+    if f not in NODE:
+        r = subprocess.run([NODE['node'], '--check', str(f)], capture_output=True, text=True)
+        lines = [x for x in r.stderr.splitlines() if x.strip()]
+        where = next((x for x in lines if re.search(r':\d+$', x)), '')
+        what = next((x for x in lines if re.match(r'\w*Error\b', x)), lines[-1] if lines else 'does not parse')
+        NODE[f] = None if r.returncode == 0 else f"{what} at line {where.rsplit(':', 1)[-1] or '?'}"
+    if NODE[f]:
+        err('syntax', f'{label}: {NODE[f]}; the browser stops this whole script there')
+
+
+def syntax(page, html, files, err, warn):
+    """node --check on each script the page loads and on each inline <script>."""
+    for f in files:
+        if not f.name.endswith('.min.js'):
+            node_check(f, f.name, err, warn)
+    with tempfile.TemporaryDirectory() as tmp:
+        for k, body in enumerate(INLINE.findall(html)):
+            if body.strip():
+                f = Path(tmp) / f'{k}.js'; f.write_text(body, encoding='utf-8')
+                node_check(f, f'{page.name} <script> #{k + 1}', err, warn)
+                NODE.pop(f, None)   # temp names repeat between pages
+
+
+def lint_page(page, label, out):
+    """A page beside the chapters that loads the engine (a banner, a poster, a scratch page): its globals and syntax."""
+    err = lambda kind, msg: out.append(('E', kind, f'{label}: {msg}'))
+    warn = lambda kind, msg: out.append(('W', kind, f'{label}: {msg}'))
+    html = re.sub(r'<!--.*?-->', '', page.read_text(encoding='utf-8'), flags=re.S)
+    _, _, files = page_globals(page, html, err)
+    syntax(page, html, files, err, warn)
+
+
+def lint_chapter(ch, content, out):
+    err = lambda kind, msg: out.append(('E', kind, f'{ch.name}: {msg}'))
+    warn = lambda kind, msg: out.append(('W', kind, f'{ch.name}: {msg}'))
+    html = re.sub(r'<!--.*?-->', '', (ch / 'index.html').read_text(encoding='utf-8'), flags=re.S)   # a commented-out <script> loads nothing
+    inline = '\n'.join(INLINE.findall(html))
+    seen, own, files = page_globals(ch / 'index.html', html, err)
+    syntax(ch / 'index.html', html, files, err, warn)
     # the engine's window properties (sound), which a page's own top-level name hides from the engine and export.py
     if 'engine.js' in {Path(x).name for x in SRC.findall(html)}:
         for ident in sorted(WINDOW_PROPS & set(seen)):
@@ -360,6 +419,10 @@ def main():
             lint_chapter(ch, content, out)
         else:
             out.append(('E', 'path', f'{ch}: no index.html (a wrong chapter name?)'))
+    if not a.chapters:   # the book's other pages that load the engine: a clash or a syntax error stops them too
+        for page in sorted(a.book.rglob('*.html')):
+            if page.parent not in chs and page != a.book / 'index.html' and 'engine.js' in page.read_text(encoding='utf-8'):
+                lint_page(page, page.relative_to(a.book).as_posix(), out)
     lint_style(brief, out)
     for level, kind, msg in out:
         print(f'{"error" if level == "E" else "warn "} {kind:6} {msg}')

@@ -10,7 +10,9 @@ silence with no clip of its own (a stare or a tag after the last line; its start
 name appears once in a scene (its start and marks are keyed by it), and a scene is not named like a clip. A
 hole belongs after a word's sound has ended, not where the next word starts; one that falls inside the sound (within
 30 dB of the clip's loud parts) gets a WARNING naming the scene, the clip and time, the word (with --words) and the
-nearest pause to move it to. A short pause (0.35 s) goes between clips. Writes AUDIO_DIR/SCENE.mp3 and
+nearest pause to move it to. Each clip is laid out by its file's own length; one that differs from its dur in timings.js
+by more than 0.05 s (trimmed or treated after tts.py) gets a WARNING, since its marks and cues may have moved too. A
+short pause (0.35 s) goes between clips. Writes AUDIO_DIR/SCENE.mp3 and
 AUDIO_DIR/shots.js: TIMINGS.SCENE = {dur, marks, cues, parts} with each clip's start in `parts` (marks become
 "clip.mark") and the caption cues moved along; the mouth cues of clips with holes are moved too (MOUTHS.clip). Load
 shots.js after timings.js and mouths.js. A scene not on the command line keeps what an earlier run wrote for it in
@@ -54,6 +56,12 @@ for arg in args:
         sys.exit(f"{shot}: {', '.join(dup)} more than once; each clip or silence in a scene needs a name of its own "
                  "(a repeated line: voice it again as a beat of its own; a silence: hush1:1, hush2:1)")
     holes = {}   # beat -> [(at, seconds)]: silences inserted inside a clip, room for action
+    for n in names:   # the clip's own length lays the scene out: timings.js's dur is what tts.py measured back then
+        if n in T and not T[n].get('silent') and (f := d / f'{n}.mp3').exists() and abs((real := duration(f)) - T[n]['dur']) > .05:
+            print(f"WARNING {shot}: {n}.mp3 is {real:.2f} s, timings.js says {T[n]['dur']} s (trimmed or treated since tts.py "
+                  f"wrote it?): laid out by the file's {real:.2f} s; its marks and cues are still timings.js's, so if the start "
+                  "was cut, voice it again or move them, and set dur in timings.js to match", file=sys.stderr)
+            T[n] = {**T[n], 'dur': round(real, 3)}
     for i, b in enumerate(beats):
         if ':' in b:   # NAME:S, a stretch of silence
             name, sec = b.split(':'); beats[i] = name; holes[name] = []
