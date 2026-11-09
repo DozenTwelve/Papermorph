@@ -11,6 +11,11 @@ timings cover English. Both need ffmpeg/ffprobe.
 
 A book with several speakers lists them under "voices" ({name: {"voice", "rate", "pitch"}}) and writes a
 beat as {"speaker": name, "text": ...}; plain string beats (and beats without a speaker) use the file's own voice. Pitch is Edge only ("+20Hz").
+A speaker may also have "af", an ffmpeg audio filter (a filter graph when it has [labels]) run on each of its clips,
+as eleven.py does: "asetrate=24000*1.22,aresample=24000,atempo=1/1.22" raises a voice with its length kept (both
+engines give 24 kHz). The words and marks come from the untreated take, kept as .tts/<narration>.<beat>.mp3 beside
+the narration file; the cache records the filter, so a rerun never treats a clip twice and a changed filter treats
+the kept take again with no new request. A filter that changes the length by more than 0.06 s is named.
 
 Narration text may contain [[mark]] tags placed before a word. The output
 timings.js records each clip's duration and the time (seconds) at which the
@@ -33,6 +38,7 @@ import asyncio
 import hashlib
 import json
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -222,6 +228,20 @@ def duration(mp3):
         raise SystemExit(f"{mp3}: ffprobe read no duration ({r.stderr.strip()[:300] or r.stdout.strip() or 'no output'})") from None
 
 
+def treat(mp3, af, beat, ar=44100, bitrate="128k"):
+    """A speaker's own treatment (its "af" in the narration file's voices), in place, written at ar Hz and bitrate;
+    warns when it changes the length, since the marks come from the untreated clip. eleven.py and tts.py share it."""
+    tmp, d0 = mp3.with_suffix(".part"), duration(mp3)
+    flt = ["-filter_complex", af] if "[" in af else ["-af", af]   # a chain with labels is a filter graph
+    r = subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(mp3), *flt, "-ar", str(ar), "-b:a", bitrate, "-f", "mp3", str(tmp)],
+                       capture_output=True, text=True)
+    if r.returncode: sys.exit(f"{beat}: its speaker's \"af\" did not run in ffmpeg: {r.stderr.strip().splitlines()[-1] if r.stderr.strip() else 'no output'}")
+    tmp.replace(mp3)
+    if abs((d1 := duration(mp3)) - d0) > .06:
+        print(f"{beat}: WARNING its treatment changed the length {d0:.2f} -> {d1:.2f} s: the marks and captions, aligned on the "
+              "untreated clip, drift by that much (pitch with asetrate and give the length back with atempo)", file=sys.stderr)
+
+
 def js_object(path):
     """The one object a data file such as timings.js or mouths.js assigns (window.TIMINGS = {...};), read as JSON from
     its first { to its last }, so a comment before it does no harm."""
@@ -254,6 +274,7 @@ async def main(src, out_dir):
     live = {b: public(v) for b, v in cache.items()
             if {"dur", "marks", "cues"} <= v.keys() and (out_dir / f"{b}.mp3").exists()}
     timings_path = out_dir / "timings.js"
+    plain_dir = Path(src).parent / ".tts"   # a treated speaker's untreated clips, kept out of the site
     for beat, raw in spec["beats"].items():
         name = raw.get("speaker") if isinstance(raw, dict) else None
         if name is not None and name not in voices:
@@ -262,6 +283,7 @@ async def main(src, out_dir):
         sub = raw.get("sub") if isinstance(raw, dict) else None   # the line's subtitle, one cue for the whole clip
         raw = raw["text"] if isinstance(raw, dict) else raw
         voice, rate, pitch = who["voice"], who.get("rate", "+0%"), who.get("pitch", "+0Hz")
+        af = who.get("af") if name is not None else None   # the speaker's own treatment, an ffmpeg filter
         if pitch != "+0Hz" and engine == "kokoro":
             raise SystemExit(f"{beat}: pitch is Edge only")
         mp3 = out_dir / f"{beat}.mp3"
@@ -273,27 +295,40 @@ async def main(src, out_dir):
         # then save its spoken-text key so future mark edits do not regenerate audio.
         legacy_key = hashlib.sha1(f"{voice}|{rate}|{raw}".encode()).hexdigest()
         reusable = old and old.get("key") in (key, legacy_key if engine == "edge" else key) and "words" in old and mp3.exists() and mp3.stat().st_size > 0
+        plain = plain_dir / f"{Path(src).stem}.{beat}.mp3"   # this beat's take before its treatment
+        treated = old.get("af") if reusable else None   # the treatment the clip in out_dir already has
+        if treated and treated != af and not plain.exists():
+            print(f"{beat}: its untreated clip {plain} is gone, so its changed \"af\" needs it voiced again", file=sys.stderr)
+            reusable, treated = False, None
         tmp = None
         if reusable:
             words = old["words"]
-            clip = mp3
-        else:
+        if not reusable or treated != af:   # a new take, or a treatment added, changed or taken off
             with tempfile.NamedTemporaryFile(dir=out_dir, prefix=f".{beat}-", suffix=".mp3", delete=False) as f:
                 tmp = Path(f.name)
-            clip = tmp
+        clip = tmp or mp3
         try:
             if not reusable:
                 words = (kokoro_beat(clean, voice, rate, clip) if engine == "kokoro"
                          else await edge_beat(beat, clean, voice, rate, clip, out_dir, pitch))
+            elif tmp:
+                shutil.copyfile(plain if treated else mp3, clip)   # the take as voiced, without its old treatment
+            if tmp and af:   # the words came from the untreated take, so the marks hold if the length does
+                plain_dir.mkdir(exist_ok=True)
+                shutil.copyfile(clip, plain)
+                treat(clip, af, beat, ar=24000, bitrate="64k")   # Edge and Kokoro both give 24 kHz
             entry = {"key": key, "dur": duration(clip), "words": words,
                      "marks": mark_times(clean, marks, words), "cues": [[0, sub]] if sub else caption_cues(clean, words)}
+            if af:
+                entry["af"] = af
             # a line in another language than the book's (its voice's locale differs): the page shows its subtitle even
             # with captions off, as films do with foreign dialogue
             if sub and "-" in voice and voice.split("-")[0].lower() != Path(src).stem.split(".")[-1].lower():
                 entry["forced"] = True
             if tmp:
                 tmp.replace(mp3)
-                print(f"{beat}: synthesized")
+                print(f"{beat}: synthesized{' and treated' if af else ''}" if not reusable else
+                      f"{beat}: {'treated' if af else 'treatment taken off'}, no new request (level it again if it was levelled)")
             # Edge has returned clips that stop a sentence early: the last spoken word should end the text
             ends = re.findall(r"[A-Za-z][\w'-]*", clean[-40:])
             if words and ends and clean.isascii() and words[-1][1].strip(".,;:!?\"'") != ends[-1]:

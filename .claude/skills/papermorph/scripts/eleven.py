@@ -60,7 +60,7 @@ rerun keeps a sped clip, and a changed tempo makes it again from the cached take
 import argparse, atexit, hashlib, json, pathlib, re, subprocess, sys, urllib.error, urllib.request
 from paint import key
 from ledger import append
-from tts import split_marks, mark_times, duration, write_atomic, tokens, sentences, js_object
+from tts import split_marks, mark_times, duration, write_atomic, tokens, sentences, js_object, treat
 from silence import silences
 import level as lv
 
@@ -116,20 +116,6 @@ def atempo(mp3, k):
     tmp = mp3.with_suffix(".part")
     subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(mp3), "-filter:a", f"atempo={k}", "-b:a", "128k", "-f", "mp3", str(tmp)], check=True)
     tmp.replace(mp3)
-
-
-def treat(mp3, af, beat):
-    """A speaker's own treatment (its "af" in the narration file's voices), in place; warns when it changes the length,
-    since the marks come from the untreated clip."""
-    tmp, d0 = mp3.with_suffix(".part"), duration(mp3)
-    flt = ["-filter_complex", af] if "[" in af else ["-af", af]   # a chain with labels is a filter graph
-    r = subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(mp3), *flt, "-ar", "44100", "-b:a", "128k", "-f", "mp3", str(tmp)],
-                       capture_output=True, text=True)
-    if r.returncode: sys.exit(f"{beat}: its speaker's \"af\" did not run in ffmpeg: {r.stderr.strip().splitlines()[-1] if r.stderr.strip() else 'no output'}")
-    tmp.replace(mp3)
-    if abs((d1 := duration(mp3)) - d0) > .06:
-        print(f"{beat}: WARNING its treatment changed the length {d0:.2f} -> {d1:.2f} s: the marks and captions, aligned on the "
-              "untreated clip, drift by that much (pitch with asetrate and give the length back with atempo)", file=sys.stderr)
 
 
 def speak(text, voice, dst):
