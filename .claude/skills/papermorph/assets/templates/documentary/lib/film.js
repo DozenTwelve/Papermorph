@@ -11,6 +11,9 @@ const KEY = '"Oswald", "Arial Narrow", sans-serif', SER = '"EB Garamond", Georgi
 // a document's paper, ink on paper, a document's heading
 const CREAM = COL.chalk, SOFT = COL.dim, HOT = bookSetting('--accent') || '#f08a4b', PAPER = bookSetting('--paper') || CREAM,
   INK = bookSetting('--paper-ink') || '#3a2a24', STAMP = bookSetting('--stamp') || '#7a1a20';
+// the captions (C, and export.py --captions) sit in the stage's bottom quarter: words of the film's own stay above
+// this line, as the map kit's labels do (its safe box ends at SH - 230)
+const CAPTION_TOP = SH - 230;
 
 // a picture's [width, height] from ART (img/art.js, from prep.py). A name ART lacks (a picture added or resized by hand)
 // warns once, by name, and stands in at 16:9, so its beat still draws and check.py lists the warning
@@ -87,20 +90,25 @@ function say(p, lines, x, y, t0, t1, { size = 44, fill = CREAM, italic = true, a
   words.forEach((e, i) => { show(e, t1 === t0 ? t0 : t0 + (t1 - t0) * acc / all, .25, lin); acc += chars[i]; });
   return g;
 }
-// a small caption under a picture (a credit or a name tag)
+// a small caption under a picture (a credit or a name tag); one under CAPTION_TOP, where the captions go, is said in
+// the console (check.py lists it): put the credit beside the picture, or the picture higher
 function tag(p, str, x, y, t0, { size = 24, anchor = 'start', fill = SOFT } = {}) {
+  if (y > CAPTION_TOP) console.warn(`tag '${str}' at y ${Math.round(y)}, under the captions (below ${CAPTION_TOP}): move it up or beside its picture`);
   const e = T(p, str, { x, y, size, fill, font: SER, anchor, o: 0 });
   e.setAttribute('font-style', 'italic');
   show(e, t0, .5);
   return e;
 }
-// the era at the top left, like a chapter opener: the year in italic, a hairline, the place or topic in spaced capitals
-function dateChip(p, year, topic, t0 = .2) {
+// the era at the top left, like a chapter opener: the year in italic, a hairline, the place or topic in spaced capitals.
+// Cream on the film's ground; over a paper map give fill: MAP_COL.ink (the year keeps the accent unless `year` is set),
+// or a ground: COL.board for a band of the film's ground behind it
+function dateChip(p, year, topic, t0 = .2, { fill = CREAM, year: yc = HOT, ground, size = 26 } = {}) {
   const g = G(p, { x: 80, y: 112, o: 0 });
-  T(g, year, { size: 72, font: SER, weight: 400, fill: HOT }).setAttribute('font-style', 'italic');
-  const tw_ = wid(topic.toUpperCase(), 26, SER) * 1.3 + 8;   // letter-spacing .28em widens the caps by about 30 %
-  const rule = path(g, `M3 22H${Math.max(220, tw_)}`, { stroke: CREAM, 'stroke-width': 1.4 }, { d: 0 });
-  T(g, topic.toUpperCase(), { x: 3, y: 58, size: 26, font: SER, weight: 400, fill: CREAM }).setAttribute('letter-spacing', '.28em');
+  const tw_ = wid(topic.toUpperCase(), size, SER) * 1.3 + 8;   // letter-spacing .28em widens the caps by about 30 %
+  if (ground) mk('rect', { x: -28, y: -78, width: Math.max(220, tw_, wid(year, 72, SER, 'italic')) + 56, height: 104 + size * 1.6, fill: ground, opacity: .94 }, g);
+  T(g, year, { size: 72, font: SER, weight: 400, fill: yc }).setAttribute('font-style', 'italic');
+  const rule = path(g, `M3 22H${Math.max(220, tw_)}`, { stroke: fill, 'stroke-width': 1.4 }, { d: 0 });
+  T(g, topic.toUpperCase(), { x: 3, y: 34 + size * .92, size, font: SER, weight: 400, fill }).setAttribute('letter-spacing', '.28em');
   tw(g, { o: 1 }, t0, .6); draw(rule, t0 + .2, .6);
   return g;
 }
@@ -140,7 +148,8 @@ function closeups(p, g, name, shots, m, tBack, home) {
   shots.forEach(([mark, fx, fy, label, Z = 3], i) => {
     const dx = clamp((fx - .5) * iw, iw / 2 - 800 / Z), dy = clamp((fy - .5) * ih, ih / 2 - 450 / Z), t0 = m(mark) - .15;
     tw(g, { s: Z, x: 800 - Z * dx, y: 450 - Z * dy, r: 0 }, t0, .35, out);
-    const l = G(p, { x: 800, y: fy > .7 ? 130 : 820, o: 0 }), lw = wid(label.toUpperCase(), 72, KEY, '', 600) + 70;   // clear of a low subject
+    // the band at the top for a low subject, else low but above the captions
+    const l = G(p, { x: 800, y: fy > .7 ? 130 : CAPTION_TOP - 40, o: 0 }), lw = wid(label.toUpperCase(), 72, KEY, '', 600) + 70;
     mk('rect', { x: -lw / 2, y: -68, width: lw, height: 92, fill: COL.board }, l);
     T(l, label.toUpperCase(), { y: 0, size: 72, font: KEY, weight: 600, fill: CREAM, anchor: 'middle' });
     show(l, t0, .12);

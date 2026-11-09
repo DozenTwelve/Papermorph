@@ -10,7 +10,8 @@
 <body>
 <!-- The map kit's sample, upright; ?wide plays it on the landscape stage. Five beats prove the pieces: the globe handing
      over to the paper map, a lit country, a region, routes and labels; hatching and an area; a city's detail; a map that
-     holds still; the same map carried on into the next beat, with words on a band, an ink sea route and dots greyed.
+     holds still; the same map carried on into the next beat, with words on a band, an ink sea route that ends, and the
+     story's turn greying everything carried (dots and a route). ?mapgrid draws where every city falls, for planning.
      Not a chapter: it has no narration, so its beats are given lengths below and their clips are silence.
      To play it, in site/<book>/ after engine.py (and the shorts or documentary kit's lib/, for book.css and the fonts):
        cp assets/templates/maps/lib/* site/<book>/lib/ && mkdir -p site/<book>/maps && cp assets/templates/maps/sample.html site/<book>/maps/index.html
@@ -79,19 +80,23 @@ const BEATS = [
     const p = panel(0);
     paperMap(p, D, mapKeys([[0, ...STILL]]), {
       dots: STILL_DOTS.map((n, i) => [...CITIES[n], .3 + i * .06, 5]),
+      routes: [[CITIES.Lagos, CITIES.London, 2.2, .8]],
       cities: [['Lagos', 1.7], ['London', 1.9, 'l']],
     });
     title(p, 'A still map', .2);
   }],
   // one map across a cut: this beat opens on the last view of the one before and brings its marks with t0 < 0 (drawn
-  // already there), so nothing blinks; then dots grey, a sea route goes round the Cape in ink (not the subject's red),
-  // Lagos's label ends as the camera closes on Europe, where new labels give way to each other
+  // already there), so nothing blinks; then the story turns: everything carried in red greys together (dots and the
+  // route, by colour functions); a sea route goes round the Cape in ink (not the subject's red) and ends at its t1,
+  // Lagos's label too, as the camera closes on Europe, where new labels give way to each other
   ['carry', 'The same map, carried on', (m, D) => {
     const p = panel(0);
+    const turn = t => mix(MAP_COL.hot, MAP_COL.dim, r01(t, .4, 1));
     const CAPE = [[-12, 36], [-19, 12], [-2, -14], [17, -36], [36, -32], [52, -6], [64, 14]];
     paperMap(p, D, mapKeys([[0, ...STILL], [3.6, ...STILL], [5.6, 6, 50, .14]]), {
-      dots: STILL_DOTS.map(n => [...CITIES[n], -1, 5, t => mix(MAP_COL.hot, MAP_COL.dim, r01(t, .4, 1))]),
-      routes: [[CITIES.London, CITIES.Mumbai, 1, 2.2, { colour: MAP_COL.ink, dash: [10, 8], via: CAPE }]],
+      dots: STILL_DOTS.map(n => [...CITIES[n], -1, 5, turn]),
+      routes: [[CITIES.Lagos, CITIES.London, -2, .8, { colour: turn }],   // t0 -2: its landing dot has popped before the cut
+        [CITIES.London, CITIES.Mumbai, 1, 2.2, { colour: MAP_COL.ink, dash: [10, 8], via: CAPE, t1: 3.4 }]],
       cities: [['Lagos', -1, 'r', 3.4], ['London', -1, 'l'], ['Paris', 4.6], ['Brussels', 4.8], ['Amsterdam', 5]],
     });
     title(p, 'The same map', .2);

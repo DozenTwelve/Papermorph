@@ -31,10 +31,11 @@ const BEATS = [
     const ti = key(p, 'FILM TITLE', 800, 420, .5, { size: 96 });
     hide(ti, OPEN_PRE - .9, .6);
     if (ART['first-picture']) {   // the kit's sample picture: until prep.py has written one by that name into img/art.js, the title stands alone
-      const g = pic(p, 'first-picture', { x: 800, y: 420, h: 600, at: OPEN_PRE - .6 });   // clear of the line typed under it
+      const g = pic(p, 'first-picture', { x: 800, y: 360, h: 460, at: OPEN_PRE - .6 });   // clear of the line typed under it
       push(g, OPEN_PRE, D);   // a slow push-in while it is talked about
     }
-    say(p, ['The first line, typed as it is spoken.'], 800, 820, m('first'), m('first') + 2, { size: 48, anchor: 'middle' });
+    // above the captions, which take the bottom of the stage (CAPTION_TOP, from film.js)
+    say(p, ['The first line, typed as it is spoken.'], 800, CAPTION_TOP - 20, m('first'), m('first') + 2, { size: 48, anchor: 'middle' });
   }, { pre: OPEN_PRE }],
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
 

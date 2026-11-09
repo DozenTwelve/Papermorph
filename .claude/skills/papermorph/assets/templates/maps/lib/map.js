@@ -11,7 +11,8 @@
 
    paperMap(p, D, view, opts) -> M     the paper map in this panel; opts, all optional:
      lit(iso, t) -> 0..1                a country lit (iso as in geo-lite.js: ISO 3166 alpha-3, 'CHN', 'ITA', 'ATA')
-     litFill: MAP_COL.hot               the fill of lit and region: a colour, or (key) => colour to mix several
+     litFill: MAP_COL.hot               the fill of lit and region: a colour, or (key, t) => colour to mix several or to
+                                        turn them on the story's turn (t => mix(MAP_COL.hot, MAP_COL.dim, ramp01(t, 4, 5)))
      region(name, t, iso) -> 0..1       a region lit ('Hubei', 'Lombardia': geo.py --regions CHN,ITA:region)
                                         names as geo.py prints them ('North Holland', not 'Noord-Holland'); one not
                                         in the data lights nothing, silently
@@ -20,30 +21,36 @@
                                         is not the colour of the film's subject
      areas: [[shape, at, style]]        an area of your own: shape an iso ('ITA'), 'ITA/Lombardia', or rings of
                                         [lon, lat] (mapCircle(ll, km) is one); at a time (shown over .35 s) or (t) -> 0..1;
-                                        style { fill: 'hatch' | colour | null, line: MAP_COL.ink | null, width: 3 }
+                                        style { fill: 'hatch' | colour | (t) => colour | null, line: MAP_COL.ink | null, width: 3 }
      detail: 'Wuhan' | true             rivers, lakes and built-up areas of a place cut by geo.py --detail, faded in as
                                         the view closes in (H .22 to .06); the built-up areas under lit countries and
                                         regions, rivers and lakes over them, all under the marks
      urban: false                       leave out the built-up areas (today's: Schiphol in 1637), keep rivers and lakes
      dots: [[lon, lat, t0, r = 7, colour]]   dots popping in at t0, r px, in MAP_COL.hot or colour: a colour or
-                                        (t) => colour (greyed later: t => mix(MAP_COL.hot, MAP_COL.dim, ramp01(t, 4, 4.5)))
+                                        (t) => colour (greyed later: t => mix(MAP_COL.hot, MAP_COL.dim, ramp01(t, 4, 4.5));
+                                        ramp01 is the shorts kit's, span01 the documentary kit's)
      routes: [[a, b, t0, dur = .8, style]]   an arc drawn from [lon, lat] a to b; a dot lands at b when it arrives.
-                                        style { colour: MAP_COL.hot, width: 3.5, dash: [10, 8], via: [[lon, lat]...]
-                                        (a sea route round a cape: one line through them), dot: false (no landing dot) };
+                                        style { colour: MAP_COL.hot or (t) => colour, width: 3.5, dash: [10, 8], via:
+                                        [[lon, lat]...] (a sea route round a cape: one line through them), dot: false (no
+                                        landing dot), t1 (faded out over .4 s from then: a trade that stops) };
                                         what is not the subject goes in ink: { colour: MAP_COL.ink, dash: [10, 8] }
      cities: [[name, t0, side, t1]]     an ink dot and a label (CITIES; side 'l' or 'r', default 'r'), faded out at t1
                                         when given (a camera pulling out: towns that would pile up); labels keep inside
                                         the safe box, hide when their city is off it, take the other side when theirs
                                         covers an earlier label, and hide while both would (said in the console)
      labelSize: 36 · safe: [x0, y0, x1, y1] (the shorts' 50,150,810,1290 upright; 60,60,SW-60,SH-230 landscape)
-     on: [t0, t1]                       drawn only then. Default: the shot's window when p is a shorts shot(), else the
-                                        whole beat. A layer that is covered (the globe after the hand-over, a map under
-                                        a later shot) must not be drawn: Firefox pays for every drawn canvas
+     on: [t0, t1]                       drawn only then, and hidden outside it (a seek past it shows no stale frame).
+                                        Default: the shot's window when p is a shorts shot(), else the whole beat. A layer
+                                        that is covered (the globe after the hand-over, a map under a later shot) must not
+                                        be drawn: Firefox pays for every drawn canvas
      bg: MAP_COL.night | null           the ground around the disc (null: transparent) · px: 1 canvas px per stage px
    M = { g, view(t), xy(ll, t) -> [x, y] stage px or null behind the globe }: draw your own marks above M.g with M.xy.
    The map redraws only when something on it changes: a view that holds still with nothing popping costs nothing a
    frame, and its projected shapes are kept while the view holds. Labels, dots and routes may start at any time.
    Move a map through its view(t), never by scaling a group above it: Gecko re-rasters a canvas under a scaled parent.
+   ?mapgrid on the page's address (with ?beat=N&t=S, or shot.py --query mapgrid) draws over every paper map its safe box,
+   the view (lon, lat, H) and every place in CITIES as a dot and its name, whatever its t0: where the named places fall,
+   for planning a view before the beat is built. A place grey is outside the safe box, where a label would hide.
 
    mapBand(p, str, x, y, t0, { size: 64, sub, anchor, ground: COL.board, fill: COL.chalk, t1 }) -> g   a word or two
                                         on a band of the film's ground (its palette's board and chalk), readable over
@@ -74,6 +81,9 @@ const { paperMap, mapBand, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCi
   const PORTRAIT = SH > SW, SAFE = PORTRAIT ? [50, 150, 810, 1290] : [60, 60, SW - 60, SH - 230];
   const clamp01 = v => Math.min(1, Math.max(0, v)), ramp = (t, a, b) => clamp01((t - a) / (b - a));
   const within = (t, on) => !on || (t >= on[0] && t <= on[1]);
+  // a layer outside its window is hidden, not left showing the last frame it drew (a seek past it would show that)
+  const shown = (e, v) => { const d = v ? '' : 'none'; if (e.style.display !== d) e.style.display = d; return v; };
+  const GRID = new URLSearchParams(location.search).has('mapgrid');
   // a shorts shot() records its window on its group: the default `on` of a map or globe inside it
   const shotOn = p => { for (let e = p; e && e.nodeType === 1; e = e.parentNode) if (e._on) return e._on; };
 
@@ -162,6 +172,7 @@ const { paperMap, mapBand, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCi
   function paperMap(p, D, view, { lit, litFill, region, regions = false, hatch, areas = [], detail, dots = [], routes = [],
     cities = [], urban = true, labelSize = 36, safe = SAFE, on = shotOn(p), bg = MAP_COL.night, px = 1 } = {}) {
     const fillOf = typeof litFill === 'function' ? litFill : () => litFill || MAP_COL.hot;
+    const colAt = (c, t) => typeof c === 'function' ? c(t) : c;
     const geo = data();
     const g = G(p, {}), fo = mk('foreignObject', { x: 0, y: 0, width: SW, height: SH }, g);
     const cv = document.createElement('canvas'); cv.width = SW * px; cv.height = SH * px;
@@ -240,7 +251,7 @@ const { paperMap, mapBand, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCi
 
     let drawn = null;   // the signature of what is on the canvas: nothing changed, nothing drawn
     clockRun(t => {
-      if (!within(t, on)) return;
+      if (!shown(g, within(t, on))) return;
       const s = vf(t), k = R0 / s.H;
       const L = k > 900 ? geo.lod[1] : geo.lod[0], keys = Object.keys(L);
       const pop = (t0, d = .25) => { const q = ramp(t, t0, t0 + d); return q && backEase(q); };
@@ -251,10 +262,15 @@ const { paperMap, mapBand, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCi
         area: AREAS.map(A => clamp01(A.a(t))),
         det: details.length ? ramp(k, R0 / .22, R0 / .06) : 0,
         route: routes.map(([, , t0, dur = .8]) => ramp(t, t0, t0 + dur) + pop(t0 + dur)),
+        rfade: routes.map(([, , , , st]) => st?.t1 === undefined ? 1 : 1 - ramp(t, st.t1, st.t1 + .4)),
+        rcol: routes.map(([, , , , st]) => colAt(st?.colour ?? MAP_COL.hot, t)),
+        areac: AREAS.map(A => colAt(A.fill, t)),
         dot: dots.map(d => pop(d[2])),
         dotc: dots.map(d => typeof d[4] === 'function' ? d[4](t) : d[4]),
         lab: labels.map(l => ramp(t, l.t0, l.t0 + .3) * (l.t1 === undefined ? 1 : 1 - ramp(t, l.t1, l.t1 + .4))),
       };
+      vals.litc = keys.map((c, i) => vals.lit[i] ? fillOf(c, t) : 0);   // the fills in the signature: a colour turning redraws
+      vals.regc = regionSets.map((R, i) => vals.reg[i] ? fillOf(R.n, t) : 0);
       placeLabels(s, vals.lab, t);
       const vsig = [s.lon, s.lat, s.H, s.dx || 0, s.dy || 0, s.roll || 0].map(n => n.toPrecision(9)).join();   // relative: H .006 is a city
       const sig = vsig + JSON.stringify(vals);
@@ -280,8 +296,8 @@ const { paperMap, mapBand, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCi
         ctx.globalAlpha = .8 * vals.det; ctx.fillStyle = MAP_COL.urban; ctx.fill(shape('du' + j, d.urban, v)); ctx.globalAlpha = 1;
       }
       const fillA = (P, a, f) => { if (a > 0) { ctx.globalAlpha = a * .85; ctx.fillStyle = f; ctx.fill(P); ctx.globalAlpha = 1; } };
-      keys.forEach((c, i) => vals.lit[i] && fillA(shape('c' + c, L[c], v), vals.lit[i], fillOf(c)));
-      regionSets.forEach((R, i) => vals.reg[i] && fillA(shape('r' + R.c + R.n, R.rs, v), vals.reg[i], fillOf(R.n)));
+      keys.forEach((c, i) => vals.lit[i] && fillA(shape('c' + c, L[c], v), vals.lit[i], vals.litc[i]));
+      regionSets.forEach((R, i) => vals.reg[i] && fillA(shape('r' + R.c + R.n, R.rs, v), vals.reg[i], vals.regc[i]));
       if (rkeys.length) {
         const P = shape('borders', regionSets.filter(R => rkeys.includes(R.c)).flatMap(R => R.rs), v);
         ctx.setLineDash([4, 3]); ctx.lineWidth = .9; ctx.strokeStyle = MAP_COL.line; ctx.stroke(P); ctx.setLineDash([]);
@@ -300,7 +316,8 @@ const { paperMap, mapBand, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCi
       AREAS.forEach((A, i) => {
         const a = vals.area[i]; if (!a) return;
         const P = shape('a' + i, A.rs, v);
-        if (A.fill === 'hatch') hatchA(P, a); else if (A.fill) fillA(P, a / .85, A.fill);
+        const f = vals.areac[i];
+        if (f === 'hatch') hatchA(P, a); else if (f) fillA(P, a / .85, f);
         if (A.line) { ctx.globalAlpha = a; ctx.strokeStyle = A.line; ctx.lineWidth = A.width; ctx.lineJoin = 'round'; ctx.stroke(P); ctx.globalAlpha = 1; ctx.lineJoin = 'bevel'; }
       });
       ctx.restore();
@@ -308,9 +325,10 @@ const { paperMap, mapBand, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCi
       const xy = ll => mapXY(ll, { ...s, roll: 0 });
       ctx.save(); ctx.clip(disc);   // arcs over the rim would float in space
       ctx.lineCap = 'round';
-      routes.forEach(([a, b, t0, dur = .8, { colour = MAP_COL.hot, width = 3.5, dash, via = [], dot = true } = {}]) => {
-        const q = ramp(t, t0, t0 + dur), P = [a, ...via, b].map(xy);
-        if (!q || P.some(x => !x)) return;
+      routes.forEach(([a, b, t0, dur = .8, { width = 3.5, dash, via = [], dot = true } = {}], ri) => {
+        const q = ramp(t, t0, t0 + dur), P = [a, ...via, b].map(xy), colour = vals.rcol[ri];
+        if (!q || !vals.rfade[ri] || P.some(x => !x)) return;
+        ctx.globalAlpha = vals.rfade[ri];
         // a gentle arc through each leg (a quarter of its length high; an eighth of that through via points), sampled,
         // and the first q of the samples drawn
         const S = [P[0]];
@@ -321,7 +339,8 @@ const { paperMap, mapBand, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCi
         ctx.beginPath(); ctx.moveTo(...S[0]);
         for (let i = 1; i <= (S.length - 1) * q; i++) ctx.lineTo(...S[i]);
         ctx.stroke(); ctx.setLineDash([]);
-        if (q >= 1 && dot) dotAt(P[P.length - 1], 7 * pop(t0 + dur), colour);
+        if (q >= 1 && dot) dotAt(P[P.length - 1], 7 * pop(t0 + dur), colour, vals.rfade[ri]);
+        ctx.globalAlpha = 1;
       });
       ctx.restore();
       dots.forEach(([lon, lat, , r = 7], i) => { const P = xy([lon, lat]); if (P) dotAt(P, r * vals.dot[i], vals.dotc[i]); });
@@ -330,11 +349,28 @@ const { paperMap, mapBand, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCi
         const P = xy(l.ll), a = vals.lab[i];
         if (P && a) { ctx.globalAlpha = a; ctx.beginPath(); ctx.arc(P[0], P[1], 5, 0, 2 * Math.PI); ctx.fill(); ctx.globalAlpha = 1; }
       });
+      if (GRID) drawGrid(s, xy);
     }, D, { tail: true });
-    function dotAt([x, y], r, colour = MAP_COL.hot) {
+    // ?mapgrid: the safe box, the view, and every place in CITIES where this view puts it, for planning
+    function drawGrid(s, xy) {
+      ctx.strokeStyle = MAP_COL.hot; ctx.lineWidth = 2; ctx.setLineDash([12, 8]);
+      ctx.strokeRect(safe[0], safe[1], safe[2] - safe[0], safe[3] - safe[1]); ctx.setLineDash([]);
+      ctx.font = `600 22px ${FONT}`; ctx.textBaseline = 'middle';
+      for (const [name, ll] of Object.entries(CITIES)) {
+        const P = xy(ll); if (!P || P[0] < 0 || P[0] > SW || P[1] < 0 || P[1] > SH) continue;
+        const inside = P[0] >= safe[0] && P[0] <= safe[2] && P[1] >= safe[1] && P[1] <= safe[3];
+        ctx.fillStyle = inside ? MAP_COL.ink : MAP_COL.dim;
+        ctx.beginPath(); ctx.arc(P[0], P[1], 4, 0, 2 * Math.PI); ctx.fill();
+        ctx.fillText(`${name} ${P[0].toFixed(0)},${P[1].toFixed(0)}`, P[0] + 8, P[1]);
+      }
+      ctx.fillStyle = MAP_COL.hot; ctx.textBaseline = 'top';
+      ctx.fillText(`lon ${s.lon.toFixed(3)} lat ${s.lat.toFixed(3)} H ${s.H.toPrecision(3)}` + (s.dx || s.dy ? ` dx ${s.dx || 0} dy ${s.dy || 0}` : ''), safe[0] + 8, safe[1] + 8);
+      ctx.textBaseline = 'alphabetic';
+    }
+    function dotAt([x, y], r, colour = MAP_COL.hot, a = 1) {
       if (r <= 0) return;
-      ctx.fillStyle = colour; ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); ctx.fill();
-      ctx.globalAlpha = .25; ctx.beginPath(); ctx.arc(x, y, r * 2.2, 0, 2 * Math.PI); ctx.fill(); ctx.globalAlpha = 1;
+      ctx.fillStyle = colour; ctx.globalAlpha = a; ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); ctx.fill();
+      ctx.globalAlpha = .25 * a; ctx.beginPath(); ctx.arc(x, y, r * 2.2, 0, 2 * Math.PI); ctx.fill(); ctx.globalAlpha = 1;
     }
     return { g, view: vf, xy: (ll, t) => mapXY(ll, vf(t)) };
   }
@@ -357,7 +393,7 @@ const { paperMap, mapBand, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCi
   function globeShot(p, D, view, dotsOn, arcsOn, { on = shotOn(p) } = {}) {
     if (!window.Globe) throw new Error('globeShot: the globe is not loaded; start the chapter with loadGlobe().then(...)');
     const g = Globe.mount(p);
-    clockRun(t => within(t, on) && Globe.draw({ H: 1.15, ...view(t) }, dotsOn && (i => dotsOn(i, t)), arcsOn && (i => arcsOn(i, t))), D, { tail: true });
+    clockRun(t => shown(g, within(t, on)) && Globe.draw({ H: 1.15, ...view(t) }, dotsOn && (i => dotsOn(i, t)), arcsOn && (i => arcsOn(i, t))), D, { tail: true });
     return g;
   }
   // a globe that fails to load is said, file by file, and the film plays on: each globeShot() then shows nothing
