@@ -22,6 +22,7 @@ Voices carry every book and everything else sits under them: in early cuts music
 ```
 
 - `[[name]]` goes right before the word an action waits for; `m('name', offset)` in the page returns when that word starts. Names are unique within a beat; a misspelt mark makes the page throw, and a mark that matches no spoken word stops the voice script.
+- Respell a word for the voice with `{{shown|spoken}}` (`{{Safety-II|Safety Two}}`, `{{IT|I T}}`, `{{Luria|LOO-ree-uh}}`): the voice reads `spoken`, the captions show `shown`, and `lint.py` compares the page with `shown`. Both voice scripts read it; the cache is keyed on the spoken text, so wrapping words the voice already says this way costs nothing. A respelling the captions cannot show (a sentence end inside it) is named in a WARNING.
 - Write for the ear: short sentences, one idea each. Say symbols, units and numbers in words ("negative seven halves", "meters per second squared"); the picture shows the symbols. Plain and warm, never childish.
 - A wordless beat (a series card, an end card) needs no clip, `timings.js` entry or narration line: `{ dur: 2 }` in its fourth slot ([core/engine.md](engine.md#timing)); `lint.py`, `export.py`, `music.py` and `check.py` take it as silence. A time only the page needs goes in the page, not in `timings.js`, which the next voice run rewrites.
 

@@ -60,7 +60,7 @@ rerun keeps a sped clip, and a changed tempo makes it again from the cached take
 import argparse, atexit, hashlib, json, pathlib, re, subprocess, sys, urllib.error, urllib.request
 from paint import key
 from ledger import append
-from tts import split_marks, mark_times, duration, write_atomic, tokens, sentences, js_object, treat
+from tts import split_marks, mark_times, duration, write_atomic, tokens, sentences, js_object, treat, respell
 from silence import silences
 import level as lv
 
@@ -154,10 +154,10 @@ for beat, raw in spec["beats"].items():
     af = spec["voices"][who].get("af") if who is not None else None   # the speaker's own treatment, an ffmpeg filter
     sub = raw.get("sub") if isinstance(raw, dict) else None   # a foreign line's subtitle, its one cue
     raw = raw["text"] if isinstance(raw, dict) else raw
-    clean, marks = split_marks(raw)   # clean keeps audio tags: they go to the voice
+    clean, marks, shown = split_marks(raw)   # clean keeps audio tags: they go to the voice; shown: {{shown|spoken}}
     cached = cache / f"{beat}.{hashlib.sha1(f'{model}|{voice}|{clean}'.encode()).hexdigest()[:12]}.mp3"
     fresh = beat in only if only else not cached.exists()   # --only takes its beats again, cached or not
-    beats.append((beat, voice, sub, clean, marks, cached, fresh, af))
+    beats.append((beat, voice, sub, clean, marks, shown, cached, fresh, af))
 todo = sum(len(b[3]) for b in beats if b[6])
 print(f"{sum(b[6] for b in beats)} beats to synthesize, {todo} characters, about ${todo * PRICE:.2f}", flush=True)
 if a.dry:
@@ -196,7 +196,7 @@ def save():
 
 
 atexit.register(lambda: done or save())   # stopped partway: keep the finished beats
-for beat, voice, sub, clean, marks, cached, fresh, af in beats:
+for beat, voice, sub, clean, marks, shown, cached, fresh, af in beats:
     if only and beat not in only and beat in old:
         timings[beat] = old[beat]; continue   # --only leaves the other beats alone
     if not fresh and not cached.exists():
@@ -281,7 +281,7 @@ for beat, voice, sub, clean, marks, cached, fresh, af in beats:
         n = len([w for w in tokens(spoken[s0:s1]) if norm(w)])
         if n: cues.append([round(times[i], 3) if i < len(times) else 0, re.sub(r"\s+", " ", spoken[s0:s1]).strip()]); i += n
     if cues: cues[0][0] = min(cues[0][0], .1)
-    timings[beat] = {"dur": dur, "marks": mark_times(clean, marks, words), "cues": [[0, sub]] if sub else cues}
+    timings[beat] = {"dur": dur, "marks": mark_times(clean, marks, words), "cues": [[0, sub]] if sub else respell(cues, shown, beat)}
     if sub: timings[beat]["forced"] = True
     wcache[beat] = {"dur": dur, "words": [[t, w] for t, w in words], "lag": 0}   # heard times: no Edge lead to correct
     moved = [f"{k} {old[beat]['marks'][k]} -> {v}" for k, v in timings[beat]["marks"].items()

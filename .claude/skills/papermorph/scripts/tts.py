@@ -17,6 +17,10 @@ engines give 24 kHz). The words and marks come from the untreated take, kept as 
 the narration file; the cache records the filter, so a rerun never treats a clip twice and a changed filter treats
 the kept take again with no new request. A filter that changes the length by more than 0.06 s is named.
 
+Respell a word for the voice with {{shown|spoken}}: the voice says "spoken", the captions show "shown"
+({{Safety-II|Safety Two}}, {{IT|I T}}, {{Luria|LOO-ree-uh}}). The spoken text alone keys the cache, so wrapping
+words the voice already says this way costs nothing.
+
 Narration text may contain [[mark]] tags placed before a word. The output
 timings.js records each clip's duration and the time (seconds) at which the
 word after every mark starts, so page animations can wait for that word,
@@ -46,6 +50,7 @@ from pathlib import Path
 
 
 MARK = re.compile(r"\[\[(\w+)\]\]")
+SAY = re.compile(r"\{\{([^|{}]+)\|([^{}]+)\}\}")   # {{shown|spoken}}: the voice reads "spoken", captions show "shown"
 MAX_ATTEMPTS = 5          # requests per beat when Edge returns no audio
 FIRST_RETRY_DELAY = 2     # seconds before the second request; doubles after each failure
 PROBE_TEXT = "1, 2, 3."   # checks the voice after a beat fails; any voice reads digits in its own language
@@ -133,7 +138,9 @@ def kokoro_beat(text, voice, rate, mp3_path):
 
 
 def split_marks(raw):
-    """Return clean text and {mark: char position in clean text}."""
+    """Return the spoken text, {mark: char position in it} and [(spoken, shown)], the captions' respellings."""
+    shown = [(m.group(2), m.group(1)) for m in SAY.finditer(raw)]
+    raw = SAY.sub(lambda m: m.group(2), raw)
     marks, clean, pos = {}, [], 0
     # MARK.split alternates text, name, text, name, ...
     for i, part in enumerate(MARK.split(raw)):
@@ -144,7 +151,7 @@ def split_marks(raw):
         else:
             clean.append(part)
             pos += len(part)
-    return "".join(clean), marks
+    return "".join(clean), marks, shown
 
 
 def time_at(clean, words, estimate=False):
@@ -180,6 +187,20 @@ def mark_times(clean, marks, words):
         if out[name] is None:
             raise SystemExit(f"mark {name!r} not matched to a spoken word")
     return out
+
+
+def respell(cues, shown, beat=""):
+    """Show each {{shown|spoken}} pair's written form in the captions. A spoken form that no single caption holds
+    whole (split by a sentence end) is named, since that caption keeps the spoken form."""
+    for spoken, written in shown:
+        pat, hit = re.compile(r"(?<!\w)" + re.escape(spoken) + r"(?!\w)"), False
+        for cue in cues:
+            cue[1], n = pat.subn(written, cue[1])
+            hit = hit or n > 0
+        if not hit:
+            print(f"{beat}: WARNING {{{{{written}|{spoken}}}}} is in no caption whole, so the captions show {spoken!r}",
+                  file=sys.stderr)
+    return cues
 
 
 # tts.py and eleven.py split narration with these, so their captions and marks cannot drift apart
@@ -288,7 +309,7 @@ async def main(src, out_dir):
             raise SystemExit(f"{beat}: pitch is Edge only")
         mp3 = out_dir / f"{beat}.mp3"
         old = cache.get(beat)
-        clean, marks = split_marks(raw)
+        clean, marks, shown = split_marks(raw)
         tag = "" if engine == "edge" else f"{engine}|"   # Edge keys stay as they were, so its audio is kept
         key = hashlib.sha1(f"{tag}{voice}|{rate}|{'' if pitch == '+0Hz' else pitch + '|'}{clean}".encode()).hexdigest()
         # Existing caches included [[marks]] in the key; reuse an unchanged old beat once,
@@ -318,7 +339,7 @@ async def main(src, out_dir):
                 shutil.copyfile(clip, plain)
                 treat(clip, af, beat, ar=24000, bitrate="64k")   # Edge and Kokoro both give 24 kHz
             entry = {"key": key, "dur": duration(clip), "words": words,
-                     "marks": mark_times(clean, marks, words), "cues": [[0, sub]] if sub else caption_cues(clean, words)}
+                     "marks": mark_times(clean, marks, words), "cues": [[0, sub]] if sub else respell(caption_cues(clean, words), shown, beat)}
             if af:
                 entry["af"] = af
             # a line in another language than the book's (its voice's locale differs): the page shows its subtitle even
