@@ -394,7 +394,7 @@ function cwEnd(p, { who = 'claude', at = .3 } = {}) {
   const box = mk('g', {}, g), typed = mk('g', {}, g), by = B + 700;
   box.innerHTML = CW_SLOGAN.map((l, i) => `<text x="${SW / 2}" y="${B + 600 + i * 50}" text-anchor="middle" font-family="${MARKER}" font-size="42" fill="#f4ede0">${esc(l)}</text>`).join('') +
     `<rect x="30" y="${by}" width="${SW - 60}" height="150" rx="16" fill="#0d1014" stroke="#3a3f48" stroke-width="3"/>
-    <text x="${SW / 2}" y="${by + 205}" text-anchor="middle" font-family="${MONO}" font-size="28" fill="#b3b9c2">Not affiliated with Anthropic</text>`;
+    <text x="${SW / 2}" y="${by + 200}" text-anchor="middle" font-family="${MONO}" font-size="22" fill="#6c7380">Not affiliated with Anthropic</text>`;
   const S = { claude: 1.3, doc: .7, martin: .8 }[who], feet = B + 545;
   let key = '';
   return { g, draw(q, f, { mouth = 'X' } = {}) {
