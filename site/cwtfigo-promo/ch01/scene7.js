@@ -20,9 +20,11 @@ function scene7(p, D, m) {
     L(1.95, 'ok', '3 packets transmitted, 3 received, 0% packet loss, time 2003ms'),
   ], { yolo: true });
   const book = notebook(p);
+  // 4:5: Martin steps back with the laptop only to MX, so the lights wide keeps him whole without Doc's edge
+  const MX = F45 ? 720 : PLACE.martin[0];
   const lights = 2.25, run = at('c15'), shut0 = run + .95, ins = run + 1.7;
-  const shots = [shot(0, 'screen', null, { over: 'term' }), shot(lights, 'wide'), { ...shot(at('m12', -.05), 'single', 'martin'), view: { x: PLACE.martin[0], y: 600, z: 2.35 } },
-    shot(at('c14', -.05), 'single', 'claude'), shot(run, 'wide'), shot(ins, 'insert', null, { over: 'book' }),
+  const shots = [shot(0, 'screen', null, { over: 'term' }), shot(lights, 'wide', null, wv('lights')), { ...shot(at('m12', -.05), 'single', 'martin'), view: { x: MX, y: 600, z: 2.35 } },
+    shot(at('c14', -.05), 'single', 'claude'), shot(run, 'wide', null, wv('run')), shot(ins, 'insert', null, { over: 'book' }),
     shot(at('c15', 4.4) - .05, 'single', 'claude')];
   const S = shooter(st, shots, { term: term.g, book: book.g });
   stingAt('scene7');
@@ -34,14 +36,15 @@ function scene7(p, D, m) {
     if (cur.over === 'term') term.draw(q);
     if (cur.over === 'book') {   // the pen finishes today's line, then the page drifts back over the earlier visits
       book.draw(q, { write: span(q, ins - .3, ins + 1.1) });
-      const u = span(q, ins + .6, at('c15', 4.4)), sc = 1.12 + .1 * u;
-      tf(book.book, `translate(${(-420 + 560 * u).toFixed(1)} ${(-40 - 20 * u).toFixed(1)}) scale(${sc.toFixed(3)})`);
+      const u = span(q, ins + .6, at('c15', 4.4) - (F45 ? .9 : 0)), sc = 1.12 + .1 * u;   // 4:5: lands on the dates and holds
+      if (F45) tf(book.book, `translate(${(-322 + 668 * u).toFixed(1)} ${(60 - 113 * u).toFixed(1)}) scale(${(.9 + .15 * u).toFixed(3)})`);   // 4:5: today's line fits, then the dates column large
+      else tf(book.book, `translate(${(-420 + 560 * u).toFixed(1)} ${(-40 - 20 * u).toFixed(1)}) scale(${sc.toFixed(3)})`);
     }
     const mt = talk(q, 'scene7', PRE7, 'm12'), ct = talk(q, 'scene7', PRE7, 'c14', 'c15');
     const gone = q >= run;
     // Martin: jaw drop at the lights, takes the laptop off the stool and holds it out by the sides of its base, the
     // screen (his own loud desktop) to us; on "I love you!" he snaps it shut and hugs it, swaying, eyes shut; runs out.
-    let ma = { x: PLACE.martin[0], y: PLACE.martin[1], lids: 0, brow: .3, mouth: mt, shut: blinkAt(q, 16) };
+    let ma = { x: MX, y: PLACE.martin[1], lids: 0, brow: .3, mouth: mt, shut: blinkAt(q, 16) };
     const DESK_SCR = `<g transform="translate(-152 -106)">${screenSVG('desk', 152, 72, 304, 144)}</g>`;
     const love = m('m12.love'), grab = lights + .7, joy = mt === 'X' ? 'grin' : mt;
     const held = (o, w = 415, cx = 0, cy = -494) => {   // the open laptop at his chest, a mitten on each side of the base
@@ -62,7 +65,7 @@ function scene7(p, D, m) {
       if (reach > 0) for (const sd of ['L', 'R']) { ma['arm' + sd] *= reach; ma['reach' + sd] = 1 + (ma['reach' + sd] - 1) * reach; }
     } else if (q < love) {   // lifts it off the stool and steps back holding it up to us: "I'M ONLINE! My configs!"; on
       // "My configs!" he pushes it at the lens
-      const o = { ...ma, x: PLACE.martin[0] + NEAR * (1 - carry), brow: .5, lids: 0, mouth: joy, bob: 6 * Math.abs(Math.sin(q * 9)) * carry };
+      const o = { ...ma, x: MX + (PLACE.martin[0] + NEAR - MX) * (1 - carry), brow: .5, lids: 0, mouth: joy, bob: 6 * Math.abs(Math.sin(q * 9)) * carry };
       const push = span(q, m('m12.configs'), m('m12.configs') + .15) - span(q, love - .35, love - .1);
       // the laptop from where it stood (world) to his chest (puppet units from his feet), one size changing smoothly
       const [lx, ly] = PLACE.laptop, sw = LAP_W / k, scx = (lx - o.x) / k, scy = (ly - LAP_W * 249 / 415 / 2 - o.y) / k;
@@ -74,7 +77,7 @@ function scene7(p, D, m) {
       if (q < love + .1) ma.chest = { name: 'laptop', w: 400, y: -494 };   // the lid slaps down
     } else {
       const u = (q - run) / .95;
-      const o = { ...ma, x: PLACE.martin[0] - 760 * Math.min(1, u), lean: -8, bob: 14 * Math.abs(Math.sin(q * 16)), look: -.8, eyeX: -1,
+      const o = { ...ma, x: MX - (MX + 130) * Math.min(1, u), lean: -8, bob: 14 * Math.abs(Math.sin(q * 16)), look: -.8, eyeX: -1,
         mouth: 'grin', o: u < 1 ? 1 : 0 };
       ma = { ...o, ...hugged(o) };
     }

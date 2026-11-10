@@ -23,7 +23,7 @@ function scene1(p, D, m) {
   const st = garageStage(p), at = (c, t = 0) => clipAt('scene1', PRE1, c, t);
   const roll0 = at('m01', 1.0), roll1 = roll0 + 1.15;
   const door = { x: PLACE.door[0], y: PLACE.door[1], s: .95 };
-  const shots = [shot(0, 'wide'), shot(roll1 + .3, 'single', 'martin', door), shot(at('m01', 5.5), 'close', 'martin', door)];
+  const shots = [shot(0, 'wide', null, wv('door')), shot(roll1 + .3, 'single', 'martin', door), shot(at('m01', 5.5), 'close', 'martin', door)];
   const S = shooter(st, shots);
   const bangs = [.3, .62, .95, at('m01', .05), at('m01', .52)];
   bangs.forEach((t, i) => sfx('scene1', t, 'knock', i < 3 ? 2.2 : 1.5));
