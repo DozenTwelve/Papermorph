@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en" data-stage="portrait">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>90 °C every day</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<!-- CWTFIGO shorts, episode 4: say what's wrong; Claude looks, says it in plain words, and asks before he touches
+     anything: a read once (its fingerprint kept until the script changes), a change every time, showing first what it
+     would do. Upright stage, everything inside the 4:5 band (lib/kit.js; books/cwtfigo-shorts/KIT.md). Order matters:
+     engine, sets, paper kit, cast, the audio data (eleven.py: timings.js; mouths.py: mouths.js; join.py: shots.js),
+     shared helpers, the cast (cwt.js), the series kit (kit.js), this episode's pieces (ep.js), then the scenes. -->
+<script src="../lib/engine.js"></script>
+<script src="../img/sets/sets.js"></script>
+<script src="../lib/paper.js"></script>
+<script src="../lib/cast.js"></script>
+<script src="audio/en/timings.js"></script>
+<script src="audio/en/mouths.js"></script>
+<script src="audio/en/shots.js"></script>
+<script src="../lib/shared.js"></script>
+<script src="../lib/cwt.js"></script>
+<script src="../lib/kit.js"></script>
+<script src="ep.js"></script>
+<script src="scene1.js"></script>
+<script src="scenes.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 4, title: '90 °C every day', minutes: 1, language: 'en', film: true };
+try { if (localStorage.getItem('captions') === null) setCaptions(true, false); } catch {}
+const BEATS = [
+  ['scene1', 'This is fine', (m, D) => scene1(panel(0), D, m), { lead: false, pre: PRE1 }],
+  ['scene2', 'Mind if I read?', (m, D) => scene2(panel(0), D, m), { lead: false, pre: PRE2 }],
+  ['scene3', 'Found it', (m, D) => scene3(panel(0), D, m), { lead: false, pre: PRE3 }],
+  ['scene4', 'This one asks every time', (m, D) => scene4(panel(0), D, m), { lead: false, pre: PRE4 }],
+  ['scene5', 'Next day', (m, D) => scene5(panel(0), D, m), { lead: false, pre: PRE5 }],
+  ['end', 'Install', (m, D) => endScene(panel(0), D), { lead: false, pre: PRE_END }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+music('../audio/bgm-a.mp3', undefined, .66, .5);
+window.MUSIC_UP_IN_PRE = true;
+boot();
+</script>
+</body>
+</html>
