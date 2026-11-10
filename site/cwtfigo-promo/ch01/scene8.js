@@ -13,6 +13,7 @@ function scene8(p, D, m) {
     { ...shot(at('d04', 1.1) - .08, 'close', 'doc'), view: { ...v, z: v.z * 1.15, y: v.y + 18 } }, shot(BLACK8(), 'black')];
   if (F45) shots[2].view = signView(shots[2].view, 140, .6);   // (the notebook in his other hand stays in too)   // 4:5: the sign snaps up just after the cut, so pull back for it
   if (F45) shots[1].view = { ...shots[1].view, x: shots[1].view.x + 40 / shots[1].view.z, z: shots[1].view.z * .9 };   // 4:5: his whole face
+  if (F45) shots[3].view = { ...shots[3].view, x: shots[3].view.x + 40 / shots[3].view.z };   // and centred in the punch-in
   const S = shooter(st, shots, { black });
   stingAt('scene8');
   sfx('scene8', snap - .05, 'whoosh', 1); sfx('scene8', snap + .1, 'flap', 1.5);
