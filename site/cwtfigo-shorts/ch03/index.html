@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en" data-stage="portrait">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>No AI needed: the menu</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<!-- CWTFIGO shorts, ch03: the menu that runs the approved scripts with no AI (books/cwtfigo-shorts/ch03/). Order as
+     the kit sample: engine, sets, paper kit, cast, the audio data, shared helpers, the cast (cwt.js), the series kit
+     (kit.js), then the scenes. -->
+<script src="../lib/engine.js"></script>
+<script src="../img/sets/sets.js"></script>
+<script src="../img/puppets/baked.js" onerror="0"></script>
+<script src="../lib/paper.js"></script>
+<script src="../lib/cast.js"></script>
+<script src="audio/en/timings.js"></script>
+<script src="audio/en/mouths.js"></script>
+<script src="audio/en/shots.js"></script>
+<script src="../lib/shared.js"></script>
+<script src="../lib/cwt.js"></script>
+<script src="../lib/kit.js"></script>
+<script src="scenes.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 3, title: 'No AI needed: the menu', minutes: 1, language: 'en', film: true };
+try { if (localStorage.getItem('captions') === null) setCaptions(true, false); } catch {}
+const BEATS = [
+  ['scene1', 'Out of tokens', (m, D) => scene1(panel(0), D, m), { lead: false, pre: PRE1 }],
+  ['scene2', 'You said yes', (m, D) => scene2(panel(0), D, m), { lead: false, pre: PRE2 }],
+  ['scene3', 'Panik', (m, D) => scene3(panel(0), D, m), { lead: false, pre: PRE3 }],
+  ['scene4', 'The menu', (m, D) => scene4(panel(0), D, m), { lead: false, pre: PRE4 }],
+  ['scene5', 'No AI', (m, D) => scene5(panel(0), D, m), { lead: false, pre: PRE5 }],
+  ['scene6', 'Five o\'clock', (m, D) => scene6(panel(0), D, m), { lead: false, pre: PRE6 }],
+  ['end', 'Install', (m, D) => endScene(panel(0), D), { lead: false, pre: PRE_END }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+music('../audio/bgm-a.mp3', undefined, .66, .5);
+window.MUSIC_UP_IN_PRE = true;
+boot();
+</script>
+</body>
+</html>
