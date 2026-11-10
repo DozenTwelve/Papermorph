@@ -159,7 +159,7 @@ const signView = v => ({ x: v.x + 165 / v.z, y: v.y + 60 / v.z, z: v.z * .63 });
 const tickView = v => ({ x: v.x + 150 / v.z, y: v.y + 40 / v.z, z: v.z * .78 });
 // 4:5 wides, framed on who matters in each (recut-45.md); z under 1 tops the frame at the ceiling, the apron below.
 const wide45 = (x, z = 1) => ({ x, y: z >= 1 ? 450 : -26 + 450 / z, z });
-const W45 = { door: wide45(380), stage: wide45(740, .78), cable: wide45(840, .78), router: wide45(1180, .78),
+const W45 = { door: wide45(380), stage: wide45(705, .78), tag: wide45(740, .78), cable: wide45(790, .74), router: wide45(1180, .78),
   yolo: wide45(1020, .7), lights: wide45(1000, .7), run: wide45(470, .78) };
 const wv = name => F45 ? { view: W45[name] } : {};
 
@@ -183,7 +183,9 @@ function termScreen(p, lines, { yolo = false, title = 'martin@omarchy: ~', rows 
       if (q < L.at) break;
       let t = L.text;
       if (L.kind === 'cmd') { const n = Math.floor((q - L.at) * (L.cps || 40)); t = L.text.slice(0, n); }
-      for (let i = 0; i < t.length || i === 0; i += WRAP) shown.push([L, (i ? '  ' : '') + t.slice(i, i + WRAP), i > 0]);   // a terminal wraps
+      // a terminal wraps; 4:5's narrow window wraps at a space or after a slash, so no word is cut in two
+      (F45 ? softWrap(t, WRAP) : Array.from({ length: Math.max(1, Math.ceil(t.length / WRAP)) }, (_, i) => t.slice(i * WRAP, (i + 1) * WRAP)))
+        .forEach((r, i) => shown.push([L, (i ? '  ' : '') + r, i > 0]));
     }
     const last = shown[shown.length - 1], typing = last && last[0].kind === 'cmd' && last[1].length < last[0].text.length;
     const cursor = Math.floor(q * 2.5) % 2 === 0 || typing;
@@ -208,6 +210,19 @@ function termChrome(title = 'martin@omarchy: ~') {
 function yoloBadge() {
   const x = F45 ? X45 + W45W - 24 - 214 : 1340;
   return `<rect x="${x}" y="80" width="214" height="56" rx="10" fill="#d8262b"/><text x="${x + 107}" y="119" text-anchor="middle" font-family="${MONO}" font-weight="800" font-size="30" fill="#fff">YOLO 12h</text>`;
+}
+
+// Rows of at most w characters, broken at the last space (dropped) or after the last slash; a row with neither in its
+// later part is cut at w, as a terminal would.
+function softWrap(t, w) {
+  const rows = [];
+  while (t.length > w) {
+    let k = Math.max(t.lastIndexOf(' ', w), t.lastIndexOf('/', w - 1) + 1);
+    if (k < w * .4) k = w;
+    rows.push(t.slice(0, k)); t = t.slice(k).replace(/^ +/, '');
+  }
+  rows.push(t);
+  return rows;
 }
 
 /* ---------- comic panels over the screen ---------- */
@@ -289,7 +304,7 @@ function notebook(p) {
 // "Not affiliated with Anthropic" small at the bottom. 4:5: the layout of the shared shorts kit's end card (cwEnd,
 // site/cwtfigo-shorts/lib/kit.js: the 900 × 1125 band) scaled into the 720 × 900 window, the lines typed in as there,
 // so the five X videos end alike.
-const CW_SLOGAN = ['Turn your Claude Code into', 'the ultimate troubleshooting tool.'];
+const CW_SLOGAN = ['Turn your Claude Code into the', 'ultimate troubleshooting tool.'];   // the owner's words, split as the shorts' card
 const CW_INSTALL = ['/plugin marketplace add DozenTwelve/CWTFIGO', '/plugin install cwtfigo@cwtfigo'];
 function cwEndCard(p) {
   const g = mk('g', {}, p);
@@ -298,17 +313,17 @@ function cwEndCard(p) {
   const band = mk('g', F45 ? { transform: `translate(${X45} 0) scale(.8)` } : {}, g);   // 4:5: band units, 900 wide
   const pup = claudePuppet(band);
   const txt = mk('g', {}, band), typed = mk('g', {}, band);
-  const slogan = (x, y, fs) => CW_SLOGAN.map((l, i) => `<text x="${x}" y="${y + i * fs * 1.2}" text-anchor="middle" font-family="${MARKER}" font-size="${fs}" fill="#f4ede0">${l}</text>`).join('');
+  const slogan = (x, y, fs) => CW_SLOGAN.map((l, i) => `<text x="${x}" y="${y + i * 50}" text-anchor="middle" font-family="${MARKER}" font-size="${fs}" fill="#f4ede0">${l}</text>`).join('');
   // 4:5 (band units): title, tagline, Claude, the slogan, the box, the disclaimer; 16:9: Claude left, the words right
-  const L = F45 ? { x: 450, box: [30, 760, 840, 150], fs: 27, lx: 58, ly: [820, 876] } : { x: 1040, box: [610, 530, 860, 150], fs: 30, lx: 640, ly: [592, 648] };
+  const L = F45 ? { x: 450, box: [30, 700, 840, 150], fs: 27, lx: 58, ly: [760, 816] } : { x: 1040, box: [610, 530, 860, 150], fs: 30, lx: 640, ly: [592, 648] };
   txt.innerHTML = (F45
     ? `<text x="450" y="128" text-anchor="middle" font-family="${MARKER}" font-size="116" fill="#ef601d">CWTFIGO</text>
     <text x="450" y="190" text-anchor="middle" font-family="${MARKER}" font-size="38" fill="#f4ede0">Claude, what the fuck is going on?</text>
-    ${slogan(450, 650, 46)}
-    <text x="450" y="990" text-anchor="middle" font-family="${MONO}" font-size="22" fill="#6c7380">Not affiliated with Anthropic</text>`
+    ${slogan(450, 600, 42)}
+    <text x="450" y="900" text-anchor="middle" font-family="${MONO}" font-size="22" fill="#6c7380">Not affiliated with Anthropic</text>`
     : `<text x="1040" y="200" text-anchor="middle" font-family="${MARKER}" font-size="120" fill="#ef601d">CWTFIGO</text>
     <text x="1040" y="280" text-anchor="middle" font-family="${MARKER}" font-size="40" fill="#f4ede0">Claude, what the fuck is going on?</text>
-    ${slogan(1040, 410, 46)}
+    ${slogan(1040, 410, 44)}
     <text x="1040" y="840" text-anchor="middle" font-family="${MONO}" font-size="20" fill="#6c7380">Not affiliated with Anthropic</text>`) +
     `<rect x="${L.box[0]}" y="${L.box[1]}" width="${L.box[2]}" height="${L.box[3]}" rx="16" fill="#0d1014" stroke="#3a3f48" stroke-width="3"/>`;
   let key = '';
@@ -320,7 +335,7 @@ function cwEndCard(p) {
       key = k;
       typed.innerHTML = CW_INSTALL.map((l, i) => `<text x="${L.lx}" y="${L.ly[i]}" font-family="${MONO}" font-size="${L.fs}" fill="#e8eaed" xml:space="preserve"><tspan fill="#5df07a">&gt; </tspan>${esc(l.slice(0, n[i]))}${i === cur && blink ? '<tspan fill="#e8eaed">▌</tspan>' : ''}</text>`).join('');
     }
-    pup.pose({ ...(F45 ? { x: 450, y: 600, s: 1.55 } : { x: 380, y: 820, s: 3.1 }), holdL: { name: 'cigar', w: 230, x: -30, y: 10, r: -10 }, armL: 70, lids: .42,
+    pup.pose({ ...(F45 ? { x: 450, y: 545, s: 1.3 } : { x: 380, y: 820, s: 3.1 }), holdL: { name: 'cigar', w: 230, x: -30, y: 10, r: -10 }, armL: 70, lids: .42,
       mouth: 0, spin: q * 60, bob: 4 * Math.sin(q * 2), shut: blinking(q, [1.4, 3.6]) }, f);
   } };
 }
