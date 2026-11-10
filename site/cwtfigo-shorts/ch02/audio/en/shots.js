@@ -1,0 +1,10 @@
+TIMINGS.scene1 = {"dur": 2.645, "marks": {}, "cues": [[0.1, "Claude\u2026 what the fuck is going on?", 2.723]], "parts": {"d01": 0}};
+TIMINGS.scene2 = {"dur": 2.299, "marks": {}, "cues": [[0.1, "Which one?", 1.029], [1.18, "ALL OF THEM!", 2.401]], "parts": {"c01": 0, "d02": 1.08}};
+TIMINGS.scene3 = {"dur": 5.494, "marks": {}, "cues": [[0.1, "Walk over there?", 1.657], [1.358, "Nah.", 2.173], [2.483, "I never leave your laptop.", 4.162]], "parts": {"c02": 0, "c03": 2.383, "tail3": 4.394}};
+TIMINGS.scene4 = {"dur": 6.677, "marks": {"c04.hands": 2.69}, "cues": [[0.1, "NAS:", 0.869], [0.57, "disk three is dying.", 2.989], [2.69, "That fix needs hands.", 4.182], [4.5, "\u2026Mine?", 5.233], [5.641, "Yours.", 6.423]], "parts": {"c04": 0, "d04": 4.4, "c05": 5.541, "tail4": 6.626}};
+TIMINGS.scene5 = {"dur": 8.614, "marks": {"c06.amnesia": 2.82}, "cues": [[0.1, "Router:", 0.999], [0.7, "your update renamed one setting.", 3.119], [2.82, "Your ad blocker woke up with amnesia.", 5.004], [5.307, "Point it back?", 6.436], [6.743, "Yep.", 7.484]], "parts": {"c06": 0, "c07": 5.207, "d05": 6.643, "tail5": 7.714}};
+TIMINGS.scene6 = {"dur": 7.205, "marks": {"c08.gigs": 0.94, "c08.saves": 3.918}, "cues": [[0.1, "Steam Deck:", 1.239], [0.94, "sixty-one gigs of leftovers from games you deleted.", 4.217], [3.918, "Saves stay.", 5.071]], "parts": {"c08": 0, "tail6": 5.305}};
+TIMINGS.scene7 = {"dur": 6.228, "marks": {"c10.fire": 4.302}, "cues": [[0.1, "Where do you keep notes on all of these?", 2.216], [2.527, "Right here, on your laptop.", 4.601], [4.302, "Never on the box that's on fire.", 6.527]], "parts": {"d07": 0, "c10": 2.427}};
+TIMINGS.scene8 = {"dur": 5.443, "marks": {}, "cues": [[0.1, "So whose fault was it?", 2.084], [3.235, "\u2026Fair.", 4.836]], "parts": {"d08": 0, "d09": 2.135, "tail8": 5.042}};
+TIMINGS.end = {"dur": 4.262, "marks": {}, "cues": [[0.1, "Two lines.", 1.333], [1.034, "Paste them into Claude Code.", 2.742]], "parts": {"e01": 0, "tailE": 2.962}};
+MOUTHS.d09 = [[-0.001, "X"], [1.778, "G"], [1.986, "C"], [2.194, "B"], [2.328, "X"]];

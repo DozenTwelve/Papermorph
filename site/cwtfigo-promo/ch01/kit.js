@@ -3,6 +3,12 @@
    over it, the notebook insert and the end card. The owner's camera rule: a line is a frontal single, an event is the
    wide stage, a screen is the whole frame. */
 'use strict';
+// ?frame=45: the 4:5 cut for X. Everything that matters stays inside the centre 720 × 900 window of the stage
+// (x 440 … 1160); export.py --query frame=45 --height 1350 and a centre crop of 1080 × 1350 make the video
+// (books/cwtfigo-promo/recut-45.md). Without the query the film is the 16:9 cut as approved.
+const F45 = new URLSearchParams(location.search).get('frame') === '45';
+if (F45) document.documentElement.classList.add('f45');
+const X45 = 440, W45W = 720;   // the 4:5 window on the stage
 const DESK = 486;   // the desk top in the garage plate
 // Where everyone stands on the stage. Claude is as tall as Doc once he is out (s CLAUDE_S); the laptop sits on the
 // stool in the middle, the router on the top shelf at the right, and a cable runs from the router to the laptop.
@@ -26,6 +32,12 @@ const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(
 // them every frame (stopClock) and calls stage.frame(q, f, extra) for the set's own life (rain, bulb, router, door).
 function garageStage(p, { door = 0 } = {}) {
   const cam = paperCam(p, 'garage');
+  if (F45) {   // 4:5: the wides pull back past the plate's foot, so the concrete floor carries on below it
+    const apron = mk('g', {}, null);
+    apron.innerHTML = `<linearGradient id="cwApron" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5a5657"/><stop offset="1" stop-color="#3f3c3d"/></linearGradient>
+      <rect x="-200" y="900" width="2000" height="600" fill="url(#cwApron)"/>`;
+    cam.world.insertBefore(apron, cam.world.firstChild);
+  }
   const rain = mk('g', {}, cam.stage);   // outside the doorway, behind whoever stands there
   rain.innerHTML = Array.from({ length: 46 }, (_, i) => {
     const x = (i * 53.7) % 250, y = (i * 97.3) % 600;
@@ -137,21 +149,32 @@ function singleView(who, { x, y, s = who === 'claude' ? .9 : 1, close = false } 
   const chest = py - (sp.feet[1] - (who === 'claude' ? 1000 : 960)) * k;
   const span = (chest - top) * (close ? .78 : 1.18), z = 900 / span;
   const cy = close ? top + span * .62 : top - span * .06 + span / 2;   // a close crops the hair, not the chin (captions sit low)
-  return { x: Math.min(1660 - 800 / z, Math.max(-60 + 800 / z, px)), y: cy, z };
+  const half = (F45 ? W45W / 2 : 800) / z;   // keep the frame (4:5: its window) on the plate
+  return { x: Math.min(1660 - half, Math.max(-60 + half, px)), y: cy, z };
 }
+// 4:5: a single that holds up a cardboard sign beside the head pulls back and puts the speaker left of centre, so
+// the sign reads whole inside the window.
+const signView = (v, dx = 165, k = .63) => ({ x: v.x + dx / v.z, y: v.y + 60 / v.z, z: v.z * k });
+// 4:5: Claude's single with the ✓ ticks beside him: pulled back a little, Claude left, the ticks on the right.
+const tickView = v => ({ x: v.x + 150 / v.z, y: v.y + 40 / v.z, z: v.z * .78 });
+// 4:5 wides, framed on who matters in each (recut-45.md); z under 1 tops the frame at the ceiling, the apron below.
+const wide45 = (x, z = 1) => ({ x, y: z >= 1 ? 450 : -26 + 450 / z, z });
+const W45 = { door: wide45(380), stage: wide45(730, .72), tag: wide45(740, .78), cable: wide45(790, .74), router: wide45(1180, .78),
+  yolo: wide45(1020, .7), lights: wide45(1060, .7), run: wide45(660, .66) };
+const wv = name => F45 ? { view: W45[name] } : {};
 
 /* ---------- the terminal that fills the frame ---------- */
 // lines: [{ at, text, kind: 'cmd' | 'out' | 'ok' | 'bad' | 'dim', cps }]: a command types at cps characters a
 // second from `at`; output lines appear whole at `at`. The newest line stays above the bottom margin.
 function termScreen(p, lines, { yolo = false, title = 'martin@omarchy: ~', rows = 16 } = {}) {
   const g = mk('g', {}, p);
-  mk('rect', { width: 1600, height: 900, fill: '#0d1014' }, g);
-  const bar = mk('g', {}, g);
-  bar.innerHTML = `<rect width="1600" height="54" fill="#1c2027"/><circle cx="34" cy="27" r="9" fill="#ff5f57"/><circle cx="62" cy="27" r="9" fill="#febc2e"/><circle cx="90" cy="27" r="9" fill="#28c840"/>
-    <text x="800" y="36" text-anchor="middle" font-family="${MONO}" font-size="22" fill="#8b93a1">${esc(title)}</text>`;
+  g.innerHTML = termChrome(title);
   const badge = mk('g', { visibility: yolo ? 'inherit' : 'hidden' }, g);   // 'visible' would show through a hidden screen
-  badge.innerHTML = `<rect x="1340" y="80" width="214" height="56" rx="10" fill="#d8262b"/><text x="1447" y="119" text-anchor="middle" font-family="${MONO}" font-weight="800" font-size="30" fill="#fff">YOLO 12h</text>`;
-  const body = mk('g', {}, g), LH = 46, TOP = 112, ROWS = rows, WRAP = 76;
+  badge.innerHTML = yoloBadge();
+  // 4:5: the window's 720 wide at 27 (40 px in the video), 40 columns; rows 8 (scene 4's panels below) stay 8
+  // 4:5: below the YOLO badge, which sits over the first row in the narrow window; scene 4's 8 rows → 7, clear of the balloons
+  const body = mk('g', {}, g), LH = F45 ? 40 : 46, TOP = F45 && yolo ? 150 : 112, ROWS = F45 ? (rows > 8 ? 15 : 5) : rows, WRAP = F45 ? 40 : 76;
+  const FS = F45 ? 27 : 31, TX = F45 ? X45 + 26 : 64;
   const col = { cmd: '#e8eaed', out: '#aab2bf', ok: '#5df07a', bad: '#ff6b5e', dim: '#5f6773' };
   let key = '';
   return { g, draw(q) {
@@ -160,27 +183,55 @@ function termScreen(p, lines, { yolo = false, title = 'martin@omarchy: ~', rows 
       if (q < L.at) break;
       let t = L.text;
       if (L.kind === 'cmd') { const n = Math.floor((q - L.at) * (L.cps || 40)); t = L.text.slice(0, n); }
-      for (let i = 0; i < t.length || i === 0; i += WRAP) shown.push([L, (i ? '  ' : '') + t.slice(i, i + WRAP)]);   // a terminal wraps
+      // a terminal wraps; 4:5's narrow window wraps at a space or after a slash, so no word is cut in two
+      (F45 ? softWrap(t, WRAP) : Array.from({ length: Math.max(1, Math.ceil(t.length / WRAP)) }, (_, i) => t.slice(i * WRAP, (i + 1) * WRAP)))
+        .forEach((r, i) => shown.push([L, (i ? '  ' : '') + r, i > 0]));
     }
     const last = shown[shown.length - 1], typing = last && last[0].kind === 'cmd' && last[1].length < last[0].text.length;
     const cursor = Math.floor(q * 2.5) % 2 === 0 || typing;
     const k = shown.map(s => s[1]).join('\n') + (cursor ? '_' : '');
     if (k === key) return; key = k;
     const view = shown.slice(-ROWS);
-    body.innerHTML = view.map(([L, t], i) => {
+    body.innerHTML = view.map(([L, t, cont], i) => {
       const y = TOP + i * LH + 34, kind = L.kind || 'out', end = i === view.length - 1;
-      const pre = kind === 'cmd' ? `<tspan fill="#5df07a">$ </tspan>` : '';
-      return `<text x="64" y="${y}" font-family="${MONO}" font-size="31" fill="${col[kind]}" xml:space="preserve">${pre}${esc(t)}${end && cursor ? '<tspan fill="#e8eaed">▌</tspan>' : ''}</text>`;
+      const pre = kind === 'cmd' && !cont ? `<tspan fill="#5df07a">$ </tspan>` : '';
+      return `<text x="${TX}" y="${y}" font-family="${MONO}" font-size="${FS}" fill="${col[kind]}" xml:space="preserve">${pre}${esc(t)}${end && cursor ? '<tspan fill="#e8eaed">▌</tspan>' : ''}</text>`;
     }).join('');
   } };
+}
+
+// The terminal window's title bar and the YOLO badge (in 4:5 inside the window: dots at its left, badge at its right).
+function termChrome(title = 'martin@omarchy: ~') {
+  const x = F45 ? X45 : 0;
+  return `<rect width="1600" height="900" fill="#0d1014"/><rect width="1600" height="54" fill="#1c2027"/>
+    <circle cx="${x + 34}" cy="27" r="9" fill="#ff5f57"/><circle cx="${x + 62}" cy="27" r="9" fill="#febc2e"/><circle cx="${x + 90}" cy="27" r="9" fill="#28c840"/>
+    <text x="800" y="36" text-anchor="middle" font-family="${MONO}" font-size="22" fill="#8b93a1">${esc(title)}</text>`;
+}
+function yoloBadge() {
+  const x = F45 ? X45 + W45W - 24 - 214 : 1340;
+  return `<rect x="${x}" y="80" width="214" height="56" rx="10" fill="#d8262b"/><text x="${x + 107}" y="119" text-anchor="middle" font-family="${MONO}" font-weight="800" font-size="30" fill="#fff">YOLO 12h</text>`;
+}
+
+// Rows of at most w characters, broken at the last space (dropped) or after the last slash; a row with neither in its
+// later part is cut at w, as a terminal would.
+function softWrap(t, w) {
+  const rows = [];
+  while (t.length > w) {
+    let k = Math.max(t.lastIndexOf(' ', w), t.lastIndexOf('/', w - 1) + 1);
+    if (k < w * .4) k = w;
+    rows.push(t.slice(0, k)); t = t.slice(k).replace(/^ +/, '');
+  }
+  rows.push(t);
+  return rows;
 }
 
 /* ---------- comic panels over the screen ---------- */
 // A tilted comic panel of one character's head and shoulders that slams in from its side with a speech balloon.
 // draw(q, { in: t0, out: t1, pose, text }) poses it; side 'L' (Claude) or 'R' (Martin).
 function comicPanel(p, who, side) {
-  const g = mk('g', {}, p), W = 520, H = 470, L = side === 'L';
-  const x0 = L ? 40 : 1600 - 40 - W, y0 = 900 - H + 70, tilt = 0;   // upright: a turned group makes Firefox redraw its big pictures whenever a mouth changes
+  // 4:5: whole panels in the window's lower corners, above the caption, the figure clipped to its panel
+  const g = mk('g', {}, p), W = F45 ? 300 : 520, H = F45 ? 290 : 470, L = side === 'L';
+  const x0 = F45 ? (L ? X45 + 30 : X45 + W45W - 30 - W) : L ? 40 : 1600 - 40 - W, y0 = F45 ? 900 - H - 110 : 900 - H + 70, tilt = 0;   // upright: a turned group makes Firefox redraw its big pictures whenever a mouth changes
   const id = `cwClip${who}${side}${Math.random().toString(36).slice(2, 6)}`;
   const inner = mk('g', {}, g);
   inner.innerHTML = `<clipPath id="${id}"><rect x="${x0}" y="${y0}" width="${W}" height="${H}"/></clipPath>
@@ -189,15 +240,15 @@ function comicPanel(p, who, side) {
     <rect x="${x0}" y="${y0}" width="${W}" height="${H}" fill="url(#cwDots)"/>
     ${Array.from({ length: 14 }, (_, i) => { const a = i / 14 * Math.PI * 2, cx = x0 + W / 2, cy = y0 + H * .45;
       return `<path d="M${cx + Math.cos(a) * 140},${cy + Math.sin(a) * 140} L${cx + Math.cos(a) * 520},${cy + Math.sin(a) * 520}" stroke="#fff" stroke-width="10" opacity=".35"/>`; }).join('')}`;
-  const pupG = mk('g', {}, inner);   // no clip: the panel runs off the bottom of the frame and the figure fits its width
+  const pupG = mk('g', F45 ? { 'clip-path': `url(#${id})` } : {}, inner);   // no clip: the panel runs off the bottom of the frame and the figure fits its width
   const pup = cwPuppet(pupG, who);
   const frame = mk('rect', { x: x0, y: y0, width: W, height: H, fill: 'none', stroke: CW_INK, 'stroke-width': 9 }, inner);
   const balloon = mk('g', {}, g);
   let bKey = '';
   // where the puppet stands so its head and shoulders fill the panel
-  const sp = CW[who], s = who === 'claude' ? 3.5 : 1.55, k = sp.K * s;
+  const sp = CW[who], s = (who === 'claude' ? 3.5 : 1.55) * W / 520, k = sp.K * s;
   const headTop = (sp.feet[1] - (sp.head ? sp.head[1] : sp.body[1])) * k;
-  const px = x0 + W / 2, py = y0 + (who === 'claude' ? 30 : 40) + headTop;
+  const px = x0 + W / 2, py = y0 + (who === 'claude' ? 30 : 40) * W / 520 + headTop;
   return { g, draw(q, f, { at = 0, out = 99, pose = {}, text = '', size = 46 }) {
     const u = Math.min(1, Math.max(0, (q - at) / .25)), v = Math.min(1, Math.max(0, (q - out) / .2));
     const on = q >= at && v < 1;
@@ -211,9 +262,11 @@ function comicPanel(p, who, side) {
     if (bk !== bKey) {
       bKey = bk;
       if (!text || q - at <= .12) { balloon.innerHTML = ''; return; }
-      const bw = Math.max(220, text.length * size * .52 + 80), bh = size * 1.9;
-      const bx = L ? x0 + W - 30 : x0 + 30 - bw, by = y0 + (L ? 10 : 120);   // beside the panel, towards the middle
-      const tx = L ? x0 + W - 60 : x0 + 60;
+      if (F45) size *= .66;
+      const bw = Math.max(F45 ? 160 : 220, text.length * size * .52 + (F45 ? 60 : 80)), bh = size * 1.9;
+      // beside the panel, towards the middle (4:5: above it, Claude's higher, both inside the window)
+      const bx = F45 ? (L ? x0 : x0 + W - bw) : L ? x0 + W - 30 : x0 + 30 - bw, by = F45 ? y0 - bh - (L ? 105 : 40) : y0 + (L ? 10 : 120);
+      const tx = F45 ? (L ? x0 + 110 : x0 + W - 110) : L ? x0 + W - 60 : x0 + 60;
       balloon.innerHTML = `<path d="M${bx + (L ? 30 : bw - 30)},${by + bh - 14} L${tx},${by + bh + 60} L${bx + (L ? 80 : bw - 80)},${by + bh - 6} Z" fill="#fff" stroke="${CW_INK}" stroke-width="7" stroke-linejoin="round"/>
         <rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="${bh / 2}" fill="#fff" stroke="${CW_INK}" stroke-width="7"/>
         <path d="M${bx + (L ? 34 : bw - 34)},${by + bh - 8} L${bx + (L ? 76 : bw - 76)},${by + bh - 8}" stroke="#fff" stroke-width="9"/>
@@ -248,20 +301,42 @@ function notebook(p) {
 }
 
 /* ---------- the end card ---------- */
+// CWTFIGO, the owner's slogan as the headline over the two install lines (marketplace add, then plugin install) and
+// "Not affiliated with Anthropic" small at the bottom. 4:5: the layout of the shared shorts kit's end card (cwEnd,
+// site/cwtfigo-shorts/lib/kit.js: the 900 × 1125 band) scaled into the 720 × 900 window, the lines typed in as there,
+// so the five X videos end alike.
+const CW_SLOGAN = ['Turn your Claude Code into the', 'ultimate troubleshooting tool.'];   // the owner's words, split as the shorts' card
+const CW_INSTALL = ['/plugin marketplace add DozenTwelve/CWTFIGO', '/plugin install cwtfigo@cwtfigo'];
 function cwEndCard(p) {
   const g = mk('g', {}, p);
   mk('rect', { width: 1600, height: 900, fill: '#16130f' }, g);
   mk('rect', { width: 1600, height: 900, fill: 'url(#cwDots)', opacity: .5 }, g);
-  const pup = claudePuppet(g);
-  const txt = mk('g', {}, g);
-  txt.innerHTML = `<text x="1040" y="250" text-anchor="middle" font-family="${MARKER}" font-size="128" fill="#ef601d">CWTFIGO</text>
-    <text x="1040" y="350" text-anchor="middle" font-family="${MARKER}" font-size="46" fill="#f4ede0">Claude, what the fuck is going on?</text>
-    <rect x="690" y="430" width="700" height="96" rx="16" fill="#0d1014" stroke="#3a3f48" stroke-width="3"/>
-    <text x="1040" y="492" text-anchor="middle" font-family="${MONO}" font-size="36" fill="#e8eaed"><tspan fill="#5df07a">&gt; </tspan>/plugin install cwtfigo@cwtfigo</text>
-    <text x="1040" y="600" text-anchor="middle" font-family="${MONO}" font-size="26" fill="#9aa2ad">an ops plugin for Claude Code</text>
-    <text x="1040" y="840" text-anchor="middle" font-family="${MONO}" font-size="20" fill="#6c7380">Not affiliated with Anthropic</text>`;
+  const band = mk('g', F45 ? { transform: `translate(${X45} 0) scale(.8)` } : {}, g);   // 4:5: band units, 900 wide
+  const pup = claudePuppet(band);
+  const txt = mk('g', {}, band), typed = mk('g', {}, band);
+  const slogan = (x, y, fs) => CW_SLOGAN.map((l, i) => `<text x="${x}" y="${y + i * 50}" text-anchor="middle" font-family="${MARKER}" font-size="${fs}" fill="#f4ede0">${l}</text>`).join('');
+  // 4:5 (band units): title, tagline, Claude, the slogan, the box, the disclaimer; 16:9: Claude left, the words right
+  const L = F45 ? { x: 450, box: [30, 700, 840, 150], fs: 27, lx: 58, ly: [760, 816] } : { x: 1040, box: [610, 530, 860, 150], fs: 30, lx: 640, ly: [592, 648] };
+  txt.innerHTML = (F45
+    ? `<text x="450" y="128" text-anchor="middle" font-family="${MARKER}" font-size="116" fill="#ef601d">CWTFIGO</text>
+    <text x="450" y="190" text-anchor="middle" font-family="${MARKER}" font-size="38" fill="#f4ede0">Claude, what the fuck is going on?</text>
+    ${slogan(450, 600, 42)}
+    <text x="450" y="900" text-anchor="middle" font-family="${MONO}" font-size="22" fill="#6c7380">Not affiliated with Anthropic</text>`
+    : `<text x="1040" y="200" text-anchor="middle" font-family="${MARKER}" font-size="120" fill="#ef601d">CWTFIGO</text>
+    <text x="1040" y="280" text-anchor="middle" font-family="${MARKER}" font-size="40" fill="#f4ede0">Claude, what the fuck is going on?</text>
+    ${slogan(1040, 410, 44)}
+    <text x="1040" y="840" text-anchor="middle" font-family="${MONO}" font-size="20" fill="#6c7380">Not affiliated with Anthropic</text>`) +
+    `<rect x="${L.box[0]}" y="${L.box[1]}" width="${L.box[2]}" height="${L.box[3]}" rx="16" fill="#0d1014" stroke="#3a3f48" stroke-width="3"/>`;
+  let key = '';
   return { g, draw(q, f) {
-    pup.pose({ x: 380, y: 820, s: 3.1, holdL: { name: 'cigar', w: 230, x: -30, y: 10, r: -10 }, armL: 70, lids: .42,
+    // the lines type in, the second 1.1 s after the first (45 characters a second), as on the shorts' end card
+    const n = CW_INSTALL.map((l, i) => Math.max(0, Math.min(l.length, Math.floor((q - .3 - i * 1.1) * 45))));
+    const cur = n[1] > 0 ? 1 : 0, blink = Math.floor(q * 2.5) % 2 === 0, k = n.join() + blink;
+    if (k !== key) {
+      key = k;
+      typed.innerHTML = CW_INSTALL.map((l, i) => `<text x="${L.lx}" y="${L.ly[i]}" font-family="${MONO}" font-size="${L.fs}" fill="#e8eaed" xml:space="preserve"><tspan fill="#5df07a">&gt; </tspan>${esc(l.slice(0, n[i]))}${i === cur && blink ? '<tspan fill="#e8eaed">▌</tspan>' : ''}</text>`).join('');
+    }
+    pup.pose({ ...(F45 ? { x: 450, y: 545, s: 1.3 } : { x: 380, y: 820, s: 3.1 }), holdL: { name: 'cigar', w: 230, x: -30, y: 10, r: -10 }, armL: 70, lids: .42,
       mouth: 0, spin: q * 60, bob: 4 * Math.sin(q * 2), shut: blinking(q, [1.4, 3.6]) }, f);
   } };
 }
@@ -302,8 +377,9 @@ function percolating(p) {
   mk('rect', { width: 1600, height: 900, fill: '#0d1014' }, g);
   const star = mk('g', {}, g), txt = mk('g', {}, g);
   star.innerHTML = [0, 60, 120].map(a => `<rect x="-9" y="-46" width="18" height="92" rx="3" transform="rotate(${a})" fill="#e8582a"/>`).join('');
-  txt.innerHTML = `<text x="700" y="478" font-family="${MONO}" font-size="64" fill="#e8582a">Percolating…</text>`;
-  return { g, draw(q) { tf(star, `translate(630 456) rotate(${(q * 360) % 360}) scale(${1 + .15 * Math.sin(q * 12)})`); txt.setAttribute('opacity', (.55 + .45 * Math.sin(q * 9)).toFixed(2)); } };
+  txt.innerHTML = F45 ? `<text x="800" y="560" text-anchor="middle" font-family="${MONO}" font-size="64" fill="#e8582a">Percolating…</text>`   // 4:5: the star above the word
+    : `<text x="700" y="478" font-family="${MONO}" font-size="64" fill="#e8582a">Percolating…</text>`;
+  return { g, draw(q) { tf(star, `translate(${F45 ? '800 400' : '630 456'}) rotate(${(q * 360) % 360}) scale(${1 + .15 * Math.sin(q * 12)})`); txt.setAttribute('opacity', (.55 + .45 * Math.sin(q * 9)).toFixed(2)); } };
 }
 // A stamp in screen space beside a single: a code flag or a tick that pops in.
 function stamp(p, html) { const g = mk('g', { visibility: 'hidden' }, p); g.innerHTML = html; return g; }

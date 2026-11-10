@@ -8,7 +8,7 @@ function scene3(p, D, m) {
   const st = garageStage(p), at = (c, t = 0) => clipAt('scene3', PRE3, c, t);
   const perc = percolating(p);
   const T_POP = 1.25, T_LAND = 2.35;
-  const shots = [shot(0, 'insert', null, { over: 'perc' }), shot(1.05, 'wide'), shot(at('c01', -.1), 'single', 'claude'),
+  const shots = [shot(0, 'insert', null, { over: 'perc' }), shot(1.05, 'wide', null, wv('stage')), shot(at('c01', -.1), 'single', 'claude'),
     shot(at('m04', -.05), 'single', 'martin')];
   const S = shooter(st, shots, { perc: perc.g });
   stingAt('scene3');
@@ -16,6 +16,7 @@ function scene3(p, D, m) {
   sfx('scene3', 0, 'whirr', .9); sfx('scene3', T_POP, 'pop', 1.8); sfx('scene3', T_POP + .05, 'whoosh', .8);
   sfx('scene3', T_LAND, 'boing', 1);
   const flip = at('c02', .25);
+  if (F45) st.cam.to(signView(shots[2].view), flip, .3);   // 4:5: pull back as the sign comes up, so it reads whole
   sfx('scene3', flip, 'whoosh', .7); sfx('scene3', flip + .18, 'flap', 1.2);
   stopClock(D, (q, f) => {
     const cur = S(q);

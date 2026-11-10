@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en" data-stage="portrait">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Many machines</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<!-- CWTFIGO shorts, ch02 "Many machines": one laptop looks after the NAS, the router and the Steam Deck over SSH, the
+     notes for all of them on the laptop. Upright, everything inside the 4:5 band (lib/kit.js). Order matters: engine,
+     sets, paper kit, cast, the audio data, shared helpers, the cast (cwt.js), the series kit (kit.js), then the episode. -->
+<script src="../lib/engine.js"></script>
+<script src="../img/sets/sets.js"></script>
+<script src="../lib/paper.js"></script>
+<script src="../lib/cast.js"></script>
+<script src="audio/en/timings.js"></script>
+<script src="audio/en/mouths.js"></script>
+<script src="audio/en/shots.js"></script>
+<script src="../lib/shared.js"></script>
+<script src="../lib/cwt.js"></script>
+<script src="../lib/kit.js"></script>
+<script src="ep.js"></script>
+<script src="scenes.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 2, title: 'Many machines', minutes: 1, language: 'en', film: true };
+try { if (localStorage.getItem('captions') === null) setCaptions(true, false); } catch {}
+const BEATS = [
+  ['scene1', 'Pointing', (m, D) => scene1(panel(0), D), { lead: false, pre: PRE1 }],
+  ['scene2', 'Which one?', (m, D) => scene2(panel(0), D), { lead: false, pre: PRE2 }],
+  ['scene3', 'I never leave your laptop', (m, D) => scene3(panel(0), D), { lead: false, pre: PRE3 }],
+  ['scene4', 'NAS', (m, D) => scene4(panel(0), D), { lead: false, pre: PRE4 }],
+  ['scene5', 'Router', (m, D) => scene5(panel(0), D), { lead: false, pre: PRE5 }],
+  ['scene6', 'Steam Deck', (m, D) => scene6(panel(0), D), { lead: false, pre: PRE6 }],
+  ['scene7', 'One notebook', (m, D) => scene7(panel(0), D), { lead: false, pre: PRE7 }],
+  ['scene8', 'Whose fault', (m, D) => scene8(panel(0), D), { lead: false, pre: PRE8 }],
+  ['end', 'Install', (m, D) => endScene(panel(0), D), { lead: false, pre: PRE_E }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+music('../audio/bgm-a.mp3', undefined, .66, .5);
+window.MUSIC_UP_IN_PRE = true;
+boot();
+</script>
+</body>
+</html>
