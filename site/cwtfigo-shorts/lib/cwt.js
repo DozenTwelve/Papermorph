@@ -62,9 +62,12 @@ const CW_OPEN = { X: 0, A: 0, B: .2, C: .45, D: .85, E: .6, F: .3, G: .15, H: .4
 // An eyelid over an ellipse eye: the part above the line `lids` of the way down, in the skin's colour, with an ink edge.
 function cwLid(cx, cy, rx, ry, lids, fill) {
   if (lids <= .01) return '';
-  const y0 = cy - ry + 2 * ry * Math.min(lids, 1), u = (y0 - cy) / ry, hw = rx * Math.sqrt(Math.max(0, 1 - u * u));
-  if (lids >= 1) return `<ellipse cx="${cx}" cy="${cy}" rx="${rx + 1}" ry="${ry + 1}" fill="${fill}"/><path d="M${cx - rx},${cy} H${cx + rx}" stroke="${CW_INK}" stroke-width="7" stroke-linecap="round"/>`;
-  return `<path d="M${cx - hw},${y0} A${rx + 1},${ry + 1} 0 ${u > 0 ? 1 : 0} 1 ${cx + hw},${y0} Z" fill="${fill}"/>` +
+  // The lid is the eye grown by P, cut at y0: its arc ends sit on the grown ellipse, so it covers the white to the rim
+  // (ends on the eye's own edge with a larger radius made a flatter arc and left a white crescent on top).
+  const P = 2, y0 = cy - ry + 2 * ry * Math.min(lids, 1), u = (y0 - cy) / ry, hw = rx * Math.sqrt(Math.max(0, 1 - u * u));
+  const up = (y0 - cy) / (ry + P), hl = (rx + P) * Math.sqrt(Math.max(0, 1 - up * up));
+  if (lids >= 1) return `<ellipse cx="${cx}" cy="${cy}" rx="${rx + P}" ry="${ry + P}" fill="${fill}"/><path d="M${cx - rx},${cy} H${cx + rx}" stroke="${CW_INK}" stroke-width="7" stroke-linecap="round"/>`;
+  return `<path d="M${cx - hl},${y0} A${rx + P},${ry + P} 0 ${up > 0 ? 1 : 0} 1 ${cx + hl},${y0} Z" fill="${fill}"/>` +
     `<path d="M${cx - hw},${y0} H${cx + hw}" stroke="${CW_INK}" stroke-width="7" stroke-linecap="round"/>`;
 }
 
