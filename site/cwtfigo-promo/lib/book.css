@@ -22,3 +22,4 @@
 
 /* The 4:5 cut for X (ch01/?frame=45, kit.js F45): captions narrower, inside the centre 720-wide window. */
 :root.f45 .caption { max-width: 680px; font-size: 29px; bottom: 98px; }   /* bottom counts from under the 60 px bar */
+:root.f45 .caption { text-wrap: balance; }

@@ -154,13 +154,13 @@ function singleView(who, { x, y, s = who === 'claude' ? .9 : 1, close = false } 
 }
 // 4:5: a single that holds up a cardboard sign beside the head pulls back and puts the speaker left of centre, so
 // the sign reads whole inside the window.
-const signView = v => ({ x: v.x + 165 / v.z, y: v.y + 60 / v.z, z: v.z * .63 });
+const signView = (v, dx = 165, k = .63) => ({ x: v.x + dx / v.z, y: v.y + 60 / v.z, z: v.z * k });
 // 4:5: Claude's single with the ✓ ticks beside him: pulled back a little, Claude left, the ticks on the right.
 const tickView = v => ({ x: v.x + 150 / v.z, y: v.y + 40 / v.z, z: v.z * .78 });
 // 4:5 wides, framed on who matters in each (recut-45.md); z under 1 tops the frame at the ceiling, the apron below.
 const wide45 = (x, z = 1) => ({ x, y: z >= 1 ? 450 : -26 + 450 / z, z });
-const W45 = { door: wide45(380), stage: wide45(705, .78), tag: wide45(740, .78), cable: wide45(790, .74), router: wide45(1180, .78),
-  yolo: wide45(1020, .7), lights: wide45(1000, .7), run: wide45(470, .78) };
+const W45 = { door: wide45(380), stage: wide45(730, .72), tag: wide45(740, .78), cable: wide45(790, .74), router: wide45(1180, .78),
+  yolo: wide45(1020, .7), lights: wide45(1060, .7), run: wide45(660, .66) };
 const wv = name => F45 ? { view: W45[name] } : {};
 
 /* ---------- the terminal that fills the frame ---------- */
@@ -173,7 +173,7 @@ function termScreen(p, lines, { yolo = false, title = 'martin@omarchy: ~', rows 
   badge.innerHTML = yoloBadge();
   // 4:5: the window's 720 wide at 27 (40 px in the video), 40 columns; rows 8 (scene 4's panels below) stay 8
   // 4:5: below the YOLO badge, which sits over the first row in the narrow window; scene 4's 8 rows → 7, clear of the balloons
-  const body = mk('g', {}, g), LH = F45 ? 40 : 46, TOP = F45 && yolo ? 150 : 112, ROWS = F45 ? (rows > 8 ? 15 : 7) : rows, WRAP = F45 ? 40 : 76;
+  const body = mk('g', {}, g), LH = F45 ? 40 : 46, TOP = F45 && yolo ? 150 : 112, ROWS = F45 ? (rows > 8 ? 15 : 5) : rows, WRAP = F45 ? 40 : 76;
   const FS = F45 ? 27 : 31, TX = F45 ? X45 + 26 : 64;
   const col = { cmd: '#e8eaed', out: '#aab2bf', ok: '#5df07a', bad: '#ff6b5e', dim: '#5f6773' };
   let key = '';
@@ -229,8 +229,9 @@ function softWrap(t, w) {
 // A tilted comic panel of one character's head and shoulders that slams in from its side with a speech balloon.
 // draw(q, { in: t0, out: t1, pose, text }) poses it; side 'L' (Claude) or 'R' (Martin).
 function comicPanel(p, who, side) {
-  const g = mk('g', {}, p), W = F45 ? 340 : 520, H = F45 ? 330 : 470, L = side === 'L';   // 4:5: the window's bottom corners
-  const x0 = F45 ? (L ? X45 + 14 : X45 + W45W - 14 - W) : L ? 40 : 1600 - 40 - W, y0 = 900 - H + 70, tilt = 0;   // upright: a turned group makes Firefox redraw its big pictures whenever a mouth changes
+  // 4:5: whole panels in the window's lower corners, above the caption, the figure clipped to its panel
+  const g = mk('g', {}, p), W = F45 ? 300 : 520, H = F45 ? 290 : 470, L = side === 'L';
+  const x0 = F45 ? (L ? X45 + 30 : X45 + W45W - 30 - W) : L ? 40 : 1600 - 40 - W, y0 = F45 ? 900 - H - 110 : 900 - H + 70, tilt = 0;   // upright: a turned group makes Firefox redraw its big pictures whenever a mouth changes
   const id = `cwClip${who}${side}${Math.random().toString(36).slice(2, 6)}`;
   const inner = mk('g', {}, g);
   inner.innerHTML = `<clipPath id="${id}"><rect x="${x0}" y="${y0}" width="${W}" height="${H}"/></clipPath>
@@ -239,7 +240,7 @@ function comicPanel(p, who, side) {
     <rect x="${x0}" y="${y0}" width="${W}" height="${H}" fill="url(#cwDots)"/>
     ${Array.from({ length: 14 }, (_, i) => { const a = i / 14 * Math.PI * 2, cx = x0 + W / 2, cy = y0 + H * .45;
       return `<path d="M${cx + Math.cos(a) * 140},${cy + Math.sin(a) * 140} L${cx + Math.cos(a) * 520},${cy + Math.sin(a) * 520}" stroke="#fff" stroke-width="10" opacity=".35"/>`; }).join('')}`;
-  const pupG = mk('g', {}, inner);   // no clip: the panel runs off the bottom of the frame and the figure fits its width
+  const pupG = mk('g', F45 ? { 'clip-path': `url(#${id})` } : {}, inner);   // no clip: the panel runs off the bottom of the frame and the figure fits its width
   const pup = cwPuppet(pupG, who);
   const frame = mk('rect', { x: x0, y: y0, width: W, height: H, fill: 'none', stroke: CW_INK, 'stroke-width': 9 }, inner);
   const balloon = mk('g', {}, g);
@@ -261,10 +262,10 @@ function comicPanel(p, who, side) {
     if (bk !== bKey) {
       bKey = bk;
       if (!text || q - at <= .12) { balloon.innerHTML = ''; return; }
-      if (F45) size *= .72;
+      if (F45) size *= .66;
       const bw = Math.max(F45 ? 160 : 220, text.length * size * .52 + (F45 ? 60 : 80)), bh = size * 1.9;
       // beside the panel, towards the middle (4:5: above it, Claude's higher, both inside the window)
-      const bx = F45 ? (L ? x0 : x0 + W - bw) : L ? x0 + W - 30 : x0 + 30 - bw, by = F45 ? y0 - bh - (L ? 120 : 50) : y0 + (L ? 10 : 120);
+      const bx = F45 ? (L ? x0 : x0 + W - bw) : L ? x0 + W - 30 : x0 + 30 - bw, by = F45 ? y0 - bh - (L ? 105 : 40) : y0 + (L ? 10 : 120);
       const tx = F45 ? (L ? x0 + 110 : x0 + W - 110) : L ? x0 + W - 60 : x0 + 60;
       balloon.innerHTML = `<path d="M${bx + (L ? 30 : bw - 30)},${by + bh - 14} L${tx},${by + bh + 60} L${bx + (L ? 80 : bw - 80)},${by + bh - 6} Z" fill="#fff" stroke="${CW_INK}" stroke-width="7" stroke-linejoin="round"/>
         <rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="${bh / 2}" fill="#fff" stroke="${CW_INK}" stroke-width="7"/>

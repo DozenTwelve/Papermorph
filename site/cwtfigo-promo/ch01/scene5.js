@@ -34,7 +34,7 @@ function scene5(p, D, m) {
     const cur = S(q);
     if (cur.over === 'rm') {
       const n = Math.max(0, Math.min(19, Math.floor((q - rmAt - .1) * 22)));
-      rmCmd.innerHTML = `<text x="800" y="420" text-anchor="middle" font-family="${MONO}" font-weight="700" font-size="${F45 ? 52 : 88}" fill="#ff4a3d" xml:space="preserve"><tspan fill="#5df07a">$ </tspan>${'rm -rf /home/martin'.slice(0, n)}${q < rmEnd - .15 ? '▌' : ''}</text>`;
+      rmCmd.innerHTML = `<text x="800" y="420" text-anchor="middle" font-family="${MONO}" font-weight="700" font-size="${F45 ? 48 : 88}" fill="#ff4a3d" xml:space="preserve"><tspan fill="#5df07a">$ </tspan>${'rm -rf /home/martin'.slice(0, n)}${q < rmEnd - .15 ? '▌' : ''}</text>`;
       const hit = q >= rmEnd - .15 && q < rmEnd + .2;
       rmKey.innerHTML = q >= rmEnd - .15 && q < guard0 ? `<g transform="translate(800 520) scale(${hit ? 1.15 : 1})"><rect x="-120" y="-40" width="240" height="80" rx="14" fill="${hit ? '#ff4a3d' : '#2a2f38'}" stroke="#e8eaed" stroke-width="4"/><text y="16" text-anchor="middle" font-family="${MONO}" font-weight="700" font-size="44" fill="#fff">Enter ⏎</text></g>` : '';
       vis(rmGuard, q >= guard0);
