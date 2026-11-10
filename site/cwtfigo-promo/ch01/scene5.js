@@ -10,20 +10,19 @@ function scene5(p, D, m) {
   // mode: deleting user data waits for a typed yes (skills/cwtfigo/SKILL.md)
   const guard0 = at('c10', .75), guard1 = at('c10', 3.35);
   const rm = mk('g', {}, p);
-  rm.innerHTML = `<rect width="1600" height="900" fill="#0d1014"/><rect width="1600" height="54" fill="#1c2027"/>
-    <circle cx="34" cy="27" r="9" fill="#ff5f57"/><circle cx="62" cy="27" r="9" fill="#febc2e"/><circle cx="90" cy="27" r="9" fill="#28c840"/>
-    <text x="800" y="36" text-anchor="middle" font-family="${MONO}" font-size="22" fill="#8b93a1">martin@omarchy: ~</text>
-    <rect x="1340" y="80" width="214" height="56" rx="10" fill="#d8262b"/><text x="1447" y="119" text-anchor="middle" font-family="${MONO}" font-weight="800" font-size="30" fill="#fff">YOLO 12h</text>`;
+  rm.innerHTML = termChrome() + yoloBadge();
   const rmCmd = mk('g', {}, rm), rmKey = mk('g', {}, rm), rmGuard = mk('g', {}, rm);
-  rmGuard.innerHTML = `<text x="160" y="560" font-family="${MONO}" font-size="40" fill="#e8582a">✻ That deletes user data (/home/martin).</text>
-    <text x="160" y="620" font-family="${MONO}" font-size="40" fill="#e8582a">  Even in YOLO it waits for you to type yes:</text>`;
-  const rmCursor = mk('text', { x: 160, y: 700, 'font-family': MONO, 'font-size': 44, fill: '#e8eaed' }, rmGuard);
-  const flag = stamp(p, `<g transform="translate(1180 760) rotate(-4)"><rect x="-330" y="-46" width="660" height="80" rx="10" fill="#d8262b"/>
+  const GX = F45 ? X45 + 26 : 160;   // 4:5: the warning wrapped to the window
+  rmGuard.innerHTML = (F45 ? [['✻ That deletes user data', 520], ['  (/home/martin). Even in YOLO', 570], ['  it waits for you to type yes:', 620]]
+    : [['✻ That deletes user data (/home/martin).', 560], ['  Even in YOLO it waits for you to type yes:', 620]])
+    .map(([t, y]) => `<text x="${GX}" y="${y}" font-family="${MONO}" font-size="${F45 ? 30 : 40}" fill="#e8582a" xml:space="preserve">${t}</text>`).join('');
+  const rmCursor = mk('text', { x: GX, y: F45 ? 690 : 700, 'font-family': MONO, 'font-size': 44, fill: '#e8eaed' }, rmGuard);
+  const flag = stamp(p, `<g transform="translate(${F45 ? '800 690' : '1180 760'}) rotate(-4)"><rect x="-330" y="-46" width="660" height="80" rx="10" fill="#d8262b"/>
     <text x="0" y="10" text-anchor="middle" font-family="${MONO}" font-weight="800" font-size="34" fill="#fff">--dangerously-skip-permissions</text></g>`);
   const yolo = at('c08'), smash = yolo + 1.05;
-  const shots = [shot(0, 'close', 'martin'), shot(yolo, 'wide'), shot(at('c08', 1.9) - .1, 'single', 'claude'),
+  const shots = [shot(0, 'close', 'martin'), shot(yolo, 'wide', null, wv('yolo')), shot(at('c08', 1.9) - .1, 'single', 'claude'),
     shot(at('m10', -.05), 'single', 'martin'), shot(at('c09', -.05), 'single', 'claude'),
-    shot(rmAt, 'screen', null, { over: 'rm' }), shot(rmEnd, 'wide'), shot(at('m11', 2.2) - .1, 'close', 'martin'),
+    shot(rmAt, 'screen', null, { over: 'rm' }), shot(rmEnd, 'wide', null, wv('stage')), shot(at('m11', 2.2) - .1, 'close', 'martin'),
     shot(at('c10', -.05), 'single', 'claude'), shot(guard0, 'screen', null, { over: 'rm' }), shot(guard1, 'single', 'claude')];
   const S = shooter(st, shots, { rm });
   stingAt('scene5'); stingAt('scene5', rmAt, 'uhoh');
@@ -35,7 +34,7 @@ function scene5(p, D, m) {
     const cur = S(q);
     if (cur.over === 'rm') {
       const n = Math.max(0, Math.min(19, Math.floor((q - rmAt - .1) * 22)));
-      rmCmd.innerHTML = `<text x="800" y="420" text-anchor="middle" font-family="${MONO}" font-weight="700" font-size="88" fill="#ff4a3d" xml:space="preserve"><tspan fill="#5df07a">$ </tspan>${'rm -rf /home/martin'.slice(0, n)}${q < rmEnd - .15 ? '▌' : ''}</text>`;
+      rmCmd.innerHTML = `<text x="800" y="420" text-anchor="middle" font-family="${MONO}" font-weight="700" font-size="${F45 ? 52 : 88}" fill="#ff4a3d" xml:space="preserve"><tspan fill="#5df07a">$ </tspan>${'rm -rf /home/martin'.slice(0, n)}${q < rmEnd - .15 ? '▌' : ''}</text>`;
       const hit = q >= rmEnd - .15 && q < rmEnd + .2;
       rmKey.innerHTML = q >= rmEnd - .15 && q < guard0 ? `<g transform="translate(800 520) scale(${hit ? 1.15 : 1})"><rect x="-120" y="-40" width="240" height="80" rx="14" fill="${hit ? '#ff4a3d' : '#2a2f38'}" stroke="#e8eaed" stroke-width="4"/><text y="16" text-anchor="middle" font-family="${MONO}" font-weight="700" font-size="44" fill="#fff">Enter ⏎</text></g>` : '';
       vis(rmGuard, q >= guard0);

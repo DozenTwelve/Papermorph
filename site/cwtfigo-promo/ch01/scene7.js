@@ -21,10 +21,11 @@ function scene7(p, D, m) {
   ], { yolo: true });
   const book = notebook(p);
   const lights = 2.25, run = at('c15'), shut0 = run + .95, ins = run + 1.7;
-  const shots = [shot(0, 'screen', null, { over: 'term' }), shot(lights, 'wide'), { ...shot(at('m12', -.05), 'single', 'martin'), view: { x: PLACE.martin[0], y: 600, z: 2.35 } },
-    shot(at('c14', -.05), 'single', 'claude'), shot(run, 'wide'), shot(ins, 'insert', null, { over: 'book' }),
+  const shots = [shot(0, 'screen', null, { over: 'term' }), shot(lights, 'wide', null, wv('lights')), { ...shot(at('m12', -.05), 'single', 'martin'), view: { x: PLACE.martin[0], y: 600, z: 2.35 } },
+    shot(at('c14', -.05), 'single', 'claude'), shot(run, 'wide', null, wv('run')), shot(ins, 'insert', null, { over: 'book' }),
     shot(at('c15', 4.4) - .05, 'single', 'claude')];
   const S = shooter(st, shots, { term: term.g, book: book.g });
+  if (F45) st.cam.to(W45.stage, run + .9, .6);   // 4:5: from Martin out of the door over to Claude, writing
   stingAt('scene7');
   sfx('scene7', 0, 'typing', .7); [1.05, 1.4, 1.75].forEach(t => sfx('scene7', t, 'beep', .5));
   sfx('scene7', lights + .1, 'chime', 1.2); sfx('scene7', run + .05, 'patter', .7);
@@ -35,7 +36,8 @@ function scene7(p, D, m) {
     if (cur.over === 'book') {   // the pen finishes today's line, then the page drifts back over the earlier visits
       book.draw(q, { write: span(q, ins - .3, ins + 1.1) });
       const u = span(q, ins + .6, at('c15', 4.4)), sc = 1.12 + .1 * u;
-      tf(book.book, `translate(${(-420 + 560 * u).toFixed(1)} ${(-40 - 20 * u).toFixed(1)}) scale(${sc.toFixed(3)})`);
+      if (F45) tf(book.book, `translate(${(-278 + 634 * u).toFixed(1)} ${(-10 - 20 * u).toFixed(1)}) scale(${(.85 + .05 * u).toFixed(3)})`);   // 4:5: the lines fit the window
+      else tf(book.book, `translate(${(-420 + 560 * u).toFixed(1)} ${(-40 - 20 * u).toFixed(1)}) scale(${sc.toFixed(3)})`);
     }
     const mt = talk(q, 'scene7', PRE7, 'm12'), ct = talk(q, 'scene7', PRE7, 'c14', 'c15');
     const gone = q >= run;

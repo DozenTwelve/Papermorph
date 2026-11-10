@@ -51,7 +51,7 @@ function scene4(p, D, m) {
     { work: null, screen: end('m08') + .02, ask: 'c07', ans: null, text: 'Can I—', reply: '' },
   ];
   const shots = [];
-  R.forEach(r => { if (r.work !== null) shots.push(shot(r.work, 'wide')); shots.push(shot(r.screen, 'screen', null, { over: 'term' })); });
+  R.forEach((r, i) => { if (r.work !== null) shots.push(shot(r.work, 'wide', null, wv(['stage', 'cable', 'cable'][i]))); shots.push(shot(r.screen, 'screen', null, { over: 'term' })); });
   const S = shooter(st, shots, { term: term.g });
   stingAt('scene4');
   for (const g of [cl.g, ma.g]) vis(g, false);
@@ -65,6 +65,7 @@ function scene4(p, D, m) {
   // round 1: takes the laptop from Martin, sets it on the stool, types; round 2: yanks the plug out of the port and seats
   // it again; round 3: two hops to the shelf, the arm telescopes up, pokes the router
   const take = .4, set = .75, r2 = R[1].work + .1, r3 = R[2].work + .05;
+  if (F45) st.cam.to(W45.router, r3, .8);   // 4:5: follows his hops to the router
   sfx('scene4', set, 'clack', 1); sfx('scene4', set + .15, 'typing', 1.1);
   sfx('scene4', r2 + .3, 'plug', 1.8); sfx('scene4', r2 + .75, 'plug', 2);
   sfx('scene4', r3 + .1, 'boing', .6); sfx('scene4', r3 + .45, 'boing', .6); sfx('scene4', r3 + .85, 'tick', 1.4); sfx('scene4', r3 + 1.05, 'tick', 1.4);

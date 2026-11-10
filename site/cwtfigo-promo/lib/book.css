@@ -19,3 +19,6 @@
 @font-face { font-family: 'CW Marker'; src: url(fonts/marker.woff2) format('woff2'); font-display: block; }
 @font-face { font-family: 'CW Mono'; src: url(fonts/mono.woff2) format('woff2'); font-weight: 100 800; font-display: block; }
 @font-face { font-family: 'CW Hand'; src: url(fonts/hand.woff2) format('woff2'); font-display: block; }   /* Patrick Hand, SIL OFL 1.1: the notebook */
+
+/* The 4:5 cut for X (ch01/?frame=45, kit.js F45): captions narrower, inside the centre 720-wide window. */
+:root.f45 .caption { max-width: 680px; font-size: 29px; bottom: 98px; }   /* bottom counts from under the 60 px bar */
