@@ -21,4 +21,4 @@
 @font-face { font-family: 'CW Hand'; src: url(fonts/hand.woff2) format('woff2'); font-display: block; }
 /* Everything that matters sits in the central 4:5 band of the upright stage (y 237.5 to 1362.5, kit.js BAND): the
    captions too, so the 1080 × 1350 crop for X keeps them. 290 px up from the stage's foot puts their foot at y 1310. */
-:root[data-stage="portrait"] .caption { bottom: 290px; }
+html:root[data-stage="portrait"] .caption { bottom: 290px; }
