@@ -223,13 +223,14 @@ function scene5(p, D, m) {
     const hug = span(q, wide, wide + .3);
     castPose(st, cur, f, {
       doc: docSolder(st, q, {}, 0),
+      // online again: in the wide he hugs his open laptop, his loud desktop back on it (a shut one is grey on his grey top), the green Wi-Fi over his head
       martin: martinAt(q, { mouth: cur.kind === 'wide' ? 'grin' : mt === 'X' ? 'grin' : mt, brow: cur.kind === 'wide' ? -.2 : .6, headY: nod, bliss: hug > .5,
-        armL: -18 - 20 * hug, armR: -18 - 20 * hug, bob: 6 * hug * Math.abs(Math.sin(q * 6)) }),
+        ...(cur.kind === 'wide' ? { chest: { name: 'laptop-open', w: 380, y: -560, screen: lapScreen({ w: 380, screen: 'desk' }) } } : {}), bob: 6 * hug * Math.abs(Math.sin(q * 6)) }),
       claude: cur.kind === 'wide' ? claudeAt(q, { mouth: cmouth(ct), frontL: true, armL: 70, reachL: .8, holdL: NB, lids: .45 })
         : { ...bookGrip(st, claudeAt(q, { mouth: cmouth(ct), brow: .4, lids: .45 }), 'L'), armR: 20 + 130 * up, reachR: .95, hold: up > 0 ? SIGN('Can I change\nthis? [y/n]', 66, 540) : null },
     });
     if (cur.kind === 'wide') {
-      const [x, y] = [PLACE.martin[0], 690], k = WIDE.z, u = span(q, wide + .1, wide + .4), s = (.6 + .4 * u).toFixed(2);
+      const [x, y] = [PLACE.martin[0], 440], k = WIDE.z, u = span(q, wide + .1, wide + .4), s = (.6 + .4 * u).toFixed(2);
       const sx = (x - WIDE.x) * k + SW / 2, sy = (y - WIDE.y) * k + SH / 2;
       wifi.innerHTML = u ? `<g transform="translate(${sx.toFixed(0)} ${sy.toFixed(0)}) scale(${s})" fill="none" stroke="#3cff5a" stroke-width="12" stroke-linecap="round">
         <path d="M-60,-10 A85,85 0 0 1 60,-10"/><path d="M-38,14 A54,54 0 0 1 38,14"/><path d="M-16,36 A22,22 0 0 1 16,36"/><circle cy="54" r="7" fill="#3cff5a" stroke="none"/></g>` : '';
