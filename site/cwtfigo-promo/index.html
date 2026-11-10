@@ -51,7 +51,18 @@
   .episodes b { margin: 2px 0 4px; font: 700 24px/1.25 var(--serif); text-wrap: balance; }
   .episodes span { max-width: 60ch; color: var(--soft); font-size: 16px; line-height: 1.5; }
   .episodes .seen { margin-top: 6px; font-size: 15px; }
-  @media (prefers-reduced-motion: reduce) { .episodes a, .watch { transition: none; } .episodes a:hover, .episodes a:focus-visible, .episodes a:active, .watch:active { transform: none; } }
+  .shorts ul { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+  .shorts > p { margin: -6px 0 18px; color: var(--soft); font-size: 16px; }
+  .shorts a { display: flex; flex-direction: column; height: 100%; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+    color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; }
+  .shorts a:hover, .shorts a:focus-visible { border-color: var(--accent); transform: translateY(-2px); }
+  .shorts a:focus-visible { border-radius: 10px; }
+  .shorts img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; }
+  .shorts small { margin: 10px 12px 0; color: var(--soft); font-size: 13px; }
+  .shorts b { margin: 2px 12px 4px; font: 700 20px/1.2 var(--serif); }
+  .shorts span { margin: 0 12px 12px; color: var(--soft); font-size: 14px; line-height: 1.45; }
+  @media (max-width: 900px) { .shorts ul { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (prefers-reduced-motion: reduce) { .episodes a, .shorts a, .watch { transition: none; } .episodes a:hover, .episodes a:focus-visible, .episodes a:active, .shorts a:hover, .shorts a:focus-visible, .watch:active { transform: none; } }
   @media (max-width: 760px) { .hero { grid-template-columns: minmax(0, 1fr); padding-top: 28px; gap: 24px; } .episodes a { grid-template-columns: minmax(0, 1fr); } .episodes div { padding: 12px 16px 16px; } }
 </style>
 </head>
@@ -63,12 +74,22 @@
   <div>
     <a class="back" href="../">← Back to the bookshelf</a>
     <h1>Claude, what the fuck is going on?</h1>
-    <p class="lede">Martin's internet died after an update. Doc won't help. Claude will, if he may look first. A promo for CWTFIGO, an ops plugin for Claude Code (<code>/plugin install cwtfigo@cwtfigo</code>). Not affiliated with Anthropic.</p>
+    <p class="lede">Martin's internet died after an update. Doc won't help. Claude will, if he may look first. A promo for CWTFIGO, an ops plugin that turns your Claude Code into the ultimate troubleshooting tool (<code>/plugin marketplace add DozenTwelve/CWTFIGO</code>, then <code>/plugin install cwtfigo@cwtfigo</code>). Not affiliated with Anthropic.</p>
     <p class="action"><a class="watch" href="ch01/"><svg viewBox="0 0 11 13" aria-hidden="true"><path d="M0 0l11 6.5L0 13z"/></svg>Watch the film</a>
       <span>2 minutes</span> <em class="seen" id="seen" hidden>✓ Watched</em></p>
   </div>
 </header>
 <main>
+  <section class="shorts">
+    <h2 id="shorts">Shorts</h2>
+    <p>Four upright shorts, one feature each, under a minute.</p>
+    <ul>
+      <li><a href="../cwtfigo-shorts/ch01/"><img src="img/shorts/ch01.webp" width="540" height="675" alt="Martin in the garage doorway in the rain, Doc at his bench: Same bug? It remembers." loading="lazy"><small>Short 1, 48 seconds</small><b>It remembers</b><span>Martin's Wi-Fi drops again. Claude has notes on that laptop.</span></a></li>
+      <li><a href="../cwtfigo-shorts/ch02/"><img src="img/shorts/ch02.webp" width="540" height="675" alt="Doc at his bench between a NAS, a router and a Steam Deck blaming each other: Three machines, one laptop." loading="lazy"><small>Short 2, 1 minute</small><b>Many machines</b><span>Doc's NAS, router and Steam Deck act up at once, all fixed over SSH from one laptop.</span></a></li>
+      <li><a href="../cwtfigo-shorts/ch03/"><img src="img/shorts/ch03.webp" width="540" height="675" alt="Claude asleep with a sign Out of tokens, back at 5 PM, Martin shaking him: No Claude? No problem." loading="lazy"><small>Short 3, 1 minute</small><b>No AI needed: the menu</b><span>Claude is out of tokens; Martin runs the approved checks himself, and bins his cleaner apps.</span></a></li>
+      <li><a href="../cwtfigo-shorts/ch04/"><img src="img/shorts/ch04.webp" width="540" height="675" alt="An egg frying on Martin's laptop at 90 degrees while he sips from a mug: 90 °C every day." loading="lazy"><small>Short 4, 1 minute</small><b>90 °C every day</b><span>An egg fries on Martin's laptop. Claude reads once, and asks before every change.</span></a></li>
+    </ul>
+  </section>
   <section id="list" hidden>
     <h2>Episodes</h2>
     <ol class="episodes" id="episodes"></ol>
