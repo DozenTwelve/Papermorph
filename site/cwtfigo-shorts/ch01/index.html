@@ -3,32 +3,43 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CWTFIGO shorts: kit sample</title>
+<title>It remembers · CWTFIGO shorts</title>
 <link rel="stylesheet" href="../lib/engine.css">
 <link rel="expect" href="#bar" blocking="render">
 </head>
 <body>
-<!-- A CWTFIGO short: the upright stage, everything inside the 4:5 band (lib/kit.js, books/cwtfigo-shorts/KIT.md).
-     Order matters: engine, sets, paper kit, cast, the audio data (eleven.py: timings.js; mouths.py: mouths.js;
-     join.py: shots.js), shared helpers, the cast (cwt.js), the series kit (kit.js), then the scenes. -->
+<!-- CWTFIGO shorts, ch01 "It remembers": upright, everything inside the 4:5 band (../lib/kit.js, books/cwtfigo-shorts/KIT.md).
+     Order: engine, sets, paper kit, cast, the audio data (eleven.py: timings.js; mouths.py: mouths.js; join.py:
+     shots.js), shared helpers, the cast (cwt.js), the series kit (kit.js), then the scenes. -->
 <script src="../lib/engine.js"></script>
 <script src="../img/sets/sets.js"></script>
 <script src="../lib/paper.js"></script>
 <script src="../lib/cast.js"></script>
+<script src="audio/en/timings.js"></script>
+<script src="audio/en/mouths.js"></script>
+<script src="audio/en/shots.js"></script>
 <script src="../lib/shared.js"></script>
 <script src="../lib/cwt.js"></script>
 <script src="../lib/kit.js"></script>
-<script src="sample.js"></script>
+<script src="scenes.js"></script>
 <script>
 'use strict';
-const CHAPTER = { number: 1, title: 'Kit sample', minutes: 1, language: 'en', film: true };
-try { if (localStorage.getItem('captions') === null) setCaptions(true, false); } catch {}
+const CHAPTER = { number: 1, title: 'It remembers', minutes: 1, language: 'en', film: true, next: '../ch02/' };
+try { if (localStorage.getItem('captions') === null) setCaptions(true, false); } catch {}   // captions on at the first visit
 const BEATS = [
-  ['hook', 'The kit', (m, D) => sampleHook(p0(), D), { lead: false, dur: 7.5 }],
-  ['end', 'CWTFIGO', (m, D) => sampleEnd(p0(), D), { lead: false, dur: 4 }],
+  ['scene1', 'Again!', (m, D) => scene1(panel(0), D, m), { lead: false, pre: PRE1 }],
+  ['scene2', 'Ask Claude', (m, D) => scene2(panel(0), D, m), { lead: false, pre: PRE2 }],
+  ['scene3', 'The check', (m, D) => scene3(panel(0), D, m), { lead: false, pre: PRE3 }],
+  ['scene4', 'Same picture', (m, D) => scene4(panel(0), D, m), { lead: false, pre: PRE4 }],
+  ['scene5', 'Make it stick', (m, D) => scene5(panel(0), D, m), { lead: false, pre: PRE5 }],
+  ['scene7', 'The toaster', (m, D) => scene7(panel(0), D, m), { lead: false, pre: PRE7 }],
+  ['end', 'Install', (m, D) => endScene(panel(0), D), { lead: false, pre: PRE_E }],
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
-function p0() { return panel(0); }
+// The promo's bed: its file starts with the opener's 3 s of silence, so it comes in right after the guitar; ducked
+// under the lines and up in every lead-in with no line (the card), as in the promo.
 music('../audio/bgm-a.mp3', undefined, .66, .5);
+window.MUSIC_UP_IN_PRE = true;
+paperWarm(g => { docPuppet(g); martinPuppet(g); claudePuppet(g); });
 boot();
 </script>
 </body>

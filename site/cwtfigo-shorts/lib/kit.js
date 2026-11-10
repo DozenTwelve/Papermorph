@@ -234,9 +234,11 @@ function comicPanel(p, who, side) {
 
 /* ---------- the notebook insert ---------- */
 // Claude's orange notebook open across the 4:5 band (its outer margins run off the sides), on a dark desk. pages:
-// { left: [line], right: [line] }, a line { text, at, cps = 26, ink, size = 40, date }: it is written on from `at` at
+// { left: [line], right: [line] }, a line { text, at, cps = 26, ink, size = 40, date, wrap }: it is written on from `at` at
 // cps characters a second, wrapped at `wrap` characters (22 at size 40), a date in red before it. Lines follow each
 // other down the page by their wrapped rows; a line { gap: 30 } is only space. draw(q) writes what is due by q.
+// A line's own `wrap` replaces the notebook's: the pages run off the frame's sides, so a line may be wider when the
+// camera goes to its page (ch01).
 const HAND = 'CW Hand, Comic Sans MS, sans-serif';
 const NOTE_INK = '#22306a', NOTE_RED = '#b04020';
 function notebook(p, pages, { wrap = 22, top = CW_BAND.y + 250 } = {}) {
@@ -251,13 +253,13 @@ function notebook(p, pages, { wrap = 22, top = CW_BAND.y + 250 } = {}) {
     let y = top;
     for (const L of pages[side] || []) {
       if (L.gap) { y += L.gap; continue; }
-      const size = L.size || 40, n = Math.round(wrap * 40 / size), lh = size * 1.25, rs = rows(L.text, n);
+      const size = L.size || 40, n = Math.round((L.wrap || wrap) * 40 / size), lh = size * 1.25, rs = rows(L.text, n);
       laid.push({ ...L, x, y, size, lh, rs });
       y += rs.length * lh + size * .35;
     }
   }
   let key = '';
-  return { g, book, draw(q) {
+  return { g, book, ink, laid, draw(q) {   // laid: each line's x, y, size, lh and wrapped rows (rs), to mark one
     const shown = laid.map(L => q < L.at ? 0 : Math.min(L.text.length, Math.floor((q - L.at) * (L.cps || 26))));
     const k = shown.join(); if (k === key) return; key = k;
     ink.innerHTML = laid.map((L, i) => {
@@ -350,9 +352,9 @@ for (const [top, h] of [[0, CW_BAND.y], [CW_BAND.y1, SH - CW_BAND.y1]])
 // the top of the first beat, and the hook in big marker capitals over the episode's first picture, which is already
 // moving: X autoplays muted, so the words carry the first two seconds alone. lines: one to three short lines, the
 // episode's point ('SAME BUG', 'SECOND TIME'); the last is orange. The words are there on frame 0 (a slam that
-// settles by 0.2 s) and leave at `out`. A small ✻ CWTFIGO tag sits in the band's top-left corner while they show.
+// settles by 0.2 s from `slam` times their size; less for a long line, which must stay in the frame) and leave at `out`. A small ✻ CWTFIGO tag sits in the band's top-left corner while they show.
 // Call it last in the first scene (it draws over everything) and call draw(q) each frame.
-function cwOpener(p, scene, lines, { out = 2.6, y = CW_BAND.y + 190, size = 96, vol = 1.1 } = {}) {
+function cwOpener(p, scene, lines, { out = 2.6, y = CW_BAND.y + 190, size = 96, vol = 1.1, slam = 1.25 } = {}) {
   sfx(scene, 0, 'opener', vol);
   const g = mk('g', {}, p), words = mk('g', {}, g), tag = mk('g', {}, g);
   words.innerHTML = lines.map((l, i) => {
@@ -367,7 +369,7 @@ function cwOpener(p, scene, lines, { out = 2.6, y = CW_BAND.y + 190, size = 96, 
   const cx = SW / 2, cy = y + (lines.length - 1) * size * .54 - size * .35;
   return { g, draw(q) {
     const on = q < out + .25; vis(g, on); if (!on) return;
-    const k = q < .2 ? 1.25 - .25 * ease(q / .2) : 1, o = q > out ? 1 - (q - out) / .25 : 1;
+    const k = q < .2 ? slam - (slam - 1) * ease(q / .2) : 1, o = q > out ? 1 - (q - out) / .25 : 1;
     tf(words, `translate(${cx} ${cy}) scale(${k.toFixed(3)}) translate(${-cx} ${-cy})`);
     g.setAttribute('opacity', Math.max(0, o).toFixed(2));
   } };
@@ -392,7 +394,7 @@ function cwEnd(p, { who = 'claude', at = .3 } = {}) {
   const box = mk('g', {}, g), typed = mk('g', {}, g), by = B + 700;
   box.innerHTML = CW_SLOGAN.map((l, i) => `<text x="${SW / 2}" y="${B + 600 + i * 50}" text-anchor="middle" font-family="${MARKER}" font-size="42" fill="#f4ede0">${esc(l)}</text>`).join('') +
     `<rect x="30" y="${by}" width="${SW - 60}" height="150" rx="16" fill="#0d1014" stroke="#3a3f48" stroke-width="3"/>
-    <text x="${SW / 2}" y="${by + 200}" text-anchor="middle" font-family="${MONO}" font-size="22" fill="#6c7380">Not affiliated with Anthropic</text>`;
+    <text x="${SW / 2}" y="${by + 205}" text-anchor="middle" font-family="${MONO}" font-size="28" fill="#b3b9c2">Not affiliated with Anthropic</text>`;
   const S = { claude: 1.3, doc: .7, martin: .8 }[who], feet = B + 545;
   let key = '';
   return { g, draw(q, f, { mouth = 'X' } = {}) {
