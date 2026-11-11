@@ -20,6 +20,7 @@ from claykit import clay, box, ball, roll, slab, part, empty, copy, group, shot,
 a = K.arguments(lambda ap: ap.add_argument('--set', required=True, choices=['park', 'road']))
 ONLY = set(filter(None, a.only.split(',')))
 want = lambda n: not ONLY or n in ONLY
+if a.fstop is None: a.fstop = {'park': 0.2, 'road': 0.26}[a.set]   # the road holds two lanes and a pavement in its sharp band
 sc = K.setup(a)
 COS, SIN = math.cos(K.E), math.sin(K.E)
 SUN = Vector(a.sun_dir)
@@ -173,28 +174,28 @@ if a.set == 'park':
 # ================================================================ road (beats 0, 3, 4, 5)
 if a.set == 'road':
     W = 24.0                          # the plate's period: 2400 page px
-    Y0 = 613.0                        # page y of the road's middle (depth 0); the road runs from 478 to 748 as in the pixel beats
-    FOCUS = 1.0                       # the depth in focus: between the truck's lane and the pavement
-    LANE = 1.35                       # lane centres at depth +LANE (far: the truck) and -LANE (near: the car)
+    Y0 = 613.0                        # page y of the ground at depth 0; the far kerb is at 478 as in the pixel beats, the near one at 768
+    FOCUS = 0.0                       # the depth in focus: between the lanes
+    FAR, NEAR = 1.3, -1.8             # lane centres: the truck's and the car's; apart enough that the car's roof clears the truck's wheels
     SIDE = 3.05                       # where people stand on the far pavement
     P3 = (-W, 0, W)
     # ---- ground: every piece is one period long and repeats, marks included
     ground = []
     for dx in P3:
         ground += [slab('grass', dx, dx + W, -9.5, 5.4, 0.0, clay('grass', C['grass'], rough=0.6, feat=1.5, stipple=0.5, prints=0.3, specks=0.4, period=W), thick=0.3, d=0.14, wobble=0, lump=0.02, period=W),
-                   slab('road', dx, dx + W, -2.7, 2.7, 0.07, clay('road', C['road'], rough=0.5, feat=1.6, period=W, specks=0.6), thick=0.16, d=0.08, wobble=0.035, lump=0.008, period=W, seed=1),
+                   slab('road', dx, dx + W, -3.1, 2.7, 0.07, clay('road', C['road'], rough=0.5, feat=1.6, period=W, specks=0.6), thick=0.16, d=0.08, wobble=0.035, lump=0.008, period=W, seed=1),
                    slab('walk', dx, dx + W, 2.62, 4.1, 0.16, clay('walk', C['walk'], rough=0.58, feat=1.4, period=W), thick=0.2, d=0.08, wobble=0.03, lump=0.008, period=W, seed=2)]
-        for k, y in enumerate((-2.42, 2.42)):
+        for k, y in enumerate((-2.84, 2.42)):
             ground.append(slab(f'edge{k}', dx, dx + W, y - 0.045, y + 0.045, 0.1, clay('line', C['line'], period=W, specks=0.3), thick=0.05, d=0.04, wobble=0.014, lump=0.004, period=W, seed=5 + k))
     rnd = random.Random(3)
     for i in range(15):               # the centre dashes: fifteen little cream strips, none quite straight
         x = 1.6 * i + rnd.uniform(-.03, .03); t = rnd.uniform(-.025, .025)
         d = slab(f'dash{i}', -0.36, 0.36, -0.045, 0.045, 0.1, clay('line', C['line'], specks=0.3), thick=0.05, d=0.04, wobble=0.008, lump=0.004, seed=20 + i)
-        d.location = (x + 0.36, rnd.uniform(-.015, .015), 0); d.rotation_euler = (0, 0, t)
+        d.location = (x + 0.36, -0.2 + rnd.uniform(-.015, .015), 0); d.rotation_euler = (0, 0, t)
         ground += [d] + [copy(d, (d.location.x + dx, d.location.y, 0)) for dx in P3 if dx]
     group('ground', *ground)
     # ---- scenery on the far side: trees at 300 and 1900, a lamp at 1500 (no tree behind a person at 760 or 1100)
-    scenery = hills([1.5, 4.8, 8.4, 11.6, 15.0, 18.3, 21.8], 5.3, 5, P3) + tufts(0, W, -6.8, -3.1, 30, 9, P3)
+    scenery = hills([1.5, 4.8, 8.4, 11.6, 15.0, 18.3, 21.8], 5.3, 5, P3) + tufts(0, W, -7.2, -3.6, 30, 9, P3)
     for i, (x, hh) in enumerate([(3.0, 1.0), (19.0, 1.08)]):
         t = tree(f'tree{i}', x, 3.75, 10 + i, hh)
         scenery += t + [copy(o, (o.location.x + dx, o.location.y, o.location.z)) for o in t for dx in P3 if dx]
@@ -205,7 +206,7 @@ if a.set == 'road':
     group('scenery', *scenery)
 
     # ---- the truck (far lane), its centre at x = 0
-    ty = LANE
+    ty = FAR
     blue, cargo, glass = clay('truck', C['truck'], rough=0.48), clay('cargo', C['cargo'], rough=0.5), clay('glass', C['glass'], rough=0.3, specks=0.2)
     tb = [box('t_chassis', (3.4, 1.46, 0.3), clay('truckd', '#3566b4'), (0, ty, 0.29), r=0.1, lump=0.012, dents=2),
           box('t_cargo', (2.2, 1.5, 1.2), cargo, (-0.6, ty, 1.0), r=0.14, d=0.05, lump=0.03, dents=12, seed=2),
@@ -221,7 +222,7 @@ if a.set == 'road':
         ax, objs = wheel(f'tw{i}', TW_R, 0.26, (x, ty - 0.74, TW_R), seed=i); taxles.append(ax); twheels += objs
         group(f'tw{i}', *objs)
     # ---- your car (near lane)
-    cy = -LANE
+    cy = NEAR
     green = clay('car', C['car'], rough=0.46)
     cb = [box('c_body', (2.5, 1.26, 0.5), green, (0, cy, 0.42), r=0.2, d=0.045, lump=0.02, dents=7, seed=4),
           box('c_cabin', (1.3, 1.12, 0.52), clay('carl', '#6fd39a'), (-0.12, cy, 0.84), r=0.24, d=0.04, lump=0.02, dents=4, seed=5),
@@ -240,7 +241,7 @@ if a.set == 'road':
         root, objs = person(role, 0, SIDE, seed=seed); group(role, *objs); people[role] = (root, objs)
 
     lane_y = lambda y, z=0.07: K.px(0, y, z, Y0)[1]
-    meta = {'U': K.U, 'elev': a.elev, 'road': {'W': W * K.U, 'Y0': Y0, 'far': round(lane_y(LANE), 2), 'near': round(lane_y(-LANE), 2), 'side': round(lane_y(SIDE, 0.16), 2)}}
+    meta = {'U': K.U, 'elev': a.elev, 'road': {'W': W * K.U, 'Y0': Y0, 'far': round(lane_y(FAR), 2), 'near': round(lane_y(NEAR), 2), 'side': round(lane_y(SIDE, 0.16), 2)}}
     if want('road'):   # two px wider than the period: the copies overlap, so no hairline shows between them
         shot('road', (0, 240, W * K.U + 2, 780), Y0, FOCUS, show=['ground', 'scenery'], extra={'W': W * K.U})
     N = 24

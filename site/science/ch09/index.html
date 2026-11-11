@@ -22,7 +22,8 @@ const CHAPTER = { number: 9, label: 1, title: 'Motion', minutes: 18, language: '
 const V = 150;                                   // 30 mph on screen, in world px per second (same scale in every road beat)
 const MPH = v => Math.round(Math.abs(v) / V * 30);
 const speedStr = rel => { const n = MPH(rel); return n === 0 ? '0 mph' : rel > 0 ? `${n} mph →` : `← ${n} mph`; };
-const TRUCK_LAB = 358, CAR_LAB = CR.near + 96, HEAD = CR.side - 142;   // over the clay road: speed labels above the truck's roof and under the car; a pin's tip just over a person's head
+// Over the clay road: the truck's speed label above its roof, the car's on the asphalt ahead of it (from the car's x), a pin's tip just over a person's head.
+const TRUCK_LAB = 358, CAR_LAB = [290, CR.near + 6], CAR_ROOF = -89, HEAD = CR.side - 142;   // CAR_ROOF: the middle of the car's roof, from its anchor (a pin stands in it)
 const Q_CARD = { x: 96, y: 586, w: 1408, cls: 'band' };   // a band card under the scenes; it moves up by itself when taller
 const txt = (p, s, x, y, t0, { size = 32, fill = COL.chalk, anchor = 'middle', weight = 600 } = {}) => { const e = T(p, s, { x, y, size, fill, anchor, weight, o: 0 }); show(e, t0); return e; };
 // One line with coloured runs: [[text, colour?], …].
@@ -134,12 +135,12 @@ const BEATS = [
 ['intro', 'Motion', (m, D) => {
   const p = panel(0);
   const cam = camera(p, D, { x: 800, y: 285, z: .9 });
-  const road = phRoad(cam);
+  const road = clRoad(cam);
   const carX = t => -260 + 190 * t;
-  const car = phCar(road.vehicles, { y: ROAD.near });
+  const car = clCar(road.vehicles);
   cam.to({ x: t => carX(t) + 330 }, 2.4, 2);                 // lock on: from here the camera rides with the car
   clockRun(t => {
-    const x = carX(t); put(car, { x }); phRoll(car, x);
+    const x = carX(t); put(car, { x }); clRoll(car, x);
   }, D);
   const g = G(p, { o: 0, y: 24 });
   T(g, 'Unit 1 · Motion, Forces, and Work · Chapter 1', { x: 800, y: 130, size: 28, fill: COL.dim, anchor: 'middle' });
@@ -232,30 +233,30 @@ const BEATS = [
 ['incar', 'Riding beside the truck', (m, D) => {
   const p = panel(0);
   const cam = camera(p, D);
-  const road = phRoad(cam, { trees: [300, 800, 1900] });   // no tree behind the friend (1100) or the friend's label
+  const road = clRoad(cam);
   const FR = 1100, tc = m('car', .3), r0 = m('ride');
   const xw = t => -330 + V * Math.max(0, t - tc);            // world position of the truck and the car (side by side)
-  // Hard cut at "ride": the camera now rides in the car (locked on it, a little closer, with a light road shake).
+  // Hard cut at "ride": the camera now rides in the car (locked on it, a little closer).
   cam.cut({ x: t => xw(t) + 10, y: 600, z: 1.15 }, r0);
-  phPerson(road.side, { role: 'friend', x: FR, y: ROAD.side });
-  const truck = phTruck(road.vehicles, { y: ROAD.far });
-  const car = phCar(road.vehicles, { y: ROAD.near });
+  clImg(road.side, 'friend', { x: FR, y: CR.side });
+  const truck = clTruck(road.vehicles), car = clCar(road.vehicles);
+  const scrim = clScrim(p, 660, { o: 0 }); show(scrim, r0, 0);   // from the cut on, two labels stand on the near grass
   // Speed labels live in screen space and are kept inside the frame (cam.track); wrappers fade them in.
   const tag = (fill, t0) => { const g = G(p, { o: 0 }); show(g, t0); return phLabel(g, '', { fill }); };
   const fl = tag(PH.friend, .4), tl = tag(PH.truck, tc + 1.6), cl = tag(PH.car, tc + 1.6);
-  const sl = phLabel(p, 'road and trees: ← 30 mph', { x: 70, y: 862, size: 30, fill: COL.dim, anchor: 'start', o: 0 });
+  const sl = phLabel(p, 'road and trees: ← 30 mph', { x: 70, y: 862, size: 30, fill: COL.chalk, anchor: 'start', o: 0 });
   show(sl, m('back'));
-  const pinA = phPin(road.side, { x: FR, y: 304, o: 0 }), pinB = phPin(car, { x: 30, y: -112, s: 0, o: 0 });
+  const pinA = phPin(road.side, { x: FR, y: HEAD, o: 0 }), pinB = phPin(car, { x: -12, y: CAR_ROOF, s: 0, o: 0 });
   show(pinA, .3); hide(pinA, r0, 0); pop(pinB, r0 + .3);
   const tagA = fromTag(p, 'the roadside', .3);
   hide(tagA, r0, 0); fromTag(p, 'your car', r0, 0, 800);   // bottom: the friend slides through the top
   clockRun(t => {
     const x = xw(t), camV = t < r0 ? 0 : V, rel = t < tc ? 0 : V - camV;
     put(truck, { x }); put(car, { x: x + 10 });
-    phRoll(truck, x + 330); phRoll(car, x + 330);
-    phText(fl, `friend: ${speedStr(-camV)}`); cam.track(fl, FR, 236, t);
-    phText(tl, `truck: ${speedStr(rel)}`); cam.track(tl, x + 10, 350, t);
-    phText(cl, `your car: ${speedStr(rel)}`); cam.track(cl, x + 10, ROAD.bot + 56, t);
+    clRoll(truck, x + 330); clRoll(car, x + 330);            // the wheels turn with the road covered, whoever watches
+    phText(fl, `friend: ${speedStr(-camV)}`); cam.track(fl, FR, HEAD - 68, t);
+    phText(tl, `truck: ${speedStr(rel)}`); cam.track(tl, x + 10, TRUCK_LAB, t);
+    phText(cl, `your car: ${speedStr(rel)}`); cam.track(cl, x + CAR_LAB[0], CAR_LAB[1], t);
   }, D);
 }],
 ['rule', 'Motion is relative', (m, D) => {
@@ -264,16 +265,16 @@ const BEATS = [
   const view = (box, t0, title, ride) => {
     const cam = camera(p, D, { box, x: 1200, y: 560, z: .45 });
     if (ride) cam.cut({ x: t => splitX(t) + 10 }, 0);
-    const r = phRoad(cam, { hills: false });
-    phPerson(r.scenery, { role: 'friend', x: 480, y: ROAD.side });
-    if (!ride) phPin(r.scenery, { x: 480, y: 330, s: 1.1 });
-    const truck = phTruck(r.vehicles, { y: ROAD.far }), car = phCar(r.vehicles, { y: ROAD.near });
-    if (ride) phPin(car, { x: 30, y: -112, s: 1.4 });
-    const lab = phLabel(r.front, ride ? 'truck: 0 mph' : 'truck: 30 mph →', { y: 340, size: 56, fill: PH.truck });
+    const r = clRoad(cam);
+    clImg(r.side, 'friend', { x: 480, y: CR.side });
+    if (!ride) phPin(r.side, { x: 480, y: HEAD, s: 1.1 });
+    const truck = clTruck(r.vehicles), car = clCar(r.vehicles);
+    if (ride) phPin(car, { x: -12, y: CAR_ROOF, s: 1.4 });
+    const lab = phLabel(r.front, ride ? 'truck: 0 mph' : 'truck: 30 mph →', { y: TRUCK_LAB - 6, size: 56, fill: PH.truck });
     clockRun(t => {
       const x = splitX(t);
       put(truck, { x }); put(car, { x: x + 10 }); put(lab, { x: x + 10 });
-      phRoll(truck, x); phRoll(car, x);
+      clRoll(truck, x); clRoll(car, x);
     }, D);
     put(cam.el, { o: 0 }); show(cam.el, t0);
     show(phLabel(p, title, { x: box[0] + 24, y: box[1] + box[3] - 22, size: 28, fill: PH.ref, anchor: 'start', o: 0 }), t0);

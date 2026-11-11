@@ -43,3 +43,11 @@ function clRoad(cam) {
   for (let k = -1; k <= 2; k++) mk('image', { href: clSrc('road'), x: k * CR.W, y: m.y, width: m.w, height: m.h }, back);
   return { scenery: back, side: G(cam.world), vehicles: G(cam.world), front: G(cam.world) };
 }
+// A scrim over the foot of the picture: labels there keep their contrast over the bright near ground.
+{
+  const g = mk('linearGradient', { id: 'clScrim', x1: 0, y1: 0, x2: 0, y2: 1 }, mk('defs', {}, scene.ownerSVGElement));
+  mk('stop', { offset: 0, 'stop-color': COL.board, 'stop-opacity': 0 }, g);
+  mk('stop', { offset: .45, 'stop-color': COL.board, 'stop-opacity': .7 }, g);
+  mk('stop', { offset: 1, 'stop-color': COL.board, 'stop-opacity': .86 }, g);
+}
+const clScrim = (p, y0 = 680, o = {}) => put(mk('rect', { x: 0, y: y0, width: SW, height: SH - y0, fill: 'url(#clScrim)' }, p), o);

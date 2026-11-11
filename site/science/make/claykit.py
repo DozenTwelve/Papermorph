@@ -40,7 +40,7 @@ def arguments(extra=None):
     ap.add_argument('--samples', type=int, default=64)
     ap.add_argument('--scale', type=int, default=100, help='percent of page size (200 for high-density screens)')
     ap.add_argument('--elev', type=float, default=30.0, help='camera elevation in degrees; the page reads it from clay.js')
-    ap.add_argument('--fstop', type=float, default=0.2, help='lower: near ground and far hills softer')
+    ap.add_argument('--fstop', type=float, default=None, help='lower: near ground and far hills softer (default: the set\'s own, about 0.2)')
     ap.add_argument('--sun', type=float, default=5.0)
     ap.add_argument('--sun-dir', dest='sun_dir', type=lambda v: tuple(map(float, v.split(','))), default=(1.0, 0.45, -0.72),
                     help='the way sunlight travels: x right, y into the set, z up')
