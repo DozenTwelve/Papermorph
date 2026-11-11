@@ -10,6 +10,8 @@
 <body>
 <script src="../lib/engine.js"></script>
 <script src="../lib/figures.js"></script>
+<script src="../img/clay/clay.js"></script>
+<script src="../lib/clay.js"></script>
 <script src="audio/en/timings.js"></script>
 <script>
 'use strict';
@@ -20,6 +22,7 @@ const CHAPTER = { number: 9, label: 1, title: 'Motion', minutes: 18, language: '
 const V = 150;                                   // 30 mph on screen, in world px per second (same scale in every road beat)
 const MPH = v => Math.round(Math.abs(v) / V * 30);
 const speedStr = rel => { const n = MPH(rel); return n === 0 ? '0 mph' : rel > 0 ? `${n} mph →` : `← ${n} mph`; };
+const TRUCK_LAB = 358, CAR_LAB = CR.near + 96, HEAD = CR.side - 142;   // over the clay road: speed labels above the truck's roof and under the car; a pin's tip just over a person's head
 const Q_CARD = { x: 96, y: 586, w: 1408, cls: 'band' };   // a band card under the scenes; it moves up by itself when taller
 const txt = (p, s, x, y, t0, { size = 32, fill = COL.chalk, anchor = 'middle', weight = 600 } = {}) => { const e = T(p, s, { x, y, size, fill, anchor, weight, o: 0 }); show(e, t0); return e; };
 // One line with coloured runs: [[text, colour?], …].
@@ -146,40 +149,37 @@ const BEATS = [
 }],
 ['position', 'Motion is a change of position', (m, D) => {
   const p = panel(0);
-  const cam = camera(p, D, { x: 800, y: 420, z: .55 });
-  cam.to({ x: 800, y: 450, z: 1 }, .1, 1.6);                // wide shot of the park, pushing in to the track
+  const cam = camera(p, D, { x: 800, y: 440, z: .8 });
+  cam.to({ x: 800, y: 450, z: 1 }, .1, 1.6);                // a wider look at the table, pushing in to the track
   const w = cam.world;
-  phHills(w, { y: 470, amp: 30, x0: -1400, x1: 3000, fill: PH.hill2, seed: 2 });
-  phBlock(w, -1400, 520, 4400, 1200, PH.grass, { top: 6, ol: 0 });
-  phSprite(w, 'tree', { x: -200, y: 540 }); phSprite(w, 'tree', { x: 1820, y: 548 });
+  clImg(w, 'park');                                         // the grass, the track with a stick pressed in at every metre, the dark strip the numbers stand on
   const X0 = 200, U = 120, TY = 600, R = 40, xm = v => X0 + U * v;
   const track = G(w);
-  phBlock(track, X0 - 30, TY, U * 10 + 60, 16, '#8a6f55', { top: 4, ol: 2 });
-  for (let v = 0; v <= 10; v++) {
-    mk('rect', { x: xm(v) - 2, y: TY + 16, width: 4, height: 16, fill: COL.dim }, track);
-    T(track, String(v), { x: xm(v), y: TY + 68, size: 28, fill: COL.chalk, anchor: 'middle' });
-  }
+  for (let v = 0; v <= 10; v++) T(track, String(v), { x: xm(v), y: TY + 68, size: 28, fill: COL.chalk, anchor: 'middle' });
   T(track, 'meters', { x: xm(10) + 40, y: TY + 68, size: 26, fill: COL.dim });
-  T(track, 'zero mark', { x: xm(0), y: TY + 104, size: 24, fill: COL.dim, anchor: 'middle' });
+  phLabel(track, 'zero mark', { x: xm(0), y: TY + 112, size: 24, fill: COL.dim, weight: 400 });
   txt(p, 'Position: where something is, measured from a starting mark', 800, 150, 1.4, { size: 34, fill: COL.dim });
-  const ghost = mk('circle', { cx: xm(2), cy: TY - R, r: R, fill: 'none', stroke: COL.dim, 'stroke-width': 3, 'stroke-dasharray': '8 8' }, w);
+  const ghost = mk('circle', { cx: xm(2), cy: TY - R, r: R, fill: 'none', stroke: COL.chalk, 'stroke-width': 3, 'stroke-dasharray': '8 8' }, w);
   put(ghost, { o: 0 });
-  const ball = phBall(w, R, { x: xm(2), y: TY - R });
-  const at2 = txt(w, 'position: 2 m', xm(2), TY - 110, m('pos'), { size: 32 });
+  const ball = clImg(w, 'ball_shadow', { x: xm(2), y: TY - R });   // the shadow rides along; the ball over it is one of 36 angles,
+  const turn = clStrip(ball, 'ball');                             // the one its rolled distance gives
+  const lab = (s, x, t0) => { const e = phLabel(w, s, { x, y: TY - 110, size: 32, o: 0 }); show(e, t0); return e; };
+  const at2 = lab('position: 2 m', xm(2), m('pos'));
   hide(at2, m('roll'), .4); show(ghost, m('roll'), .4);
-  prog(q => { const x = xm(2) + U * 5 * q; put(ball, { x }); put(ball._spin, { r: (x - xm(2)) / R * 180 / Math.PI }); }, m('roll', .1), 2.2, io);
-  txt(w, 'position: 7 m', xm(7), TY - 110, m('now'), { size: 32 });
+  prog(q => { const x = xm(2) + U * 5 * q; put(ball, { x }); clTurn(turn, x - xm(2)); }, m('roll', .1), 2.2, io);
+  lab('position: 7 m', xm(7), m('now'));
   const ch = G(w, { o: 0 });
-  path(ch, arrowPath(xm(2), TY + 150, xm(7)), { stroke: PH.change, 'stroke-width': 5 });
-  T(ch, 'change of position: 5 m', { x: xm(4.5), y: TY + 200, size: 32, fill: PH.change, weight: 700, anchor: 'middle' });
+  path(ch, arrowPath(xm(2), TY + 160, xm(7)), { stroke: PH.change, 'stroke-width': 6 });
+  phLabel(ch, 'change of position: 5 m', { x: xm(4.5), y: TY + 210, size: 32, fill: PH.change });
   show(ch, m('change'));
   const rule = runs(p, [['Motion', COL.chalk], [' = a ', COL.chalk], ['change of position', PH.change]], { x: 800, y: 270, size: 60 });
   show(rule, m('rule'));
-  const sw = phStopwatch(p, { x: 1330, y: 400, r: 52, o: 0 });
+  const sw = phStopwatch(p, { x: 1330, y: 372, r: 46, o: 0 });
   show(sw, m('still'));
-  const clockT = txt(p, '0 s later', 1330, 500, m('still'), { size: 28, fill: COL.dim });
+  const clockT = phLabel(p, '0 s later', { x: 1330, y: 462, size: 28, fill: COL.dim, weight: 600, o: 0 });
+  show(clockT, m('still'));
   prog(q => { put(sw._hand, { r: 90 * q }); clockT.textContent = `${Math.round(3 * q)} s later`; }, m('still', .3), 3, lin);
-  txt(p, 'still at 7 m: not moving', 1330, 540, m('still', 3.4), { size: 28, fill: COL.chalk });
+  show(phLabel(p, 'still at 7 m: not moving', { x: 1330, y: 500, size: 28, weight: 600, o: 0 }), m('still', 3.4));
 }],
 ['everywhere', 'Motion is everywhere', (m, D) => {
   const p = panel(0);
@@ -214,19 +214,19 @@ const BEATS = [
 ['roadside', 'Standing by the road', (m, D) => {
   const p = panel(0);
   const cam = camera(p, D);
-  const road = phRoad(cam);
-  const you = phPerson(road.side, { x: 760, y: ROAD.side, o: 0 });
+  const road = clRoad(cam);
+  const you = clImg(road.side, 'you', { x: 760, y: CR.side, o: 0 });
   show(you, m('stand'));
-  show(phLabel(road.front, 'you', { x: 760, y: 236, fill: PH.you, o: 0 }), m('stand'));   // above the pin: the truck's label passes below
-  const truck = phTruck(road.vehicles, { y: ROAD.far });
-  const tl = phLabel(road.front, `truck: ${speedStr(V)}`, { y: 350, fill: PH.truck, o: 0 });
+  show(phLabel(road.front, 'you', { x: 760, y: HEAD - 68, fill: PH.you, o: 0 }), m('stand'));   // above the pin: the truck's label passes below
+  const truck = clTruck(road.vehicles);
+  const tl = phLabel(road.front, `truck: ${speedStr(V)}`, { y: TRUCK_LAB, fill: PH.truck, o: 0 });
   fromTag(p, 'you, by the road', m('speed'));
-  pop(phPin(road.front, { x: 760, y: 304, s: 0, o: 0 }), m('speed'));
+  pop(phPin(road.front, { x: 760, y: HEAD, s: 0, o: 0 }), m('speed'));
   show(tl, m('speed'));
   const t0 = m('truck', -.3);
   clockRun(t => {
     const x = -250 + V * Math.max(0, t - t0);
-    put(truck, { x }); phRoll(truck, x); put(tl, { x: x + 10 });
+    put(truck, { x }); clRoll(truck, x); put(tl, { x: x + 10 });
   }, D);
 }],
 ['incar', 'Riding beside the truck', (m, D) => {
