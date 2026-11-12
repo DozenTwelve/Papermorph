@@ -322,16 +322,18 @@ if a.set == 'road':
     if want('road'):   # two px wider than the period: the copies overlap, so no hairline shows between them
         shot('road', (0, 240, W * K.U + 2, 780), Y0, FOCUS, show=['ground', 'scenery'], extra={'W': W * K.U})
     N = 24
+    bpy.context.view_layer.update()          # axles parented to a car: their world place is matrix_world, after an update
+    W_ = lambda ax: ax.matrix_world.translation
     for name, body, axles, wh, yc, r in (('truck', tb, taxles, ['tw0', 'tw1', 'tw2'], ty, TW_R), ('car', cb, caxles, ['cw0', 'cw1'], cy, CW_R)):
         if want(name):
-            offs = [[round(v, 2) for v in (ax.location.x * K.U, K.px(0, ax.location.y, ax.location.z, Y0)[1] - lane_y(yc))] for ax in axles]
+            offs = [[round(v, 2) for v in (W_(ax).x * K.U, K.px(0, W_(ax).y, W_(ax).z, Y0)[1] - lane_y(yc))] for ax in axles]
             shot(name, rect_of(body, Y0), Y0, FOCUS, show=[name], catch=['ground'], unseen=wh, anchor=(0, lane_y(yc)),
                  extra={'wheel': name + '_wheel', 'wheels': offs, 'r': r * K.U})
         if want(name + '_wheel'):   # the front wheel alone, turning; the body and the ground still light and shade it
             ax = axles[0]
             objs = K.GROUPS[wh[0]]
             shot(name + '_wheel', rect_of(objs, Y0, pad=5, shadow=False), Y0, FOCUS, show=[wh[0]], unseen=[name, 'ground'], frames=turn_frames([ax], N),
-                 anchor=K.px(ax.location.x, ax.location.y, ax.location.z, Y0))
+                 anchor=K.px(*W_(ax), Y0))
     if want('car_l'):
         bpy.context.view_layer.update()      # the mirrored root's transform reaches the axles only after an update
         offs = [[round(v, 2) for v in (ax.matrix_world.translation.x * K.U, K.px(0, ax.matrix_world.translation.y, ax.matrix_world.translation.z, Y0)[1] - lane_y(cy))] for ax in laxles]
