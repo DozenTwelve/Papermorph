@@ -743,11 +743,11 @@ const BEATS = [
 ['part4', 'Part 4 · Acceleration', (m, D) => {
   const p = panel(0);
   const cam = camera(p, D, { x: 800, y: 285, z: .9 });
-  const road = phRoad(cam), car = phCar(road.vehicles, { y: ROAD.near });
+  const road = clRoad(cam), car = clCar(road.vehicles);
   const av = path(road.front, '', { stroke: VEL, 'stroke-width': 8 }), aa = path(road.front, '', { stroke: ACC, 'stroke-width': 8 });
   clockRun(t => {
     const x = -150 + 40 * t + 30 * t * t, v = 40 + 60 * t;    // speeding up from the left
-    put(car, { x }); phRoll(car, x); arrowAt(av, x - 40, ROAD.near - 130, v * .35, 0); arrowAt(aa, x - 40, ROAD.near - 160, 90, 0);
+    put(car, { x }); clRoll(car, x); arrowAt(av, x - 40, CR.near - 150, v * .35, 0); arrowAt(aa, x - 40, CR.near - 180, 90, 0);
   }, D);
   const g = G(p, { o: 0, y: 24 });
   T(g, 'Chapter 1 · Motion', { x: 800, y: 130, size: 28, fill: COL.dim, anchor: 'middle' });
@@ -760,25 +760,24 @@ const BEATS = [
   txt(p, 'Acceleration: the rate at which velocity changes', 800, 140, .2, { size: 40 });
   vaKey(p, m('ways'));
   const W = 460, Y = 230, H = 400, xs = [70, 570, 1070];
-  const box = (i, t0, title) => {
-    const cam = camera(p, D, { box: [xs[i], Y, W, H], x: i < 2 ? 760 : 800, y: i < 2 ? 470 : 450, z: .5 });
+  const box = (i, t0, title, v) => {
+    const cam = camera(p, D, { box: [xs[i], Y, W, H], ...v });
     put(cam.el, { o: 0 }); show(cam.el, m('ways') + .2 * i);
     const lab = phLabel(p, title, { x: xs[i] + W / 2, y: Y + H + 52, size: 34, o: 0 }); show(lab, m('ways') + .2 * i); pulse(lab, t0, 1.25);
     return cam;
   };
   // Each box loops a 3-second clip, so all three keep moving while the narration names them.
   const side = (cam, f) => {
-    const w = cam.world;
-    phBlock(w, 0, 520, 1600, 120, PH.road, { top: 0, ol: 0 });
-    const car = phCar(w, { y: 600 }), av = path(w, '', { stroke: VEL, 'stroke-width': 14 }), aa = path(w, '', { stroke: ACC, 'stroke-width': 14 });
-    return t => { const [x, v, dir] = f(t % 3); put(car, { x }); phRoll(car, x); arrowAt(av, x - 60, 440, v, 0, 30); arrowAt(aa, x - 60 + (dir < 0 ? 180 : 0), 360, 180, dir > 0 ? 0 : 180, 30); };
+    const w = cam.world, road = clRoad(cam), car = clCar(road.vehicles);
+    const av = path(w, '', { stroke: VEL, 'stroke-width': 14 }), aa = path(w, '', { stroke: ACC, 'stroke-width': 14 });
+    return t => { const [x, v, dir] = f(t % 3); put(car, { x }); clRoll(car, x); arrowAt(av, x - 60, CR.near - 200, v, 0, 30); arrowAt(aa, x - 60 + (dir < 0 ? 180 : 0), CR.near - 280, 180, dir > 0 ? 0 : 180, 30); };
   };
-  const up = side(box(0, m('up'), 'speeding up'), u => [380 + 60 * u + 45 * u * u, 60 + 90 * u, 1]);
-  const down = side(box(1, m('down'), 'slowing down'), u => [380 + 330 * u - 45 * u * u, 330 - 90 * u, -1]);
-  const tc = box(2, m('turn'), 'changing direction'), tw3 = tc.world;
-  mk('rect', { x: 0, y: 0, width: 1600, height: 900, fill: PH.grass }, tw3);
-  mk('circle', { cx: 800, cy: 450, r: 300, fill: 'none', stroke: PH.road, 'stroke-width': 130 }, tw3);
-  const car = phTop(tw3, 'car_top', { s: 1.6 }), av = path(tw3, '', { stroke: VEL, 'stroke-width': 14 }), aa = path(tw3, '', { stroke: ACC, 'stroke-width': 14 });
+  const view = { x: 760, y: 560, z: .5 };
+  const up = side(box(0, m('up'), 'speeding up', view), u => [380 + 60 * u + 45 * u * u, 60 + 90 * u, 1]);
+  const down = side(box(1, m('down'), 'slowing down', view), u => [380 + 330 * u - 45 * u * u, 330 - 90 * u, -1]);
+  const tc = box(2, m('turn'), 'changing direction', { x: 800, y: 450, z: .5 }), tw3 = tc.world;
+  clImg(tw3, 'loop');                                       // a ring road from straight above
+  const car = clImg(tw3, 'car_top', { s: .92 }), av = path(tw3, '', { stroke: VEL, 'stroke-width': 14 }), aa = path(tw3, '', { stroke: ACC, 'stroke-width': 14 });
   clockRun(t => {
     up(t); down(t);
     const th = -t * 1.1, x = 800 + 300 * Math.cos(th), y = 450 + 300 * Math.sin(th), hd = th * 180 / Math.PI - 90;   // counterclockwise
@@ -787,7 +786,9 @@ const BEATS = [
 }],
 ['formula', 'Acceleration = change in velocity ÷ time', (m, D) => {
   const p = panel(0);
-  const X0 = 200, U = 20, TY = 660, xm = v => X0 + U * v, e0 = m('ex', .2), e1 = e0 + 5;
+  const xs = v => 200 + 20 * v, e0 = m('ex', .2), e1 = e0 + 5;
+  const Z = .6, cam = camera(p, D, { x: 800, y: CR.near - 220 / Z, z: Z }), road = clRoad(cam);
+  const W = x => 800 + (x - 800) / Z, sy = wy => 450 + (wy - cam.at(0).y) * Z, TY = sy(CR.near);
   const y = 170;
   show(T(p, 'acceleration =', { x: 470, y: y + 14, size: 46, weight: 700, anchor: 'end', fill: ACC, o: 0 }), m('f'));
   show(wfrac(p, 'final velocity − starting velocity', 'time', 820, y, { size: 38, ct: VEL, cb: TIME }), m('f', .3));
@@ -795,61 +796,63 @@ const BEATS = [
   show(wfrac(p, '25 − 5 m/s', '4 s', 1275, y, { size: 38, ct: VEL, cb: TIME }), m('calc'));
   const ans = T(p, '= 5 m/s²', { x: 1150, y: y + 110, size: 52, weight: 700, anchor: 'start', fill: ACC, o: 0 });
   pop(put(ans, { s: .6 }), m('ans'));
-  meterTrack(p, { x0: X0, U, y: TY, to: 60, every: 10 });
-  const car = phCar(p, { x: xm(0), y: TY, s: .6 }), clk = simClock(p, 1460, 360, 40);
-  const vl = phLabel(p, '', { size: 30, fill: VEL, o: 0 }); show(vl, e0 - .3);
-  // A flag every second, at the car's position, with its velocity: 5, 10, 15, 20, 25 m/s. The gaps grow.
+  const ty = sy(CR.near + 120);                                // under the road
+  for (let v = 0; v <= 60; v += 10) { mk('rect', { x: xs(v) - 2, y: ty - 34, width: 4, height: 16, fill: COL.chalk }, p); phLabel(p, `${v}`, { x: xs(v), y: ty, size: 26, weight: 600 }); }
+  phLabel(p, 'meters', { x: xs(60) + 32, y: ty, size: 24, fill: COL.dim, weight: 500, anchor: 'start' });
+  const car = clCar(road.vehicles, { x: W(xs(0)) }), clk = simClock(p, 1460, 300, 40);
+  const vl = phLabel(p, '', { size: 30, fill: VEL, o: 0 }); show(vl, e0 - .3); hide(vl, e1, .3);   // the live speed while it drives; the flags keep the record
+  // A clay flag at the car's place every second, with its velocity: 5, 10, 15, 20, 25 m/s. The gaps grow.
   const flags = [0, 1, 2, 3, 4].map(k => {
-    const g = G(p, { x: xm(5 * k + 2.5 * k * k), y: TY, o: 0 });
-    mk('rect', { x: -2, y: -150, width: 4, height: 150, fill: VEL, opacity: .7 }, g);
-    T(g, `${5 + 5 * k} m/s`, { y: -160, size: 26, weight: 700, fill: VEL, anchor: 'middle' });
-    T(g, `${k} s`, { y: 110, size: 24, weight: 700, fill: TIME, anchor: 'middle' });
-    return g;
+    const x = xs(5 * k + 2.5 * k * k), g = G(p, { o: 0 });
+    clImg(G(cam.world, { x: W(x), y: CR.far + 70 }), 'flag_v');            // on the centre line, behind the car
+    phLabel(g, `${5 + 5 * k} m/s`, { x, y: sy(CR.far + 70) - 70, size: 26, fill: VEL });
+    phLabel(g, `${k} s`, { x, y: ty + 40, size: 24, fill: TIME });
+    return [g, cam.world.lastChild];
   });
-  txt(p, 'every second: 5 m/s faster', 800, 400, m('unit', .4), { size: 36, fill: ACC });
+  flags.forEach(([g, f]) => put(f, { o: 0 }));
+  txt(p, 'every second: 5 m/s faster', 800, 380, m('unit', .4), { size: 36, fill: ACC });
   clockRun(t => {
-    const s = 4 * ramp(t, e0, e1), x = xm(5 * s + 2.5 * s * s);
-    put(car, { x }); phRoll(car, (x - X0) / .6); clk.set(s);
-    put(vl, { x, y: TY - 80, o: s < 4 ? 1 : 0 }); phText(vl, `${Math.round(5 + 5 * s)} m/s`);
-    flags.forEach((f, k) => put(f, { o: t >= e0 && s >= k - 1e-6 ? 1 : 0 }));
+    const s = 4 * ramp(t, e0, e1), x = xs(5 * s + 2.5 * s * s);
+    put(car, { x: W(x) }); clRoll(car, W(x) - W(xs(0))); clk.set(s);
+    put(vl, { x, y: TY - 110 }); phText(vl, `${Math.round(5 + 5 * s)} m/s`);
+    flags.forEach(([g, f], k) => { const o = t >= e0 && s >= k - 1e-6 ? 1 : 0; put(g, { o }); put(f, { o }); });
   }, D);
 }, { lead: false }],
 ['sign', 'Positive and negative acceleration', (m, D) => {
   const p = panel(0);
   const g0 = m('gas'), b0 = m('brake'), A = 60;   // px/s²; 12 px/s = 1 m/s on screen, so A = 5 m/s²
-  // Velocity: 60 px/s, gas 3 s up to 240, cruise, brake 4 s down to 0. x(t) is its integral.
   const v = t => t < g0 ? 60 : t < g0 + 3 ? 60 + A * (t - g0) : t < b0 ? 240 : Math.max(0, 240 - A * (t - b0));
   const xAt = t => { const a = Math.min(t, g0), b = Math.min(Math.max(t - g0, 0), 3), c = Math.min(Math.max(t - g0 - 3, 0), b0 - g0 - 3), d = Math.min(Math.max(t - b0, 0), 4);
     return 60 * a + 60 * b + A * b * b / 2 + 240 * c + 240 * d - A * d * d / 2; };
   const cam = camera(p, D, { x: 800, y: 560, z: 1 });
   cam.cut({ x: t => 300 + xAt(t) + 150 }, 0);   // follow: the road streams faster or slower behind the car
-  const road = phRoad(cam), car = phCar(road.vehicles, { y: ROAD.near });
+  const road = clRoad(cam), car = clCar(road.vehicles);
   const av = path(road.front, '', { stroke: VEL, 'stroke-width': 8 }), aa = path(road.front, '', { stroke: ACC, 'stroke-width': 8 });
   const vg = G(p), vl = phLabel(vg, '', { size: 30, fill: VEL }), ag = G(p), al = phLabel(ag, '', { size: 30, fill: ACC });
   vaKey(p, .2);
-  const pedal = (x, label, sign, col) => {
-    const g = G(p, { x, y: 820 });
-    phBlock(g, -40, -110, 80, 110, '#59625e', { top: 6, right: 8, ol: 0 });
-    T(g, label, { y: 44, size: 26, weight: 700, fill: COL.chalk, anchor: 'middle' });
-    T(g, sign, { y: -36, size: 54, weight: 700, fill: col, anchor: 'middle' });
+  clScrim(p, 690);
+  const pedal = (x, label, sign) => {
+    const g = G(p, { x, y: 770 });
+    clImg(g, 'pedal', { s: 1.2 });                                    // a clay pedal; the sign and name over it
+    phLabel(g, sign, { y: -34, size: 54, fill: ACC });
+    phLabel(g, label, { y: 44, size: 26 });
     return g;
   };
-  const brake = pedal(1300, 'brake', '−', ACC), gas = pedal(1440, 'gas', '+', ACC);
+  const brake = pedal(1300, 'brake', '−'), gas = pedal(1440, 'gas', '+');
   clockRun(t => {
     const x = 300 + xAt(t), vv = v(t), acc = t >= g0 && t < g0 + 3 ? 1 : t >= b0 && vv > 0 ? -1 : 0;
-    put(car, { x }); phRoll(car, x);
-    arrowAt(av, x - 60, ROAD.near - 140, vv * .55, 0); arrowAt(aa, acc > 0 ? x - 60 : x + 60, ROAD.near - 180, acc ? 110 : 0, acc > 0 ? 0 : 180);
-    phText(vl, `velocity: ${Math.round(vv / 12)} m/s →`); cam.track(vl, x, ROAD.near - 210, t);
-    phText(al, acc ? `acceleration: ${acc > 0 ? '+' : '−'}5 m/s²` : 'acceleration: 0'); cam.track(al, x, ROAD.near - 250, t);
-    put(gas, { y: acc > 0 ? 832 : 820 }); put(brake, { y: acc < 0 ? 832 : 820 });
+    put(car, { x }); clRoll(car, x);
+    arrowAt(av, x - 60, CR.near - 150, vv * .55, 0); arrowAt(aa, acc > 0 ? x - 60 : x + 60, CR.near - 190, acc ? 110 : 0, acc > 0 ? 0 : 180);
+    phText(vl, `velocity: ${Math.round(vv / 12)} m/s →`); keepIn(cam, vl, x, CR.near - 220, t);
+    phText(al, acc ? `acceleration: ${acc > 0 ? '+' : '−'}5 m/s²` : 'acceleration: 0'); keepIn(cam, al, x, CR.near - 262, t);
+    put(gas, { y: acc > 0 ? 782 : 770 }); put(brake, { y: acc < 0 ? 782 : 770 });
   }, D);
-  runs(p, [['negative acceleration = ', COL.chalk], ['deceleration', ACC]], { x: 700, y: 870, size: 36, weight: 700 });
-  show(p.lastChild, m('decel'));
+  show(runs(p, [['negative acceleration = ', COL.chalk], ['deceleration', ACC]], { x: 640, y: 838, size: 36, weight: 700 }), m('decel'));
 }],
 ['turnfeel', 'Turning is accelerating', (m, D) => {
   const p = panel(0);
-  const cam = camera(p, D), { pose, L1, ARC, cx, cy } = overheadStreet(cam.world), V3 = 70, t0 = m('dir') - L1 / V3;
-  const car = phTop(cam.world, 'car_top'), av = path(cam.world, '', { stroke: VEL, 'stroke-width': 9 }), aa = path(cam.world, '', { stroke: ACC, 'stroke-width': 9 });
+  const cam = camera(p, D), { pose, L1, ARC, cx, cy } = clStreet(cam.world), V3 = 70, t0 = m('dir') - L1 / V3;
+  const car = clImg(cam.world, 'car_top', { s: CL.top.car }), av = path(cam.world, '', { stroke: VEL, 'stroke-width': 9 }), aa = path(cam.world, '', { stroke: ACC, 'stroke-width': 9 });
   const feel = path(cam.world, '', { stroke: COL.chalk, 'stroke-width': 6, 'stroke-dasharray': '12 10' });
   const fg = G(p, { o: 0 }), fl = phLabel(fg, 'you feel pushed outward', { size: 30 });
   const ugh = phLabel(cam.world, 'UGH!', { size: 34, fill: COL.chalk, o: 0 });
@@ -861,18 +864,19 @@ const BEATS = [
     put(car, { x, y, r: a }); arrowAt(av, x + 80 * Math.cos(r), y + 80 * Math.sin(r), 140, a);
     const ia = Math.atan2(cy - y, cx - x) * 180 / Math.PI;      // toward the centre of the turn
     arrowAt(aa, x, y, onArc ? 120 : 0, ia); arrowAt(feel, x, y, onArc && t > m('feel') ? 110 : 0, ia + 180, 16);
-    cam.track(fl, x - 260 * Math.cos(ia * Math.PI / 180), y - 260 * Math.sin(ia * Math.PI / 180) + 30, t);
-    const on = onArc && t > tf ? 1 : 0; put(fg, { o: on }); put(ugh, { x: x - 110 * Math.cos(r), y: y - 110 * Math.sin(r) + 12, o: on, s: on });   // behind the car, clear of all three arrows
+    keepIn(cam, fl, x - 260 * Math.cos(ia * Math.PI / 180), y - 260 * Math.sin(ia * Math.PI / 180) + 30, t);
+    const on = onArc && t > tf ? 1 : 0; put(fg, { o: on }); put(ugh, { x: x - 110 * Math.cos(r), y: y - 110 * Math.sin(r) + 12, o: on, s: on });
   }, D);
 }],
 ['q4', 'Quick check', (m, D) => {
   const p = panel(0);
-  const bee = phTop(p, 'bee', { s: 1.2 }), av = path(p, '', { stroke: VEL, 'stroke-width': 7 });
-  mk('circle', { cx: 800, cy: 270, r: 170, fill: 'none', stroke: COL.faint, 'stroke-width': 3, 'stroke-dasharray': '10 12' }, p);
-  T(p, 'a bee flying in a circle at a steady speed', { x: 800, y: 500, size: 26, fill: COL.dim, anchor: 'middle' });
+  clImg(p, 'bed');                                         // a flower bed from straight above
+  const bee = clImg(p, 'bee', { s: .9 }), av = path(p, '', { stroke: VEL, 'stroke-width': 7 });
+  mk('circle', { cx: 800, cy: 270, r: 170, fill: 'none', stroke: COL.chalk, 'stroke-width': 3, 'stroke-dasharray': '10 12', opacity: .6 }, p);
+  phLabel(p, 'a bee flying in a circle at a steady speed', { x: 800, y: 530, size: 26, weight: 500 });
   clockRun(t => {
     const th = -.9 * t, x = 800 + 170 * Math.cos(th), y = 270 + 170 * Math.sin(th), hd = th * 180 / Math.PI - 90;
-    put(bee, { x, y }); phFace(bee, Math.cos(hd * Math.PI / 180) < 0 ? -1 : 1); arrowAt(av, x, y, 90, hd, 14);
+    put(bee, { x, y, r: hd }); arrowAt(av, x, y, 90, hd, 14);
   }, D);
 }, { ask: done => quiz(Q_CARD, [
   { id: 'c-bee', prompt: ['A bee flies in a circle at a steady speed. Is it ', h('b', '', 'accelerating'), '?'],
@@ -888,18 +892,22 @@ const BEATS = [
 ], done) }],
 ['wrap4', 'Summary · Acceleration', (m, D) => {
   const p = panel(0);
-  txt(p, 'Acceleration', 800, 120, .2, { size: 40, fill: COL.dim });
+  // Below the summary: your car speeds up along the road.
+  const cam = camera(p, D, { x: 800, y: 120, z: .55 }), road = clRoad(cam), car = clCar(road.vehicles);
+  clockRun(t => { const x = -500 + 40 * t + 9 * t * t; put(car, { x }); clRoll(car, x); }, D);
+  clScrim(p, 790);
+  txt(p, 'Acceleration', 800, 100, .2, { size: 40, fill: COL.dim });
   [['Acceleration is the rate at which velocity changes.', 'w1'],
    ['It happens when something speeds up, slows down, or changes direction.', 'w2'],
    ['acceleration = (final velocity − starting velocity) ÷ time, in m/s².', 'w3'],
    ['Positive speeds up; negative (deceleration) slows down.', 'w4']].forEach(([s, mark], i) => {
-    const g = G(p, { x: -16, y: 250 + i * 120, o: 0 });
+    const g = G(p, { x: -16, y: 190 + i * 95, o: 0 });
     mk('rect', { x: 144, y: -38, width: 52, height: 52, rx: 6, fill: PH.ref }, g);
     T(g, String(i + 1), { x: 170, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
     T(g, s, { x: 230, size: 36, weight: 600 });
     tw(g, { o: 1, x: 0 }, m(mark), .6);
   });
-  txt(p, 'Next: the chapter practice.', 800, 780, m('w4', 5), { size: 32, fill: COL.dim, weight: 500 });
+  show(phLabel(p, 'Next: the chapter practice.', { x: 800, y: 838, size: 32, weight: 500, o: 0 }), m('w4', 5));
 }],
 /* ---------- chapter practice and finish (after the last section) ---------- */
 ['final1', 'Chapter practice: motion and speed', () => { panel(0); }, { ask: done => quiz(SCREEN, [
