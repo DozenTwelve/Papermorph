@@ -419,15 +419,17 @@ const BEATS = [
   phLabel(g, 'Speed', { x: 800, y: 250, size: 120, weight: 600 });
   tw(g, { o: 1, y: 0 }, .2, 1.1, out);
   txt(p, 'Part 2 · How fast is something moving?', 800, 320, m('q'), { size: 36, fill: COL.dim });
+  skyInk(p, 360);                                       // text on the bright sky: ink
 }],
 ['speed', 'Speed = distance ÷ time', (m, D) => {
   const p = panel(0);
   const X0 = 220, U = 50, xm = v => X0 + U * v, t0 = m('go', .4), t1 = m('f', -.2);
   clImg(p, 'track');                                       // a clay running track; the runner, 8 running poses, on it
-  txt(p, 'Speed: the distance something travels in a certain amount of time', 800, 100, .2, { size: 32, fill: COL.dim });
+  const B = clBoard(p, 'chalk_w', 790, 565);                    // a chalkboard on the grass behind the track
+  txt(p, 'Speed: the distance something travels in a certain amount of time', B.cx, B.y0 + 56, .2, { size: 32, fill: COL.dim });
   trackTicks(p, { x0: X0, U, to: 24, every: 3 });
   const run = clStrip(p, 'runner', { x: xm(0), y: TT });
-  const clk = simClock(p, 1460, 200);
+  const clk = simClock(p, 1515, 150);
   const dist = G(p, { o: 0 }), arrow = path(dist, '', { stroke: DIST, 'stroke-width': 6 });
   const dLab = phLabel(dist, '', { y: TT + 168, size: 34, fill: DIST });
   show(dist, t0);
@@ -438,21 +440,23 @@ const BEATS = [
     arrow.setAttribute('d', d > .6 ? arrowPath(xm(0), TT + 128, x) : '');
     put(dLab, { x: (xm(0) + x) / 2 }); phText(dLab, `${Math.round(d)} m`);
   }, D);
-  const y = 230;
+  const y = B.y0 + 150;
   show(T(p, 'speed =', { x: 520, y: y + 14, size: 52, weight: 700, anchor: 'end', o: 0 }), m('f'));
   show(wfrac(p, 'distance', 'time', 660, y, { ct: DIST, cb: TIME }), m('f', .3));
   show(T(p, '=', { x: 800, y: y + 14, size: 52, weight: 700, anchor: 'middle', o: 0 }), m('calc'));
   show(wfrac(p, '24 m', '8 s', 900, y, { ct: DIST, cb: TIME }), m('calc'));
   const ans = runs(p, [['= ', COL.chalk], ['3 m/s', COL.chalk]], { x: 990, y: y + 16, size: 56, anchor: 'start', weight: 700 });
   pop(put(ans, { s: .6 }), m('ans'));
+  skyInk(p, 270);
 }],
 ['units', 'Meters per second', (m, D) => {
   const p = panel(0);
   const X0 = 220, U = 50, xm = v => X0 + U * v, t0 = m('each', .2), t1 = t0 + 4.8;
   clImg(p, 'track');
-  runs(p, [['distance → ', COL.dim], ['meters (m)', DIST]], { x: 420, y: 110, size: 40 }); show(p.lastChild, .2);
-  runs(p, [['time → ', COL.dim], ['seconds (s)', TIME]], { x: 1180, y: 110, size: 40 }); show(p.lastChild, m('s'));
-  const sp = runs(p, [['speed → ', COL.dim], ['meters per second ', COL.chalk], ['(m/s)', COL.chalk]], { x: 800, y: 200, size: 48 });
+  const B = clBoard(p, 'chalk_w', 790, 565);                    // a chalkboard on the grass behind the track
+  runs(p, [['distance → ', COL.dim], ['meters (m)', DIST]], { x: 450, y: B.y0 + 64, size: 40 }); show(p.lastChild, .2);
+  runs(p, [['time → ', COL.dim], ['seconds (s)', TIME]], { x: 1130, y: B.y0 + 64, size: 40 }); show(p.lastChild, m('s'));
+  const sp = runs(p, [['speed → ', COL.dim], ['meters per second ', COL.chalk], ['(m/s)', COL.chalk]], { x: B.cx, y: B.y0 + 140, size: 48 });
   show(sp, m('ms'));
   trackTicks(p, { x0: X0, U, to: 24, every: 3 });
   // a clay flag pressed in where the runner is at each whole second: 3 m apart
@@ -463,12 +467,12 @@ const BEATS = [
     return g;
   });
   const run = clStrip(p, 'runner', { x: xm(0), y: TT });
-  const clk = simClock(p, 1460, 200);
+  const clk = simClock(p, 1515, 150);
   const gap = G(p, { o: 0 });
   path(gap, `M${xm(0)} ${TT + 118}V${TT + 134}H${xm(3)}V${TT + 118}`, { stroke: DIST, 'stroke-width': 5 });
   phLabel(gap, '3 m', { x: xm(1.5), y: TT + 176, size: 30, fill: DIST });
   show(gap, t0 + .7);
-  txt(p, 'every second: 3 more meters', 800, 300, t0 + 1.2, { size: 36, fill: COL.chalk });
+  txt(p, 'every second: 3 more meters', B.cx, B.y0 + 212, t0 + 1.2, { size: 36, fill: COL.chalk });
   clockRun(t => {
     const q = ramp(t, t0, t1), sec = 8 * q, x = xm(3 * sec);
     put(run, { x }); clTurn(run, x - xm(0), RUNR);
@@ -476,6 +480,7 @@ const BEATS = [
     flags.forEach((f, i) => put(f, { o: sec >= i + 1 - 1e-6 ? 1 : 0 }));
   }, D);
   show(phLabel(p, 'Part 1’s miles per hour (mph) is a speed unit too: miles ÷ hours.', { x: 800, y: 838, size: 28, weight: 500, o: 0 }), m('mph'));
+  skyInk(p, 270);
 }],
 ['average', 'Average speed', (m, D) => {
   const p = panel(0);
@@ -488,19 +493,20 @@ const BEATS = [
   phLabel(p, 'meters', { x: xs(300) + 30, y: yNum, size: 24, fill: COL.dim, weight: 500, anchor: 'start' });
   const light = clStrip(road.side, 'light', { x: wx(150) + 120, y: CR.side });   // red, then green
   const car = clCar(road.vehicles, { x: wx(0), y: CR.far });
-  const clk = simClock(p, 1460, 110, 40);
+  const B = clBoard(p, 'chalk_w', 700, 432);                    // a chalkboard on the grass beyond the road
+  const clk = simClock(p, 1505, 110, 40);
   // the car's speed now, as a readout under the clock (on the car it would cross the lamp and the trees)
   const rd = G(p, { o: 0 });
-  phLabel(rd, 'car now:', { x: 1380, y: 248, size: 26, fill: COL.dim, weight: 600, anchor: 'end' });
-  const vLab = phLabel(rd, '', { x: 1400, y: 248, size: 32, fill: PH.car, anchor: 'start' });
+  phLabel(rd, 'car now:', { x: 880, y: B.y0 + 205, size: 26, fill: COL.dim, weight: 600, anchor: 'end' });
+  const vLab = phLabel(rd, '', { x: 892, y: B.y0 + 205, size: 32, fill: PH.car, anchor: 'start' });
   show(rd, m('go'));
   // First run, time-lapse: drive (sim 0–10 s), wait at the light (10–18 s), drive on (18–30 s), timed to the words.
   const go = m('go'), st = m('stop'), ag = m('again'), g0 = m('ghost', .3), g1 = g0 + 5;
   const sim1 = t => t < go ? 0 : t < st ? 10 * ramp(t, go, st) : t < ag ? 10 + 8 * ramp(t, st, ag) : 18 + 12 * ramp(t, ag, ag + 2.2);
   const ghost = clCar(road.vehicles, { x: wx(0), y: CR.near, o: 0 });
   const gl = G(p, { o: 0 });                               // the steady car's readout, under the other one
-  phLabel(gl, 'steady car:', { x: 1380, y: 294, size: 26, fill: COL.dim, weight: 600, anchor: 'end' });
-  phLabel(gl, '10 m/s', { x: 1400, y: 294, size: 28, anchor: 'start' });   // all the way
+  phLabel(gl, 'steady car:', { x: 1200, y: B.y0 + 205, size: 26, fill: COL.dim, weight: 600, anchor: 'end' });
+  phLabel(gl, '10 m/s', { x: 1212, y: B.y0 + 205, size: 28, anchor: 'start' });   // all the way
   show(ghost, m('ghost'), .5); show(gl, m('ghost'));
   clockRun(t => {
     const s = t < g0 ? sim1(t) : 30 * ramp(t, g0, g1), x = wx(tripX(s));
@@ -514,14 +520,15 @@ const BEATS = [
   path(tot, `M${xs(0)} ${yNum + 22}V${yNum + 38}H${xs(300)}V${yNum + 22}`, { stroke: DIST, 'stroke-width': 5 });
   phLabel(tot, 'total distance: 300 m', { x: xs(150), y: yNum + 80, size: 30, fill: DIST });
   show(tot, m('total', .8));
-  txt(p, 'total time: 30 s', 1390, 192, m('total', 1.6), { size: 28, fill: TIME, anchor: 'end' });
-  const y = 100;
+  txt(p, 'total time: 30 s', 90, B.y0 + 205, m('total', 1.6), { size: 28, fill: TIME, anchor: 'start' });
+  const y = B.y0 + 100;
   show(T(p, 'average speed =', { x: 560, y: y + 14, size: 44, weight: 700, anchor: 'end', o: 0 }), m('avg'));
   show(wfrac(p, 'total distance', 'total time', 730, y, { size: 38, ct: DIST, cb: TIME }), m('avg', .4));
   show(T(p, '=', { x: 900, y: y + 14, size: 44, weight: 700, anchor: 'middle', o: 0 }), m('ten'));
   show(wfrac(p, '300 m', '30 s', 990, y, { size: 38, ct: DIST, cb: TIME }), m('ten'));
   const ans = T(p, '= 10 m/s', { x: 1070, y: y + 16, size: 48, weight: 700, anchor: 'start', o: 0 });
   pop(put(ans, { s: .6 }), m('ten', .9));
+  skyInk(p, 140, [[B.x0, B.y0, B.x1, B.y1]]);
 }, { lead: false }],   // road and car are on screen from the first frame
 ['instant', 'Instantaneous speed', (m, D) => {
   const p = panel(0);
@@ -529,6 +536,7 @@ const BEATS = [
   const X0 = 150, U = 12.5, xm = v => X0 + U * v;
   clImg(w, 'track');                                       // rendered twice as fine: the camera pushes in on her
   trackTicks(w, { x0: X0, U, to: 100, every: 10, size: 24 });
+  const B = clBoard(w, 'chalk_w', 790, 565);                    // a chalkboard behind the track: out of the close-up (it would fill it)
   clImg(w, 'finish', { x: xm(100), y: TT });
   const run = clStrip(w, 'runner', { x: xm(0), y: TT });
   // Run 1 (time-lapse) after "go"; run 2 from "but" in slower motion, frozen at 90 m for the snapshot, then to the finish.
@@ -536,7 +544,7 @@ const BEATS = [
   const tau = t => t < b0 ? 10 * ramp(t, a0, a1) : t < fz ? (t - b0) / .7 : t < f1 ? 9 : 9 + ramp(t, f1, f1 + .7);
   const sx = t => xm(sprintX(tau(t)));
   cam.to({ x: t => sx(t), y: TT - 80, z: 1.9 }, m('fast', .2), 1.4).to({ x: 800, y: 450, z: 1 }, f1 + .9, 1.2);
-  const clk = simClock(p, 1460, 190, 40);
+  const clk = simClock(p, 1515, 120, 40);
   const vg = G(p, { o: 0 }), vLab = phLabel(vg, '', { size: 30, fill: COL.task });
   show(vg, b0);
   clockRun(t => {
@@ -545,13 +553,16 @@ const BEATS = [
     clk.set(tau(t));
     phText(vLab, `now: ${Math.round(sprintV(tau(t)))} m/s`); keepIn(cam, vLab, x, TT - 170, t);
   }, D);
-  runs(p, [['average speed = 100 m ÷ 10 s = ', COL.chalk], ['10 m/s', COL.chalk]], { x: 800, y: 100, size: 40, weight: 700 });
-  show(p.lastChild, m('avg', .9));
+  runs(w, [['average speed = 100 m ÷ 10 s = ', COL.chalk], ['10 m/s', COL.chalk]], { x: B.cx, y: B.y0 + 110, size: 40, weight: 700 });
+  show(w.lastChild, m('avg', .9));
+  for (const e of [B.g, w.lastChild]) { hide(e, m('fast', .2), .5); show(e, m('inst', 2.7), .6); }   // gone while the camera is close in
   const snap = G(p, { o: 0 });
   [[700, 330, 1, 1], [900, 330, -1, 1], [700, 610, 1, -1], [900, 610, -1, -1]].forEach(([x, y, dx, dy]) => path(snap, `M${x} ${y + 40 * dy}V${y}H${x + 40 * dx}`, { stroke: COL.task, 'stroke-width': 6 }));
   show(snap, fz, .2); hide(snap, f1, .3);
-  runs(p, [['instantaneous speed', COL.task], [': the speed at one moment', COL.chalk]], { x: 800, y: 180, size: 38 });
+  show(clScrim(p, 740, { o: 0 }), m('inst'));
+  runs(p, [['instantaneous speed', COL.task], [': the speed at one moment', COL.chalk]], { x: 800, y: 836, size: 38 });
   show(p.lastChild, m('inst'));
+  skyInk(p, 220);
 }, { lead: false }],   // track and runner are on screen from the first frame
 ['q2', 'Quick check', (m, D) => {
   const p = panel(0);
@@ -590,17 +601,19 @@ const BEATS = [
   clockRun(t => { const x = -200 + 130 * t; put(run, { x }); clTurn(run, x + 200, RUNR); }, D);
   clScrim(p, 800);
   txt(p, 'Speed', 800, 100, .2, { size: 40, fill: COL.dim });
+  const B = clBoard(p, 'card', 800, 715), rowsG = G(p);                // the list on a paper card pinned to a board
   [['Speed = distance ÷ time.', 'w1'],
    ['In science, speed is measured in meters per second (m/s).', 'w2'],
    ['Average speed = total distance ÷ total time.', 'w3'],
    ['Instantaneous speed is the speed at one moment.', 'w4']].forEach(([s, mark], i) => {
-    const g = G(p, { x: -16, y: 180 + i * 84, o: 0 });
+    const g = G(rowsG, { x: -16, y: 330 + i * 80, o: 0 });
     mk('rect', { x: 144, y: -38, width: 52, height: 52, rx: 6, fill: PH.ref }, g);
     T(g, String(i + 1), { x: 170, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
     T(g, s, { x: 230, size: 36, weight: 600 });
     tw(g, { o: 1, x: 0 }, m(mark), .6);
   });
   show(phLabel(p, 'Next: speed with a direction, velocity.', { x: 800, y: 838, size: 32, weight: 500, o: 0 }), m('end'));
+  paperInk(rowsG); skyInk(p, 120);
 }],
 /* ---------- part 3: velocity ---------- */
 ['part3', 'Part 3 · Velocity', (m, D) => {
