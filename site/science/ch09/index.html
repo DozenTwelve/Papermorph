@@ -632,17 +632,19 @@ const BEATS = [
   phLabel(g, 'Velocity', { x: 800, y: 250, size: 120, weight: 600 });
   tw(g, { o: 1, y: 0 }, .2, 1.1, out);
   txt(p, 'Part 3 · Same speed, which way?', 800, 320, m('q'), { size: 36, fill: COL.dim });
+  skyInk(p, 360);                                       // text on the bright sky: ink
 }],
 ['velocity', 'Speed in a direction', (m, D) => {
   const p = panel(0);
   const XL = 260, XR = 1340, j0 = m('jog'), LEG = (m('minus') - j0) / 5;   // equal legs: right at "plus", left at "minus"
   clImg(p, 'track');
-  txt(p, 'Velocity = speed in a certain direction', 800, 100, .2, { size: 40 });
+  const B = clBoard(p, 'chalk_w', 790, 565);                    // a chalkboard on the grass behind the track
+  txt(p, 'Velocity = speed in a certain direction', B.cx, B.y0 + 62, .2, { size: 40 });
   const conv = G(p, { o: 0 });
-  path(conv, arrowPath(900, TT + 112, 1400), { stroke: VEL, 'stroke-width': 6 });
-  phLabel(conv, '+ direction', { x: 1150, y: TT + 166, size: 30, fill: VEL });
-  path(conv, arrowPath(700, TT + 112, 200), { stroke: VEL, 'stroke-width': 6 });
-  phLabel(conv, '− direction', { x: 450, y: TT + 166, size: 30, fill: VEL });
+  path(conv, arrowPath(900, TT + 172, 1400), { stroke: VEL, 'stroke-width': 6 });
+  phLabel(conv, '+ direction', { x: 1150, y: TT + 204, size: 28, fill: VEL });
+  path(conv, arrowPath(700, TT + 172, 200), { stroke: VEL, 'stroke-width': 6 });
+  phLabel(conv, '− direction', { x: 450, y: TT + 204, size: 28, fill: VEL });
   show(conv, m('sign'));
   const right = clStrip(p, 'you_jog_r', { x: XL, y: TT }), left = clStrip(p, 'you_jog_l', { x: XL, y: TT });   // a jog to each side
   const sp = phLabel(p, 'speed: 2 m/s', { size: 30, o: 0 });
@@ -653,13 +655,13 @@ const BEATS = [
     if (t > j0) { const k = Math.floor((t - j0) / LEG), u = (t - j0) / LEG - k; dir = k % 2 ? -1 : 1; x = dir > 0 ? XL + (XR - XL) * u : XR - (XR - XL) * u; }
     const run = Math.max(0, t - j0) * (XR - XL) / LEG;          // distance jogged, both ways
     put(right, { x, o: dir > 0 ? 1 : 0 }); put(left, { x, o: dir < 0 ? 1 : 0 }); clTurn(dir > 0 ? right : left, run, JOGR);
-    put(sp, { x, y: TT - 240 }); put(vl, { x, y: TT - 200 });
+    put(sp, { x, y: TT + 78 }); put(vl, { x, y: TT + 114 });   // under the track: the board fills the space above
     phText(vl, dir > 0 ? 'velocity: +2 m/s' : 'velocity: −2 m/s');
-    arrowAt(va, x - 55 * dir, TT - 168, 110, dir > 0 ? 0 : 180);
+    arrowAt(va, x - 55 * dir, TT + 136, 110, dir > 0 ? 0 : 180);
   }, D);
-  show(T(p, '+2 m/s →', { x: 560, y: 220, size: 60, weight: 700, fill: VEL, anchor: 'middle', o: 0 }), m('plus'));
-  show(T(p, '−2 m/s ←', { x: 1040, y: 220, size: 60, weight: 700, fill: VEL, anchor: 'middle', o: 0 }), m('minus'));
-  txt(p, 'same size (2 m/s), opposite directions: the sign tells which way', 800, 290, m('sign'), { size: 32, fill: COL.chalk, weight: 500 });
+  show(T(p, '+2 m/s →', { x: 560, y: B.y0 + 150, size: 60, weight: 700, fill: VEL, anchor: 'middle', o: 0 }), m('plus'));
+  show(T(p, '−2 m/s ←', { x: 1040, y: B.y0 + 150, size: 60, weight: 700, fill: VEL, anchor: 'middle', o: 0 }), m('minus'));
+  txt(p, 'same size (2 m/s), opposite directions: the sign tells which way', B.cx, B.y0 + 214, m('sign'), { size: 32, fill: COL.chalk, weight: 500 });
 }],
 ['change', 'Two ways to change velocity', (m, D) => {
   const p = panel(0);
@@ -692,6 +694,7 @@ const BEATS = [
     arrowAt(arB, xb - 45 * db, sy(CR.near) + 64, 90, db > 0 ? 0 : 180);   // under the car, on the near kerb: clear of the truck
     phText(lB, `velocity: ${db > 0 ? '+' : '−'}6 m/s`);
   }, D);
+  skyInk(p, 260);                                       // text on the bright sky: ink
 }],
 ['corner', 'Turning a corner', (m, D) => {
   const p = panel(0);
@@ -699,7 +702,7 @@ const BEATS = [
   // Side shot first, then a cross-fade to the same street from straight above: only from above can we see the turn.
   const side = camera(p, D, { x: 800, y: 285, z: .9 });
   const road = clRoad(side), sc = clCar(road.vehicles);
-  const sTag = txt(p, 'seen from the side', 70, 80, .2, { size: 30, fill: COL.dim, anchor: 'start' });
+  const sTag = txt(p, 'seen from the side', 70, 80, .2, { size: 30, fill: INK2, anchor: 'start' });   // on the side shot's sky
   hide(sTag, ab, .4);
   prog(q => { if (q === 1) side.el.style.display = 'none'; }, ab + .85, 0, lin);
   const top = camera(p, D);
@@ -763,16 +766,18 @@ const BEATS = [
   clockRun(t => { const xa = 2100 - 150 * t, xb = -500 + 150 * t; put(a, { x: xa }); clRoll(a, xa); put(b, { x: xb }); clRoll(b, xb); }, D);
   clScrim(p, 790);
   txt(p, 'Velocity', 800, 110, .2, { size: 40, fill: COL.dim });
+  const B = clBoard(p, 'card', 800, 640), rowsG = G(p);                // the list on a paper card pinned to a board
   [['Velocity is speed in a certain direction.', 'w1'],
    ['Same speed, opposite directions: different velocities (+2 and −2 m/s).', 'w2'],
    ['Velocity changes when the speed or the direction changes.', 'w3']].forEach(([s, mark], i) => {
-    const g = G(p, { x: -16, y: 210 + i * 100, o: 0 });
+    const g = G(rowsG, { x: -16, y: 230 + i * 100, o: 0 });
     mk('rect', { x: 144, y: -38, width: 52, height: 52, rx: 6, fill: PH.ref }, g);
     T(g, String(i + 1), { x: 170, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
     T(g, s, { x: 230, size: 36, weight: 600 });
     tw(g, { o: 1, x: 0 }, m(mark), .6);
   });
   show(phLabel(p, 'Next: how velocity changes over time, acceleration.', { x: 800, y: 838, size: 32, weight: 500, o: 0 }), m('end'));
+  paperInk(rowsG); skyInk(p, 120);
 }],
 /* ---------- part 4: acceleration ---------- */
 ['part4', 'Part 4 · Acceleration', (m, D) => {
