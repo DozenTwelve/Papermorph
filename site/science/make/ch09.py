@@ -742,6 +742,13 @@ if a.set == 'track':
         a0 = K.px(x, 0, 0, Y0); tl, br = K.px(x - w / 2, -0.07, leg + h, Y0), K.px(x + w / 2, -0.07, leg, Y0)
         return objs, [round(tl[0] - a0[0], 1), round(tl[1] - a0[1], 1), round(br[0] - a0[0], 1), round(br[1] - a0[1], 1)], a0
     BOARDS = [('chalk_w', 60, 13.4, 2.9, 0.45, 'chalk'), ('chalk_t', 80, 13.4, 4.2, 0.4, 'chalk'), ('card', 100, 15.0, 5.0, 0.4, 'card')]
+    # small chalk slates for coloured labels on the sky (the page stretches the nearest one to the label's width)
+    for nm, bx_, w_ in (('slate_s', 110, 2.6), ('slate_l', 116, 5.4)):
+        sl = [box(nm, (w_, 0.08, 0.62), slate, (bx_, 0, 3.0), r=0.06, d=0.04, lump=0.006, dents=0)]
+        for j, (dx, dz, ww, hh) in enumerate([(0, 0.31, w_ + 0.1, 0.05), (0, -0.31, w_ + 0.1, 0.05), (w_ / 2, 0, 0.05, 0.67), (-w_ / 2, 0, 0.05, 0.67)]):
+            sl.append(box(f'{nm}_rim{j}', (ww, 0.1, hh), wood, (bx_ + dx, -0.02, 3.0 + dz), r=0.02, d=0.02, lump=0.002, dents=0))
+        group(nm, *sl)
+        if want(nm): shot(nm, rect_of(sl, Y0, pad=4, shadow=False), Y0, (bx_, 0, 3.0), show=[nm], anchor=K.px(bx_, 0, 3.0, Y0), zoom=1.5)
     for nm, bx_, w_, h_, leg_, kind in BOARDS:
         objs, panel_, a0 = board(nm, bx_, w_, h_, leg_, kind)
         if want(nm): shot(nm, rect_of(objs, Y0, pad=12), Y0, (bx_, 0, leg_ + h_ / 2), show=[nm], catch=['propground'], anchor=a0, extra={'panel': panel_})

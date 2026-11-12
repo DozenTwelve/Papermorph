@@ -62,25 +62,57 @@ function clBoard(p, name, x, y, o = {}) {
   const g = clImg(p, name, { x, y, ...o }), [x0, y0, x1, y1] = clOf(name).panel;
   return { g, x0: x + x0, y0: y + y0, x1: x + x1, y1: y + y1, cx: x + (x0 + x1) / 2, cy: y + (y0 + y1) / 2 };
 }
-// Text on the bright clay sky: chalk and grey text turn to ink; coloured text keeps its meaning colour with a dark
-// outline. Call it at the end of a beat, with the page y the sky reaches down to; texts lower (or in skip rectangles,
-// [x0, y0, x1, y1], e.g. a chalkboard) are left as they are.
+// Text on the bright clay sky. Chalk and grey text turns to ink. A coloured label (or its small group: a legend, a
+// "Measured from" tag) gets a small chalk slate behind it, which follows it every frame (place, width, opacity), and
+// keeps its chalk colours on the slate. Call it at the end of a beat with the page y the sky reaches down to; texts lower
+// down, or in skip rectangles ([x0, y0, x1, y1], e.g. a chalkboard), are left alone. { ink: false }: slates only.
+// D: the beat's length (the slates follow their labels on the beat clock, after the labels' own tweens).
 const INK = '#1d2a33', INK2 = '#3b5260';
 function inkOf(c) { c = (c || '').toLowerCase(); return c === COL.chalk ? INK : c === COL.dim || c === COL.faint ? INK2 : null; }
-function skyInk(p, below = 9999, skip = []) {
+function skyInk(p, D, below = 9999, skip = [], { ink = true } = {}) {
+  const onSky = [], units = new Set();
   for (const t of p.querySelectorAll('text')) {
     const m = t.getCTM(), b = t.getBBox();
     if (!m || !b.width) continue;
     const cx = m.e + m.a * (b.x + b.width / 2), cy = m.f + m.d * (b.y + b.height / 2);
     if (cy > below || skip.some(([x0, y0, x1, y1]) => cx > x0 && cx < x1 && cy > y0 && cy < y1)) continue;
-    const size = parseFloat(t.getAttribute('font-size')) || 30, spans = [...t.querySelectorAll('tspan')];
-    t.removeAttribute('stroke');
-    for (const e of spans.length ? spans : [t]) {   // ink for chalk and grey; a dark outline on a coloured run only
-      const k = inkOf(e.getAttribute('fill') || t.getAttribute('fill'));
-      if (k) { e.setAttribute('fill', k); e.setAttribute('stroke', 'none'); }
-      else { e.setAttribute('stroke', INK); e.setAttribute('stroke-width', Math.min(5, size * .14)); e.setAttribute('paint-order', 'stroke'); e.setAttribute('stroke-linejoin', 'round'); }
+    onSky.push(t);
+    const runs = t.querySelectorAll('tspan').length ? [...t.querySelectorAll('tspan')] : [t];
+    if (runs.some(e => !inkOf(e.getAttribute('fill') || t.getAttribute('fill')))) {
+      const par = t.parentNode, pb = par !== p && par.getBBox();
+      units.add(pb && pb.width < 760 && pb.height < 140 ? par : t);
     }
   }
+  for (const t of onSky) {   // ink for what has no slate behind it
+    if ([...units].some(u => u === t || u.contains(t)) || !ink) continue;
+    for (const e of t.querySelectorAll('tspan').length ? t.querySelectorAll('tspan') : [t]) { const k = inkOf(e.getAttribute('fill') || t.getAttribute('fill')); if (k) e.setAttribute('fill', k); }
+    t.removeAttribute('stroke');
+  }
+  units.forEach(u => slateBehind(u, D));
+}
+function slateBehind(u, D) {
+  const slate = (parent, before, b) => {   // the nearest of two slates, stretched to the box b (padded)
+    const w = b.width + 40, h = b.height + 20;
+    const im = mk('image', { preserveAspectRatio: 'none', href: clSrc(w > 380 ? 'slate_l' : 'slate_s'), x: b.x - 20, y: b.y - 10, width: w, height: h });
+    parent.insertBefore(im, before);
+    return im;
+  };
+  if (u.tagName !== 'text') {   // a group: the slate inside it shares its fades and place (room for a readout that grows)
+    const b = u.getBBox(); slate(u, u.firstChild, { x: b.x, y: b.y, width: b.width + 34, height: b.height }); return;
+  }
+  // a single label: the slate is its sibling and follows its place, width and opacity on the beat clock
+  const g = mk('g', {}); u.parentNode.insertBefore(g, u);
+  let im = null, key = '';
+  const sync = () => {
+    const b = u.getBBox(), tf = u.getAttribute('transform') || '', op = u.getAttribute('opacity') ?? '1';
+    const k = [b.x, b.y, b.width, b.height, tf, op].join();
+    if (k === key) return; key = k;
+    if (tf) g.setAttribute('transform', tf); else g.removeAttribute('transform');
+    g.setAttribute('opacity', op);
+    if (im) im.remove();
+    im = slate(g, null, b);
+  };
+  sync(); clockRun(sync, D);
 }
 // Text on a paper card: ink, no outline.
 function paperInk(g) {

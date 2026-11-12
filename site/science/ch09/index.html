@@ -169,7 +169,7 @@ const BEATS = [
   phLabel(g, 'Motion', { x: 800, y: 250, size: 120, weight: 600 });
   tw(g, { o: 1, y: 0 }, .2, 1.1, out);
   txt(p, 'Part 1 · Motion and relative motion', 800, 320, m('sub'), { size: 36, fill: COL.dim });
-  skyInk(p, 360);                                       // text on the bright sky: ink
+  skyInk(p, D, 360);                                       // text on the bright sky: ink
 }],
 ['position', 'Motion is a change of position', (m, D) => {
   const p = panel(0);
@@ -206,7 +206,7 @@ const BEATS = [
   prog(q => { put(sw._hand, { r: 90 * q }); clockT.textContent = `${Math.round(3 * q)} s later`; }, m('still', .3), 3, lin);
   const sn = G(p, { o: 0 }); show(sn, m('still', 3.4));
   phLabel(sn, 'still at 7 m:', { x: 1470, y: 244, size: 28, weight: 600 }); phLabel(sn, 'not moving', { x: 1470, y: 278, size: 28, weight: 600 });
-  skyInk(p, 300);
+  skyInk(p, D, 300);
 }],
 ['everywhere', 'Motion is everywhere', (m, D) => {
   // One lawn, three motions: a notebook whose page turns, an orrery (the Sun and an Earth going round it,
@@ -234,7 +234,7 @@ const BEATS = [
     const d = Math.min(WALK, Math.max(0, t - ty) * 85);
     put(walker, { x: TB.walk[0] + d }); clTurn(walker, d, TB.step / (2 * Math.PI));
   }, D);
-  skyInk(p, 200);                                       // text on the bright sky: ink
+  skyInk(p, D, 200);                                       // text on the bright sky: ink
 }],
 ['roadside', 'Standing by the road', (m, D) => {
   const p = panel(0);
@@ -253,7 +253,7 @@ const BEATS = [
     const x = -250 + V * Math.max(0, t - t0);
     put(truck, { x }); clRoll(truck, x); put(tl, { x: x + 10 });
   }, D);
-  skyInk(p, 200);                                       // text on the bright sky: ink
+  skyInk(p, D, 200);                                       // text on the bright sky: ink
 }],
 ['incar', 'Riding beside the truck', (m, D) => {
   const p = panel(0);
@@ -283,7 +283,7 @@ const BEATS = [
     phText(tl, `truck: ${speedStr(rel)}`); keepIn(cam, tl, x + 10, TRUCK_LAB, t);
     phText(cl, `your car: ${speedStr(rel)}`); keepIn(cam, cl, x + CAR_LAB[0], CAR_LAB[1], t);
   }, D);
-  skyInk(p, 200);                                       // text on the bright sky: ink
+  skyInk(p, D, 200);                                       // text on the bright sky: ink
 }],
 ['rule', 'Motion is relative', (m, D) => {
   const p = panel(0);
@@ -369,6 +369,7 @@ const BEATS = [
   phLabel(p, 'water bottle', { x: bx + 90, y: 172, size: 26, fill: '#86c9e8' });
   phLabel(p, 'train: 60 mph →', { x: TR.top[0] + 200, y: 172, size: 30, fill: COL.real });
   phLabel(p, 'Leo, on the platform', { x: Math.min(lx, 1540 - 118), y: ly - 22, size: 26, fill: COL.nat });
+  skyInk(p, D, 240);                                       // the coloured labels over the sky get a slate
 }, { ask: done => quiz(Q_CARD, [
   { id: 'c-maya', prompt: ['Measured from ', h('b', '', 'Maya'), ', how fast is the water bottle on her table moving?'],
     build: choice([['0 mph'], ['60 mph'], ['120 mph']], 0,
@@ -401,7 +402,7 @@ const BEATS = [
     tw(g, { o: 1, x: 0 }, m(mark), .6);
   });
   show(phLabel(p, 'Next: how fast things move.', { x: 800, y: 838, size: 32, fill: COL.chalk, weight: 500, o: 0 }), m('end'));
-  paperInk(rowsG); skyInk(p, 120);
+  paperInk(rowsG); skyInk(p, D, 120);
 }],
 /* ---------- part 2: speed ---------- */
 ['part2', 'Part 2 · Speed', (m, D) => {
@@ -419,7 +420,7 @@ const BEATS = [
   phLabel(g, 'Speed', { x: 800, y: 250, size: 120, weight: 600 });
   tw(g, { o: 1, y: 0 }, .2, 1.1, out);
   txt(p, 'Part 2 · How fast is something moving?', 800, 320, m('q'), { size: 36, fill: COL.dim });
-  skyInk(p, 360);                                       // text on the bright sky: ink
+  skyInk(p, D, 360);                                       // text on the bright sky: ink
 }],
 ['speed', 'Speed = distance ÷ time', (m, D) => {
   const p = panel(0);
@@ -447,7 +448,7 @@ const BEATS = [
   show(wfrac(p, '24 m', '8 s', 900, y, { ct: DIST, cb: TIME }), m('calc'));
   const ans = runs(p, [['= ', COL.chalk], ['3 m/s', COL.chalk]], { x: 990, y: y + 16, size: 56, anchor: 'start', weight: 700 });
   pop(put(ans, { s: .6 }), m('ans'));
-  skyInk(p, 270);
+  skyInk(p, D, 270);
 }],
 ['units', 'Meters per second', (m, D) => {
   const p = panel(0);
@@ -480,7 +481,7 @@ const BEATS = [
     flags.forEach((f, i) => put(f, { o: sec >= i + 1 - 1e-6 ? 1 : 0 }));
   }, D);
   show(phLabel(p, 'Part 1’s miles per hour (mph) is a speed unit too: miles ÷ hours.', { x: 800, y: 838, size: 28, weight: 500, o: 0 }), m('mph'));
-  skyInk(p, 270);
+  skyInk(p, D, 270);
 }],
 ['average', 'Average speed', (m, D) => {
   const p = panel(0);
@@ -493,20 +494,20 @@ const BEATS = [
   phLabel(p, 'meters', { x: xs(300) + 30, y: yNum, size: 24, fill: COL.dim, weight: 500, anchor: 'start' });
   const light = clStrip(road.side, 'light', { x: wx(150) + 120, y: CR.side });   // red, then green
   const car = clCar(road.vehicles, { x: wx(0), y: CR.far });
-  const B = clBoard(p, 'chalk_w', 700, 432);                    // a chalkboard on the grass beyond the road
-  const clk = simClock(p, 1505, 110, 40);
+  const B = clBoard(p, 'chalk_w', 790, 432);                    // a chalkboard on the grass beyond the road
+  const clk = simClock(p, 1510, 96, 40);
   // the car's speed now, as a readout under the clock (on the car it would cross the lamp and the trees)
   const rd = G(p, { o: 0 });
-  phLabel(rd, 'car now:', { x: 880, y: B.y0 + 205, size: 26, fill: COL.dim, weight: 600, anchor: 'end' });
-  const vLab = phLabel(rd, '', { x: 892, y: B.y0 + 205, size: 32, fill: PH.car, anchor: 'start' });
+  phLabel(rd, 'car now:', { x: 970, y: B.y0 + 205, size: 26, fill: COL.dim, weight: 600, anchor: 'end' });
+  const vLab = phLabel(rd, '', { x: 982, y: B.y0 + 205, size: 32, fill: PH.car, anchor: 'start' });
   show(rd, m('go'));
   // First run, time-lapse: drive (sim 0–10 s), wait at the light (10–18 s), drive on (18–30 s), timed to the words.
   const go = m('go'), st = m('stop'), ag = m('again'), g0 = m('ghost', .3), g1 = g0 + 5;
   const sim1 = t => t < go ? 0 : t < st ? 10 * ramp(t, go, st) : t < ag ? 10 + 8 * ramp(t, st, ag) : 18 + 12 * ramp(t, ag, ag + 2.2);
   const ghost = clCar(road.vehicles, { x: wx(0), y: CR.near, o: 0 });
   const gl = G(p, { o: 0 });                               // the steady car's readout, under the other one
-  phLabel(gl, 'steady car:', { x: 1200, y: B.y0 + 205, size: 26, fill: COL.dim, weight: 600, anchor: 'end' });
-  phLabel(gl, '10 m/s', { x: 1212, y: B.y0 + 205, size: 28, anchor: 'start' });   // all the way
+  phLabel(gl, 'steady car:', { x: 1290, y: B.y0 + 205, size: 26, fill: COL.dim, weight: 600, anchor: 'end' });
+  phLabel(gl, '10 m/s', { x: 1302, y: B.y0 + 205, size: 28, anchor: 'start' });   // all the way
   show(ghost, m('ghost'), .5); show(gl, m('ghost'));
   clockRun(t => {
     const s = t < g0 ? sim1(t) : 30 * ramp(t, g0, g1), x = wx(tripX(s));
@@ -520,15 +521,15 @@ const BEATS = [
   path(tot, `M${xs(0)} ${yNum + 22}V${yNum + 38}H${xs(300)}V${yNum + 22}`, { stroke: DIST, 'stroke-width': 5 });
   phLabel(tot, 'total distance: 300 m', { x: xs(150), y: yNum + 80, size: 30, fill: DIST });
   show(tot, m('total', .8));
-  txt(p, 'total time: 30 s', 90, B.y0 + 205, m('total', 1.6), { size: 28, fill: TIME, anchor: 'start' });
+  txt(p, 'total time: 30 s', 180, B.y0 + 205, m('total', 1.6), { size: 28, fill: TIME, anchor: 'start' });
   const y = B.y0 + 100;
-  show(T(p, 'average speed =', { x: 560, y: y + 14, size: 44, weight: 700, anchor: 'end', o: 0 }), m('avg'));
-  show(wfrac(p, 'total distance', 'total time', 730, y, { size: 38, ct: DIST, cb: TIME }), m('avg', .4));
-  show(T(p, '=', { x: 900, y: y + 14, size: 44, weight: 700, anchor: 'middle', o: 0 }), m('ten'));
-  show(wfrac(p, '300 m', '30 s', 990, y, { size: 38, ct: DIST, cb: TIME }), m('ten'));
-  const ans = T(p, '= 10 m/s', { x: 1070, y: y + 16, size: 48, weight: 700, anchor: 'start', o: 0 });
+  show(T(p, 'average speed =', { x: 650, y: y + 14, size: 44, weight: 700, anchor: 'end', o: 0 }), m('avg'));
+  show(wfrac(p, 'total distance', 'total time', 820, y, { size: 38, ct: DIST, cb: TIME }), m('avg', .4));
+  show(T(p, '=', { x: 990, y: y + 14, size: 44, weight: 700, anchor: 'middle', o: 0 }), m('ten'));
+  show(wfrac(p, '300 m', '30 s', 1080, y, { size: 38, ct: DIST, cb: TIME }), m('ten'));
+  const ans = T(p, '= 10 m/s', { x: 1160, y: y + 16, size: 48, weight: 700, anchor: 'start', o: 0 });
   pop(put(ans, { s: .6 }), m('ten', .9));
-  skyInk(p, 140, [[B.x0, B.y0, B.x1, B.y1]]);
+  skyInk(p, D, 210, [[B.x0, B.y0, B.x1, B.y1]]);
 }, { lead: false }],   // road and car are on screen from the first frame
 ['instant', 'Instantaneous speed', (m, D) => {
   const p = panel(0);
@@ -562,7 +563,7 @@ const BEATS = [
   show(clScrim(p, 740, { o: 0 }), m('inst'));
   runs(p, [['instantaneous speed', COL.task], [': the speed at one moment', COL.chalk]], { x: 800, y: 836, size: 38 });
   show(p.lastChild, m('inst'));
-  skyInk(p, 220);
+  skyInk(p, D, 220);
 }, { lead: false }],   // track and runner are on screen from the first frame
 ['q2', 'Quick check', (m, D) => {
   const p = panel(0);
@@ -613,7 +614,7 @@ const BEATS = [
     tw(g, { o: 1, x: 0 }, m(mark), .6);
   });
   show(phLabel(p, 'Next: speed with a direction, velocity.', { x: 800, y: 838, size: 32, weight: 500, o: 0 }), m('end'));
-  paperInk(rowsG); skyInk(p, 120);
+  paperInk(rowsG); skyInk(p, D, 120);
 }],
 /* ---------- part 3: velocity ---------- */
 ['part3', 'Part 3 · Velocity', (m, D) => {
@@ -632,7 +633,7 @@ const BEATS = [
   phLabel(g, 'Velocity', { x: 800, y: 250, size: 120, weight: 600 });
   tw(g, { o: 1, y: 0 }, .2, 1.1, out);
   txt(p, 'Part 3 · Same speed, which way?', 800, 320, m('q'), { size: 36, fill: COL.dim });
-  skyInk(p, 360);                                       // text on the bright sky: ink
+  skyInk(p, D, 360);                                       // text on the bright sky: ink
 }],
 ['velocity', 'Speed in a direction', (m, D) => {
   const p = panel(0);
@@ -694,7 +695,7 @@ const BEATS = [
     arrowAt(arB, xb - 45 * db, sy(CR.near) + 64, 90, db > 0 ? 0 : 180);   // under the car, on the near kerb: clear of the truck
     phText(lB, `velocity: ${db > 0 ? '+' : '−'}6 m/s`);
   }, D);
-  skyInk(p, 260);                                       // text on the bright sky: ink
+  skyInk(p, D, 260);                                       // text on the bright sky: ink
 }],
 ['corner', 'Turning a corner', (m, D) => {
   const p = panel(0);
@@ -777,7 +778,7 @@ const BEATS = [
     tw(g, { o: 1, x: 0 }, m(mark), .6);
   });
   show(phLabel(p, 'Next: how velocity changes over time, acceleration.', { x: 800, y: 838, size: 32, weight: 500, o: 0 }), m('end'));
-  paperInk(rowsG); skyInk(p, 120);
+  paperInk(rowsG); skyInk(p, D, 120);
 }],
 /* ---------- part 4: acceleration ---------- */
 ['part4', 'Part 4 · Acceleration', (m, D) => {
@@ -794,7 +795,7 @@ const BEATS = [
   phLabel(g, 'Acceleration', { x: 800, y: 250, size: 120, weight: 600 });
   tw(g, { o: 1, y: 0 }, .2, 1.1, out);
   txt(p, 'Part 4 · Speeding up, slowing down, turning', 800, 320, m('q'), { size: 36, fill: COL.dim });
-  skyInk(p, 360);                                       // text on the bright sky: ink
+  skyInk(p, D, 360);                                       // text on the bright sky: ink
 }],
 ['accel', 'Three ways to accelerate', (m, D) => {
   const p = panel(0);
@@ -825,7 +826,7 @@ const BEATS = [
     const th = -t * 1.1, x = 800 + 300 * Math.cos(th), y = 450 + 300 * Math.sin(th), hd = th * 180 / Math.PI - 90;   // counterclockwise
     put(car, { x, y, r: hd }); arrowAt(av, x, y, 220, hd, 30); arrowAt(aa, x, y, 170, th * 180 / Math.PI + 180, 30);
   }, D);
-  skyInk(p, 190);
+  skyInk(p, D, 190);
 }],
 ['formula', 'Acceleration = change in velocity ÷ time', (m, D) => {
   const p = panel(0);
@@ -861,7 +862,7 @@ const BEATS = [
     put(vl, { x, y: TY - 110 }); phText(vl, `${Math.round(5 + 5 * s)} m/s`);
     flags.forEach(([g, f], k) => { const o = t >= e0 && s >= k - 1e-6 ? 1 : 0; put(g, { o }); put(f, { o }); });
   }, D);
-  skyInk(p, 175, [[B.x0, B.y0, B.x1, B.y1]]);
+  skyInk(p, D, 210, [[B.x0, B.y0, B.x1, B.y1]]);
 }, { lead: false }],
 ['sign', 'Positive and negative acceleration', (m, D) => {
   const p = panel(0);
@@ -894,7 +895,7 @@ const BEATS = [
     put(gas, { y: acc > 0 ? 782 : 770 }); put(brake, { y: acc < 0 ? 782 : 770 });
   }, D);
   show(runs(p, [['negative acceleration = ', COL.chalk], ['deceleration', ACC]], { x: 640, y: 838, size: 36, weight: 700 }), m('decel'));
-  skyInk(p, 110);                                       // text on the bright sky: ink
+  skyInk(p, D, 110);                                       // text on the bright sky: ink
 }],
 ['turnfeel', 'Turning is accelerating', (m, D) => {
   const p = panel(0);
@@ -914,13 +915,15 @@ const BEATS = [
     keepIn(cam, fl, x - 260 * Math.cos(ia * Math.PI / 180), y - 260 * Math.sin(ia * Math.PI / 180) + 30, t);
     const on = onArc && t > tf ? 1 : 0; put(fg, { o: on }); put(ugh, { x: x - 110 * Math.cos(r), y: y - 110 * Math.sin(r) + 12, o: on, s: on });
   }, D);
+  skyInk(p, D, 160, [], { ink: false });                    // the legend on a slate (over the grass seen from above)
 }],
 ['q4', 'Quick check', (m, D) => {
   const p = panel(0);
   clImg(p, 'bed');                                         // a flower bed from straight above, the whole stage
   const bee = clImg(p, 'bee', { s: 1.4 }), av = path(p, '', { stroke: VEL, 'stroke-width': 8 });
   mk('circle', { cx: 800, cy: 300, r: 190, fill: 'none', stroke: COL.chalk, 'stroke-width': 3, 'stroke-dasharray': '10 12', opacity: .7 }, p);
-  phLabel(p, 'a bee flying in a circle at a steady speed', { x: 70, y: 76, size: 28, weight: 600, anchor: 'start' });   // top left, clear of the circle: the card comes up from below
+  phLabel(p, 'a bee flying in a circle', { x: 70, y: 290, size: 28, weight: 600, anchor: 'start' });   // left of the circle, clear of the bee's path and of the card
+  phLabel(p, 'at a steady speed', { x: 70, y: 326, size: 28, weight: 600, anchor: 'start' });
   clockRun(t => {
     const th = -.9 * t, x = 800 + 190 * Math.cos(th), y = 300 + 190 * Math.sin(th), hd = th * 180 / Math.PI - 90;
     put(bee, { x, y, r: hd }); arrowAt(av, x, y, 100, hd, 16);
@@ -956,7 +959,7 @@ const BEATS = [
     tw(g, { o: 1, x: 0 }, m(mark), .6);
   });
   show(phLabel(p, 'Next: the chapter practice.', { x: 800, y: 838, size: 32, weight: 500, o: 0 }), m('w4', 5));
-  paperInk(rowsG); skyInk(p, 120);
+  paperInk(rowsG); skyInk(p, D, 120);
 }],
 /* ---------- chapter practice and finish (after the last section) ---------- */
 ['final1', 'Chapter practice: motion and speed', () => { clImg(panel(0), 'practice'); }, { ask: done => quiz(SCREEN, [
