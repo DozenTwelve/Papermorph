@@ -794,9 +794,11 @@ const BEATS = [
   phLabel(g, 'Acceleration', { x: 800, y: 250, size: 120, weight: 600 });
   tw(g, { o: 1, y: 0 }, .2, 1.1, out);
   txt(p, 'Part 4 · Speeding up, slowing down, turning', 800, 320, m('q'), { size: 36, fill: COL.dim });
+  skyInk(p, 360);                                       // text on the bright sky: ink
 }],
 ['accel', 'Three ways to accelerate', (m, D) => {
   const p = panel(0);
+  clImg(p, 'track', { y: 200 });                               // the track set, its sky over most of the frame
   txt(p, 'Acceleration: the rate at which velocity changes', 800, 140, .2, { size: 40 });
   vaKey(p, m('ways'));
   const W = 460, Y = 230, H = 400, xs = [70, 570, 1070];
@@ -823,23 +825,25 @@ const BEATS = [
     const th = -t * 1.1, x = 800 + 300 * Math.cos(th), y = 450 + 300 * Math.sin(th), hd = th * 180 / Math.PI - 90;   // counterclockwise
     put(car, { x, y, r: hd }); arrowAt(av, x, y, 220, hd, 30); arrowAt(aa, x, y, 170, th * 180 / Math.PI + 180, 30);
   }, D);
+  skyInk(p, 190);
 }],
 ['formula', 'Acceleration = change in velocity ÷ time', (m, D) => {
   const p = panel(0);
   const xs = v => 200 + 20 * v, e0 = m('ex', .2), e1 = e0 + 5;
   const Z = .6, cam = camera(p, D, { x: 800, y: CR.near - 220 / Z, z: Z }), road = clRoad(cam);
   const W = x => 800 + (x - 800) / Z, sy = wy => 450 + (wy - cam.at(0).y) * Z, TY = sy(CR.near);
-  const y = 170;
+  const B = clBoard(p, 'chalk_w', 750, 470);                    // a chalkboard on the grass beyond the road
+  const y = B.y0 + 80;
   show(T(p, 'acceleration =', { x: 470, y: y + 14, size: 46, weight: 700, anchor: 'end', fill: ACC, o: 0 }), m('f'));
   show(wfrac(p, 'final velocity − starting velocity', 'time', 820, y, { size: 38, ct: VEL, cb: TIME }), m('f', .3));
   show(T(p, '=', { x: 1145, y: y + 14, size: 46, weight: 700, anchor: 'middle', o: 0 }), m('calc'));
   show(wfrac(p, '25 − 5 m/s', '4 s', 1275, y, { size: 38, ct: VEL, cb: TIME }), m('calc'));
-  const ans = T(p, '= 5 m/s²', { x: 1150, y: y + 110, size: 52, weight: 700, anchor: 'start', fill: ACC, o: 0 });
+  const ans = T(p, '= 5 m/s²', { x: 1110, y: y + 112, size: 52, weight: 700, anchor: 'start', fill: ACC, o: 0 });
   pop(put(ans, { s: .6 }), m('ans'));
   const ty = sy(CR.near + 120);                                // under the road
   for (let v = 0; v <= 60; v += 10) { mk('rect', { x: xs(v) - 2, y: ty - 34, width: 4, height: 16, fill: COL.chalk }, p); phLabel(p, `${v}`, { x: xs(v), y: ty, size: 26, weight: 600 }); }
   phLabel(p, 'meters', { x: xs(60) + 32, y: ty, size: 24, fill: COL.dim, weight: 500, anchor: 'start' });
-  const car = clCar(road.vehicles, { x: W(xs(0)) }), clk = simClock(p, 1460, 300, 40);
+  const car = clCar(road.vehicles, { x: W(xs(0)) }), clk = simClock(p, 1508, 110, 40);
   const vl = phLabel(p, '', { size: 30, fill: VEL, o: 0 }); show(vl, e0 - .3); hide(vl, e1, .3);   // the live speed while it drives; the flags keep the record
   // A clay flag at the car's place every second, with its velocity: 5, 10, 15, 20, 25 m/s. The gaps grow.
   const flags = [0, 1, 2, 3, 4].map(k => {
@@ -850,13 +854,14 @@ const BEATS = [
     return [g, cam.world.lastChild];
   });
   flags.forEach(([g, f]) => put(f, { o: 0 }));
-  txt(p, 'every second: 5 m/s faster', 800, 380, m('unit', .4), { size: 36, fill: ACC });
+  txt(p, 'every second: 5 m/s faster', 700, y + 188, m('unit', .4), { size: 36, fill: ACC });
   clockRun(t => {
     const s = 4 * ramp(t, e0, e1), x = xs(5 * s + 2.5 * s * s);
     put(car, { x: W(x) }); clRoll(car, W(x) - W(xs(0))); clk.set(s);
     put(vl, { x, y: TY - 110 }); phText(vl, `${Math.round(5 + 5 * s)} m/s`);
     flags.forEach(([g, f], k) => { const o = t >= e0 && s >= k - 1e-6 ? 1 : 0; put(g, { o }); put(f, { o }); });
   }, D);
+  skyInk(p, 175, [[B.x0, B.y0, B.x1, B.y1]]);
 }, { lead: false }],
 ['sign', 'Positive and negative acceleration', (m, D) => {
   const p = panel(0);
@@ -889,6 +894,7 @@ const BEATS = [
     put(gas, { y: acc > 0 ? 782 : 770 }); put(brake, { y: acc < 0 ? 782 : 770 });
   }, D);
   show(runs(p, [['negative acceleration = ', COL.chalk], ['deceleration', ACC]], { x: 640, y: 838, size: 36, weight: 700 }), m('decel'));
+  skyInk(p, 110);                                       // text on the bright sky: ink
 }],
 ['turnfeel', 'Turning is accelerating', (m, D) => {
   const p = panel(0);
@@ -938,20 +944,22 @@ const BEATS = [
   clockRun(t => { const x = -500 + 40 * t + 9 * t * t; put(car, { x }); clRoll(car, x); }, D);
   clScrim(p, 790);
   txt(p, 'Acceleration', 800, 100, .2, { size: 40, fill: COL.dim });
+  const B = clBoard(p, 'card', 800, 640), rowsG = G(p);                // the list on a paper card pinned to a board
   [['Acceleration is the rate at which velocity changes.', 'w1'],
    ['It happens when something speeds up, slows down, or changes direction.', 'w2'],
    ['acceleration = (final velocity − starting velocity) ÷ time, in m/s².', 'w3'],
    ['Positive speeds up; negative (deceleration) slows down.', 'w4']].forEach(([s, mark], i) => {
-    const g = G(p, { x: -16, y: 190 + i * 95, o: 0 });
+    const g = G(rowsG, { x: -16, y: 220 + i * 92, o: 0 });
     mk('rect', { x: 144, y: -38, width: 52, height: 52, rx: 6, fill: PH.ref }, g);
     T(g, String(i + 1), { x: 170, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
     T(g, s, { x: 230, size: 36, weight: 600 });
     tw(g, { o: 1, x: 0 }, m(mark), .6);
   });
   show(phLabel(p, 'Next: the chapter practice.', { x: 800, y: 838, size: 32, weight: 500, o: 0 }), m('w4', 5));
+  paperInk(rowsG); skyInk(p, 120);
 }],
 /* ---------- chapter practice and finish (after the last section) ---------- */
-['final1', 'Chapter practice: motion and speed', () => { panel(0); }, { ask: done => quiz(SCREEN, [
+['final1', 'Chapter practice: motion and speed', () => { clImg(panel(0), 'practice'); }, { ask: done => quiz(SCREEN, [
   { id: 'p-formula', prompt: ['What is the formula for ', h('b', '', 'speed'), '?'],
     build: choice([['distance ÷ time'], ['time ÷ distance'], ['distance × time']], 0,
       'Speed is the distance traveled in a certain amount of time: distance ÷ time.',
@@ -967,7 +975,7 @@ const BEATS = [
   { id: 'p-cyclist', prompt: ['A cyclist rides 90 meters in 15 seconds. What is her speed?'],
     build: blanks([{ parts: ['speed = 90 ÷ 15 = ', { box: '6' }, ' meters per second'], why: '90 ÷ 15 = 6.', hint: 'Divide the distance by the time.' }]) },
 ], done, 'Chapter practice, set 1 of 2') }],   // the engine appends "k of n"
-['final2', 'Chapter practice: velocity and acceleration', () => { panel(0); }, { ask: done => quiz(SCREEN, [
+['final2', 'Chapter practice: velocity and acceleration', () => { clImg(panel(0), 'practice'); }, { ask: done => quiz(SCREEN, [
   { id: 'p-jog', prompt: ['A jogger runs at +3 meters per second, then turns around and jogs at the same pace. What is her new velocity?'],
     build: blanks([{ parts: ['velocity = ', { box: '-3' }, ' meters per second'], why: 'Same speed, opposite direction: the sign flips.', hint: 'The speed stays 3; the direction is opposite, so the sign changes.' }]) },
   { id: 'p-corner', prompt: ['A car drives around a corner at a steady 15 meters per second. Which is true?'],
@@ -979,7 +987,7 @@ const BEATS = [
   { id: 'p-dec', prompt: ['A bike slows down from 8 to 2 meters per second in 3 seconds. What is its acceleration?'],
     build: blanks([{ parts: ['acceleration = (2 − 8) ÷ 3 = ', { box: '-2' }, ' meters per second squared'], why: '2 − 8 = −6, and −6 ÷ 3 = −2: negative, because it slows down.', hint: 'Final minus starting velocity is negative here. Divide it by the time.' }]) },
 ], done, 'Chapter practice, set 2 of 2') }],
-['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
+['finish', 'Finished', () => { clImg(panel(0), 'practice'); }, { ask: finishCard }],
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
 
 boot();
