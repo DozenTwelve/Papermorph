@@ -137,17 +137,18 @@ def px(x, y, z, Y0):
     return x * U, Y0 - U * (z * math.cos(E) + y * math.sin(E))
 
 
-def aim(rect, Y0, focus_y):
-    """Frame the page rectangle (x, y, w, h) exactly; focus on the ground at depth focus_y."""
+def aim(rect, Y0, focus, zoom=1):
+    """Frame the page rectangle (x, y, w, h) exactly; focus on the ground at depth `focus` (or on a point (x, y, z))."""
     sc = bpy.context.scene; cam = sc.camera
     x, y, w, h = rect
-    sc.render.resolution_x, sc.render.resolution_y, sc.render.resolution_percentage = int(w), int(h), A.scale
+    sc.render.resolution_x, sc.render.resolution_y, sc.render.resolution_percentage = int(w), int(h), int(A.scale * zoom)
     cam.data.sensor_fit = 'HORIZONTAL'
     cam.data.ortho_scale = w / U
     d = Vector((0, math.cos(E), -math.sin(E)))          # the view direction
-    P = Vector(((x + w / 2) / U, 0, (Y0 - (y + h / 2)) / (U * math.cos(E))))   # the frame's centre, on the plane y = 0
+    b = (Y0 - (y + h / 2)) / U                          # the frame's centre, on the plane through the origin square to the view
+    P = Vector(((x + w / 2) / U, b * math.sin(E), b * math.cos(E)))
     cam.location = P - d * 150
-    cam.data.dof.focus_distance = (Vector((0, focus_y, 0)) - cam.location).dot(d)
+    cam.data.dof.focus_distance = (Vector(focus if isinstance(focus, tuple) else (0, focus, 0)) - cam.location).dot(d)
 
 
 def group(name, *objs):
@@ -155,14 +156,15 @@ def group(name, *objs):
     return objs[0] if len(objs) == 1 else objs
 
 
-def shot(name, rect, Y0, focus_y, show, catch=(), unseen=(), frames=None, anchor=None, extra=None):
+def shot(name, rect, Y0, focus_y, show, catch=(), unseen=(), frames=None, anchor=None, extra=None, zoom=1):
     """Render one asset and write it for the page.
 
     show: groups the camera sees. catch: groups that only catch shadows (the ground under a sprite). unseen: groups
     that light and shadow the picture but the camera does not see (a truck's body while its wheel is shot).
     Every other group is out of the render. frames: [(key, fn)]: a strip; fn() poses the frame.
     anchor: the page point (x, y) the sprite is placed by; clay.js gets its offset inside the image. extra: more
-    fields for the page (a wheel's radius, a road's period)."""
+    fields for the page (a wheel's radius, a road's period). zoom: render this many times finer than the page's
+    size (a picture the page's camera goes close to)."""
     sc = bpy.context.scene
     x, y, w, h = rect = tuple(int(round(v)) for v in rect)
     for g, objs in GROUPS.items():
@@ -171,7 +173,7 @@ def shot(name, rect, Y0, focus_y, show, catch=(), unseen=(), frames=None, anchor
             o.hide_render = not on
             o.is_shadow_catcher = g in catch
             o.visible_camera = g not in unseen
-    aim(rect, Y0, focus_y)
+    aim(rect, Y0, focus_y, zoom)
     raw = os.path.join(os.path.abspath(A.out), name); os.makedirs(raw, exist_ok=True)
     t0 = time.time()
     files = []
@@ -184,7 +186,7 @@ def shot(name, rect, Y0, focus_y, show, catch=(), unseen=(), frames=None, anchor
         bpy.ops.render.render(write_still=True)
     dt = time.time() - t0
     n = len(files)
-    print(f'shot {name}: {w}x{h} px at {A.scale}%, {n} frame{"s" * (n > 1)}, {dt:.1f} s ({dt / n:.1f} s a frame), raw in {raw}', flush=True)
+    print(f'shot {name}: {w}x{h} px at {int(A.scale * zoom)}%, {n} frame{"s" * (n > 1)}, {dt:.1f} s ({dt / n:.1f} s a frame), raw in {raw}', flush=True)
     if A.draft: return files
     site = os.path.abspath(A.site); os.makedirs(site, exist_ok=True)
     dst = os.path.join(site, name + '.webp')
@@ -245,10 +247,11 @@ def _m(N, L, op, a, b=None):
     return n.outputs[0]
 
 
-def clay(name, hexcol, rough=0.5, sss=0.08, marks=1.0, specks=1.0, period=0.0, feat=1.0, emit=0.0, stipple=0.0, prints=1.0):
+def clay(name, hexcol, rough=0.5, sss=0.08, marks=1.0, specks=1.0, period=0.0, feat=1.0, emit=0.0, stipple=0.0, prints=1.0, vcol=False):
     """Modelling clay: a colour that drifts, thumb-sized dents, tool strokes, coarse fingerprints in patches, a few
     crumbs of other colours, a soft waxy shine.
 
+    vcol: the colour comes from the mesh's colour attribute 'col' (a globe's sea, land and ice), hexcol is unused.
     stipple: a surface dabbed all over with a stiff brush (grass). prints: strength of the fingerprints.
     period: for ground that repeats along x (a road plate that wraps): the marks then repeat every `period` units
     with no seam (x is wound on a circle in a fourth noise dimension). feat: size of the marks (2 = twice as large)."""
@@ -283,6 +286,12 @@ def clay(name, hexcol, rough=0.5, sss=0.08, marks=1.0, specks=1.0, period=0.0, f
     mix.inputs[7].default_value = tuple(min(1, v * 1.12 + 0.004) for v in base[:3]) + (1,)
     L.new(drift.outputs['Fac'], mix.inputs['Factor'])
     col = mix.outputs[2]
+    if vcol:
+        at = N.new('ShaderNodeAttribute'); at.attribute_name = 'col'
+        vm = N.new('ShaderNodeMix'); vm.data_type = 'RGBA'; vm.blend_type = 'MULTIPLY'; vm.inputs['Factor'].default_value = 1.0
+        mix.inputs[6].default_value = (0.8, 0.8, 0.8, 1); mix.inputs[7].default_value = (1.1, 1.1, 1.1, 1)
+        L.new(at.outputs['Color'], vm.inputs[6]); L.new(col, vm.inputs[7])
+        col = vm.outputs[2]
     if specks:   # crumbs: a few Voronoi cells, each its own colour from the other clays
         vor = tex('ShaderNodeTexVoronoi', 8.0)
         ramp = N.new('ShaderNodeValToRGB'); ramp.color_ramp.interpolation = 'CONSTANT'
