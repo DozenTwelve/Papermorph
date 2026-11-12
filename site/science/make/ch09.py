@@ -68,6 +68,34 @@ def rect_of(objs, Y0, pad=14, shadow=True):
     return x0, y0, math.ceil(max(xs) + pad) - x0, math.ceil(max(ys) + pad) - y0
 
 
+def daysky(WD, x0, x1, zmax, n, seed, period=0.0, copies=(0,)):
+    """The set's back wall painted as a bright day sky (deep blue overhead, pale over the hills), and clay clouds in
+    front of it. It stands at depth WD, behind the hills, and is lit by the set's sun like everything else; a touch of
+    its own glow keeps it a sky rather than a grey wall. With a period the paint and the clouds repeat (the road)."""
+    me = rbox_mesh((x1 - x0, 0.3, zmax), 0.08, 0.22)
+    n_ = len(me.vertices)
+    co = np.empty(n_ * 3, 'f'); me.vertices.foreach_get('co', co); co = co.reshape(n_, 3)
+    t = np.clip(co[:, 2] / zmax + 0.5, 0, 1)[:, None]
+    lo, mid, hi = (np.array(K.srgb(h)[:3], 'f') for h in ('#d8ebf4', '#93c4e8', '#4a8bd3'))
+    u_ = np.clip(t / 0.22, 0, 1); v_ = np.clip((t - 0.22) / 0.5, 0, 1)
+    col = (lo * (1 - u_) + mid * u_) * (1 - v_) + hi * v_
+    ca = me.color_attributes.new('col', 'FLOAT_COLOR', 'POINT'); ca.data.foreach_set('color', np.hstack([col, np.ones((n_, 1), 'f')]).ravel())
+    out = [part(f'sky{seed}', me, clay('sky', '#ffffff', rough=0.85, vcol=True, specks=0, marks=0.25, spec=0.05, emit=0.45, period=period),
+                ((x0 + x1) / 2, WD, zmax / 2), lump=0.0, dents=0)]
+    rnd = random.Random(seed)
+    cmat = clay('cloud', '#f6f9fb', rough=0.75, sss=0.25, specks=0, marks=0.5, spec=0.1, emit=0.12)
+    span = (period or (x1 - x0))
+    for i in range(n):
+        cx, cz, k = (x0 if not period else 0) + rnd.uniform(0.04, 0.96) * span, rnd.uniform(0.3, 0.85) * zmax, rnd.uniform(0.6, 1.3)
+        parts_ = [moved(rbox_mesh((2 * r, 2 * r, 2 * r), r, 0.05), dx=dx, dz=dz) for dx, dz, r in
+                  [(-0.7 * k, 0, 0.45 * k), (0, 0.2 * k, 0.62 * k), (0.68 * k, 0.04 * k, 0.48 * k), (0.3 * k, -0.12 * k, 0.4 * k), (-0.3 * k, -0.1 * k, 0.42 * k)]]
+        me_c = K.fuse(parts_, voxel=0.04)
+        for v in me_c.vertices: v.co.y *= 0.45; v.co.z = max(v.co.z, -0.2 * k)    # flattened toward us, a flat-ish underside
+        c = part(f'cloud{seed}_{i}', me_c, cmat, (cx, WD - 0.8, cz), lump=0.03, dents=3, dent_r=(.12, .25), seed=seed + i)
+        out += [c] + [copy(c, (cx + dx, WD - 0.8, cz)) for dx in copies if dx]
+    return out
+
+
 def union(rects):
     x0 = min(r[0] for r in rects); y0 = min(r[1] for r in rects)
     return x0, y0, max(r[0] + r[2] for r in rects) - x0, max(r[1] + r[3] for r in rects) - y0
@@ -210,7 +238,7 @@ if a.set == 'park':
     FOCUS = 0.0
     xm = lambda v: 2.0 + 1.2 * v
     g = clay('grass', C['grass'], rough=0.6, feat=1.5, stipple=0.5, prints=0.3, specks=0.4)
-    ground = [slab('grass', -9, 25, -10, 3.4, 0.0, g, thick=0.3, d=0.14, wobble=0.0, lump=0.02),
+    ground = [slab('grass', -9, 25, -10, 5.9, 0.0, g, thick=0.3, d=0.14, wobble=0.0, lump=0.02),
               slab('strip', 1.45, 15.5, -1.5, -0.44, 0.06, clay('slate', C['slate'], rough=0.55, feat=1.4, specks=0.4), thick=0.1, d=0.07, wobble=0.025, lump=0.006, seed=3),
               slab('track', 1.68, 14.32, -0.36, 0.36, TOP, clay('wood', C['wood'], rough=0.55, feat=1.3), thick=0.2, d=0.05, wobble=0.02, lump=0.008, seed=5)]
     rnd = random.Random(4)
@@ -232,7 +260,8 @@ if a.set == 'park':
         spots.append(p)
     group('ball', *spots)
     b.rotation_euler = (0.3, 0, 0.5)   # a start turn so no patch faces the camera square on
-    if want('park'): shot('park', (-200, 260, 2000, 740), Y0, FOCUS, show=['ground', 'scenery'])
+    group('sky', *daysky(5.6, -9, 25, 10.5, 7, 101))
+    if want('park'): shot('park', (-200, -420, 2000, 1420), Y0, FOCUS, show=['ground', 'scenery', 'sky'])
     at = K.px(bx.location.x, 0, TOP + R, Y0)
     if want('ball'):          # the ball alone at 36 angles (the ground still lights it from below)
         shot('ball', rect_of(spots, Y0, pad=6, shadow=False), Y0, FOCUS, show=['ball'], unseen=['ground'], frames=turn_frames([bx], 36), anchor=at, extra={'r': R * K.U})
@@ -251,7 +280,7 @@ if a.set == 'road':
     # ---- ground: every piece is one period long and repeats, marks included
     ground = []
     for dx in P3:
-        ground += [slab('grass', dx, dx + W, -9.5, 5.4, 0.0, clay('grass', C['grass'], rough=0.6, feat=1.5, stipple=0.5, prints=0.3, specks=0.4, period=W), thick=0.3, d=0.14, wobble=0, lump=0.02, period=W),
+        ground += [slab('grass', dx, dx + W, -9.5, 7.9, 0.0, clay('grass', C['grass'], rough=0.6, feat=1.5, stipple=0.5, prints=0.3, specks=0.4, period=W), thick=0.3, d=0.14, wobble=0, lump=0.02, period=W),
                    slab('road', dx, dx + W, -3.1, 2.7, 0.07, clay('road', C['road'], rough=0.5, feat=1.6, period=W, specks=0.6), thick=0.16, d=0.08, wobble=0.035, lump=0.008, period=W, seed=1),
                    slab('walk', dx, dx + W, 2.62, 4.1, 0.16, clay('walk', C['walk'], rough=0.58, feat=1.4, period=W), thick=0.2, d=0.08, wobble=0.03, lump=0.008, period=W, seed=2)]
         for k, y in enumerate((-2.84, 2.42)):
@@ -276,6 +305,7 @@ if a.set == 'road':
             ball('lamp_bulb', 0.13, clay('bulb', C['bulb'], specks=0, emit=1.2), (15.52, 3.8, 1.97), squash=(1.2, 1, .55), lump=0.006, dents=0)]
     scenery += lamp + [copy(o, (o.location.x + dx, o.location.y, o.location.z)) for o in lamp for dx in P3 if dx]
     group('scenery', *scenery)
+    group('sky', *daysky(7.6, -W, 2 * W, 13.5, 5, 102, period=W, copies=P3))
 
     # ---- the truck (far lane), its centre at x = 0
     ty = FAR
@@ -327,7 +357,7 @@ if a.set == 'road':
     lane_y = lambda y, z=0.07: K.px(0, y, z, Y0)[1]
     meta = {'U': K.U, 'elev': a.elev, 'road': {'W': W * K.U, 'Y0': Y0, 'far': round(lane_y(FAR), 2), 'near': round(lane_y(NEAR), 2), 'side': round(lane_y(SIDE, 0.16), 2)}}
     if want('road'):   # two px wider than the period: the copies overlap, so no hairline shows between them
-        shot('road', (0, 240, W * K.U + 2, 780), Y0, FOCUS, show=['ground', 'scenery'], extra={'W': W * K.U})
+        shot('road', (0, -760, W * K.U + 2, 1780), Y0, FOCUS, show=['ground', 'scenery', 'sky'], extra={'W': W * K.U})
     N = 24
     bpy.context.view_layer.update()          # axles parented to a car: their world place is matrix_world, after an update
     W_ = lambda ax: ax.matrix_world.translation
@@ -397,7 +427,7 @@ if a.set == 'table':
     FOCUS = 0.0
     BOOK, ORB, WALK = (3.0, 0.1), (8.0, 0.6), (10.9, -0.4)    # station centres (x, depth); the walk starts at 1090 px
     grass = clay('grass', C['grass'], rough=0.6, feat=1.5, stipple=0.5, prints=0.3, specks=0.4)
-    ground = [slab('lawn', -2, 18, -8, 4.6, 0.0, grass, thick=0.3, d=0.14, wobble=0, lump=0.02),
+    ground = [slab('lawn', -2, 18, -8, 6.9, 0.0, grass, thick=0.3, d=0.14, wobble=0, lump=0.02),
               slab('blanket', 1.6, 4.4, -0.95, 1.15, 0.05, clay('blanket', '#c9706a', rough=0.6, feat=1.2), thick=0.08, d=0.06, wobble=0.04, lump=0.006, seed=2),
               slab('path', 10.2, 16.6, -0.85, 0.05, 0.05, clay('walk', C['walk'], rough=0.58, feat=1.4), thick=0.08, d=0.07, wobble=0.04, lump=0.006, seed=3)]
     mat = ball('mat', 2.25, clay('space', '#22324f', rough=0.55, specks=0.8, feat=1.2), (ORB[0], ORB[1], -0.02), squash=(1, 1, 0.04), d=0.08, lump=0.01, dents=0)   # a dent would go through a mat this thin
@@ -471,7 +501,8 @@ if a.set == 'table':
     meta = {'table': {'Y0': Y0, 'book': [round(v, 1) for v in at_book], 'sun': [round(v, 1) for v in K.px(ox, oy, 0.85, Y0)],
                       'orbit': [round(v, 1) for v in K.px(ox, oy, RE + 0.06, Y0)] + [RO * K.U, RO * K.U * math.sin(K.E)],
                       'walk': [round(v, 1) for v in K.px(WALK[0], WALK[1], 0.05, Y0)], 'step': round(STEP, 2)}}
-    if want('table'): shot('table', (-10, 230, 1620, 670), Y0, FOCUS, show=['ground', 'scenery', 'book'], unseen=['sun'])
+    group('sky', *daysky(6.6, -2, 18, 5.5, 4, 103))
+    if want('table'): shot('table', (-10, 0, 1620, 900), Y0, FOCUS, show=['ground', 'scenery', 'book', 'sky'], unseen=['sun'])
     if want('leaf'):
         rs = []
         for i in (0, NP // 2, NP - 1): turn(i)(); rs.append(rect_of(leaf, Y0, pad=10))
@@ -559,7 +590,7 @@ if a.set == 'train':
     lil, lil2, dark2 = clay('train', '#a996e6', rough=0.5), clay('trainl', '#cdbff5', rough=0.5), clay('traind', '#7f6cc0', rough=0.5)
     inside = clay('inside', '#6b5a4a', rough=0.6)
     grass = clay('grass', C['grass'], rough=0.6, feat=1.5, stipple=0.5, prints=0.3, specks=0.4)
-    ground = [slab('lawn', -2, 18, -7, 5, 0.0, grass, thick=0.3, d=0.14, wobble=0, lump=0.02),
+    ground = [slab('lawn', -2, 18, -7, 7.5, 0.0, grass, thick=0.3, d=0.14, wobble=0, lump=0.02),
               slab('ballast', -2, 18, -1.05, 1.05, 0.06, clay('ballast', '#5b5048', rough=0.7, feat=0.8, specks=0.8), thick=0.12, d=0.07, wobble=0.04, lump=0.012, seed=4)]
     for i in range(27): ground.append(box(f'sleeper{i}', (0.2, 1.7, 0.08), clay('sleeper', '#4a3d31', rough=0.6), (-1.6 + 0.72 * i, 0, 0.1), r=0.03, d=0.04, lump=0.005, dents=0))
     for k_, y in enumerate((-0.55, 0.55)): ground.append(roll(f'rail{k_}', (-2, y, 0.17), (18, y, 0.17), 0.045, clay('rail', '#a7aca9', rough=0.35, specks=0), lump=0.003))
@@ -602,7 +633,8 @@ if a.set == 'train':
     P = lambda x, y, z: [round(v, 1) for v in K.px(x, y, z, Y0)]
     meta = {'train': {'maya': P(mw - 0.15, -0.3, 0.95 + 1.3 * 0.92), 'bottle': P(mw + 0.36, -0.46, WZ0 + 0.42), 'leo': P(14.3, 1.8, 0.95 + 1.36 * 1.1),
                       'top': P(X0, -DY, ZT + 0.2), 'nose': P(X1, -DY, ZT)}}
-    if want('train'): shot('train', (0, 120, 1600, 470), Y0, FOCUS, show=['ground', 'scenery', 'train', 'maya', 'leo'])
+    group('sky', *daysky(7.2, -2, 18, 4.0, 3, 104))
+    if want('train'): shot('train', (0, 0, 1600, 900), Y0, FOCUS, show=['ground', 'scenery', 'train', 'maya', 'leo', 'sky'])
     K.write_manifest(meta)
 
 
@@ -635,7 +667,7 @@ if a.set == 'track':
     FOCUS = 0.0
     TOPZ = 0.06
     grass = clay('grass', C['grass'], rough=0.6, feat=1.5, stipple=0.5, prints=0.3, specks=0.4)
-    ground = [slab('lawn', -4, 21, -8, 6, 0.0, grass, thick=0.3, d=0.14, wobble=0, lump=0.02),
+    ground = [slab('lawn', -4, 21, -8, 7.3, 0.0, grass, thick=0.3, d=0.14, wobble=0, lump=0.02),
               slab('track', -3, 20, -1.0, 1.0, TOPZ, clay('trackc', '#b9654c', rough=0.65, feat=0.9, stipple=0.4, specks=0.3), thick=0.12, d=0.07, wobble=0.04, lump=0.006, seed=6)]
     for k_, y in enumerate((-0.92, 0.0, 0.92)):
         ground.append(slab(f'lane{k_}', -3, 20, y - 0.035, y + 0.035, TOPZ + 0.025, clay('line', C['line'], specks=0.2), thick=0.04, d=0.04, wobble=0.012, lump=0.003, seed=30 + k_))
@@ -673,7 +705,9 @@ if a.set == 'track':
     for j in range(4): pd.append(box(f'ridge{j}', (0.34, 0.05, 0.05), clay('ridge', '#3b4442', specks=0), (40, -0.07, 5.08 + 0.14 * j), r=0.02, d=0.015, lump=0.002, dents=0))
     group('pedal', *pd)
     meta = {'track': {'Y0': Y0, 'top': round(at[1], 2), 'run': round(STEP(1.1, 0.55), 2), 'jog': round(STEP(1.1, 0.45), 2)}}
-    if want('track'): shot('track', (-100, 300, 1800, 600), Y0, FOCUS, show=['ground', 'scenery'], zoom=2)
+    group('sky', *daysky(7.0, -4, 21, 8.0, 6, 105))
+    if want('track'): shot('track', (-100, -200, 1800, 1100), Y0, FOCUS, show=['ground', 'scenery', 'sky'], zoom=2)
+    PROPS = True
     if want('runner'): stride_shot('runner', runner, Y0, FOCUS, at, zoom=2)
     if want('you_jog_r'): stride_shot('you_jog_r', jog_r, Y0, FOCUS, at)
     if want('you_jog_l'): stride_shot('you_jog_l', jog_l, Y0, FOCUS, at)
@@ -682,6 +716,39 @@ if a.set == 'track':
     if want('finish'): shot('finish', rect_of(fin, Y0, pad=10), Y0, FOCUS, show=['finish'], catch=['ground'], anchor=(FX * K.U, at[1]), zoom=2)
     if want('cloud'): shot('cloud', rect_of(cl, Y0, pad=6, shadow=False), Y0, (30, 0, 5), show=['cloud'], anchor=K.px(30, 0, 5, Y0))
     if want('pedal'): shot('pedal', rect_of(pd, Y0, pad=6, shadow=False), Y0, (40, 0, 5.3), show=['pedal'], anchor=K.px(40, 0, 5.0, Y0))
+    # ---- props for text (beats 1, 5, 8, 10-13, 15, 17, 21, 24, 28, 29-31): built aside at x 60.., standing at depth 0
+    # on a patch of ground that only catches their shadow; the page stands them on the grass behind a road or a track
+    pg_ = slab('propground', 40, 120, -3, 3, 0.0, grass, thick=0.3, d=0.3, wobble=0, lump=0.0)
+    group('propground', pg_)
+    wood, slate = clay('wood', '#8a5a3c', rough=0.6, feat=0.8), clay('slate', '#223029', rough=0.85, feat=1.2, specks=0.3, marks=0.6, stipple=0.3, spec=0.05)
+
+    def board(name, x, w, h, leg, kind='chalk'):
+        """A chalkboard (or a paper card pinned to a wooden board) w wide and h high, its bottom edge leg above the
+        ground, on two short splayed feet. Returns its objects and its panel's page rectangle from the anchor."""
+        zc = leg + h / 2
+        if kind == 'chalk':
+            objs = [box(name + '_slate', (w, 0.12, h), slate, (x, 0, zc), r=0.03, d=0.06, lump=0.006, dents=0)]
+            for j, (dx, dz, w_, h_) in enumerate([(0, h / 2, w + 0.26, 0.15), (0, -h / 2, w + 0.26, 0.15), (w / 2, 0, 0.15, h + 0.26), (-w / 2, 0, 0.15, h + 0.26)]):
+                objs.append(box(f'{name}_frame{j}', (w_, 0.18, h_), wood, (x + dx, -0.03, zc + dz), r=0.05, d=0.04, lump=0.008, dents=2))
+            objs.append(box(name + '_ledge', (w * 0.9, 0.24, 0.06), wood, (x, -0.13, leg - 0.02), r=0.02, d=0.04, lump=0.004, dents=0))
+        else:
+            objs = [box(name + '_board', (w, 0.14, h), clay('boardw', '#5b3f2b', rough=0.6, feat=0.8), (x, 0, zc), r=0.06, d=0.06, lump=0.012, dents=5, dent_r=(.2, .4)),
+                    box(name + '_paper', (w - 0.36, 0.03, h - 0.34), clay('paper', '#efe6d2', rough=0.75, specks=0.15, marks=0.4, sss=0.1), (x, -0.09, zc), r=0.015, d=0.05, lump=0.006, dents=0)]
+            for j, (dx, dz) in enumerate([(-1, 1), (1, 1), (-1, -1), (1, -1)]):
+                objs.append(ball(f'{name}_pin{j}', 0.07, clay('pin', '#e05a46', specks=0), (x + dx * (w / 2 - 0.3), -0.13, zc + dz * (h / 2 - 0.28)), lump=0, dents=0))
+        for j, (fx, dx) in enumerate(((x - w / 2 + 0.4, -0.1), (x + w / 2 - 0.4, 0.1))):
+            objs.append(roll(f'{name}_foot{j}', (fx, 0.0, leg + 0.1), (fx + dx, 0.35, -0.02), 0.07, wood, lump=0.006))
+        group(name, *objs)
+        a0 = K.px(x, 0, 0, Y0); tl, br = K.px(x - w / 2, -0.07, leg + h, Y0), K.px(x + w / 2, -0.07, leg, Y0)
+        return objs, [round(tl[0] - a0[0], 1), round(tl[1] - a0[1], 1), round(br[0] - a0[0], 1), round(br[1] - a0[1], 1)], a0
+    BOARDS = [('chalk_w', 60, 13.4, 2.9, 0.45, 'chalk'), ('chalk_t', 80, 13.4, 4.2, 0.4, 'chalk'), ('card', 100, 15.0, 5.0, 0.4, 'card')]
+    for nm, bx_, w_, h_, leg_, kind in BOARDS:
+        objs, panel_, a0 = board(nm, bx_, w_, h_, leg_, kind)
+        if want(nm): shot(nm, rect_of(objs, Y0, pad=12), Y0, (bx_, 0, leg_ + h_ / 2), show=[nm], catch=['propground'], anchor=a0, extra={'panel': panel_})
+    if want('practice'):   # the practice and finish cards stand on a big chalkboard in the set (a plate)
+        pobjs, _, _ = board('bigboard', 8.0, 14.8, 8.6, 0.2, 'chalk')
+        for o in pobjs: o.location.y -= 3.0
+        shot('practice', (0, 0, 1600, 900), Y0, FOCUS, show=['ground', 'scenery', 'sky', 'bigboard'])
     K.write_manifest(meta)
 
 # ================================================================ pool: the dolphin and the walrus (beat 14)

@@ -56,3 +56,36 @@ function clRoad(cam) {
   mk('stop', { offset: 1, 'stop-color': '#c9ddea' }, sky);
 }
 const clScrim = (p, y0 = 680, o = {}) => put(mk('rect', { x: 0, y: y0, width: SW, height: SH - y0, fill: 'url(#clScrim)' }, p), o);
+// A prop that holds text, standing in the set: a chalkboard ('chalk_w', 'chalk_t') or a paper card pinned to a board
+// ('card'), placed by its feet at (x, y). Returns its group and its panel's page rectangle, to lay the text out on.
+function clBoard(p, name, x, y, o = {}) {
+  const g = clImg(p, name, { x, y, ...o }), [x0, y0, x1, y1] = clOf(name).panel;
+  return { g, x0: x + x0, y0: y + y0, x1: x + x1, y1: y + y1, cx: x + (x0 + x1) / 2, cy: y + (y0 + y1) / 2 };
+}
+// Text on the bright clay sky: chalk and grey text turn to ink; coloured text keeps its meaning colour with a dark
+// outline. Call it at the end of a beat, with the page y the sky reaches down to; texts lower (or in skip rectangles,
+// [x0, y0, x1, y1], e.g. a chalkboard) are left as they are.
+const INK = '#1d2a33', INK2 = '#3b5260';
+function inkOf(c) { c = (c || '').toLowerCase(); return c === COL.chalk ? INK : c === COL.dim || c === COL.faint ? INK2 : null; }
+function skyInk(p, below = 9999, skip = []) {
+  for (const t of p.querySelectorAll('text')) {
+    const m = t.getCTM(), b = t.getBBox();
+    if (!m || !b.width) continue;
+    const cx = m.e + m.a * (b.x + b.width / 2), cy = m.f + m.d * (b.y + b.height / 2);
+    if (cy > below || skip.some(([x0, y0, x1, y1]) => cx > x0 && cx < x1 && cy > y0 && cy < y1)) continue;
+    const size = parseFloat(t.getAttribute('font-size')) || 30, spans = [...t.querySelectorAll('tspan')];
+    t.removeAttribute('stroke');
+    for (const e of spans.length ? spans : [t]) {   // ink for chalk and grey; a dark outline on a coloured run only
+      const k = inkOf(e.getAttribute('fill') || t.getAttribute('fill'));
+      if (k) { e.setAttribute('fill', k); e.setAttribute('stroke', 'none'); }
+      else { e.setAttribute('stroke', INK); e.setAttribute('stroke-width', Math.min(5, size * .14)); e.setAttribute('paint-order', 'stroke'); e.setAttribute('stroke-linejoin', 'round'); }
+    }
+  }
+}
+// Text on a paper card: ink, no outline.
+function paperInk(g) {
+  for (const t of g.querySelectorAll('text')) {
+    for (const e of [t, ...t.querySelectorAll('tspan')]) { const k = inkOf(e.getAttribute('fill')); if (k) e.setAttribute('fill', k); }
+    t.removeAttribute('stroke');
+  }
+}
