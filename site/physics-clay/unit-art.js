@@ -1,0 +1,32 @@
+// Chalk sketches for the unit headers on the contents page, one per unit, drawn in the unit's colour.
+// Each entry is the inside of an SVG with viewBox 0 0 600 180; keep the left ~200 px light (the unit title sits there
+// on narrow screens). Classes, styled in lib/units.css:
+//   d  a stroke that draws itself in when the unit scrolls into view (--k orders the strokes)
+//   t  text or a filled shape that fades in
+//   a  faint chalk white instead of the unit colour;  faint  even fainter
+// A sketch may add one looping motion after it is drawn: give an element a class and add a .seen .unit-art .NAME
+// rule with its keyframes in book.html (see the examples there: swap-a, hop, spin, tilt, breathe, ...).
+'use strict';
+(() => {
+  let k = 0;
+  const P = (d, cls = '', extra = '') => `<path class="d ${cls}" pathLength="1" style="--k:${k++}" d="${d}" ${extra}/>`;
+  const Tx = (x, y, s, size = 24, cls = '', anchor = 'start') => `<text class="t ${cls}" style="--k:${k++}" x="${x}" y="${y}" font-size="${size}" text-anchor="${anchor}">${s}</text>`;
+  const C = (cx, cy, r, cls = '') => `<circle class="d ${cls}" pathLength="1" style="--k:${k++}" cx="${cx}" cy="${cy}" r="${r}"/>`;
+  const reset = s => { k = 0; return s; };
+
+  window.UNIT_ART = [
+    // Unit 1 (motion, forces, work): a road with a car-dot speeding along it, and speed = distance ÷ time.
+    reset(P('M228 130H572') + Array.from({ length: 7 }, (_, i) => P(`M${250 + i * 50} 122v16`, 'a')).join('') +
+      `<circle class="t hop" r="8" fill="currentColor" stroke="none" style="--k:${k++};offset-path:path('M250 116Q275 84 300 116Q325 84 350 116Q375 84 400 116')"/>` +
+      Tx(250, 60, 'speed = distance ÷ time', 26) + P('M480 70h70m-14 -10l14 10l-14 10', 'a')),
+    // Unit 2 (energy): a ball rolling to and fro in a dip, potential ⇄ kinetic.
+    reset(P('M228 60Q400 200 572 60') +
+      `<circle class="t hop" r="9" fill="currentColor" stroke="none" style="--k:${k++};offset-path:path('M250 54Q400 186 550 54Q400 186 250 54')"/>` +
+      Tx(400, 40, 'potential ⇄ kinetic', 24, 'a', 'middle')),
+    // The samples (the light notebook edition of chapter 5, and outer space): a sun with an orbit, Earth going round it with its moon.
+    reset(C(420, 92, 30) + Array.from({ length: 8 }, (_, i) => { const a = i * Math.PI / 4; return P(`M${420 + 40 * Math.cos(a)} ${92 + 40 * Math.sin(a)}L${420 + 52 * Math.cos(a)} ${92 + 52 * Math.sin(a)}`); }).join('') +
+      P('M560 92A140 46 0 1 1 280 92A140 46 0 1 1 560 92', 'a') +
+      `<g class="t orbit" style="--k:${k++};offset-path:path('M560 92A140 46 0 1 0 280 92A140 46 0 1 0 560 92')"><circle r="11" fill="currentColor" stroke="none"/><circle cx="20" cy="-6" r="4" fill="currentColor" stroke="none" opacity=".7"/></g>` +
+      Tx(420, 30, 'sun · earth · moon', 22, 'a', 'middle')),
+  ];
+})();
