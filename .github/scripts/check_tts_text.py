@@ -29,7 +29,7 @@ def words_at(clean, seconds):
 
 # Arabic: a question ends with the Arabic question mark (؟), which must close its caption like "?" does.
 raw = "مساحة المستطيل تساوي الطول في العرض. ما مساحة [[q]]مستطيل طوله خمسة؟ الجواب [[a]]عشرون."
-clean, marks = tts.split_marks(raw)
+clean, marks, _ = tts.split_marks(raw)
 words = words_at(clean, [0.0, 0.5, 1.0, 1.4, 1.7, 2.0, 3.0, 3.4, 3.8, 4.2, 4.8, 5.6, 6.1])
 check("Arabic captions split at ؟", [text for _, text in tts.caption_cues(clean, words)],
       ["مساحة المستطيل تساوي الطول في العرض.", "ما مساحة مستطيل طوله خمسة؟", "الجواب عشرون."])
@@ -37,9 +37,17 @@ check("Arabic caption starts", [t for t, _ in tts.caption_cues(clean, words)], [
 check("Arabic marks land on their words", tts.mark_times(clean, marks, words), {"q": 3.8, "a": 6.1})
 
 # English stays as it was.
-clean, marks = tts.split_marks("One idea. Is it [[w]]true? Yes.")
+clean, marks, _ = tts.split_marks("One idea. Is it [[w]]true? Yes.")
 words = words_at(clean, [0.0, 0.4, 1.0, 1.2, 1.4, 2.0])
 check("English captions", [text for _, text in tts.caption_cues(clean, words)], ["One idea.", "Is it true?", "Yes."])
+
+# {{shown|spoken}}: the voice gets the spoken form, the captions the shown one, and the marks still land.
+clean, marks, shown = tts.split_marks("Call it {{Safety-II|Safety Two}}. [[w]]{{IT|I T}} teams know it.")
+check("respelling: the voice reads the spoken form", clean, "Call it Safety Two. I T teams know it.")
+words = words_at(clean, [0.0, 0.3, 0.5, 0.9, 1.5, 1.7, 1.9, 2.3, 2.6])
+check("respelling: captions show the written form",
+      [text for _, text in tts.respell(tts.caption_cues(clean, words), shown)], ["Call it Safety-II.", "IT teams know it."])
+check("respelling: marks land on spoken words", tts.mark_times(clean, marks, words), {"w": 1.5})
 
 if failures:
     print("\n".join(failures))
