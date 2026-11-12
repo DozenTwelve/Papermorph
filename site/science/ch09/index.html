@@ -169,6 +169,7 @@ const BEATS = [
   phLabel(g, 'Motion', { x: 800, y: 250, size: 120, weight: 600 });
   tw(g, { o: 1, y: 0 }, .2, 1.1, out);
   txt(p, 'Part 1 · Motion and relative motion', 800, 320, m('sub'), { size: 36, fill: COL.dim });
+  skyInk(p, 360);                                       // text on the bright sky: ink
 }],
 ['position', 'Motion is a change of position', (m, D) => {
   const p = panel(0);
@@ -181,7 +182,8 @@ const BEATS = [
   for (let v = 0; v <= 10; v++) T(track, String(v), { x: xm(v), y: TY + 68, size: 28, fill: COL.chalk, anchor: 'middle' });
   T(track, 'meters', { x: xm(10) + 40, y: TY + 68, size: 26, fill: COL.dim });
   phLabel(track, 'zero mark', { x: xm(0), y: TY + 112, size: 24, fill: COL.dim, weight: 400 });
-  txt(p, 'Position: where something is, measured from a starting mark', 800, 150, 1.4, { size: 34, fill: COL.dim });
+  const B = clBoard(w, 'chalk_w', 800, 493);                    // a chalkboard on the grass behind the track
+  txt(w, 'Position: where something is, measured from a starting mark', B.cx, B.y0 + 74, 1.4, { size: 34, fill: COL.dim });
   const ghost = mk('circle', { cx: xm(2), cy: TY - R, r: R, fill: 'none', stroke: COL.chalk, 'stroke-width': 3, 'stroke-dasharray': '8 8' }, w);
   put(ghost, { o: 0 });
   const ball = clImg(w, 'ball_shadow', { x: xm(2), y: TY - R });   // the shadow rides along; the ball over it is one of 36 angles,
@@ -195,14 +197,16 @@ const BEATS = [
   path(ch, arrowPath(xm(2), TY + 160, xm(7)), { stroke: PH.change, 'stroke-width': 6 });
   phLabel(ch, 'change of position: 5 m', { x: xm(4.5), y: TY + 210, size: 32, fill: PH.change });
   show(ch, m('change'));
-  const rule = runs(p, [['Motion', COL.chalk], [' = a ', COL.chalk], ['change of position', PH.change]], { x: 800, y: 270, size: 60 });
+  const rule = runs(w, [['Motion', COL.chalk], [' = a ', COL.chalk], ['change of position', PH.change]], { x: B.cx, y: B.y0 + 172, size: 60 });
   show(rule, m('rule'));
-  const sw = phStopwatch(p, { x: 1330, y: 372, r: 46, o: 0 });
+  const sw = phStopwatch(p, { x: 1470, y: 112, r: 46, o: 0 });
   show(sw, m('still'));
-  const clockT = phLabel(p, '0 s later', { x: 1330, y: 462, size: 28, fill: COL.dim, weight: 600, o: 0 });
+  const clockT = phLabel(p, '0 s later', { x: 1470, y: 206, size: 28, fill: COL.dim, weight: 600, o: 0 });
   show(clockT, m('still'));
   prog(q => { put(sw._hand, { r: 90 * q }); clockT.textContent = `${Math.round(3 * q)} s later`; }, m('still', .3), 3, lin);
-  show(phLabel(p, 'still at 7 m: not moving', { x: 1330, y: 500, size: 28, weight: 600, o: 0 }), m('still', 3.4));
+  const sn = G(p, { o: 0 }); show(sn, m('still', 3.4));
+  phLabel(sn, 'still at 7 m:', { x: 1470, y: 244, size: 28, weight: 600 }); phLabel(sn, 'not moving', { x: 1470, y: 278, size: 28, weight: 600 });
+  skyInk(p, 300);
 }],
 ['everywhere', 'Motion is everywhere', (m, D) => {
   // One lawn, three motions: a notebook whose page turns, an orrery (the Sun and an Earth going round it,
@@ -230,6 +234,7 @@ const BEATS = [
     const d = Math.min(WALK, Math.max(0, t - ty) * 85);
     put(walker, { x: TB.walk[0] + d }); clTurn(walker, d, TB.step / (2 * Math.PI));
   }, D);
+  skyInk(p, 200);                                       // text on the bright sky: ink
 }],
 ['roadside', 'Standing by the road', (m, D) => {
   const p = panel(0);
@@ -248,6 +253,7 @@ const BEATS = [
     const x = -250 + V * Math.max(0, t - t0);
     put(truck, { x }); clRoll(truck, x); put(tl, { x: x + 10 });
   }, D);
+  skyInk(p, 200);                                       // text on the bright sky: ink
 }],
 ['incar', 'Riding beside the truck', (m, D) => {
   const p = panel(0);
@@ -277,9 +283,12 @@ const BEATS = [
     phText(tl, `truck: ${speedStr(rel)}`); keepIn(cam, tl, x + 10, TRUCK_LAB, t);
     phText(cl, `your car: ${speedStr(rel)}`); keepIn(cam, cl, x + CAR_LAB[0], CAR_LAB[1], t);
   }, D);
+  skyInk(p, 200);                                       // text on the bright sky: ink
 }],
 ['rule', 'Motion is relative', (m, D) => {
   const p = panel(0);
+  clImg(p, 'track', { y: 200 });                               // the track set, its sky over most of the frame
+  const B = clBoard(p, 'chalk_t', 800, 792);                    // the rule on a chalkboard behind the track
   // Split screen: the same street through two cameras at once, one standing by the road, one riding in the car.
   const view = (box, t0, title, ride) => {
     const cam = camera(p, D, { box, x: 1200, y: 560, z: .45 });
@@ -298,14 +307,14 @@ const BEATS = [
     put(cam.el, { o: 0 }); show(cam.el, t0);
     show(phLabel(p, title, { x: box[0] + 24, y: box[1] + box[3] - 22, size: 28, fill: PH.ref, anchor: 'start', o: 0 }), t0);
   };
-  view([80, 120, 700, 380], m('side', -.4), 'from the roadside', false);
-  view([820, 120, 700, 380], m('car', -.4), 'from the car', true);
-  const check = x => { const c = path(p, `M${x} 455l18 18l36 -42`, { stroke: COL.good, 'stroke-width': 9 }, { d: 0 }); draw(c, m('both'), .5); };
+  view([80, 46, 700, 330], m('side', -.4), 'from the roadside', false);
+  view([820, 46, 700, 330], m('car', -.4), 'from the car', true);
+  const check = x => { const c = path(p, `M${x} 330l18 18l36 -42`, { stroke: COL.good, 'stroke-width': 9 }, { d: 0 }); draw(c, m('both'), .5); };
   check(700); check(1440);
-  txt(p, 'Both are correct.', 800, 560, m('both'), { size: 34, fill: COL.good });
-  show(runs(p, [['Motion is ', COL.chalk], ['relative', PH.ref], ['.', COL.chalk]], { x: 800, y: 660, size: 72 }), m('rel'));
-  show(runs(p, [['It is always described in relation to a ', COL.chalk], ['reference point', PH.ref], ['.', COL.chalk]], { x: 800, y: 745, size: 40, weight: 500 }), m('refpt'));
-  txt(p, 'reference point = the place or object you measure from', 800, 808, m('refpt', 3), { size: 30, fill: COL.dim, weight: 500 });
+  txt(p, 'Both are correct.', 800, B.y0 + 62, m('both'), { size: 34, fill: COL.good });
+  show(runs(p, [['Motion is ', COL.chalk], ['relative', PH.ref], ['.', COL.chalk]], { x: 800, y: B.y0 + 158, size: 72 }), m('rel'));
+  show(runs(p, [['It is always described in relation to a ', COL.chalk], ['reference point', PH.ref], ['.', COL.chalk]], { x: 800, y: B.y0 + 236, size: 40, weight: 500 }), m('refpt'));
+  txt(p, 'reference point = the place or object you measure from', 800, B.y0 + 300, m('refpt', 3), { size: 30, fill: COL.dim, weight: 500 });
 }],
 ['earth', 'Why we don\'t feel Earth spin', (m, D) => {
   const p = panel(0);
@@ -381,16 +390,18 @@ const BEATS = [
   clockRun(t => { const x = -300 + V * t; put(truck, { x }); put(car, { x: x + 10 }); clRoll(truck, x); clRoll(car, x); }, D);
   clScrim(p, 790);
   txt(p, 'Motion and relative motion', 800, 110, .2, { size: 40, fill: COL.dim });
+  const B = clBoard(p, 'card', 800, 640), rowsG = G(p);                // the list on a paper card pinned to a board
   [['Motion is a change of position.', 'w1'],
    ['Motion is relative: it is described from a reference point.', 'w2'],
    ['Different reference points can give different answers, and each can be right.', 'w3']].forEach(([s, mark], i) => {
-    const g = G(p, { x: -16, y: 210 + i * 100, o: 0 });
+    const g = G(rowsG, { x: -16, y: 230 + i * 100, o: 0 });
     mk('rect', { x: 144, y: -38, width: 52, height: 52, rx: 6, fill: PH.ref }, g);
     T(g, String(i + 1), { x: 170, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
     T(g, s, { x: 230, size: 36, weight: 600 });
     tw(g, { o: 1, x: 0 }, m(mark), .6);
   });
   show(phLabel(p, 'Next: how fast things move.', { x: 800, y: 838, size: 32, fill: COL.chalk, weight: 500, o: 0 }), m('end'));
+  paperInk(rowsG); skyInk(p, 120);
 }],
 /* ---------- part 2: speed ---------- */
 ['part2', 'Part 2 · Speed', (m, D) => {
