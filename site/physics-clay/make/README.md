@@ -31,9 +31,9 @@ give the same picture, and `check_ch09.py` measures it.
 ## Render
 
 ```
-blender --background --factory-startup --python site/science/make/ch09.py -- --set road|park|table|globe|train|track|pool|top \
+blender --background --factory-startup --python site/physics-clay/make/ch09.py -- --set road|park|table|globe|train|track|pool|top \
     [--only road,truck] [--samples 48] [--scale 100] [--engine cycles] [--device auto|OPTIX|METAL|CPU] [--draft]
-uv run --with playwright site/science/make/check_ch09.py [--browser firefox]   # with the site served on 8831
+uv run --with playwright site/physics-clay/make/check_ch09.py [--browser firefox]   # with the site served on 8831
 ```
 
 `--draft` writes PNGs to `books/science-clay/render/` only; otherwise the WebP goes to `img/clay/` and its size and

@@ -1,7 +1,7 @@
 """check_ch09.py: the clay picture and the live numbers of chapter 1 agree, at any moment however it is reached.
 
     python3 .claude/skills/papermorph/scripts/serve.py 8831 site &
-    uv run --with playwright site/science/make/check_ch09.py [--url http://localhost:8831/science/ch09/] [--browser firefox]
+    uv run --with playwright site/physics-clay/make/check_ch09.py [--url http://localhost:8831/physics-clay/ch09/] [--browser firefox]
 
 Measured on the page as drawn (getBoundingClientRect of the clay pictures, stage px), not from the page's own
 formulas:
@@ -25,7 +25,7 @@ import argparse, asyncio, math, re
 from playwright.async_api import async_playwright
 
 ap = argparse.ArgumentParser()
-ap.add_argument('--url', default='http://localhost:8831/science/ch09/')
+ap.add_argument('--url', default='http://localhost:8831/physics-clay/ch09/')
 ap.add_argument('--browser', default='chromium', choices=['chromium', 'firefox'])
 a = ap.parse_args()
 

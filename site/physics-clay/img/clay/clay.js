@@ -1,4 +1,4 @@
-// Written by site/science/make (Blender): the clay pictures, their sizes and where they sit. Do not edit.
+// Written by site/physics-clay/make (Blender): the clay pictures, their sizes and where they sit. Do not edit.
 window.CLAY = {
  "U": 100.0,
  "elev": 30.0,

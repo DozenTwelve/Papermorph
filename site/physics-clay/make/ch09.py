@@ -1,6 +1,6 @@
-"""ch09.py: the clay pictures of Elementary Physics chapter 1 (site/science/ch09, "Motion"), Section 1.
+"""ch09.py: the clay pictures of Elementary Physics chapter 1, "Motion", clay edition (site/physics-clay/ch09).
 
-    blender --background --factory-startup --python site/science/make/ch09.py -- --set road [--only truck,car] \
+    blender --background --factory-startup --python site/physics-clay/make/ch09.py -- --set road [--only truck,car] \
         [--engine cycles] [--device auto|OPTIX|CUDA|METAL|CPU] [--samples 64] [--scale 100] [--fstop 0.2] [--draft]
 
     --set park   beat 1: the ball's track on the grass (plate `park`, strip `ball`)

@@ -1,5 +1,5 @@
 // Papermorph science book: the clay set. Load after engine.js, figures.js and ../img/clay/clay.js (window.CLAY).
-// The pictures are Blender renders of a clay tabletop (site/science/make/): plates (a set without its movers),
+// The pictures are Blender renders of a clay tabletop (site/physics-clay/make/): plates (a set without its movers),
 // sprites (one mover with its shadow, on a transparent film) and strips (a wheel or a ball at N angles, side by
 // side). The page moves them exactly as it moved the pixel figures: the Blender camera is orthographic and never
 // turns, so a sprite at page (x, y) is the frame Blender would render with the thing there (make/claykit.py).
@@ -7,7 +7,7 @@
 'use strict';
 const CL = window.CLAY, CLI = CL.img, CR = CL.road;   // CR: the road's lanes in page px (far, near, side) and its period W
 const clSrc = name => `../img/clay/${name}.webp`;
-const clOf = name => CLI[name] || (() => { throw new Error(`clay.js: no picture '${name}' in img/clay/clay.js (render it with site/science/make)`); })();
+const clOf = name => CLI[name] || (() => { throw new Error(`clay.js: no picture '${name}' in img/clay/clay.js (render it with site/physics-clay/make)`); })();
 for (const name in CLI) new Image().src = clSrc(name);   // fetched at load, so a beat's first frame has its picture
 
 // A plate, or a sprite placed by its anchor (a vehicle: the middle of its lane under its centre; a person: the feet).

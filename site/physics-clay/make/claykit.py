@@ -51,7 +51,7 @@ def arguments(extra=None):
     ap.add_argument('--marks', type=float, default=1.0, help='strength of the surface marks in the clay materials')
     ap.add_argument('--quality', type=int, default=82, help='WebP quality')
     ap.add_argument('--out', default=os.path.join(ROOT, 'books', 'science-clay', 'render'), help='raw PNG frames')
-    ap.add_argument('--site', default=os.path.join(ROOT, 'site', 'science', 'img', 'clay'), help='what the page loads')
+    ap.add_argument('--site', default=os.path.join(ROOT, 'site', 'physics-clay', 'img', 'clay'), help='what the page loads')
     ap.add_argument('--reuse', action='store_true', help='keep raw frames that exist: only pack them again (a new --quality)')
     ap.add_argument('--draft', action='store_true', help='PNG only, no WebP and no clay.js entry (look tests)')
     if extra: extra(ap)
@@ -249,7 +249,7 @@ def write_manifest(meta):
         if m: old = json.loads(m.group(1))
     old.update(meta)
     old.setdefault('img', {}).update(MANIFEST)
-    open(path, 'w').write('// Written by site/science/make (Blender): the clay pictures, their sizes and where they sit. Do not edit.\n'
+    open(path, 'w').write('// Written by site/physics-clay/make (Blender): the clay pictures, their sizes and where they sit. Do not edit.\n'
                           'window.CLAY = ' + json.dumps(old, indent=1) + ';\n')
     print(f'clay.js: {len(MANIFEST)} assets written, {len(old["img"])} in all')
 
