@@ -157,7 +157,7 @@ async def parts_2_to_4(pg, state, idx, n):
         n += 2
     for t in (await mark('turnfeel', 'dir') + 1, await mark('turnfeel', 'feel') + .5): await heading('turnfeel', t, 'car_top', 70); n += 2
     for t in (.5, 1.6, 2.9): await heading('q3', t, 'walker_top', 220); n += 2
-    for t in (.6, 1.4): await heading('q4', t, 'bee', 170 * .9); n += 2
+    for t in (.6, 1.4): await heading('q4', t, 'bee', 190 * .9); n += 2
     i = await idx('accel')
     for t in (6.0, 7.5):                                     # the boxes fade in at "ways"
         st_ = await heading('accel', t, 'car_top', None)

@@ -16,7 +16,7 @@
                  pedal used elsewhere
     --set pool   beat 14: the pool, a dolphin and a walrus (their underwater halves cut by the water)
     --set top    beats 19, 20, 23, 26, 27: seen and lit straight down (so a turned sprite stays exact): the corner
-                 street, the round track, the square block, the flower bed; the car, a walker and a bee from above
+                 street, the round track, the neighbourhood round one square block, the flower bed; the car, a walker and a bee from above
 
 Paths come from this file's place in the repository; every setting is an argument (claykit.arguments). What each
 asset is and why it is exact under the page's own motion is in claykit.py. Finals on a GPU:
@@ -681,16 +681,20 @@ if a.set == 'track':
 
 # ================================================================ pool: the dolphin and the walrus (beat 14)
 if a.set == 'pool':
-    Y0 = 300.0
-    FOCUS = 0.0
-    DL, WL = 1.2, -1.2                # the dolphin's lane (far) and the walrus's (near), depths
-    water = [slab('water', -1.5, 17.5, -2.4, 2.6, 0.0, clay('water', '#2f6f9e', rough=0.22, feat=1.8, specks=0, marks=0.5, sss=0.1), thick=0.4, d=0.1, wobble=0, lump=0.012)]
-    tile = clay('tile', '#d8d2c4', rough=0.55, feat=0.8)
-    deck = [slab('deck_far', -1.5, 17.5, 2.6, 5.5, 0.14, tile, thick=0.3, d=0.1, wobble=0.02, lump=0.006, seed=3),
-            slab('deck_near', -1.5, 17.5, -5.0, -2.4, 0.14, tile, thick=0.3, d=0.1, wobble=0.02, lump=0.006, seed=4)]
-    rope = [ball(f'bead{i}', 0.06, clay('rope' + str(i % 2), ['#f05a46', '#ece8dc'][i % 2], specks=0), (-1.4 + 0.2 * i, 0.0, 0.02), squash=(1.2, 1, .8), lump=0, dents=0) for i in range(95)]
+    Y0 = 420.0                        # the whole stage: far deck at the top, the water from y 210 to 560, near deck under the card
+    FOCUS = 0.6
+    DL, WL, RL = 2.2, -1.2, 0.5       # the dolphin's lane (far), the walrus's (near), the rope between them: depths
+    water = [slab('water', -1.5, 17.5, -2.8, 4.2, 0.0, clay('water', '#2f6f9e', rough=0.22, feat=1.8, specks=0, marks=0.5, sss=0.1), thick=0.4, d=0.1, wobble=0, lump=0.012)]
+    tile = clay('tile', '#6f8288', rough=0.6, feat=0.8)
+    cope = clay('cope', '#d8d2c4', rough=0.55, feat=0.8)
+    deck = [slab('deck_far', -1.5, 17.5, 4.5, 9.8, 0.14, tile, thick=0.3, d=0.12, wobble=0.0, lump=0.006, seed=3),
+            slab('deck_near', -1.5, 17.5, -10.5, -3.1, 0.14, tile, thick=0.3, d=0.12, wobble=0.0, lump=0.006, seed=4),
+            slab('cope_far', -1.5, 17.5, 4.2, 4.55, 0.18, cope, thick=0.3, d=0.06, wobble=0.015, lump=0.004, seed=5),
+            slab('cope_near', -1.5, 17.5, -3.15, -2.8, 0.18, cope, thick=0.3, d=0.06, wobble=0.015, lump=0.004, seed=6)]
+    for k_, y in enumerate((DL, WL)):   # dark lane lines on the pool floor, seen through the water
+        deck.append(slab(f'laneline{k_}', -1.5, 17.5, y - 0.07, y + 0.07, 0.006, clay('laneline', '#245a84', specks=0, marks=0.2), thick=0.02, d=0.06, wobble=0.01, lump=0.002, seed=40 + k_))
+    rope = [ball(f'bead{i}', 0.07, clay('rope' + str(i % 2), ['#f05a46', '#ece8dc'][i % 2], specks=0), (-1.4 + 0.2 * i, RL, 0.02), squash=(1.2, 1, .8), lump=0, dents=0) for i in range(95)]
     group('water', *water); group('deck', *deck, *rope)
-    group('scenery', *hills([-1.0, 2.6, 6.2, 9.8, 13.4, 17.0], 7.2, 31))
 
     grey, belly = clay('dolphin', '#7d9bb2', rough=0.35, sss=0.1), clay('belly', '#c9d6de', rough=0.4)
     dz = 0.04
@@ -711,14 +715,17 @@ if a.set == 'pool':
            roll('w_tusk1', (2.0 + 0.94, WL + 0.02, 0.14), (2.0 + 0.98, WL + 0.04, -0.12), 0.025, clay('tusk', '#f2ead8', specks=0), lump=0),
            ball('w_eye', 0.03, clay('eye', '#1d2a35', specks=0), (2.0 + 0.8, WL - 0.2, 0.36), lump=0, dents=0),
            ball('w_flip', 0.16, brown, (2.0 + 0.2, WL - 0.42, 0.06), squash=(1.3, .5, .3), lump=0.004, dents=0)]
-    for nm, objs, ly, L_ in (('dol', dol, DL, 1.0), ('wal', wal, WL, 0.75)):
+    for objs, ly in ((dol, DL), (wal, WL)):   # half as big again: the swimmers fill their lanes
+        c_ = Vector((2.0, ly, 0))
+        for o in objs: o.location = c_ + (o.location - c_) * 1.5; o.scale = o.scale * 1.5
+    for nm, objs, ly, L_ in (('dol', dol, DL, 1.5), ('wal', wal, WL, 1.15)):
         for i in range(12):   # a wake: pale beads round the waterline
             t = 2 * math.pi * i / 12
-            objs.append(ball(f'{nm}_wake{i}', 0.05, clay('wake', '#d5e7f0', specks=0, rough=0.4), (2.0 + L_ * math.cos(t), ly + 0.32 * math.sin(t), 0.01), squash=(1.6, 1, .35), lump=0, dents=0))
+            objs.append(ball(f'{nm}_wake{i}', 0.07, clay('wake', '#d5e7f0', specks=0, rough=0.4), (2.0 + L_ * math.cos(t), ly + 0.48 * math.sin(t), 0.01), squash=(1.6, 1, .35), lump=0, dents=0))
     group('dolphin', *dol); group('walrus', *wal)
     lane = lambda y: K.px(2.0, y, 0, Y0)
-    meta = {'pool': {'Y0': Y0, 'dolphin': [round(v, 1) for v in lane(DL)], 'walrus': [round(v, 1) for v in lane(WL)]}}
-    if want('pool'): shot('pool', (0, 100, 1600, 380), Y0, FOCUS, show=['water', 'deck', 'scenery'])
+    meta = {'pool': {'Y0': Y0, 'dolphin': [round(v, 1) for v in lane(DL)], 'walrus': [round(v, 1) for v in lane(WL)], 'far': round(K.px(0, 4.4, 0.18, Y0)[1], 1)}}
+    if want('pool'): shot('pool', (0, 0, 1600, 900), Y0, FOCUS, show=['water', 'deck'])
     if want('dolphin'): shot('dolphin', rect_of(dol, Y0, pad=10), Y0, FOCUS, show=['dolphin'], holdout=['water'], anchor=lane(DL))
     if want('walrus'): shot('walrus', rect_of(wal, Y0, pad=10), Y0, FOCUS, show=['walrus'], holdout=['water'], anchor=lane(WL))
     K.write_manifest(meta)
@@ -771,27 +778,44 @@ if a.set == 'top':
     loop = [lawn('lawn_l', 0, 0, 1600, 900)] + road('ring', ring, closed=True) + [bush('lbush0', 800, 450, 70), bush('lbush1', 740, 400, 40), bush('lbush2', 860, 500, 46)]
     for o in loop: o.location.x += 30                  # built aside, so the sets do not overlap
     group('loop', *loop)
-    # the square block (beat 20): a pavement round a lawn with three houses
-    X0, X1, Y0b, Y1 = 520, 1080, 110, 390
+    # the neighbourhood (beat 20): one square block, 390 px a side (the walker's path), a street all round it, more
+    # houses beyond; the whole stage, the question card over its foot
+    X0, X1, Y0b, Y1 = 605, 995, 70, 460
     walk = clay('walk', C['walk'], rough=0.58, feat=1.4, spec=0.1)
-    (bx0, by1), (bx1, by0) = B(X0 - 50, Y0b - 50), B(X1 + 50, Y1 + 50)
-    block = [lawn('lawn_b', X0 - 100, Y0b - 100, X1 + 100, Y1 + 100), slab('pave', bx0, bx1, by0, by1, 0.05, walk, thick=0.1, d=0.08, wobble=0.02, lump=0.006, seed=8)]
-    (ix0, iy1), (ix1, iy0) = B(X0 + 30, Y0b + 30), B(X1 - 30, Y1 - 30)
-    block.append(slab('inner', ix0, ix1, iy0, iy1, 0.1, grass, thick=0.1, d=0.1, wobble=0.02, lump=0.01, seed=9))
-    for i, (x, y) in enumerate([(X0 + 80, Y0b + 70), (X0 + 250, Y0b + 70), (X0 + 420, Y0b + 130)]): block += roofhouse(f'bhouse{i}', x, y, 110, 90, ['#a65d4b', '#6f86b8', '#c9905a'][i])
-    for o in block: o.location.y -= 30
-    group('block', *block)
-    # the flower bed (beat 27)
+    hood = [lawn('lawn_h', -40, -40, 1640, 940)]
+    def ring(o, r=90, n=8):   # the street round the block: a rectangle with rounded corners (a sharp corner folds the band)
+        cs = [(X1 + o - r, Y0b - o + r, -90), (X1 + o - r, Y1 + o - r, 0), (X0 - o + r, Y1 + o - r, 90), (X0 - o + r, Y0b - o + r, 180)]
+        return [(cx + r * math.cos(math.radians(a0 + 90 * k / n)), cy + r * math.sin(math.radians(a0 + 90 * k / n))) for cx, cy, a0 in cs for k in range(n + 1)]
+    hood += road('hood_road', ring(132), closed=True)
+    (bx0, by1), (bx1, by0) = B(X0 - 60, Y0b - 60), B(X1 + 60, Y1 + 60)
+    hood.append(slab('pave', bx0, bx1, by0, by1, 0.05, walk, thick=0.1, d=0.08, wobble=0.02, lump=0.006, seed=8))
+    (ix0, iy1), (ix1, iy0) = B(X0 + 48, Y0b + 48), B(X1 - 48, Y1 - 48)
+    hood.append(slab('inner', ix0, ix1, iy0, iy1, 0.1, grass, thick=0.1, d=0.1, wobble=0.02, lump=0.01, seed=9))
+    cols = ['#a65d4b', '#6f86b8', '#c9905a', '#8f7bb8']
+    for i, (x, y) in enumerate([(670, 125), (840, 125), (670, 245), (840, 245)]): hood += roofhouse(f'bhouse{i}', x, y, 95, 85, cols[i])
+    for i, (x, y) in enumerate([(60, 70), (250, 70), (90, 300), (260, 330), (60, 560), (1290, 70), (1440, 160), (1300, 330), (1450, 470), (1300, 600)]):
+        hood += roofhouse(f'nhouse{i}', x, y, 110, 90, cols[i % 4])
+    for i, (x, y) in enumerate([(200, 230), (420, 130), (1200, 250), (1180, 520), (420, 560), (180, 470), (1520, 330), (760, 800), (980, 760)]):
+        hood.append(bush(f'htree{i}', x, y, 34 + 8 * (i % 3)))
+    for o in hood: o.location.y -= 90
+    group('hood', *hood)
+    # the flower bed (beat 27): the whole stage, flowers in clumps, a few stones, clear round the bee's circle
     rnd = random.Random(41)
-    bed = [lawn('lawn_m', -40, 30, 1640, 480)]
-    for i in range(46):
-        x, y = rnd.uniform(0, 1600), rnd.uniform(60, 450)
-        if math.hypot(x - 800, y - 270) < 110: continue
+    bed = [lawn('lawn_m', -40, -40, 1640, 940)]
+    for cl in range(26):
+        cx_, cy_ = rnd.uniform(30, 1570), rnd.uniform(30, 870)
         c = rnd.choice(['#f4a48c', '#ece8dc', '#f3c95c', '#bba8ee', '#e8a0c8'])
-        for j in range(5):
-            t = 2 * math.pi * j / 5
-            bed.append(ball(f'pet{i}_{j}', 0.075, clay('petal' + c, c, specks=0, spec=0.1), (*B(x + 9 * math.cos(t), y + 9 * math.sin(t)), 0.08), squash=(1, 1, .4), lump=0, dents=0))
-        bed.append(ball(f'eye{i}', 0.05, clay('fcentre', '#f6c445', specks=0), (*B(x, y), 0.11), squash=(1, 1, .5), lump=0, dents=0))
+        for i in range(rnd.randint(3, 7)):
+            x, y = cx_ + rnd.uniform(-60, 60), cy_ + rnd.uniform(-45, 45)
+            if abs(math.hypot(x - 800, y - 300) - 190) < 55: continue          # the bee's path stays clear
+            for j in range(5):
+                t = 2 * math.pi * j / 5
+                bed.append(ball(f'pet{cl}_{i}_{j}', 0.085, clay('petal' + c, c, specks=0, spec=0.1), (*B(x + 10 * math.cos(t), y + 10 * math.sin(t)), 0.08), squash=(1, 1, .4), lump=0, dents=0))
+            bed.append(ball(f'eye{cl}_{i}', 0.055, clay('fcentre', '#f6c445', specks=0), (*B(x, y), 0.11), squash=(1, 1, .5), lump=0, dents=0))
+    for i in range(8):
+        x, y = rnd.uniform(40, 1560), rnd.uniform(40, 860)
+        if abs(math.hypot(x - 800, y - 300) - 190) < 70: continue
+        bed.append(ball(f'stone{i}', rnd.uniform(.12, .2), clay('stone', '#8e968f', rough=0.6), (*B(x, y), 0.05), squash=(1.3, 1, .5), lump=0.01, dents=1, dent_r=(.04, .06)))
     for o in bed: o.location.y -= 60
     group('bed', *bed)
     # sprites, all at the origin facing east (+x), turned by the page
@@ -807,18 +831,21 @@ if a.set == 'top':
               ball('wk_shoeL', 0.07, clay('shoe', C['shoe']), (70.2, -0.1, 0.05), squash=(1.5, .9, .6), lump=0, dents=0),
               ball('wk_shoeR', 0.07, clay('shoe', C['shoe']), (70.08, 0.1, 0.05), squash=(1.5, .9, .6), lump=0, dents=0)]
     group('walker_top', *walker)
-    yel, blk = clay('beey', '#f6c445', rough=0.45, spec=0.15), clay('beeb', '#262f2d', rough=0.45, spec=0.15)
-    bee = [ball('bee_body', 0.3, yel, (80, 0, 0.5), squash=(1.45, 1, .9), lump=0.01, dents=1, dent_r=(.04, .06)),
-           ball('bee_head', 0.17, blk, (80.42, 0, 0.52), lump=0.004, dents=0)]
-    for j, dx in enumerate((-0.12, 0.08, 0.28)): bee.append(ball(f'bee_band{j}', 0.31, blk, (80 + dx - 0.05, 0, 0.5), squash=(.12, .95, .87), lump=0, dents=0))
-    for j, sy in enumerate((-1, 1)): bee.append(ball(f'bee_wing{j}', 0.24, clay('wing', '#e4f0f6', rough=0.3, specks=0, sss=0.3, spec=0.2), (80.02, sy * 0.3, 0.82), squash=(.75, 1.25, .12), rot=(0, 0, sy * -0.35), lump=0, dents=0))
+    # the bee from above: a yellow body with three wide black bands, a black head, two small pale wings set back on
+    # the shoulders so the bands stay in sight
+    yel, blk = clay('beey', '#f6c445', rough=0.45, spec=0.15), clay('beeb', '#1f2624', rough=0.45, spec=0.15)
+    bee = [ball('bee_body', 0.3, yel, (80, 0, 0.5), squash=(1.5, 1, .9), lump=0.008, dents=0),
+           ball('bee_head', 0.18, blk, (80.47, 0, 0.52), lump=0.004, dents=0),
+           ball('bee_sting', 0.06, blk, (79.52, 0, 0.5), squash=(1.6, 1, 1), lump=0, dents=0)]
+    for j, dx in enumerate((-0.27, -0.05, 0.17)): bee.append(ball(f'bee_band{j}', 0.312, blk, (80 + dx, 0, 0.5), squash=(.24, .96, .88), lump=0, dents=0))
+    for j, sy in enumerate((-1, 1)): bee.append(ball(f'bee_wing{j}', 0.17, clay('wing', '#cde0ea', rough=0.25, specks=0, sss=0.3, spec=0.3), (80.2, sy * 0.3, 0.85), squash=(.62, 1.15, .1), rot=(0, 0, sy * 0.45), lump=0, dents=0))
     group('bee', *bee)
     meta = {'top': {'car': 0.58, 'note': 'sprites face east at rotation 0; the page turns them'}}
     if want('corner'): shot('corner', (-200, -200, 2000, 1300), Y0, (0, 0, 0), show=['corner'])
     if want('loop'): shot('loop', (3000, 0, 1600, 900), Y0, (30, 0, 0), show=['loop'], extra={'x': 0, 'y': 0})
-    if want('block'): shot('block', (420, 10 + 3000, 760, 480), Y0, (0, -30, 0), show=['block'], extra={'y': 10})
-    if want('bed'): shot('bed', (-40, 30 + 6000, 1680, 450), Y0, (0, -60, 0), show=['bed'], extra={'y': 30})
+    if want('hood'): shot('hood', (0, 9000, 1600, 900), Y0, (0, -90, 0), show=['hood'], extra={'y': 0})
+    if want('bed'): shot('bed', (0, 6000, 1600, 900), Y0, (0, -60, 0), show=['bed'], extra={'y': 0})
     if want('car_top'): shot('car_top', (6000 - 150, -150, 300, 300), Y0, (60, 0, 0), show=['car_top'], anchor=(6000, 0), zoom=2)
-    if want('walker_top'): shot('walker_top', (7000 - 45, -45, 90, 90), Y0, (70, 0, 0), show=['walker_top'], anchor=(7000, 0), zoom=2)
-    if want('bee'): shot('bee', (8000 - 70, -70, 140, 140), Y0, (80, 0, 0), show=['bee'], anchor=(8000, 0), zoom=2)
+    if want('walker_top'): shot('walker_top', (7000 - 45, -45, 90, 90), Y0, (70, 0, 0), show=['walker_top'], anchor=(7000, 0), zoom=3)
+    if want('bee'): shot('bee', (8000 - 70, -70, 140, 140), Y0, (80, 0, 0), show=['bee'], anchor=(8000, 0), zoom=3)
     K.write_manifest(meta)
