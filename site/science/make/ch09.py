@@ -30,7 +30,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import claykit as K
 from claykit import clay, box, ball, roll, slab, part, empty, copy, group, shot, lathe_mesh, rbox_mesh, moved, ribbon
 
-a = K.arguments(lambda ap: ap.add_argument('--set', required=True, choices=['park', 'road', 'table', 'globe', 'train', 'track', 'pool', 'top']))
+def _extra(ap):
+    ap.add_argument('--set', required=True, choices=['park', 'road', 'table', 'globe', 'train', 'track', 'pool', 'top'])
+    ap.add_argument('--mock', default='', help='a look test of the upper frame for one beat: A (the set\'s painted back wall), B (+ a chalkboard), C (+ a wooden sign; a paper card on beat 15)')
+    ap.add_argument('--mockbeat', type=int, default=0, help='3, 9 (road set) or 10, 15 (track set)')
+
+
+a = K.arguments(_extra)
 ONLY = set(filter(None, a.only.split(',')))
 want = lambda n: not ONLY or n in ONLY
 if a.fstop is None: a.fstop = {'park': 0.2, 'road': 0.26, 'table': 0.22, 'globe': 0.8, 'train': 0.3, 'track': 0.22, 'pool': 0.3, 'top': 1.2}[a.set]   # the road holds two lanes and a pavement in its sharp band
@@ -295,6 +301,7 @@ if a.set == 'road':
     for i, objs in enumerate(cw): group(f'cw{i}', *objs)
     lroot, lb, laxles, lw = car_build('car_l', cy, sx=-1)
     group('car_l', *lb)
+    group('car_l_wheels', *[o for objs in lw for o in objs])   # in a group, so every other shot leaves them out
     yroot, yb, _, yw = car_build('car_y', cy, both=True)
     group('car_y', *yb, *[o for objs in yw for o in objs])
     # ---- the traffic light on the far pavement (frames: red, green) and the pedals of beat 25
@@ -337,8 +344,6 @@ if a.set == 'road':
     if want('car_l'):
         bpy.context.view_layer.update()      # the mirrored root's transform reaches the axles only after an update
         offs = [[round(v, 2) for v in (ax.matrix_world.translation.x * K.U, K.px(0, ax.matrix_world.translation.y, ax.matrix_world.translation.z, Y0)[1] - lane_y(cy))] for ax in laxles]
-        hide = [o for objs in lw for o in objs]
-        group('car_l_wheels', *hide)
         shot('car_l', rect_of(lb, Y0), Y0, FOCUS, show=['car_l'], catch=['ground'], unseen=['car_l_wheels'], anchor=(0, lane_y(cy)),
              extra={'wheel': 'car_wheel', 'wheels': offs, 'r': CW_R * K.U})
     if want('car_y'):
@@ -849,3 +854,62 @@ if a.set == 'top':
     if want('walker_top'): shot('walker_top', (7000 - 45, -45, 90, 90), Y0, (70, 0, 0), show=['walker_top'], anchor=(7000, 0), zoom=3)
     if want('bee'): shot('bee', (8000 - 70, -70, 140, 140), Y0, (80, 0, 0), show=['bee'], anchor=(8000, 0), zoom=3)
     K.write_manifest(meta)
+
+
+# ================================================================ look test: the whole frame as one set (not shipped)
+# The upper frame was the page's flat board. Here the set gets a painted back wall behind its hills, and, under the
+# text of a beat, a prop standing on the table: a chalkboard (B) or a wooden sign (C; on the summary, a paper card
+# pinned to a board). Rendered as the whole frame the beat's camera sees, to books/ (a draft).
+MOCK = {   # beat: (camera x, y, zoom), the screen rectangle the prop must hold (x0, y0, x1, y1), the prop's depth
+    3: ((800, 450, 1.0), (60, 55, 730, 190), 4.45),
+    9: ((800, 285, 0.9), (300, 30, 1300, 352), 4.45),
+    10: ((800, 450, 1.0), (270, 22, 1580, 330), 3.7),
+    15: ((800, 300, 1.0), (96, 40, 1504, 470), 3.7),
+}
+if a.mock:
+    (cx, cy, zz), (sx0, sy0, sx1, sy1), yb = MOCK[a.mockbeat]
+    sw = lambda sx, sy: (cx + (sx - 800) / zz, cy + (sy - 450) / zz)          # a screen point in the set's page world
+    Zof = lambda wy, d: (Y0 - wy - K.U * d * SIN) / (K.U * COS)               # height in the set of a page y at depth d
+    mock = []
+    # the painted back wall: a dusk sky brushed on board, deep at the top, misty near the hills
+    WD = 7.6 if a.set == 'road' else 7.0
+    me = rbox_mesh((70, 0.3, 14), 0.1, 0.16)
+    n_ = len(me.vertices)
+    co = np.empty(n_ * 3, 'f'); me.vertices.foreach_get('co', co); co = co.reshape(n_, 3)
+    t = np.clip((co[:, 2] + 7) / 9.0, 0, 1)
+    streak = np.array([noise.noise(Vector((v[0] * 0.25, 0, v[2] * 1.4))) for v in co], 'f')
+    lo, mid, hi, cl = (np.array(K.srgb(h)[:3], 'f') for h in ('#7f98a2', '#2f4d66', '#15223a', '#a3b6bd'))
+    u_ = np.clip(t * 2.2, 0, 1)[:, None]; v_ = np.clip((t - 0.45) / 0.55, 0, 1)[:, None]
+    col = (lo * (1 - u_) + mid * u_) * (1 - v_) + hi * v_            # a warm glow above the hills, deep blue overhead
+    k_ = np.clip((streak - 0.25) * 2.5, 0, 0.45) * (1 - t)[:, None].ravel()
+    col = col * (1 - k_)[:, None] + cl * k_[:, None]
+    ca = me.color_attributes.new('col', 'FLOAT_COLOR', 'POINT'); ca.data.foreach_set('color', np.hstack([col, np.ones((n_, 1), 'f')]).ravel())
+    mock.append(slab('mockground', -10, 40, 4.0, WD + 0.2, 0.0, clay('grass', C['grass'], rough=0.6, feat=1.5, stipple=0.5, prints=0.3, specks=0.4), thick=0.3, d=0.2, wobble=0, lump=0.02))   # the table runs on to the wall
+    mock.append(part('backwall', me, clay('backwall', '#ffffff', rough=0.8, vcol=True, specks=0.2, marks=0.7, spec=0.1), (10, WD, 7.0 - 0.1), lump=0.02, dents=0))
+    (wx0, wy0), (wx1, wy1) = sw(sx0, sy0), sw(sx1, sy1)
+    X0_, X1_, Z1_, Z0_ = wx0 / K.U, wx1 / K.U, Zof(wy0, yb), Zof(wy1, yb)
+    W_, H_, XC = X1_ - X0_, Z1_ - Z0_, (X0_ + X1_) / 2
+    wood = clay('wood', '#7a5236', rough=0.6, feat=0.8)
+    legs = lambda: [roll(f'leg{j}', (x, yb + 0.05, Z0_ + 0.1), (x + dx, yb + 0.55, -0.05), 0.07, wood, lump=0.008)
+                    for j, (x, dx) in enumerate(((X0_ + 0.35, -0.12), (X1_ - 0.35, 0.12)))]
+    if a.mock == 'B':      # a chalkboard in a wooden frame, on two legs leaning back
+        mock += [box('slate', (W_, 0.12, H_), clay('slate', '#223029', rough=0.85, feat=1.2, specks=0.3, marks=0.6, stipple=0.3, spec=0.05), (XC, yb, Z0_ + H_ / 2), r=0.03, d=0.06, lump=0.006, dents=3, dent_r=(.2, .4))]
+        for j, (dx, dz, w_, h_) in enumerate([(0, H_ / 2, W_ + 0.24, 0.14), (0, -H_ / 2, W_ + 0.24, 0.14), (W_ / 2, 0, 0.14, H_ + 0.24), (-W_ / 2, 0, 0.14, H_ + 0.24)]):
+            mock.append(box(f'frame{j}', (w_, 0.18, h_), wood, (XC + dx, yb - 0.03, Z0_ + H_ / 2 + dz), r=0.05, d=0.04, lump=0.008, dents=2))
+        mock.append(box('ledge', (W_ * 0.9, 0.22, 0.06), wood, (XC, yb - 0.12, Z0_ - 0.02), r=0.02, d=0.04, lump=0.004, dents=0))
+        mock += legs()
+    elif a.mock == 'C' and a.mockbeat == 15:   # a paper card pinned to a wooden board
+        mock.append(box('board', (W_, 0.14, H_), clay('boardw', '#5b3f2b', rough=0.6, feat=0.8), (XC, yb, Z0_ + H_ / 2), r=0.06, d=0.06, lump=0.012, dents=5, dent_r=(.2, .4)))
+        mock.append(box('card', (W_ - 0.36, 0.03, H_ - 0.34), clay('paper', '#efe6d2', rough=0.75, specks=0.15, marks=0.4, sss=0.1), (XC, yb - 0.09, Z0_ + H_ / 2), r=0.015, d=0.05, lump=0.006, dents=0))
+        for j, (dx, dz) in enumerate([(-1, 1), (1, 1), (-1, -1), (1, -1)]):
+            mock.append(ball(f'pin{j}', 0.07, clay('pin', '#e05a46', specks=0), (XC + dx * (W_ / 2 - 0.3), yb - 0.13, Z0_ + H_ / 2 + dz * (H_ / 2 - 0.28)), lump=0, dents=0))
+        mock += legs()
+    elif a.mock == 'C':    # a sign of wooden planks on two posts
+        n_pl = max(2, round(H_ / 0.55)); hp = H_ / n_pl
+        for j in range(n_pl):
+            mock.append(box(f'plank{j}', (W_, 0.12, hp - 0.05), clay('plank' + str(j % 3), ['#6b4a33', '#74503a', '#614230'][j % 3], rough=0.6, feat=0.7, prints=0.4),
+                            (XC, yb, Z0_ + hp * (j + 0.5)), r=0.04, d=0.05, lump=0.01, dents=3, dent_r=(.15, .3), seed=50 + j))
+        mock += [roll(f'post{j}', (x, yb + 0.12, -0.05), (x, yb + 0.12, Z1_ + 0.15), 0.1, wood, lump=0.01) for j, x in enumerate((X0_ + 0.5, X1_ - 0.5))]
+    group('mock', *mock)
+    keep = ['ground', 'scenery', 'mock']
+    shot(f'mock_{a.mockbeat}{a.mock}', (cx - 800 / zz, cy - 450 / zz, 1600 / zz, 900 / zz), Y0, FOCUS, show=keep, zoom=zz)
