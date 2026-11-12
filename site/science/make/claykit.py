@@ -163,12 +163,13 @@ def group(name, *objs):
     return objs[0] if len(objs) == 1 else objs
 
 
-def shot(name, rect, Y0, focus_y, show, catch=(), unseen=(), frames=None, anchor=None, extra=None, zoom=1, round_=None):
+def shot(name, rect, Y0, focus_y, show, catch=(), unseen=(), frames=None, anchor=None, extra=None, zoom=1, round_=None, holdout=()):
     """Render one asset and write it for the page.
 
     show: groups the camera sees. catch: groups that only catch shadows (the ground under a sprite). unseen: groups
     that light and shadow the picture but the camera does not see (a truck's body while its wheel is shot).
-    Every other group is out of the render. frames: [(key, fn)]: a strip; fn() poses the frame.
+    holdout: groups that hide what is behind them and are themselves cut out of the picture (the water an animal
+    swims in: its underwater half is not drawn). Every other group is out of the render. frames: [(key, fn)]: a strip; fn() poses the frame.
     anchor: the page point (x, y) the sprite is placed by; clay.js gets its offset inside the image. extra: more
     fields for the page (a wheel's radius, a road's period). zoom: render this many times finer than the page's
     size (a picture the page's camera goes close to). round_=(r0, r1): fade the alpha to 0 from r0 to r1 page px
@@ -176,11 +177,17 @@ def shot(name, rect, Y0, focus_y, show, catch=(), unseen=(), frames=None, anchor
     sc = bpy.context.scene
     x, y, w, h = rect = tuple(int(round(v)) for v in rect)
     for g, objs in GROUPS.items():
-        on = g in show or g in catch or g in unseen
+        on = g in show or g in catch or g in unseen or g in holdout
         for o in objs:
             o.hide_render = not on
             o.is_shadow_catcher = g in catch
             o.visible_camera = g not in unseen
+            if g in holdout:
+                o['mats'] = [m.name for m in o.data.materials]
+                for i in range(len(o.data.materials)): o.data.materials[i] = HOLD()
+            elif 'mats' in o:
+                for i, n in enumerate(o['mats']): o.data.materials[i] = bpy.data.materials[n]
+                del o['mats']
     aim(rect, Y0, focus_y, zoom)
     raw = os.path.join(os.path.abspath(A.out), name); os.makedirs(raw, exist_ok=True)
     t0 = time.time()
@@ -248,6 +255,17 @@ def write_manifest(meta):
 
 
 # ---------------------------------------------------------------- materials
+
+def HOLD():
+    """A holdout material: cuts its surface out of the picture (alpha 0) and hides what lies behind it."""
+    m = bpy.data.materials.get('holdout')
+    if m: return m
+    m = bpy.data.materials.new('holdout'); m.use_nodes = True
+    nt = m.node_tree; nt.nodes.clear()
+    h = nt.nodes.new('ShaderNodeHoldout'); o = nt.nodes.new('ShaderNodeOutputMaterial')
+    nt.links.new(h.outputs[0], o.inputs['Surface'])
+    return m
+
 
 MATS = {}
 SPECKS = ['#f4a48c', '#86c9e8', '#f3c95c', '#ece8dc', '#8fd6b0', '#bba8ee']   # crumbs of the other clays
@@ -515,3 +533,53 @@ def slab(name, x0, x1, y0, y1, top, mat, thick=0.3, d=0.1, wobble=0.03, period=0
     o = bpy.data.objects.new(name, me); bpy.context.scene.collection.objects.link(o)
     me.materials.append(mat)
     return o
+
+
+def fuse(meshes, voxel=0.03, smooth=8):
+    """Press several clay shapes into one piece: a voxel remesh of their union, smoothed, as a thumb blends a seam.
+    meshes: mesh data already in one shared space. Returns a new mesh (the inputs are removed)."""
+    bm = bmesh.new()
+    for me in meshes: bm.from_mesh(me); bpy.data.meshes.remove(me)
+    tmp = bpy.data.meshes.new('fuse'); bm.to_mesh(tmp); bm.free()
+    o = bpy.data.objects.new('fuse', tmp); bpy.context.scene.collection.objects.link(o)
+    r = o.modifiers.new('remesh', 'REMESH'); r.mode = 'VOXEL'; r.voxel_size = voxel; r.use_smooth_shade = True
+    s = o.modifiers.new('smooth', 'SMOOTH'); s.iterations = smooth; s.factor = 0.6
+    dg = bpy.context.evaluated_depsgraph_get()
+    me = bpy.data.meshes.new_from_object(o.evaluated_get(dg))
+    bpy.data.objects.remove(o); bpy.data.meshes.remove(tmp)
+    return me
+
+
+def moved(me, dx=0, dy=0, dz=0, taper=None):
+    """Move a mesh's vertices; taper=(z0, z1, k): shrink x and y towards the top by k between z0 and z1 (a car's glasshouse)."""
+    for v in me.vertices:
+        x, y, z = v.co
+        if taper:
+            z0, z1, k = taper; f = 1 - k * min(1, max(0, (z - z0) / (z1 - z0)))
+            x, y = x * f, y * f
+        v.co = (x + dx, y + dy, z + dz)
+    return me
+
+
+def ribbon(name, pts, half, z, mat, closed=False, d=0.08, lump=0.006, seed=0):
+    """A flat clay band of half-width `half` along a polyline of (x, y) points at height z (a road seen from above),
+    its edges rounded down to the table."""
+    import numpy as _np
+    P = [Vector((x, y, 0)) for x, y in pts]
+    out = []                                  # resample to about d
+    for a_, b_ in zip(P, P[1:] + ([P[0]] if closed else [])):
+        k = max(1, round((b_ - a_).length / d))
+        out += [a_.lerp(b_, i / k) for i in range(k)]
+    if not closed: out.append(P[-1])
+    n = len(out); bm = bmesh.new(); rows = []
+    prof = [(-1.0, -0.6), (-0.9, 0.0), (0.9, 0.0), (1.0, -0.6)]   # across the band: (offset / half, height / 0.05)
+    for i, p in enumerate(out):
+        q0, q1 = out[(i - 1) % n] if (closed or i) else p, out[(i + 1) % n] if (closed or i < n - 1) else p
+        t = (q1 - q0).normalized(); nrm = Vector((-t.y, t.x, 0))
+        rows.append([bm.verts.new(p + nrm * (half * u) + Vector((0, 0, z + 0.05 * h))) for u, h in prof])
+    for i in range(n if closed else n - 1):
+        a_, b_ = rows[i], rows[(i + 1) % n]
+        for j in range(len(prof) - 1): bm.faces.new((a_[j], b_[j], b_[j + 1], a_[j + 1]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    me = bpy.data.meshes.new(name); bm.to_mesh(me); bm.free()
+    return part(name, me, mat, lump=lump, dents=0, seed=seed)

@@ -36,6 +36,7 @@ function clVehicle(p, name, o) {
 }
 const clRoll = (v, dist) => v._wheels.forEach((w, i) => clTurn(w, dist, v._r, i * 7));   // each wheel was pressed on at its own angle
 const clTruck = (p, o) => clVehicle(p, 'truck', { y: CR.far, ...o }), clCar = (p, o) => clVehicle(p, 'car', { y: CR.near, ...o });
+const clCarL = (p, o) => clVehicle(p, 'car_l', { y: CR.near, ...o });   // your car facing left (built mirrored, so its windows and wheels face us)
 // The road on a camera, as phRoad: the plate repeats every CR.W px, so a follow shot can run any distance.
 // Returns the layers to add things to, back to front: side (people on the far pavement), vehicles, front (labels).
 function clRoad(cam) {
@@ -49,5 +50,9 @@ function clRoad(cam) {
   mk('stop', { offset: 0, 'stop-color': COL.board, 'stop-opacity': 0 }, g);
   mk('stop', { offset: .45, 'stop-color': COL.board, 'stop-opacity': .7 }, g);
   mk('stop', { offset: 1, 'stop-color': COL.board, 'stop-opacity': .86 }, g);
+  const sky = mk('linearGradient', { id: 'clSky', x1: 0, y1: 0, x2: 0, y2: 1 }, g.parentNode);   // daylight: deep at the top, pale at the horizon
+  mk('stop', { offset: 0, 'stop-color': '#3f6e9e' }, sky);
+  mk('stop', { offset: .65, 'stop-color': '#7fa9cc' }, sky);
+  mk('stop', { offset: 1, 'stop-color': '#c9ddea' }, sky);
 }
 const clScrim = (p, y0 = 680, o = {}) => put(mk('rect', { x: 0, y: y0, width: SW, height: SH - y0, fill: 'url(#clScrim)' }, p), o);

@@ -1,14 +1,16 @@
 # Clay pictures for the science book (Blender)
 
-Chapter 1 (`ch09/`), Section 1 (beats 0-8) is drawn as a clay tabletop miniature rendered in Blender. Beats 9-31 and
-chapters 10-19 still use the pixel set (`lib/figures.js`, `img/*.png`); nothing they load was changed.
+Chapter 1 (`ch09/`) is drawn as a clay tabletop miniature rendered in Blender, all lesson beats (0-28; 29-31 are the
+practice and finish cards). Chapters 10-19 still use the pixel set (`lib/figures.js`, `img/*.png`); nothing they load was
+changed.
 
 ## How the pictures stay exact
 
 The page never plays a rendered sequence. Blender renders **plates** (a set without its movers), **sprites** (one
 mover on a transparent film with its shadow, from a shadow catcher) and **strips** (a wheel, a ball, a turning page,
 an orbiting Earth, a walking figure at N angles or poses side by side). The page moves them on the beat clock as it
-moved the pixel figures, and the labels stay SVG over them. The camera is orthographic and never turns, so a sprite
+moved the pixel figures, and the labels stay SVG over them. Sets seen from straight above (`--set top`, the globe)
+are also lit straight down, so a sprite the page turns (the car, a walker, the bee) is exact at any heading. The camera is orthographic and never turns, so a sprite
 moved sideways is the frame Blender would render with the thing there (`claykit.py`). The globe (beat 6) is seen and
 lit along its axis, so its picture turned by the page is exact at any angle. Pause, seek, replay and `?beat=N&t=S`
 give the same picture, and `check_ch09.py` measures it.
@@ -20,11 +22,16 @@ give the same picture, and `check_ch09.py` measures it.
 | 2 everywhere | `table` plate + `leaf` strip (16 angles of the page), `sun` sprite, `earth` strip (24 positions on the orbit, lit side toward the Sun), `walk` strip (8 replacement poses chosen by distance walked) |
 | 6 earth | `space` still under the camera + `globe` (its soft shadow on the table included, feathered round) + `globe_cap` (the top, 3x finer, for the close ground views) |
 | 7 q1 | `train` plate (static) |
+| 9 part2, 16 part3, 22 part4, 25 sign, 12 average, 18 change, 21 wrap3, 28 wrap4 | the road at different zooms; `car_l` (your car facing left, built mirrored), `car_y` (the U-turn, 9 poses), `light` (red, green), `pedal`, `flag_v`; the `runner` strip on the pavement |
+| 10 speed, 11 units, 13 instant, 15 wrap2, 17 velocity | `track` plate (2x, for the push-in of 13) + `runner` (8 running poses, chosen by distance) or `you_jog_r` / `you_jog_l`, `flag_t`, `finish`; ticks and numbers SVG |
+| 14 q2 | `pool` plate + `dolphin`, `walrus` (rendered with the water as a holdout: the underwater half is cut) |
+| 19 corner, 26 turnfeel, 23 accel (third box), 20 q3, 27 q4 | `corner`, `loop`, `block`, `bed` plates from above + `car_top`, `walker_top`, `bee` turned by the page |
+| 6 earth (sky) | `cloud`; the sky is an SVG gradient |
 
 ## Render
 
 ```
-blender --background --factory-startup --python site/science/make/ch09.py -- --set road|park|table|globe|train \
+blender --background --factory-startup --python site/science/make/ch09.py -- --set road|park|table|globe|train|track|pool|top \
     [--only road,truck] [--samples 48] [--scale 100] [--engine cycles] [--device auto|OPTIX|METAL|CPU] [--draft]
 uv run --with playwright site/science/make/check_ch09.py [--browser firefox]   # with the site served on 8831
 ```
