@@ -24,6 +24,8 @@ const MPH = v => Math.round(Math.abs(v) / V * 30);
 const speedStr = rel => { const n = MPH(rel); return n === 0 ? '0 mph' : rel > 0 ? `${n} mph →` : `← ${n} mph`; };
 // Over the clay road: the truck's speed label above its roof, the car's on the asphalt ahead of it (from the car's x), a pin's tip just over a person's head.
 const TRUCK_LAB = 358, CAR_LAB = [290, CR.near + 6], CAR_ROOF = -89, HEAD = CR.side - 142;   // CAR_ROOF: the middle of the car's roof, from its anchor (a pin stands in it)
+// A tracked label stays at least 40 px inside the stage on every side (cam.track keeps it inside on x only, by its margin).
+const keepIn = (cam, el, wx, wy, t, size = 30) => { cam.track(el, wx, wy, t, 40); const y = st(el).y; if (y < 44 + 1.2 * size) put(el, { y: 44 + 1.2 * size }); };   // the text's box (Firefox's is the taller) reaches about 1.2 size above its baseline
 const Q_CARD = { x: 96, y: 586, w: 1408, cls: 'band' };   // a band card under the scenes; it moves up by itself when taller
 const txt = (p, s, x, y, t0, { size = 32, fill = COL.chalk, anchor = 'middle', weight = 600 } = {}) => { const e = T(p, s, { x, y, size, fill, anchor, weight, o: 0 }); show(e, t0); return e; };
 // One line with coloured runs: [[text, colour?], …].
@@ -46,15 +48,15 @@ const EX = 430, EY = 450, ER = 200, ESPIN = -14;              // spin in degrees
 const rimAngle = t => (-90 + ESPIN * t) * Math.PI / 180;      // where "you" are on the rim at time t
 // A camera locked onto you, rolling with the ground, `lift` world px above it.
 const groundView = (lift, z) => ({ x: t => EX + (ER + lift) * Math.cos(rimAngle(t)), y: t => EY + (ER + lift) * Math.sin(rimAngle(t)), z, r: t => ESPIN * t });
+// The clay globe seen from straight above its North Pole, in a camera's world: the picture turns (the light comes
+// along the axis, so a turned picture is the frame Blender would render at that angle). you: a group at your feet.
 function earthWorld(cam, D) {
-  const E = phEarthPolar(cam.world, { x: EX, y: EY, R: ER });
-  const rim = deg => G(G(E._spin, { r: deg }), { y: -ER });
-  const gr = ER - 3, ga = .4;   // ±23° of smooth ground under the rim scene (the pixel coast is stepped)
-  path(E._spin, `M${-gr * Math.sin(ga)} ${-gr * Math.cos(ga)}A${gr} ${gr} 0 0 1 ${gr * Math.sin(ga)} ${-gr * Math.cos(ga)}`, { stroke: PH.land, 'stroke-width': 6, 'stroke-linecap': 'butt' });
-  phSprite(rim(-9), 'house', { s: .25 }); phSprite(rim(7), 'tree', { s: .22 });   // the narration's buildings, trees and you
-  const you = rim(0);
-  phPerson(you, { s: .25 });
-  clockRun(t => put(E._spin, { r: ESPIN * t }), D);
+  const E = G(cam.world, { x: EX, y: EY }), spin = G(E);
+  clImg(spin, 'globe');
+  const cap = clImg(spin, 'globe_cap');                      // the top of the globe three times finer, for close views only
+  E._spin = spin;
+  const you = G(spin, { y: -ER - 6 });
+  clockRun(t => { put(spin, { r: ESPIN * t }); const near = cam.at(t).z > 1.6; if (near !== cap._near) cap.style.display = (cap._near = near) ? '' : 'none'; }, D);
   return { E, you };
 }
 // Split screen: the truck and car drive slower than elsewhere (the views are small) so the truck stays inside the roadside
@@ -183,33 +185,30 @@ const BEATS = [
   show(phLabel(p, 'still at 7 m: not moving', { x: 1330, y: 500, size: 28, weight: 600, o: 0 }), m('still', 3.4));
 }],
 ['everywhere', 'Motion is everywhere', (m, D) => {
-  const p = panel(0);
+  // One lawn, three motions: a notebook whose page turns, an orrery (the Sun and an Earth going round it,
+  // counterclockwise seen from above), and you walking along a path.
+  const p = panel(0), TB = CL.table;
+  clImg(p, 'table');
   txt(p, 'Motion is everywhere', 800, 140, .2, { size: 48 });
-  const frame = (cx, t0, cap) => {
-    const g = G(p, { o: 0 });
-    mk('rect', { x: cx - 210, y: 210, width: 420, height: 370, rx: 22, fill: '#22332d', stroke: COL.faint, 'stroke-width': 2 }, g);
-    T(g, cap, { x: cx, y: 640, size: 32, weight: 600, anchor: 'middle' });
-    show(g, t0);
-    return g;
-  };
-  const f1 = frame(300, m('page'), 'turning a page');
-  const book = phNotebook(f1, { x: 300, y: 380, s: 1.05 });
-  const f2 = frame(800, m('earth'), 'Earth orbiting the Sun');
-  mk('circle', { cx: 800, cy: 395, r: 140, fill: 'none', stroke: COL.faint, 'stroke-width': 2, 'stroke-dasharray': '6 10' }, f2);
-  const sun = phSun(f2, { x: 800, y: 395, r: 42 });
-  const earth = phEarthSmall(f2, { r: 22 });
-  const f3 = frame(1300, m('you'), 'you, walking');
-  phBlock(f3, 1092, 540, 416, 38, PH.grass, { top: 5, ol: 0 });
-  const you = phPerson(f3, { x: 1160, y: 540, s: .95 });
+  const leaf = clStrip(p, 'leaf', { x: TB.book[0], y: TB.book[1] });     // 16 angles of the page, lying right to lying left
+  const [ox, oy, rx, ry] = TB.orbit;
+  const earth = clStrip(p, 'earth'), sun = clImg(p, 'sun');               // the Earth: 24 frames, its lit side toward the Sun
+  const walker = clStrip(p, 'walk', { x: TB.walk[0], y: TB.walk[1] });   // 8 replacement poses of a stride
+  const WALK = 4.5 * TB.step;                                             // four and a half strides: she stops on a standing pose
+  clScrim(p, 690);
+  const cap = (s, x, t0) => { const e = phLabel(p, s, { x, y: 800, size: 32, weight: 600, o: 0 }); show(e, t0); return e; };
+  cap('turning a page', TB.book[0], m('page')); cap('Earth orbiting the Sun', ox, m('earth')); cap('you, walking', TB.walk[0] + WALK / 2, m('you'));
   const tp = m('page'), te = m('earth'), ty = m('you');
   clockRun(t => {
     const c = Math.max(0, t - tp - .3) % 2.4;
-    phFlip(book, 180 * soft(Math.min(1, c / 1.4)));
-    const a = (-90 - 40 * Math.max(0, t - te + .5)) * Math.PI / 180;   // counterclockwise, seen from above the North Pole
-    put(earth, { x: 800 + 140 * Math.cos(a), y: 395 + 140 * Math.sin(a) });
-    put(sun._rays, { r: 8 * t });
-    const d = Math.min(260, Math.max(0, t - ty) * 85);
-    put(you, { x: 1160 + d }); phPose(you, d > 0 && d < 260 ? 'walk' : 'stand', d / 22 * Math.PI);
+    leaf._frame(Math.round(15 * soft(Math.min(1, c / 1.4))));
+    const th = (-90 + 40 * Math.max(0, t - te + .5)) * Math.PI / 180;     // counterclockwise seen from above, from the front
+    put(earth, { x: ox + rx * Math.cos(th), y: oy - ry * Math.sin(th) });
+    earth._frame(Math.round((th * 180 / Math.PI + 90) / 15));
+    const behind = Math.sin(th) > 0;                                     // behind the Sun: the Sun covers it
+    if (behind !== earth._behind) { earth._behind = behind; p.insertBefore(behind ? earth : sun, behind ? sun : earth); }
+    const d = Math.min(WALK, Math.max(0, t - ty) * 85);
+    put(walker, { x: TB.walk[0] + d }); clTurn(walker, d, TB.step / (2 * Math.PI));
   }, D);
 }],
 ['roadside', 'Standing by the road', (m, D) => {
@@ -244,19 +243,19 @@ const BEATS = [
   // Speed labels live in screen space and are kept inside the frame (cam.track); wrappers fade them in.
   const tag = (fill, t0) => { const g = G(p, { o: 0 }); show(g, t0); return phLabel(g, '', { fill }); };
   const fl = tag(PH.friend, .4), tl = tag(PH.truck, tc + 1.6), cl = tag(PH.car, tc + 1.6);
-  const sl = phLabel(p, 'road and trees: ← 30 mph', { x: 70, y: 862, size: 30, fill: COL.chalk, anchor: 'start', o: 0 });
+  const sl = phLabel(p, 'road and trees: ← 30 mph', { x: 70, y: 838, size: 30, fill: COL.chalk, anchor: 'start', o: 0 });
   show(sl, m('back'));
   const pinA = phPin(road.side, { x: FR, y: HEAD, o: 0 }), pinB = phPin(car, { x: -12, y: CAR_ROOF, s: 0, o: 0 });
   show(pinA, .3); hide(pinA, r0, 0); pop(pinB, r0 + .3);
   const tagA = fromTag(p, 'the roadside', .3);
-  hide(tagA, r0, 0); fromTag(p, 'your car', r0, 0, 800);   // bottom: the friend slides through the top
+  hide(tagA, r0, 0); fromTag(p, 'your car', r0, 0, 782);   // bottom: the friend slides through the top
   clockRun(t => {
     const x = xw(t), camV = t < r0 ? 0 : V, rel = t < tc ? 0 : V - camV;
     put(truck, { x }); put(car, { x: x + 10 });
     clRoll(truck, x + 330); clRoll(car, x + 330);            // the wheels turn with the road covered, whoever watches
-    phText(fl, `friend: ${speedStr(-camV)}`); cam.track(fl, FR, HEAD - 68, t);
-    phText(tl, `truck: ${speedStr(rel)}`); cam.track(tl, x + 10, TRUCK_LAB, t);
-    phText(cl, `your car: ${speedStr(rel)}`); cam.track(cl, x + CAR_LAB[0], CAR_LAB[1], t);
+    phText(fl, `friend: ${speedStr(-camV)}`); keepIn(cam, fl, FR, HEAD - 68, t);
+    phText(tl, `truck: ${speedStr(rel)}`); keepIn(cam, tl, x + 10, TRUCK_LAB, t);
+    phText(cl, `your car: ${speedStr(rel)}`); keepIn(cam, cl, x + CAR_LAB[0], CAR_LAB[1], t);
   }, D);
 }],
 ['rule', 'Motion is relative', (m, D) => {
@@ -290,15 +289,14 @@ const BEATS = [
 }],
 ['earth', 'Why we don\'t feel Earth spin', (m, D) => {
   const p = panel(0);
-  const sky = mk('rect', { width: 1600, height: 900, fill: PH.sky }, p);
+  clImg(p, 'space');                                             // a dark clay table with stars pressed in, held still under the camera
+  const sky = mk('rect', { width: 1600, height: 900, fill: PH.sky }, p);   // daylight on the ground; space when we pull back
   const cam = camera(p, D);
   // Open on the ground, rolling with it (nothing moves), then pull back into space: the spin appears.
-  cam.cut(groundView(26, 6), 0).to({ x: 800, y: 450, z: 1, r: 0 }, m('earth'), 3.4);
-  const stars = cam.layer(.15);
-  for (let i = 0; i < 40; i++) { const k = 2 + 3 * phHash(i, 5); mk('rect', { x: -1400 + 4400 * phHash(i, 1), y: -1000 + 2900 * phHash(i, 2), width: k, height: k, fill: COL.chalk, opacity: .3 + .5 * phHash(i, 3) }, stars); }
+  cam.cut(groundView(26, 3), 0).to({ x: 800, y: 450, z: 1, r: 0 }, m('earth'), 3.4);
   const { you } = earthWorld(cam, D);
-  clockRun(t => { const k = Math.min(1, Math.max(0, (cam.at(t).z - 1.6) / 2)); put(sky, { o: k }); put(stars, { o: 1 - k }); }, D);
-  const rimRing = mk('rect', { x: -15, y: -36, width: 30, height: 40, rx: 6, fill: 'none', stroke: PH.ref, 'stroke-width': 2.5 }, you);
+  clockRun(t => { const o = Math.min(1, Math.max(0, (cam.at(t).z - 1.4) / 1.2)); put(sky, { o }); sky.style.display = o ? '' : 'none'; }, D);
+  const rimRing = mk('rect', { x: -19, y: -50, width: 38, height: 54, rx: 8, fill: 'none', stroke: PH.ref, 'stroke-width': 3 }, you);
   put(rimRing, { o: 0 });
   const arcs = G(cam.world, { o: 0 });
   const arc = (a1, a2) => {
@@ -322,34 +320,23 @@ const BEATS = [
   // Picture-in-picture: a second camera that stays with you on the ground.
   const box = [880, 300, 600, 380];
   const pip = camera(p, D, { box, bg: PH.sky });
-  pip.cut(groundView(20, 6), 0);
-  phPin(earthWorld(pip, D).you, { y: -34, s: .3 });
+  pip.cut(groundView(20, 3), 0);
+  phPin(earthWorld(pip, D).you, { y: -54, s: .4 });
   put(pip.el, { s: 0, o: 0 }); pop(pip.el, m('zoom'));
   show(phLabel(p, 'from where you stand', { x: box[0] + 24, y: box[1] + box[3] - 22, size: 28, fill: PH.ref, anchor: 'start', o: 0 }), m('zoom', .3));
   txt(p, 'house, tree, ground: 0 mph', rx, 740, m('zoom', .3), { size: 32 });
   txt(p, 'Nothing seems to move.', rx, 790, m('zoom', .3), { size: 32, fill: COL.good });
 }, { lead: false }],   // the ground shot is on screen from the first frame
 ['q1', 'Quick check', (m, D) => {
-  const p = panel(0);
-  const GY = 430;
-  phBlock(p, 0, GY + 2, 1600, 10, '#6b5a48', { top: 3, ol: 0 });
-  path(p, Array.from({ length: 27 }, (_, i) => `M${i * 60 + 10} ${GY + 12}h34`).join(''), { stroke: '#4a3d31', 'stroke-width': 6 });
-  path(p, [0, 40, 80].map(k => `M${720 - 520} ${GY - 120 - k}H${720 - 620}`).join(''), { stroke: COL.chalk, 'stroke-width': 6 });
-  const train = phCarriage(p, { x: 720, y: GY, w: 1000 });
-  put(train, { o: 0 }); show(train, .2);
-  const wl = train._wins[2], wx = 720 + wl;
-  phSprite(train, 'maya_seated', { x: wl - 20, y: -144 });
-  phBlock(train, wl - 4, -152, 66, 9, '#8a6a4c', { top: 3, ol: 2 });
-  phBlock(train, wl + 32, -186, 14, 34, '#86c9e8', { top: 0, right: 4, ol: 2 });
-  phBlock(train, wl + 34, -194, 10, 8, COL.whole, { top: 0, ol: 2 });
-  phLabel(p, 'Maya', { x: wx - 22, y: GY - 98, size: 28, fill: COL.int });
-  phLabel(p, 'water bottle', { x: wx + 120, y: GY - 300, size: 24, fill: '#86c9e8' });
-  path(p, `M${wx + 80} ${GY - 292}L${wx + 42} ${GY - 196}`, { stroke: '#86c9e8', 'stroke-width': 3 });
-  phLabel(p, 'train: 60 mph →', { x: 520, y: GY - 300, size: 30, fill: COL.real });
-  phBlock(p, 1260, GY + 8, 340, 110, '#4a524f', { top: 6, ol: 2 });
-  mk('rect', { x: 1260, y: GY + 8, width: 340, height: 6, fill: COL.int }, p);
-  phPerson(p, { role: 'friend', x: 1430, y: GY + 18 });
-  phLabel(p, 'Leo, on the platform', { x: 1430, y: GY - 124, size: 26, fill: COL.nat });
+  const p = panel(0), TR = CL.train;
+  const pic = clImg(p, 'train'); put(pic, { o: 0 }); show(pic, .2);   // the carriage, Maya by the third window with her bottle, Leo on the platform
+  const lead = (x1, y1, x2, y2, c) => { path(p, `M${x1} ${y1}L${x2} ${y2}`, { stroke: COL.board, 'stroke-width': 7 }); path(p, `M${x1} ${y1}L${x2} ${y2}`, { stroke: c, 'stroke-width': 3 }); };
+  const [mx, my] = TR.maya, [bx, by] = TR.bottle, [lx, ly] = TR.leo;
+  phLabel(p, 'Maya', { x: mx, y: my + 118, size: 28, fill: COL.int });
+  lead(bx + 70, 182, bx + 4, by - 6, '#86c9e8');
+  phLabel(p, 'water bottle', { x: bx + 90, y: 172, size: 26, fill: '#86c9e8' });
+  phLabel(p, 'train: 60 mph →', { x: TR.top[0] + 200, y: 172, size: 30, fill: COL.real });
+  phLabel(p, 'Leo, on the platform', { x: Math.min(lx, 1540 - 118), y: ly - 22, size: 26, fill: COL.nat });
 }, { ask: done => quiz(Q_CARD, [
   { id: 'c-maya', prompt: ['Measured from ', h('b', '', 'Maya'), ', how fast is the water bottle on her table moving?'],
     build: choice([['0 mph'], ['60 mph'], ['120 mph']], 0,
@@ -364,17 +351,23 @@ const BEATS = [
 ], done) }],
 ['wrap', 'Summary', (m, D) => {
   const p = panel(0);
-  txt(p, 'Motion and relative motion', 800, 150, .2, { size: 40, fill: COL.dim });
+  // The truck and your car drive on side by side under the summary: next, how fast.
+  const cam = camera(p, D, { x: 800, y: 120, z: .55 });
+  const road = clRoad(cam);
+  const truck = clTruck(road.vehicles), car = clCar(road.vehicles);
+  clockRun(t => { const x = -300 + V * t; put(truck, { x }); put(car, { x: x + 10 }); clRoll(truck, x); clRoll(car, x); }, D);
+  clScrim(p, 790);
+  txt(p, 'Motion and relative motion', 800, 110, .2, { size: 40, fill: COL.dim });
   [['Motion is a change of position.', 'w1'],
    ['Motion is relative: it is described from a reference point.', 'w2'],
    ['Different reference points can give different answers, and each can be right.', 'w3']].forEach(([s, mark], i) => {
-    const g = G(p, { x: -16, y: 300 + i * 140, o: 0 });
+    const g = G(p, { x: -16, y: 210 + i * 100, o: 0 });
     mk('rect', { x: 144, y: -38, width: 52, height: 52, rx: 6, fill: PH.ref }, g);
     T(g, String(i + 1), { x: 170, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
     T(g, s, { x: 230, size: 36, weight: 600 });
     tw(g, { o: 1, x: 0 }, m(mark), .6);
   });
-  txt(p, 'Next: how fast things move.', 800, 760, m('end'), { size: 32, fill: COL.dim, weight: 500 });
+  show(phLabel(p, 'Next: how fast things move.', { x: 800, y: 838, size: 32, fill: COL.chalk, weight: 500, o: 0 }), m('end'));
 }],
 /* ---------- part 2: speed ---------- */
 ['part2', 'Part 2 · Speed', (m, D) => {

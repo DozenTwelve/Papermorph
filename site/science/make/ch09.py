@@ -4,23 +4,30 @@
         [--engine cycles] [--device auto|OPTIX|CUDA|METAL|CPU] [--samples 64] [--scale 100] [--fstop 0.2] [--draft]
 
     --set park   beat 1: the ball's track on the grass (plate `park`, strip `ball`)
-    --set road   beats 0, 3, 4, 5: the road (plate `road`, one period that repeats), truck and car (sprites and
+    --set road   beats 0, 3, 4, 5, 8: the road (plate `road`, one period that repeats), truck and car (sprites and
                  wheel strips), you and your friend
+    --set table  beat 2: a lawn with a notebook (page strip), an orrery (Sun sprite, Earth strip by orbit angle) and
+                 a path (you walking: 8 replacement poses)
+    --set globe  beat 6: a clay globe seen from straight above its North Pole, on a dark table (plate `space`,
+                 sprites `globe` and `globe_cap`, the cap three times finer for the close ground views)
+    --set train  beat 7: the carriage, Maya and the bottle inside, Leo on the platform (plate `train`)
 
 Paths come from this file's place in the repository; every setting is an argument (claykit.arguments). What each
 asset is and why it is exact under the page's own motion is in claykit.py. Finals on a GPU:
     --device OPTIX --samples 256 --scale 200
 """
-import bpy, math, os, sys, random
+import bpy, bmesh, math, os, sys, random
+import numpy as np
+from mathutils import noise
 from mathutils import Vector
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import claykit as K
 from claykit import clay, box, ball, roll, slab, part, empty, copy, group, shot, lathe_mesh, rbox_mesh
 
-a = K.arguments(lambda ap: ap.add_argument('--set', required=True, choices=['park', 'road']))
+a = K.arguments(lambda ap: ap.add_argument('--set', required=True, choices=['park', 'road', 'table', 'globe', 'train']))
 ONLY = set(filter(None, a.only.split(',')))
 want = lambda n: not ONLY or n in ONLY
-if a.fstop is None: a.fstop = {'park': 0.2, 'road': 0.26}[a.set]   # the road holds two lanes and a pavement in its sharp band
+if a.fstop is None: a.fstop = {'park': 0.2, 'road': 0.26, 'table': 0.22, 'globe': 0.8, 'train': 0.3}[a.set]   # the road holds two lanes and a pavement in its sharp band
 sc = K.setup(a)
 COS, SIN = math.cos(K.E), math.sin(K.E)
 SUN = Vector(a.sun_dir)
@@ -29,7 +36,8 @@ SUN = Vector(a.sun_dir)
 C = dict(grass='#2c5e3a', hill='#274a35', road='#3d4744', walk='#74817b', line='#ece8dc', wood='#9a7350', slate='#1c2925',
          tyre='#2e3338', hub='#c3ccd3', glass='#d2e8ff', skin='#f0c3a0', hair='#353b47', jeans='#4878d2', shoe='#3a3f4a',
          you='#ab8ff5', friend='#f59a80', truck='#4a8de0', cargo='#b4d0ff', car='#55c486', trunk='#8a5a3c', leaf='#3f9a52',
-         lamp='#c8dcf5', bulb='#ffe9a0', ballw='#f2efe6', balld='#262f2d')
+         lamp='#8597ad', bulb='#ffe9a0', ballw='#f2efe6', balld='#262f2d', dark='#1d2a35', shine='#b9d2e4',
+         maya='#f3c95c', leo='#f59a80')
 
 
 def rect_of(objs, Y0, pad=14, shadow=True):
@@ -55,9 +63,9 @@ def wheel(name, r, w, loc, seed):
     tyre = part(name, lathe_mesh([(-w / 2, 0), (-w / 2, r - s), (-w / 2 + s, r), (w / 2 - s, r), (w / 2, r - s), (w / 2, 0)], 0.035),
                 clay('tyre', C['tyre'], rough=0.62, specks=0.5), rot=(math.pi / 2, 0, 0), parent=ax, lump=0.012, dents=2, dent_r=(0.06, 0.1), seed=seed)
     # the lathe's +z is now -y (toward the camera): the hub cap and its marks sit on that face
-    hub = part(name + '_hub', lathe_mesh([(0, 0), (0, r * 0.5), (0.05, r * 0.42), (0.06, 0)], 0.03), clay('hub', C['hub'], rough=0.4),
+    part(name + '_hub', lathe_mesh([(0, 0), (0, r * 0.5), (0.05, r * 0.42), (0.06, 0)], 0.03), clay('hub', C['hub'], rough=0.4),
                loc=(0, 0, w / 2 - 0.01), parent=tyre, lump=0.008, dents=0, seed=seed)
-    # one bead of the vehicle's own... a cream bead off the centre and a thumb hollow across from it: the turn is seen
+    # a cream bead off the centre and a dark nut at it: the turn is seen
     part(name + '_bead', rbox_mesh((r * 0.3, r * 0.3, 0.07), 0.03, 0.02), clay('line', C['line']), loc=(r * 0.68, 0, w / 2 + 0.005), parent=tyre, lump=0.004, dents=0)
     part(name + '_nut', rbox_mesh((r * 0.2, r * 0.2, 0.06), 0.03, 0.02), clay('tyre', C['tyre']), loc=(0.02, 0.01, w / 2 + 0.05), parent=tyre, lump=0.003, dents=0)
     return ax, [tyre] + list(tyre.children)
@@ -71,9 +79,16 @@ def turn_frames(axles, n):
     return [(i, pose(i)) for i in range(n)]
 
 
+def window(name, w, h, loc, glass, shine, lean=0.0):
+    """A toy window on a face toward the camera (-y): dark glass, a soft pale streak at its upper left."""
+    x, y, z = loc
+    return [box(name, (w, 0.06, h), glass, (x, y, z), r=0.05, d=0.03, lump=0.004, dents=0),
+            box(name + '_shine', (0.07, 0.03, h * 0.62), shine, (x - w * 0.24, y - 0.035, z + h * 0.06), r=0.025, d=0.02, lump=0.003, dents=0, rot=(0, 0.45 + lean, 0))]
+
+
 def tree(name, x, y, seed, h=1.0):
     rnd = random.Random(seed)
-    objs = [roll(name + '_trunk', (x, y, -0.05), (x + rnd.uniform(-.05, .05), y, 0.85 * h), 0.13, clay('trunk', C['trunk'], rough=0.6), lump=0.02)]
+    objs = [roll(name + '_trunk', (x, y, -0.05), (x + rnd.uniform(-.05, .05), y, 0.85 * h), 0.13 * min(h, 1), clay('trunk', C['trunk'], rough=0.6), lump=0.02)]
     for i, (dx, dz, r) in enumerate([(-.32, 1.25, .46), (.3, 1.2, .5), (0, 1.62, .5), (-.05, 1.3, .52)]):
         objs.append(ball(f'{name}_leaf{i}', r * h, clay('leaf', C['leaf'], rough=0.55), (x + dx * h, y + (.12 if i == 3 else -.05 * i), dz * h),
                          squash=(1, .9, .88), lump=0.05, dents=7, seed=seed + i))
@@ -107,11 +122,13 @@ def tufts(x0, x1, y0, y1, n, seed, x_copies=(0,)):
 
 
 def person(role, x, y, pose=0.0, face='cam', seed=0, k=1.1):
+    # (seed 0: from the role, so the same person looks the same in every set)
     """A small, simple clay figure, 1.2 * k units tall, no face. pose: the stride, -1..1 (0 stands): one leg and the
     other arm forward by that much, as a replacement puppet's next pose. face: 'cam' looks out of the picture (the
     hair sits on the back of the head, away from us), 'right' is a profile walking to +x."""
     root = empty(role, (x, y, 0)); root.scale = (k, k, k)
     shirt = clay(role, C[role], rough=0.5)
+    seed = seed or sum(map(ord, role))
     jeans, skin = clay('jeans', C['jeans']), clay('skin', C['skin'], sss=0.2, specks=0.3)
     objs = []
     for side in (-1, 1):
@@ -149,7 +166,7 @@ if a.set == 'park':
         ground.append(roll(f'tick{v}', (xm(v) + rnd.uniform(-.008, .008), -0.47, 0.075), (xm(v) + rnd.uniform(-.012, .012), -0.68, 0.075), 0.026,
                            clay('line', C['line'], specks=0.3), lump=0.004, seed=v))
     group('ground', *ground)
-    group('scenery', *hills([-7, -3.6, -0.5, 2.8, 6.2, 9.4, 12.6, 15.8, 19.2, 22.6], 3.3, 2),
+    group('scenery', *hills([-7, -3.6, -0.5, 2.8, 6.2, 9.4, 12.6, 15.8, 19.2, 22.6], 3.7, 2),
           *tree('treeA', -2.0, 1.9, 1), *tree('treeB', 18.2, 2.1, 2, h=1.08),
           *tufts(-8, 24, -6.5, -2.4, 46, 7))
     bx = empty('ballx', (xm(4.5), 0, TOP + R))
@@ -195,26 +212,30 @@ if a.set == 'road':
         ground += [d] + [copy(d, (d.location.x + dx, d.location.y, 0)) for dx in P3 if dx]
     group('ground', *ground)
     # ---- scenery on the far side: trees at 300 and 1900, a lamp at 1500 (no tree behind a person at 760 or 1100)
-    scenery = hills([1.5, 4.8, 8.4, 11.6, 15.0, 18.3, 21.8], 5.3, 5, P3) + tufts(0, W, -7.2, -3.6, 30, 9, P3)
+    scenery = hills([1.5, 4.8, 8.4, 11.6, 15.0, 18.3, 21.8], 5.7, 5, P3) + tufts(0, W, -7.2, -3.6, 30, 9, P3)
     for i, (x, hh) in enumerate([(3.0, 1.0), (19.0, 1.08)]):
         t = tree(f'tree{i}', x, 3.75, 10 + i, hh)
         scenery += t + [copy(o, (o.location.x + dx, o.location.y, o.location.z)) for o in t for dx in P3 if dx]
-    lamp = [roll('lamp_pole', (15.0, 3.8, -0.05), (15.02, 3.8, 2.08), 0.055, clay('lamp', C['lamp'], rough=0.4), lump=0.008),
-            roll('lamp_arm', (15.02, 3.8, 2.08), (15.42, 3.8, 2.14), 0.05, clay('lamp', C['lamp']), lump=0.006),
-            ball('lamp_bulb', 0.09, clay('bulb', C['bulb'], specks=0, emit=1.5), (15.44, 3.8, 2.06), squash=(1.4, 1, .7), lump=0.004, dents=0)]
+    lm = clay('lamp', C['lamp'], rough=0.5)
+    lamp = [ball('lamp_foot', 0.2, lm, (15.0, 3.8, 0.1), squash=(1, 1, .55), lump=0.02, dents=2, dent_r=(.06, .1)),
+            roll('lamp_pole', (15.0, 3.8, 0.1), (15.03, 3.8, 1.95), 0.1, lm, lump=0.014),
+            roll('lamp_arm', (15.03, 3.8, 1.95), (15.42, 3.8, 2.08), 0.085, lm, lump=0.01),
+            ball('lamp_head', 0.2, lm, (15.5, 3.8, 2.06), squash=(1.25, 1, .6), lump=0.014, dents=2, dent_r=(.05, .08)),
+            ball('lamp_bulb', 0.13, clay('bulb', C['bulb'], specks=0, emit=1.2), (15.52, 3.8, 1.97), squash=(1.2, 1, .55), lump=0.006, dents=0)]
     scenery += lamp + [copy(o, (o.location.x + dx, o.location.y, o.location.z)) for o in lamp for dx in P3 if dx]
     group('scenery', *scenery)
 
     # ---- the truck (far lane), its centre at x = 0
     ty = FAR
-    blue, cargo, glass = clay('truck', C['truck'], rough=0.48), clay('cargo', C['cargo'], rough=0.5), clay('glass', C['glass'], rough=0.3, specks=0.2)
+    blue, cargo = clay('truck', C['truck'], rough=0.48), clay('cargo', C['cargo'], rough=0.5)
+    dark, shine = clay('dark', C['dark'], rough=0.12, specks=0, marks=0.4), clay('shine', C['shine'], rough=0.3, specks=0, marks=0.2)
     tb = [box('t_chassis', (3.4, 1.46, 0.3), clay('truckd', '#3566b4'), (0, ty, 0.29), r=0.1, lump=0.012, dents=2),
           box('t_cargo', (2.2, 1.5, 1.2), cargo, (-0.6, ty, 1.0), r=0.14, d=0.05, lump=0.03, dents=12, seed=2),
           box('t_cab', (0.98, 1.42, 0.92), blue, (1.1, ty, 0.86), r=0.2, d=0.045, lump=0.025, dents=6, seed=3),
           box('t_nose', (0.3, 1.36, 0.42), clay('truckl', '#7fb4ee'), (1.62, ty, 0.6), r=0.1, d=0.04, lump=0.012, dents=1),
-          box('t_win', (0.5, 0.06, 0.36), glass, (1.18, ty - 0.71, 1.0), r=0.03, d=0.03, lump=0.006, dents=0),
-          box('t_shield', (0.06, 1.1, 0.36), glass, (1.59, ty, 1.03), r=0.03, d=0.03, lump=0.006, dents=0),
+          box('t_shield', (0.06, 1.12, 0.4), dark, (1.6, ty, 1.04), r=0.04, d=0.03, lump=0.005, dents=0),
           ball('t_lamp', 0.07, clay('bulb', C['bulb'], specks=0, emit=0.6), (1.77, ty - 0.45, 0.62), lump=0.004, dents=0)]
+    tb += window('t_win', 0.56, 0.4, (1.14, ty - 0.715, 1.02), dark, shine)
     group('truck', *tb)
     TW_R = 0.31
     taxles, twheels = [], []
@@ -225,10 +246,13 @@ if a.set == 'road':
     cy = NEAR
     green = clay('car', C['car'], rough=0.46)
     cb = [box('c_body', (2.5, 1.26, 0.5), green, (0, cy, 0.42), r=0.2, d=0.045, lump=0.02, dents=7, seed=4),
-          box('c_cabin', (1.3, 1.12, 0.52), clay('carl', '#6fd39a'), (-0.12, cy, 0.84), r=0.24, d=0.04, lump=0.02, dents=4, seed=5),
-          box('c_win', (0.86, 0.06, 0.27), glass, (-0.12, cy - 0.56, 0.87), r=0.03, d=0.03, lump=0.006, dents=0),
-          box('c_shield', (0.06, 0.86, 0.27), glass, (0.535, cy, 0.87), r=0.03, d=0.03, lump=0.006, dents=0),
+          box('c_cabin', (1.36, 1.04, 0.58), green, (-0.12, cy, 0.9), r=0.2, d=0.04, lump=0.02, dents=4, seed=5),
+          box('c_roof', (1.18, 1.08, 0.09), clay('carroof', '#3fae72', rough=0.46), (-0.16, cy, 1.2), r=0.04, d=0.035, lump=0.01, dents=3, seed=6),
+          # from above the windscreen and the rear window read as dark bands on the cabin's top
+          box('c_shield', (0.34, 0.92, 0.06), dark, (0.42, cy, 1.12), r=0.03, d=0.03, lump=0.004, dents=0, rot=(0, -0.75, 0)),
+          box('c_rear', (0.26, 0.92, 0.06), dark, (-0.7, cy, 1.12), r=0.03, d=0.03, lump=0.004, dents=0, rot=(0, 0.75, 0)),
           ball('c_lamp', 0.07, clay('bulb', C['bulb'], specks=0, emit=0.6), (1.25, cy - 0.38, 0.46), lump=0.004, dents=0)]
+    cb += window('c_win0', 0.52, 0.38, (0.2, cy - 0.53, 0.93), dark, shine) + window('c_win1', 0.52, 0.38, (-0.44, cy - 0.53, 0.93), dark, shine)
     group('car', *cb)
     CW_R = 0.27
     caxles, cwheels = [], []
@@ -257,4 +281,256 @@ if a.set == 'road':
                  anchor=K.px(ax.location.x, ax.location.y, ax.location.z, Y0))
     for role, (root, objs) in people.items():
         if want(role): shot(role, rect_of(objs, Y0, pad=10), Y0, FOCUS, show=[role], catch=['ground'], anchor=(0, lane_y(SIDE, 0.16)))
+    K.write_manifest(meta)
+
+
+def union(rects):
+    x0 = min(r[0] for r in rects); y0 = min(r[1] for r in rects)
+    return x0, y0, max(r[0] + r[2] for r in rects) - x0, max(r[1] + r[3] for r in rects) - y0
+
+
+def gable(w, depth, h, d=0.025):
+    """A gable roof: a triangle w wide and h high (its foot at z = 0), depth deep along y, rounded a little by finish()."""
+    bm = bmesh.new()
+    ny = max(2, round(depth / d))
+    tri = [(-w / 2, 0), (0, h), (w / 2, 0)]
+    rings = []
+    for j in range(ny + 1):
+        y = -depth / 2 + depth * j / ny
+        ring = []
+        for (x0, z0), (x1, z1) in zip(tri, tri[1:] + tri[:1]):
+            k = max(1, round(math.hypot(x1 - x0, z1 - z0) / d))
+            ring += [bm.verts.new((x0 + (x1 - x0) * i / k, y, z0 + (z1 - z0) * i / k)) for i in range(k)]
+        rings.append(ring)
+    m = len(rings[0])
+    for a_, c_ in zip(rings, rings[1:]):
+        for i in range(m): bm.faces.new((a_[i], a_[(i + 1) % m], c_[(i + 1) % m], c_[i]))
+    bm.faces.new(rings[0][::-1]); bm.faces.new(rings[-1])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    me = bpy.data.meshes.new('gable'); bm.to_mesh(me); bm.free()
+    return me
+
+
+def house(name, k=1.0):
+    """A small clay house standing up z, front -y: walls, a roof that overhangs, a door, a lit window."""
+    root = empty(name)
+    objs = [box(name + '_walls', (0.4 * k, 0.3 * k, 0.3 * k), clay('wall', '#e8d9b8', rough=0.55), (0, 0, 0.15 * k), r=0.04 * k, d=0.025, lump=0.006, dents=2, dent_r=(.03, .05), parent=root),
+            part(name + '_roof', gable(0.5 * k, 0.36 * k, 0.2 * k), clay('roof', '#a65d4b', rough=0.55), (0, 0, 0.29 * k), parent=root, lump=0.005, dents=2, dent_r=(.03, .05)),
+            box(name + '_door', (0.08 * k, 0.03, 0.14 * k), clay('doorc', '#5a3b2a'), (-0.08 * k, -0.15 * k, 0.07 * k), r=0.01, d=0.015, lump=0.002, dents=0, parent=root),
+            box(name + '_win', (0.09 * k, 0.03, 0.08 * k), clay('bulb', C['bulb'], specks=0, emit=0.5), (0.09 * k, -0.15 * k, 0.17 * k), r=0.01, d=0.015, lump=0.002, dents=0, parent=root)]
+    return root, objs
+
+
+# ================================================================ table: motion is everywhere (beat 2)
+if a.set == 'table':
+    Y0 = 600.0                         # page y of the lawn at depth 0
+    FOCUS = 0.0
+    BOOK, ORB, WALK = (3.0, 0.1), (8.0, 0.6), (10.9, -0.4)    # station centres (x, depth); the walk starts at 1090 px
+    grass = clay('grass', C['grass'], rough=0.6, feat=1.5, stipple=0.5, prints=0.3, specks=0.4)
+    ground = [slab('lawn', -2, 18, -8, 4.6, 0.0, grass, thick=0.3, d=0.14, wobble=0, lump=0.02),
+              slab('blanket', 1.6, 4.4, -0.95, 1.15, 0.05, clay('blanket', '#c9706a', rough=0.6, feat=1.2), thick=0.08, d=0.06, wobble=0.04, lump=0.006, seed=2),
+              slab('path', 10.2, 16.6, -0.85, 0.05, 0.05, clay('walk', C['walk'], rough=0.58, feat=1.4), thick=0.08, d=0.07, wobble=0.04, lump=0.006, seed=3)]
+    mat = ball('mat', 2.25, clay('space', '#22324f', rough=0.55, specks=0.8, feat=1.2), (ORB[0], ORB[1], -0.02), squash=(1, 1, 0.04), d=0.08, lump=0.01, dents=0)   # a dent would go through a mat this thin
+    ground.append(mat)
+    RO = 1.65                          # the orbit's radius
+    for i in range(36):                # the orbit pressed into the mat: cream beads
+        t = 2 * math.pi * i / 36
+        ground.append(ball(f'orbit{i}', 0.035, clay('line', C['line'], specks=0), (ORB[0] + RO * math.cos(t), ORB[1] + RO * math.sin(t), 0.075), squash=(1, 1, .5), lump=0, dents=0))
+    group('ground', *ground)
+    group('scenery', *hills([-1.5, 2.0, 5.5, 9.0, 12.5, 16.0], 4.6, 3), *tree('treeA', 0.6, 3.0, 4), *tree('treeB', 15.4, 3.2, 5, h=1.1),
+          *tufts(-1, 17, -6.5, -1.4, 34, 8))
+    # the notebook: a cover, two pages bowed to the spine, ruled in blue; a third page turns on the spine
+    bx, by = BOOK
+    cream = clay('page', '#f4f1e8', rough=0.6, specks=0.2, marks=0.6)
+    book = [box('cover', (2.3, 1.62, 0.1), clay('coverc', '#a65d4b', rough=0.55), (bx, by, 0.12), r=0.04, d=0.04, lump=0.006, dents=3, dent_r=(.08, .14))]
+    for side in (-1, 1):
+        book.append(box(f'pages{side}', (1.04, 1.46, 0.08), cream, (bx + side * 0.56, by, 0.2), r=0.03, d=0.035, lump=0.004, dents=1, rot=(0, side * 0.05, 0)))
+        for j in range(6): book.append(roll(f'rule{side}{j}', (bx + side * 0.56 - 0.4, by - 0.55 + 0.21 * j, 0.25 + 0.0), (bx + side * 0.56 + 0.4, by - 0.55 + 0.21 * j, 0.25), 0.012, clay('rule', '#86c9e8', specks=0), lump=0))
+    BK = 1.35                          # the notebook, larger: scaled about the point under its spine
+    for o in book: o.location = Vector((bx, by, 0)) + (o.location - Vector((bx, by, 0))) * BK; o.scale = o.scale * BK
+    group('book', *book)
+    hinge = empty('hinge', (bx, by, 0.25 * BK)); hinge.scale = (BK, BK, BK)
+    leaf = [box('leaf', (1.02, 1.42, 0.035), cream, (0.53, 0, 0.02), r=0.015, d=0.03, lump=0.003, dents=1, parent=hinge)]
+    leaf += [roll(f'lrule{j}', (0.13, -0.53 + 0.21 * j, 0.042), (0.93, -0.53 + 0.21 * j, 0.042), 0.011, clay('rule', '#86c9e8', specks=0), lump=0, parent=hinge) for j in range(6)]
+    group('leaf', *leaf)
+    NP = 16
+    turn = lambda i: (lambda: setattr(hinge, 'rotation_euler', (0, -math.pi * i / (NP - 1), 0)))
+    # the orrery: a clay Sun on a short stand, a lamp inside it; the Earth on the mat, its lit side to the Sun
+    ox, oy = ORB
+    sun_light = bpy.data.objects.new('sunlamp', bpy.data.lights.new('sunlamp', 'POINT')); sc.collection.objects.link(sun_light)
+    sun_light.data.energy = 40; sun_light.data.shadow_soft_size = 0.2; sun_light.data.color = (1, .85, .6)
+    sun_light.location = (ox, oy, 0.85)
+    sun = [roll('stand', (ox, oy, 0.05), (ox, oy, 0.5), 0.08, clay('lamp', C['lamp'], rough=0.5), lump=0.01),
+           ball('sunball', 0.42, clay('sun', '#f6b832', rough=0.5, specks=0, emit=0.5, marks=0.8), (ox, oy, 0.85), lump=0.02, dents=4, dent_r=(.06, .1))]
+    for i in range(10):                # flame beads round the Sun's rim, as a child would press them on
+        t = 2 * math.pi * i / 10
+        sun.append(ball(f'flame{i}', 0.09, clay('flame', '#f08a3a', specks=0, emit=0.4), (ox + 0.48 * math.cos(t), oy - 0.1, 0.85 + 0.48 * math.sin(t)), squash=(1, .7, 1), lump=0.004, dents=0))
+    for o in sun[1:]: o.visible_shadow = False   # the lamp sits inside them
+    group('sun', *sun)
+    RE = 0.24
+    earth = empty('earth', (ox, oy - RO, RE + 0.06))
+    eb = [ball('earthball', RE, clay('sea', '#3f7fb0', rough=0.45, specks=0), parent=earth, lump=0.008, dents=1, dent_r=(.04, .06))]
+    for j, (u, v) in enumerate([(0.3, 0.5), (2.2, -0.2), (4.0, 0.7), (5.1, -0.5)]):
+        n = Vector((math.cos(u) * math.cos(v), math.sin(u) * math.cos(v), math.sin(v)))
+        eb.append(ball(f'land{j}', 0.1, clay('land', '#4ea05a', rough=0.55, specks=0), n * (RE - 0.02), squash=(1, 1, .45), rot=n.to_track_quat('Z', 'Y').to_euler(), parent=earth, lump=0.006, dents=0))
+    group('earth', *eb)
+    NE = 24
+
+    def orbit(i):
+        def f():
+            th = -math.pi / 2 + 2 * math.pi * i / NE      # counterclockwise seen from above, from the front of the orbit
+            earth.location = (ox + RO * math.cos(th), oy + RO * math.sin(th), RE + 0.06)
+            ex, ey = K.px(earth.location.x, earth.location.y, earth.location.z, Y0)
+            K.aim((ex - ER_[0], ey - ER_[1], ER_[2], ER_[3]), Y0, FOCUS)
+        return f
+    ER_ = (60, 52, 130, 92)            # the Earth's frame: from its centre, left and up, then size
+    # you, walking: eight replacement poses of the stride, in profile to the right
+    walkers = []
+    for i in range(8):
+        root, objs = person('you', WALK[0], WALK[1], pose=math.sin(2 * math.pi * i / 8), face='right', k=1.0)
+        group(f'walk{i}', *objs); walkers.append(objs)
+
+    def stride(i):
+        def f():
+            for j, objs in enumerate(walkers):
+                for o in objs: o.hide_render = j != i
+        return f
+    STEP = 2 * 2 * 0.44 * math.sin(0.34) * K.U   # px a whole stride cycle (two steps) covers: frame = distance / STEP * 8
+
+    at_book = K.px(bx, by, 0.25 * BK, Y0)
+    meta = {'table': {'Y0': Y0, 'book': [round(v, 1) for v in at_book], 'sun': [round(v, 1) for v in K.px(ox, oy, 0.85, Y0)],
+                      'orbit': [round(v, 1) for v in K.px(ox, oy, RE + 0.06, Y0)] + [RO * K.U, RO * K.U * math.sin(K.E)],
+                      'walk': [round(v, 1) for v in K.px(WALK[0], WALK[1], 0.05, Y0)], 'step': round(STEP, 2)}}
+    if want('table'): shot('table', (-10, 230, 1620, 670), Y0, FOCUS, show=['ground', 'scenery', 'book'], unseen=['sun'])
+    if want('leaf'):
+        rs = []
+        for i in (0, NP // 2, NP - 1): turn(i)(); rs.append(rect_of(leaf, Y0, pad=10))
+        shot('leaf', union(rs), Y0, FOCUS, show=['leaf'], catch=['book', 'ground'], frames=[(i, turn(i)) for i in range(NP)], anchor=at_book)
+    if want('sun'): shot('sun', rect_of(sun, Y0, pad=16), Y0, FOCUS, show=['sun'], catch=['ground'])
+    if want('earth'):
+        orbit(0)()
+        e0 = K.px(*earth.location, Y0)
+        shot('earth', (e0[0] - ER_[0], e0[1] - ER_[1], ER_[2], ER_[3]), Y0, FOCUS, show=['earth'], catch=['ground'], unseen=['sun'],
+             frames=[(i, orbit(i)) for i in range(NE)], anchor=e0)
+    if want('walk'):
+        rs = []
+        for objs in walkers: rs.append(rect_of(objs, Y0, pad=10))
+        shot('walk', union(rs), Y0, FOCUS, show=[f'walk{i}' for i in range(8)], catch=['ground'], frames=[(i, stride(i)) for i in range(8)],
+             anchor=K.px(WALK[0], WALK[1], 0.05, Y0))
+    K.write_manifest(meta)
+
+# ================================================================ globe: Earth from above the North Pole (beat 6)
+if a.set == 'globe':
+    # Straight down, the light along the axis too (claykit --sun-dir is overridden): every point of the rim is lit
+    # alike, so the page may turn the globe's picture and it stays the frame Blender would render at that angle.
+    K.elevation(90)
+    sun = bpy.data.objects['sun']; sun.rotation_euler = (0, 0, 0); sun.data.angle = math.radians(28)
+    EX, EY, R = 4.3, 0.0, 2.0          # page (430, 450), radius 200 px, as the page's EX, EY, ER
+    Y0 = 450.0
+    table = [slab('table', -3, 21, -10, 8, -R, clay('space', '#121a2e', rough=0.85, feat=1.6, specks=0.5, marks=0.6, spec=0.05), thick=0.3, d=0.16, wobble=0, lump=0.02)]
+    rnd = random.Random(12)
+    for i in range(70):                # stars: cream beads pressed into the dark table
+        x, y = rnd.uniform(-2.5, 20.5), rnd.uniform(-7.5, 7.5)
+        if math.hypot(x - EX, y - EY) < R + 0.6: continue
+        table.append(ball(f'star{i}', rnd.uniform(0.025, 0.06), clay('star', '#ece8dc', specks=0, emit=0.4), (x, y, -R + 0.01), squash=(1, 1, .5), lump=0, dents=0))
+    group('table', *table)
+    # the land is the sea ball itself raised a little and coloured (a patty pressed flat on top would stand off the
+    # rim as a plate seen edge on): continents as caps round a few centres, edges broken by noise, ice at the pole
+    me = rbox_mesh((2 * R, 2 * R, 2 * R), R, 0.045)
+    n_ = len(me.vertices)
+    co = np.empty(n_ * 3, 'f'); me.vertices.foreach_get('co', co); co = co.reshape(n_, 3)
+    nrm = co / np.linalg.norm(co, axis=1)[:, None]
+    blobs = [(90, 2, 34), (62, 18, 16), (122, 14, 15), (205, 10, 22), (240, 28, 13), (330, 8, 20), (20, 32, 12), (160, 36, 11)]
+    wob = np.array([noise.noise(Vector(v) * 2.2) + 0.5 * noise.noise(Vector(v) * 5.0 + Vector((7, 3, 1))) for v in nrm], 'f')
+    landm = np.zeros(n_, 'f')
+    for lon, lat, rad in blobs:
+        u, v = math.radians(lon), math.radians(lat)
+        c_ = np.array([math.cos(u) * math.cos(v), math.sin(u) * math.cos(v), math.sin(v)], 'f')
+        ang = np.degrees(np.arccos(np.clip(nrm @ c_, -1, 1)))
+        landm = np.maximum(landm, np.clip((rad + 9 * wob - ang) / 3.0, 0, 1))
+    icem = np.clip((np.degrees(np.arcsin(np.clip(nrm[:, 2], -1, 1))) - 70 + 6 * wob) / 2.5, 0, 1)
+    up = np.maximum(landm, icem)
+    me.vertices.foreach_set('co', (co + nrm * (0.07 * up)[:, None]).ravel())
+    sea_c, land_c, ice_c = (np.array(K.srgb(h)[:3], 'f') for h in ('#3f7fb0', '#4ea05a', '#eef2f0'))
+    col = sea_c * (1 - landm)[:, None] + land_c * landm[:, None]
+    col = col * (1 - icem)[:, None] + ice_c * icem[:, None]
+    ca = me.color_attributes.new('col', 'FLOAT_COLOR', 'POINT')
+    ca.data.foreach_set('color', np.hstack([col, np.ones((n_, 1), 'f')]).ravel())
+    g = [part('globe', me, clay('globe', '#ffffff', rough=0.5, specks=0.3, feat=0.8, vcol=True), (EX, EY, 0), lump=0.02, dents=12, dent_r=(.2, .4))]
+    group('globe', *g)
+    # on the rim at the top: a house, a tree and you, drawn larger, standing out from the ground (local up = outward)
+
+    def on_rim(objs, root, deg, lift=0.0):
+        phi = math.radians(90 + deg)
+        root.location = (EX + (R + lift) * math.cos(phi), EY + (R + lift) * math.sin(phi), 0)
+        root.rotation_euler = (-math.pi / 2, 0, phi - math.pi / 2)   # z (up) to outward, -y (front) to the camera
+        return objs
+    hroot, hobjs = house('house', k=1.3)
+    troot = empty('treeroot'); tobjs = tree('tree', 0, 0, 3, h=0.36)
+    for o in tobjs: o.parent = troot
+    yroot, yobjs = person('you', 0, 0, k=0.3)
+    rim = on_rim(hobjs, hroot, 11.5, 0.05) + on_rim(tobjs, troot, -8, 0.05) + on_rim(yobjs, yroot, 0, 0.06)
+    group('rim', *rim)
+    centre = (EX * K.U, Y0)
+    meta = {'globe': {'c': list(centre), 'R': R * K.U}}
+    # the table alone (the page shows it still, in screen space: a picture turned and scaled every frame is slow in
+    # Firefox); the globe carries its own soft shadow on the table (round, so it turns with it unchanged)
+    if want('space'): shot('space', (0, 0, 1600, 900), Y0, (EX, EY, -R), show=['table'])
+    if want('globe'): shot('globe', (430 - 280, 450 - 280, 560, 560), Y0, (EX, EY, 0), show=['globe', 'rim'], catch=['table'], anchor=centre, zoom=2, round_=(250, 278))
+    if want('globe_cap'): shot('globe_cap', (430 - 210, 450 - 290, 420, 300), Y0, (EX, EY, 0), show=['globe', 'rim'], anchor=centre, zoom=3)
+    K.write_manifest(meta)
+
+# ================================================================ train: the quick check (beat 7)
+if a.set == 'train':
+    Y0 = 520.0
+    FOCUS = -0.3
+    X0, X1, ZB, ZT = 1.4, 11.4, 0.4, 3.0         # the carriage: x from 140 to 1140 px, body from ZB to ZT
+    DY = 0.75                                     # half its depth: the near wall at -DY
+    lil, lil2, dark2 = clay('train', '#a996e6', rough=0.5), clay('trainl', '#cdbff5', rough=0.5), clay('traind', '#7f6cc0', rough=0.5)
+    inside = clay('inside', '#6b5a4a', rough=0.6)
+    grass = clay('grass', C['grass'], rough=0.6, feat=1.5, stipple=0.5, prints=0.3, specks=0.4)
+    ground = [slab('lawn', -2, 18, -7, 5, 0.0, grass, thick=0.3, d=0.14, wobble=0, lump=0.02),
+              slab('ballast', -2, 18, -1.05, 1.05, 0.06, clay('ballast', '#5b5048', rough=0.7, feat=0.8, specks=0.8), thick=0.12, d=0.07, wobble=0.04, lump=0.012, seed=4)]
+    for i in range(27): ground.append(box(f'sleeper{i}', (0.2, 1.7, 0.08), clay('sleeper', '#4a3d31', rough=0.6), (-1.6 + 0.72 * i, 0, 0.1), r=0.03, d=0.04, lump=0.005, dents=0))
+    for k_, y in enumerate((-0.55, 0.55)): ground.append(roll(f'rail{k_}', (-2, y, 0.17), (18, y, 0.17), 0.045, clay('rail', '#a7aca9', rough=0.35, specks=0), lump=0.003))
+    # the platform ahead of the carriage, its edge painted yellow
+    ground += [box('platform', (3.9, 2.4, 0.95), clay('plat', '#6b7470', rough=0.6, feat=1.3), (14.25, 2.05, 0.47), r=0.08, d=0.06, lump=0.012, dents=5, dent_r=(.1, .2)),
+               box('edge', (3.9, 0.16, 0.05), clay('edgey', '#f3c95c', specks=0), (14.25, 0.93, 0.96), r=0.02, d=0.03, lump=0.003, dents=0)]
+    group('ground', *ground)
+    group('scenery', *hills([-1.0, 2.6, 6.2, 9.8, 13.4, 17.0], 5.0, 7), *tufts(-1, 17, -6, -1.6, 30, 11))
+    L = X1 - X0; xc = (X0 + X1) / 2
+    wins = [X0 + 1.15 + 1.75 * k_ for k_ in range(5)]      # window centres; the door is at the right end
+    WW, WZ0, WZ1 = 1.25, 1.55, 2.55
+    body = [box('floor', (L, 2 * DY, 0.2), dark2, (xc, 0, ZB + 0.45), r=0.05, d=0.06, lump=0.01, dents=2),
+            box('far', (L, 0.14, ZT - ZB), inside, (xc, DY - 0.07, (ZB + ZT) / 2), r=0.05, d=0.06, lump=0.01, dents=4),
+            box('roof', (L + 0.1, 2 * DY + 0.16, 0.24), lil2, (xc, 0, ZT + 0.06), r=0.11, d=0.05, lump=0.015, dents=8, dent_r=(.12, .2)),
+            box('lower', (L, 0.16, WZ0 - ZB), lil, (xc, -DY + 0.08, (ZB + WZ0) / 2), r=0.08, d=0.05, lump=0.015, dents=8, dent_r=(.12, .22)),
+            box('upper', (L, 0.16, ZT - WZ1), lil, (xc, -DY + 0.08, (WZ1 + ZT) / 2), r=0.06, d=0.05, lump=0.012, dents=4),
+            box('band', (L, 0.06, 0.1), lil2, (xc, -DY - 0.01, WZ0 - 0.18), r=0.03, d=0.04, lump=0.004, dents=0)]
+    for side in (X0, X1): body.append(box(f'end{side}', (0.16, 2 * DY, ZT - ZB), lil, (side, 0, (ZB + ZT) / 2), r=0.06, d=0.05, lump=0.012, dents=2))
+    edges = [X0] + [w_ + s_ * WW / 2 for w_ in wins for s_ in (-1, 1)] + [X1]
+    for j in range(0, len(edges), 2):
+        if edges[j + 1] - edges[j] > 0.05: body.append(box(f'pillar{j}', (edges[j + 1] - edges[j] + 0.04, 0.16, WZ1 - WZ0 + 0.04), lil, ((edges[j] + edges[j + 1]) / 2, -DY + 0.08, (WZ0 + WZ1) / 2), r=0.05, d=0.04, lump=0.01, dents=1))
+    body.append(box('door', (0.6, 0.06, 2.0), dark2, (X1 - 0.6, -DY - 0.02, ZB + 1.1), r=0.06, d=0.04, lump=0.008, dents=2))
+    for bx_ in (X0 + 1.6, X1 - 1.6):                # bogies
+        body.append(box(f'bogie{bx_}', (1.9, 1.3, 0.32), clay('bogie', '#3b4744', rough=0.6), (bx_, 0, 0.42), r=0.08, d=0.05, lump=0.01, dents=2))
+        for dx in (-0.55, 0.55): body.append(ball(f'wh{bx_}{dx}', 0.24, clay('tyre', C['tyre'], rough=0.6), (bx_ + dx, -0.62, 0.32), squash=(1, .4, 1), lump=0.006, dents=0))
+    for k_, w_ in enumerate(wins):                  # a seat back behind every window
+        body.append(box(f'seat{k_}', (0.8, 0.16, 0.7), clay('seat', '#4f6fb0', rough=0.6), (w_ + 0.15, 0.35, 1.25), r=0.07, d=0.04, lump=0.008, dents=1))
+    group('train', *body)
+    lamp = bpy.data.objects.new('cabin', bpy.data.lights.new('cabin', 'AREA')); sc.collection.objects.link(lamp)
+    lamp.data.energy = 120; lamp.data.size = L * 0.8; lamp.data.color = (1, .92, .8); lamp.location = (xc, 0, ZT - 0.2)
+    # Maya sits by the third window; the bottle stands on the sill table in front of her
+    mw = wins[2]
+    mroot, mobjs = person('maya', mw - 0.15, -0.3, k=0.92); mroot.location.z = 0.95
+    sill = box('sill', (0.9, 0.34, 0.06), clay('table', '#8a6a4c', rough=0.55), (mw + 0.1, -0.46, WZ0 + 0.03), r=0.02, d=0.03, lump=0.004, dents=1)
+    bot = [part('bottle', lathe_mesh([(0, 0), (0, 0.08), (0.24, 0.08), (0.28, 0.05), (0.3, 0)], 0.02), clay('bottle', '#86c9e8', rough=0.25, specks=0, sss=0.3), (mw + 0.36, -0.46, WZ0 + 0.06), lump=0.004, dents=0),
+           part('cap', lathe_mesh([(0, 0), (0, 0.045), (0.07, 0.045), (0.07, 0)], 0.015), clay('capc', '#3d6fbf', specks=0), (mw + 0.36, -0.46, WZ0 + 0.36), lump=0.002, dents=0)]
+    group('maya', *mobjs, sill, *bot)
+    lroot, lobjs = person('leo', 14.3, 1.8, k=1.1); lroot.location.z = 0.95
+    group('leo', *lobjs)
+    P = lambda x, y, z: [round(v, 1) for v in K.px(x, y, z, Y0)]
+    meta = {'train': {'maya': P(mw - 0.15, -0.3, 0.95 + 1.3 * 0.92), 'bottle': P(mw + 0.36, -0.46, WZ0 + 0.42), 'leo': P(14.3, 1.8, 0.95 + 1.36 * 1.1),
+                      'top': P(X0, -DY, ZT + 0.2), 'nose': P(X1, -DY, ZT)}}
+    if want('train'): shot('train', (0, 120, 1600, 470), Y0, FOCUS, show=['ground', 'scenery', 'train', 'maya', 'leo'])
     K.write_manifest(meta)

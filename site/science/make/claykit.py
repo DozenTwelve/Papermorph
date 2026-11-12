@@ -42,7 +42,7 @@ def arguments(extra=None):
     ap.add_argument('--elev', type=float, default=30.0, help='camera elevation in degrees; the page reads it from clay.js')
     ap.add_argument('--fstop', type=float, default=None, help='lower: near ground and far hills softer (default: the set\'s own, about 0.2)')
     ap.add_argument('--sun', type=float, default=5.0)
-    ap.add_argument('--sun-dir', dest='sun_dir', type=lambda v: tuple(map(float, v.split(','))), default=(1.0, 0.45, -0.72),
+    ap.add_argument('--sun-dir', dest='sun_dir', type=lambda v: tuple(map(float, v.split(','))), default=(1.0, 0.22, -0.75),
                     help='the way sunlight travels: x right, y into the set, z up')
     ap.add_argument('--sun-size', dest='sun_size', type=float, default=9.0, help='degrees; larger: softer shadow edges')
     ap.add_argument('--ambient', type=float, default=0.5)
@@ -132,6 +132,13 @@ def setup(a):
     return sc
 
 
+def elevation(deg):
+    """Change the camera's elevation for the shots that follow (90: straight down onto the table)."""
+    global E
+    E = math.radians(deg)
+    bpy.context.scene.camera.rotation_euler = (math.pi / 2 - E, 0, 0)
+
+
 def px(x, y, z, Y0):
     """Page px of a Blender point; Y0 is the page y of the ground at depth 0."""
     return x * U, Y0 - U * (z * math.cos(E) + y * math.sin(E))
@@ -156,7 +163,7 @@ def group(name, *objs):
     return objs[0] if len(objs) == 1 else objs
 
 
-def shot(name, rect, Y0, focus_y, show, catch=(), unseen=(), frames=None, anchor=None, extra=None, zoom=1):
+def shot(name, rect, Y0, focus_y, show, catch=(), unseen=(), frames=None, anchor=None, extra=None, zoom=1, round_=None):
     """Render one asset and write it for the page.
 
     show: groups the camera sees. catch: groups that only catch shadows (the ground under a sprite). unseen: groups
@@ -164,7 +171,8 @@ def shot(name, rect, Y0, focus_y, show, catch=(), unseen=(), frames=None, anchor
     Every other group is out of the render. frames: [(key, fn)]: a strip; fn() poses the frame.
     anchor: the page point (x, y) the sprite is placed by; clay.js gets its offset inside the image. extra: more
     fields for the page (a wheel's radius, a road's period). zoom: render this many times finer than the page's
-    size (a picture the page's camera goes close to)."""
+    size (a picture the page's camera goes close to). round_=(r0, r1): fade the alpha to 0 from r0 to r1 page px
+    round the anchor (a sprite the page turns: its rectangle's edge would show where a catcher's faint shadow ends)."""
     sc = bpy.context.scene
     x, y, w, h = rect = tuple(int(round(v)) for v in rect)
     for g, objs in GROUPS.items():
@@ -190,7 +198,7 @@ def shot(name, rect, Y0, focus_y, show, catch=(), unseen=(), frames=None, anchor
     if A.draft: return files
     site = os.path.abspath(A.site); os.makedirs(site, exist_ok=True)
     dst = os.path.join(site, name + '.webp')
-    pack(files, dst)
+    pack(files, dst, (anchor[0] - x, anchor[1] - y, *round_, w) if round_ else None)
     m = {'w': w, 'h': h, 'x': x, 'y': y}
     if anchor: m.update(x=round(x - anchor[0], 2), y=round(y - anchor[1], 2))   # where the image's corner is from the anchor
     if n > 1: m['n'] = n
@@ -200,8 +208,9 @@ def shot(name, rect, Y0, focus_y, show, catch=(), unseen=(), frames=None, anchor
     return files
 
 
-def pack(files, dst):
-    """The frames side by side as one WebP (alpha kept), written by Blender itself: no other tool is needed."""
+def pack(files, dst, round_=None):
+    """The frames side by side as one WebP (alpha kept), written by Blender itself: no other tool is needed.
+    round_ = (cx, cy, r0, r1, page_w): a round feather of the alpha about (cx, cy) in page px from the frame's corner."""
     n = len(files)
     ims = [bpy.data.images.load(f) for f in files]
     w, h = ims[0].size
@@ -210,6 +219,12 @@ def pack(files, dst):
         buf = np.empty(w * h * 4, 'f'); im.pixels.foreach_get(buf)
         out[:, i * w:(i + 1) * w] = buf.reshape(h, w, 4)
         bpy.data.images.remove(im)
+    if round_:
+        cx, cy, r0, r1, pw = round_; k = w / pw                      # image px per page px
+        yy, xx = np.mgrid[0:h, 0:w]
+        d = np.hypot(xx + .5 - cx * k, (h - 1 - yy) + .5 - cy * k) / k   # Blender's rows run bottom to top
+        f = np.clip((r1 - d) / (r1 - r0), 0, 1)
+        for i in range(n): out[:, i * w:(i + 1) * w, 3] *= f            # loaded PNGs are straight alpha: the alpha alone
     o = bpy.data.images.new('pack', w * n, h, alpha=True)
     o.pixels.foreach_set(out.ravel())
     o.filepath_raw = dst; o.file_format = 'WEBP'
@@ -247,10 +262,11 @@ def _m(N, L, op, a, b=None):
     return n.outputs[0]
 
 
-def clay(name, hexcol, rough=0.5, sss=0.08, marks=1.0, specks=1.0, period=0.0, feat=1.0, emit=0.0, stipple=0.0, prints=1.0, vcol=False):
+def clay(name, hexcol, rough=0.5, sss=0.08, marks=1.0, specks=1.0, period=0.0, feat=1.0, emit=0.0, stipple=0.0, prints=1.0, vcol=False, spec=0.45):
     """Modelling clay: a colour that drifts, thumb-sized dents, tool strokes, coarse fingerprints in patches, a few
     crumbs of other colours, a soft waxy shine.
 
+    spec: the waxy shine (0.45); near 0 where the light comes from the camera's side and would shine back into it.
     vcol: the colour comes from the mesh's colour attribute 'col' (a globe's sea, land and ice), hexcol is unused.
     stipple: a surface dabbed all over with a stiff brush (grass). prints: strength of the fingerprints.
     period: for ground that repeats along x (a road plate that wraps): the marks then repeat every `period` units
@@ -309,7 +325,7 @@ def clay(name, hexcol, rough=0.5, sss=0.08, marks=1.0, specks=1.0, period=0.0, f
     rn = tex('ShaderNodeTexNoise', 5.0)
     rr = N.new('ShaderNodeMapRange'); rr.inputs['To Min'].default_value = rough - 0.1; rr.inputs['To Max'].default_value = rough + 0.12
     L.new(rn.outputs['Fac'], rr.inputs['Value']); L.new(rr.outputs['Result'], b.inputs['Roughness'])
-    b.inputs['Specular IOR Level'].default_value = 0.45
+    b.inputs['Specular IOR Level'].default_value = spec
     b.inputs['Subsurface Weight'].default_value = sss
     b.inputs['Subsurface Scale'].default_value = 0.06
     b.inputs['Subsurface Radius'].default_value = (1.0, 0.5, 0.35)

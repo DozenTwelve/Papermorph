@@ -10,6 +10,10 @@ formulas:
   roadside  the truck at 30 mph past you
   position  the ball's centre is over 2 m, then 7 m, and the angle shown is the one its rolled distance gives
   wheels    the wheel frame shown is the one the distance driven gives
+  everywhere the Earth goes round the Sun counterclockwise at 40 degrees a second, its lit side from its angle; the
+            walker's pose from the distance walked
+  earth     the globe turns counterclockwise, 14 degrees a second
+  labels    every label shown in beats 0-8 stays at least 40 px inside the stage (clipped picture-in-picture text aside)
 Each moment is opened two ways: jumped to (as ?beat=N&t=S does) and stepped to at 60 steps a second (as playing
 does); both must give the same picture.
 """
@@ -121,8 +125,53 @@ async def main():
             d = s['pics']['ball'][0][0] + cx - 440
             assert round(s['frames']['ball'][0]) == round(d / r / (2 * math.pi) * N) % N, f'position {t} s: ball angle'
             n += 1
+        # everywhere: the Earth goes round the Sun counterclockwise on screen (seen from above and in front: the near
+        # side moves right), its frame is the one its angle gives; the walker's pose follows the distance walked
+        i = await idx('everywhere')
+        te, ty = await pg.evaluate("[TIMINGS.everywhere.marks.earth, TIMINGS.everywhere.marks.you]")
+        ox, oy = await pg.evaluate("[CLAY.table.orbit[0], CLAY.table.orbit[1]]")
+        ang = []
+        for t in (te, te + 1, te + 2, te + 3, te + 4):
+            st_ = await state(i, t)
+            x, y, w, h = st_['pics']['earth'][0]
+            ex, ey = x + w / 2 - await pg.evaluate("CLAY.img.earth.x + CLAY.img.earth.w / 2"), y + h / 2 - await pg.evaluate("CLAY.img.earth.y + CLAY.img.earth.h / 2")
+            ang.append(math.degrees(math.atan2(-(ey - oy) / await pg.evaluate("CLAY.table.orbit[3]"), (ex - ox) / await pg.evaluate("CLAY.table.orbit[2]"))))
+            assert round(st_['frames']['earth'][0]) == round((ang[-1] + 90) / 15) % 24, f'everywhere {t} s: Earth frame {st_["frames"]["earth"][0]} at {ang[-1]:.0f} degrees'
+            n += 1
+        d = [((b_ - a_ + 180) % 360) - 180 for a_, b_ in zip(ang, ang[1:])]
+        assert all(abs(v - 40) < 0.5 for v in d), f'everywhere: the Earth turns {d} degrees a second, not +40 (counterclockwise)'
+        step = await pg.evaluate("CLAY.table.step")
+        for t in (ty + .5, ty + 1.3, ty + 2.2, ty + 6):
+            st_ = await state(i, t)
+            wx = await pg.evaluate("CLAY.table.walk[0] + CLAY.img.walk.x")
+            dist = st_['pics']['walk'][0][0] - wx
+            assert round(st_['frames']['walk'][0]) == round(dist / step * 8) % 8, f'everywhere {t} s: walk frame'
+            n += 1
+        # earth: the globe turns counterclockwise on screen (its rotation angle falls), at ESPIN degrees a second
+        i = await idx('earth')
+        rot = await pg.evaluate("""([i, t]) => { seek(i, false); P.t = t; evalTo(t);
+          const g = [...scene.querySelectorAll('image')].find(e => /globe\.webp/.test(e.getAttribute('href'))).parentNode.parentNode;
+          const m = g.transform.baseVal.consolidate().matrix; return Math.atan2(m.b, m.a) * 180 / Math.PI; }""", [i, 8.0])
+        rot2 = await pg.evaluate("""([i, t]) => { seek(i, false); P.t = t; evalTo(t);
+          const g = [...scene.querySelectorAll('image')].find(e => /globe\.webp/.test(e.getAttribute('href'))).parentNode.parentNode;
+          const m = g.transform.baseVal.consolidate().matrix; return Math.atan2(m.b, m.a) * 180 / Math.PI; }""", [i, 9.0])
+        assert abs(((rot2 - rot + 180) % 360 - 180) - (-14)) < 0.01, f'earth: the globe turns {rot2 - rot} degrees a second, not -14 (counterclockwise)'
+        n += 1
+        # labels: every label shown in Section 1 sits at least 40 px inside the stage
+        for bid in ('intro', 'position', 'everywhere', 'roadside', 'incar', 'rule', 'earth', 'q1', 'wrap'):
+            i = await idx(bid)
+            end = await pg.evaluate(f"TIMINGS[{bid!r}].dur")
+            for t in [end * k / 8 for k in range(9)]:
+                bad = await pg.evaluate("""([i, t]) => { seek(i, false); for (let u = 0; u < t; u += .25) evalTo(u); P.t = t; evalTo(t);
+                  const st = document.getElementById('stage').getBoundingClientRect(), k = 1600 / st.width;
+                  const shown = e => { for (let n = e; n && n !== scene; n = n.parentNode) { if (n._st && n._st.o < .5) return false; if (n.getAttribute && n.getAttribute('clip-path')) return false; } return true; };
+                  return [...scene.querySelectorAll('text')].filter(e => e.textContent.trim() && shown(e)).map(e => { const r = e.getBoundingClientRect();
+                    return [e.textContent, (r.left - st.left) * k, (r.top - st.top) * k, (r.right - st.left) * k, (r.bottom - st.top) * k]; })
+                    .filter(([, l, tp, r, b]) => r > 0 && l < 1600 && b > 0 && tp < 900 && (l < 40 || tp < 40 || r > 1560 || b > 860)); }""", [i, t])
+                assert not bad, f'{bid} at {t:.1f} s: labels closer than 40 px to the edge: {bad}'
+                n += 1
         assert not errs, errs
-        print(f'check_ch09 ({a.browser}): {n} checks passed: screen speeds equal the labels in incar and roadside, wheel and ball angles follow the distance, jumped-to equals stepped-to')
+        print(f'check_ch09 ({a.browser}): {n} checks passed: screen speeds equal the labels in incar and roadside, wheel, ball, page-orbit and walk frames follow the motion, the orbit and the spin are counterclockwise, labels 40 px inside, jumped-to equals stepped-to')
         await b.close()
 
 asyncio.run(main())
