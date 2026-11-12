@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Motion, clay edition — Elementary Physics</title>
+<meta name="description" content="Chapter 1 of Elementary Physics as a clay tabletop miniature, built and rendered by Claude driving Blender, under the same live lesson page.">
+<link rel="canonical" href="https://papermorph.diamonddoge.org/physics-clay/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Papermorph">
+<meta property="og:title" content="Motion, clay edition: Papermorph now works with Blender">
+<meta property="og:description" content="Chapter 1 of Elementary Physics as a clay tabletop miniature, built and rendered by Claude driving Blender, under the same live lesson page.">
+<meta property="og:url" content="https://papermorph.diamonddoge.org/physics-clay/">
+<meta property="og:image" content="https://papermorph.diamonddoge.org/physics-clay/img/og.webp">
+<meta property="og:image:alt" content="A clay chalkboard on a clay running track, with the formula speed = distance ÷ time written on it">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231d2b27'/%3E%3Ctext x='32' y='45' text-anchor='middle' font-size='48' fill='%23f0b45a'%3E∞%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="lib/units.css">
+<link rel="stylesheet" href="lib/contents.css">
+<link rel="stylesheet" href="../lib/books.css">
+<script src="lib/units.js"></script>
+<script src="lib/contents.js"></script>
+<script src="unit-art.js"></script>
+<link rel="expect" href="#ch09" blocking="render">
+<style>
+/* The clay frame under the cover's words, and the making notes under the contents. */
+.hero { display: block; width: min(640px, 88vw); height: auto; aspect-ratio: 16 / 9; margin: 26px auto 8px; border-radius: 14px; object-fit: cover;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, .35); }
+.made { max-width: 960px; margin: 10px auto 80px; padding: 0 24px; color: var(--chalk, #ece8dc); line-height: 1.55; }
+.made h2 { font-size: 1.5rem; margin: 34px 0 10px; }
+.made p, .made li { color: var(--dim, #9aaba3); font-size: 1.02rem; }
+.made b { color: var(--chalk, #ece8dc); font-weight: 600; }
+.made ul { padding-left: 1.2em; }
+.made li { margin: 6px 0; }
+.made figure { margin: 18px 0; }
+.made figure img { width: 100%; height: auto; border-radius: 10px; display: block; }
+.made figcaption { font-size: .9rem; color: var(--dim, #9aaba3); margin-top: 6px; }
+.made .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 16px 0; }
+.made .facts div { border: 1px solid rgba(255, 255, 255, .1); border-radius: 10px; padding: 10px 14px; }
+.made .facts strong { display: block; font-size: 1.35rem; color: var(--chalk, #ece8dc); }
+</style>
+</head>
+<body>
+<section id="cover">
+  <svg class="mascot draw" id="guide" width="210" height="147" aria-hidden="true"></svg>
+  <h1>Motion, in clay</h1>
+  <p class="kicker">Elementary Physics · Chapter 1 · clay edition, made with Blender</p>
+  <p class="lede">Papermorph now works with Blender. This chapter is a clay tabletop miniature that Claude built and rendered by driving Blender from Python; the lesson page on top is the same live one: narration, numbers and questions.</p>
+  <div class="acts">
+    <a class="btn go" href="ch09/">Watch the chapter<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 2.5 11.5 8 6 13.5 4.6 12.1 8.7 8 4.6 3.9z"/></svg></a>
+    <a class="btn quiet" href="#contents" data-t="open">Open the book</a>
+    <a class="btn quiet" id="resume" hidden></a>
+  </div>
+  <img class="hero" src="img/hero.webp" width="1200" height="675" alt="A clay truck passes a clay figure by a clay road under a clay sky; a tag reads: measured from you, by the road">
+  <p class="meta" id="meta"></p>
+  <a class="back-shelf cover-back" href="../science/#contents">← Elementary Physics</a>
+</section>
+
+<main id="contents">
+  <header class="top">
+    <a class="home" href="#book" aria-label="Back to the cover" data-t-label="toCover"><svg class="mascot" id="guideSmall" width="52" height="36" aria-hidden="true"></svg><strong>Motion, in clay</strong></a>
+    <span class="prog" id="prog"></span>
+    <a class="back-shelf contents-back" href="../science/#contents">← Elementary Physics</a>
+  </header>
+  <div id="units"></div>
+
+  <section class="made" aria-labelledby="made-title">
+    <h2 id="made-title">How it was made</h2>
+    <p>The same chapter as the <a href="../science/ch09/">pixel edition</a>: the same narration, the same marks, the same quick checks and practice. Only the picture under it changed.</p>
+    <figure>
+      <img src="img/before-after.webp" width="1612" height="450" alt="The same moment twice: the pixel edition on the left, the clay edition on the right">
+      <figcaption>The same moment of the lesson: the pixel edition, and the clay edition.</figcaption>
+    </figure>
+    <ul>
+      <li><b>Claude wrote the scripts and ran Blender headless.</b> Python for Blender's <code>bpy</code>, no work by hand in Blender's window: every set, prop and light is built by code, with every setting an argument, so a set can be rendered again on another machine.</li>
+      <li><b>Clay, with real light.</b> Every shape is pushed about like modelling clay: slow lumps, thumb dents, tool strokes and fingerprints in the surface. The sets are rendered in Cycles with a sun, soft shadows and the shallow depth of field of a miniature.</li>
+      <li><b>The page moves the clay.</b> Blender renders each set without its movers, and each mover alone with its shadow; wheels, balls, turning pages and strides as strips of angles and poses. The camera is orthographic and never turns, so a sprite the page moves is exactly the frame Blender would render with the thing there.</li>
+      <li><b>Everything you read stays live.</b> Labels, numbers, readouts, the narration's captions and the questions are drawn by the page over the picture: sharp at any size, and translatable.</li>
+      <li><b>Checked to agree.</b> A script measures the picture against the numbers on screen in Chromium and Firefox: speeds against their labels, a ball's turn against the distance it rolled, which way the Earth spins, labels kept off the edges; more than 400 checks.</li>
+    </ul>
+    <div class="facts">
+      <div><strong>47 pictures</strong>1.8 MB of clay plates, sprites and strips for the whole chapter</div>
+      <div><strong>~15 min</strong>to render every set on an Apple M1 laptop (Cycles, 48 samples)</div>
+      <div><strong>1,900 lines</strong>of Python: the clay kit, the sets, the check</div>
+      <div><strong>2.6 MB</strong>of narration, the same as the pixel edition</div>
+    </div>
+  </section>
+</main>
+
+<script>
+// One chapter: the clay edition of chapter 1. Its folder keeps the book's number (ch09).
+Contents.book({
+  start: { unit: 1, chapter: 9, label: 1 },
+  units: [   // [unit title, [[chapter title, minutes], ...]]
+    ['Motion, Forces, and Work', [['Motion, clay edition', 18]]],
+  ],
+  hues: ['#f4a48c'],
+});
+</script>
+</body>
+</html>
