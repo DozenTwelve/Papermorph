@@ -49,6 +49,24 @@ check("respelling: captions show the written form",
       [text for _, text in tts.respell(tts.caption_cues(clean, words), shown)], ["Call it Safety-II.", "IT teams know it."])
 check("respelling: marks land on spoken words", tts.mark_times(clean, marks, words), {"w": 1.5})
 
+# A pair respells its own words only: twice is no warning, and the same words said plainly keep their spelling.
+clean, marks, shown = tts.split_marks("Then two more. Pick {{2|two}} and {{2|two}}.")
+words = words_at(clean, [0.0, 0.3, 0.6, 1.0, 1.3, 1.6, 1.9])
+check("respelling: only the pair's own occurrences",
+      [text for _, text in tts.respell(tts.caption_cues(clean, words), shown)], ["Then two more.", "Pick 2 and 2."])
+# Chinese has no word edges, a backslash in the shown form is kept, and eleven.py's closed-up spaces still match.
+clean, _, shown = tts.split_marks("这是{{IT|爱踢}}团队。")
+check("respelling: Chinese", [t for _, t in tts.respell(tts.caption_cues(clean, words_at(clean, [0.0])), shown)], ["这是IT团队。"])
+check("respelling: a backslash shown as written", tts.respell([[0, "theta."]], tts.split_marks("{{\\theta|theta}}.")[2]),
+      [[0, "\\theta."]])
+check("respelling: double spaces", tts.respell([[0, "I T teams."]], tts.split_marks("{{IT|I  T}} teams.")[2]), [[0, "IT teams."]])
+for bad in ("Say {{IT}} now.", "Say {{IT|[[w]]I T}} now."):   # a stray {{ would be read aloud; a mark inside has no word
+    try:
+        tts.split_marks(bad)
+        failures.append(f"respelling: {bad!r} should stop the voice script")
+    except ValueError:
+        pass
+
 if failures:
     print("\n".join(failures))
     sys.exit(1)

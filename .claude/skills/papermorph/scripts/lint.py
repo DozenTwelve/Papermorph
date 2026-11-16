@@ -164,7 +164,10 @@ def timings(path):
 
 
 def words(s):
-    return re.sub(r'[^\w]+', ' ', SAY.sub(lambda m: m.group(1), TAG.sub(' ', MARK.sub('', s)))).lower().split()
+    # a pair's shown form is the page's, taken whole (so "{{[2]|two}}" reads 2); marks and audio tags come out elsewhere
+    parts = SAY.split(s)   # text, shown, spoken, text, ...
+    s = ' '.join(p if i % 3 == 1 else '' if i % 3 == 2 else TAG.sub(' ', MARK.sub('', p)) for i, p in enumerate(parts))
+    return re.sub(r'[^\w]+', ' ', s).lower().split()
 
 
 def page_globals(page, html, err):

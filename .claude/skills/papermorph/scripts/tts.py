@@ -138,9 +138,21 @@ def kokoro_beat(text, voice, rate, mp3_path):
 
 
 def split_marks(raw):
-    """Return the spoken text, {mark: char position in it} and [(spoken, shown)], the captions' respellings."""
-    shown = [(m.group(2), m.group(1)) for m in SAY.finditer(raw)]
-    raw = SAY.sub(lambda m: m.group(2), raw)
+    """Return the spoken text, {mark: char position in it} and [(spoken, shown, n)], the captions' respellings:
+    each pair's spoken form is its n-th whole-word occurrence in the spoken text, counted from 0."""
+    pairs = list(SAY.finditer(raw))
+    for m in pairs:
+        if MARK.search(m.group(0)):
+            raise ValueError(f"{m.group(0)}: put the [[mark]] before the {{{{, not inside it")
+    raw_said = SAY.sub(lambda m: m.group(2), raw)
+    if "{{" in raw_said or "}}" in raw_said:
+        raise ValueError(f"{raw!r}: a {{{{ or }}}} is not a {{{{shown|spoken}}}} pair, so the voice would read it")
+    said = MARK.sub("", raw_said)
+    shown = []
+    for m in pairs:
+        at = len(MARK.sub("", SAY.sub(lambda x: x.group(2), raw[:m.start()])))   # where it starts in the spoken text
+        shown.append((m.group(2), m.group(1), sum(x.start() < at for x in whole(m.group(2)).finditer(said))))
+    raw = raw_said
     marks, clean, pos = {}, [], 0
     # MARK.split alternates text, name, text, name, ...
     for i, part in enumerate(MARK.split(raw)):
@@ -189,14 +201,27 @@ def mark_times(clean, marks, words):
     return out
 
 
+def whole(said):
+    # no word edges: Chinese has none, and counting the same text in the same order finds the same occurrence anyway;
+    # any run of spaces, since eleven.py's captions close up double spaces
+    return re.compile(r"\s+".join(map(re.escape, said.split())))
+
+
 def respell(cues, shown, beat=""):
-    """Show each {{shown|spoken}} pair's written form in the captions. A spoken form that no single caption holds
-    whole (split by a sentence end) is named, since that caption keeps the spoken form."""
-    for spoken, written in shown:
-        pat, hit = re.compile(r"(?<!\w)" + re.escape(spoken) + r"(?!\w)"), False
+    """Show each {{shown|spoken}} pair's written form in the captions, at that pair's own occurrence only, so the same
+    words said plainly elsewhere stay as said. A spoken form that no single caption holds whole (split by a sentence
+    end) is named, since that caption keeps the spoken form."""
+    for spoken, written, n in reversed(shown):   # last first: a swap never moves an earlier pair's count
+        seen, hit = 0, False
         for cue in cues:
-            cue[1], n = pat.subn(written, cue[1])
-            hit = hit or n > 0
+            def swap(m):
+                nonlocal seen, hit
+                seen += 1
+                if seen - 1 == n:
+                    hit = True
+                    return written
+                return m.group()
+            cue[1] = whole(spoken).sub(swap, cue[1])
         if not hit:
             print(f"{beat}: WARNING {{{{{written}|{spoken}}}}} is in no caption whole, so the captions show {spoken!r}",
                   file=sys.stderr)

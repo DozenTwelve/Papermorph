@@ -158,8 +158,8 @@ for beat, raw in spec["beats"].items():
     cached = cache / f"{beat}.{hashlib.sha1(f'{model}|{voice}|{clean}'.encode()).hexdigest()[:12]}.mp3"
     fresh = beat in only if only else not cached.exists()   # --only takes its beats again, cached or not
     beats.append((beat, voice, sub, clean, marks, shown, cached, fresh, af))
-todo = sum(len(b[3]) for b in beats if b[6])
-print(f"{sum(b[6] for b in beats)} beats to synthesize, {todo} characters, about ${todo * PRICE:.2f}", flush=True)
+todo = sum(len(b[3]) for b in beats if b[7])
+print(f"{sum(b[7] for b in beats)} beats to synthesize, {todo} characters, about ${todo * PRICE:.2f}", flush=True)
 if a.dry:
     sys.exit()
 timings, spent = {}, 0
