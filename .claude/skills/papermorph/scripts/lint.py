@@ -50,6 +50,7 @@ SFXCALL = re.compile(r"""(?<![\w$.])sfx\(\s*(?:'[^']*'|"[^"]*"|[\w$.\[\]]+)\s*,\
 MUSICCALL = re.compile(r"""(?<![\w$.])music\(\s*['"]([^'"]+)['"]""")
 MCALL = re.compile(r"(?<![\w$.])m\(\s*'(\w+)'\s*[,)]")
 MARK = re.compile(r'\[\[(\w+)\]\]')
+SAY = re.compile(r'\{\{([^|{}]+)\|([^{}]+)\}\}')   # {{shown|spoken}} (tts.py's): the page shows "shown"
 TAG = re.compile(r'(?<!\[)\[[^\[\]]+\](?!\])')   # an ElevenLabs v4 audio tag, [whispers]: performed, not in captions (eleven.py's)
 WINDOW_PROPS = {'sfx', 'music', 'SFX', 'SFX_BED', 'BGM', 'MUSIC_OFF', 'MUSIC_UP_IN_PRE', 'MUSIC_UP', 'MUSIC_LEVELS'}   # set on window by engine.js, not declared
 ENGINE_FILES = {'engine.js', 'math.js', 'volume.js', 'contents.js', 'units.js'}
@@ -163,7 +164,10 @@ def timings(path):
 
 
 def words(s):
-    return re.sub(r'[^\w]+', ' ', TAG.sub(' ', MARK.sub('', s))).lower().split()
+    # a pair's shown form is the page's, taken whole (so "{{[2]|two}}" reads 2); marks and audio tags come out elsewhere
+    parts = SAY.split(s)   # text, shown, spoken, text, ...
+    s = ' '.join(p if i % 3 == 1 else '' if i % 3 == 2 else TAG.sub(' ', MARK.sub('', p)) for i, p in enumerate(parts))
+    return re.sub(r'[^\w]+', ' ', s).lower().split()
 
 
 def page_globals(page, html, err):
