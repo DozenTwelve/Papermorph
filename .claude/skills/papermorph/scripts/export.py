@@ -43,7 +43,7 @@ f % jobs, and written in order. The browsers ask for the GPU (Chromium falls bac
 and the video goes to the first hardware H.264 encoder that works on this machine (NVENC, Quick Sync, AMF,
 VideoToolbox), else libx264; the run prints which.
 """
-import argparse, asyncio, functools, json, os, shutil, subprocess, sys, tempfile, wave
+import argparse, asyncio, functools, json, os, shutil, subprocess, sys, tempfile, unicodedata, wave
 import numpy as np
 from pathlib import Path
 from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeout
@@ -61,7 +61,8 @@ END_CARD = """([link, asks]) => {
   d.style.cssText = 'position:absolute;left:0;top:0;width:'+SW+'px;height:'+SH+'px;display:flex;flex-direction:column;' +
     'align-items:center;justify-content:center;gap:26px;background:var(--board,#1d2b27);color:var(--chalk,#ece8dc);' +
     'font-family:inherit;text-align:center;z-index:50';
-  d.innerHTML = `<div style="font-size:30px;opacity:.65;letter-spacing:.08em;text-transform:uppercase">${translate('chapterNumber', { n: CHAPTER.label ?? CHAPTER.number })}</div>
+  const kicker = translate('chapterNumber', { n: CHAPTER.label ?? CHAPTER.number });   // Arabic letters join: not spaced out
+  d.innerHTML = `<div style="font-size:30px;opacity:.65;letter-spacing:${isRTL(kicker) ? 0 : '.08em'};text-transform:uppercase">${kicker}</div>
     <div style="font-size:64px;font-weight:600;max-width:${SW - 300}px">${CHAPTER.title}</div>
     ${asks ? `<div style="font-size:34px;opacity:.85;margin-top:30px">${translate('checksInLesson')}</div>` : ''}
     ${link ? `<div style="font-size:30px;opacity:.65">${link}</div>` : ''}`;
@@ -70,6 +71,16 @@ END_CARD = """([link, asks]) => {
 
 
 RATE = 44100
+
+
+def rtl_marked(text):
+    """An .srt line whose first letter is Arabic or Hebrew, begun with a right-to-left mark (U+200F): many players lay
+    out a subtitle left to right, and a line that starts or ends with a number, a Latin name or a stop then reads out
+    of order. Other lines are left as they are."""
+    def mark(line):
+        first = next((c for c in line if c.isalpha()), '')
+        return '‏' + line if first and unicodedata.bidirectional(first) in ('R', 'AL') else line
+    return '\n'.join(mark(line) for line in text.split('\n'))
 
 # H.264 encoders, first that works wins; a listed hardware encoder can still fail (no such GPU), so each is tried
 ENCODERS = [('h264_nvenc', ['-preset', 'p5', '-rc', 'vbr', '-cq', '20', '-b:v', '0']),
@@ -365,7 +376,7 @@ async def main(a):
     with open(out / f'{a.chapter}.srt', 'w', encoding='utf-8') as f:
         for k, (t0, t1, line) in enumerate(cues, 1):
             if k < len(cues): t1 = min(t1, cues[k][0])   # a cue ends where the next begins: video sites stack overlaps
-            f.write(f'{k}\n{srt_time(t0)} --> {srt_time(t1)}\n{line}\n\n')
+            f.write(f'{k}\n{srt_time(t0)} --> {srt_time(t1)}\n{rtl_marked(line)}\n\n')
     if errs or enc.returncode:
         part.unlink(missing_ok=True)
         sys.exit(f'failed: {errs[:3]} encoder {enc.returncode}')

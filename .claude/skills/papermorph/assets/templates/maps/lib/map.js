@@ -77,7 +77,8 @@ const { paperMap, mapBand, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCi
   const MAP_COL = { land: css('--map-land', '#ece3cd'), sea: css('--map-sea', '#bfcac6'), ink: css('--map-ink', '#2b2520'),
     line: css('--map-line', '#9a8a70'), night: css('--map-night', '#04060a'), hot: css('--map-hot', css('--red', '#c8281e')),
     mark: css('--map-mark', css('--mark', '#f4c430')), dim: css('--map-dim', '#6f6a62'), urban: css('--map-urban', '#cdb995'), river: css('--map-river', '#8fa9ad') };
-  const FONT = bookSetting('--map-font') || '"Oswald", "Arial Narrow", sans-serif';
+  // Oswald has no Arabic letters: an Arabic label takes the faces after it
+  const FONT = bookSetting('--map-font') || '"Oswald", "Arial Narrow", "Segoe UI", "SF Arabic", "Geeza Pro", "Noto Sans Arabic", sans-serif';
   const PORTRAIT = SH > SW, SAFE = PORTRAIT ? [50, 150, 810, 1290] : [60, 60, SW - 60, SH - 230];
   const clamp01 = v => Math.min(1, Math.max(0, v)), ramp = (t, a, b) => clamp01((t - a) / (b - a));
   const within = (t, on) => !on || (t >= on[0] && t <= on[1]);
@@ -180,10 +181,12 @@ const { paperMap, mapBand, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCi
     fo.appendChild(cv);
     const ctx = cv.getContext('2d'), land = grained(ctx, MAP_COL.land), sea = grained(ctx, MAP_COL.sea), hatchFill = hatchPattern(ctx);
     const lab = G(g, {});
-    const labels = cities.map(([name, t0, side = 'r', t1]) => {
-      if (!CITIES[name]) throw new Error(`paperMap: no city ${name} in geo-lite.js (geo.py --cities)`);
-      const e = G(lab, { o: 0 }), w = measure(name.toUpperCase(), labelSize);
-      const tx = T(e, name.toUpperCase(), { x: 0, y: 0, size: labelSize, fill: MAP_COL.ink, font: FONT, weight: 600, anchor: 'start' });
+    // a city: [name in geo-lite.js, t0, side, t1, label shown]; the label defaults to the name, so a film in another
+    // language looks the city up by its geo-lite name and shows its own: ['Cairo', 2, 'l', undefined, 'القاهرة']
+    const labels = cities.map(([name, t0, side = 'r', t1, shown = name]) => {
+      if (!CITIES[name]) throw new Error(`paperMap: no city ${name} in geo-lite.js (geo.py --cities); a label in the film's language goes fifth: [name, t0, side, t1, label]`);
+      const e = G(lab, { o: 0 }), w = measure(shown.toUpperCase(), labelSize);
+      const tx = T(e, shown.toUpperCase(), { x: 0, y: 0, size: labelSize, fill: MAP_COL.ink, font: FONT, weight: 600, anchor: 'start' });
       tx.setAttribute('stroke', MAP_COL.land); tx.setAttribute('stroke-width', labelSize / 5); tx.setAttribute('paint-order', 'stroke'); tx.setAttribute('stroke-linejoin', 'round');
       return { e, name, ll: CITIES[name], t0, t1, side, w };
     });
@@ -379,10 +382,11 @@ const { paperMap, mapBand, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCi
   // (x, y) or anchored 'start' / 'end', a smaller second line `sub` under it; faded in at t0, out at t1 when given
   function mapBand(p, str, x, y, t0, { size = 64, sub, anchor = 'middle', ground = COL.board, fill = COL.chalk, o = .94, t1 } = {}) {
     str = str.toUpperCase();
-    const w = Math.max(measure(str, size) * 1.02, sub ? measure(sub, size * .42) : 0) + size * .9, g = G(p, { x, y, o: 0 });
+    const ls = isRTL(str) ? 0 : .02;   // Arabic letters join: no spacing between them
+    const w = Math.max(measure(str, size) * (1 + ls), sub ? measure(sub, size * .42) : 0) + size * .9, g = G(p, { x, y, o: 0 });
     const x0 = anchor === 'middle' ? -w / 2 : anchor === 'end' ? -w : 0;
     mk('rect', { x: x0, y: -size * 1.02, width: w, height: size * 1.32 + (sub ? size * .62 : 0), fill: ground, opacity: o }, g);
-    T(g, str, { x: x0 + w / 2, y: 0, size, fill, font: FONT, weight: 600, anchor: 'middle' }).setAttribute('letter-spacing', '.02em');
+    T(g, str, { x: x0 + w / 2, y: 0, size, fill, font: FONT, weight: 600, anchor: 'middle' }).setAttribute('letter-spacing', `${ls}em`);
     if (sub) T(g, sub, { x: x0 + w / 2, y: size * .66, size: size * .42, fill: COL.dim, font: FONT, anchor: 'middle' });
     g._w = w; tw(g, { o: 1 }, t0, .35, out);
     if (t1 !== undefined) hide(g, t1, .4);

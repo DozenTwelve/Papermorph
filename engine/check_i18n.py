@@ -300,6 +300,24 @@ async def check_arabic_lesson(browser, errors):
     assert await page.evaluate("document.documentElement.dir") == "rtl"
     assert await style("#stage", "direction") == "ltr"
     assert await style("#bar", "direction") == "ltr"
+    # Each stage text reads in the order of its own first letter, and its anchor keeps the stage's geometry: an Arabic
+    # line with a Latin name keeps its word order and its stop at the left end; 'end' is still its right end.
+    stage = await page.evaluate("""(() => {
+      const g = mk('g', {}, document.getElementById('stage')), out = {};
+      for (const [k, s, anchor] of [['law', 'قانون Newton الأول', 'end'], ['stop', 'عندي 5 تفاحات.', 'start'], ['en', 'Chapter 3.', 'start']]) {
+        const t = T(g, s, { x: 800, y: 400, size: 40, anchor }), b = t.getBBox(), at = j => t.getStartPositionOfChar(j).x;
+        out[k] = { left: b.x, right: b.x + b.width, first: at(0), last: at(s.length - 1), n: s.includes('N') ? at(s.indexOf('N')) : null };
+      }
+      g.remove();
+      return out;
+    })()""")
+    assert stage["law"]["first"] > stage["law"]["n"] and abs(stage["law"]["right"]) < 1.5, f"Arabic stage text out of order: {stage['law']}"
+    assert stage["stop"]["last"] < stage["stop"]["first"] and abs(stage["stop"]["left"]) < 1.5, f"Arabic stop misplaced: {stage['stop']}"
+    assert stage["en"]["first"] < stage["en"]["last"] and abs(stage["en"]["left"]) < 1.5, f"English stage text changed: {stage['en']}"
+    assert await page.evaluate("isRTL('3 تفاحات') && !isRTL('Newton قانون') && !isRTL('2024')")
+    # Answers typed on an Arabic keyboard: Arabic-Indic digits, ٫ and ٬
+    assert await page.evaluate("[rat('٣'), rat('٠٫٧٥'), rat('۱۲'), rat('١٬٠٠٠')].join('|') === '3,1|75,100|12,1|1000,1'")
+    assert await page.evaluate("translate('theEnd') === 'النهاية'")
     assert await text("#coverK") == "الفصل 1"
     assert "ابدأ الدرس" in await text("#cover .go")
     assert await text("#coverMeta") == "نحو 8 دقائق، مع الصوت وأسئلة قصيرة."

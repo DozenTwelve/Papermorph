@@ -37,7 +37,7 @@ Warnings: a top-level name of the page that is one of the engine's sound propert
 layout), --brief to books/<book>. Both folders are git-ignored, so in a git worktree that lacks them they are taken
 from the main checkout (the worktree's git common dir), with a note. ElevenLabs audio tags such as [whispers] are not counted as narration text.
 """
-import argparse, json, re, shutil, subprocess, sys, tempfile
+import argparse, json, re, shutil, subprocess, sys, tempfile, unicodedata
 from pathlib import Path
 
 DECL = re.compile(r'(?<![\w$.])(?:async\s+)?(function\*?|const|let|var|class)\s+([A-Za-z_$][\w$]*)')
@@ -322,7 +322,8 @@ def lint_chapter(ch, content, out):
                 thing = re.search(r'(?<![\w$.])g\s*:', o)
                 if not w:
                     loose += 1; continue
-                slug = re.sub(r'[\W_]+', '-', w.lower()).strip('-')   # as the engine names it
+                bare = ''.join(c for c in w.lower() if not unicodedata.category(c).startswith('M') and c != 'ـ')
+                slug = re.sub(r'[\W_]+', '-', bare).strip('-')   # as the engine names it: no vowel marks, no ـ
                 if thing:
                     things.add(w)
                     clips.setdefault(lit(at, o, 'clip') or 'w-' + slug, f'the thing "{w}"')

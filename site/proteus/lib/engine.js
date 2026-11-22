@@ -47,6 +47,7 @@ const TRANSLATIONS = {
     natural: 'Natural', whole: 'Whole', integers: 'Integers', rational: 'Rational', irrational: 'Irrational', real: 'Real', integerColumn: 'Integer',
     trueLabel: 'True', falseLabel: 'False',
     chapterComplete: 'Chapter {n} complete', quickChecks: 'Quick checks', chapterPractice: 'Chapter practice', sources: 'Sources in this chapter', opensSource: '{label}, opens the source in a new tab',
+    theEnd: 'The End', aiIllustration: 'AI illustration',
     firstTryScore: '{name}: {r} of {t} right on the first try.', notAttempted: '{name}: not attempted.',
     watchAgain: 'Watch again', nextChapter: 'Next chapter',
   },
@@ -84,6 +85,7 @@ const TRANSLATIONS = {
     natural: 'Натуральные', whole: 'Целые неотрицательные', integers: 'Целые', rational: 'Рациональные', irrational: 'Иррациональные', real: 'Действительные', integerColumn: 'Целые',
     trueLabel: 'Верно', falseLabel: 'Неверно',
     chapterComplete: 'Глава {n} пройдена', quickChecks: 'Проверь себя', chapterPractice: 'Практика по главе', sources: 'Источники этой главы', opensSource: '{label}, источник откроется в новой вкладке',
+    theEnd: 'Конец', aiIllustration: 'Иллюстрация ИИ',
     firstTryScore: '{name}: {r} из {t} верно с первой попытки.', notAttempted: '{name}: не выполнялось.',
     watchAgain: 'Смотреть снова', nextChapter: 'Следующая глава',
   },
@@ -119,6 +121,7 @@ const TRANSLATIONS = {
     natural: '正整数', whole: '非负整数', integers: '整数', rational: '有理数', irrational: '无理数', real: '实数', integerColumn: '整数',
     trueLabel: '对', falseLabel: '错',
     chapterComplete: '第 {n} 章完成', quickChecks: '小测', chapterPractice: '本章练习', sources: '本章引用的文献', opensSource: '{label}，在新标签页中打开来源',
+    theEnd: '完', aiIllustration: 'AI 插图',
     firstTryScore: '{name}：第一次就答对 {r} / {t}。', notAttempted: '{name}：未作答。',
     watchAgain: '再看一遍', nextChapter: '下一章',
   },
@@ -154,6 +157,7 @@ const TRANSLATIONS = {
     natural: '自然数', whole: '0 以上の整数', integers: '整数', rational: '有理数', irrational: '無理数', real: '実数', integerColumn: '整数',
     trueLabel: '正しい', falseLabel: '誤り',
     chapterComplete: '第{n}章 完了', quickChecks: '確認問題', chapterPractice: '章末練習', sources: 'この章の出典', opensSource: '{label}（出典を新しいタブで開く）',
+    theEnd: 'おしまい', aiIllustration: 'AI イラスト',
     firstTryScore: '{name}：1 回目で {t} 問中 {r} 問正解。', notAttempted: '{name}：未挑戦。',
     watchAgain: 'もう一度見る', nextChapter: '次の章へ',
   },
@@ -196,6 +200,7 @@ const TRANSLATIONS = {
     natural: 'الطبيعية', whole: 'الكلية', integers: 'الصحيحة', rational: 'النسبية', irrational: 'غير النسبية', real: 'الحقيقية', integerColumn: 'صحيح',
     trueLabel: 'صواب', falseLabel: 'خطأ',
     chapterComplete: 'اكتمل الفصل {n}', quickChecks: 'الأسئلة القصيرة', chapterPractice: 'تمارين الفصل', sources: 'مصادر هذا الفصل', opensSource: '{label}، يفتح المصدر في علامة تبويب جديدة',
+    theEnd: 'النهاية', aiIllustration: 'رسم بالذكاء الاصطناعي',
     firstTryScore: '{name}: {r} من {t} صحيحة من المحاولة الأولى.', notAttempted: '{name}: لم تُحاوَل.',
     watchAgain: 'شاهد مرة أخرى', nextChapter: 'الفصل التالي',
   },
@@ -379,6 +384,11 @@ function T(parent, str, { x = 0, y = 0, size = 30, fill = COL.chalk, font = UI, 
   t.style.whiteSpace = 'pre';
   return put(t, { x, y, o });
 }
+// A text's reading order, from its first letter, as the stage shows it (engine.css, unicode-bidi: plaintext): true for
+// Arabic, Hebrew and the other right-to-left scripts. A helper that lays a line out word by word (film.js say, shorts.js)
+// walks from the line's right end when this is true, so the words read in order; a digit or a sign decides nothing.
+const RTL_SCRIPT = /[\p{Script=Arabic}\p{Script=Hebrew}\p{Script=Syriac}\p{Script=Thaana}\p{Script=Nko}]/u;
+function isRTL(str) { const c = String(str ?? '').match(/\p{L}/u); return !!c && RTL_SCRIPT.test(c[0]); }
 // A citation drawn in the picture that opens its source (REFS from ../refs.js, built by scripts/refs.py) in a new tab.
 // cite(p, key, opts) takes T's options; str overrides the label (default REFS[key].cite). Returns the <a>; animate it like T.
 const CITED = new Set();
@@ -670,7 +680,11 @@ const hide = (e, t0, dur = .5, ease) => tw(e, { o: 0 }, t0, dur, ease);
 const draw = (e, t0, dur = .9, ease) => tw(e, { d: 1 }, t0, dur, ease);
 const pop = (e, t0) => tw(e, { s: 1, o: 1 }, t0, .45, back);
 function pulse(e, t0, k = 1.7) { tw(e, { s: k }, t0, .22, out); tw(e, { s: 1 }, t0 + .22, .4); }
-function stream(t, str, t0, dur) { prog(q => { t.textContent = str.slice(0, Math.round(q * str.length)); }, t0, dur, lin); }
+// Types str into the text t, one letter as the reader sees it at a time: an Arabic letter keeps its vowel marks (فَ),
+// an emoji is never cut in half.
+const GRAPHEMES = typeof Intl.Segmenter === 'function' ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null;
+const graphemes = str => GRAPHEMES ? Array.from(GRAPHEMES.segment(str), s => s.segment) : Array.from(str);
+function stream(t, str, t0, dur) { const g = graphemes(String(str)); prog(q => { t.textContent = g.slice(0, Math.round(q * g.length)).join(''); }, t0, dur, lin); }
 function mix(a, b, q) {
   const h = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16));
   const A = h(a), B = h(b);
@@ -1143,7 +1157,8 @@ const mouthOf = (clip, t) => { let m = 'X'; if (t < 0) return m; for (const [at,
 const findMouth = () => FIND.saying ? mouthOf(FIND.saying, performance.now() / 1000 - FIND.t0) : 'X';
 const findSaw = () => performance.now() / 1000 - FIND.foundAt < FIND_SEEN ? FIND.found : null;
 const SIDES = { above: 0, below: 1, right: 2, left: 3 };   // where a word goes, in the order tried
-const slug = word => word.toLowerCase().trim().replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '');
+// a clip name from a word: vowel marks and the Arabic stretch (ـ) are dropped, so قِطّ and قط are both w-قط (lint.py does the same)
+const slug = word => word.toLowerCase().trim().replace(/[\p{M}ـ]/gu, '').replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '');
 function findWords(things, asks, done, { end = 'q-done', there = 'q-there', hintAfter = 5, giveUpAfter = 20, minBox = 120 } = {}) {
   const gen = P.gen, stage = $('stage'), lang = CHAPTER.language || 'en';
   if (!CHAPTER.film) console.warn('findWords: CHAPTER.film is not true, so the chapter plays as a lesson: no music or effects');
@@ -1410,8 +1425,11 @@ const grid = (items, cols, { multi = true, text = false } = {}) => (body, api) =
 // Exact value of a typed answer: integer, decimal, fraction a/b or mixed number "w a/b"; returns [num, den] or null.
 // Accepts −, – or - as the sign, a currency sign before or after ($5, -$5, 5 €), thousands grouped by spaces (any kind)
 // or, where the decimal sign is a point, by commas, and a decimal comma when DECIMAL_SIGN is ','. Never evaluates the text as code.
+// Arabic-Indic digits (٣, and the Persian ۳) count as 0–9, with the Arabic decimal sign ٫ and thousands sign ٬, so an
+// answer typed on an Arabic keyboard is read as the same number.
 function rat(str) {
-  let t = String(str).trim().replace(/^[−–]/, '-').replace(/\s+/g, ' ').replace(/^(-?) ?\p{Sc} ?|(?<=\d) ?\p{Sc}$/gu, '$1');
+  let t = String(str).trim().replace(/[٠-٩۰-۹]/g, d => String(d.charCodeAt(0) & 15))
+    .replace(/٫/g, '.').replace(/٬/g, DECIMAL_SIGN === ',' ? ' ' : ',').replace(/^[−–]/, '-').replace(/\s+/g, ' ').replace(/^(-?) ?\p{Sc} ?|(?<=\d) ?\p{Sc}$/gu, '$1');
   const group = DECIMAL_SIGN === ',' ? ' ' : '[, ]';   // one kind of separator throughout: 1,000 000 is not a number
   t = t.replace(new RegExp(`^(-?\\d{1,3})(${group})(\\d{3}(?:\\2\\d{3})*)(?=$|[.,])`), (_, head, sep, rest) => head + rest.split(sep).join(''));
   if (DECIMAL_SIGN === ',') t = t.replace(/^(-?\d+),(\d+)$/, '$1.$2');   // 0,75 where the decimal sign is a comma
@@ -2177,7 +2195,7 @@ function boot() {
   setInterval(() => { if (document.hidden) frameStep(performance.now(), 1.5); }, 250);
 }
 return { TRANSLATIONS, PORTRAIT, SW, SH, LANGUAGE, translate, DECIMAL_SIGN, isShortcut, NS, UI, BOOK, bookSetting,
-  COL, MATH, NAME, BAND, RIGHT, TOPR, SCREEN, SORT_SCREEN, $m, mk, st, put, render, G, path, T, cite, ctx2d, textW, F,
+  COL, MATH, NAME, BAND, RIGHT, TOPR, SCREEN, SORT_SCREEN, $m, mk, st, put, render, G, path, T, isRTL, cite, ctx2d, textW, F,
   R, E, TX, $tex, texGraphic, texPart, OV, M, chip, tokens, layRow, collapse, mathEl, io, out, back, lin, tw, prog,
   show, hide, draw, pop, pulse, stream, mix, evalTo, soft, clockRun, camera, scene, S, AXIS, X, Y0, num, reset, tick,
   dot, arrow, panel, retire, header, fx, fxp, finishFx, pulseFx, shakeFx, floatText, TF, $, kbd, sources, uiW, SCORE,
@@ -2194,7 +2212,7 @@ const TRANSLATIONS = ENGINE.TRANSLATIONS, PORTRAIT = ENGINE.PORTRAIT, SW = ENGIN
   bookSetting = ENGINE.bookSetting, COL = ENGINE.COL, MATH = ENGINE.MATH, NAME = ENGINE.NAME, BAND = ENGINE.BAND,
   RIGHT = ENGINE.RIGHT, TOPR = ENGINE.TOPR, SCREEN = ENGINE.SCREEN, SORT_SCREEN = ENGINE.SORT_SCREEN, $m = ENGINE.$m,
   mk = ENGINE.mk, st = ENGINE.st, put = ENGINE.put, render = ENGINE.render, G = ENGINE.G, path = ENGINE.path,
-  T = ENGINE.T, cite = ENGINE.cite, ctx2d = ENGINE.ctx2d, textW = ENGINE.textW, F = ENGINE.F, R = ENGINE.R,
+  T = ENGINE.T, isRTL = ENGINE.isRTL, cite = ENGINE.cite, ctx2d = ENGINE.ctx2d, textW = ENGINE.textW, F = ENGINE.F, R = ENGINE.R,
   E = ENGINE.E, TX = ENGINE.TX, $tex = ENGINE.$tex, texGraphic = ENGINE.texGraphic, texPart = ENGINE.texPart,
   OV = ENGINE.OV, M = ENGINE.M, chip = ENGINE.chip, tokens = ENGINE.tokens, layRow = ENGINE.layRow,
   collapse = ENGINE.collapse, mathEl = ENGINE.mathEl, io = ENGINE.io, out = ENGINE.out, back = ENGINE.back,

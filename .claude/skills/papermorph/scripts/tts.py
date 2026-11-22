@@ -46,6 +46,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import unicodedata
 from pathlib import Path
 
 
@@ -166,6 +167,11 @@ def split_marks(raw):
     return "".join(clean), marks, shown
 
 
+def bare(text):
+    """The text without vowel marks (Arabic harakat, combining accents) or the Arabic stretch ـ."""
+    return "".join(c for c in text if not unicodedata.category(c).startswith("M") and c != "ـ")
+
+
 def time_at(clean, words, estimate=False):
     """Return f(pos): start time of the first spoken word at or after char pos. The voice's word list can stop
     short of the text; with estimate, a position past its last word is timed at the speaking rate so far (seconds
@@ -230,7 +236,7 @@ def respell(cues, shown, beat=""):
 
 # tts.py and eleven.py split narration with these, so their captions and marks cannot drift apart
 SENTENCE_END = re.compile(r"(?<!\.\.)[.?!؟]\s+|[。！？]\s*")   # ؟ is the Arabic question mark; "I... I can't" is one line
-CLAUSE_END = re.compile(r"(?<!\.\.)[.?!؟:]\s+|[。！？：]\s*")   # eleven.py's cues: a clause after a colon too
+CLAUSE_END = re.compile(r"(?<!\.\.)[.?!؟:؛]\s+|[。！？：]\s*")   # eleven.py's cues: a clause after a colon (or the Arabic ؛) too
 ABBREV = re.compile(r"(?<![\w.])(?:Mr|Mrs|Ms|Dr|Prof|St|vs|approx|e\.g|i\.e|cf)\.$")
 CJK = "　-ヿ㐀-䶿一-鿿豈-﫿＀-￯"   # kana, ideographs, CJK and full-width punctuation
 TOKEN = re.compile(rf"[{CJK}]|[^\s{CJK}]+")
@@ -375,9 +381,11 @@ async def main(src, out_dir):
                 tmp.replace(mp3)
                 print(f"{beat}: synthesized{' and treated' if af else ''}" if not reusable else
                       f"{beat}: {'treated' if af else 'treatment taken off'}, no new request (level it again if it was levelled)")
-            # Edge has returned clips that stop a sentence early: the last spoken word should end the text
-            ends = re.findall(r"[A-Za-z][\w'-]*", clean[-40:])
-            if words and ends and clean.isascii() and words[-1][1].strip(".,;:!?\"'") != ends[-1]:
+            # Edge has returned clips that stop a sentence early: the last spoken word should end the text. Compared
+            # without vowel marks or the Arabic ـ, so an Arabic clip is checked too; Chinese and Japanese have no spaces
+            # to find a last word by
+            ends = re.findall(r"[^\W\d_][\w'-]*", bare(clean[-40:]))
+            if words and ends and not re.search(f"[{CJK}]", clean) and bare(words[-1][1]).strip(".,;:!?\"'،؛؟") != ends[-1]:
                 print(f"{beat}: WARNING the voice's last word is {words[-1][1]!r} but the text ends {ends[-1]!r}: the clip "
                       "may be cut short; listen to it, and synthesize it again (change its cached key) if so")
             result[beat] = entry

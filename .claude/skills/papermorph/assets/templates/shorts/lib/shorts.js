@@ -10,7 +10,9 @@
    Full bleed, one idea per shot, 1–3 s a shot.
    Platforms draw over the top 120 and the bottom 300 of the 900 x 1600 stage, and their buttons over the right 90
    between y 700 and 1300: words stay in x 50..810, y 130..1290. Pictures may run under all of it. */
-const SANS = '"Oswald", "Arial Narrow", sans-serif', SERIF = '"EB Garamond", Georgia, serif';
+// Neither face has Arabic letters: an Arabic word takes the face after it
+const SANS = '"Oswald", "Arial Narrow", "Segoe UI", "SF Arabic", "Geeza Pro", "Noto Sans Arabic", sans-serif',
+  SERIF = '"EB Garamond", Georgia, "Noto Naskh Arabic", "Traditional Arabic", "Times New Roman", serif';
 const TEXT_CTX = document.createElement('canvas').getContext('2d');
 // the palette: lib/book.css may set each as a custom property (--dark: #0b0d11), read as #rrggbb; else these defaults
 const shortsColour = (name, d) => { TEXT_CTX.fillStyle = d; TEXT_CTX.fillStyle = bookSetting('--' + name) || d; return TEXT_CTX.fillStyle; };
@@ -72,10 +74,10 @@ function photo(g, name, t0, t1, { s0 = 1.02, s1 = 1.1, dx = 0, dy = 0, dim = 0, 
   mk('image', { href: `../img/${name}.webp`, x: -W / 2, y: -H / 2, width: W, height: H, preserveAspectRatio: 'xMidYMid slice' }, im);
   tw(im, { s: s1, x: CX + dx, y: H / 2 + dy }, t0, t1 - t0, lin);
   if (dim) rect(g, 0, 0, W, H, { fill: '#000', opacity: dim });
-  if (ai) srcTag(g, 'AI illustration', 50, 150, t0);
+  if (ai) srcTag(g, translate('aiIllustration'), 50, 150, t0);
   return im;
 }
-// a found photograph, full bleed with a slow push (opts as photo()), tagged with its source instead of 'AI illustration'
+// a found photograph, full bleed with a slow push (opts as photo()), tagged with its source instead of "AI illustration"
 function found(g, name, source, t0, t1, opts = {}) {
   const im = photo(g, name, t0, t1, { ...opts, ai: false });
   srcTag(g, source, 50, 150, t0);
@@ -119,12 +121,13 @@ function srcTag(g, str, x, y, t0) {
   if (!TAGS) return G(g, { o: 0 });
   str = str.toUpperCase();
   const at = g._tags || (g._tags = {}), n = at[x + ',' + y] = (at[x + ',' + y] || 0) + 1;
-  // the box fits the drawn text: letter-spacing (.06em) adds that much after every character; 4 px spare for Gecko
-  const textW = size => inkW(str, size, SANS, 500) + str.length * size * .06;
+  // the box fits the drawn text: letter-spacing (.06em) adds that much after every character; 4 px spare for Gecko.
+  // Arabic letters join, so an Arabic tag is not spaced out
+  const ls = isRTL(str) ? 0 : .06, textW = size => inkW(str, size, SANS, 500) + str.length * size * ls;
   const size = Math.min(20, 20 * (806 - x - 20) / textW(20)), w = textW(size) + 20;
   const e = G(g, { x, y: y + (n - 1) * 38, o: 0 });
   rect(e, 0, -22, w, 30, { fill: 'rgba(20,18,15,.55)', rx: 3 });
-  T(e, str, { x: 10, y: 0, size, fill: '#f0ebe0', font: SANS, weight: 500 }).setAttribute('letter-spacing', '.06em');
+  T(e, str, { x: 10, y: 0, size, fill: '#f0ebe0', font: SANS, weight: 500 }).setAttribute('letter-spacing', `${ls}em`);
   show(e, t0, .2, lin);
   return e;
 }
@@ -152,10 +155,10 @@ function label(g, str, x, y, t0, { size = 40, fill = DARK, colour = LIGHT, ancho
 function band(g, lines, y, t0, { size = 64, fill = DARK, colour = LIGHT, step = .25, lh = 1.3 } = {}) {
   lines.forEach((l, i) => label(g, l, CX, y + i * size * lh, t0 + i * step, { size, fill, colour }));
 }
-// a yellow marker swept behind [x, y, w, h]
+// a yellow marker swept behind [x, y, w, h], the way the page reads: from the right on a right-to-left (Arabic) page
 function marker(g, x, y, w, h, t0, dur = .3) {
-  const r = rect(g, x, y, 0, h, { fill: MARK });
-  prog(q => r.setAttribute('width', w * q), t0, dur, out);
+  const r = rect(g, x, y, 0, h, { fill: MARK }), rtl = document.documentElement.dir === 'rtl';
+  prog(q => { r.setAttribute('width', w * q); if (rtl) r.setAttribute('x', x + w * (1 - q)); }, t0, dur, out);
   return r;
 }
 // a Phosphor icon (fill weight), size px square, centred on (x, y)

@@ -122,23 +122,31 @@ function geoPaths(L, kx = 1) {
 
 /* ---------- drawing helpers (screen px) ---------- */
 const fs = n => n * U;   // a type size in the page's unit: ~1/100 of the graphic's shorter side, within bounds
+// A label reads in the order of its first letter (Arabic, Hebrew: right to left), as the engine's stage text does; align
+// stays where the label sits (left, center, right). Arabic letters join and have no italic: no spacing, no slant.
+const RTL_SCRIPT = /[\p{Script=Arabic}\p{Script=Hebrew}\p{Script=Syriac}\p{Script=Thaana}\p{Script=Nko}]/u;
+const isRTL = str => { const c = String(str ?? '').match(/\p{L}/u); return !!c && RTL_SCRIPT.test(c[0]); };
+const PLACE = { start: 'left', end: 'right' };
 function text(str, x, y, { size = 4, font = KEYF, weight = 500, fill = C.ink, align = 'left', base = 'alphabetic', a = 1, italic = false, spacing = 0 } = {}) {
   if (a <= 0) return;
-  ctx.globalAlpha = a; ctx.fillStyle = fill; ctx.textAlign = align; ctx.textBaseline = base;
-  ctx.font = `${italic ? 'italic ' : ''}${weight} ${fs(size)}px ${font}`;
-  if ('letterSpacing' in ctx) ctx.letterSpacing = spacing ? `${spacing * fs(size)}px` : '0px';
+  const rtl = isRTL(str);
+  ctx.globalAlpha = a; ctx.fillStyle = fill; ctx.textAlign = PLACE[align] || align; ctx.textBaseline = base;
+  ctx.direction = rtl ? 'rtl' : 'ltr';
+  ctx.font = `${italic && !rtl ? 'italic ' : ''}${weight} ${fs(size)}px ${font}`;
+  if ('letterSpacing' in ctx) ctx.letterSpacing = spacing && !rtl ? `${spacing * fs(size)}px` : '0px';
   ctx.fillText(str, x, y);
   ctx.globalAlpha = 1;
 }
 // a label on a paper chip, kept inside the canvas: a label near the edge slides in rather than losing its words
 function chip(str, x, y, { size = 3.6, fill = C.ink, bg = C.paper, align = 'left', a = 1, font = KEYF, weight = 500 } = {}) {
   if (a <= 0) return;
+  const spacing = isRTL(str) ? 0 : .06;
   ctx.font = `${weight} ${fs(size)}px ${font}`;
-  if ('letterSpacing' in ctx) ctx.letterSpacing = `${.06 * fs(size)}px`;
+  if ('letterSpacing' in ctx) ctx.letterSpacing = `${spacing * fs(size)}px`;
   const w = ctx.measureText(str).width, pad = fs(size) * .45, h = fs(size) * 1.5;
   const x0 = clamp(align === 'center' ? x - w / 2 - pad : align === 'right' ? x - w - 2 * pad : x, 4, Math.max(4, cw - w - 2 * pad - 4));
   ctx.globalAlpha = a * .94; ctx.fillStyle = bg; ctx.fillRect(x0, y - h / 2, w + 2 * pad, h);
-  text(str, x0 + pad, y, { size, fill, base: 'middle', a, font, weight, spacing: .06 });
+  text(str, x0 + pad, y, { size, fill, base: 'middle', a, font, weight, spacing });
 }
 function dot(x, y, r, fill, a = 1) { if (a <= 0) return; ctx.globalAlpha = a; ctx.fillStyle = fill; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
 function ring(x, y, r, stroke, w, a = 1) { if (a <= 0) return; ctx.globalAlpha = a; ctx.strokeStyle = stroke; ctx.lineWidth = w; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.stroke(); ctx.globalAlpha = 1; }

@@ -8,7 +8,8 @@
 @import url("fonts.css");
 :root {
   --paper: #f3ede0; --ink: #2b2520; --soft: #6a6258; --accent: #c4321f; --night: #04060a;
-  --font-key: "Oswald", "Arial Narrow", sans-serif; --font-text: "EB Garamond", Georgia, serif;
+  --font-key: "Oswald", "Arial Narrow", "Segoe UI", "SF Arabic", "Geeza Pro", "Noto Sans Arabic", sans-serif;
+  --font-text: "EB Garamond", Georgia, "Noto Naskh Arabic", "Traditional Arabic", "Times New Roman", serif;   /* Arabic letters take the faces after the first */
   --grain-img: none; --graphic-h: 60svh; --trig: .62;
   color-scheme: light;
 }
@@ -23,9 +24,10 @@ b { font-weight: 500; }
 
 .progress { position: fixed; inset: 0 0 auto; height: 3px; z-index: 5; pointer-events: none; }
 .progress i { display: block; height: 100%; background: var(--accent); transform-origin: 0 0; transform: scaleX(0); }
+[dir="rtl"] .progress i { transform-origin: 100% 0; }   /* fills from the right, the way the page reads */
 
 /* the way back to the shelf: one quiet line above the story, out of its flow */
-.shelf { position: absolute; top: 12px; left: max(16px, env(safe-area-inset-left)); font-size: 17px; }
+.shelf { position: absolute; top: 12px; inset-inline-start: max(16px, env(safe-area-inset-left)); font-size: 17px; }
 .shelf a { display: inline-block; padding: 10px 0; color: var(--soft); text-decoration: none; }
 .shelf a:hover { color: var(--ink); }
 .hero { min-height: 92svh; padding: 18svh 16px 8svh; max-width: 40rem; margin: 0 auto; display: flex; flex-direction: column; justify-content: center; }
@@ -48,7 +50,7 @@ h1 { font: 600 clamp(48px, 13vw, 112px)/.95 var(--font-key); text-transform: upp
 .step { min-height: 100svh; max-width: 34rem; margin: 0 auto; scroll-margin-top: calc(var(--trig) * 100svh); }
 .card { position: sticky; top: calc(var(--trig) * 100svh); padding: 4px 20px 0; }
 .step p { margin: 0 0 .7em; }
-.step blockquote { margin: 0 0 .7em; padding-left: 14px; border-left: 3px solid var(--accent); font-style: italic; }
+.step blockquote { margin: 0 0 .7em; padding-inline-start: 14px; border-inline-start: 3px solid var(--accent); font-style: italic; }
 .step .src { font-size: 15px; color: var(--soft); }
 
 .credits { max-width: 40rem; margin: 0 auto; padding: 12svh 16px 20svh; font-size: 16px; color: var(--soft); }
@@ -71,3 +73,7 @@ h1 { font: 600 clamp(48px, 13vw, 112px)/.95 var(--font-key); text-transform: upp
   body { font-size: 21px; }
 }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+/* A right-to-left page (<html lang="ar" dir="rtl">) mirrors through the logical properties above; from 820px the text
+   column is on the right and the graphic on the left. Arabic letters join and have no italic: no spacing or slant. */
+:root:lang(ar) :is(h1, .credits h2) { letter-spacing: 0; }
+:root:lang(ar) .step blockquote { font-style: normal; }

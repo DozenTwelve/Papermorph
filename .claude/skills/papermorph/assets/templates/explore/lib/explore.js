@@ -875,7 +875,7 @@
       const cap = $('#move');
       cap.style.setProperty('--c', PEOPLE[w].color);
       cap.querySelector('b').textContent = PEOPLE[w].short;
-      cap.querySelector('span').textContent = [where[y - 1][w], ...YEARS[y][w].route].filter((k, i, a) => i === 0 || k !== a[i - 1]).map(k => P[k].name).join(' → ');  
+      cap.querySelector('span').textContent = [where[y - 1][w], ...YEARS[y][w].route].filter((k, i, a) => i === 0 || k !== a[i - 1]).map(k => P[k].name).join(document.documentElement.dir === 'rtl' ? ' ← ' : ' → ');   // the way the page reads  
       cap.hidden = false;
       await walkFigs([{ w, pts: routeOf(y, w), off0: off0[w], off1: off1[w], fwd: true }], true);
       cap.hidden = true;

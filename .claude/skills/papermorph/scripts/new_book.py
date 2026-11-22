@@ -21,12 +21,47 @@ engine.py, no chapter folder; its narration file is content/<book>/narration.<la
 the page's cards. A picture book's or a documentary's series page shows img/cover.webp, which no step makes on its own: the output
 says how (a shot.py still).
 """
-import argparse, shlex, shutil, subprocess, sys
+import argparse, json, re, shlex, shutil, subprocess, sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 T = HERE.parent / 'assets' / 'templates'
 PB, DK, SK, MK, SC, EK = T / 'picture-book', T / 'documentary', T / 'shorts', T / 'maps', T / 'scroll', T / 'explore'
+
+
+# Languages written right to left: their pages say dir="rtl" from the first paint (the engine would set it after loading,
+# a scroll or explore page has no engine to do it). The engine keeps the stage and the player bar left to right.
+RTL = {'ar', 'he', 'fa', 'ur'}
+# A one-language Edge voice for the book's language, written into the narration file and style.json in place of the
+# kit's English one (core/sound.md, Voices); a language not listed keeps the English voice, and the output says so.
+VOICES = {'ar': 'ar-SA-HamedNeural', 'ru': 'ru-RU-DmitryNeural', 'zh': 'zh-CN-YunxiNeural', 'ja': 'ja-JP-KeitaNeural',
+          'de': 'de-DE-ConradNeural', 'fr': 'fr-FR-HenriNeural', 'es': 'es-ES-AlvaroNeural'}
+
+
+def base(lang: str) -> str:
+    return lang.lower().split('-')[0]
+
+
+def with_lang(html: str, lang: str) -> str:
+    """The kit's <html lang="en"> as the book's language, with dir="rtl" for a right-to-left one."""
+    return html.replace('lang="en"', f'lang="{lang}"' + (' dir="rtl"' if base(lang) in RTL else ''))
+
+
+def set_voice(narration: Path, style: Path, lang: str, fresh_style: bool):
+    """The book's language in the narration file (its voice) and in a style.json just copied (language and voice)."""
+    voice = VOICES.get(base(lang))
+    n = json.loads(narration.read_text(encoding='utf-8'))
+    if voice and n.get('engine', 'edge') == 'edge':
+        n['voice'] = voice
+        narration.write_text(json.dumps(n, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+    else:
+        print(f"note: {narration.name} keeps the kit's English voice {n.get('voice')!r}: choose a {lang} voice "
+              f"(edge-tts --list-voices) before tts.py", file=sys.stderr)
+    if fresh_style:
+        s = re.sub(r'("language":\s*)"en"', rf'\1"{lang}"', style.read_text(encoding='utf-8'), count=1)
+        if voice:
+            s = re.sub(r'("voice":\s*\{[^}]*?"voice":\s*)"[^"]*"', rf'\1"{voice}"', s, count=1)
+        style.write_text(s, encoding='utf-8')
 
 
 def copy(src: Path, dst: Path):
@@ -42,7 +77,7 @@ def main():
     ap.add_argument('kind', choices=['lesson', 'picture', 'documentary', 'shorts', 'scroll', 'explore'])
     ap.add_argument('book', help='the book slug, e.g. history')
     ap.add_argument('--chapter', type=int, default=1, help='the pilot chapter number (default 1)')
-    ap.add_argument('--lang', default='en', help="the book's language code (default en): it names the narration file, the audio folder, <html lang> and CHAPTER.language; the template's text and voice stay English until translated")
+    ap.add_argument('--lang', default='en', help="the book's language code (default en): it names the narration file, the audio folder, <html lang> (with dir=\"rtl\" for ar, he, fa, ur) and CHAPTER.language, and picks an Edge voice of that language where one is listed in VOICES; the template's text stays English until translated")
     ap.add_argument('--maps', action='store_true', help='add the map kit (documentaries and shorts)')
     ap.add_argument('--painted', action='store_true', help="a picture book with a painted look: add painted.json, painted.py's manifest")
     ap.add_argument('--root', default='.', help='folder holding site/, books/, content/, tools/ (default .)')
@@ -75,7 +110,8 @@ def start(a, root, ch, site, work, content):
         sys.exit(f'engine.py failed; {site} removed, rerun once the engine is reachable')
     narration = content / f'narration.{a.lang}.json'
     style = work / 'style.json'   # the tier's template, the start of the style conversation (core/style.md)
-    if not style.exists():
+    fresh_style = not style.exists()
+    if fresh_style:
         copy({'lesson': T, 'picture': PB, 'documentary': DK, 'shorts': SK}[a.kind] / 'style.json', style)
 
     if a.kind == 'lesson':
@@ -119,8 +155,9 @@ def start(a, root, ch, site, work, content):
         for f in (site / 'index.html', *(site / ch).glob('*.*')):
             if f.is_file() and f.suffix in ('.html', '.js'):
                 s = f.read_text(encoding='utf-8')
-                f.write_text(s.replace('lang="en"', f'lang="{a.lang}"').replace("language: 'en'", f"language: '{a.lang}'")
+                f.write_text(with_lang(s, a.lang).replace("language: 'en'", f"language: '{a.lang}'")
                              .replace('audio/en/', f'audio/{a.lang}/'), encoding='utf-8')
+        set_voice(narration, style, a.lang, fresh_style)
 
     q = lambda p: shlex.quote(str(p.relative_to(root) if p.is_relative_to(root) else p))   # a path with spaces still pastes
     S, A = q(HERE), site / ch / 'audio' / a.lang
@@ -154,7 +191,7 @@ def start_scroll(a, root, site, work):
     copy(SC / 'e2e.py', root / 'tools' / a.book / 'e2e_scroll.py')
     if a.lang != 'en':
         f = site / 'index.html'
-        f.write_text(f.read_text(encoding='utf-8').replace('lang="en"', f'lang="{a.lang}"'), encoding='utf-8')
+        f.write_text(with_lang(f.read_text(encoding='utf-8'), a.lang), encoding='utf-8')
     q = lambda p: shlex.quote(str(p.relative_to(root) if p.is_relative_to(root) else p))
     S = q(HERE)
     print(f'\nscroll page started: {q(site)}/ (the four-step sample: index.html, story.js), style.json template in '
@@ -177,7 +214,7 @@ def explore(a, root, ch, site, work, content):
     (audio / 'timings.js').write_text('window.TIMINGS = {};\n')   # until tts.py or eleven.py writes the clips: cards hold a reading time
     page = site / 'index.html'
     s = page.read_text(encoding='utf-8')
-    page.write_text(s.replace('lang="en"', f'lang="{a.lang}"').replace('audio/en/', f'audio/{a.lang}/'), encoding='utf-8')
+    page.write_text(with_lang(s, a.lang).replace('audio/en/', f'audio/{a.lang}/'), encoding='utf-8')
     q = lambda p: shlex.quote(str(p.relative_to(root) if p.is_relative_to(root) else p))
     S, url, nar = q(HERE), f'http://localhost:8765/{a.book}/', content / f'narration.{a.lang}.json'
     print(f'\nexplore page started: {q(site)}/ (the sample, Italy 1859-1861: replace its data), style.json template in {q(work / "style.json")}; next:')

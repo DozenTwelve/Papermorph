@@ -297,6 +297,10 @@ a.btn { text-decoration: none; display: inline-block; }
    language (the bar's step label reads "3 / 6  title" as the bar does). Mathematics reads left to right inside Arabic
    text, as in Arabic school books: an expression (svg.m) and an answer line (.bline: "3 + 4 = [box] ✗") keep their order. */
 [dir="rtl"] :is(#stage, #bar, svg.m, .bline) { direction: ltr; }
+/* Each text on the stage takes its reading order from its own first letter (plaintext): an Arabic line keeps its words,
+   its numbers, a Latin name and its closing "." or ":" in Arabic order, an English line stays as it was, in a book of
+   any language. The anchor keeps the stage's left-to-right geometry: 'start' is still the text's left end, 'end' its right. */
+#stage text { unicode-bidi: plaintext; }
 [dir="rtl"] .grid .row.cur { box-shadow: inset -4px 0 var(--quiz); }   /* the current row's bar at its start, the right */
 /* Arabic letters join: letter spacing breaks the words apart. The faces are each system's own Arabic UI and book faces;
    no font file is loaded. A book's own lib/book.css :root still wins (these have no specificity). */
