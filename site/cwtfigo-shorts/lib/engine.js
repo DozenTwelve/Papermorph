@@ -403,9 +403,77 @@ function isRTL(str) {
   const words = s.split(/\s+/).filter(w => /\p{L}/u.test(w)), rtl = words.filter(w => RTL_LETTER.test(w)).length;
   return rtl > 0 && 2 * rtl >= words.length;
 }
+// An expression inside a right-to-left line keeps its left-to-right order. Left to the browser, the numbers of
+// 'لو 5 + x = 7' are ordered with the sentence and the reader sees 'x = 7 + 5'; in a card the options 'x = 10' and
+// '10 = x' look alike. ltrMaths(str) wraps each expression in a left-to-right isolate (U+2066 ... U+2069): numbers and
+// Latin or Greek names joined by signs, one of them at least being = + × ÷ * < > ≤ ≥ ≠ ^ or − (U+2212), with a digit
+// 0-9 or a Latin or Greek letter in it. Left as they are: a run joined only by - or / (a range of years, a date); a sum
+// in Arabic-Indic digits alone ('٥ + ٢ = ٧' reads from the right with its sentence); one that touches other Latin text
+// or a number (a web address, 'obj.x = 5'), or a one-letter Arabic name across a sign ('س + 3 = 7');
+// one that follows Latin words ('The sum: 5 + 2 = 7', already left to right); and a line its author marked right to
+// left that has no Arabic word in it. A bracket whose partner is outside the expression stays outside it.
+const RLM = String.fromCharCode(0x200F), LRM = String.fromCharCode(0x200E), LRI = String.fromCharCode(0x2066), PDI = String.fromCharCode(0x2069);
+const EXPRESSION = (() => {
+  const name = String.raw`[\p{Script=Latin}\p{Script=Greek}][\p{Script=Latin}\p{Script=Greek}\p{Nd}_]*`;
+  const number = String.raw`\p{Nd}+(?:[.,٫٬،]\p{Nd}+)*`;
+  const atom = String.raw`(?:${number}(?:[^\S\n]?${name})?[%٪°]?|${name}(?:\((?:${number}|${name})?\))?)`;   // 5, 1.5, 2x, 5 km, 50%, x, f(x)
+  const operand = String.raw`[-−+]?[(\[]{0,3}${atom}[)\]]{0,3}`;
+  const sign = String.raw`(?:[=!<>+\-*/]=|\*\*|[=+×÷*<>≤≥≠^−/\-])`;
+  // an expression starts where a word or a number starts: the character before it is matched too, so no attempt begins
+  // inside one, and a long word, number or row of brackets costs one pass
+  return new RegExp(String.raw`(^|[^\p{Script=Latin}\p{Script=Greek}\p{Nd}_.,٫٬،])(${operand}(?:[^\S\n]*${sign}[^\S\n]*${operand})+)`, 'gu');
+})();
+const EXPRESSION_SIGN = /[=+×÷*<>≤≥≠^−]/, EXPRESSION_LTR = /[\p{Script=Latin}\p{Script=Greek}0-9]/u;
+const LTR_WORD = /[\p{Script=Latin}\p{Script=Greek}\p{Nd}]/u, SIGNS = String.raw`[=+×÷*<>≤≥≠^−\/\-]+`;
+const SIGN_BEFORE = new RegExp(String.raw`(\S*)\s*${SIGNS}$`, 'u'), SIGN_AFTER = new RegExp(String.raw`^${SIGNS}\s*(\S*)`, 'u');
+// What lies beside an expression holds it to the sentence: a Latin word or a number, or across a sign a number, a Latin
+// name or a one-letter Arabic name. A sign with nothing before it opens a list item ('- x = 5'); a word of two Arabic
+// letters or more across a sign does not hold it ('الناتج = 7 + 2').
+function heldBefore(text) {
+  const t = text.trimEnd(), m = t.match(SIGN_BEFORE);
+  if (LTR_WORD.test(t.slice(-1))) return true;
+  if (!m) return false;
+  return m[1] === '' ? m.index !== 0 : LTR_WORD.test(m[1].slice(-1)) || /^\p{Script=Arabic}\p{M}*$/u.test(m[1]);
+}
+function heldAfter(text) {
+  const t = text.trimStart(), m = t.match(SIGN_AFTER);
+  if (LTR_WORD.test(t[0] ?? '')) return true;
+  if (!m) return false;
+  return m[1] === '' || LTR_WORD.test(m[1][0]) || /^\p{Script=Arabic}\p{M}*(?![\p{L}\p{M}])/u.test(m[1]);
+}
+function ltrMaths(str) {
+  const s = String(str ?? '');
+  if (s[0] === RLM && !RTL_LETTER.test(s)) return s;   // the author's mark on a line with no Arabic word: it reads from the right, as asked
+  let out = '', end = 0, ltr = false;   // ltr: the nearest letter before, outside an isolate, is a left-to-right one
+  const letter = text => { const l = text.match(/\p{L}/gu); if (l) ltr = !RTL_LETTER.test(l.at(-1)); };
+  for (const m of s.matchAll(EXPRESSION)) {
+    const e = m[2], i = m.index + m[1].length;
+    letter(s.slice(end, i));
+    const before = s.slice(0, i), after = s.slice(i + e.length), p = before.slice(-1), n = after[0] ?? '';
+    const keep = !EXPRESSION_SIGN.test(e) || !EXPRESSION_LTR.test(e) || ltr
+      || (p && p !== RLM && p !== LRM && !/[\s(\[«"'“‘،:؛]/.test(p) && !/(?:^|\s)و$/.test(before))   // 'و5 + 2 = 7': and, joined
+      || (/[،:؛]/.test(p) && LTR_WORD.test(before.slice(-2, -1)))                                       // a time, '10:5 + 3'
+      || (n && !/[\s)\]».,،؛؟?!:"'”’]/.test(n)) || (/[.,،؛:]/.test(n) && LTR_WORD.test(after[1] ?? ''))
+      || heldBefore(before) || heldAfter(after);
+    let a = 0, b = e.length;
+    if (keep) letter(e);
+    else {
+      const opens = (e.match(/[(\[]/g) || []).length, closes = (e.match(/[)\]]/g) || []).length;
+      for (let k = opens - closes; k > 0 && /[(\[]/.test(e[a]); k--) a++;
+      for (let k = closes - opens; k > 0 && /[)\]]/.test(e[b - 1]); k--) b--;
+    }
+    out += s.slice(end, i) + (keep ? e : e.slice(0, a) + LRI + e.slice(a, b) + PDI + e.slice(b));
+    end = i + e.length;
+  }
+  return out + s.slice(end);
+}
+// A text as a right-to-left page shows it, its expressions isolated (cards, captions, titles); elsewhere as written.
+const pageText = str => document.documentElement.dir === 'rtl' ? ltrMaths(str) : str;
 function rtlText(str) {
   const s = String(str ?? '');
-  return s[0] !== '\u200F' && isRTL(s) && !RTL_LETTER.test(s.match(/\p{L}/u)[0]) ? '\u200F' + s : str;
+  if (!isRTL(s)) return str;
+  const m = pageText(s), out = m[0] !== RLM && !RTL_LETTER.test(m.match(/\p{L}/u)[0]) ? RLM + m : m;
+  return out === s ? str : out;
 }
 // A citation drawn in the picture that opens its source (REFS from ../refs.js, built by scripts/refs.py) in a new tab.
 // cite(p, key, opts) takes T's options; str overrides the label (default REFS[key].cite). Returns the <a>; animate it like T.
@@ -703,8 +771,16 @@ function pulse(e, t0, k = 1.7) { tw(e, { s: k }, t0, .22, out); tw(e, { s: 1 }, 
 const GRAPHEMES = typeof Intl.Segmenter === 'function' ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null;
 const graphemes = str => GRAPHEMES ? Array.from(GRAPHEMES.segment(str), s => s.segment) : Array.from(str);
 function stream(t, str, t0, dur) {
-  const g = graphemes(String(rtlText(str)));
-  if ((g[0] === '\u200F' || g[0] === '\u200E') && g.length > 1) g.splice(0, 2, g[0] + g[1]);   // a mark is invisible: it rides with the first letter
+  // a direction mark and the opening of an isolate are invisible: each rides with the letter after it, an isolate's
+  // close with the letter before it, so no step of the typing shows nothing new
+  const g = [];
+  let lead = '';
+  for (const c of graphemes(String(rtlText(str)))) {
+    if (c === RLM || c === LRM || c === LRI) lead += c;
+    else if (c === PDI && g.length && !lead) g[g.length - 1] += c;
+    else { g.push(lead + c); lead = ''; }
+  }
+  if (lead) { if (g.length) g[g.length - 1] += lead; else g.push(lead); }   // marks at the end ride with the last letter
   prog(q => { t.textContent = g.slice(0, Math.round(q * g.length)).join(''); }, t0, dur, lin); }
 function mix(a, b, q) {
   const h = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16));
@@ -907,7 +983,7 @@ function finishCard() {
   P.keys = e => e.key === 'Enter' ? ((next ? next.onclick() : restart()), true)
     : isShortcut(e, 'r') ? (restart(), true) : false;
   const guide = mascotEl(240);
-  c.append(h('div', 'finwrap', [guide, h('p', 'kicker', translate('chapterComplete', { n: CHAPTER.label ?? CHAPTER.number })), h('p', 'prompt', CHAPTER.title),
+  c.append(h('div', 'finwrap', [guide, h('p', 'kicker', translate('chapterComplete', { n: CHAPTER.label ?? CHAPTER.number })), h('p', 'prompt', pageText(CHAPTER.title)),
     line(translate('quickChecks'), sum('c-')), line(translate('chapterPractice'), sum('p-')), h('div', 'acts', next ? [home, again, next] : [home, again]), sources()].filter(Boolean)));
   setTimeout(() => mood(guide, 'happy'), 400);
 }
@@ -939,10 +1015,10 @@ function h(tag, cls, kids = []) {
   for (const k of [].concat(kids)) e.append(k);
   return e;
 }
-// Rich text: strings, DOM nodes, or $m(...) inline math.
+// Rich text: strings, DOM nodes, or $m(...) inline math. In a right-to-left page a string's expressions are isolated (ltrMaths).
 function rich(parts, size = 28) {
   const s = document.createElement('span');
-  for (const p of [].concat(parts)) s.append(typeof p === 'string' || p instanceof Node ? p : mathEl(p.m, size));
+  for (const p of [].concat(parts)) s.append(typeof p === 'string' ? pageText(p) : p instanceof Node ? p : mathEl(p.m, size));
   return s;
 }
 // A card at pos; a band card keeps its bottom on the stage: when its content grows (a long question, feedback),
@@ -1034,7 +1110,7 @@ function quiz(pos, qs, done, label = translate('quickCheck')) {
       return false;
     };
     const kick = label + (qs.length > 1 ? '  ·  ' + translate('countOf', { k: k + 1, n: qs.length }) : '');
-    const head = h('div', 'head', [h('p', 'kicker', kick), h('p', 'prompt', [rich(q.prompt, pos.cls.startsWith('screen') ? 38 : 28)])]);   // match the prompt's type size
+    const head = h('div', 'head', [h('p', 'kicker', pageText(kick)), h('p', 'prompt', [rich(q.prompt, pos.cls.startsWith('screen') ? 38 : 28)])]);   // match the prompt's type size
     if (ctl.hint) head.append(h('p', 'keys', [translate('keysPrefix'), ...ctl.hint]));
     c.replaceChildren(...(guide ? [guide] : []), head, fb, body, acts);
   };
@@ -1379,7 +1455,7 @@ const grid = (items, cols, { multi = true, text = false } = {}) => (body, api) =
   const rows = items.map((it, ri) => {
     const opts = h('div', 'opts'), mark = h('div', 'mark'), why = h('div', 'why');
     const bs = cols.map(([key, lab, colr], j) => {
-      const b = h('button', 'opt', [kbd(hot[j]), lab]);
+      const b = h('button', 'opt', [kbd(hot[j]), typeof lab === 'string' ? pageText(lab) : lab]);
       if (colr) b.style.setProperty('--c', colr);
       b.setAttribute('aria-pressed', 'false');
       b.onclick = () => {
@@ -2020,7 +2096,7 @@ function ui() {
       text = (captions || forced || TIMINGS[b.id].forced) && !(end != null && P.t > end + (b.pre || 0)) ? line : '';
     }
   }
-  if (text !== capText) { capText = text; $('caption').textContent = text; $('caption').hidden = !text; }
+  if (text !== capText) { capText = text; $('caption').textContent = pageText(text); $('caption').hidden = !text; }
   if (text) placeCaption(asking);
 }
 // Above a bottom band, or centred left of a card in the bottom right; elsewhere the caption keeps its place.
@@ -2184,7 +2260,7 @@ function boot() {
     if (lost.length) console.warn(`music('${m.n}'): no beat ${lost.join(', ')} in BEATS`);
   }
   $('coverK').textContent = translate('chapterNumber', { n: CHAPTER.label ?? CHAPTER.number });
-  $('coverT').textContent = CHAPTER.title;
+  $('coverT').textContent = pageText(CHAPTER.title);
   $('bHome').href = `../#ch${String(CHAPTER.number).padStart(2, '0')}`;
   progress(p => { p.last = CHAPTER.number; });
   document.getElementById('stage').setAttribute('aria-label', translate('stageLabelTitled', { title: CHAPTER.title }));
@@ -2219,7 +2295,7 @@ function boot() {
   setInterval(() => { if (document.hidden) frameStep(performance.now(), 1.5); }, 250);
 }
 return { TRANSLATIONS, PORTRAIT, SW, SH, LANGUAGE, translate, DECIMAL_SIGN, isShortcut, NS, UI, BOOK, bookSetting,
-  COL, MATH, NAME, BAND, RIGHT, TOPR, SCREEN, SORT_SCREEN, $m, mk, st, put, render, G, path, T, isRTL, rtlText, cite, ctx2d, textW, F,
+  COL, MATH, NAME, BAND, RIGHT, TOPR, SCREEN, SORT_SCREEN, $m, mk, st, put, render, G, path, T, isRTL, rtlText, ltrMaths, cite, ctx2d, textW, F,
   R, E, TX, $tex, texGraphic, texPart, OV, M, chip, tokens, layRow, collapse, mathEl, io, out, back, lin, tw, prog,
   show, hide, draw, pop, pulse, stream, mix, evalTo, soft, clockRun, camera, scene, S, AXIS, X, Y0, num, reset, tick,
   dot, arrow, panel, retire, header, fx, fxp, finishFx, pulseFx, shakeFx, floatText, TF, $, kbd, sources, uiW, SCORE,
@@ -2236,7 +2312,7 @@ const TRANSLATIONS = ENGINE.TRANSLATIONS, PORTRAIT = ENGINE.PORTRAIT, SW = ENGIN
   bookSetting = ENGINE.bookSetting, COL = ENGINE.COL, MATH = ENGINE.MATH, NAME = ENGINE.NAME, BAND = ENGINE.BAND,
   RIGHT = ENGINE.RIGHT, TOPR = ENGINE.TOPR, SCREEN = ENGINE.SCREEN, SORT_SCREEN = ENGINE.SORT_SCREEN, $m = ENGINE.$m,
   mk = ENGINE.mk, st = ENGINE.st, put = ENGINE.put, render = ENGINE.render, G = ENGINE.G, path = ENGINE.path,
-  T = ENGINE.T, isRTL = ENGINE.isRTL, rtlText = ENGINE.rtlText, cite = ENGINE.cite, ctx2d = ENGINE.ctx2d, textW = ENGINE.textW, F = ENGINE.F, R = ENGINE.R,
+  T = ENGINE.T, isRTL = ENGINE.isRTL, rtlText = ENGINE.rtlText, ltrMaths = ENGINE.ltrMaths, cite = ENGINE.cite, ctx2d = ENGINE.ctx2d, textW = ENGINE.textW, F = ENGINE.F, R = ENGINE.R,
   E = ENGINE.E, TX = ENGINE.TX, $tex = ENGINE.$tex, texGraphic = ENGINE.texGraphic, texPart = ENGINE.texPart,
   OV = ENGINE.OV, M = ENGINE.M, chip = ENGINE.chip, tokens = ENGINE.tokens, layRow = ENGINE.layRow,
   collapse = ENGINE.collapse, mathEl = ENGINE.mathEl, io = ENGINE.io, out = ENGINE.out, back = ENGINE.back,

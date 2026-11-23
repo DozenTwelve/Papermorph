@@ -85,7 +85,9 @@ function say(p, lines, x, y, t0, t1, { size = 44, fill = CREAM, italic = true, a
     const rtl = isRTL(ln), it = italic && !rtl, style = it ? 'italic' : '', sp = wid(' ', size, SER, style, weight);
     if (rtl) {
       const line = T(g, '', { x, y: y + i * size * lh, size, fill, font: SER, weight, anchor });
-      rtlText(ln).split(' ').forEach((word, j) => {
+      // an isolated expression (ltrMaths) is one word, so its isolate opens and closes in one <tspan>
+      rtlText(ln).split(' ').reduce((ws, w) => (ws.length && /\u2066[^\u2069]*$/.test(ws.at(-1)) ? ws[ws.length - 1] += ' ' + w : ws.push(w), ws), [])
+        .forEach((word, j) => {
         if (j) line.append(' ');
         (word.match(CJK) || ['']).forEach(w => {
           const e = mk('tspan', { 'fill-opacity': 0 }, line);
@@ -102,7 +104,7 @@ function say(p, lines, x, y, t0, t1, { size = 44, fill = CREAM, italic = true, a
       words.push(e); cx += wid(w, size, SER, style, weight) + (j === ws.length - 1 ? sp : 0);
     }));
   });
-  const chars = words.map(e => e.textContent.replace('\u200F', '').length + 1), all = chars.reduce((a, b) => a + b, 0);
+  const chars = words.map(e => e.textContent.replace(/[\u200E\u200F\u2066\u2069]/g, '').length + 1), all = chars.reduce((a, b) => a + b, 0);
   let acc = 0;
   words.forEach((e, i) => {
     const at = t1 === t0 ? t0 : t0 + (t1 - t0) * acc / all;
