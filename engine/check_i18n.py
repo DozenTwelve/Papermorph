@@ -330,6 +330,9 @@ async def check_arabic_lesson(browser, errors):
     # already marked is not marked twice
     assert await page.evaluate("!isRTL('The word for cat is قط in Arabic.') && !isRTL('x = ٣') && isRTL('DNA هو الحمض النووي')"), "Latin-led line misread"
     assert await page.evaluate("rtlText(rtlText('Newton قال ذلك')) === '\\u200fNewton قال ذلك'"), "marked twice"
+    # The author's own mark decides where the count misses
+    assert await page.evaluate("""!isRTL('Sir Isaac Newton عالم إنجليزي.') && isRTL('\\u200fSir Isaac Newton عالم إنجليزي.')
+      && !isRTL('\\u200eNewton قال ذلك') && rtlText('\\u200eNewton قال ذلك') === '\\u200eNewton قال ذلك'"""), "a direction mark ignored"
     # The documentary kit's say(): the browser orders an Arabic line, so a Latin name of two words keeps its own order
     # between the Arabic words, a Latin-led line still starts at the right, and each word waits for its turn.
     film = TEMPLATES / "documentary/lib/film.js"
@@ -351,7 +354,7 @@ async def check_arabic_lesson(browser, errors):
     assert led["n"] > led["q"] > led["dh"] and abs(led["left"]) < 1.5, f"say(): Latin-led Arabic line: {led}"
     assert said["en"] == {"texts": 2, "tspans": 0, "italic": "italic"}, f"say(): English line changed: {said['en']}"
     # Answers typed on an Arabic keyboard: Arabic-Indic digits, ٫ and ٬
-    assert await page.evaluate("[rat('٣'), rat('٠٫٧٥'), rat('۱۲'), rat('١٬٠٠٠'), rat('١،٠٠٠'), rat('١،٥')].join('|') === '3,1|75,100|12,1|1000,1|1000,1|'")
+    assert await page.evaluate("[rat('٣'), rat('٠٫٧٥'), rat('۱۲'), rat('١٬٠٠٠'), rat('١،٠٠٠'), rat('١،٠٠٠،٠٠٠'), rat('١،٥'), rat('٣،٧٥')].join('|') === '3,1|75,100|12,1|1000,1|1000,1|1000000,1|15,10|375,100'")
     assert await page.evaluate("translate('theEnd') === 'النهاية'")
     assert await text("#coverK") == "الفصل 1"
     assert "ابدأ الدرس" in await text("#cover .go")

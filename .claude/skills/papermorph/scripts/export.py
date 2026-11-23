@@ -82,10 +82,11 @@ def rtl_marked(text, rtl_film=False):
     out a subtitle left to right, and a line that starts or ends with a number, a Latin name or a stop then reads out
     of order. In a right-to-left film (rtl_film: most of its lines are) a line that a Latin word opens is marked too
     when its Arabic words are at least as many as its Latin ones, as the engine's isRTL decides: 'Newton قال ذلك' is
-    an Arabic line, 'The word is كتاب.' is not. Other lines are left as they are."""
+    an Arabic line, 'The word is كتاب.' is not. A line that already begins with a direction mark (U+200F or U+200E)
+    and other lines are left as they are."""
     def mark(line):
         first = next((c for c in line if c.isalpha()), '')
-        if not first:
+        if not first or line[:1] in ('\u200f', '\u200e'):
             return line
         words = [w for w in line.split() if any(c.isalpha() for c in w)]
         rtl = sum(any(map(rtl_letter, w)) for w in words)
@@ -384,7 +385,7 @@ async def main(a):
         for x in [b] + more:
             await x.close()
     with open(out / f'{a.chapter}.srt', 'w', encoding='utf-8') as f:
-        rtl_film = 2 * sum(any(map(rtl_letter, line)) for _, _, line in cues) > len(cues)
+        rtl_film = 2 * sum(any(map(rtl_letter, line)) for _, _, line in cues) >= len(cues) > 0
         for k, (t0, t1, line) in enumerate(cues, 1):
             if k < len(cues): t1 = min(t1, cues[k][0])   # a cue ends where the next begins: video sites stack overlaps
             f.write(f'{k}\n{srt_time(t0)} --> {srt_time(t1)}\n{rtl_marked(line, rtl_film)}\n\n')

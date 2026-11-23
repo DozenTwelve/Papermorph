@@ -125,10 +125,12 @@ const fs = n => n * U;   // a type size in the page's unit: ~1/100 of the graphi
 // A label reads right to left as the engine's stage text does: when its first letter is Arabic or Hebrew, and on a
 // right-to-left page (<html dir="rtl">) also when a Latin word opens it but its Arabic words are at least as many
 // ('Newton قال ذلك'; not 'The word is كتاب.'). Digits decide nothing. align stays where the label sits (left, center,
-// right). Arabic letters join and have no italic: no spacing, no slant.
+// right); a label that begins with U+200F reads right to left, with U+200E left to right, whatever its words. Arabic
+// letters join and have no italic: no spacing, no slant.
 const RTL_LETTER = /(?=\p{L})[\p{Script=Arabic}\p{Script=Hebrew}\p{Script=Syriac}\p{Script=Thaana}\p{Script=Nko}]/u;
 const isRTL = str => {
   const s = String(str ?? ''), c = s.match(/\p{L}/u);
+  if (s[0] === '\u200F' || s[0] === '\u200E') return s[0] === '\u200F';
   if (!c) return false;
   if (RTL_LETTER.test(c[0])) return true;
   if (document.documentElement.dir !== 'rtl') return false;

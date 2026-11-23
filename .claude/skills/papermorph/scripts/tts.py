@@ -174,17 +174,21 @@ def bare(text):
 
 def cut_short(clean, last_spoken):
     """The word the text ends with, when the voice's last word is another one (a clip that stops early), else None.
-    Words are compared without vowel marks, case or the punctuation around them (a closing quote, an ellipsis, the
-    Arabic comma), and a word the voice says in parts ("twenty-one" ending "one") counts as said. A voice that stops
-    on a number while the text goes on in words is cut short. No verdict for a text that ends with a number (the
-    voice may say it spelled out) or for Chinese and Japanese, which have no spaces to find a last word by."""
-    if re.search(f"[{CJK}]", clean) or re.search(r"\d\W*$", clean):
+    Words are compared without vowel marks, case or the punctuation around them (quotes, an ellipsis, the Arabic
+    comma), and a word the voice says in parts ("twenty-one" ending "one") counts as said. A text that ends with a
+    number should end the clip on that number (Edge names a number in its word list as it is written, 1914); one
+    that ends in a word should not end it on a number. No verdict for Chinese and Japanese, which have no spaces to
+    find a last word by."""
+    if re.search(f"[{CJK}]", clean):
         return None
+    number = re.search(r"(\d[\d.,]*\d|\d)\W*$", clean)
+    if number:
+        return None if re.search(r"\d", last_spoken) else number.group(1)
     word = r"[^\W\d_][\w'-]*"
-    ends = re.findall(word, bare(clean[-40:]))
-    if not ends:
+    ends = [w.strip("'-") for w in re.findall(word, bare(clean[-40:]))]
+    if not ends or not ends[-1]:
         return None
-    spoken = re.findall(word, bare(last_spoken))
+    spoken = [w.strip("'-") for w in re.findall(word, bare(last_spoken))]
     if not spoken:
         return ends[-1] if re.search(r"\d", last_spoken) else None
     end, said = ends[-1].lower(), spoken[-1].lower()

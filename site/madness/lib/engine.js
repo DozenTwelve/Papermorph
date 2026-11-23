@@ -390,11 +390,13 @@ function T(parent, str, { x = 0, y = 0, size = 30, fill = COL.chalk, font = UI, 
 // 'Newton قال ذلك' and 'DNA هو الحمض النووي' are Arabic lines there, while 'The word is كتاب.', 'x = ٣' and 'F = ma'
 // stay left to right. The stage orders each text by its own first letter (engine.css, unicode-bidi: plaintext), so
 // rtlText(str) is str behind a right-to-left mark when it reads right to left but opens with a Latin letter: that is
-// the string T() and stream() set.
-const RTL_SCRIPT = /[\p{Script=Arabic}\p{Script=Hebrew}\p{Script=Syriac}\p{Script=Thaana}\p{Script=Nko}]/u;
+// the string T() and stream() set. The count is a guess and has its misses ('Sir Isaac Newton عالم إنجليزي.' counts three
+// Latin words to two), so a line that begins with a right-to-left mark (U+200F) reads right to left, and one that begins
+// with a left-to-right mark (U+200E) left to right, whatever its words.
 const RTL_LETTER = /(?=\p{L})[\p{Script=Arabic}\p{Script=Hebrew}\p{Script=Syriac}\p{Script=Thaana}\p{Script=Nko}]/u;
 function isRTL(str) {
   const s = String(str ?? ''), c = s.match(/\p{L}/u);
+  if (s[0] === '\u200F' || s[0] === '\u200E') return s[0] === '\u200F';
   if (!c) return false;
   if (RTL_LETTER.test(c[0])) return true;
   if (document.documentElement.dir !== 'rtl') return false;
@@ -1442,11 +1444,12 @@ const grid = (items, cols, { multi = true, text = false } = {}) => (body, api) =
 // Accepts −, – or - as the sign, a currency sign before or after ($5, -$5, 5 €), thousands grouped by spaces (any kind)
 // or, where the decimal sign is a point, by commas, and a decimal comma when DECIMAL_SIGN is ','. Never evaluates the text as code.
 // Arabic-Indic digits (٣, and the Persian ۳) count as 0–9, with the Arabic decimal sign ٫ and thousands sign ٬, so an
-// answer typed on an Arabic keyboard is read as the same number; the Arabic comma ، (that keyboard's comma key) is read
-// as , is: a thousands group where the decimal sign is a point, the decimal sign where it is a comma.
+// answer typed on an Arabic keyboard is read as the same number. That keyboard's comma key types ، (it has no ٫ key):
+// between groups of three digits it groups thousands (١،٠٠٠ is 1000), anywhere else it is the decimal sign (١،٥ is 1.5).
 function rat(str) {
-  let t = String(str).trim().replace(/[٠-٩۰-۹]/g, d => String(d.charCodeAt(0) & 15))
-    .replace(/٫/g, '.').replace(/،/g, ',').replace(/٬/g, DECIMAL_SIGN === ',' ? ' ' : ',').replace(/^[−–]/, '-').replace(/\s+/g, ' ').replace(/^(-?) ?\p{Sc} ?|(?<=\d) ?\p{Sc}$/gu, '$1');
+  let t = String(str).trim().replace(/[٠-٩۰-۹]/g, d => String(d.charCodeAt(0) & 15));
+  t = /^[−–-]?\d{1,3}(?:،\d{3})+$/.test(t) ? t.replace(/،/g, '') : t.replace(/،/g, '.');
+  t = t.replace(/٫/g, '.').replace(/٬/g, DECIMAL_SIGN === ',' ? ' ' : ',').replace(/^[−–]/, '-').replace(/\s+/g, ' ').replace(/^(-?) ?\p{Sc} ?|(?<=\d) ?\p{Sc}$/gu, '$1');
   const group = DECIMAL_SIGN === ',' ? ' ' : '[, ]';   // one kind of separator throughout: 1,000 000 is not a number
   t = t.replace(new RegExp(`^(-?\\d{1,3})(${group})(\\d{3}(?:\\2\\d{3})*)(?=$|[.,])`), (_, head, sep, rest) => head + rest.split(sep).join(''));
   if (DECIMAL_SIGN === ',') t = t.replace(/^(-?\d+),(\d+)$/, '$1.$2');   // 0,75 where the decimal sign is a comma

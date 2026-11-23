@@ -184,7 +184,7 @@ const { paperMap, mapBand, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCi
     const ctx = cv.getContext('2d'), land = grained(ctx, MAP_COL.land), sea = grained(ctx, MAP_COL.sea), hatchFill = hatchPattern(ctx);
     const lab = G(g, {});
     // a city: [name in geo-lite.js, t0, side, t1, label shown]; the label defaults to the name, so a film in another
-    // language looks the city up by its geo-lite name and shows its own: ['Cairo', 2, 'l', undefined, 'القاهرة']
+    // language looks the city up by its geo-lite name and shows its own: ['Cairo', 2, 'l', null, 'القاهرة']
     const labels = cities.map(([name, t0, side = 'r', t1, shown = name]) => {
       if (!CITIES[name]) throw new Error(`paperMap: no city ${name} in geo-lite.js (geo.py --cities); a label in the film's language goes fifth: [name, t0, side, t1, label]`);
       const e = G(lab, { o: 0 }), w = measure(shown.toUpperCase(), labelSize);
@@ -267,7 +267,7 @@ const { paperMap, mapBand, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCi
         area: AREAS.map(A => clamp01(A.a(t))),
         det: details.length ? ramp(k, R0 / .22, R0 / .06) : 0,
         route: routes.map(([, , t0, dur = .8]) => ramp(t, t0, t0 + dur) + pop(t0 + dur)),
-        rfade: routes.map(([, , , , st]) => st?.t1 === undefined ? 1 : 1 - ramp(t, st.t1, st.t1 + .4)),
+        rfade: routes.map(([, , , , st]) => st?.t1 == null ? 1 : 1 - ramp(t, st.t1, st.t1 + .4)),
         rcol: routes.map(([, , , , st]) => colAt(st?.colour ?? MAP_COL.hot, t)),
         areac: AREAS.map(A => colAt(A.fill, t)),
         dot: dots.map(d => pop(d[2])),
@@ -391,7 +391,7 @@ const { paperMap, mapBand, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCi
     T(g, str, { x: x0 + w / 2, y: 0, size, fill, font: FONT, weight: 600, anchor: 'middle' }).setAttribute('letter-spacing', `${ls}em`);
     if (sub) T(g, sub, { x: x0 + w / 2, y: size * .66, size: size * .42, fill: COL.dim, font: FONT, anchor: 'middle' });
     g._w = w; tw(g, { o: 1 }, t0, .35, out);
-    if (t1 !== undefined) hide(g, t1, .4);
+    if (t1 != null) hide(g, t1, .4);
     return g;
   }
 
