@@ -332,10 +332,12 @@ async def check_arabic_lesson(browser, errors):
     assert await page.evaluate("rtlText(rtlText('Newton قال ذلك')) === '\\u200fNewton قال ذلك'"), "marked twice"
     # stream() shows a letter at its first step, the mark riding with it (on a page of its own: evalTo runs its tweens)
     typing = await open_lesson(browser, "ar", errors)
-    first = await typing.evaluate("""(() => { const t = T(document.getElementById('stage'), ''); stream(t, 'Newton قال ذلك', 0, 1);
-      evalTo(1 / 14); return t.textContent; })()""")
+    first = await typing.evaluate("""['Newton قال ذلك', String.fromCharCode(0x200E) + 'Newton قال ذلك'].map(s => {
+      const t = T(document.getElementById('stage'), ''); stream(t, s, 0, 1);
+      for (let k = 1; k <= 100 && !t.textContent; k++) evalTo(k / 100);   // the first step that shows anything
+      return t.textContent; })""")
     await typing.close()
-    assert first == "‏N", f"stream: the first step shows {first!r}"
+    assert first == ["‏N", "‎N"], f"stream: the first step shows {first!r}"
     # The author's own mark decides where the count misses
     assert await page.evaluate("""!isRTL('Sir Isaac Newton عالم إنجليزي.') && isRTL('\\u200fSir Isaac Newton عالم إنجليزي.')
       && !isRTL('\\u200eNewton قال ذلك') && rtlText('\\u200eNewton قال ذلك') === '\\u200eNewton قال ذلك'"""), "a direction mark ignored"

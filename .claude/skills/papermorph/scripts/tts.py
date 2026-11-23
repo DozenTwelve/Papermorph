@@ -177,15 +177,16 @@ def cut_short(clean, last_spoken):
     Words are compared without vowel marks, case or the punctuation around them (quotes, an ellipsis, the Arabic
     comma), and a word the voice says in parts ("twenty-one" ending "one") counts as said. A text that ends with a
     number should end the clip on that number: Edge names a number in its word list as it is written (1914, 50%,
-    ١٩١٤), and sometimes as one entry with the numbers before it ("from 1914 to 1918"), so the digits the voice last
-    said must end with the number's. One that ends in a word should not end the clip on a number. No verdict for
+    ١٩١٤), and sometimes as one entry with the numbers before it ("from 1914 to 1918"), so the last number in the
+    voice's last entry must be that number ("from 15 to 5" stopping at "15" is cut). One that ends in a word should not end the clip on a number. No verdict for
     Chinese and Japanese, which have no spaces to find a last word by."""
     if re.search(f"[{CJK}]", clean):
         return None
     number = re.search(r"(\d[\d.,٫٬،]*\d|\d)\W*$", clean)
     if number:
-        said, want = re.sub(r"\D", "", last_spoken), re.sub(r"\D", "", number.group(1))
-        return None if said.endswith(want) else number.group(1)
+        said = re.findall(r"\d[\d.,٫٬،]*\d|\d", last_spoken)
+        digits = lambda n: re.sub(r"\D", "", n)
+        return None if said and digits(said[-1]) == digits(number.group(1)) else number.group(1)
     word = r"[^\W\d_][\w'-]*"
     ends = [w.strip("'-") for w in re.findall(word, bare(clean[-40:]))]
     if not ends:
@@ -198,13 +199,19 @@ def cut_short(clean, last_spoken):
 
 
 def misread_numbers(clean):
-    """[(number, how to write it)] for each number written with an Arabic separator, which Edge's Arabic voices misread:
+    """[(number, how to write it or None)] for each number written with an Arabic separator, which Edge's Arabic voices
+    misread:
     measured 2026-11-23, ar-EG-SalmaNeural says nothing for ١٬٠٠٠ or ١٫٥ (the clip is as long as without them),
-    ar-SA-HamedNeural nothing for ١٬٠٠٠, and both read ١،٠٠٠ as two numbers. ١٠٠٠ and ١.٥ are read right."""
+    ar-SA-HamedNeural nothing for ١٬٠٠٠, and both read ١،٠٠٠ as two numbers. ١٠٠٠ and ١.٥ are read right. The way to
+    write it is None when the separators do not make one number (١،٠٠٠،٥, ١٬٠٠٠٬٥)."""
     out = []
     for n in re.findall(r"\d+(?:[٫٬،]\d+)+", clean):
-        fixed = n.replace("٬", "").replace("٫", ".")
-        fixed = fixed.replace("،", "") if re.fullmatch(r"\d{1,3}(?:،\d{3})+(?:\.\d+)?", fixed) else fixed.replace("،", ".")
+        if re.fullmatch(r"\d{1,3}([٬،])\d{3}(?:\1\d{3})*(?:٫\d+)?", n):   # thousands, one sign throughout, then a decimal part
+            fixed = re.sub("[٬،]", "", n).replace("٫", ".")
+        elif re.fullmatch(r"\d+[٫،]\d+", n):   # a decimal part alone, or two numbers of a list (the warning says "if")
+            fixed = re.sub("[٫،]", ".", n)
+        else:
+            fixed = None
         out.append((n, fixed))
     return out
 
@@ -378,9 +385,11 @@ async def main(src, out_dir):
         mp3 = out_dir / f"{beat}.mp3"
         old = cache.get(beat)
         clean, marks, shown = split_marks(raw)
-        for n, fixed in misread_numbers(clean) if engine == "edge" else []:
-            print(f"{beat}: WARNING Edge's Arabic voices skip or split {n!r} (written with ٬, ٫ or ،): write {fixed!r}, "
-                  f"or {{{{{n}|{fixed}}}}} to keep {n!r} in the captions, and synthesize it again")
+        for n, fixed in misread_numbers(clean) if engine == "edge" and voice.lower().startswith("ar-") else []:
+            how = (f"write {fixed!r}, or {{{{{n}|{fixed}}}}} to keep {n!r} in the captions" if fixed else
+                   "write it without them (١٠٠٠, ١.٥)")
+            print(f"{beat}: WARNING Edge's Arabic voices skip {n!r} or read it as separate numbers (it is written with ٬, ٫ "
+                  f"or ،): if it is one number, {how}, and synthesize it again")
         tag = "" if engine == "edge" else f"{engine}|"   # Edge keys stay as they were, so its audio is kept
         key = hashlib.sha1(f"{tag}{voice}|{rate}|{'' if pitch == '+0Hz' else pitch + '|'}{clean}".encode()).hexdigest()
         # Existing caches included [[marks]] in the key; reuse an unchanged old beat once,

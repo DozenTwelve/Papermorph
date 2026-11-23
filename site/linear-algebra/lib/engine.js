@@ -704,7 +704,7 @@ const GRAPHEMES = typeof Intl.Segmenter === 'function' ? new Intl.Segmenter(unde
 const graphemes = str => GRAPHEMES ? Array.from(GRAPHEMES.segment(str), s => s.segment) : Array.from(str);
 function stream(t, str, t0, dur) {
   const g = graphemes(String(rtlText(str)));
-  if (g[0] === '\u200F' && g.length > 1) g.splice(0, 2, g[0] + g[1]);   // the mark is invisible: it rides with the first letter
+  if ((g[0] === '\u200F' || g[0] === '\u200E') && g.length > 1) g.splice(0, 2, g[0] + g[1]);   // a mark is invisible: it rides with the first letter
   prog(q => { t.textContent = g.slice(0, Math.round(q * g.length)).join(''); }, t0, dur, lin); }
 function mix(a, b, q) {
   const h = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16));
