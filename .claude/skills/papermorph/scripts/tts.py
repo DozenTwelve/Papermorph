@@ -172,6 +172,18 @@ def bare(text):
     return "".join(c for c in text if not unicodedata.category(c).startswith("M") and c != "ـ")
 
 
+def cut_short(clean, last_spoken):
+    """The word the text ends with, when the voice's last word is another one (a clip that stops early), else None.
+    Words are compared without vowel marks and without the punctuation around them (a closing quote, an ellipsis,
+    the Arabic comma). No verdict where there is no last word to compare: Chinese and Japanese have no spaces, and a
+    number may come back spelled out."""
+    if re.search(f"[{CJK}]", clean):
+        return None
+    word = r"[^\W\d_][\w'-]*"
+    ends, spoken = re.findall(word, bare(clean[-40:])), re.findall(word, bare(last_spoken))
+    return ends[-1] if ends and spoken and spoken[-1] != ends[-1] else None
+
+
 def time_at(clean, words, estimate=False):
     """Return f(pos): start time of the first spoken word at or after char pos. The voice's word list can stop
     short of the text; with estimate, a position past its last word is timed at the speaking rate so far (seconds
@@ -381,12 +393,10 @@ async def main(src, out_dir):
                 tmp.replace(mp3)
                 print(f"{beat}: synthesized{' and treated' if af else ''}" if not reusable else
                       f"{beat}: {'treated' if af else 'treatment taken off'}, no new request (level it again if it was levelled)")
-            # Edge has returned clips that stop a sentence early: the last spoken word should end the text. Compared
-            # without vowel marks or the Arabic ـ, so an Arabic clip is checked too; Chinese and Japanese have no spaces
-            # to find a last word by
-            ends = re.findall(r"[^\W\d_][\w'-]*", bare(clean[-40:]))
-            if words and ends and not re.search(f"[{CJK}]", clean) and bare(words[-1][1]).strip(".,;:!?\"'،؛؟") != ends[-1]:
-                print(f"{beat}: WARNING the voice's last word is {words[-1][1]!r} but the text ends {ends[-1]!r}: the clip "
+            # Edge has returned clips that stop a sentence early: the last spoken word should end the text
+            end = cut_short(clean, words[-1][1]) if words else None
+            if end:
+                print(f"{beat}: WARNING the voice's last word is {words[-1][1]!r} but the text ends {end!r}: the clip "
                       "may be cut short; listen to it, and synthesize it again (change its cached key) if so")
             result[beat] = entry
             cache[beat] = entry

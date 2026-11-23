@@ -75,25 +75,38 @@ function strike(p, e, x, y, t0, size, anchor = 'middle') {
   return line(p, `M${x0 - 16} ${y - size * .32}H${x0 + e._w + 16}`, t0, .4, Math.max(5, size / 12), { stroke: HOT });
 }
 // serif lines typed word by word between t0 and t1 (Chinese, Japanese and Korean characters one by one). The anchor is
-// where the line sits (start: its left end at x); a right-to-left line (Arabic) is typed from its right end, upright,
-// since Arabic has no italic
+// where the line sits (start: its left end at x). A right-to-left line (Arabic) is one text with a <tspan> a word, so
+// the browser orders it (a Latin name or x + 3 = 7 inside it keeps its own order) and each word still appears in its
+// turn, from the right; it is upright, since Arabic has no italic
 const CJK = /[⺀-鿿가-힯豈-﫿＀-￯]|[^⺀-鿿가-힯豈-﫿＀-￯]+/g;
 function say(p, lines, x, y, t0, t1, { size = 44, fill = CREAM, italic = true, anchor = 'start', lh = 1.3, weight = 400 } = {}) {
   const g = G(p, {}), words = [];
   lines.forEach((ln, i) => {
     const rtl = isRTL(ln), it = italic && !rtl, style = it ? 'italic' : '', sp = wid(' ', size, SER, style, weight);
-    const W = wid(ln, size, SER, style, weight), dir = rtl ? -1 : 1;
+    if (rtl) {
+      const line = T(g, '', { x, y: y + i * size * lh, size, fill, font: SER, weight, anchor });
+      rtlText(ln).split(' ').forEach((w, j) => {
+        if (j) line.append(' ');
+        const e = mk('tspan', { 'fill-opacity': 0 }, line);
+        e.textContent = w; words.push(e);
+      });
+      return;
+    }
+    const W = wid(ln, size, SER, style, weight);
     let cx = anchor === 'middle' ? x - W / 2 : anchor === 'end' ? x - W : x;
-    if (rtl) cx += W;   // the right end, and each word placed by its right end
     ln.split(' ').forEach(word => (word.match(CJK) || ['']).forEach((w, j, ws) => {
-      const e = T(g, w, { x: cx, y: y + i * size * lh, size, fill, font: SER, weight, anchor: rtl ? 'end' : 'start', o: 0 });
+      const e = T(g, w, { x: cx, y: y + i * size * lh, size, fill, font: SER, weight, o: 0 });
       if (it) e.setAttribute('font-style', 'italic');
-      words.push(e); cx += dir * (wid(w, size, SER, style, weight) + (j === ws.length - 1 ? sp : 0));
+      words.push(e); cx += wid(w, size, SER, style, weight) + (j === ws.length - 1 ? sp : 0);
     }));
   });
   const chars = words.map(e => e.textContent.length + 1), all = chars.reduce((a, b) => a + b, 0);
   let acc = 0;
-  words.forEach((e, i) => { show(e, t1 === t0 ? t0 : t0 + (t1 - t0) * acc / all, .25, lin); acc += chars[i]; });
+  words.forEach((e, i) => {
+    const at = t1 === t0 ? t0 : t0 + (t1 - t0) * acc / all;
+    if (e.tagName === 'tspan') prog(q => e.setAttribute('fill-opacity', q), at, .25, lin); else show(e, at, .25, lin);
+    acc += chars[i];
+  });
   return g;
 }
 // a small caption under a picture (a credit or a name tag); one under CAPTION_TOP, where the captions go, is said in

@@ -75,5 +75,5 @@ h1 { font: 600 clamp(48px, 13vw, 112px)/.95 var(--font-key); text-transform: upp
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 /* A right-to-left page (<html lang="ar" dir="rtl">) mirrors through the logical properties above; from 820px the text
    column is on the right and the graphic on the left. Arabic letters join and have no italic: no spacing or slant. */
-:root:lang(ar) :is(h1, .credits h2) { letter-spacing: 0; }
-:root:lang(ar) .step blockquote { font-style: normal; }
+[dir="rtl"] :is(h1, .credits h2) { letter-spacing: 0; }
+[dir="rtl"] .step blockquote { font-style: normal; }

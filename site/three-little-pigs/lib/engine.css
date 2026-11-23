@@ -305,5 +305,5 @@ a.btn { text-decoration: none; display: inline-block; }
 /* Arabic letters join: letter spacing breaks the words apart. The faces are each system's own Arabic UI and book faces;
    no font file is loaded. A book's own lib/book.css :root still wins (these have no specificity). */
 :where(:root:lang(ar)) { --ui: "Segoe UI", "SF Arabic", "Geeza Pro", "Noto Sans Arabic", Tahoma, sans-serif; }
-:root:lang(ar) :is(.cover-k, .fin .kicker, .fin .srcs h2) { letter-spacing: 0; }
+[dir="rtl"] :is(.cover-k, .fin .kicker, .fin .srcs h2) { letter-spacing: 0; }
 :root:lang(ar) .cover-t, :root:lang(ar) .fin .prompt { font-family: "Noto Naskh Arabic", "Traditional Arabic", "Times New Roman", serif; }

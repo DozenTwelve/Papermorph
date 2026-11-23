@@ -34,7 +34,9 @@
                                         [[lon, lat]...] (a sea route round a cape: one line through them), dot: false (no
                                         landing dot), t1 (faded out over .4 s from then: a trade that stops) };
                                         what is not the subject goes in ink: { colour: MAP_COL.ink, dash: [10, 8] }
-     cities: [[name, t0, side, t1]]     an ink dot and a label (CITIES; side 'l' or 'r', default 'r'), faded out at t1
+     cities: [[name, t0, side, t1, label]]   an ink dot and a label (CITIES; side 'l' or 'r', default 'r'), faded out at
+                                        t1 (null: it stays); label is what the film shows, when not the name in CITIES
+                                        (a film in another language: ['Cairo', 2, 'r', null, 'القاهرة'])
                                         when given (a camera pulling out: towns that would pile up); labels keep inside
                                         the safe box, hide when their city is off it, take the other side when theirs
                                         covers an earlier label, and hide while both would (said in the console)
@@ -207,7 +209,7 @@ const { paperMap, mapBand, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCi
         const x = [at(l.side), at(l.side === 'l' ? 'r' : 'l')].find(x => !hit(x));
         if (x === undefined) {
           const b = hit(at(l.side));
-          if (!said.has(l.name + b.name)) { said.add(l.name + b.name); console.warn(`paperMap: label ${l.name} hidden from ${t.toFixed(1)} s, on top of ${b.name}: give one an end (cities: [name, t0, side, t1])`); }
+          if (!said.has(l.name + b.name)) { said.add(l.name + b.name); console.warn(`paperMap: label ${l.name} hidden from ${t.toFixed(1)} s, on top of ${b.name}: give one an end (cities: [name, t0, side, t1, label])`); }
           return put(l.e, OFF);
         }
         boxes.push({ name: l.name, x0: x, x1: x + l.w, y0: y - labelSize * .8, y1: y + labelSize * .25 });

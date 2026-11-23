@@ -214,7 +214,7 @@ const LANGUAGE = (document.documentElement.lang || 'en').toLowerCase().split('-'
 // Interface languages written right to left. Their text reads from the right while the stage and the timeline keep
 // their left-to-right geometry (engine.css), so drawings, seeking and the arrow keys mean the same in every language.
 // A page that sets <html dir> itself keeps it. contents.js has the same list: keep the two in step.
-const RTL_LANGUAGES = ['ar'];
+const RTL_LANGUAGES = ['ar', 'he', 'fa', 'ur'];   // contents.js and new_book.py have the same list
 if (!document.documentElement.dir && RTL_LANGUAGES.includes(LANGUAGE)) document.documentElement.dir = 'rtl';
 const pluralRules = {};
 // Interface text in LANGUAGE: translate('chapterNumber', { n: 3 }) → 'Chapter 3'. Chapters may use it too, e.g. for practice labels.
@@ -380,15 +380,21 @@ function path(parent, d, attrs = {}, o = {}) {
 }
 function T(parent, str, { x = 0, y = 0, size = 30, fill = COL.chalk, font = UI, weight = 500, anchor = 'start', o = 1 } = {}) {
   const t = mk('text', { 'font-size': size, fill, 'font-family': font, 'font-weight': weight, 'text-anchor': anchor }, parent);
-  t.textContent = str;
+  t.textContent = rtlText(str);
   t.style.whiteSpace = 'pre';
   return put(t, { x, y, o });
 }
-// A text's reading order, from its first letter, as the stage shows it (engine.css, unicode-bidi: plaintext): true for
-// Arabic, Hebrew and the other right-to-left scripts. A helper that lays a line out word by word (film.js say, shorts.js)
-// walks from the line's right end when this is true, so the words read in order; a digit or a sign decides nothing.
+// A text's reading order: right to left when its first letter is Arabic, Hebrew or another right-to-left script (a
+// digit or a sign decides nothing), and in a right-to-left book (<html dir="rtl">) also when any of its letters is, so
+// 'Newton قال ذلك' is an Arabic line there while 'F = ma' stays as it is. The stage orders each text by its own first
+// letter (engine.css, unicode-bidi: plaintext); rtlText(str) is str with a right-to-left mark in front when it reads
+// right to left but opens with a Latin letter, which is how T() and stream() give the stage such a line.
 const RTL_SCRIPT = /[\p{Script=Arabic}\p{Script=Hebrew}\p{Script=Syriac}\p{Script=Thaana}\p{Script=Nko}]/u;
-function isRTL(str) { const c = String(str ?? '').match(/\p{L}/u); return !!c && RTL_SCRIPT.test(c[0]); }
+function isRTL(str) {
+  const s = String(str ?? ''), c = s.match(/\p{L}/u);
+  return !!c && (RTL_SCRIPT.test(c[0]) || document.documentElement.dir === 'rtl' && RTL_SCRIPT.test(s));
+}
+function rtlText(str) { return isRTL(str) && !RTL_SCRIPT.test(String(str).match(/\p{L}/u)[0]) ? '\u200F' + str : str; }
 // A citation drawn in the picture that opens its source (REFS from ../refs.js, built by scripts/refs.py) in a new tab.
 // cite(p, key, opts) takes T's options; str overrides the label (default REFS[key].cite). Returns the <a>; animate it like T.
 const CITED = new Set();
@@ -684,7 +690,7 @@ function pulse(e, t0, k = 1.7) { tw(e, { s: k }, t0, .22, out); tw(e, { s: 1 }, 
 // an emoji is never cut in half.
 const GRAPHEMES = typeof Intl.Segmenter === 'function' ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null;
 const graphemes = str => GRAPHEMES ? Array.from(GRAPHEMES.segment(str), s => s.segment) : Array.from(str);
-function stream(t, str, t0, dur) { const g = graphemes(String(str)); prog(q => { t.textContent = g.slice(0, Math.round(q * g.length)).join(''); }, t0, dur, lin); }
+function stream(t, str, t0, dur) { const g = graphemes(String(rtlText(str))); prog(q => { t.textContent = g.slice(0, Math.round(q * g.length)).join(''); }, t0, dur, lin); }
 function mix(a, b, q) {
   const h = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16));
   const A = h(a), B = h(b);
@@ -1429,7 +1435,7 @@ const grid = (items, cols, { multi = true, text = false } = {}) => (body, api) =
 // answer typed on an Arabic keyboard is read as the same number.
 function rat(str) {
   let t = String(str).trim().replace(/[٠-٩۰-۹]/g, d => String(d.charCodeAt(0) & 15))
-    .replace(/٫/g, '.').replace(/٬/g, DECIMAL_SIGN === ',' ? ' ' : ',').replace(/^[−–]/, '-').replace(/\s+/g, ' ').replace(/^(-?) ?\p{Sc} ?|(?<=\d) ?\p{Sc}$/gu, '$1');
+    .replace(/[٫،]/g, '.').replace(/٬/g, DECIMAL_SIGN === ',' ? ' ' : ',').replace(/^[−–]/, '-').replace(/\s+/g, ' ').replace(/^(-?) ?\p{Sc} ?|(?<=\d) ?\p{Sc}$/gu, '$1');
   const group = DECIMAL_SIGN === ',' ? ' ' : '[, ]';   // one kind of separator throughout: 1,000 000 is not a number
   t = t.replace(new RegExp(`^(-?\\d{1,3})(${group})(\\d{3}(?:\\2\\d{3})*)(?=$|[.,])`), (_, head, sep, rest) => head + rest.split(sep).join(''));
   if (DECIMAL_SIGN === ',') t = t.replace(/^(-?\d+),(\d+)$/, '$1.$2');   // 0,75 where the decimal sign is a comma
@@ -2195,7 +2201,7 @@ function boot() {
   setInterval(() => { if (document.hidden) frameStep(performance.now(), 1.5); }, 250);
 }
 return { TRANSLATIONS, PORTRAIT, SW, SH, LANGUAGE, translate, DECIMAL_SIGN, isShortcut, NS, UI, BOOK, bookSetting,
-  COL, MATH, NAME, BAND, RIGHT, TOPR, SCREEN, SORT_SCREEN, $m, mk, st, put, render, G, path, T, isRTL, cite, ctx2d, textW, F,
+  COL, MATH, NAME, BAND, RIGHT, TOPR, SCREEN, SORT_SCREEN, $m, mk, st, put, render, G, path, T, isRTL, rtlText, cite, ctx2d, textW, F,
   R, E, TX, $tex, texGraphic, texPart, OV, M, chip, tokens, layRow, collapse, mathEl, io, out, back, lin, tw, prog,
   show, hide, draw, pop, pulse, stream, mix, evalTo, soft, clockRun, camera, scene, S, AXIS, X, Y0, num, reset, tick,
   dot, arrow, panel, retire, header, fx, fxp, finishFx, pulseFx, shakeFx, floatText, TF, $, kbd, sources, uiW, SCORE,
@@ -2212,7 +2218,7 @@ const TRANSLATIONS = ENGINE.TRANSLATIONS, PORTRAIT = ENGINE.PORTRAIT, SW = ENGIN
   bookSetting = ENGINE.bookSetting, COL = ENGINE.COL, MATH = ENGINE.MATH, NAME = ENGINE.NAME, BAND = ENGINE.BAND,
   RIGHT = ENGINE.RIGHT, TOPR = ENGINE.TOPR, SCREEN = ENGINE.SCREEN, SORT_SCREEN = ENGINE.SORT_SCREEN, $m = ENGINE.$m,
   mk = ENGINE.mk, st = ENGINE.st, put = ENGINE.put, render = ENGINE.render, G = ENGINE.G, path = ENGINE.path,
-  T = ENGINE.T, isRTL = ENGINE.isRTL, cite = ENGINE.cite, ctx2d = ENGINE.ctx2d, textW = ENGINE.textW, F = ENGINE.F, R = ENGINE.R,
+  T = ENGINE.T, isRTL = ENGINE.isRTL, rtlText = ENGINE.rtlText, cite = ENGINE.cite, ctx2d = ENGINE.ctx2d, textW = ENGINE.textW, F = ENGINE.F, R = ENGINE.R,
   E = ENGINE.E, TX = ENGINE.TX, $tex = ENGINE.$tex, texGraphic = ENGINE.texGraphic, texPart = ENGINE.texPart,
   OV = ENGINE.OV, M = ENGINE.M, chip = ENGINE.chip, tokens = ENGINE.tokens, layRow = ENGINE.layRow,
   collapse = ENGINE.collapse, mathEl = ENGINE.mathEl, io = ENGINE.io, out = ENGINE.out, back = ENGINE.back,

@@ -57,6 +57,16 @@ def set_voice(narration: Path, style: Path, lang: str, fresh_style: bool):
     else:
         print(f"note: {narration.name} keeps the kit's English voice {n.get('voice')!r}: choose a {lang} voice "
               f"(edge-tts --list-voices) before tts.py", file=sys.stderr)
+    if n.get('voices'):   # the characters' own voices (a picture book's kid and dad): no list here casts those
+        cast = ', '.join(f"{who} {v.get('voice')!r}" for who, v in n['voices'].items())
+        print(f"note: {narration.name} 'voices' are still the kit's English ones ({cast}): give each "
+              f"character a voice in the book's language ({lang}; edge-tts --list-voices) before tts.py", file=sys.stderr)
+    style_language(style, lang, fresh_style)
+
+
+def style_language(style: Path, lang: str, fresh_style: bool):
+    """The book's language and its voice (when VOICES has one) in a style.json just copied."""
+    voice = VOICES.get(base(lang))
     if fresh_style:
         s = re.sub(r'("language":\s*)"en"', rf'\1"{lang}"', style.read_text(encoding='utf-8'), count=1)
         if voice:
@@ -207,8 +217,19 @@ def explore(a, root, ch, site, work, content):
     for d in (content, work / 'review', root / 'tools' / a.book):
         d.mkdir(parents=True, exist_ok=True)
     shutil.copytree(EK, site, ignore=shutil.ignore_patterns('style.json'))
-    if not (work / 'style.json').exists():
+    fresh_style = not (work / 'style.json').exists()
+    if fresh_style:
         copy(EK / 'style.json', work / 'style.json')
+    nar_file, voice = content / f'narration.{a.lang}.json', VOICES.get(base(a.lang))
+    if a.lang != 'en':
+        style_language(work / 'style.json', a.lang, fresh_style)
+        if nar_file.exists():
+            pass   # the book's own choice stands
+        elif voice:   # explore.py narration fills in the beats and keeps these keys
+            nar_file.write_text(json.dumps({'engine': 'edge', 'voice': voice, 'rate': '-4%'}, indent=2) + '\n', encoding='utf-8')
+        else:
+            print(f"note: explore.py narration will start {nar_file.name} with the English voice: choose a {a.lang} "
+                  f"voice (edge-tts --list-voices) and write it there before tts.py", file=sys.stderr)
     audio = site / 'audio' / a.lang
     audio.mkdir(parents=True, exist_ok=True)
     (audio / 'timings.js').write_text('window.TIMINGS = {};\n')   # until tts.py or eleven.py writes the clips: cards hold a reading time

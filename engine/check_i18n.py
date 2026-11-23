@@ -132,6 +132,9 @@ async def check_english_unchanged(browser, errors):
     for name, old, new in zip(names, await lesson_snapshot(before), await lesson_snapshot(after)):
         assert old.replace("/__i18n__/base/", "/__i18n__/en/") == new, f"English {name} changed"   # links carry the page's own path
     assert await after.evaluate("rat('0,75') === null && num(2.5) === '2.5' && num(-3) === '−3'"), "English numbers changed"
+    # In a left-to-right book a text reads by its first letter alone, and T() sets exactly the string it was given
+    assert await after.evaluate("""!isRTL('Newton قانون') && isRTL('قانون Newton')
+      && T(document.getElementById('stage'), 'Newton قانون', { o: 0 }).textContent === 'Newton قانون'"""), "English stage text changed"
     await before.close()
     await after.close()
 
@@ -304,9 +307,11 @@ async def check_arabic_lesson(browser, errors):
     # line with a Latin name keeps its word order and its stop at the left end; 'end' is still its right end.
     stage = await page.evaluate("""(() => {
       const g = mk('g', {}, document.getElementById('stage')), out = {};
-      for (const [k, s, anchor] of [['law', 'قانون Newton الأول', 'end'], ['stop', 'عندي 5 تفاحات.', 'start'], ['en', 'Chapter 3.', 'start']]) {
+      for (const [k, s, anchor] of [['law', 'قانون Newton الأول', 'end'], ['stop', 'عندي 5 تفاحات.', 'start'], ['en', 'Chapter 3.', 'start'],
+        ['name', 'Newton قال ذلك', 'start'], ['maths', 'F = ma', 'start']]) {
         const t = T(g, s, { x: 800, y: 400, size: 40, anchor }), b = t.getBBox(), at = j => t.getStartPositionOfChar(j).x;
-        out[k] = { left: b.x, right: b.x + b.width, first: at(0), last: at(s.length - 1), n: s.includes('N') ? at(s.indexOf('N')) : null };
+        const set = t.textContent;   // what T() put on the stage: s, or s behind a right-to-left mark
+        out[k] = { left: b.x, right: b.x + b.width, first: at(0), last: at(set.length - 1), n: set.includes('N') ? at(set.indexOf('N')) : null, set };
       }
       g.remove();
       return out;
@@ -314,9 +319,35 @@ async def check_arabic_lesson(browser, errors):
     assert stage["law"]["first"] > stage["law"]["n"] and abs(stage["law"]["right"]) < 1.5, f"Arabic stage text out of order: {stage['law']}"
     assert stage["stop"]["last"] < stage["stop"]["first"] and abs(stage["stop"]["left"]) < 1.5, f"Arabic stop misplaced: {stage['stop']}"
     assert stage["en"]["first"] < stage["en"]["last"] and abs(stage["en"]["left"]) < 1.5, f"English stage text changed: {stage['en']}"
-    assert await page.evaluate("isRTL('3 تفاحات') && !isRTL('Newton قانون') && !isRTL('2024')")
+    # In a right-to-left book an Arabic line that opens with a Latin name is still an Arabic line: the name stands at the
+    # right, where the line starts, and its left end stays where a 'start' anchor puts it. Maths alone is left as it is.
+    name = stage["name"]
+    assert name["set"] == "\u200fNewton قال ذلك" and name["n"] > name["last"] and abs(name["left"]) < 1.5, f"Latin-led Arabic line: {name}"
+    assert stage["maths"]["set"] == "F = ma" and stage["maths"]["first"] < stage["maths"]["last"], f"maths changed: {stage['maths']}"
+    assert await page.evaluate("isRTL('3 تفاحات') && isRTL('Newton قانون') && !isRTL('2024') && !isRTL('F = ma')")
+    assert await page.evaluate("rtlText('قانون Newton') === 'قانون Newton' && rtlText('F = ma') === 'F = ma'")
+    # The documentary kit's say(): the browser orders an Arabic line, so a Latin name of two words keeps its own order
+    # between the Arabic words, a Latin-led line still starts at the right, and each word waits for its turn.
+    film = TEMPLATES / "documentary/lib/film.js"
+    await page.add_script_tag(content=film.read_text(encoding="utf-8"))
+    said = await page.evaluate("""(() => {
+      const g = mk('g', {}, document.getElementById('stage')), out = {};
+      for (const [k, s] of [['mixed', 'قال Isaac Newton ذلك.'], ['led', 'Newton قال ذلك']]) {
+        const t = say(g, [s], 800, 300, 0, 1).querySelector('text'), set = t.textContent, at = c => set.includes(c) ? t.getStartPositionOfChar(set.indexOf(c)).x : null;
+        out[k] = { left: t.getBBox().x, q: at('ق'), i: at('I'), n: at('N'), dh: at('ذ'), words: t.querySelectorAll('tspan').length,
+          hidden: [...t.querySelectorAll('tspan')].every(e => e.getAttribute('fill-opacity') === '0') };
+      }
+      const en = say(g, ['One two'], 800, 500, 0, 1);
+      out.en = { texts: en.querySelectorAll('text').length, tspans: en.querySelectorAll('tspan').length, italic: en.querySelector('text').getAttribute('font-style') };
+      g.remove();
+      return out;
+    })()""")
+    m, led = said["mixed"], said["led"]
+    assert m["dh"] < m["i"] < m["n"] < m["q"] and m["words"] == 4 and m["hidden"] and abs(m["left"]) < 1.5, f"say(): Arabic line out of order: {m}"
+    assert led["n"] > led["q"] > led["dh"] and abs(led["left"]) < 1.5, f"say(): Latin-led Arabic line: {led}"
+    assert said["en"] == {"texts": 2, "tspans": 0, "italic": "italic"}, f"say(): English line changed: {said['en']}"
     # Answers typed on an Arabic keyboard: Arabic-Indic digits, ٫ and ٬
-    assert await page.evaluate("[rat('٣'), rat('٠٫٧٥'), rat('۱۲'), rat('١٬٠٠٠')].join('|') === '3,1|75,100|12,1|1000,1'")
+    assert await page.evaluate("[rat('٣'), rat('٠٫٧٥'), rat('۱۲'), rat('١٬٠٠٠'), rat('١،٥')].join('|') === '3,1|75,100|12,1|1000,1|15,10'")
     assert await page.evaluate("translate('theEnd') === 'النهاية'")
     assert await text("#coverK") == "الفصل 1"
     assert "ابدأ الدرس" in await text("#cover .go")

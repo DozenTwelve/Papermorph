@@ -5,8 +5,10 @@
 
 The spoken words a voice would return are written out by hand here, so the check needs no network and no audio.
 """
+import ast
 import importlib.util
 import sys
+import unicodedata
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -66,6 +68,29 @@ for bad in ("Say {{IT}} now.", "Say {{IT|[[w]]I T}} now."):   # a stray {{ would
         failures.append(f"respelling: {bad!r} should stop the voice script")
     except ValueError:
         pass
+
+# A clip that stops early: the voice's last word against the text's, whatever stands around either. A closing quote,
+# an ellipsis or the Arabic comma is no difference, vowel marks are none, and a number or Chinese gives no verdict.
+for text, spoken, want in [
+    ("and then it stopped.", "stopped", None), ("and then it stopped.", "it", "stopped"),
+    ("He said \u201cthe end.\u201d", "end.\u201d", None), ("He waited (and waited)\u2026", "waited)\u2026", None),
+    ("It ended in 1914.", "1914", None),
+    ("ثُمَّ ذَهَبَ إِلَى الْبَيْتِ.", "البيت", None), ("ثم ذهب إلى البيت،", "البيت،", None), ("ثم ذهب إلى البيت.", "ذهب", "البيت"),
+    ("这是团队。", "这是", None),
+]:
+    check(f"cut short: {text!r} ending {spoken!r}", tts.cut_short(text, spoken), want)
+
+# export.py's .srt lines (its two text helpers alone: the module itself needs a browser). A right-to-left mark opens an
+# Arabic line; in an Arabic film also one that a Latin name opens; an English line is never touched.
+source = (ROOT / ".claude/skills/papermorph/scripts/export.py").read_text(encoding="utf-8")
+helpers = [n for n in ast.parse(source).body if isinstance(n, ast.FunctionDef) and n.name in ("rtl_letter", "rtl_marked")]
+srt = {"unicodedata": unicodedata}
+exec(compile(ast.Module(body=helpers, type_ignores=[]), "export.py", "exec"), srt)
+check("srt: both helpers found", len(helpers), 2)
+check("srt: Arabic line", srt["rtl_marked"]("قال Newton."), "\u200fقال Newton.")
+check("srt: Latin-led line in an Arabic film", srt["rtl_marked"]("Newton قال ذلك\nHello.", True), "\u200fNewton قال ذلك\nHello.")
+check("srt: Latin-led line in an English film", srt["rtl_marked"]("Newton قال ذلك"), "Newton قال ذلك")
+check("srt: English", srt["rtl_marked"]("Chapter 3: 1914."), "Chapter 3: 1914.")
 
 if failures:
     print("\n".join(failures))

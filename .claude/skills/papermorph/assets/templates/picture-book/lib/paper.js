@@ -292,10 +292,11 @@ function trunkWipe(p, t0, dur, mode = 'in') {
 // The title card at the end: a paper label that drops in on its pin, as wide as its words. The words default to the
 // player's "The End" in the page's language (<html lang>); give your own in the book's language. { x, y } is the card's
 // centre (default the frame's centre), size the letters' height in px (a title too long for the frame gets smaller
-// letters). Arabic words are set upright in a Naskh book face (Arabic has no italic). Put it where it covers nothing the
-// last shot needs (a score, a face).
+// letters). Arabic words are set upright in a Naskh book face, and Chinese, Japanese and Korean words upright too (those
+// scripts have no italic). Put it where it covers nothing the last shot needs (a score, a face).
 function endCard(p, t0, words = translate('theEnd'), { x = 800, y = 450, size = 78 } = {}) {
-  const rtl = isRTL(words), face = rtl ? '"Noto Naskh Arabic", "Traditional Arabic", Georgia, serif' : 'Georgia, serif', slant = rtl ? '' : 'italic';
+  const rtl = isRTL(words), face = rtl ? '"Noto Naskh Arabic", "Traditional Arabic", Georgia, serif' : 'Georgia, serif';
+  const slant = rtl || /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u.test(words) ? '' : 'italic';
   const c = document.createElement('canvas').getContext('2d'), wide = s => (c.font = `${slant} ${s}px ${face}`, c.measureText(words).width + 2.2 * s);
   if (wide(size) > 1500) size = Math.floor(size * 1500 / wide(size));
   const w = Math.max(480, Math.ceil(wide(size))), h = Math.round(size * 3.08), L = Math.round(x - w / 2), T = Math.round(y - h / 2);
