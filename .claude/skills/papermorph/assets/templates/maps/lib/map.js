@@ -35,9 +35,9 @@
                                         landing dot), t1 (faded out over .4 s from then: a trade that stops) };
                                         what is not the subject goes in ink: { colour: MAP_COL.ink, dash: [10, 8] }
      cities: [[name, t0, side, t1, label]]   an ink dot and a label (CITIES; side 'l' or 'r', default 'r'), faded out at
-                                        t1 (null: it stays); label is what the film shows, when not the name in CITIES
-                                        (a film in another language: ['Cairo', 2, 'r', null, 'القاهرة'])
-                                        when given (a camera pulling out: towns that would pile up); labels keep inside
+                                        t1 when given (a camera pulling out: towns that would pile up; null or left out:
+                                        it stays); label is what the film shows when it is not the name in CITIES (a film
+                                        in another language: ['Cairo', 2, 'r', null, 'القاهرة']); labels keep inside
                                         the safe box, hide when their city is off it, take the other side when theirs
                                         covers an earlier label, and hide while both would (said in the console)
      labelSize: 36 · safe: [x0, y0, x1, y1] (the shorts' 50,150,810,1290 upright; 60,60,SW-60,SH-230 landscape)
@@ -209,7 +209,7 @@ const { paperMap, mapBand, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCi
         const x = [at(l.side), at(l.side === 'l' ? 'r' : 'l')].find(x => !hit(x));
         if (x === undefined) {
           const b = hit(at(l.side));
-          if (!said.has(l.name + b.name)) { said.add(l.name + b.name); console.warn(`paperMap: label ${l.name} hidden from ${t.toFixed(1)} s, on top of ${b.name}: give one an end (cities: [name, t0, side, t1, label])`); }
+          if (!said.has(l.name + b.name)) { said.add(l.name + b.name); console.warn(`paperMap: label ${l.name} hidden from ${t.toFixed(1)} s, on top of ${b.name}: give one an end (t1, the fourth item of its cities entry)`); }
           return put(l.e, OFF);
         }
         boxes.push({ name: l.name, x0: x, x1: x + l.w, y0: y - labelSize * .8, y1: y + labelSize * .25 });
@@ -272,7 +272,7 @@ const { paperMap, mapBand, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCi
         areac: AREAS.map(A => colAt(A.fill, t)),
         dot: dots.map(d => pop(d[2])),
         dotc: dots.map(d => typeof d[4] === 'function' ? d[4](t) : d[4]),
-        lab: labels.map(l => ramp(t, l.t0, l.t0 + .3) * (l.t1 === undefined ? 1 : 1 - ramp(t, l.t1, l.t1 + .4))),
+        lab: labels.map(l => ramp(t, l.t0, l.t0 + .3) * (l.t1 == null ? 1 : 1 - ramp(t, l.t1, l.t1 + .4))),
       };
       vals.litc = keys.map((c, i) => vals.lit[i] ? fillOf(c, t) : 0);   // the fills in the signature: a colour turning redraws
       vals.regc = regionSets.map((R, i) => vals.reg[i] ? fillOf(R.n, t) : 0);

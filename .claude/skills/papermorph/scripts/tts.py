@@ -174,14 +174,21 @@ def bare(text):
 
 def cut_short(clean, last_spoken):
     """The word the text ends with, when the voice's last word is another one (a clip that stops early), else None.
-    Words are compared without vowel marks and without the punctuation around them (a closing quote, an ellipsis,
-    the Arabic comma). No verdict where there is no last word to compare: Chinese and Japanese have no spaces, and a
-    number may come back spelled out."""
-    if re.search(f"[{CJK}]", clean):
+    Words are compared without vowel marks, case or the punctuation around them (a closing quote, an ellipsis, the
+    Arabic comma), and a word the voice says in parts ("twenty-one" ending "one") counts as said. A voice that stops
+    on a number while the text goes on in words is cut short. No verdict for a text that ends with a number (the
+    voice may say it spelled out) or for Chinese and Japanese, which have no spaces to find a last word by."""
+    if re.search(f"[{CJK}]", clean) or re.search(r"\d\W*$", clean):
         return None
     word = r"[^\W\d_][\w'-]*"
-    ends, spoken = re.findall(word, bare(clean[-40:])), re.findall(word, bare(last_spoken))
-    return ends[-1] if ends and spoken and spoken[-1] != ends[-1] else None
+    ends = re.findall(word, bare(clean[-40:]))
+    if not ends:
+        return None
+    spoken = re.findall(word, bare(last_spoken))
+    if not spoken:
+        return ends[-1] if re.search(r"\d", last_spoken) else None
+    end, said = ends[-1].lower(), spoken[-1].lower()
+    return None if said == end or end.endswith("-" + said) else ends[-1]
 
 
 def time_at(clean, words, estimate=False):

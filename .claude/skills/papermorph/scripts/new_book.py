@@ -65,7 +65,8 @@ def set_voice(narration: Path, style: Path, lang: str, fresh_style: bool):
 
 
 def style_language(style: Path, lang: str, fresh_style: bool):
-    """The book's language and its voice (when VOICES has one) in a style.json just copied."""
+    """The book's language and its voice (when VOICES has one and the kit's style.json names one) in a style.json
+    just copied; a style.json the book already had is left as it is."""
     voice = VOICES.get(base(lang))
     if fresh_style:
         s = re.sub(r'("language":\s*)"en"', rf'\1"{lang}"', style.read_text(encoding='utf-8'), count=1)
@@ -196,10 +197,12 @@ def start_scroll(a, root, site, work):
         copy(SC / f, site / f)
     copy(DK / 'lib' / 'fonts.css', site / 'lib' / 'fonts.css')
     copy(DK / 'lib' / 'fonts', site / 'lib' / 'fonts')
-    if not (work / 'style.json').exists():
+    fresh_style = not (work / 'style.json').exists()
+    if fresh_style:
         copy(SC / 'style.json', work / 'style.json')
     copy(SC / 'e2e.py', root / 'tools' / a.book / 'e2e_scroll.py')
     if a.lang != 'en':
+        style_language(work / 'style.json', a.lang, fresh_style)   # its language only: a scroll page has no voice
         f = site / 'index.html'
         f.write_text(with_lang(f.read_text(encoding='utf-8'), a.lang), encoding='utf-8')
     q = lambda p: shlex.quote(str(p.relative_to(root) if p.is_relative_to(root) else p))

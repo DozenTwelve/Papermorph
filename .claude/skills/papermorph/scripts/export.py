@@ -80,11 +80,16 @@ def rtl_letter(c):
 def rtl_marked(text, rtl_film=False):
     """An .srt line whose first letter is Arabic or Hebrew, begun with a right-to-left mark (U+200F): many players lay
     out a subtitle left to right, and a line that starts or ends with a number, a Latin name or a stop then reads out
-    of order. In a right-to-left film (rtl_film: most of its lines are) a line with any such letter is marked, so
-    'Newton قال ذلك' reads as the Arabic line it is. Other lines are left as they are."""
+    of order. In a right-to-left film (rtl_film: most of its lines are) a line that a Latin word opens is marked too
+    when its Arabic words are at least as many as its Latin ones, as the engine's isRTL decides: 'Newton قال ذلك' is
+    an Arabic line, 'The word is كتاب.' is not. Other lines are left as they are."""
     def mark(line):
         first = next((c for c in line if c.isalpha()), '')
-        return '\u200f' + line if first and (rtl_letter(first) or rtl_film and any(map(rtl_letter, line))) else line
+        if not first:
+            return line
+        words = [w for w in line.split() if any(c.isalpha() for c in w)]
+        rtl = sum(any(map(rtl_letter, w)) for w in words)
+        return '\u200f' + line if rtl_letter(first) or rtl_film and rtl and 2 * rtl >= len(words) else line
     return '\n'.join(mark(line) for line in text.split('\n'))
 
 # H.264 encoders, first that works wins; a listed hardware encoder can still fail (no such GPU), so each is tried

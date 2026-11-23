@@ -77,6 +77,8 @@ for text, spoken, want in [
     ("It ended in 1914.", "1914", None),
     ("ثُمَّ ذَهَبَ إِلَى الْبَيْتِ.", "البيت", None), ("ثم ذهب إلى البيت،", "البيت،", None), ("ثم ذهب إلى البيت.", "ذهب", "البيت"),
     ("这是团队。", "这是", None),
+    ("The war began in 1914, and lasted four years.", "1914", "years"), ("In the year 1914.", "fourteen", None),
+    ("The final count is twenty-one.", "one", None), ("They joined NATO.", "Nato", None),
 ]:
     check(f"cut short: {text!r} ending {spoken!r}", tts.cut_short(text, spoken), want)
 
@@ -91,6 +93,7 @@ check("srt: Arabic line", srt["rtl_marked"]("قال Newton."), "\u200fقال New
 check("srt: Latin-led line in an Arabic film", srt["rtl_marked"]("Newton قال ذلك\nHello.", True), "\u200fNewton قال ذلك\nHello.")
 check("srt: Latin-led line in an English film", srt["rtl_marked"]("Newton قال ذلك"), "Newton قال ذلك")
 check("srt: English", srt["rtl_marked"]("Chapter 3: 1914."), "Chapter 3: 1914.")
+check("srt: an English line quoting one Arabic word, in an Arabic film", srt["rtl_marked"]("The word is كتاب.", True), "The word is كتاب.")
 
 if failures:
     print("\n".join(failures))

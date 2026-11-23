@@ -300,7 +300,7 @@ function endCard(p, t0, words = translate('theEnd'), { x = 800, y = 450, size = 
   const c = document.createElement('canvas').getContext('2d'), wide = s => (c.font = `${slant} ${s}px ${face}`, c.measureText(words).width + 2.2 * s);
   if (wide(size) > 1500) size = Math.floor(size * 1500 / wide(size));
   const w = Math.max(480, Math.ceil(wide(size))), h = Math.round(size * 3.08), L = Math.round(x - w / 2), T = Math.round(y - h / 2);
-  const text = String(words).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const text = String(rtlText(words)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const g = prop(p, `<g filter="url(#paper)"><rect x="${L}" y="${T}" width="${w}" height="${h}" rx="14" fill="#f3e9d2"/><rect x="${L + 20}" y="${T + 20}" width="${w - 40}" height="${h - 40}" rx="8" fill="none" stroke="#c8322f" stroke-width="5"/></g>
     <text x="${x}" y="${Math.round(y + size * .36)}" text-anchor="middle" font-family='${face}' font-size="${size}"${slant ? ` font-style="${slant}"` : ''} fill="#5a2a1e">${text}</text>${tack(x, T + 12)}`);
   return q => { const u = (q - t0) * FPS; vis(g, u >= 0); const d = [-60, -20, 8, -3, 0][Math.min(4, Math.max(0, Math.floor(u / 2)))]; tf(g, `translate(0,${d})`); };

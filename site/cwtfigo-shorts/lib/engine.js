@@ -384,17 +384,27 @@ function T(parent, str, { x = 0, y = 0, size = 30, fill = COL.chalk, font = UI, 
   t.style.whiteSpace = 'pre';
   return put(t, { x, y, o });
 }
-// A text's reading order: right to left when its first letter is Arabic, Hebrew or another right-to-left script (a
-// digit or a sign decides nothing), and in a right-to-left book (<html dir="rtl">) also when any of its letters is, so
-// 'Newton قال ذلك' is an Arabic line there while 'F = ma' stays as it is. The stage orders each text by its own first
-// letter (engine.css, unicode-bidi: plaintext); rtlText(str) is str with a right-to-left mark in front when it reads
-// right to left but opens with a Latin letter, which is how T() and stream() give the stage such a line.
+// A text's reading order: right to left when its first letter is Arabic, Hebrew or another right-to-left script.
+// Digits and signs decide nothing, Arabic-Indic digits included. In a right-to-left book (<html dir="rtl">) a line that
+// a Latin word opens is right to left too when its right-to-left words are at least as many as its Latin ones:
+// 'Newton قال ذلك' and 'DNA هو الحمض النووي' are Arabic lines there, while 'The word is كتاب.', 'x = ٣' and 'F = ma'
+// stay left to right. The stage orders each text by its own first letter (engine.css, unicode-bidi: plaintext), so
+// rtlText(str) is str behind a right-to-left mark when it reads right to left but opens with a Latin letter: that is
+// the string T() and stream() set.
 const RTL_SCRIPT = /[\p{Script=Arabic}\p{Script=Hebrew}\p{Script=Syriac}\p{Script=Thaana}\p{Script=Nko}]/u;
+const RTL_LETTER = /(?=\p{L})[\p{Script=Arabic}\p{Script=Hebrew}\p{Script=Syriac}\p{Script=Thaana}\p{Script=Nko}]/u;
 function isRTL(str) {
   const s = String(str ?? ''), c = s.match(/\p{L}/u);
-  return !!c && (RTL_SCRIPT.test(c[0]) || document.documentElement.dir === 'rtl' && RTL_SCRIPT.test(s));
+  if (!c) return false;
+  if (RTL_LETTER.test(c[0])) return true;
+  if (document.documentElement.dir !== 'rtl') return false;
+  const words = s.split(/\s+/).filter(w => /\p{L}/u.test(w)), rtl = words.filter(w => RTL_LETTER.test(w)).length;
+  return rtl > 0 && 2 * rtl >= words.length;
 }
-function rtlText(str) { return isRTL(str) && !RTL_SCRIPT.test(String(str).match(/\p{L}/u)[0]) ? '\u200F' + str : str; }
+function rtlText(str) {
+  const s = String(str ?? '');
+  return s[0] !== '\u200F' && isRTL(s) && !RTL_LETTER.test(s.match(/\p{L}/u)[0]) ? '\u200F' + s : str;
+}
 // A citation drawn in the picture that opens its source (REFS from ../refs.js, built by scripts/refs.py) in a new tab.
 // cite(p, key, opts) takes T's options; str overrides the label (default REFS[key].cite). Returns the <a>; animate it like T.
 const CITED = new Set();
@@ -1432,10 +1442,11 @@ const grid = (items, cols, { multi = true, text = false } = {}) => (body, api) =
 // Accepts −, – or - as the sign, a currency sign before or after ($5, -$5, 5 €), thousands grouped by spaces (any kind)
 // or, where the decimal sign is a point, by commas, and a decimal comma when DECIMAL_SIGN is ','. Never evaluates the text as code.
 // Arabic-Indic digits (٣, and the Persian ۳) count as 0–9, with the Arabic decimal sign ٫ and thousands sign ٬, so an
-// answer typed on an Arabic keyboard is read as the same number.
+// answer typed on an Arabic keyboard is read as the same number; the Arabic comma ، (that keyboard's comma key) is read
+// as , is: a thousands group where the decimal sign is a point, the decimal sign where it is a comma.
 function rat(str) {
   let t = String(str).trim().replace(/[٠-٩۰-۹]/g, d => String(d.charCodeAt(0) & 15))
-    .replace(/[٫،]/g, '.').replace(/٬/g, DECIMAL_SIGN === ',' ? ' ' : ',').replace(/^[−–]/, '-').replace(/\s+/g, ' ').replace(/^(-?) ?\p{Sc} ?|(?<=\d) ?\p{Sc}$/gu, '$1');
+    .replace(/٫/g, '.').replace(/،/g, ',').replace(/٬/g, DECIMAL_SIGN === ',' ? ' ' : ',').replace(/^[−–]/, '-').replace(/\s+/g, ' ').replace(/^(-?) ?\p{Sc} ?|(?<=\d) ?\p{Sc}$/gu, '$1');
   const group = DECIMAL_SIGN === ',' ? ' ' : '[, ]';   // one kind of separator throughout: 1,000 000 is not a number
   t = t.replace(new RegExp(`^(-?\\d{1,3})(${group})(\\d{3}(?:\\2\\d{3})*)(?=$|[.,])`), (_, head, sep, rest) => head + rest.split(sep).join(''));
   if (DECIMAL_SIGN === ',') t = t.replace(/^(-?\d+),(\d+)$/, '$1.$2');   // 0,75 where the decimal sign is a comma
