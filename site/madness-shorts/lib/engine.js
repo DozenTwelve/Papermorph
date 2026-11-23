@@ -702,7 +702,10 @@ function pulse(e, t0, k = 1.7) { tw(e, { s: k }, t0, .22, out); tw(e, { s: 1 }, 
 // an emoji is never cut in half.
 const GRAPHEMES = typeof Intl.Segmenter === 'function' ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null;
 const graphemes = str => GRAPHEMES ? Array.from(GRAPHEMES.segment(str), s => s.segment) : Array.from(str);
-function stream(t, str, t0, dur) { const g = graphemes(String(rtlText(str))); prog(q => { t.textContent = g.slice(0, Math.round(q * g.length)).join(''); }, t0, dur, lin); }
+function stream(t, str, t0, dur) {
+  const g = graphemes(String(rtlText(str)));
+  if (g[0] === '\u200F' && g.length > 1) g.splice(0, 2, g[0] + g[1]);   // the mark is invisible: it rides with the first letter
+  prog(q => { t.textContent = g.slice(0, Math.round(q * g.length)).join(''); }, t0, dur, lin); }
 function mix(a, b, q) {
   const h = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16));
   const A = h(a), B = h(b);
@@ -1445,11 +1448,12 @@ const grid = (items, cols, { multi = true, text = false } = {}) => (body, api) =
 // or, where the decimal sign is a point, by commas, and a decimal comma when DECIMAL_SIGN is ','. Never evaluates the text as code.
 // Arabic-Indic digits (٣, and the Persian ۳) count as 0–9, with the Arabic decimal sign ٫ and thousands sign ٬, so an
 // answer typed on an Arabic keyboard is read as the same number. That keyboard's comma key types ، (it has no ٫ key):
-// between groups of three digits it groups thousands (١،٠٠٠ is 1000), anywhere else it is the decimal sign (١،٥ is 1.5).
+// between groups of three digits it groups thousands (١،٠٠٠, $١،٠٠٠ and ١،٠٠٠٫٥ too), anywhere else it is the decimal
+// sign (١،٥ is 1.5).
 function rat(str) {
   let t = String(str).trim().replace(/[٠-٩۰-۹]/g, d => String(d.charCodeAt(0) & 15));
-  t = /^[−–-]?\d{1,3}(?:،\d{3})+$/.test(t) ? t.replace(/،/g, '') : t.replace(/،/g, '.');
   t = t.replace(/٫/g, '.').replace(/٬/g, DECIMAL_SIGN === ',' ? ' ' : ',').replace(/^[−–]/, '-').replace(/\s+/g, ' ').replace(/^(-?) ?\p{Sc} ?|(?<=\d) ?\p{Sc}$/gu, '$1');
+  t = /^-?\d{1,3}(?:،\d{3})+(?:\.\d+)?$/.test(t) ? t.replace(/،/g, '') : t.replace(/،/g, '.');
   const group = DECIMAL_SIGN === ',' ? ' ' : '[, ]';   // one kind of separator throughout: 1,000 000 is not a number
   t = t.replace(new RegExp(`^(-?\\d{1,3})(${group})(\\d{3}(?:\\2\\d{3})*)(?=$|[.,])`), (_, head, sep, rest) => head + rest.split(sep).join(''));
   if (DECIMAL_SIGN === ',') t = t.replace(/^(-?\d+),(\d+)$/, '$1.$2');   // 0,75 where the decimal sign is a comma

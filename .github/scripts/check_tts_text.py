@@ -79,6 +79,10 @@ for text, spoken, want in [
     ("这是团队。", "这是", None),
     ("The war began in 1914, and lasted four years.", "1914", "years"),
     ("The war ended in 1914.", "1914", None), ("The war ended in 1914.", "war", "1914"), ("He said 'yes'", "yes", None),
+    # Edge's own word lists, measured: one entry for "from 1914 to 1918", a number as written
+    ("It lasted from 1914 to 1918.", "from 1914 to 1918", None), ("It lasted from 1914 to 1918.", "1914", "1918"),
+    ("Rates rose to 50%.", "50%", None), ("It costs $5.50.", "5", "5.50"), ("انتهت الحرب عام ١٩١٤.", "١٩١٤", None),
+    ("الثمن ١٬٠٠٠.", "الثمن", "١٬٠٠٠"),
     ("The final count is twenty-one.", "one", None), ("They joined NATO.", "Nato", None),
 ]:
     check(f"cut short: {text!r} ending {spoken!r}", tts.cut_short(text, spoken), want)
@@ -95,6 +99,8 @@ check("srt: Latin-led line in an Arabic film", srt["rtl_marked"]("Newton قال 
 check("srt: Latin-led line in an English film", srt["rtl_marked"]("Newton قال ذلك"), "Newton قال ذلك")
 check("srt: English", srt["rtl_marked"]("Chapter 3: 1914."), "Chapter 3: 1914.")
 check("srt: an English line quoting one Arabic word, in an Arabic film", srt["rtl_marked"]("The word is كتاب.", True), "The word is كتاب.")
+check("Arabic separators", tts.misread_numbers("الثمن ١٬٠٠٠ و١٫٥ و١،٠٠٠ و١،٥ و١٠٠٠ و1.5"),
+      [("١٬٠٠٠", "١٠٠٠"), ("١٫٥", "١.٥"), ("١،٠٠٠", "١٠٠٠"), ("١،٥", "١.٥")])
 check("srt: a line the author marked", srt["rtl_marked"]("\u200fقال ذلك\n\u200eNewton قال ذلك", True), "\u200fقال ذلك\n\u200eNewton قال ذلك")
 
 if failures:

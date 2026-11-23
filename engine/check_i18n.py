@@ -330,6 +330,12 @@ async def check_arabic_lesson(browser, errors):
     # already marked is not marked twice
     assert await page.evaluate("!isRTL('The word for cat is قط in Arabic.') && !isRTL('x = ٣') && isRTL('DNA هو الحمض النووي')"), "Latin-led line misread"
     assert await page.evaluate("rtlText(rtlText('Newton قال ذلك')) === '\\u200fNewton قال ذلك'"), "marked twice"
+    # stream() shows a letter at its first step, the mark riding with it (on a page of its own: evalTo runs its tweens)
+    typing = await open_lesson(browser, "ar", errors)
+    first = await typing.evaluate("""(() => { const t = T(document.getElementById('stage'), ''); stream(t, 'Newton قال ذلك', 0, 1);
+      evalTo(1 / 14); return t.textContent; })()""")
+    await typing.close()
+    assert first == "‏N", f"stream: the first step shows {first!r}"
     # The author's own mark decides where the count misses
     assert await page.evaluate("""!isRTL('Sir Isaac Newton عالم إنجليزي.') && isRTL('\\u200fSir Isaac Newton عالم إنجليزي.')
       && !isRTL('\\u200eNewton قال ذلك') && rtlText('\\u200eNewton قال ذلك') === '\\u200eNewton قال ذلك'"""), "a direction mark ignored"
@@ -354,7 +360,7 @@ async def check_arabic_lesson(browser, errors):
     assert led["n"] > led["q"] > led["dh"] and abs(led["left"]) < 1.5, f"say(): Latin-led Arabic line: {led}"
     assert said["en"] == {"texts": 2, "tspans": 0, "italic": "italic"}, f"say(): English line changed: {said['en']}"
     # Answers typed on an Arabic keyboard: Arabic-Indic digits, ٫ and ٬
-    assert await page.evaluate("[rat('٣'), rat('٠٫٧٥'), rat('۱۲'), rat('١٬٠٠٠'), rat('١،٠٠٠'), rat('١،٠٠٠،٠٠٠'), rat('١،٥'), rat('٣،٧٥')].join('|') === '3,1|75,100|12,1|1000,1|1000,1|1000000,1|15,10|375,100'")
+    assert await page.evaluate("[rat('٣'), rat('٠٫٧٥'), rat('۱۲'), rat('١٬٠٠٠'), rat('١،٠٠٠'), rat('١،٠٠٠،٠٠٠'), rat('١،٥'), rat('٣،٧٥'), rat('$١،٠٠٠'), rat('1،000$'), rat('١،٠٠٠٫٥'), rat('-1،000.5')].join('|') === '3,1|75,100|12,1|1000,1|1000,1|1000000,1|15,10|375,100|1000,1|1000,1|10005,10|-10005,10'"), "rat('١،٠٠٠٫٥') and kin"
     assert await page.evaluate("translate('theEnd') === 'النهاية'")
     assert await text("#coverK") == "الفصل 1"
     assert "ابدأ الدرس" in await text("#cover .go")

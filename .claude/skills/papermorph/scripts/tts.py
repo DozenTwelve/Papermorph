@@ -176,23 +176,37 @@ def cut_short(clean, last_spoken):
     """The word the text ends with, when the voice's last word is another one (a clip that stops early), else None.
     Words are compared without vowel marks, case or the punctuation around them (quotes, an ellipsis, the Arabic
     comma), and a word the voice says in parts ("twenty-one" ending "one") counts as said. A text that ends with a
-    number should end the clip on that number (Edge names a number in its word list as it is written, 1914); one
-    that ends in a word should not end it on a number. No verdict for Chinese and Japanese, which have no spaces to
-    find a last word by."""
+    number should end the clip on that number: Edge names a number in its word list as it is written (1914, 50%,
+    ١٩١٤), and sometimes as one entry with the numbers before it ("from 1914 to 1918"), so the digits the voice last
+    said must end with the number's. One that ends in a word should not end the clip on a number. No verdict for
+    Chinese and Japanese, which have no spaces to find a last word by."""
     if re.search(f"[{CJK}]", clean):
         return None
-    number = re.search(r"(\d[\d.,]*\d|\d)\W*$", clean)
+    number = re.search(r"(\d[\d.,٫٬،]*\d|\d)\W*$", clean)
     if number:
-        return None if re.search(r"\d", last_spoken) else number.group(1)
+        said, want = re.sub(r"\D", "", last_spoken), re.sub(r"\D", "", number.group(1))
+        return None if said.endswith(want) else number.group(1)
     word = r"[^\W\d_][\w'-]*"
     ends = [w.strip("'-") for w in re.findall(word, bare(clean[-40:]))]
-    if not ends or not ends[-1]:
+    if not ends:
         return None
     spoken = [w.strip("'-") for w in re.findall(word, bare(last_spoken))]
     if not spoken:
         return ends[-1] if re.search(r"\d", last_spoken) else None
     end, said = ends[-1].lower(), spoken[-1].lower()
     return None if said == end or end.endswith("-" + said) else ends[-1]
+
+
+def misread_numbers(clean):
+    """[(number, how to write it)] for each number written with an Arabic separator, which Edge's Arabic voices misread:
+    measured 2026-11-23, ar-EG-SalmaNeural says nothing for ١٬٠٠٠ or ١٫٥ (the clip is as long as without them),
+    ar-SA-HamedNeural nothing for ١٬٠٠٠, and both read ١،٠٠٠ as two numbers. ١٠٠٠ and ١.٥ are read right."""
+    out = []
+    for n in re.findall(r"\d+(?:[٫٬،]\d+)+", clean):
+        fixed = n.replace("٬", "").replace("٫", ".")
+        fixed = fixed.replace("،", "") if re.fullmatch(r"\d{1,3}(?:،\d{3})+(?:\.\d+)?", fixed) else fixed.replace("،", ".")
+        out.append((n, fixed))
+    return out
 
 
 def time_at(clean, words, estimate=False):
@@ -364,6 +378,9 @@ async def main(src, out_dir):
         mp3 = out_dir / f"{beat}.mp3"
         old = cache.get(beat)
         clean, marks, shown = split_marks(raw)
+        for n, fixed in misread_numbers(clean) if engine == "edge" else []:
+            print(f"{beat}: WARNING Edge's Arabic voices skip or split {n!r} (written with ٬, ٫ or ،): write {fixed!r}, "
+                  f"or {{{{{n}|{fixed}}}}} to keep {n!r} in the captions, and synthesize it again")
         tag = "" if engine == "edge" else f"{engine}|"   # Edge keys stay as they were, so its audio is kept
         key = hashlib.sha1(f"{tag}{voice}|{rate}|{'' if pitch == '+0Hz' else pitch + '|'}{clean}".encode()).hexdigest()
         # Existing caches included [[marks]] in the key; reuse an unchanged old beat once,
