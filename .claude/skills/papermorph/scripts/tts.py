@@ -203,11 +203,13 @@ def misread_numbers(clean):
     misread:
     measured 2026-11-23, ar-EG-SalmaNeural says nothing for ١٬٠٠٠ or ١٫٥ (the clip is as long as without them),
     ar-SA-HamedNeural nothing for ١٬٠٠٠, and both read ١،٠٠٠ as two numbers. ١٠٠٠ and ١.٥ are read right. The way to
-    write it is None when the separators do not make one number (١،٠٠٠،٥, ١٬٠٠٠٬٥)."""
+    write it is None when the separators do not make one number (١،٠٠٠،٥, ١٬٠٠٠٬٥, ١٬٠٠٠،٠٠٠)."""
     out = []
     for n in re.findall(r"\d+(?:[٫٬،]\d+)+", clean):
         if re.fullmatch(r"\d{1,3}([٬،])\d{3}(?:\1\d{3})*(?:٫\d+)?", n):   # thousands, one sign throughout, then a decimal part
             fixed = re.sub("[٬،]", "", n).replace("٫", ".")
+        elif re.fullmatch(r"\d{1,3}(?:٬\d{3})+،(?!\d{3}$)\d+", n):   # ٬ groups, then ، before the decimal part
+            fixed = n.replace("٬", "").replace("،", ".")
         elif re.fullmatch(r"\d+[٫،]\d+", n):   # a decimal part alone, or two numbers of a list (the warning says "if")
             fixed = re.sub("[٫،]", ".", n)
         else:
@@ -387,7 +389,7 @@ async def main(src, out_dir):
         clean, marks, shown = split_marks(raw)
         for n, fixed in misread_numbers(clean) if engine == "edge" and voice.lower().startswith("ar-") else []:
             how = (f"write {fixed!r}, or {{{{{n}|{fixed}}}}} to keep {n!r} in the captions" if fixed else
-                   "write it without them (١٠٠٠, ١.٥)")
+                   "write it with no thousands sign and a point before its decimal part (١٠٠٠, ١٠٠٠.٥)")
             print(f"{beat}: WARNING Edge's Arabic voices skip {n!r} or read it as separate numbers (it is written with ٬, ٫ "
                   f"or ،): if it is one number, {how}, and synthesize it again")
         tag = "" if engine == "edge" else f"{engine}|"   # Edge keys stay as they were, so its audio is kept

@@ -101,8 +101,8 @@ check("srt: English", srt["rtl_marked"]("Chapter 3: 1914."), "Chapter 3: 1914.")
 check("srt: an English line quoting one Arabic word, in an Arabic film", srt["rtl_marked"]("The word is كتاب.", True), "The word is كتاب.")
 check("Arabic separators", tts.misread_numbers("الثمن ١٬٠٠٠ و١٫٥ و١،٠٠٠ و١،٥ و١٠٠٠ و1.5"),
       [("١٬٠٠٠", "١٠٠٠"), ("١٫٥", "١.٥"), ("١،٠٠٠", "١٠٠٠"), ("١،٥", "١.٥")])
-check("Arabic separators that make no one number", tts.misread_numbers("١،٠٠٠،٥ و١٬٠٠٠٬٥ و١٬٠٠٠٫٥ و١٬٠٠٠،٠٠٠"),
-      [("١،٠٠٠،٥", None), ("١٬٠٠٠٬٥", None), ("١٬٠٠٠٫٥", "١٠٠٠.٥"), ("١٬٠٠٠،٠٠٠", None)])
+check("Arabic separators that make no one number", tts.misread_numbers("١،٠٠٠،٥ و١٬٠٠٠٬٥ و١٬٠٠٠٫٥ و١٬٠٠٠،٠٠٠ و١٬٠٠٠،٥"),
+      [("١،٠٠٠،٥", None), ("١٬٠٠٠٬٥", None), ("١٬٠٠٠٫٥", "١٠٠٠.٥"), ("١٬٠٠٠،٠٠٠", None), ("١٬٠٠٠،٥", "١٠٠٠.٥")])
 check("srt: a line the author marked", srt["rtl_marked"]("\u200fقال ذلك\n\u200eNewton قال ذلك", True), "\u200fقال ذلك\n\u200eNewton قال ذلك")
 
 if failures:
