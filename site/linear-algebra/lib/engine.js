@@ -410,8 +410,9 @@ function isRTL(str) {
 // 0-9 or a Latin or Greek letter in it. Left as they are: a run joined only by - or / (a range of years, a date); a sum
 // in Arabic-Indic digits alone ('٥ + ٢ = ٧' reads from the right with its sentence); one that touches other Latin text
 // or a number (a web address, 'obj.x = 5'), or a one-letter Arabic name across a sign ('س + 3 = 7');
-// one that follows Latin words ('The sum: 5 + 2 = 7', already left to right); and a line its author marked right to
-// left that has no Arabic word in it. A bracket whose partner is outside the expression stays outside it.
+// and one that follows Latin words ('The sum: 5 + 2 = 7', already left to right). A line its author marked right to
+// left is isolated like any other ('\u200F5 + x = 7' would read 'x = 7 + 5'). A bracket whose partner is outside the
+// expression stays outside it.
 const RLM = String.fromCharCode(0x200F), LRM = String.fromCharCode(0x200E), LRI = String.fromCharCode(0x2066), PDI = String.fromCharCode(0x2069);
 const EXPRESSION = (() => {
   const name = String.raw`[\p{Script=Latin}\p{Script=Greek}][\p{Script=Latin}\p{Script=Greek}\p{Nd}_]*`;
@@ -443,7 +444,6 @@ function heldAfter(text) {
 }
 function ltrMaths(str) {
   const s = String(str ?? '');
-  if (s[0] === RLM && !RTL_LETTER.test(s)) return s;   // the author's mark on a line with no Arabic word: it reads from the right, as asked
   let out = '', end = 0, ltr = false;   // ltr: the nearest letter before, outside an isolate, is a left-to-right one
   const letter = text => { const l = text.match(/\p{L}/gu); if (l) ltr = !RTL_LETTER.test(l.at(-1)); };
   for (const m of s.matchAll(EXPRESSION)) {
@@ -451,7 +451,7 @@ function ltrMaths(str) {
     letter(s.slice(end, i));
     const before = s.slice(0, i), after = s.slice(i + e.length), p = before.slice(-1), n = after[0] ?? '';
     const keep = !EXPRESSION_SIGN.test(e) || !EXPRESSION_LTR.test(e) || ltr
-      || (p && p !== RLM && p !== LRM && !/[\s(\[«"'“‘،:؛]/.test(p) && !/(?:^|\s)و$/.test(before))   // 'و5 + 2 = 7': and, joined
+      || (p && p !== RLM && p !== LRM && !/[\s(\[«"'“‘،:؛]/.test(p) && !/(?:^|\s)[وفبلك]$/.test(before))   // 'و5 + 2 = 7', 'ف5': a one-letter prefix, joined
       || (/[،:؛]/.test(p) && LTR_WORD.test(before.slice(-2, -1)))                                       // a time, '10:5 + 3'
       || (n && !/[\s)\]».,،؛؟?!:"'”’]/.test(n)) || (/[.,،؛:]/.test(n) && LTR_WORD.test(after[1] ?? ''))
       || heldBefore(before) || heldAfter(after);

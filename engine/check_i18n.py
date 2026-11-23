@@ -28,7 +28,9 @@ TIMING = {"dur": 30, "marks": {"sub": 1, "note": 2, "w1": 3, "w2": 4}, "cues": [
 TIMINGS = "const TIMINGS = " + json.dumps({beat: TIMING for beat in ("intro", "idea", "q1", "wrap", "final1", "finish")})
 # Page variants: (html lang, engine and book template from BASE_REF instead of the working tree).
 VARIANTS = {"base": ("en", True), "en": ("en", False), "ru": ("ru", False), "zh": ("zh", False), "ja": ("ja", False), "de": ("de", False),
-            "ar": ("ar", False)}
+            "ar": ("ar", False), "ar-maths": ("ar", False)}
+# A variant's chapter title in place of the template's (the cover sets it in boot())
+TITLES = {"ar-maths": "حل 5 + x = 7"}
 
 
 def at_base_ref(path):
@@ -63,6 +65,9 @@ async def answer(route):
     language, from_base = VARIANTS[variant]
     if rest == "ch01/":
         html = (TEMPLATES / "chapter.html").read_text(encoding="utf-8")
+        if variant in TITLES:
+            assert html.count("title: 'CHAPTER TITLE'") == 1, "the chapter template's CHAPTER.title placeholder moved"
+            html = html.replace("title: 'CHAPTER TITLE'", f"title: '{TITLES[variant]}'")
         await route.fulfill(content_type="text/html", body=with_language(html, language))
     elif rest == "":
         html = BASE_FILES["book"] if from_base else (TEMPLATES / "book.html").read_text(encoding="utf-8")
@@ -444,6 +449,8 @@ async def check_arabic_maths(browser, errors):
         "الناتج = 7 + 2": "الناتج = ⟦7 + 2⟧",             # an Arabic word across a sign does not hold it
         "السرعة = 100 ÷ 2": "السرعة = ⟦100 ÷ 2⟧",
         "و5 + 2 = 7": "و⟦5 + 2 = 7⟧",                      # 'and' joined to the number
+        "ف5 + 2 = 7": "ف⟦5 + 2 = 7⟧",                      # another one-letter prefix
+        "\u200f5 + x = 7": "\u200f⟦5 + x = 7⟧",            # the author's right-to-left mark: isolated all the same
         "- x = 5": "- ⟦x = 5⟧",                            # a list item
         "المسافة 5 km + 3 km كبيرة": "المسافة ⟦5 km + 3 km⟧ كبيرة",   # a number carries its unit
         "لو 5 + x = 7 cm": "لو ⟦5 + x = 7 cm⟧",
@@ -453,7 +460,7 @@ async def check_arabic_maths(browser, errors):
         "س + ٣ = ٧ معادلة": None, "٣ + ٤ = س": None, "س + 3 = 7 معادلة": None,
         "و ٥ + ٢ = ٧ صح": None,                          # Arabic-Indic digits alone read from the right with the sentence
         "The answer: 5 + 2 = 7.": None, "الجواب: The sum 5 + 2 = 7": None,   # after Latin words: already left to right
-        "\u200f5 + 2 = 7": None, "الوقت 10:5 + 3": None, "x = 5:30 وقت": None,
+"الوقت 10:5 + 3": None, "x = 5:30 وقت": None,
         "افتح https://x.com/?a=1 الآن": None, "اكتب obj.x = 5 هنا": None, "قيمةx = 5": None,
         "اكتب print(x) عشان": None, "السعر ١٬٥٠٠ جنيه، والخصم ٢٥٪": None, "C++ لغة و x => y سهم": None,
     }
@@ -493,6 +500,10 @@ async def check_arabic_maths(browser, errors):
       clearCards();
       return out; })()""")
     assert texts == {"kicker": True, "cols": [True, True], "finish": True}, f"card texts outside rich(): {texts}"
+    cover = await open_lesson(browser, "ar-maths", errors)
+    title = await cover.evaluate("document.getElementById('coverT').textContent")
+    await cover.close()
+    assert title == "حل \u20665 + x = 7\u2069", f"cover title: the expression is out of order: {title!r}"
     # stream(): the isolate's marks are invisible, so each ride with a letter: no step of the typing shows nothing new
     steps = await page.evaluate("""(() => {
       const t = T(document.getElementById('stage'), ''), seen = [];
