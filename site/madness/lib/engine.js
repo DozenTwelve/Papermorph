@@ -426,7 +426,8 @@ const EXPRESSION = (() => {
 })();
 const EXPRESSION_SIGN = /[=+×÷*<>≤≥≠^−]/, EXPRESSION_LTR = /[\p{Script=Latin}\p{Script=Greek}0-9]/u;
 const LTR_WORD = /[\p{Script=Latin}\p{Script=Greek}\p{Nd}]/u, SIGNS = String.raw`[=+×÷*<>≤≥≠^−\/\-]+`;
-const SIGN_BEFORE = new RegExp(String.raw`(\S*)\s*${SIGNS}$`, 'u'), SIGN_AFTER = new RegExp(String.raw`^${SIGNS}\s*(\S*)`, 'u');
+// SIGN_BEFORE starts at a space or the line's start: a start inside a word would rescan the rest of that word, seconds on a long line
+const SIGN_BEFORE = new RegExp(String.raw`(?:^|\s)(\S*)\s*${SIGNS}$`, 'u'), SIGN_AFTER = new RegExp(String.raw`^${SIGNS}\s*(\S*)`, 'u');
 // What lies beside an expression holds it to the sentence: a Latin word or a number, or across a sign a number, a Latin
 // name or a one-letter Arabic name. A sign with nothing before it opens a list item ('- x = 5'); a word of two Arabic
 // letters or more across a sign does not hold it ('الناتج = 7 + 2').

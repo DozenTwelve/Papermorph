@@ -468,6 +468,10 @@ async def check_arabic_maths(browser, errors):
     for (text, want), have in zip(cases.items(), got):
         assert have == (want or text), f"ltrMaths({text!r}) is {have!r}"
     assert await page.evaluate("['لو 5 + x = 7', 'x = ٣ معادلة'].every(c => ltrMaths(ltrMaths(c)) === ltrMaths(c) && rtlText(rtlText(c)) === rtlText(c))"), "isolated twice"
+    # A long Arabic word before an expression is read once: this took seconds when SIGN_BEFORE could start inside the word
+    slow = await page.evaluate("""['ا'.repeat(30000) + ' لو 5 + x = 7', 'ا'.repeat(30000) + ' ب = 7 + x'].map(c => {
+      const t = performance.now(); ltrMaths(c); return Math.round(performance.now() - t); })""")
+    assert max(slow) < 300, f"ltrMaths on a 30,000-letter line took {slow} ms"
     # The stage: 5 is left of x, x left of 7, and the whole expression left of the Arabic word that opens the line
     at = await page.evaluate("""(() => {
       const t = T(document.getElementById('stage'), 'لو 5 + x = 7 يبقى', { x: 800, y: 300 }), set = t.textContent, x = c => t.getStartPositionOfChar(set.indexOf(c)).x;
