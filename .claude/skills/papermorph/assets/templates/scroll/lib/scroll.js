@@ -122,23 +122,42 @@ function geoPaths(L, kx = 1) {
 
 /* ---------- drawing helpers (screen px) ---------- */
 const fs = n => n * U;   // a type size in the page's unit: ~1/100 of the graphic's shorter side, within bounds
+// A label reads right to left as the engine's stage text does: when its first letter is Arabic or Hebrew, and on a
+// right-to-left page (<html dir="rtl">) also when a Latin word opens it but its Arabic words are at least as many
+// ('Newton قال ذلك'; not 'The word is كتاب.'). Digits decide nothing. align stays where the label sits (left, center,
+// right); a label that begins with U+200F reads right to left, with U+200E left to right, whatever its words. Arabic
+// letters join and have no italic: no spacing, no slant.
+const RTL_LETTER = /(?=\p{L})[\p{Script=Arabic}\p{Script=Hebrew}\p{Script=Syriac}\p{Script=Thaana}\p{Script=Nko}]/u;
+const isRTL = str => {
+  const s = String(str ?? ''), c = s.match(/\p{L}/u);
+  if (s[0] === '\u200F' || s[0] === '\u200E') return s[0] === '\u200F';
+  if (!c) return false;
+  if (RTL_LETTER.test(c[0])) return true;
+  if (document.documentElement.dir !== 'rtl') return false;
+  const words = s.split(/\s+/).filter(w => /\p{L}/u.test(w)), rtl = words.filter(w => RTL_LETTER.test(w)).length;
+  return rtl > 0 && 2 * rtl >= words.length;
+};
+const PLACE = { start: 'left', end: 'right' };
 function text(str, x, y, { size = 4, font = KEYF, weight = 500, fill = C.ink, align = 'left', base = 'alphabetic', a = 1, italic = false, spacing = 0 } = {}) {
   if (a <= 0) return;
-  ctx.globalAlpha = a; ctx.fillStyle = fill; ctx.textAlign = align; ctx.textBaseline = base;
-  ctx.font = `${italic ? 'italic ' : ''}${weight} ${fs(size)}px ${font}`;
-  if ('letterSpacing' in ctx) ctx.letterSpacing = spacing ? `${spacing * fs(size)}px` : '0px';
+  const rtl = isRTL(str), dir0 = ctx.direction;
+  ctx.globalAlpha = a; ctx.fillStyle = fill; ctx.textAlign = PLACE[align] || align; ctx.textBaseline = base;
+  ctx.direction = rtl ? 'rtl' : 'ltr';
+  ctx.font = `${italic && !rtl ? 'italic ' : ''}${weight} ${fs(size)}px ${font}`;
+  if ('letterSpacing' in ctx) ctx.letterSpacing = spacing && !rtl ? `${spacing * fs(size)}px` : '0px';
   ctx.fillText(str, x, y);
-  ctx.globalAlpha = 1;
+  ctx.globalAlpha = 1; ctx.direction = dir0;   // a story's own fillText after a label draws as it did before it
 }
 // a label on a paper chip, kept inside the canvas: a label near the edge slides in rather than losing its words
 function chip(str, x, y, { size = 3.6, fill = C.ink, bg = C.paper, align = 'left', a = 1, font = KEYF, weight = 500 } = {}) {
   if (a <= 0) return;
+  const spacing = isRTL(str) ? 0 : .06;
   ctx.font = `${weight} ${fs(size)}px ${font}`;
-  if ('letterSpacing' in ctx) ctx.letterSpacing = `${.06 * fs(size)}px`;
+  if ('letterSpacing' in ctx) ctx.letterSpacing = `${spacing * fs(size)}px`;
   const w = ctx.measureText(str).width, pad = fs(size) * .45, h = fs(size) * 1.5;
   const x0 = clamp(align === 'center' ? x - w / 2 - pad : align === 'right' ? x - w - 2 * pad : x, 4, Math.max(4, cw - w - 2 * pad - 4));
   ctx.globalAlpha = a * .94; ctx.fillStyle = bg; ctx.fillRect(x0, y - h / 2, w + 2 * pad, h);
-  text(str, x0 + pad, y, { size, fill, base: 'middle', a, font, weight, spacing: .06 });
+  text(str, x0 + pad, y, { size, fill, base: 'middle', a, font, weight, spacing });
 }
 function dot(x, y, r, fill, a = 1) { if (a <= 0) return; ctx.globalAlpha = a; ctx.fillStyle = fill; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
 function ring(x, y, r, stroke, w, a = 1) { if (a <= 0) return; ctx.globalAlpha = a; ctx.strokeStyle = stroke; ctx.lineWidth = w; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.stroke(); ctx.globalAlpha = 1; }

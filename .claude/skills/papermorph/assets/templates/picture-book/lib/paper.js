@@ -289,14 +289,19 @@ function trunkWipe(p, t0, dur, mode = 'in') {
   const [a, b] = mode === 'in' ? [1650, -200] : [-200, -2150];
   return q => { const u = Math.min(1, Math.max(0, (q - t0) / dur)); vis(g, mode === 'in' ? u > 0 : u < 1); tf(g, `translate(${(a + (b - a) * ease(u)).toFixed(0)},0)`); };
 }
-// The title card at the end: a paper label that drops in on its pin, as wide as its words. Give the words in the book's
-// language; { x, y } is the card's centre (default the frame's centre), size the letters' height in px (a title too long
-// for the frame gets smaller letters). Put it where it covers nothing the last shot needs (a score, a face).
-function endCard(p, t0, words = 'The End', { x = 800, y = 450, size = 78 } = {}) {
-  const c = document.createElement('canvas').getContext('2d'), wide = s => (c.font = `italic ${s}px Georgia, serif`, c.measureText(words).width + 2.2 * s);
+// The title card at the end: a paper label that drops in on its pin, as wide as its words. The words default to the
+// player's "The End" in the page's language (<html lang>); give your own in the book's language. { x, y } is the card's
+// centre (default the frame's centre), size the letters' height in px (a title too long for the frame gets smaller
+// letters). Arabic words are set upright in a Naskh book face, and Chinese, Japanese and Korean words upright too (those
+// scripts have no italic). Put it where it covers nothing the last shot needs (a score, a face).
+function endCard(p, t0, words = translate('theEnd'), { x = 800, y = 450, size = 78 } = {}) {
+  const rtl = isRTL(words), face = rtl ? '"Noto Naskh Arabic", "Traditional Arabic", Georgia, serif' : 'Georgia, serif';
+  const slant = rtl || /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u.test(words) ? '' : 'italic';
+  const c = document.createElement('canvas').getContext('2d'), wide = s => (c.font = `${slant} ${s}px ${face}`, c.measureText(words).width + 2.2 * s);
   if (wide(size) > 1500) size = Math.floor(size * 1500 / wide(size));
   const w = Math.max(480, Math.ceil(wide(size))), h = Math.round(size * 3.08), L = Math.round(x - w / 2), T = Math.round(y - h / 2);
+  const text = String(rtlText(words)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const g = prop(p, `<g filter="url(#paper)"><rect x="${L}" y="${T}" width="${w}" height="${h}" rx="14" fill="#f3e9d2"/><rect x="${L + 20}" y="${T + 20}" width="${w - 40}" height="${h - 40}" rx="8" fill="none" stroke="#c8322f" stroke-width="5"/></g>
-    <text x="${x}" y="${Math.round(y + size * .36)}" text-anchor="middle" font-family="Georgia, serif" font-size="${size}" font-style="italic" fill="#5a2a1e">${words}</text>${tack(x, T + 12)}`);
+    <text x="${x}" y="${Math.round(y + size * .36)}" text-anchor="middle" font-family='${face}' font-size="${size}"${slant ? ` font-style="${slant}"` : ''} fill="#5a2a1e">${text}</text>${tack(x, T + 12)}`);
   return q => { const u = (q - t0) * FPS; vis(g, u >= 0); const d = [-60, -20, 8, -3, 0][Math.min(4, Math.max(0, Math.floor(u / 2)))]; tf(g, `translate(0,${d})`); };
 }

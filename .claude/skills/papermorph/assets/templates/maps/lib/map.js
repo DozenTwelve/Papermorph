@@ -34,8 +34,10 @@
                                         [[lon, lat]...] (a sea route round a cape: one line through them), dot: false (no
                                         landing dot), t1 (faded out over .4 s from then: a trade that stops) };
                                         what is not the subject goes in ink: { colour: MAP_COL.ink, dash: [10, 8] }
-     cities: [[name, t0, side, t1]]     an ink dot and a label (CITIES; side 'l' or 'r', default 'r'), faded out at t1
-                                        when given (a camera pulling out: towns that would pile up); labels keep inside
+     cities: [[name, t0, side, t1, label]]   an ink dot and a label (CITIES; side 'l' or 'r', default 'r'), faded out at
+                                        t1 when given (a camera pulling out: towns that would pile up; null or left out:
+                                        it stays); label is what the film shows when it is not the name in CITIES (a film
+                                        in another language: ['Cairo', 2, 'r', null, 'القاهرة']); labels keep inside
                                         the safe box, hide when their city is off it, take the other side when theirs
                                         covers an earlier label, and hide while both would (said in the console)
      labelSize: 36 · safe: [x0, y0, x1, y1] (the shorts' 50,150,810,1290 upright; 60,60,SW-60,SH-230 landscape)
@@ -77,7 +79,8 @@ const { paperMap, mapBand, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCi
   const MAP_COL = { land: css('--map-land', '#ece3cd'), sea: css('--map-sea', '#bfcac6'), ink: css('--map-ink', '#2b2520'),
     line: css('--map-line', '#9a8a70'), night: css('--map-night', '#04060a'), hot: css('--map-hot', css('--red', '#c8281e')),
     mark: css('--map-mark', css('--mark', '#f4c430')), dim: css('--map-dim', '#6f6a62'), urban: css('--map-urban', '#cdb995'), river: css('--map-river', '#8fa9ad') };
-  const FONT = bookSetting('--map-font') || '"Oswald", "Arial Narrow", sans-serif';
+  // Oswald has no Arabic letters: an Arabic label takes the faces after it
+  const FONT = bookSetting('--map-font') || '"Oswald", "Arial Narrow", "Segoe UI", "SF Arabic", "Geeza Pro", "Noto Sans Arabic", sans-serif';
   const PORTRAIT = SH > SW, SAFE = PORTRAIT ? [50, 150, 810, 1290] : [60, 60, SW - 60, SH - 230];
   const clamp01 = v => Math.min(1, Math.max(0, v)), ramp = (t, a, b) => clamp01((t - a) / (b - a));
   const within = (t, on) => !on || (t >= on[0] && t <= on[1]);
@@ -180,10 +183,12 @@ const { paperMap, mapBand, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCi
     fo.appendChild(cv);
     const ctx = cv.getContext('2d'), land = grained(ctx, MAP_COL.land), sea = grained(ctx, MAP_COL.sea), hatchFill = hatchPattern(ctx);
     const lab = G(g, {});
-    const labels = cities.map(([name, t0, side = 'r', t1]) => {
-      if (!CITIES[name]) throw new Error(`paperMap: no city ${name} in geo-lite.js (geo.py --cities)`);
-      const e = G(lab, { o: 0 }), w = measure(name.toUpperCase(), labelSize);
-      const tx = T(e, name.toUpperCase(), { x: 0, y: 0, size: labelSize, fill: MAP_COL.ink, font: FONT, weight: 600, anchor: 'start' });
+    // a city: [name in geo-lite.js, t0, side, t1, label shown]; the label defaults to the name, so a film in another
+    // language looks the city up by its geo-lite name and shows its own: ['Cairo', 2, 'l', null, 'القاهرة']
+    const labels = cities.map(([name, t0, side = 'r', t1, shown = name]) => {
+      if (!CITIES[name]) throw new Error(`paperMap: no city ${name} in geo-lite.js (geo.py --cities); a label in the film's language goes fifth: [name, t0, side, t1, label]`);
+      const e = G(lab, { o: 0 }), w = measure(shown.toUpperCase(), labelSize);
+      const tx = T(e, shown.toUpperCase(), { x: 0, y: 0, size: labelSize, fill: MAP_COL.ink, font: FONT, weight: 600, anchor: 'start' });
       tx.setAttribute('stroke', MAP_COL.land); tx.setAttribute('stroke-width', labelSize / 5); tx.setAttribute('paint-order', 'stroke'); tx.setAttribute('stroke-linejoin', 'round');
       return { e, name, ll: CITIES[name], t0, t1, side, w };
     });
@@ -204,7 +209,7 @@ const { paperMap, mapBand, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCi
         const x = [at(l.side), at(l.side === 'l' ? 'r' : 'l')].find(x => !hit(x));
         if (x === undefined) {
           const b = hit(at(l.side));
-          if (!said.has(l.name + b.name)) { said.add(l.name + b.name); console.warn(`paperMap: label ${l.name} hidden from ${t.toFixed(1)} s, on top of ${b.name}: give one an end (cities: [name, t0, side, t1])`); }
+          if (!said.has(l.name + b.name)) { said.add(l.name + b.name); console.warn(`paperMap: label ${l.name} hidden from ${t.toFixed(1)} s, on top of ${b.name}: give one an end (t1, the fourth item of its cities entry)`); }
           return put(l.e, OFF);
         }
         boxes.push({ name: l.name, x0: x, x1: x + l.w, y0: y - labelSize * .8, y1: y + labelSize * .25 });
@@ -262,12 +267,12 @@ const { paperMap, mapBand, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCi
         area: AREAS.map(A => clamp01(A.a(t))),
         det: details.length ? ramp(k, R0 / .22, R0 / .06) : 0,
         route: routes.map(([, , t0, dur = .8]) => ramp(t, t0, t0 + dur) + pop(t0 + dur)),
-        rfade: routes.map(([, , , , st]) => st?.t1 === undefined ? 1 : 1 - ramp(t, st.t1, st.t1 + .4)),
+        rfade: routes.map(([, , , , st]) => st?.t1 == null ? 1 : 1 - ramp(t, st.t1, st.t1 + .4)),
         rcol: routes.map(([, , , , st]) => colAt(st?.colour ?? MAP_COL.hot, t)),
         areac: AREAS.map(A => colAt(A.fill, t)),
         dot: dots.map(d => pop(d[2])),
         dotc: dots.map(d => typeof d[4] === 'function' ? d[4](t) : d[4]),
-        lab: labels.map(l => ramp(t, l.t0, l.t0 + .3) * (l.t1 === undefined ? 1 : 1 - ramp(t, l.t1, l.t1 + .4))),
+        lab: labels.map(l => ramp(t, l.t0, l.t0 + .3) * (l.t1 == null ? 1 : 1 - ramp(t, l.t1, l.t1 + .4))),
       };
       vals.litc = keys.map((c, i) => vals.lit[i] ? fillOf(c, t) : 0);   // the fills in the signature: a colour turning redraws
       vals.regc = regionSets.map((R, i) => vals.reg[i] ? fillOf(R.n, t) : 0);
@@ -379,13 +384,14 @@ const { paperMap, mapBand, globeShot, loadGlobe, mapXY, mapKeys, mapRings, mapCi
   // (x, y) or anchored 'start' / 'end', a smaller second line `sub` under it; faded in at t0, out at t1 when given
   function mapBand(p, str, x, y, t0, { size = 64, sub, anchor = 'middle', ground = COL.board, fill = COL.chalk, o = .94, t1 } = {}) {
     str = str.toUpperCase();
-    const w = Math.max(measure(str, size) * 1.02, sub ? measure(sub, size * .42) : 0) + size * .9, g = G(p, { x, y, o: 0 });
+    const ls = isRTL(str) ? 0 : .02;   // Arabic letters join: no spacing between them
+    const w = Math.max(measure(str, size) * (1 + ls), sub ? measure(sub, size * .42) : 0) + size * .9, g = G(p, { x, y, o: 0 });
     const x0 = anchor === 'middle' ? -w / 2 : anchor === 'end' ? -w : 0;
     mk('rect', { x: x0, y: -size * 1.02, width: w, height: size * 1.32 + (sub ? size * .62 : 0), fill: ground, opacity: o }, g);
-    T(g, str, { x: x0 + w / 2, y: 0, size, fill, font: FONT, weight: 600, anchor: 'middle' }).setAttribute('letter-spacing', '.02em');
+    T(g, str, { x: x0 + w / 2, y: 0, size, fill, font: FONT, weight: 600, anchor: 'middle' }).setAttribute('letter-spacing', `${ls}em`);
     if (sub) T(g, sub, { x: x0 + w / 2, y: size * .66, size: size * .42, fill: COL.dim, font: FONT, anchor: 'middle' });
     g._w = w; tw(g, { o: 1 }, t0, .35, out);
-    if (t1 !== undefined) hide(g, t1, .4);
+    if (t1 != null) hide(g, t1, .4);
     return g;
   }
 

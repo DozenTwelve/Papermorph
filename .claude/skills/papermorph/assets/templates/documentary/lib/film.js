@@ -6,7 +6,9 @@
    measured on a canvas (chapter.html does this). */
 'use strict';
 /* ---------- the look ---------- */
-const KEY = '"Oswald", "Arial Narrow", sans-serif', SER = '"EB Garamond", Georgia, serif';   // titles and key words; quotes and captions
+// titles and key words; quotes and captions. Neither face has Arabic letters: an Arabic word takes the face after it
+const KEY = '"Oswald", "Arial Narrow", "Segoe UI", "SF Arabic", "Geeza Pro", "Noto Sans Arabic", sans-serif',
+  SER = '"EB Garamond", Georgia, "Noto Naskh Arabic", "Traditional Arabic", "Times New Roman", serif';
 // colours from lib/book.css (read by the engine into COL, or with bookSetting): ink on the ground, the accent, captions,
 // a document's paper, ink on paper, a document's heading
 const CREAM = COL.chalk, SOFT = COL.dim, HOT = bookSetting('--accent') || '#f08a4b', PAPER = bookSetting('--paper') || CREAM,
@@ -61,8 +63,9 @@ const wid = (str, size, font, style = '', weight = 400) => { CTX.font = `${style
 // big condensed word(s)
 function key(p, str, x, y, t0, { size = 96, fill = CREAM, anchor = 'middle', from = 24, o = 1 } = {}) {
   const e = T(p, str.toUpperCase(), { x, y: y + from, size, fill, font: KEY, weight: 600, anchor, o: 0 });
-  e.setAttribute('letter-spacing', '.02em');
-  e._w = wid(str.toUpperCase(), size, KEY, '', 600) * 1.02;
+  const ls = isRTL(str) ? 0 : .02;   // Arabic letters join: no spacing between them
+  e.setAttribute('letter-spacing', `${ls}em`);
+  e._w = wid(str.toUpperCase(), size, KEY, '', 600) * (1 + ls);
   tw(e, { y, o }, t0, .55, out);
   return e;
 }
@@ -71,23 +74,43 @@ function strike(p, e, x, y, t0, size, anchor = 'middle') {
   const x0 = anchor === 'middle' ? x - e._w / 2 : anchor === 'end' ? x - e._w : x;
   return line(p, `M${x0 - 16} ${y - size * .32}H${x0 + e._w + 16}`, t0, .4, Math.max(5, size / 12), { stroke: HOT });
 }
-// serif lines typed word by word between t0 and t1 (Chinese, Japanese and Korean characters one by one)
+// serif lines typed word by word between t0 and t1 (Chinese, Japanese and Korean characters one by one). The anchor is
+// where the line sits (start: its left end at x). A right-to-left line (Arabic) is one text with a <tspan> a word, so
+// the browser orders it (a Latin name or x + 3 = 7 inside it keeps its own order) and each word still appears in its
+// turn, from the right; it is upright, since Arabic has no italic
 const CJK = /[⺀-鿿가-힯豈-﫿＀-￯]|[^⺀-鿿가-힯豈-﫿＀-￯]+/g;
 function say(p, lines, x, y, t0, t1, { size = 44, fill = CREAM, italic = true, anchor = 'start', lh = 1.3, weight = 400 } = {}) {
-  const g = G(p, {}), style = italic ? 'italic' : '', words = [];
-  const sp = wid(' ', size, SER, style, weight);
+  const g = G(p, {}), words = [];
   lines.forEach((ln, i) => {
+    const rtl = isRTL(ln), it = italic && !rtl, style = it ? 'italic' : '', sp = wid(' ', size, SER, style, weight);
+    if (rtl) {
+      const line = T(g, '', { x, y: y + i * size * lh, size, fill, font: SER, weight, anchor });
+      // an isolated expression (ltrMaths) is one word, so its isolate opens and closes in one <tspan>
+      rtlText(ln).split(' ').reduce((ws, w) => (ws.length && /\u2066[^\u2069]*$/.test(ws.at(-1)) ? ws[ws.length - 1] += ' ' + w : ws.push(w), ws), [])
+        .forEach((word, j) => {
+        if (j) line.append(' ');
+        (word.match(CJK) || ['']).forEach(w => {
+          const e = mk('tspan', { 'fill-opacity': 0 }, line);
+          e.textContent = w; words.push(e);
+        });
+      });
+      return;
+    }
     const W = wid(ln, size, SER, style, weight);
     let cx = anchor === 'middle' ? x - W / 2 : anchor === 'end' ? x - W : x;
     ln.split(' ').forEach(word => (word.match(CJK) || ['']).forEach((w, j, ws) => {
       const e = T(g, w, { x: cx, y: y + i * size * lh, size, fill, font: SER, weight, o: 0 });
-      if (italic) e.setAttribute('font-style', 'italic');
+      if (it) e.setAttribute('font-style', 'italic');
       words.push(e); cx += wid(w, size, SER, style, weight) + (j === ws.length - 1 ? sp : 0);
     }));
   });
-  const chars = words.map(e => e.textContent.length + 1), all = chars.reduce((a, b) => a + b, 0);
+  const chars = words.map(e => e.textContent.replace(/[\u200E\u200F\u2066\u2069]/g, '').length + 1), all = chars.reduce((a, b) => a + b, 0);
   let acc = 0;
-  words.forEach((e, i) => { show(e, t1 === t0 ? t0 : t0 + (t1 - t0) * acc / all, .25, lin); acc += chars[i]; });
+  words.forEach((e, i) => {
+    const at = t1 === t0 ? t0 : t0 + (t1 - t0) * acc / all;
+    if (e.tagName === 'tspan') prog(q => e.setAttribute('fill-opacity', q), at, .25, lin); else show(e, at, .25, lin);
+    acc += chars[i];
+  });
   return g;
 }
 // a small caption under a picture (a credit or a name tag); one under CAPTION_TOP, where the captions go, is said in
@@ -95,20 +118,25 @@ function say(p, lines, x, y, t0, t1, { size = 44, fill = CREAM, italic = true, a
 function tag(p, str, x, y, t0, { size = 24, anchor = 'start', fill = SOFT } = {}) {
   if (y > CAPTION_TOP) console.warn(`tag '${str}' at y ${Math.round(y)}, under the captions (below ${CAPTION_TOP}): move it up or beside its picture`);
   const e = T(p, str, { x, y, size, fill, font: SER, anchor, o: 0 });
-  e.setAttribute('font-style', 'italic');
+  if (!isRTL(str)) e.setAttribute('font-style', 'italic');   // Arabic has no italic
   show(e, t0, .5);
   return e;
 }
 // the era at the top left, like a chapter opener: the year in italic, a hairline, the place or topic in spaced capitals.
 // Cream on the film's ground; over a paper map give fill: MAP_COL.ink (the year keeps the accent unless `year` is set),
-// or a ground: COL.board for a band of the film's ground behind it
+// or a ground: COL.board for a band of the film's ground behind it. An Arabic topic puts the chip at the top right, where
+// an Arabic page starts, upright and unspaced (Arabic letters join and have no italic)
 function dateChip(p, year, topic, t0 = .2, { fill = CREAM, year: yc = HOT, ground, size = 26 } = {}) {
-  const g = G(p, { x: 80, y: 112, o: 0 });
-  const tw_ = wid(topic.toUpperCase(), size, SER) * 1.3 + 8;   // letter-spacing .28em widens the caps by about 30 %
-  if (ground) mk('rect', { x: -28, y: -78, width: Math.max(220, tw_, wid(year, 72, SER, 'italic')) + 56, height: 104 + size * 1.6, fill: ground, opacity: .94 }, g);
-  T(g, year, { size: 72, font: SER, weight: 400, fill: yc }).setAttribute('font-style', 'italic');
-  const rule = path(g, `M3 22H${Math.max(220, tw_)}`, { stroke: fill, 'stroke-width': 1.4 }, { d: 0 });
-  T(g, topic.toUpperCase(), { x: 3, y: 34 + size * .92, size, font: SER, weight: 400, fill }).setAttribute('letter-spacing', '.28em');
+  const rtl = isRTL(topic), s = rtl ? -1 : 1, anchor = rtl ? 'end' : 'start', ys = rtl ? '' : 'italic';
+  const g = G(p, { x: rtl ? SW - 80 : 80, y: 112, o: 0 });
+  const ls = rtl ? 0 : .28;
+  const tw_ = wid(topic.toUpperCase(), size, SER) * (ls ? 1.3 : 1) + 8;   // letter-spacing .28em widens the caps by about 30 %
+  const bw = Math.max(220, tw_, wid(year, 72, SER, ys)) + 56;
+  if (ground) mk('rect', { x: rtl ? 28 - bw : -28, y: -78, width: bw, height: 104 + size * 1.6, fill: ground, opacity: .94 }, g);
+  const ye = T(g, year, { size: 72, font: SER, weight: 400, fill: yc, anchor });
+  if (ys) ye.setAttribute('font-style', ys);
+  const rule = path(g, `M${s * 3} 22H${s * Math.max(220, tw_)}`, { stroke: fill, 'stroke-width': 1.4 }, { d: 0 });
+  T(g, topic.toUpperCase(), { x: s * 3, y: 34 + size * .92, size, font: SER, weight: 400, fill, anchor }).setAttribute('letter-spacing', `${ls}em`);
   tw(g, { o: 1 }, t0, .6); draw(rule, t0 + .2, .6);
   return g;
 }
@@ -180,7 +208,7 @@ function doc(p, label, x, y, r, t0, seed) {
     const yy = -130 + i * 24, ww = 160 + R() * 70;
     path(g, `M-118 ${yy}q${ww / 4} ${-3 + R() * 6} ${ww / 2} 0t${ww / 2} 0`, { stroke: INK, 'stroke-width': 2 });
   }
-  T(g, label.toUpperCase(), { y: -160, size: 22, font: KEY, weight: 600, fill: STAMP, anchor: 'middle' }).setAttribute('letter-spacing', '.06em');
+  T(g, label.toUpperCase(), { y: -160, size: 22, font: KEY, weight: 600, fill: STAMP, anchor: 'middle' }).setAttribute('letter-spacing', isRTL(label) ? '0' : '.06em');
   tw(g, { x, o: 1 }, t0, .8, out);
   g._x = x; g._y = y;
   return g;

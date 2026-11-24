@@ -5,7 +5,7 @@
 :root {
   /* sea, paper and ink; the accent only for the live year, the live pin and a border as it changes */
   --sea: #b9c9cc; --base: #f1ead9; --paper: #f4eee0; --ink: #24211c; --shu: #b2352a; --gold: #a88a55; --ink2: #4a4438;
-  --head: Georgia, 'Times New Roman', serif; --serif: Georgia, 'Times New Roman', serif;
+  --head: Georgia, 'Times New Roman', 'Noto Naskh Arabic', 'Traditional Arabic', serif; --serif: Georgia, 'Times New Roman', 'Noto Naskh Arabic', 'Traditional Arabic', serif;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--sea); color: var(--ink); overflow: hidden; }
@@ -113,15 +113,15 @@ body.moves #people, body.moves #hint { opacity: 0; pointer-events: none; }
 /* the people in a row, a second way to reach them */
 #people { position: absolute; z-index: 1; left: max(16px, env(safe-area-inset-left)); bottom: 12px; display: flex; gap: 6px; flex-wrap: wrap; }
 #people button { border: 1.5px solid var(--ink); background: var(--paper); border-radius: 16px; box-shadow: 2px 3px 0 rgba(27, 26, 23, .35); padding: 2px 10px 3px; font: 700 14px/1.3 var(--head); letter-spacing: .05em; text-transform: uppercase; cursor: pointer; }
-#people button::before { content: ''; display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--c); margin-right: 6px; vertical-align: 1px; }
+#people button::before { content: ''; display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--c); margin-inline-end: 6px; vertical-align: 1px; }
 #people button:hover { background: #fff; }
 #people button.gone::before { background: transparent; border: 2px solid var(--c); }
 
 /* cards */
 .card { position: absolute; z-index: 2; background: var(--paper); border: 2px solid var(--ink); box-shadow: 5px 6px 0 rgba(27, 26, 23, .4); padding: 18px 20px 16px; max-height: calc(100% - 24px); overflow: auto; }
 .card:focus { outline: none; }
-.card h2 { font: 700 26px/1.1 var(--head); margin: 0 26px 8px 0; letter-spacing: .02em; }
-.card .close { position: absolute; right: 6px; top: 4px; width: 40px; height: 40px; border: 0; background: none; font: 700 30px/1 var(--head); cursor: pointer; }
+.card h2 { font: 700 26px/1.1 var(--head); margin: 0 0 8px; margin-inline-end: 26px; letter-spacing: .02em; }
+.card .close { position: absolute; inset-inline-end: 6px; top: 4px; width: 40px; height: 40px; border: 0; background: none; font: 700 30px/1 var(--head); cursor: pointer; }
 .card .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
 .card .row button { border: 2px solid var(--ink); background: var(--ink); color: var(--paper); padding: 4px 14px 6px; font: 700 16px/1.2 var(--head); letter-spacing: .04em; cursor: pointer; }
 .card .row button:hover:not(:disabled) { background: var(--ink2); border-color: var(--ink2); }
@@ -141,10 +141,10 @@ body.moves #people, body.moves #hint { opacity: 0; pointer-events: none; }
 #event figcaption { color: var(--paper); font: 500 14px/1.25 var(--head); letter-spacing: .02em; padding: 5px 9px 6px; }
 #event .text { margin: 12px 18px 16px; font-size: 19px; line-height: 1.38; }
 #move { position: absolute; z-index: 3; left: 50%; bottom: 58px; transform: translateX(-50%); margin: 0; max-width: calc(100% - 32px); width: max-content;
-  background: var(--paper); border: 2px solid var(--ink); border-left: 10px solid var(--c, var(--ink)); padding: 6px 16px 8px;
+  background: var(--paper); border: 2px solid var(--ink); border-inline-start: 10px solid var(--c, var(--ink)); padding: 6px 16px 8px;
   font: 700 21px/1.2 var(--head); letter-spacing: .04em; text-transform: uppercase; box-shadow: 4px 5px 0 rgba(27, 26, 23, .4); }
 #move:not([hidden]) { animation: evin .45s cubic-bezier(.2, .8, .2, 1); }
-#move b { font-weight: 600; color: var(--c); margin-right: .5em; }
+#move b { font-weight: 600; color: var(--c); margin-inline-end: .5em; }
 #filmbar { position: absolute; z-index: 3; left: 50%; bottom: 14px; transform: translateX(-50%); }
 #skip { white-space: nowrap; background: var(--paper); border: 1.5px solid var(--ink); padding: 4px 14px 5px; font: 700 14px/1.3 var(--head); letter-spacing: .06em; text-transform: uppercase; cursor: pointer; }
 #skip:hover { background: var(--ink); color: var(--paper); }
@@ -230,12 +230,12 @@ body:not(.ready) #top, body:not(.ready) #people { opacity: 0; }
   #skip { min-height: 44px; min-width: 44px; padding: 4px 14px 5px; box-shadow: 2px 3px 0 rgba(27, 26, 23, .35); }
   #people { top: auto; bottom: max(10px, env(safe-area-inset-bottom)); left: 0; right: 0; justify-content: center; gap: 5px; flex-wrap: nowrap; }
   #people button { min-height: 44px; padding: 2px 9px 3px; font-size: 13px; letter-spacing: .03em; border-radius: 22px; }
-  #people button::before { margin-right: 5px; }
+  #people button::before { margin-inline-end: 5px; }
   body.card-open #people { opacity: 0; pointer-events: none; }
   #replay { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(max(10px, env(safe-area-inset-bottom)) + 52px); margin: 0; min-height: 44px; padding: 4px 16px 5px; font-size: 13px; }
   body.card-open #replay { opacity: 0; pointer-events: none; }
   /* cards: a sheet from the bottom edge */
-  .card .close { width: 44px; height: 44px; right: 2px; top: 2px; }
+  .card .close { width: 44px; height: 44px; inset-inline-end: 2px; top: 2px; }
   #person, #place { left: 8px; right: 8px; width: auto; bottom: max(8px, env(safe-area-inset-bottom)); top: auto; max-height: 48%; padding: 14px 16px 12px; }
   #person .head img { height: 72px; }
   #event.bottom { left: 8px; right: 8px; bottom: max(8px, env(safe-area-inset-bottom)); max-height: 48%; box-shadow: 0 0 0 3px var(--gold), 0 0 0 5px var(--ink), 4px 8px 18px rgba(0, 0, 0, .45); }
@@ -247,3 +247,14 @@ body:not(.ready) #top, body:not(.ready) #people { opacity: 0; }
   #credits { font-size: 14px; padding: 14px 16px 12px; }
   body.credits-open #top { opacity: 0; pointer-events: none; }   /* the long dialog reaches up over the year plate */
 }
+
+/* A right-to-left page (<html lang="ar" dir="rtl">): the text in the panels and cards reads from the right and a card's
+   close button moves to its left corner, while the panels keep their places around the map and the map keeps its
+   left-to-right geometry, so a label's anchor and the projection mean the same in every language; each label reads in
+   the order of its own first letter. Arabic letters join and have no italic, and the uppercase and spaced-out headings
+   have no Arabic counterpart. */
+#map, #north { direction: ltr; }
+#map text { unicode-bidi: plaintext; }
+[dir="rtl"] :is(.lab.pinname text, .lab.region text, .fig .tag text, #year, #title, .link, #people button, .card h2,
+  .card .row button, #event h2, #event figcaption, #move, #skip, #intro h2, #intro .sub, #person .where, #place .where) { letter-spacing: 0; }
+[dir="rtl"] :is(#mapstate, #hint) { font-style: normal; }

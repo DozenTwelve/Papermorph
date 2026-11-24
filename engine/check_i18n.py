@@ -28,7 +28,9 @@ TIMING = {"dur": 30, "marks": {"sub": 1, "note": 2, "w1": 3, "w2": 4}, "cues": [
 TIMINGS = "const TIMINGS = " + json.dumps({beat: TIMING for beat in ("intro", "idea", "q1", "wrap", "final1", "finish")})
 # Page variants: (html lang, engine and book template from BASE_REF instead of the working tree).
 VARIANTS = {"base": ("en", True), "en": ("en", False), "ru": ("ru", False), "zh": ("zh", False), "ja": ("ja", False), "de": ("de", False),
-            "ar": ("ar", False)}
+            "ar": ("ar", False), "ar-maths": ("ar", False)}
+# A variant's chapter title in place of the template's (the cover sets it in boot())
+TITLES = {"ar-maths": "حل 5 + x = 7"}
 
 
 def at_base_ref(path):
@@ -63,6 +65,9 @@ async def answer(route):
     language, from_base = VARIANTS[variant]
     if rest == "ch01/":
         html = (TEMPLATES / "chapter.html").read_text(encoding="utf-8")
+        if variant in TITLES:
+            assert html.count("title: 'CHAPTER TITLE'") == 1, "the chapter template's CHAPTER.title placeholder moved"
+            html = html.replace("title: 'CHAPTER TITLE'", f"title: '{TITLES[variant]}'")
         await route.fulfill(content_type="text/html", body=with_language(html, language))
     elif rest == "":
         html = BASE_FILES["book"] if from_base else (TEMPLATES / "book.html").read_text(encoding="utf-8")
@@ -123,15 +128,21 @@ async def lesson_snapshot(page):
 
 
 async def check_english_unchanged(browser, errors):
-    if BASE_FILES["book"] is None or None in BASE_FILES.values():
-        print(f"SKIP English identity: engine or book template not found at BASE_REF={BASE_REF!r}")
+    if not BASE_REF:
+        print("SKIP English identity: BASE_REF is empty")
         return
+    # a base that cannot be read would leave English unguarded while the check passes, so it fails instead
+    assert BASE_FILES["book"] is not None, (f"English identity: the book template is not at BASE_REF={BASE_REF!r} "
+                                            "(set BASE_REF to a commit that has it, or to an empty string to skip)")
     before = await open_lesson(browser, "base", errors)
     after = await open_lesson(browser, "en", errors)
     names = ("player markup", "quick check", "wrong-answer feedback", "finish card")
     for name, old, new in zip(names, await lesson_snapshot(before), await lesson_snapshot(after)):
         assert old.replace("/__i18n__/base/", "/__i18n__/en/") == new, f"English {name} changed"   # links carry the page's own path
     assert await after.evaluate("rat('0,75') === null && num(2.5) === '2.5' && num(-3) === '−3'"), "English numbers changed"
+    # In a left-to-right book a text reads by its first letter alone, and T() sets exactly the string it was given
+    assert await after.evaluate("""!isRTL('Newton قانون') && isRTL('قانون Newton')
+      && T(document.getElementById('stage'), 'Newton قانون', { o: 0 }).textContent === 'Newton قانون'"""), "English stage text changed"
     await before.close()
     await after.close()
 
@@ -300,6 +311,67 @@ async def check_arabic_lesson(browser, errors):
     assert await page.evaluate("document.documentElement.dir") == "rtl"
     assert await style("#stage", "direction") == "ltr"
     assert await style("#bar", "direction") == "ltr"
+    # Each stage text reads in the order of its own first letter, and its anchor keeps the stage's geometry: an Arabic
+    # line with a Latin name keeps its word order and its stop at the left end; 'end' is still its right end.
+    stage = await page.evaluate("""(() => {
+      const g = mk('g', {}, document.getElementById('stage')), out = {};
+      for (const [k, s, anchor] of [['law', 'قانون Newton الأول', 'end'], ['stop', 'عندي 5 تفاحات.', 'start'], ['en', 'Chapter 3.', 'start'],
+        ['name', 'Newton قال ذلك', 'start'], ['maths', 'F = ma', 'start']]) {
+        const t = T(g, s, { x: 800, y: 400, size: 40, anchor }), b = t.getBBox(), at = j => t.getStartPositionOfChar(j).x;
+        const set = t.textContent;   // what T() put on the stage: s, or s behind a right-to-left mark
+        out[k] = { left: b.x, right: b.x + b.width, first: at(0), last: at(set.length - 1), n: set.includes('N') ? at(set.indexOf('N')) : null, set };
+      }
+      g.remove();
+      return out;
+    })()""")
+    assert stage["law"]["first"] > stage["law"]["n"] and abs(stage["law"]["right"]) < 1.5, f"Arabic stage text out of order: {stage['law']}"
+    assert stage["stop"]["last"] < stage["stop"]["first"] and abs(stage["stop"]["left"]) < 1.5, f"Arabic stop misplaced: {stage['stop']}"
+    assert stage["en"]["first"] < stage["en"]["last"] and abs(stage["en"]["left"]) < 1.5, f"English stage text changed: {stage['en']}"
+    # In a right-to-left book an Arabic line that opens with a Latin name is still an Arabic line: the name stands at the
+    # right, where the line starts, and its left end stays where a 'start' anchor puts it. Maths alone is left as it is.
+    name = stage["name"]
+    assert name["set"] == "\u200fNewton قال ذلك" and name["n"] > name["last"] and abs(name["left"]) < 1.5, f"Latin-led Arabic line: {name}"
+    assert stage["maths"]["set"] == "F = ma" and stage["maths"]["first"] < stage["maths"]["last"], f"maths changed: {stage['maths']}"
+    assert await page.evaluate("isRTL('3 تفاحات') && isRTL('Newton قانون') && !isRTL('2024') && !isRTL('F = ma')")
+    assert await page.evaluate("rtlText('قانون Newton') === 'قانون Newton' && rtlText('F = ma') === 'F = ma'")
+    # An English sentence quoting one Arabic word, and maths with an Arabic-Indic digit, stay left to right; a string
+    # already marked is not marked twice
+    assert await page.evaluate("!isRTL('The word for cat is قط in Arabic.') && !isRTL('x = ٣') && isRTL('DNA هو الحمض النووي')"), "Latin-led line misread"
+    assert await page.evaluate("rtlText(rtlText('Newton قال ذلك')) === '\\u200fNewton قال ذلك'"), "marked twice"
+    # stream() shows a letter at its first step, the mark riding with it (on a page of its own: evalTo runs its tweens)
+    typing = await open_lesson(browser, "ar", errors)
+    first = await typing.evaluate("""['Newton قال ذلك', String.fromCharCode(0x200E) + 'Newton قال ذلك'].map(s => {
+      const t = T(document.getElementById('stage'), ''); stream(t, s, 0, 1);
+      for (let k = 1; k <= 100 && !t.textContent; k++) evalTo(k / 100);   // the first step that shows anything
+      return t.textContent; })""")
+    await typing.close()
+    assert first == ["‏N", "‎N"], f"stream: the first step shows {first!r}"
+    # The author's own mark decides where the count misses
+    assert await page.evaluate("""!isRTL('Sir Isaac Newton عالم إنجليزي.') && isRTL('\\u200fSir Isaac Newton عالم إنجليزي.')
+      && !isRTL('\\u200eNewton قال ذلك') && rtlText('\\u200eNewton قال ذلك') === '\\u200eNewton قال ذلك'"""), "a direction mark ignored"
+    # The documentary kit's say(): the browser orders an Arabic line, so a Latin name of two words keeps its own order
+    # between the Arabic words, a Latin-led line still starts at the right, and each word waits for its turn.
+    film = TEMPLATES / "documentary/lib/film.js"
+    await page.add_script_tag(content=film.read_text(encoding="utf-8"))
+    said = await page.evaluate("""(() => {
+      const g = mk('g', {}, document.getElementById('stage')), out = {};
+      for (const [k, s] of [['mixed', 'قال Isaac Newton ذلك.'], ['led', 'Newton قال ذلك']]) {
+        const t = say(g, [s], 800, 300, 0, 1).querySelector('text'), set = t.textContent, at = c => set.includes(c) ? t.getStartPositionOfChar(set.indexOf(c)).x : null;
+        out[k] = { left: t.getBBox().x, q: at('ق'), i: at('I'), n: at('N'), dh: at('ذ'), words: t.querySelectorAll('tspan').length,
+          hidden: [...t.querySelectorAll('tspan')].every(e => e.getAttribute('fill-opacity') === '0') };
+      }
+      const en = say(g, ['One two'], 800, 500, 0, 1);
+      out.en = { texts: en.querySelectorAll('text').length, tspans: en.querySelectorAll('tspan').length, italic: en.querySelector('text').getAttribute('font-style') };
+      g.remove();
+      return out;
+    })()""")
+    m, led = said["mixed"], said["led"]
+    assert m["dh"] < m["i"] < m["n"] < m["q"] and m["words"] == 4 and m["hidden"] and abs(m["left"]) < 1.5, f"say(): Arabic line out of order: {m}"
+    assert led["n"] > led["q"] > led["dh"] and abs(led["left"]) < 1.5, f"say(): Latin-led Arabic line: {led}"
+    assert said["en"] == {"texts": 2, "tspans": 0, "italic": "italic"}, f"say(): English line changed: {said['en']}"
+    # Answers typed on an Arabic keyboard: Arabic-Indic digits, ٫ and ٬
+    assert await page.evaluate("[rat('٣'), rat('٠٫٧٥'), rat('۱۲'), rat('١٬٠٠٠'), rat('١،٠٠٠'), rat('١،٠٠٠،٠٠٠'), rat('١،٥'), rat('٣،٧٥'), rat('$١،٠٠٠'), rat('1،000$'), rat('١،٠٠٠٫٥'), rat('-1،000.5')].join('|') === '3,1|75,100|12,1|1000,1|1000,1|1000000,1|15,10|375,100|1000,1|1000,1|10005,10|-10005,10'"), "rat('١،٠٠٠٫٥') and kin"
+    assert await page.evaluate("translate('theEnd') === 'النهاية'")
     assert await text("#coverK") == "الفصل 1"
     assert "ابدأ الدرس" in await text("#cover .go")
     assert await text("#coverMeta") == "نحو 8 دقائق، مع الصوت وأسئلة قصيرة."
@@ -362,6 +434,110 @@ async def check_arabic_book(browser, errors):
     await page.close()
 
 
+async def check_arabic_maths(browser, errors):
+    """An expression inside a right-to-left line keeps its left-to-right order: on the stage, in a card, in a caption."""
+    page = await open_lesson(browser, "ar", errors)
+    # ltrMaths(): what is isolated (shown here between ⟦ and ⟧) and what is left to the sentence
+    cases = {
+        "لو 5 + x = 7 يبقى x = 2": "لو ⟦5 + x = 7⟧ يبقى ⟦x = 2⟧",
+        "اطرح: 7 - 2 = 5.": "اطرح: ⟦7 - 2 = 5⟧.",
+        "10 = x": "⟦10 = x⟧",
+        "قيمة (x + 2) × 3 = 15 صح": "قيمة ⟦(x + 2) × 3 = 15⟧ صح",
+        "جرّب (x = 5 مثلا) كده": "جرّب (⟦x = 5⟧ مثلا) كده",   # a bracket whose partner is outside stays outside
+        "x = 5، y = 6": "⟦x = 5⟧، ⟦y = 6⟧",
+        "7 − 2 صح": "⟦7 − 2⟧ صح",
+        "الناتج = 7 + 2": "الناتج = ⟦7 + 2⟧",             # an Arabic word across a sign does not hold it
+        "السرعة = 100 ÷ 2": "السرعة = ⟦100 ÷ 2⟧",
+        "و5 + 2 = 7": "و⟦5 + 2 = 7⟧",                      # 'and' joined to the number
+        "ف5 + 2 = 7": "ف⟦5 + 2 = 7⟧",                      # another one-letter prefix
+        "\u200f5 + x = 7": "\u200f⟦5 + x = 7⟧",            # the author's right-to-left mark: isolated all the same
+        "- x = 5": "- ⟦x = 5⟧",                            # a list item
+        "المسافة 5 km + 3 km كبيرة": "المسافة ⟦5 km + 3 km⟧ كبيرة",   # a number carries its unit
+        "لو 5 + x = 7 cm": "لو ⟦5 + x = 7 cm⟧",
+        "و 3،5 + 1 = 4،5 صح": "و ⟦3،5 + 1 = 4،5⟧ صح",      # the Arabic comma as a decimal sign
+        # left alone: a range and a date; an Arabic name across a sign; other Latin text, a number or a sign beside it
+        "الحرب 1914 - 1918 طويلة": None, "7 - 2 صح": None, "يوم 5/3/2024 كان": None, "صفحة 10-12": None,
+        "س + ٣ = ٧ معادلة": None, "٣ + ٤ = س": None, "س + 3 = 7 معادلة": None,
+        "و ٥ + ٢ = ٧ صح": None,                          # Arabic-Indic digits alone read from the right with the sentence
+        "The answer: 5 + 2 = 7.": None, "الجواب: The sum 5 + 2 = 7": None,   # after Latin words: already left to right
+"الوقت 10:5 + 3": None, "x = 5:30 وقت": None,
+        "افتح https://x.com/?a=1 الآن": None, "اكتب obj.x = 5 هنا": None, "قيمةx = 5": None,
+        "اكتب print(x) عشان": None, "السعر ١٬٥٠٠ جنيه، والخصم ٢٥٪": None, "C++ لغة و x => y سهم": None,
+    }
+    got = await page.evaluate("cs => cs.map(c => ltrMaths(c).replaceAll(String.fromCharCode(0x2066), '⟦').replaceAll(String.fromCharCode(0x2069), '⟧'))", list(cases))
+    for (text, want), have in zip(cases.items(), got):
+        assert have == (want or text), f"ltrMaths({text!r}) is {have!r}"
+    assert await page.evaluate("['لو 5 + x = 7', 'x = ٣ معادلة'].every(c => ltrMaths(ltrMaths(c)) === ltrMaths(c) && rtlText(rtlText(c)) === rtlText(c))"), "isolated twice"
+    # A long Arabic word before an expression is read once: this took seconds when SIGN_BEFORE could start inside the word
+    slow = await page.evaluate("""['ا'.repeat(30000) + ' لو 5 + x = 7', 'ا'.repeat(30000) + ' ب = 7 + x'].map(c => {
+      const t = performance.now(); ltrMaths(c); return Math.round(performance.now() - t); })""")
+    assert max(slow) < 300, f"ltrMaths on a 30,000-letter line took {slow} ms"
+    # The stage: 5 is left of x, x left of 7, and the whole expression left of the Arabic word that opens the line
+    at = await page.evaluate("""(() => {
+      const t = T(document.getElementById('stage'), 'لو 5 + x = 7 يبقى', { x: 800, y: 300 }), set = t.textContent, x = c => t.getStartPositionOfChar(set.indexOf(c)).x;
+      const out = { five: x('5'), x: x('x'), seven: x('7'), lam: x('ل'), maths: rtlText('F = ma') === 'F = ma' && T(document.getElementById('stage'), '5 + x = 7').textContent === '5 + x = 7' };
+      t.remove();
+      return out; })()""")
+    assert at["five"] < at["x"] < at["seven"] < at["lam"], f"stage: the expression is out of order: {at}"
+    assert at["maths"], "a line that is only maths changed"
+    # A card: the options 'x = 10' and '10 = x' no longer look alike, and a reason keeps its sum in order
+    card = await page.evaluate("""(() => {
+      const left = (str, a, b) => {
+        const p = document.createElement('p'); p.append(rich([str])); document.getElementById('ui').append(p);
+        const node = p.querySelector('span').firstChild, text = node.data, r = document.createRange();
+        const at = c => { const i = text.indexOf(c); r.setStart(node, i); r.setEnd(node, i + 1); return r.getBoundingClientRect().left; };
+        const out = at(a) < at(b);
+        p.remove();
+        return out; };
+      return [left('10 = x', '1', 'x'), left('x = 10', 'x', '1'), left('الصندوق جواه 5، و 5 + 2 = 7.', '+', '='), left('و 9 - x = 4 صح', '9', 'x')]; })()""")
+    assert card == [True, True, True, True], f"card: an expression is out of order: {card}"
+    # Card texts outside rich(): a question's kicker, a table's column buttons, the chapter title on the cover and the finish card
+    texts = await page.evaluate("""(() => {
+      const LRI = String.fromCharCode(0x2066), out = {};
+      quiz(BAND, [{ id: 'k', prompt: ['سؤال'], build: grid([{ parts: ['3'], ans: ['a'] }], [['a', '10 = x'], ['b', 'x = 10']], { multi: false }) }], () => {}, 'لو 5 + x = 7');
+      const card = document.querySelector('#ui .card');
+      out.kicker = card.querySelector('.kicker').textContent.includes(LRI);
+      out.cols = [...card.querySelectorAll('button.opt')].map(b => b.textContent.includes(LRI));
+      clearCards();
+      CHAPTER.title = 'حل 5 + x = 7';
+      finishCard(() => {}); out.finish = [...document.querySelectorAll('#ui .prompt')].some(e => e.textContent.includes(LRI + '5 + x = 7'));
+      clearCards();
+      return out; })()""")
+    assert texts == {"kicker": True, "cols": [True, True], "finish": True}, f"card texts outside rich(): {texts}"
+    cover = await open_lesson(browser, "ar-maths", errors)
+    title = await cover.evaluate("document.getElementById('coverT').textContent")
+    await cover.close()
+    assert title == "حل \u20665 + x = 7\u2069", f"cover title: the expression is out of order: {title!r}"
+    # stream(): the isolate's marks are invisible, so each ride with a letter: no step of the typing shows nothing new
+    steps = await page.evaluate("""(() => {
+      const t = T(document.getElementById('stage'), ''), seen = [];
+      stream(t, 'و x = ٣ صح' + String.fromCharCode(0x200F), 0, 1);   // a mark at the end rides with the last letter
+      for (let k = 0; k <= 400; k++) { evalTo(k / 400); if (t.textContent !== seen.at(-1)) seen.push(t.textContent); }
+      const visible = s => [...s].filter(c => ![0x200E, 0x200F, 0x2066, 0x2069].includes(c.codePointAt(0))).length;
+      t.remove();
+      return seen.map(visible); })()""")
+    assert steps == list(range(steps[0], steps[0] + len(steps))) and steps[-1] == len("و x = ٣ صح") and len(steps) == steps[-1] - steps[0] + 1, f"stream: a step shows nothing new: {steps}"
+    # The documentary kit's say(): an isolated expression is one word, so its isolate opens and closes in one <tspan>
+    await page.add_script_tag(content=(TEMPLATES / "documentary/lib/film.js").read_text(encoding="utf-8"))
+    said = await page.evaluate("""(() => { const g = mk('g', {}, document.getElementById('stage'));
+      const ts = [...say(g, ['احسب 5 + x = 7 الآن'], 800, 300, 0, 1).querySelectorAll('tspan')].map(e => e.textContent); g.remove(); return ts; })()""")
+    assert said == ["احسب", "⁦5 + x = 7⁩", "الآن"], f"say(): {said!r}"
+    # A caption reads from the right too
+    await page.evaluate("TIMINGS.idea.cues = [[0, 'لو 5 + x = 7 يبقى x = 2']]; setCaptions(true, false); hideCover(); seek(1, false)")
+    await page.wait_for_function("document.getElementById('caption').textContent")
+    caption = await page.evaluate("document.getElementById('caption').textContent.replaceAll(String.fromCharCode(0x2066), '⟦').replaceAll(String.fromCharCode(0x2069), '⟧')")
+    assert caption == "لو ⟦5 + x = 7⟧ يبقى ⟦x = 2⟧", f"caption: {caption!r}"
+    await page.close()
+    # An English page is untouched: its cards and captions set the string as written
+    page = await open_lesson(browser, "en", errors)
+    assert await page.evaluate("['10 = x', '(5 + 2 = 7)', 'كتاب: 5 + x = 7'].every(c => ltrMaths(c) !== c && rich([c]).textContent === c && T(document.getElementById('stage'), c).textContent === c)"), "English text changed"
+    await page.evaluate("TIMINGS.idea.cues = [[0, '5 + x = 7.']]; setCaptions(true, false); hideCover(); seek(1, false)")
+    await page.wait_for_function("document.getElementById('caption').textContent")
+    assert await page.evaluate("document.getElementById('caption').textContent") == "5 + x = 7.", "English caption changed"
+    await page.close()
+    print("PASS Arabic maths: an expression inside a right-to-left line keeps its order on the stage, in cards and in captions")
+
+
 async def main():
     errors = []
     async with async_playwright() as playwright:
@@ -373,6 +549,7 @@ async def main():
         await check_cjk(browser, errors)
         await check_arabic_lesson(browser, errors)
         await check_arabic_book(browser, errors)
+        await check_arabic_maths(browser, errors)
         await browser.close()
     assert not errors, errors
     print("PASS no page errors, console errors or failed requests")

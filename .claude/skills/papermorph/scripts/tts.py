@@ -46,6 +46,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import unicodedata
 from pathlib import Path
 
 
@@ -166,6 +167,57 @@ def split_marks(raw):
     return "".join(clean), marks, shown
 
 
+def bare(text):
+    """The text without vowel marks (Arabic harakat, combining accents) or the Arabic stretch ـ."""
+    return "".join(c for c in text if not unicodedata.category(c).startswith("M") and c != "ـ")
+
+
+def cut_short(clean, last_spoken):
+    """The word the text ends with, when the voice's last word is another one (a clip that stops early), else None.
+    Words are compared without vowel marks, case or the punctuation around them (quotes, an ellipsis, the Arabic
+    comma), and a word the voice says in parts ("twenty-one" ending "one") counts as said. A text that ends with a
+    number should end the clip on that number: Edge names a number in its word list as it is written (1914, 50%,
+    ١٩١٤), and sometimes as one entry with the numbers before it ("from 1914 to 1918"), so the last number in the
+    voice's last entry must be that number ("from 15 to 5" stopping at "15" is cut). One that ends in a word should not end the clip on a number. No verdict for
+    Chinese and Japanese, which have no spaces to find a last word by."""
+    if re.search(f"[{CJK}]", clean):
+        return None
+    number = re.search(r"(\d[\d.,٫٬،]*\d|\d)\W*$", clean)
+    if number:
+        said = re.findall(r"\d[\d.,٫٬،]*\d|\d", last_spoken)
+        digits = lambda n: re.sub(r"\D", "", n)
+        return None if said and digits(said[-1]) == digits(number.group(1)) else number.group(1)
+    word = r"[^\W\d_][\w'-]*"
+    ends = [w.strip("'-") for w in re.findall(word, bare(clean[-40:]))]
+    if not ends:
+        return None
+    spoken = [w.strip("'-") for w in re.findall(word, bare(last_spoken))]
+    if not spoken:
+        return ends[-1] if re.search(r"\d", last_spoken) else None
+    end, said = ends[-1].lower(), spoken[-1].lower()
+    return None if said == end or end.endswith("-" + said) else ends[-1]
+
+
+def misread_numbers(clean):
+    """[(number, how to write it or None)] for each number written with an Arabic separator, which Edge's Arabic voices
+    misread:
+    measured 2026-11-23, ar-EG-SalmaNeural says nothing for ١٬٠٠٠ or ١٫٥ (the clip is as long as without them),
+    ar-SA-HamedNeural nothing for ١٬٠٠٠, and both read ١،٠٠٠ as two numbers. ١٠٠٠ and ١.٥ are read right. The way to
+    write it is None when the separators do not make one number (١،٠٠٠،٥, ١٬٠٠٠٬٥, ١٬٠٠٠،٠٠٠)."""
+    out = []
+    for n in re.findall(r"\d+(?:[٫٬،]\d+)+", clean):
+        if re.fullmatch(r"\d{1,3}([٬،])\d{3}(?:\1\d{3})*(?:٫\d+)?", n):   # thousands, one sign throughout, then a decimal part
+            fixed = re.sub("[٬،]", "", n).replace("٫", ".")
+        elif re.fullmatch(r"\d{1,3}(?:٬\d{3})+،(?!\d{3}$)\d+", n):   # ٬ groups, then ، before the decimal part
+            fixed = n.replace("٬", "").replace("،", ".")
+        elif re.fullmatch(r"\d+[٫،]\d+", n):   # a decimal part alone, or two numbers of a list (the warning says "if")
+            fixed = re.sub("[٫،]", ".", n)
+        else:
+            fixed = None
+        out.append((n, fixed))
+    return out
+
+
 def time_at(clean, words, estimate=False):
     """Return f(pos): start time of the first spoken word at or after char pos. The voice's word list can stop
     short of the text; with estimate, a position past its last word is timed at the speaking rate so far (seconds
@@ -230,7 +282,7 @@ def respell(cues, shown, beat=""):
 
 # tts.py and eleven.py split narration with these, so their captions and marks cannot drift apart
 SENTENCE_END = re.compile(r"(?<!\.\.)[.?!؟]\s+|[。！？]\s*")   # ؟ is the Arabic question mark; "I... I can't" is one line
-CLAUSE_END = re.compile(r"(?<!\.\.)[.?!؟:]\s+|[。！？：]\s*")   # eleven.py's cues: a clause after a colon too
+CLAUSE_END = re.compile(r"(?<!\.\.)[.?!؟:؛]\s+|[。！？：]\s*")   # eleven.py's cues: a clause after a colon (or the Arabic ؛) too
 ABBREV = re.compile(r"(?<![\w.])(?:Mr|Mrs|Ms|Dr|Prof|St|vs|approx|e\.g|i\.e|cf)\.$")
 CJK = "　-ヿ㐀-䶿一-鿿豈-﫿＀-￯"   # kana, ideographs, CJK and full-width punctuation
 TOKEN = re.compile(rf"[{CJK}]|[^\s{CJK}]+")
@@ -335,6 +387,11 @@ async def main(src, out_dir):
         mp3 = out_dir / f"{beat}.mp3"
         old = cache.get(beat)
         clean, marks, shown = split_marks(raw)
+        for n, fixed in misread_numbers(clean) if engine == "edge" and voice.lower().startswith("ar-") else []:
+            how = (f"write {fixed!r}, or {{{{{n}|{fixed}}}}} to keep {n!r} in the captions" if fixed else
+                   "write it with no thousands sign and a point before its decimal part (١٠٠٠, ١٠٠٠.٥)")
+            print(f"{beat}: WARNING Edge's Arabic voices skip {n!r} or read it as separate numbers (it is written with ٬, ٫ "
+                  f"or ،): if it is one number, {how}, and synthesize it again")
         tag = "" if engine == "edge" else f"{engine}|"   # Edge keys stay as they were, so its audio is kept
         key = hashlib.sha1(f"{tag}{voice}|{rate}|{'' if pitch == '+0Hz' else pitch + '|'}{clean}".encode()).hexdigest()
         # Existing caches included [[marks]] in the key; reuse an unchanged old beat once,
@@ -376,9 +433,9 @@ async def main(src, out_dir):
                 print(f"{beat}: synthesized{' and treated' if af else ''}" if not reusable else
                       f"{beat}: {'treated' if af else 'treatment taken off'}, no new request (level it again if it was levelled)")
             # Edge has returned clips that stop a sentence early: the last spoken word should end the text
-            ends = re.findall(r"[A-Za-z][\w'-]*", clean[-40:])
-            if words and ends and clean.isascii() and words[-1][1].strip(".,;:!?\"'") != ends[-1]:
-                print(f"{beat}: WARNING the voice's last word is {words[-1][1]!r} but the text ends {ends[-1]!r}: the clip "
+            end = cut_short(clean, words[-1][1]) if words else None
+            if end:
+                print(f"{beat}: WARNING the voice's last word is {words[-1][1]!r} but the text ends {end!r}: the clip "
                       "may be cut short; listen to it, and synthesize it again (change its cached key) if so")
             result[beat] = entry
             cache[beat] = entry

@@ -76,7 +76,7 @@ const Contents = (() => {
   // the same lookup as translate() in engine.js (the two pages never load each other's file): keep them in step
   const LANGUAGE = (document.documentElement.lang || 'en').toLowerCase().split('-')[0];
   // right-to-left interface languages, as RTL_LANGUAGES in engine.js: keep them in step
-  if (!document.documentElement.dir && ['ar'].includes(LANGUAGE)) document.documentElement.dir = 'rtl';
+  if (!document.documentElement.dir && ['ar', 'he', 'fa', 'ur'].includes(LANGUAGE)) document.documentElement.dir = 'rtl';
   function translate(key, vars = {}) {
     const language = TRANSLATIONS[LANGUAGE]?.[key] !== undefined ? LANGUAGE : 'en';
     let text = TRANSLATIONS[language][key] ?? key;
