@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Discounts and Markups, special edition — Elementary Mathematics</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+<style>
+/* The contents card links here with href, which has no progress slot: keep this lesson's progress apart, or opening it
+   would set the book's "last" to a chapter the cover cannot find, and the cover would lose its Continue button. */
+:root{--progress-key:"animebook:progress:math-notebook/special-ch22"}
+.band .prompt{font-size:26px}
+/* Two money boxes are too wide to sit beside the prompt: stack prompt, boxes and feedback so the card stays low and the figure above it stays visible. */
+.card.band:has(.blanks){grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"pic head acts" "pic body acts" "pic fb acts";row-gap:6px}
+.screen .blanks .box{width:8ch!important}
+.blanks .bline svg tspan{font-style:normal}
+</style>
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="audio/en/timings.js"></script>
+<script src="prices.js"></script>
+<script>
+'use strict';
+// Progress has its own key (see the style above); 122 is still a slot no source chapter (1–63) uses, so the review
+// notes and any later move into the book's progress cannot clash with a real chapter. The label is what the reader sees.
+const CHAPTER = {number:122, label:'22 · special edition', title:'Discounts and Markups, special edition', minutes:12, language:'en'};
+// Pick once per page load, outside replayed beat state, so seeking never changes a question.
+const seQuestions = SE.questions();
+const seMoney = cents => '$' + SE.money(cents);
+const seText = (p, s, x, y, t=0, size=32, color=COL.chalk, anchor='start') => {
+  const e = T(p, s, {x,y,size,fill:color,anchor,o:0}); show(e,t); return e;
+};
+const seMath = (p, s, y, t=0, color=COL.chalk, size=50, x=800) => {
+  const e = M(p,[s],{x,y,size,fill:color,anchor:'middle',o:0}); show(e,t); return e;
+};
+function seHeading(title, sub='') {
+  const p=panel(0);
+  seText(p,title,100,108,0,43);
+  if(sub) seText(p,sub,100,163,0,27,COL.dim);
+  return p;
+}
+// A fixed-scale bar for one price change. The whole bar shows first; at split the changing part is cut off (the
+// paid part shrinks under it) or added on; away slides a removed piece clear of the bar. Grey is kept for a cost.
+function seStrip(p, model, x, y, unit, {at=0, split=at, away=null, height=76, fill=model.up?COL.chalk:COL.whole}={}) {
+  const g=G(p,{x,y,o:0}), w=model.base*unit, amount=model.amount*unit;
+  mk('rect',{width:w,height,fill:'none',stroke:COL.chalk,'stroke-width':2,'stroke-dasharray':'8 7'},g);
+  const kept=mk('rect',{height,fill,'fill-opacity':.3,stroke:fill,'stroke-width':2},g);
+  put(kept,{a_width:w});
+  if(!model.up) tw(kept,{a_width:w-amount},split,.6);
+  const moved=G(g,{o:0});
+  mk('rect',{x:model.up?w:w-amount,width:amount,height,fill:model.up?COL.rat:COL.nat,'fill-opacity':.65,stroke:model.up?COL.rat:COL.nat,'stroke-width':2},moved);
+  show(g,at); show(moved,split);
+  if(away!==null) tw(moved,{y:height+18},away,.9,io);
+  // x of the end of the kept part and the middle of the moved piece, for labels
+  return {g,kept,moved,w,unit,model,cut:x+(model.up?w:w-amount),mid:x+(model.up?w:w-amount)+amount/2,y,height};
+}
+// A bracket over (or under, h<0) a span of a bar, with its label.
+function seBracket(p, x1, x2, y, label, t, color=COL.whole, h=14) {
+  const g=G(p,{o:0});
+  path(g,`M${x1} ${y+h}V${y}H${x2}V${y+h}`,{stroke:color,'stroke-width':2.5,fill:'none'});
+  T(g,label,{x:(x1+x2)/2,y:h>0?y-12:y+36,size:31,fill:color,anchor:'middle'});
+  show(g,t); return g;
+}
+function seTag(p, label, value, x, y, color=COL.whole, at=0) {
+  const g=G(p,{x,y,o:0});
+  mk('rect',{x:-155,y:-54,width:310,height:126,rx:15,fill:COL.board,stroke:color,'stroke-width':2},g);
+  T(g,label,{x:0,y:-14,size:25,fill:COL.dim,anchor:'middle'});
+  T(g,value,{x:0,y:39,size:43,fill:color,anchor:'middle'});
+  show(g,at); return g;
+}
+function seQuestionPicture(q) {
+  let title=q.title, sub=q.subtitle;
+  if(q.kind==='original'||q.kind==='cost') {
+    title=q.item+' · '+(q.kind==='cost'?'selling price ':'sale price ')+seMoney(q.a.next);
+    sub=q.a.rate+'% '+(q.a.up?'markup on cost':'off the original price')+' · Find the missing base';
+  } else if(q.kind==='rate') {
+    title=q.item+' · original '+seMoney(q.a.base)+' · paid '+seMoney(q.a.next);
+    sub='How much was saved out of the original price?';
+  }
+  const p=seHeading(title,sub);
+  if(q.kind==='compare') {
+    const unit=600/Math.max(q.a.base,q.b.base);  // one scale so the two tags compare by length
+    seText(p,'A: '+seMoney(q.a.base)+' · '+q.a.rate+'% off',150,250,0,33);
+    seStrip(p,q.a,150,280,unit);
+    seText(p,'B: '+seMoney(q.b.base)+' · '+q.b.rate+'% off',850,250,0,33);
+    seStrip(p,q.b,850,280,unit);
+  } else if(q.kind==='two'||q.kind==='updown'||q.kind==='downup') {
+    const unit=900/Math.max(q.a.base,q.a.next,q.b.next);
+    seStrip(p,q.a,150,260,unit,{fill:COL.whole});
+    seText(p,'First change: '+q.a.rate+'% of '+seMoney(q.a.base),150,230,0,30,COL.task);
+    // The second bar is an empty outline: its length is the first answer, so no number goes on it.
+    mk('rect',{x:150,y:422,width:q.a.next*unit,height:65,fill:'none',stroke:COL.whole,'stroke-width':2},p);
+    seText(p,'Second base = your first answer',150,405,0,30,COL.whole);
+    seText(p,q.b.rate+'% '+(q.b.up?'up':'off')+' this price',1100,465,0,28,COL.task);
+  } else if(q.kind==='original'||q.kind==='cost') {
+    const fraction=(100+(q.a.up?q.a.rate:-q.a.rate))/100;
+    mk('rect',{x:150,y:280,width:1000,height:76,fill:'none',stroke:COL.chalk,'stroke-width':2},p);
+    seText(p,'missing base = 100%',150,240,0,33);
+    mk('rect',{x:150,y:400,width:1000*fraction,height:65,fill:COL.whole,'fill-opacity':.3,stroke:COL.whole,'stroke-width':2},p);
+    // The percent this price is of the base is the student's first step, so it stays a question.
+    seText(p,seMoney(q.a.next)+' = ?% of the base',150,515,0,33,COL.whole);
+  } else {
+    const bar=seStrip(p,q.a,150,300,1000/(q.a.base+(q.a.up?q.a.amount:0)));
+    seText(p,q.a.up?'cost = 100%':'original = 100%',150,260,0,33);
+    seText(p,q.kind==='rate'?'saved = original − paid':q.a.rate+'% '+(q.a.up?'added':'removed'),
+      150+bar.w+(q.a.up?q.a.amount*bar.unit:0),420,0,32,q.a.up?COL.rat:COL.nat,'end');
+  }
+}
+// One sentence per practice task: what is known, then what to find.
+function seTask(q) {
+  const a=q.a, b=q.b, $=seMoney;
+  const text={
+    discount:q.item+': '+$(a.base)+', '+a.rate+'% off. Find the discount and the price to pay.',
+    compare:'Same ink tray. Supplier A: '+$(a.base)+', '+a.rate+'% off. Supplier B: '+$(b.base)+', '+b.rate+'% off. What is the lower final price?',
+    two:q.item+': '+$(a.base)+', '+a.rate+'% off, then '+b.rate+'% off the reduced price. Find both prices.',
+    downup:q.item+': '+$(a.base)+', '+a.rate+'% off, then a '+b.rate+'% increase on the reduced price. Find both prices.',
+    original:q.item+': '+$(a.next)+' after '+a.rate+'% off. Find the original price.',
+    cost:q.item+': sells for '+$(a.next)+' after a '+a.rate+'% markup on cost. Find the cost.',
+    rate:q.item+': original '+$(a.base)+', paid '+$(a.next)+'. What percent was taken off?',
+    markup:q.item+': costs '+$(a.base)+', with a '+a.rate+'% markup on cost. Find the markup and the selling price.'
+  }[q.kind];
+  return text+(q.rule?' '+q.rule:'')+(q.kind==='rate'?' Type the whole number, without %.':' Type dollars without $.');
+}
+function seAsk(id, done) {
+  const items=seQuestions[id];
+  const practice=id.startsWith('final');
+  const qs=items.map((q,i)=>({
+    id:(practice?'p-':'c-')+id+'-'+i,
+    prompt:practice?seTask(q):'Calculate from the tag. Type dollars without $.',
+    build:blanks([q.row])
+  }));
+  quiz(practice?SCREEN:BAND,qs,done,practice?'Studio practice · set '+id.slice(-1)+' of 3':'Studio quick check');
+}
+const BEATS=[
+['intro','The studio pop-up',(m)=>{
+  const p=seHeading('Discounts and Markups','Special edition · the studio pop-up');
+  seText(p,'Which price is 100%?',800,330,0,65,COL.task,'middle');
+  seTag(p,'SELLING PRICE','cost + markup',430,510,COL.rat,m('shop'));
+  seTag(p,'SALE PRICE','tag − discount',1170,510,COL.nat,m('shop'));
+  seText(p,'Track the base before you change the price.',800,690,m('base'),36,COL.whole,'middle');
+}],
+['base','Name the base',m=>{
+  const q=SE.worked.pad,p=seHeading('One sketch pad · two different amounts','The tag is the whole: 100%');
+  seTag(p,'ORIGINAL TAG',seMoney(q.a.base),430,300,COL.chalk);
+  seTag(p,'DISCOUNT RATE',q.a.rate+'% off',1170,300,COL.task);
+  seText(p,seMoney(q.a.base)+' = 100%',200,432,0,30);
+  const bar=seStrip(p,q.a,200,450,1200/q.a.base,{split:m('slice')});
+  seText(p,q.a.rate+'%',bar.mid,565,m('slice'),30,COL.nat,'middle');
+  seText(p,'The rate measures a part of this original price.',800,650,m('base'),35,COL.chalk,'middle');
+}],
+['discount','Find the saving',m=>{
+  const q=SE.worked.pad,p=seHeading(q.title,'Discount amount: the money removed');
+  const bar=seStrip(p,q.a,200,270,1200/q.a.base,{split:m('cut'),away:m('remove')});
+  seText(p,seMoney(q.a.amount)+' · '+q.a.rate+'% removed',bar.mid,475,m('remove'),30,COL.nat,'middle');
+  seText(p,'pay '+seMoney(q.a.next),(200+bar.cut)/2,255,m('remove'),31,COL.whole,'middle');
+  seMath(p,'12 ÷ 100 = 0.12',520,m('decimal'),COL.task);
+  seMath(p,'0.12 × '+SE.money(q.a.base)+' = '+SE.money(q.a.amount),615,m('compute'),COL.nat);
+  seMath(p,SE.money(q.a.base)+' − '+SE.money(q.a.amount)+' = '+SE.money(q.a.next),710,m('remove'),COL.whole);
+}],
+['remaining','Pay for the remainder',m=>{
+  const q=SE.worked.pad,p=seHeading('A smaller price, from the same whole','Saving and payment fit together to make 100%');
+  const bar=seStrip(p,q.a,200,285,1200/q.a.base,{split:m('apart'),away:m('apart')+.6});
+  seText(p,'pay '+(100-q.a.rate)+'% · '+seMoney(q.a.next),(200+bar.cut)/2,265,m('left'),32,COL.whole,'middle');
+  seText(p,'save '+q.a.rate+'% · '+seMoney(q.a.amount),bar.mid,490,m('apart')+.6,30,COL.nat,'middle');
+  seMath(p,'100% − '+q.a.rate+'% = '+(100-q.a.rate)+'%',540,m('left'),COL.task);
+  seMath(p,'0.88 × '+SE.money(q.a.base)+' = '+SE.money(q.a.next),640,m('multiply'),COL.whole);
+  seText(p,'Discount amount and sale price answer different questions.',800,725,m('check'),31,COL.dim,'middle');
+}],
+['q1','Read the tag',()=>seQuestionPicture(seQuestions.q1[0]),{ask:done=>seAsk('q1',done)}],
+['twice','Two price changes',m=>{
+  const q=SE.worked.twice,p=seHeading(q.title,'First 20% off; then 25% off the reduced price');
+  seStrip(p,q.a,150,280,.1,{split:m('first'),away:m('first')+.7});
+  seText(p,seMoney(q.a.base)+' original',150,245,0,32);
+  seText(p,seMoney(q.a.next)+' after first',150,415,m('first'),32,COL.whole);
+  seText(p,'20% of '+seMoney(q.a.base)+' = '+seMoney(q.a.amount),1180,330,m('first'),31,COL.nat);
+  // The paid part of the first bar is copied down: it becomes the whole for the second discount.
+  const lower=seStrip(p,q.b,150,280,.1,{at:m('carry'),split:m('second'),away:m('second')+.7});
+  tw(lower.g,{y:510},m('carry'),1.1);
+  seText(p,'new whole '+seMoney(q.b.base),1180,560,m('carry')+.8,31,COL.whole);
+  seText(p,'25% of '+seMoney(q.a.next)+' = '+seMoney(q.b.amount),1180,610,m('second'),31,COL.nat);
+  seText(p,seMoney(q.b.next)+' final',150,665,m('second')+.7,38,COL.whole);
+}],
+['secondbase','Why rates do not add',m=>{
+  const q=SE.worked.twice,p=seHeading('The second 25% has a smaller base','Both strips are drawn to the same scale');
+  const mistaken=SE.change(q.a.base,q.b.rate), added=SE.change(q.a.base,q.a.rate+q.b.rate);
+  seText(p,'Actual second discount',150,240,0,33);
+  seStrip(p,q.b,150,270,.1,{split:m('actual')});
+  seText(p,'25% of '+seMoney(q.b.base)+' = '+seMoney(q.b.amount),150,405,m('actual'),32,COL.nat);
+  seText(p,'If it were 25% of the original',150,490,m('wrong'),33,COL.dim);
+  seStrip(p,mistaken,150,520,.1,{at:m('wrong'),split:m('wrong')+.5});
+  seText(p,seMoney(mistaken.amount)+' would be removed',150,655,m('wrong')+.5,32,COL.dim);
+  seTag(p,'ACTUAL FINAL',seMoney(q.b.next),1300,330,COL.whole,m('result'));
+  seText(p,'Not '+(q.a.rate+q.b.rate)+'% off:',1300,455,m('result'),34,COL.task,'middle');
+  seText(p,'that would leave '+seMoney(added.next),1300,497,m('result'),30,COL.dim,'middle');
+}],
+['q2','Keep track of both bases',()=>seQuestionPicture(seQuestions.q2[0]),{ask:done=>seAsk('q2',done)}],
+['reverse','Rebuild the original',m=>{
+  const q=SE.worked.reverse,p=seHeading('Fabric roll · sale '+seMoney(q.a.next)+' · '+q.a.rate+'% off','The sale price is 88 equal shares out of 100');
+  seText(p,'88 shares = '+seMoney(q.a.next),200,238,0,31,COL.whole);
+  // Equal share widths make division/reconstruction visible without stretching the sale amount.
+  for(let i=0;i<100;i++){
+    const e=mk('rect',{x:200+(i%25)*48,y:260+Math.floor(i/25)*42,width:43,height:33,
+      fill:i<88?COL.whole:COL.nat,'fill-opacity':.65},p);
+    put(e,{o:i<88?1:0}); if(i>=88)show(e,m('rebuild')+(i-88)*.06,.3);
+  }
+  const one=mk('rect',{x:196,y:256,width:51,height:41,rx:4,fill:'none',stroke:COL.chalk,'stroke-width':3},p);
+  put(one,{o:0}); show(one,m('share'),.3);
+  seText(p,'one share = $0.36',200,460,m('share'),30,COL.chalk);
+  seText(p,'100 shares = '+seMoney(q.a.base),1400,460,m('rebuild')+.8,30,COL.chalk,'end');
+  seMath(p,SE.money(q.a.next)+' ÷ 88 = 0.36',530,m('share'),COL.whole);
+  seMath(p,'0.36 × 100 = '+SE.money(q.a.base),625,m('rebuild'),COL.chalk);
+  seMath(p,SE.money(q.a.next)+' ÷ 0.88 = '+SE.money(q.a.base),720,m('factor'),COL.task);
+}],
+['reversetrap','Why adding back fails',m=>{
+  const q=SE.worked.reverse,wrong=SE.change(q.a.next,q.a.rate,true);
+  const p=seHeading('Adding 12% of the sale price back?','A percent of the smaller price is a smaller amount');
+  const top=seStrip(p,q.a,150,290,.28);
+  seStrip(p,wrong,150,490,.28,{at:m('wrong'),fill:COL.whole});
+  seText(p,'Actual saving '+seMoney(q.a.amount),150,255,0,34,COL.nat);
+  seText(p,'12% of sale = '+seMoney(wrong.amount),150,455,m('wrong'),34,COL.rat);
+  seTag(p,'WRONG ORIGINAL',seMoney(wrong.next),1345,420,COL.dim,m('add'));  // right of both strips
+  // The two pieces side by side: the saving and the add-back start at the same place but differ in length.
+  [[290,q.a.amount],[490,wrong.amount]].forEach(([y,cents])=>{
+    const r=mk('rect',{x:150+q.a.next*.28+2,y:y+2,width:cents*.28-4,height:72,fill:'none',stroke:COL.chalk,'stroke-width':4},p);  // inside the piece, so the ends stay readable
+    put(r,{o:0}); show(r,m('compare'),.4);
+  });
+  // The original's end, carried down: the added-back bar stops short of it.
+  const end=150+top.w, guide=path(p,`M${end} 270V566`,{stroke:COL.task,'stroke-width':2.5,'stroke-dasharray':'7 6'},{d:0});
+  draw(guide,m('test'),.6);
+  seBracket(p,150+wrong.next*.28,end,586,'short by '+seMoney(q.a.base-wrong.next),m('test')+.4,COL.task,-14);
+  const cross=path(p,'M1200 482L1490 372',{stroke:COL.bad,'stroke-width':5},{d:0});
+  draw(cross,m('test'),.6);
+  seText(p,'Use 88% × original = '+seMoney(q.a.next),800,700,m('right'),38,COL.task,'middle');
+}],
+['q3','Find the missing original',()=>seQuestionPicture(seQuestions.q3[0]),{ask:done=>seAsk('q3',done)}],
+['rate','Recover the percent discount',m=>{
+  const q=SE.worked.rate,p=seHeading('Clay stamp kit · two prices, unknown rate','Original '+seMoney(q.a.base)+' · paid '+seMoney(q.a.next));
+  seText(p,'original '+seMoney(q.a.base)+' = 100%',200,272,0,30);
+  const bar=seStrip(p,q.a,200,290,1200/q.a.base,{split:m('save')});
+  seText(p,'paid '+seMoney(q.a.next),(200+bar.cut)/2,415,m('save'),30,COL.whole,'middle');
+  seText(p,'saved '+seMoney(q.a.amount),bar.mid,415,m('save'),30,COL.nat,'middle');
+  seMath(p,SE.money(q.a.base)+' − '+SE.money(q.a.next)+' = '+SE.money(q.a.amount),530,m('save'),COL.nat);
+  seMath(p,SE.money(q.a.amount)+' ÷ '+SE.money(q.a.base)+' = 0.18',625,m('divide'),COL.task);
+  seMath(p,'0.18 × 100 = '+q.a.rate+'%',720,m('percent'),COL.task);
+}],
+['markup','Build a selling price',m=>{
+  const q=SE.worked.markup,p=seHeading(q.title,'A markup is measured from the supplier cost');
+  const unit=1200/q.a.next, bar=seStrip(p,q.a,200,300,unit,{split:m('add')});
+  seText(p,'cost '+seMoney(q.a.base)+' = 100%',200,415,0,30);
+  seText(p,'+ '+seMoney(q.a.amount)+' = 40%',1400,415,m('add'),30,COL.rat,'end');
+  seBracket(p,200,1400,280,seMoney(q.a.next)+' = 140% of cost',m('add')+.6);
+  seMath(p,'0.40 × '+SE.money(q.a.base)+' = '+SE.money(q.a.amount),540,m('amount'),COL.rat);
+  seMath(p,SE.money(q.a.base)+' + '+SE.money(q.a.amount)+' = '+SE.money(q.a.next),635,m('add'),COL.whole);
+  seText(p,'Markup helps cover expenses; it is not all take-home profit.',800,725,m('expenses'),30,COL.dim,'middle');
+}],
+['markupback','Find the supplier cost',m=>{
+  const q=SE.worked.cost,p=seHeading('Wire sculpture kit · sells for '+seMoney(q.a.next),'A 15% markup on cost makes the price 115% of cost');
+  seStrip(p,q.a,200,300,1200/q.a.next,{split:m('whole')});
+  const unknown=seText(p,'cost ? = 100%',200,415,m('whole'),30);
+  hide(unknown,m('divide'),.3);
+  seText(p,'cost '+seMoney(q.a.base)+' = 100%',200,415,m('divide')+.3,30,COL.chalk);
+  seText(p,'+15%',1400,415,m('whole'),30,COL.rat,'end');
+  seBracket(p,200,1400,280,seMoney(q.a.next)+' = 115% of cost',m('factor'));
+  seMath(p,'1.15 × cost = '+SE.money(q.a.next),535,m('factor'),COL.task);
+  seMath(p,SE.money(q.a.next)+' ÷ 1.15 = '+SE.money(q.a.base),630,m('divide'),COL.chalk);
+  seText(p,'Check: '+seMoney(q.a.base)+' + '+seMoney(q.a.amount)+' = '+seMoney(q.a.next),800,725,m('check'),34,COL.whole,'middle');
+}],
+['updown','Equal rates, different changes',m=>{
+  const q=SE.worked.cycle,p=seHeading('Sign easel · '+seMoney(q.a.base)+' · up 20%, then down 20%','The second 20% is measured from the higher price'), unit=.125;
+  seStrip(p,q.a,150,285,unit,{split:m('up'),fill:COL.whole});
+  hide(seText(p,seMoney(q.a.base)+' = start',150,250,0,33,COL.whole),m('up'),.3);
+  seText(p,'Add '+seMoney(q.a.amount)+' to get '+seMoney(q.a.next),150,250,m('up')+.3,33,COL.rat);
+  seStrip(p,q.b,150,510,unit,{at:m('down'),split:m('down')+.8});
+  seText(p,'Remove '+seMoney(q.b.amount)+' to get '+seMoney(q.b.next),150,475,m('down'),33,COL.nat);
+  seTag(p,'FINAL',seMoney(q.b.next),1290,365,COL.whole,m('result'));
+  // The start price carried down as a guide: the final bar ends short of it.
+  const start=150+q.a.base*unit, guide=path(p,`M${start} 265V600`,{stroke:COL.task,'stroke-width':2.5,'stroke-dasharray':'7 6'},{d:0});
+  draw(guide,m('result'),.6);
+  seText(p,'start '+seMoney(q.a.base),start,628,m('result'),28,COL.task,'middle');
+  seText(p,'Below the start by '+seMoney(q.a.base-q.b.next),800,715,m('result')+.4,38,COL.task,'middle');
+}],
+['q4','Predict, then calculate',()=>seQuestionPicture(seQuestions.q4[0]),{ask:done=>seAsk('q4',done)}],
+['cents','When a fraction of a cent appears',m=>{
+  const q=SE.worked.cents,p=seHeading(q.title,'Round the discount to cents; half a cent rounds up. Then subtract.');
+  seStrip(p,q.a,200,285,1200/q.a.base,{split:m('exact')});
+  // A short number line from $1.32 to $1.33, beside the maths: 1.323 sits nearer the lower end.
+  const nl=G(p,{o:0}), x0=1090, x1=1450, at=v=>x0+(v-1.32)/.01*(x1-x0);
+  T(nl,'the discount, in dollars',{x:(x0+x1)/2,y:520,size:28,fill:COL.dim,anchor:'middle'});
+  path(nl,`M${x0} 600H${x1}M${x0} 588V612M${x1} 588V612M${at(1.325)} 592V608`,{stroke:COL.chalk,'stroke-width':2.5});
+  T(nl,'1.32',{x:x0,y:650,size:30,fill:COL.chalk,anchor:'middle'});
+  T(nl,'1.33',{x:x1,y:650,size:30,fill:COL.chalk,anchor:'middle'});
+  T(nl,'half',{x:at(1.325),y:650,size:30,fill:COL.dim,anchor:'middle'});
+  mk('circle',{cx:at(1.323),cy:600,r:9,fill:COL.nat},nl);
+  T(nl,'1.323',{x:at(1.323),y:572,size:30,fill:COL.nat,anchor:'middle'});
+  show(nl,m('exact'));
+  const near=mk('circle',{cx:x0,cy:600,r:15,fill:'none',stroke:COL.task,'stroke-width':4},p);
+  put(near,{o:0}); show(near,m('round'),.4);
+  seMath(p,'0.18 × 7.35 = 1.323',520,m('exact'),COL.nat,50,600);
+  seMath(p,'1.323 ≈ '+SE.money(q.a.amount),617,m('round'),COL.task,50,600);
+  seMath(p,SE.money(q.a.base)+' − '+SE.money(q.a.amount)+' = '+SE.money(q.a.next),715,m('subtract'),COL.whole,50,600);
+}],
+['wrap','Three questions for any price change',m=>{
+  const p=seHeading('Keep the base in view','Discounts subtract; markups add');
+  [
+    ['1 · What amount is 100%?', 'The original tag, the cost, or the price after a first change?', 'base'],
+    ['2 · What part changes?', 'Rate ÷ 100 × that base; then subtract or add.', 'change'],
+    ['3 · Which direction are we working?', 'Forward: multiply by the factor. Backward: divide by it. Two changes: a new base each time.', 'direction']
+  ].forEach(([a,b,key],i)=>{
+    seText(p,a,150,290+i*165,m(key),42,COL.task);
+    seText(p,b,150,347+i*165,m(key),30);
+  });
+}],
+['final1','Studio practice · discounts',()=>panel(0),{ask:done=>seAsk('final1',done)}],
+['final2','Studio practice · work backward',()=>panel(0),{ask:done=>seAsk('final2',done)}],
+['final3','Studio practice · markups',()=>panel(0),{ask:done=>seAsk('final3',done)}],
+['finish','Studio complete',()=>panel(0),{ask:finishCard}]
+].map(([id,title,run,extra])=>({id,title,run,...extra}));
+boot();
+</script>
+</body>
+</html>
