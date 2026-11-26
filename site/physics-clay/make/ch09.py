@@ -1,7 +1,8 @@
-"""ch09.py: the clay pictures of Elementary Physics chapter 1, "Motion", clay edition (site/physics-clay/ch09).
+"""ch09.py: the clay pictures of Elementary Physics chapter 1, "Motion", clay edition (site/physics-clay/ch09), made with
+the Skill's clay kit (.claude/skills/papermorph/scripts/claykit.py, clayprops.py; the method: references/core/clay.md).
 
-    blender --background --factory-startup --python site/physics-clay/make/ch09.py -- --set road [--only truck,car] \
-        [--engine cycles] [--device auto|OPTIX|CUDA|METAL|CPU] [--samples 64] [--scale 100] [--fstop 0.2] [--draft]
+    blender --background --factory-startup --python-exit-code 1 --python site/physics-clay/make/ch09.py -- --set road \
+        [--only truck,car] [--engine cycles] [--device auto|OPTIX|CUDA|METAL|CPU] [--samples 64] [--scale 100] [--fstop 0.2] [--draft]
 
     --set park   beat 1: the ball's track on the grass (plate `park`, strip `ball`)
     --set road   beats 0, 3, 4, 5, 8: the road (plate `road`, one period that repeats), truck and car (sprites and
@@ -18,216 +19,52 @@
     --set top    beats 19, 20, 23, 26, 27: seen and lit straight down (so a turned sprite stays exact): the corner
                  street, the round track, the neighbourhood round one square block, the flower bed; the car, a walker and a bee from above
 
-Paths come from this file's place in the repository; every setting is an argument (claykit.arguments). What each
-asset is and why it is exact under the page's own motion is in claykit.py. Finals on a GPU:
-    --device OPTIX --samples 256 --scale 200
+    --mock A|B|C --mockbeat 3|9|10|15   a look test of one beat's whole frame (a draft: raw PNG only, nothing else shot)
+
+Paths come from this file's place in the repository (raw frames to books/science-clay/render, pictures to
+img/clay); every setting is an argument (claykit.arguments). Finals on a GPU: --device OPTIX --samples 256 --scale 200
 """
-import bpy, bmesh, math, os, sys, random
+import bpy, math, os, sys, random
 import numpy as np
 from mathutils import noise
 from mathutils import Vector
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..'))
+sys.path.insert(0, os.path.join(ROOT, '.claude', 'skills', 'papermorph', 'scripts'))   # the Skill's clay kit
 import claykit as K
-from claykit import clay, box, ball, roll, slab, part, empty, copy, group, shot, lathe_mesh, rbox_mesh, moved, ribbon
+import clayprops as Props
+from claykit import clay, box, ball, roll, slab, part, empty, copy, group, shot, lathe_mesh, rbox_mesh, moved, ribbon, rect_of, union, turn_frames, want
+from clayprops import daysky, wheel, window, car_build, tree, hills, tufts, person, gable, house, poses, stride_shot, CW_R, TW_R
+
+# every picture each set writes: --only is checked against it before anything is built
+ASSETS = {'park': ['park', 'ball', 'ball_shadow'],
+          'road': ['road', 'truck', 'truck_wheel', 'car', 'car_wheel', 'car_l', 'car_y', 'light', 'you', 'friend'],
+          'table': ['table', 'leaf', 'sun', 'earth', 'walk'],
+          'globe': ['space', 'globe', 'globe_cap'],
+          'train': ['train'],
+          'track': ['track', 'runner', 'you_jog_r', 'you_jog_l', 'flag_t', 'flag_v', 'finish', 'cloud', 'pedal',
+                    'slate_s', 'slate_l', 'chalk_w', 'chalk_t', 'card', 'practice'],
+          'pool': ['pool', 'dolphin', 'walrus'],
+          'top': ['corner', 'loop', 'hood', 'bed', 'car_top', 'walker_top', 'bee']}
+MOCK_SET = {3: 'road', 9: 'road', 10: 'track', 15: 'track'}   # the look tests at the end: beat -> its set
+
 
 def _extra(ap):
-    ap.add_argument('--set', required=True, choices=['park', 'road', 'table', 'globe', 'train', 'track', 'pool', 'top'])
-    ap.add_argument('--mock', default='', help='a look test of the upper frame for one beat: A (the set\'s painted back wall), B (+ a chalkboard), C (+ a wooden sign; a paper card on beat 15)')
+    ap.add_argument('--set', required=True, choices=list(ASSETS))
+    ap.add_argument('--mock', default='', choices=['', 'A', 'B', 'C'], help='a look test of the upper frame for one beat, a draft that renders nothing else: A (the set\'s painted back wall), B (+ a chalkboard), C (+ a wooden sign; a paper card on beat 15)')
     ap.add_argument('--mockbeat', type=int, default=0, help='3, 9 (road set) or 10, 15 (track set)')
 
 
-a = K.arguments(_extra)
-ONLY = set(filter(None, a.only.split(',')))
-want = lambda n: not ONLY or n in ONLY
+a = K.arguments(_extra, out=os.path.join(ROOT, 'books', 'science-clay', 'render'), site=os.path.join(ROOT, 'site', 'physics-clay', 'img', 'clay'))
 if a.fstop is None: a.fstop = {'park': 0.2, 'road': 0.26, 'table': 0.22, 'globe': 0.8, 'train': 0.3, 'track': 0.22, 'pool': 0.3, 'top': 1.2}[a.set]   # the road holds two lanes and a pavement in its sharp band
-sc = K.setup(a)
+assets = ASSETS[a.set]
+if a.mock:   # a look test: checked first, then the set is built but only the mock is shot, as a draft
+    if MOCK_SET.get(a.mockbeat) != a.set:
+        K.die(f'--mock {a.mock} --mockbeat {a.mockbeat}: the mock beats are ' + ', '.join(f'{b} (--set {s_})' for b, s_ in MOCK_SET.items()))
+    if a.only: K.die('--mock renders the mock alone: drop --only')
+    a.draft = True; a.only = f'mock_{a.mockbeat}{a.mock}'; assets = assets + [a.only]
+sc = K.setup(a, a.set, assets)
 COS, SIN = math.cos(K.E), math.sin(K.E)
-SUN = Vector(a.sun_dir)
-
-# the book's colours as clay (the labels over the picture keep the exact hexes; AgX takes a little saturation off)
-C = dict(grass='#2c5e3a', hill='#274a35', road='#3d4744', walk='#74817b', line='#ece8dc', wood='#9a7350', slate='#1c2925',
-         tyre='#2e3338', hub='#c3ccd3', glass='#d2e8ff', skin='#f0c3a0', hair='#353b47', jeans='#4878d2', shoe='#3a3f4a',
-         you='#ab8ff5', friend='#f59a80', truck='#4a8de0', cargo='#b4d0ff', car='#55c486', trunk='#8a5a3c', leaf='#3f9a52',
-         lamp='#8597ad', bulb='#ffe9a0', ballw='#f2efe6', balld='#262f2d', dark='#1d2a35', shine='#b9d2e4',
-         maya='#f3c95c', leo='#f59a80', runner='#4fb3a6')
-
-
-def rect_of(objs, Y0, pad=14, shadow=True):
-    """The page rectangle that holds the objects, and their shadows on the ground when shadow is set."""
-    xs, ys = [], []
-    bpy.context.view_layer.update()
-    for o in objs:
-        if o.type != 'MESH': continue
-        for c in o.bound_box:
-            p = o.matrix_world @ Vector(c)
-            pts = [p]
-            if shadow and SUN.z < 0: pts.append(p - SUN * (p.z / SUN.z))     # where the corner's shadow lands on z = 0
-            for q in pts:
-                x, y = K.px(q.x, q.y, q.z, Y0); xs.append(x); ys.append(y)
-    x0, y0 = math.floor(min(xs) - pad), math.floor(min(ys) - pad)
-    return x0, y0, math.ceil(max(xs) + pad) - x0, math.ceil(max(ys) + pad) - y0
-
-
-def daysky(WD, x0, x1, zmax, n, seed, period=0.0, copies=(0,)):
-    """The set's back wall painted as a bright day sky (deep blue overhead, pale over the hills), and clay clouds in
-    front of it. It stands at depth WD, behind the hills, and is lit by the set's sun like everything else; a touch of
-    its own glow keeps it a sky rather than a grey wall. With a period the paint and the clouds repeat (the road)."""
-    me = rbox_mesh((x1 - x0, 0.3, zmax), 0.08, 0.22)
-    n_ = len(me.vertices)
-    co = np.empty(n_ * 3, 'f'); me.vertices.foreach_get('co', co); co = co.reshape(n_, 3)
-    t = np.clip(co[:, 2] / zmax + 0.5, 0, 1)[:, None]
-    lo, mid, hi = (np.array(K.srgb(h)[:3], 'f') for h in ('#d8ebf4', '#93c4e8', '#4a8bd3'))
-    u_ = np.clip(t / 0.22, 0, 1); v_ = np.clip((t - 0.22) / 0.5, 0, 1)
-    col = (lo * (1 - u_) + mid * u_) * (1 - v_) + hi * v_
-    ca = me.color_attributes.new('col', 'FLOAT_COLOR', 'POINT'); ca.data.foreach_set('color', np.hstack([col, np.ones((n_, 1), 'f')]).ravel())
-    out = [part(f'sky{seed}', me, clay('sky', '#ffffff', rough=0.85, vcol=True, specks=0, marks=0.25, spec=0.05, emit=0.45, period=period),
-                ((x0 + x1) / 2, WD, zmax / 2), lump=0.0, dents=0)]
-    rnd = random.Random(seed)
-    cmat = clay('cloud', '#f6f9fb', rough=0.75, sss=0.25, specks=0, marks=0.5, spec=0.1, emit=0.12)
-    span = (period or (x1 - x0))
-    for i in range(n):
-        cx, cz, k = (x0 if not period else 0) + rnd.uniform(0.04, 0.96) * span, rnd.uniform(0.3, 0.85) * zmax, rnd.uniform(0.6, 1.3)
-        parts_ = [moved(rbox_mesh((2 * r, 2 * r, 2 * r), r, 0.05), dx=dx, dz=dz) for dx, dz, r in
-                  [(-0.7 * k, 0, 0.45 * k), (0, 0.2 * k, 0.62 * k), (0.68 * k, 0.04 * k, 0.48 * k), (0.3 * k, -0.12 * k, 0.4 * k), (-0.3 * k, -0.1 * k, 0.42 * k)]]
-        me_c = K.fuse(parts_, voxel=0.04)
-        for v in me_c.vertices: v.co.y *= 0.45; v.co.z = max(v.co.z, -0.2 * k)    # flattened toward us, a flat-ish underside
-        c = part(f'cloud{seed}_{i}', me_c, cmat, (cx, WD - 0.8, cz), lump=0.03, dents=3, dent_r=(.12, .25), seed=seed + i)
-        out += [c] + [copy(c, (cx + dx, WD - 0.8, cz)) for dx in copies if dx]
-    return out
-
-
-def union(rects):
-    x0 = min(r[0] for r in rects); y0 = min(r[1] for r in rects)
-    return x0, y0, max(r[0] + r[2] for r in rects) - x0, max(r[1] + r[3] for r in rects) - y0
-
-
-def wheel(name, r, w, loc, seed, side=-1):
-    """A wheel on an axle along y: returns the axle empty; turn it with rotation_euler.y (positive rolls to +x)."""
-    ax = empty(name + '_axle', loc)
-    s = 0.25 * w
-    tyre = part(name, lathe_mesh([(-w / 2, 0), (-w / 2, r - s), (-w / 2 + s, r), (w / 2 - s, r), (w / 2, r - s), (w / 2, 0)], 0.035),
-                clay('tyre', C['tyre'], rough=0.62, specks=0.5), rot=(-side * math.pi / 2, 0, 0), parent=ax, lump=0.012, dents=2, dent_r=(0.06, 0.1), seed=seed)
-    # the lathe's +z is now -y (toward the camera): the hub cap and its marks sit on that face
-    part(name + '_hub', lathe_mesh([(0, 0), (0, r * 0.5), (0.05, r * 0.42), (0.06, 0)], 0.03), clay('hub', C['hub'], rough=0.4),
-               loc=(0, 0, w / 2 - 0.01), parent=tyre, lump=0.008, dents=0, seed=seed)
-    # a cream bead off the centre and a dark nut at it: the turn is seen
-    part(name + '_bead', rbox_mesh((r * 0.3, r * 0.3, 0.07), 0.03, 0.02), clay('line', C['line']), loc=(r * 0.68, 0, w / 2 + 0.005), parent=tyre, lump=0.004, dents=0)
-    part(name + '_nut', rbox_mesh((r * 0.2, r * 0.2, 0.06), 0.03, 0.02), clay('tyre', C['tyre']), loc=(0.02, 0.01, w / 2 + 0.05), parent=tyre, lump=0.003, dents=0)
-    return ax, [tyre] + list(tyre.children)
-
-
-def turn_frames(axles, n):
-    def pose(i):
-        def f():
-            for ax in axles: ax.rotation_euler = (0, 2 * math.pi * i / n, 0)
-        return f
-    return [(i, pose(i)) for i in range(n)]
-
-
-def window(name, w, h, loc, glass, shine, lean=0.0, parent=None):
-    """A toy window on a face toward the camera (-y): dark glass, a soft pale streak at its upper left."""
-    x, y, z = loc
-    return [box(name, (w, 0.06, h), glass, (x, y, z), r=0.05, d=0.03, lump=0.004, dents=0, parent=parent),
-            box(name + '_shine', (0.07, 0.03, h * 0.62), shine, (x - w * 0.24, y - 0.035, z + h * 0.06), r=0.025, d=0.02, lump=0.003, dents=0, rot=(0, 0.45 + lean, 0), parent=parent)]
-
-
-def car_build(name, y, sx=1, wheels=True, both=False):
-    """Your green car, its centre at (0, y): body and cabin pressed into one piece (a voxel remesh), the glasshouse
-    narrowing to the roof, dark side windows, windscreen and rear window. sx = -1 builds it facing left (mirrored:
-    windows and wheels stay on the side toward the camera). both: windows and wheels on the far side too (a car that
-    turns round, or is seen from above). Returns (root, body objects, axles, wheel objects)."""
-    root = empty(name, (0, y, 0)); root.scale = (sx, 1, 1)
-    green = clay('car', C['car'], rough=0.46)
-    dark, shine = clay('dark', C['dark'], rough=0.12, specks=0, marks=0.4), clay('shine', C['shine'], rough=0.3, specks=0, marks=0.2)
-    shell = K.fuse([moved(rbox_mesh((2.5, 1.26, 0.5), 0.2, 0.045), dz=0.42),
-                    moved(rbox_mesh((1.36, 1.04, 0.66), 0.2, 0.04), dx=-0.12, dz=0.88, taper=(0.55, 1.21, 0.2))], voxel=0.025)
-    body = [part(name + '_shell', shell, green, parent=root, lump=0.02, dents=9, dent_r=(.1, .2), seed=4),
-            box(name + '_shield', (0.06, 0.8, 0.36), dark, (0.5, 0, 0.95), r=0.03, d=0.03, lump=0.004, dents=0, rot=(0, -0.38, 0), parent=root),
-            box(name + '_rear', (0.06, 0.8, 0.3), dark, (-0.75, 0, 0.95), r=0.03, d=0.03, lump=0.004, dents=0, rot=(0, 0.38, 0), parent=root),
-            ball(name + '_lamp', 0.07, clay('bulb', C['bulb'], specks=0, emit=0.6), (1.25, -0.38, 0.46), lump=0.004, dents=0, parent=root)]
-    body += window(name + '_w0', 0.46, 0.34, (0.16, -0.5, 0.9), dark, shine, parent=root) + window(name + '_w1', 0.46, 0.34, (-0.42, -0.5, 0.9), dark, shine, parent=root)
-    if both:
-        for j, x in enumerate((0.16, -0.42)):
-            body.append(box(f'{name}_v{j}', (0.46, 0.06, 0.34), dark, (x, 0.5, 0.9), r=0.05, d=0.03, lump=0.004, dents=0, parent=root))
-    axles, wobjs = [], []
-    if wheels:
-        for i, x in enumerate((0.76, -0.78)):
-            ax, objs = wheel(f'{name}_wh{i}', CW_R, 0.24, (x, -0.63, CW_R), seed=7 + i); ax.parent = root
-            axles.append(ax); wobjs.append(objs)
-            if both:
-                ax2, objs2 = wheel(f'{name}_wb{i}', CW_R, 0.24, (x, 0.63, CW_R), seed=9 + i, side=1); ax2.parent = root
-                wobjs.append(objs2)
-    return root, body, axles, wobjs
-
-
-CW_R = 0.27
-
-
-def tree(name, x, y, seed, h=1.0):
-    rnd = random.Random(seed)
-    objs = [roll(name + '_trunk', (x, y, -0.05), (x + rnd.uniform(-.05, .05), y, 0.85 * h), 0.13 * min(h, 1), clay('trunk', C['trunk'], rough=0.6), lump=0.02)]
-    for i, (dx, dz, r) in enumerate([(-.32, 1.25, .46), (.3, 1.2, .5), (0, 1.62, .5), (-.05, 1.3, .52)]):
-        objs.append(ball(f'{name}_leaf{i}', r * h, clay('leaf', C['leaf'], rough=0.55), (x + dx * h, y + (.12 if i == 3 else -.05 * i), dz * h),
-                         squash=(1, .9, .88), lump=0.05, dents=7, seed=seed + i))
-    return objs
-
-
-def hills(xs, y, seed, x_copies=(0,)):
-    rnd = random.Random(seed); objs = []
-    for i, x in enumerate(xs):
-        r = rnd.uniform(1.5, 2.3)
-        o = ball(f'hill{i}', r, clay('hill', C['hill'], rough=0.6, feat=2.0), (x, y + rnd.uniform(0, .5), -0.2),
-                 squash=(1, .55, rnd.uniform(.34, .5)), d=0.12, lump=0.09, lump_size=1.2, dents=5, dent_r=(.3, .5), seed=seed + i)
-        objs.append(o)
-        objs += [copy(o, (x + dx, o.location.y, o.location.z)) for dx in x_copies if dx]
-    return objs
-
-
-def tufts(x0, x1, y0, y1, n, seed, x_copies=(0,)):
-    """Pinched grass and a few flower beads on the near ground: out of focus, they give the depth away."""
-    rnd = random.Random(seed); objs = []
-    for i in range(n):
-        x, y = rnd.uniform(x0, x1), rnd.uniform(y0, y1)
-        if rnd.random() < 0.3:
-            o = ball(f'bead{i}', rnd.uniform(.07, .11), clay('bead' + str(i % 3), ['#f3c95c', '#e8a0c8', '#ece8dc'][i % 3], specks=0), (x, y, .07), lump=0.01, dents=0, seed=i)
-        else:
-            h = rnd.uniform(.16, .3)
-            o = part(f'tuft{i}', lathe_mesh([(0, .11), (h * .5, .08), (h, 0)], 0.04), clay('tuft', '#3f7a4c', specks=0), (x, y, 0), lump=0.02, dents=0, seed=i)
-        objs.append(o)
-        objs += [copy(o, (x + dx, y, o.location.z)) for dx in x_copies if dx]
-    return objs
-
-
-def person(role, x, y, pose=0.0, face='cam', seed=0, k=1.1, swing=0.34, tail=False):
-    # (seed 0: from the role, so the same person looks the same in every set)
-    """A small, simple clay figure, 1.2 * k units tall, no face. pose: the stride, -1..1 (0 stands): one leg and the
-    other arm forward by that much, as a replacement puppet's next pose. face: 'cam' looks out of the picture (the
-    hair sits on the back of the head, away from us), 'right' is a profile walking to +x."""
-    root = empty(role, (x, y, 0)); root.scale = (k, k, k)
-    shirt = clay(role, C[role], rough=0.5)
-    seed = seed or sum(map(ord, role))
-    jeans, skin = clay('jeans', C['jeans']), clay('skin', C['skin'], sss=0.2, specks=0.3)
-    objs = []
-    for side in (-1, 1):
-        s = pose * side * swing                                     # this leg's swing, radians
-        hip = Vector((0, side * 0.11, 0.5)); foot = hip + Vector((math.sin(s) * 0.44, 0, -math.cos(s) * 0.44))
-        lift = max(0, -pose * side) * 0.03
-        objs.append(roll(f'{role}_leg{side}', hip, foot + Vector((0, 0, lift)), 0.1, jeans, parent=root, seed=seed + side))
-        side_on = face in ('right', 'left')
-        objs.append(ball(f'{role}_shoe{side}', 0.105, clay('shoe', C['shoe']), foot + Vector((0.05 if side_on else 0, -0.04 if face == 'cam' else 0, lift - 0.02)),
-                         squash=(1.5, .95, .7) if side_on else (.95, 1.5, .7), parent=root, lump=0.008, dents=0))
-        sh = Vector((0, side * 0.25, 0.86)); t = -pose * side * swing * 1.2
-        hand = sh + Vector((math.sin(t) * 0.36, side * 0.04, -math.cos(t) * 0.36))
-        objs.append(roll(f'{role}_arm{side}', sh, hand, 0.075, shirt, parent=root, seed=seed + 5 + side))
-        objs.append(ball(f'{role}_hand{side}', 0.08, skin, hand + Vector((0, 0, -0.03)), parent=root, lump=0.006, dents=0))
-    objs.append(part(f'{role}_body', lathe_mesh([(0.42, 0), (0.42, 0.21), (0.6, 0.235), (0.82, 0.21), (0.93, 0.14), (0.96, 0)], 0.035), shirt,
-                     scale=(0.92, 1.12, 1), parent=root, lump=0.02, dents=4, dent_r=(.07, .12), seed=seed + 9))
-    objs.append(ball(f'{role}_head', 0.215, skin, (0, 0, 1.08), parent=root, lump=0.012, dents=2, dent_r=(.05, .08), seed=seed + 3))
-    back = Vector((-0.07, 0, 0)) if face in ('right', 'left') else Vector((0, 0.08, 0))
-    objs.append(ball(f'{role}_hair', 0.225, clay('hair', C['hair'], rough=0.45), Vector((0, 0, 1.15)) + back, squash=(1.02, 1.02, .74), parent=root, lump=0.02, dents=3, dent_r=(.05, .08), seed=seed + 4))
-    if tail: objs.append(ball(f'{role}_tail', 0.1, clay('hair', C['hair'], rough=0.45), (-0.24, 0, 1.12), squash=(1.3, .8, .8), parent=root, lump=0.01, dents=0))
-    if face == 'left': root.rotation_euler = (0, 0, math.pi)     # a profile walking to -x: the right-facing figure turned round
-    return root, objs
+C = Props.C   # the book's colours as clay: clayprops' palette is this book's
 
 
 # ================================================================ park: the ball's track (beat 1)
@@ -309,20 +146,11 @@ if a.set == 'road':
 
     # ---- the truck (far lane), its centre at x = 0
     ty = FAR
-    blue, cargo = clay('truck', C['truck'], rough=0.48), clay('cargo', C['cargo'], rough=0.5)
-    dark, shine = clay('dark', C['dark'], rough=0.12, specks=0, marks=0.4), clay('shine', C['shine'], rough=0.3, specks=0, marks=0.2)
-    tb = [box('t_chassis', (3.4, 1.46, 0.3), clay('truckd', '#3566b4'), (0, ty, 0.29), r=0.1, lump=0.012, dents=2),
-          box('t_cargo', (2.2, 1.5, 1.2), cargo, (-0.6, ty, 1.0), r=0.14, d=0.05, lump=0.03, dents=12, seed=2),
-          box('t_cab', (0.98, 1.42, 0.92), blue, (1.1, ty, 0.86), r=0.2, d=0.045, lump=0.025, dents=6, seed=3),
-          box('t_nose', (0.3, 1.36, 0.42), clay('truckl', '#7fb4ee'), (1.62, ty, 0.6), r=0.1, d=0.04, lump=0.012, dents=1),
-          box('t_shield', (0.06, 1.12, 0.4), dark, (1.6, ty, 1.04), r=0.04, d=0.03, lump=0.005, dents=0),
-          ball('t_lamp', 0.07, clay('bulb', C['bulb'], specks=0, emit=0.6), (1.77, ty - 0.45, 0.62), lump=0.004, dents=0)]
-    tb += window('t_win', 0.56, 0.4, (1.14, ty - 0.715, 1.02), dark, shine)
+    tb, twh = Props.truck_build(ty)
     group('truck', *tb)
-    TW_R = 0.31
     taxles, twheels = [], []
-    for i, x in enumerate((1.08, -0.62, -1.28)):
-        ax, objs = wheel(f'tw{i}', TW_R, 0.26, (x, ty - 0.74, TW_R), seed=i); taxles.append(ax); twheels += objs
+    for i, (ax, objs) in enumerate(twh):
+        taxles.append(ax); twheels += objs
         group(f'tw{i}', *objs)
     # ---- your car (near lane), and the same car facing left, and turning round (a U-turn, 8 steps of 22.5 degrees)
     cy = NEAR
@@ -387,38 +215,6 @@ if a.set == 'road':
     for role, (root, objs) in people.items():
         if want(role): shot(role, rect_of(objs, Y0, pad=10), Y0, FOCUS, show=[role], catch=['ground'], anchor=(0, lane_y(SIDE, 0.16)))
     K.write_manifest(meta)
-
-
-def gable(w, depth, h, d=0.025):
-    """A gable roof: a triangle w wide and h high (its foot at z = 0), depth deep along y, rounded a little by finish()."""
-    bm = bmesh.new()
-    ny = max(2, round(depth / d))
-    tri = [(-w / 2, 0), (0, h), (w / 2, 0)]
-    rings = []
-    for j in range(ny + 1):
-        y = -depth / 2 + depth * j / ny
-        ring = []
-        for (x0, z0), (x1, z1) in zip(tri, tri[1:] + tri[:1]):
-            k = max(1, round(math.hypot(x1 - x0, z1 - z0) / d))
-            ring += [bm.verts.new((x0 + (x1 - x0) * i / k, y, z0 + (z1 - z0) * i / k)) for i in range(k)]
-        rings.append(ring)
-    m = len(rings[0])
-    for a_, c_ in zip(rings, rings[1:]):
-        for i in range(m): bm.faces.new((a_[i], a_[(i + 1) % m], c_[(i + 1) % m], c_[i]))
-    bm.faces.new(rings[0][::-1]); bm.faces.new(rings[-1])
-    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-    me = bpy.data.meshes.new('gable'); bm.to_mesh(me); bm.free()
-    return me
-
-
-def house(name, k=1.0):
-    """A small clay house standing up z, front -y: walls, a roof that overhangs, a door, a lit window."""
-    root = empty(name)
-    objs = [box(name + '_walls', (0.4 * k, 0.3 * k, 0.3 * k), clay('wall', '#e8d9b8', rough=0.55), (0, 0, 0.15 * k), r=0.04 * k, d=0.025, lump=0.006, dents=2, dent_r=(.03, .05), parent=root),
-            part(name + '_roof', gable(0.5 * k, 0.36 * k, 0.2 * k), clay('roof', '#a65d4b', rough=0.55), (0, 0, 0.29 * k), parent=root, lump=0.005, dents=2, dent_r=(.03, .05)),
-            box(name + '_door', (0.08 * k, 0.03, 0.14 * k), clay('doorc', '#5a3b2a'), (-0.08 * k, -0.15 * k, 0.07 * k), r=0.01, d=0.015, lump=0.002, dents=0, parent=root),
-            box(name + '_win', (0.09 * k, 0.03, 0.08 * k), clay('bulb', C['bulb'], specks=0, emit=0.5), (0.09 * k, -0.15 * k, 0.17 * k), r=0.01, d=0.015, lump=0.002, dents=0, parent=root)]
-    return root, objs
 
 
 # ================================================================ table: motion is everywhere (beat 2)
@@ -638,28 +434,7 @@ if a.set == 'train':
     K.write_manifest(meta)
 
 
-def poses(role, n, face, k, swing, tail=False, z=0.0):
-    """n replacement poses of a stride (pose = sin of the phase), one group each; returns their object lists."""
-    out = []
-    for i in range(n):
-        root, objs = person(role, 0, 0, pose=math.sin(2 * math.pi * i / n), face=face, k=k, swing=swing, tail=tail)
-        root.location.z = z
-        group(f'{role}_{face}{i}', *objs); out.append(objs)
-    return out
-
-
-def stride_shot(name, sets, Y0, focus, anchor, catch=('ground',), zoom=1):
-    def pick(i):
-        def f():
-            for j, objs in enumerate(sets):
-                for o in objs: o.hide_render = j != i
-        return f
-    groups = [g for g in K.GROUPS if any(K.GROUPS[g] is objs or K.GROUPS[g] == objs for objs in sets)]
-    shot(name, union([rect_of(objs, Y0, pad=10) for objs in sets]), Y0, focus, show=groups, catch=list(catch),
-         frames=[(i, pick(i)) for i in range(len(sets))], anchor=anchor, zoom=zoom)
-
-
-STEP = lambda k, swing: 4 * 0.44 * k * math.sin(swing) * K.U    # px a whole stride cycle covers (two steps)
+STEP = Props.stride_length    # px a whole stride cycle covers (two steps)
 
 # ================================================================ track: speed and velocity on a running track
 if a.set == 'track':
@@ -722,25 +497,7 @@ if a.set == 'track':
     group('propground', pg_)
     wood, slate = clay('wood', '#8a5a3c', rough=0.6, feat=0.8), clay('slate', '#223029', rough=0.85, feat=1.2, specks=0.3, marks=0.6, stipple=0.3, spec=0.05)
 
-    def board(name, x, w, h, leg, kind='chalk'):
-        """A chalkboard (or a paper card pinned to a wooden board) w wide and h high, its bottom edge leg above the
-        ground, on two short splayed feet. Returns its objects and its panel's page rectangle from the anchor."""
-        zc = leg + h / 2
-        if kind == 'chalk':
-            objs = [box(name + '_slate', (w, 0.12, h), slate, (x, 0, zc), r=0.03, d=0.06, lump=0.006, dents=0)]
-            for j, (dx, dz, w_, h_) in enumerate([(0, h / 2, w + 0.26, 0.15), (0, -h / 2, w + 0.26, 0.15), (w / 2, 0, 0.15, h + 0.26), (-w / 2, 0, 0.15, h + 0.26)]):
-                objs.append(box(f'{name}_frame{j}', (w_, 0.18, h_), wood, (x + dx, -0.03, zc + dz), r=0.05, d=0.04, lump=0.008, dents=2))
-            objs.append(box(name + '_ledge', (w * 0.9, 0.24, 0.06), wood, (x, -0.13, leg - 0.02), r=0.02, d=0.04, lump=0.004, dents=0))
-        else:
-            objs = [box(name + '_board', (w, 0.14, h), clay('boardw', '#5b3f2b', rough=0.6, feat=0.8), (x, 0, zc), r=0.06, d=0.06, lump=0.012, dents=5, dent_r=(.2, .4)),
-                    box(name + '_paper', (w - 0.36, 0.03, h - 0.34), clay('paper', '#efe6d2', rough=0.75, specks=0.15, marks=0.4, sss=0.1), (x, -0.09, zc), r=0.015, d=0.05, lump=0.006, dents=0)]
-            for j, (dx, dz) in enumerate([(-1, 1), (1, 1), (-1, -1), (1, -1)]):
-                objs.append(ball(f'{name}_pin{j}', 0.07, clay('pin', '#e05a46', specks=0), (x + dx * (w / 2 - 0.3), -0.13, zc + dz * (h / 2 - 0.28)), lump=0, dents=0))
-        for j, (fx, dx) in enumerate(((x - w / 2 + 0.4, -0.1), (x + w / 2 - 0.4, 0.1))):
-            objs.append(roll(f'{name}_foot{j}', (fx, 0.0, leg + 0.1), (fx + dx, 0.35, -0.02), 0.07, wood, lump=0.006))
-        group(name, *objs)
-        a0 = K.px(x, 0, 0, Y0); tl, br = K.px(x - w / 2, -0.07, leg + h, Y0), K.px(x + w / 2, -0.07, leg, Y0)
-        return objs, [round(tl[0] - a0[0], 1), round(tl[1] - a0[1], 1), round(br[0] - a0[0], 1), round(br[1] - a0[1], 1)], a0
+    board = lambda name, x, w, h, leg, kind='chalk': Props.board(name, x, w, h, leg, Y0, wood, slate, kind)
     BOARDS = [('chalk_w', 60, 13.4, 2.9, 0.45, 'chalk'), ('chalk_t', 80, 13.4, 4.2, 0.4, 'chalk'), ('card', 100, 15.0, 5.0, 0.4, 'card')]
     # small chalk slates for coloured labels on the sky (the page stretches the nearest one to the label's width)
     for nm, bx_, w_ in (('slate_s', 110, 2.6), ('slate_l', 116, 5.4)):

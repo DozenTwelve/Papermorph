@@ -7,8 +7,10 @@ The book is static: HTML, JS, CSS, MP3, with no build step, backend, database or
 Once per new slug, from the folder that holds `site/`, `books/`, `content/` and `tools/`:
 
 ```sh
-python3 SKILL/scripts/new_book.py lesson|picture|documentary|shorts <book> [--chapter N] [--lang xx] [--maps] [--painted]
+python3 SKILL/scripts/new_book.py lesson|picture|documentary|shorts <book> [--chapter N] [--lang xx] [--maps] [--painted] [--clay]
 ```
+
+`--clay` adds the optional Blender scene and page loader for any of these four kinds; the tier's page stays its starting skeleton. Follow [clay.md](clay.md#start-a-clay-chapter) to render and integrate the example.
 
 `scroll` and `explore` start the two pages that run without the engine (a scroll story, a map you explore); their own files say what they copy: [films/scroll.md](../films/scroll.md), [explore/explore.md](../explore/explore.md). The rest of this section is about the engine's tiers.
 

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clay example</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<!-- The clay kit's worked example: the pictures scene.py renders (a yard, a car and its wheel, you), moved by the page.
+     Copy it into a chapter folder (site/<book>/chNN/) beside the tier's own chapter page to see the scene play; a
+     chapter takes the three clay script tags and the beat's way of using them. -->
+<script src="../lib/engine.js"></script>
+<script src="../img/clay/clay.js"></script>
+<script src="../lib/clay.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 1, title: 'Clay example', minutes: 1, language: 'en' };
+const Y = CLAY.yard, V = 260;   // the set's meta from scene.py; the car's speed, page px a second
+
+const BEATS = [
+  ['drive', 'A car drives by', (m, D) => {
+    const p = panel(0);
+    clImg(p, 'yard');                                          // the plate: placed at its own page rectangle
+    clImg(p, 'you', { x: Y.you[0], y: Y.you[1] });             // a sprite: placed by its anchor (the feet)
+    const c = CLAY.img.car, car = clImg(p, 'car', { y: Y.lane });
+    const wheels = c.wheels.map(([x, y]) => clStrip(car, c.wheel, { x, y }));
+    const label = T(p, '', { x: 0, y: Y.lane + 90, size: 30, anchor: 'middle' });
+    clockRun(t => {                                            // every pose from t alone: seek, pause and replay agree
+      const x = -200 + V * t;
+      put(car, { x }); put(label, { x });
+      wheels.forEach((w, i) => clTurn(w, x + 200, c.r, i * 7));   // the frame the distance rolled gives (each wheel its own start)
+      label.textContent = `${Math.round(V * t)} px driven`;
+    }, D);
+  }, { dur: 7 }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+clayBoot();
+</script>
+</body>
+</html>

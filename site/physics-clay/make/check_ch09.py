@@ -1,9 +1,11 @@
 """check_ch09.py: the clay picture and the live numbers of chapter 1 agree, at any moment however it is reached.
 
     python3 .claude/skills/papermorph/scripts/serve.py 8831 site &
-    uv run --with playwright site/physics-clay/make/check_ch09.py [--url http://localhost:8831/physics-clay/ch09/] [--browser firefox]
+    uv run --with playwright site/physics-clay/make/check_ch09.py [--url http://localhost:8831/physics-clay/ch09/] [--browser firefox|webkit]
 
-Measured on the page as drawn (getBoundingClientRect of the clay pictures, stage px), not from the page's own
+First the Skill's check_clay.py checks: every file the page asks for is there, every clay picture in img/clay/clay.js
+loads, decodes and has the size its entry says, and nothing on the stage fails to decode (a page drawn with no
+pictures still has every box it measures below). Then, measured on the page as drawn (getBoundingClientRect of the clay pictures, stage px), not from the page's own
 formulas:
   incar     the truck, the car and the friend move across the screen at the speed their labels say (30 mph is
             150 px a second at zoom 1), before and after the cut to the car's camera; the road plate with them
@@ -21,12 +23,15 @@ formulas:
 Each moment is opened two ways: jumped to (as ?beat=N&t=S does) and stepped to at 60 steps a second (as playing
 does); both must give the same picture.
 """
-import argparse, asyncio, math, re
+import argparse, asyncio, math, os, re, sys
 from playwright.async_api import async_playwright
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..', '.claude', 'skills', 'papermorph', 'scripts'))
+import check_clay
+from browsers import answers, exe, firefox
 
 ap = argparse.ArgumentParser()
 ap.add_argument('--url', default='http://localhost:8831/physics-clay/ch09/')
-ap.add_argument('--browser', default='chromium', choices=['chromium', 'firefox'])
+ap.add_argument('--browser', default='chromium', choices=['chromium', 'firefox', 'webkit'])
 a = ap.parse_args()
 
 # The page's state at beat i, time t: where each clay picture is on the stage, which frame each strip shows, the labels.
@@ -193,13 +198,16 @@ async def parts_2_to_4(pg, state, idx, n):
 
 async def main():
     async with async_playwright() as p:
-        b = await getattr(p, a.browser).launch()
+        answers(a.url)
+        b = await (p.chromium.launch(**exe()) if a.browser == 'chromium' else p.firefox.launch(**firefox()) if a.browser == 'firefox' else p.webkit.launch())
         pg = await b.new_page(viewport={'width': 1600, 'height': 960})
         errs = []
-        pg.on('pageerror', lambda e: errs.append(str(e)))
-        await pg.goto(a.url); await pg.wait_for_timeout(600)
+        check_clay.watch(pg, errs.append)          # missing files, failed requests, page errors
+        await pg.goto(a.url); await pg.wait_for_load_state('load')
+        pics = await check_clay.assets(pg)
+        assert not pics and not errs, '\n'.join(errs + pics)
+        n = len(await pg.evaluate('Object.keys(CLAY.img)'))
         idx = lambda bid: pg.evaluate(f"BEATS.findIndex(b => b.id === '{bid}')")
-        n = 0
 
         async def state(i, t):
             s, s2 = await pg.evaluate(STATE, [i, t, False]), await pg.evaluate(STATE, [i, t, True])
@@ -308,8 +316,10 @@ async def main():
                     .filter(([, l, tp, r, b]) => r > 0 && l < 1600 && b > 0 && tp < 900 && (l < 40 || tp < 40 || r > 1560 || b > 860)); }""", [i, t])
                 assert not bad, f'{bid} at {t:.1f} s: labels closer than 40 px to the edge: {bad}'
                 n += 1
-        assert not errs, errs
-        print(f'check_ch09 ({a.browser}): {n} checks passed: the clay picture agrees with the live numbers in beats 0-28 (speeds, positions, poses, headings, directions), labels 40 px inside, jumped-to equals stepped-to')
+        drawn, _ = await check_clay.stage(pg)
+        assert not drawn and not errs, '\n'.join(errs + drawn)
+        n += 1
+        print(f'check_ch09 ({a.browser}): {n} checks passed: every clay picture loads and decodes at its size, the clay picture agrees with the live numbers in beats 0-28 (speeds, positions, poses, headings, directions), labels 40 px inside, jumped-to equals stepped-to')
         await b.close()
 
 asyncio.run(main())

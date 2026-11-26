@@ -6,6 +6,7 @@
     python3 new_book.py picture fox --painted          # with painted.json, painted.py's manifest, for a painted look
     python3 new_book.py documentary film               # a documentary: film.js kit, series page for the credits
     python3 new_book.py shorts short --maps            # upright shorts, here with the map kit (documentaries take --maps too)
+    python3 new_book.py lesson motion --clay           # any kind but scroll and explore: plus the clay kit (Blender pictures)
     python3 new_book.py scroll story                   # a scroll page: scroll.js kit and a four-step sample, no engine
     python3 new_book.py explore italy                  # an explorable map: the explore kit and its sample (no engine, no chapters)
     python3 new_book.py lesson stats --chapter 9 --lang ja --root ~/work
@@ -91,6 +92,7 @@ def main():
     ap.add_argument('--lang', default='en', help="the book's language code (default en): it names the narration file, the audio folder, <html lang> (with dir=\"rtl\" for ar, he, fa, ur) and CHAPTER.language, and picks an Edge voice of that language where one is listed in VOICES; the template's text stays English until translated")
     ap.add_argument('--maps', action='store_true', help='add the map kit (documentaries and shorts)')
     ap.add_argument('--painted', action='store_true', help="a picture book with a painted look: add painted.json, painted.py's manifest")
+    ap.add_argument('--clay', action='store_true', help='add the clay kit: lib/clay.js, and books/<book>/art/clay/scene.py to render in Blender (references/core/clay.md)')
     ap.add_argument('--root', default='.', help='folder holding site/, books/, content/, tools/ (default .)')
     a = ap.parse_args()
 
@@ -105,6 +107,8 @@ def main():
         sys.exit('--maps is for documentaries and shorts')
     if a.painted and a.kind != 'picture':
         sys.exit('--painted is for picture books')
+    if a.clay and a.kind in ('scroll', 'explore'):
+        sys.exit('--clay is for the kinds on the engine (lesson, picture, documentary, shorts)')
     try:
         if a.kind == 'scroll': start_scroll(a, root, site, work)
         else: (explore if a.kind == 'explore' else start)(a, root, ch, site, work, content)
@@ -162,6 +166,12 @@ def start(a, root, ch, site, work, content):
             for f in (MK / 'lib').glob('*.js'):
                 copy(f, site / 'lib' / f.name)
 
+    if a.clay:   # the page-side loader, and a scene that finds this kit wherever the Skill is installed
+        copy(T / 'clay' / 'lib' / 'clay.js', site / 'lib' / 'clay.js')
+        (work / 'art' / 'clay').mkdir(parents=True, exist_ok=True)
+        scene = (T / 'clay' / 'scene.py').read_text(encoding='utf-8')
+        (work / 'art' / 'clay' / 'scene.py').write_text(scene.replace("KIT = ''", f'KIT = {str(HERE)!r}', 1), encoding='utf-8')
+
     if a.lang != 'en':   # the pages name the book's language: <html lang>, CHAPTER.language and the audio/<lang>/ paths
         for f in (site / 'index.html', *(site / ch).glob('*.*')):
             if f.is_file() and f.suffix in ('.html', '.js'):
@@ -179,6 +189,9 @@ def start(a, root, ch, site, work, content):
         print(f'  then level.py, mouths.py, join.py in tools/{a.book}/audio.sh; bake_sets.py, scenes, bake_puppets.py')
     if a.kind == 'shorts':
         print(f'  uv run --with numpy python3 {S}/sfx.py {q(site / ch / "audio" / "sfx")} whoosh bang tick thud')
+    if a.clay:
+        print(f'  blender --background --factory-startup --python-exit-code 1 --python {q(work / "art" / "clay" / "scene.py")} -- --draft   # look at the PNGs, then again without --draft')
+        print(f'  the chapter loads ../img/clay/clay.js and ../lib/clay.js after engine.js ({q(T / "clay" / "example.html")} shows a beat)')
     if a.maps:
         print(f'  uv run --with pillow python3 {S}/geo.py {q(site / "img")} --globe {q(site / "lib")}')
     print(f'  python3 {S}/serve.py 8765 site   # then open http://localhost:8765/{a.book}/{ch}/')

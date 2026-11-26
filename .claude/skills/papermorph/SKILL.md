@@ -38,6 +38,7 @@ Every tier shares the core:
 | [core/review.md](references/core/review.md) | seeing your own work in motion, frames, smoothness, director rounds |
 | [core/team.md](references/core/team.md) | making chapters with subagents, the coordinator, workers in parallel |
 | [core/engine.md](references/core/engine.md) | the player and drawing API, timing, camera, performance, traps |
+| [core/clay.md](references/core/clay.md) | optional Blender clay pictures for any tier: plates, sprites, strips, shared props, rendering and checks |
 
 Start with the tier's intake whenever `books/<book>/style.json` does not exist yet; reuse answers and approvals already given.
 
@@ -47,7 +48,7 @@ The reference books are the bar: levels to reach, not formats to copy. Each is t
 
 | Tier | Books (slug) |
 |---|---|
-| Lessons | tier 1: *Elementary Algebra* (`elementary-algebra`), *Math Notebook* (`math-notebook`); tier 2: *Science* (`science`); a light board with dark ink: `physics-notebook` |
+| Lessons | tier 1: *Elementary Algebra* (`elementary-algebra`), *Math Notebook* (`math-notebook`); tier 2: *Science* (`science`); a light board with dark ink: `physics-notebook`; Blender clay: *Physics* (`physics-clay/ch09`, with the shared clay kit) |
 | Picture books | *The Little Horse Crosses the River* (`little-horse`) and *Little Red Riding Hood* (`little-red-riding-hood`): all in code, a cast voiced by ElevenLabs, a listen-and-find stop, the newest and the bar; *Joke Collection* (`joke-collection`): painted sets, puppets in code, a series of episodes; *Millions of Cats* (`millions-of-cats`, Wanda Gág, 1928): a scanned book's own pictures lifted into sets and puppets (not on the shelf) |
 | Documentaries | *Madness and Civilization* (`madness`, after Foucault, ten minutes), *The Pandemic* (`pandemic`), *Shooting an Elephant* (`shooting-an-elephant`, one the reader acts in) |
 | Shorts | the *Madness and Civilization* shorts (`madness-shorts`; episode 1, *The Ship*, is the worked example), *The Pandemic* shorts (`pandemic-shorts`) |
@@ -71,6 +72,8 @@ site/<book>/                   the static book (only this is delivered)
 
 Needs: `uv`, `ffmpeg`/`ffprobe`, Edge TTS network access (or Kokoro, local), github.com for `engine.py` when the repository's `engine/` folder is not at hand, an OpenRouter key only for the paid steps the user chooses (`paint.py`, `eleven.py`, `video.py`; `paint_openai.py` takes an OpenAI key), and Playwright browsers (`uv run --with playwright playwright install chromium firefox`; where Playwright's Chromium does not run, set `CHROME` to an installed Chrome, Chromium, Brave or Edge). Preview: `python3 SKILL/scripts/serve.py 8765 site` (no browser caching).
 
+For the optional clay look: Blender (tested with 5.3.0 on Apple M1 Metal), whose Python supplies `bpy`, `mathutils`, `bmesh` and NumPy; [core/clay.md](references/core/clay.md) gives the render command and device check.
+
 ## Scripts
 
 All in `SKILL/scripts/`; each prints its usage with `--help` when run with the `uv run --with …` its docstring's first lines name (without its packages even `--help` stops on the import).
@@ -78,6 +81,7 @@ All in `SKILL/scripts/`; each prints its usage with `--help` when run with the `
 | For | Scripts |
 |---|---|
 | Every book | `new_book.py` start a book folder · `serve.py` preview without caching · `engine.py` sync the engine into books · `tts.py` narration and word times · `eleven.py` the same from ElevenLabs (paid) · `level.py` even loudness · `lint.py` static checks · `check.py` page errors, console warnings and beat lengths in Chromium and Firefox · `shot.py` beat screenshots · `strip.py` storyboard sheets and motion strips · `still.py` stretches where nothing moves · `playlog.py` sounds and captions against the picture · `perf.py` Firefox frame times · `export.py` MP4 and `.srt` · `sfx.py` synthesized effects |
+| Optional clay look (all tiers) | `claykit.py` Blender geometry, materials, orthographic renders, WebP packing and manifest · `clayprops.py` shared people, vehicles, trees, ground, table and boards (both imported by a Blender scene) · `check_clay.py` image decode, dimensions, strip frames and deterministic motion |
 | Lessons | `outline.py` and `split_pages.py` page map and chapter text · `check_blank.py` empty openings · `overlap.py` arrows through text · `sprites.py` image processing steps · `refs.py` verified citations · `items.py` question bank · `scorm.py` LMS package |
 | Picture books | `mouths.py` mouth shapes · `join.py` one clip per scene · `bake_sets.py` set layers · `bake_puppets.py` puppet bitmaps · `paint.py` / `paint_openai.py` image-model pictures · `painted.py` place them in the book · `lift.py` figures, sets and lettering cut from a scanned book's own pictures · `cutout.py` image-model pictures on a key colour cut into puppet pieces and props |
 | Pages you explore | `topo.py` the map's TopoJSON from Natural Earth · `explore.py` checks, shots, Firefox timing and the narration file for an explorable map |

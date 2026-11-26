@@ -12,6 +12,7 @@
 <script src="../lib/figures.js"></script>
 <script src="../img/clay/clay.js"></script>
 <script src="../lib/clay.js"></script>
+<script src="../lib/clay-physics.js"></script>
 <script src="audio/en/timings.js"></script>
 <script>
 'use strict';
@@ -993,7 +994,7 @@ const BEATS = [
 ['finish', 'Finished', () => { clImg(panel(0), 'practice'); }, { ask: finishCard }],
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
 
-boot();
+clayBoot();
 </script>
 </body>
 </html>

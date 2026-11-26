@@ -25,24 +25,35 @@ give the same picture, and `check_ch09.py` measures it.
 | 9 part2, 16 part3, 22 part4, 25 sign, 12 average, 18 change, 21 wrap3, 28 wrap4 | the road at different zooms; `car_l` (your car facing left, built mirrored), `car_y` (the U-turn, 9 poses), `light` (red, green), `pedal`, `flag_v`; the `runner` strip on the pavement |
 | 10 speed, 11 units, 13 instant, 15 wrap2, 17 velocity | `track` plate (2x, for the push-in of 13) + `runner` (8 running poses, chosen by distance) or `you_jog_r` / `you_jog_l`, `flag_t`, `finish`; ticks and numbers SVG |
 | 14 q2 | `pool` plate + `dolphin`, `walrus` (rendered with the water as a holdout: the underwater half is cut) |
-| 19 corner, 26 turnfeel, 23 accel (third box), 20 q3, 27 q4 | `corner`, `loop`, `block`, `bed` plates from above + `car_top`, `walker_top`, `bee` turned by the page |
+| 19 corner, 26 turnfeel, 23 accel (third box), 20 q3, 27 q4 | `corner`, `loop`, `hood`, `bed` plates from above + `car_top`, `walker_top`, `bee` turned by the page |
 | 6 earth (sky) | `cloud`; the sky is an SVG gradient |
 
 ## Render
 
+The scene imports the Skill's clay kit (`.claude/skills/papermorph/scripts/claykit.py`, `clayprops.py`); the method,
+its arguments and what each refusal means are in `.claude/skills/papermorph/references/core/clay.md`.
+
 ```
-blender --background --factory-startup --python site/physics-clay/make/ch09.py -- --set road|park|table|globe|train|track|pool|top \
-    [--only road,truck] [--samples 48] [--scale 100] [--engine cycles] [--device auto|OPTIX|METAL|CPU] [--draft]
-uv run --with playwright site/physics-clay/make/check_ch09.py [--browser firefox]   # with the site served on 8831
+blender --background --factory-startup --python-exit-code 1 --python site/physics-clay/make/ch09.py -- \
+    --set road|park|table|globe|train|track|pool|top [--only road,truck] [--samples 48] [--device auto|METAL|OPTIX|CPU] \
+    [--draft] [--out DIR] [--site DIR]
+uv run --with numpy python3 site/physics-clay/make/check_build.py          # the kit's guards, no Blender
+uv run --with playwright python3 site/physics-clay/make/check_ch09.py [--browser firefox|webkit]   # site served on 8831
 ```
 
-`--draft` writes PNGs to `books/science-clay/render/` only; otherwise the WebP goes to `img/clay/` and its size and
-anchor into `img/clay/clay.js`. `--reuse` packs existing frames again (a new `--quality`). Every look setting is an
-argument (`claykit.arguments`: `--elev`, `--fstop`, `--sun`, `--sun-dir`, `--sun-size`, `--ambient`, `--look`,
-`--exposure`, `--marks`, `--quality`).
+`--draft` writes PNGs to `books/science-clay/render/` only; otherwise the WebPs go to `img/clay/` and their sizes,
+anchors and the set's camera and light into `img/clay/clay.js`. To re-render an approved set, pass a separate `--site`
+folder, compare, then copy it over. `--only` needs the set to have been published once by the kit (the published
+pictures predate it, so the first run of each set is a whole set). `--mock A|B|C --mockbeat 3|9|10|15` is a look test of
+one beat's frame: a draft that renders nothing else.
 
-Cost on the M1 (Metal, 48 samples, 1600 px stage): all five sets ~6 min (road plate 42 s, ball strip 44 s, page
-strip 52 s, globe 12 s at 2x, cap 13 s at 3x). On the RTX 4070: `--device OPTIX --samples 256 --scale 200` for
-high-density screens (sizes roughly x3.5); time one set first.
+Cost on the M1 (Blender 5.3.0, Metal, 48 samples, `--scale 100`, 2026-11-26), whole sets with Blender's start and
+the build: park 99 s, road 267 s, table 114 s, globe 69 s, train 35 s, track 354 s, pool 47 s, top 179 s; 19.4 min
+for all eight. On the RTX 4070, `--device OPTIX --samples 256 --scale 200` is untimed: time one set first.
+
+The rerender with the kit matched the published pictures (`books/science-clay/kit-2026-11-26/pixdiff.txt`): same
+sizes and entries, render noise only, except `car`, `car_wheel` and `car_y`, which were rendered before the last
+change to the car (the published `car` still shows its wheels in the body sprite, under the wheel strips); main's own
+`ch09.py` renders them exactly as the kit does. The published pictures were kept.
 
 `look/`: contact sheets of each step (pixel against clay, incar, Section 1 and the director's fixes).
