@@ -243,19 +243,20 @@ const BEATS = [
   // Speed labels live in screen space and are kept inside the frame (cam.track); wrappers fade them in.
   const tag = (fill, t0) => { const g = G(p, { o: 0 }); show(g, t0); return phLabel(g, '', { fill }); };
   const fl = tag(PH.friend, .4), tl = tag(PH.truck, tc + 1.6), cl = tag(PH.car, tc + 1.6);
-  const sl = phLabel(p, 'road and trees: ← 30 mph', { x: 70, y: 862, size: 30, fill: COL.dim, anchor: 'start', o: 0 });
+  // The ground below the road holds the two bottom labels, above the caption band (the car's label rides in its lane).
+  const sl = phLabel(p, 'road and trees: ← 30 mph', { x: 70, y: 756, size: 30, fill: COL.dim, anchor: 'start', o: 0 });
   show(sl, m('back'));
   const pinA = phPin(road.side, { x: FR, y: 304, o: 0 }), pinB = phPin(car, { x: 30, y: -112, s: 0, o: 0 });
   show(pinA, .3); hide(pinA, r0, 0); pop(pinB, r0 + .3);
   const tagA = fromTag(p, 'the roadside', .3);
-  hide(tagA, r0, 0); fromTag(p, 'your car', r0, 0, 800);   // bottom: the friend slides through the top
+  hide(tagA, r0, 0); fromTag(p, 'your car', r0, 0, 704);   // bottom: the friend slides through the top
   clockRun(t => {
     const x = xw(t), camV = t < r0 ? 0 : V, rel = t < tc ? 0 : V - camV;
     put(truck, { x }); put(car, { x: x + 10 });
     phRoll(truck, x + 330); phRoll(car, x + 330);
     phText(fl, `friend: ${speedStr(-camV)}`); cam.track(fl, FR, 236, t);
     phText(tl, `truck: ${speedStr(rel)}`); cam.track(tl, x + 10, 350, t);
-    phText(cl, `your car: ${speedStr(rel)}`); cam.track(cl, x + 10, ROAD.bot + 56, t);
+    phText(cl, `your car: ${speedStr(rel)}`); cam.track(cl, x + 300, ROAD.near - 40, t);   // in its lane, ahead of the car
   }, D);
 }],
 ['rule', 'Motion is relative', (m, D) => {
@@ -282,10 +283,10 @@ const BEATS = [
   view([820, 120, 700, 380], m('car', -.4), 'from the car', true);
   const check = x => { const c = path(p, `M${x} 455l18 18l36 -42`, { stroke: COL.good, 'stroke-width': 9 }, { d: 0 }); draw(c, m('both'), .5); };
   check(700); check(1440);
-  txt(p, 'Both are correct.', 800, 560, m('both'), { size: 34, fill: COL.good });
-  show(runs(p, [['Motion is ', COL.chalk], ['relative', PH.ref], ['.', COL.chalk]], { x: 800, y: 660, size: 72 }), m('rel'));
-  show(runs(p, [['It is always described in relation to a ', COL.chalk], ['reference point', PH.ref], ['.', COL.chalk]], { x: 800, y: 745, size: 40, weight: 500 }), m('refpt'));
-  txt(p, 'reference point = the place or object you measure from', 800, 808, m('refpt', 3), { size: 30, fill: COL.dim, weight: 500 });
+  txt(p, 'Both are correct.', 800, 550, m('both'), { size: 34, fill: COL.good });
+  show(runs(p, [['Motion is ', COL.chalk], ['relative', PH.ref], ['.', COL.chalk]], { x: 800, y: 636, size: 72 }), m('rel'));
+  show(runs(p, [['It is always described in relation to a ', COL.chalk], ['reference point', PH.ref], ['.', COL.chalk]], { x: 800, y: 702, size: 40, weight: 500 }), m('refpt'));
+  txt(p, 'reference point = the place or object you measure from', 800, 752, m('refpt', 3), { size: 30, fill: COL.dim, weight: 500 });   // above the caption band
 }],
 ['earth', 'Why we don\'t feel Earth spin', (m, D) => {
   const p = panel(0);
@@ -312,7 +313,7 @@ const BEATS = [
   txt(p, 'counterclockwise', EX, 772, m('earth', 3.2), { size: 30, fill: COL.chalk });
   const eq = mk('circle', { cx: EX, cy: EY, r: ER, fill: 'none', stroke: COL.int, 'stroke-width': 7, transform: `rotate(-90 ${EX} ${EY})` }, cam.world);
   eq.setAttribute('pathLength', 1); eq.setAttribute('stroke-dasharray', '1 1'); put(eq, { d: 0 }); draw(eq, m('fast'), 1.2);
-  runs(p, [['equator (the rim): ', COL.int], ['more than 1,000 mph', COL.chalk]], { x: EX, y: 818, size: 30, o: 0 });
+  runs(p, [['equator (the rim): ', COL.int], ['more than 1,000 mph', COL.chalk]], { x: EX, y: 170, size: 30, o: 0 });   // above Earth, clear of the captions
   show(p.lastChild, m('fast', .4));
   const rx = 1180;
   txt(p, 'Why can\'t we feel it?', rx, 200, m('why'), { size: 42 });
@@ -373,7 +374,7 @@ const BEATS = [
     T(g, s, { x: 230, size: 36, weight: 600 });
     tw(g, { o: 1, x: 0 }, m(mark), .6);
   });
-  txt(p, 'Next: how fast things move.', 800, 760, m('end'), { size: 32, fill: COL.dim, weight: 500 });
+  txt(p, 'Next: how fast things move.', 800, 750, m('end'), { size: 32, fill: COL.dim, weight: 500 });
 }],
 /* ---------- part 2: speed ---------- */
 ['part2', 'Part 2 · Speed', (m, D) => {
@@ -400,13 +401,13 @@ const BEATS = [
   const run = phPerson(p, { role: 'runner', x: xm(0), y: TY });
   const clk = simClock(p, 1460, 230);
   const dist = G(p, { o: 0 }), arrow = path(dist, '', { stroke: DIST, 'stroke-width': 5 });
-  const dLab = T(dist, '', { y: TY + 150, size: 34, weight: 700, fill: DIST, anchor: 'middle' });
+  const dLab = T(dist, '', { y: TY + 120, size: 34, weight: 700, fill: DIST, anchor: 'middle' });
   show(dist, t0);
   clockRun(t => {
     const q = ramp(t, t0, t1), sec = 8 * q, d = 3 * sec, x = xm(d);
     put(run, { x }); if (q > 0 && q < 1) walkTo(run, x); else phPose(run);
     clk.set(sec);
-    arrow.setAttribute('d', d > .6 ? arrowPath(xm(0), TY + 100, x) : '');
+    arrow.setAttribute('d', d > .6 ? arrowPath(xm(0), TY + 75, x) : '');
     put(dLab, { x: (xm(0) + x) / 2 }); phText(dLab, `${Math.round(d)} m`);
   }, D);
   const y = 300;
@@ -558,7 +559,7 @@ const BEATS = [
     T(g, s, { x: 230, size: 36, weight: 600 });
     tw(g, { o: 1, x: 0 }, m(mark), .6);
   });
-  txt(p, 'Next: speed with a direction, velocity.', 800, 780, m('end'), { size: 32, fill: COL.dim, weight: 500 });
+  txt(p, 'Next: speed with a direction, velocity.', 800, 750, m('end'), { size: 32, fill: COL.dim, weight: 500 });
 }],
 /* ---------- part 3: velocity ---------- */
 ['part3', 'Part 3 · Velocity', (m, D) => {
@@ -664,7 +665,7 @@ const BEATS = [
     phText(vl, `velocity: 10 m/s ${compassWord(a)}`);
     top.track(vl, bx + 330 * Math.cos(r), by + 330 * Math.sin(r) - 40 * Math.abs(Math.cos(r)), t);
   }, D);
-  runs(p, [['Same speed, new direction: the ', COL.chalk], ['velocity', VEL], [' changes.', COL.chalk]], { x: 800, y: 850, size: 38, weight: 700 });
+  runs(p, [['Same speed, new direction: the ', COL.chalk], ['velocity', VEL], [' changes.', COL.chalk]], { x: 800, y: 744, size: 38, weight: 700 });   // above the caption band
   show(p.lastChild, m('rule'));
 }],
 ['q3', 'Quick check', (m, D) => {
@@ -706,7 +707,7 @@ const BEATS = [
     T(g, s, { x: 230, size: 36, weight: 600 });
     tw(g, { o: 1, x: 0 }, m(mark), .6);
   });
-  txt(p, 'Next: how velocity changes over time, acceleration.', 800, 760, m('end'), { size: 32, fill: COL.dim, weight: 500 });
+  txt(p, 'Next: how velocity changes over time, acceleration.', 800, 750, m('end'), { size: 32, fill: COL.dim, weight: 500 });
 }],
 /* ---------- part 4: acceleration ---------- */
 ['part4', 'Part 4 · Acceleration', (m, D) => {
@@ -803,7 +804,7 @@ const BEATS = [
     T(g, sign, { y: -36, size: 54, weight: 700, fill: col, anchor: 'middle' });
     return g;
   };
-  const brake = pedal(1300, 'brake', '−', ACC), gas = pedal(1440, 'gas', '+', ACC);
+  const brake = pedal(1446, 'brake', '−', ACC), gas = pedal(1536, 'gas', '+', ACC);   // right of the caption band
   clockRun(t => {
     const x = 300 + xAt(t), vv = v(t), acc = t >= g0 && t < g0 + 3 ? 1 : t >= b0 && vv > 0 ? -1 : 0;
     put(car, { x }); phRoll(car, x);
@@ -812,7 +813,7 @@ const BEATS = [
     phText(al, acc ? `acceleration: ${acc > 0 ? '+' : '−'}5 m/s²` : 'acceleration: 0'); cam.track(al, x, ROAD.near - 250, t);
     put(gas, { y: acc > 0 ? 832 : 820 }); put(brake, { y: acc < 0 ? 832 : 820 });
   }, D);
-  runs(p, [['negative acceleration = ', COL.chalk], ['deceleration', ACC]], { x: 700, y: 870, size: 36, weight: 700 });
+  runs(p, [['negative acceleration = ', COL.chalk], ['deceleration', ACC]], { x: 800, y: 150, size: 36, weight: 700 });   // in the sky, clear of the captions
   show(p.lastChild, m('decel'));
 }],
 ['turnfeel', 'Turning is accelerating', (m, D) => {
@@ -868,7 +869,7 @@ const BEATS = [
     T(g, s, { x: 230, size: 36, weight: 600 });
     tw(g, { o: 1, x: 0 }, m(mark), .6);
   });
-  txt(p, 'Next: the chapter practice.', 800, 780, m('w4', 5), { size: 32, fill: COL.dim, weight: 500 });
+  txt(p, 'Next: the chapter practice.', 800, 750, m('w4', 5), { size: 32, fill: COL.dim, weight: 500 });
 }],
 /* ---------- chapter practice and finish (after the last section) ---------- */
 ['final1', 'Chapter practice: motion and speed', () => { panel(0); }, { ask: done => quiz(SCREEN, [

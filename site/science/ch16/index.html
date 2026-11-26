@@ -53,11 +53,11 @@ function opener(p, x, y, part, name, name2) {
 }
 function summary(p, m, rows, next) {
   rows.forEach(([lines, icon], i) => {
-    const g = G(p, { x: -16, y: 250 + i * 220, o: 0 });
+    const g = G(p, { x: -16, y: 160 + i * 220, o: 0 });
     lines.forEach((s, j) => T(g, s, { x: 430, y: j * 50, size: 38, weight: 600 }));
     icon(g); tw(g, { o: 1, x: 0 }, m(['w1', 'w2', 'w3'][i]), .6);
   });
-  txt(p, next, 800, 860, m('end'), { size: 32, fill: COL.dim, weight: 500 });
+  txt(p, next, 800, 750, m('end'), { size: 32, fill: COL.dim, weight: 500 });
 }
 // A rectangular circuit, x0..x1 by y0..y1, with the battery standing on the left side (+ end up). Electrons leave the
 // − end, go round and come back into the + end. Drawn: wire, electrons, battery. c.set(s) moves the electrons.
@@ -198,7 +198,7 @@ const BEATS = [
   say(p, 'protons: +', AX, 640, ta + .4, { fill: CHG_P, size: 34 });
   say(p, 'electrons: −', AX, 290, ta + 2.2, { fill: CHG_N, size: 34 });
   tw(halo, { o: .14 }, tg + 1.5, .6); tw(halo, { c_fill: CHG_P }, tl + 1.3, .7);
-  const st = ['neutral atom', 'negative', 'positive'].map((s, i) => phLabel(p, s, { x: AX, y: 830, size: 44, fill: [COL.chalk, CHG_N, CHG_P][i], o: 0 }));
+  const st = ['neutral atom', 'negative', 'positive'].map((s, i) => phLabel(p, s, { x: AX, y: 750, size: 44, fill: [COL.chalk, CHG_N, CHG_P][i], o: 0 }));
   show(st[0], te + .4); hide(st[0], tg + 1.4, .3); show(st[1], tg + 1.6); hide(st[1], tl + 1.2, .3); show(st[2], tl + 1.4);
   // the table
   const TX = [1020, 1200, 1390];
@@ -226,7 +226,7 @@ const BEATS = [
   const C = [chargeBall(p, 1, { r: 36, o: 0 }), chargeBall(p, -1, { r: 36, o: 0 })], fc = [forceArrow(p, { size: 30 }), forceArrow(p, { size: 30 })];
   C.forEach(e => show(e, tm - .6));
   say(p, 'more charge: stronger', 800, 530, tm + .4, { size: 34 });
-  say(p, 'closer: stronger', 800, 820, tn + .6, { size: 34 });
+  say(p, 'closer: stronger', 800, 760, tn + .6, { size: 34 });
   clockRun(t => {
     const dA = lerp(170, 330, sm(t, tl + .5, tl + 3)), dB = lerp(340, 180, sm(t, tu + .5, tu + 2.8)), K = 3.6e6;
     put(A[0], { x: 400 - dA / 2, y: 330 }); put(A[1], { x: 400 + dA / 2, y: 330 });
@@ -309,7 +309,7 @@ const BEATS = [
   const sd = line(p, [['static discharge', COL.task], [': the charge suddenly jumps away']], 800, 110, TD, { size: 40 });
   hide(sd, tb + .2);
   cam.to({ x: 800, y: 450, z: 1 }, TS - 1.2, 2.2); cam.to({ x: 1450, y: 60, z: .42 }, tb - .2, 1.8);
-  line(p, [['lightning', '#fff6c8'], [': the same thing, enormous']], 800, 850, tb + 1.4, { size: 44 });
+  line(p, [['lightning', '#fff6c8'], [': the same thing, enormous']], 800, 750, tb + 1.4, { size: 44 });
 }, { lead: false }],
 ['field', 'Electric fields', (m, D) => {
   const p = panel(0), tf = m('field'), tp = m('plus'), tm = m('minus'), tn = m('near'), tb = m('big'), TL = 5.68;
@@ -380,7 +380,7 @@ const BEATS = [
   say(p, 'a neutral wall', WX + 100, 66, tb + 1.6, { size: 30, fill: COL.dim });
   say(p, '+ layer', WX - 14, 100, tp + .4, { size: 30, fill: CHG_P, anchor: 'end' });
   line(p, [['induction', COL.task], [': a field pulls charges apart']], 480, 220, TI, { size: 40 });
-  say(p, 'it sticks', 760, 820, ts + 2.6, { size: 36 });
+  say(p, 'it sticks', 760, 760, ts + 2.6, { size: 36 });
 }, { lead: false }],
 ['q1', 'Quick check', (m, D) => {
   const p = panel(0);
@@ -457,7 +457,7 @@ const BEATS = [
   const Sinv = u => { const a = RES[0] - 110, b = a + (RES[1] - RES[0]) / kNow; return u < a ? u : u < b ? a + (u - a) * kNow : RES[1] - 110 + u - b; };
   const wf = eFlow(ex, WR, { gap: 46, r: 7, warp: u => Sinv(u), len: 3000 });
   // examples: a bulb filament and a toaster
-  const eg = G(p, { o: 0 }); show(eg, TF);
+  const eg = G(p, { o: 0, y: -120 }); show(eg, TF);
   const eb = bulb(eg, { x: 560, y: 860, s: .9 }); eb.set(1);
   phBlock(eg, 880, 730, 220, 130, '#c3ccce', { top: 6 }); [920, 990].forEach(x => phBlock(eg, x, 742, 50, 20, '#2f3a3d', { top: 0 }));
   path(eg, 'M922 770h46M992 770h46', { stroke: '#ff7a45', 'stroke-width': 6 });
@@ -527,8 +527,8 @@ const BEATS = [
   lab('power source', X0 - 30, 340, tp + .3, { anchor: 'end', fill: VOLT });
   lab('wires', X1 + 30, 470, tp + 3, { anchor: 'start' });
   lab('load', 900, 120, TL + .3, { anchor: 'start', fill: LIGHT });
-  const swl = lab('switch', 800, 800, tsw + .2);
-  const st = phLabel(p, '', { x: 800, y: 860, size: 30, fill: COL.dim });
+  const swl = lab('switch', 800, 754, tsw + .2);
+  const st = phLabel(p, '', { x: 800, y: 778, size: 30, fill: COL.dim });
   // the drawbridge, inside the loop
   const db = G(p, { o: 0 });
   frameBox(db, 520, 470, 560, 140);
@@ -638,11 +638,11 @@ const BEATS = [
   const balls = [[1015, 560], [1345, 260]].map(([x, y]) => ({ x, y, g: phBall(H, 26), puff: path(H, '', { stroke: COL.chalk, 'stroke-width': 5 }) }));
   phLabel(H, 'voltage: how big the push is', { x: 1180, y: 150, size: 36 });
   const hb = distBar(H, { color: DIST, w: 5, size: 28 }); hb.set(1450, 740, 1450, 260, 'height', 'right');
-  later(say(H, 'higher: more energy as it falls', 1180, 830, TBL + 1.5, { size: 30 }), TBL + 1.5);
+  later(say(H, 'higher: more energy as it falls', 1180, 200, TBL + 1.5, { size: 30 }), TBL + 1.5);
   line(A, [['voltage', VOLT], [': the energy each charge can gain']], 420, 120, TE, { size: 38 });
   line(A, [['measured in '], ['volts (V)', VOLT]], 420, 176, tv + .2, { size: 34 });
   // 1.5 V and 9 V
-  const Bg = G(p, { o: 0 }); show(Bg, tn);
+  const Bg = G(p, { o: 0, y: -50 }); show(Bg, tn);
   const two = [[400, 1.5, .28, 60], [1200, 9, 1, 240]].map(([cx, v, k, sp]) => {
     const R2 = route([[cx - 100, 700], [cx - 250, 700], [cx - 250, 320], [cx + 250, 320], [cx + 250, 700], [cx + 100, 700]], true);
     wire(Bg, R2); const ff = eFlow(Bg, R2, { gap: 56, r: 8 });
@@ -735,15 +735,15 @@ const BEATS = [
   line(p, [['voltage', VOLT], [' = '], ['current', AMPS], [' × '], ['resistance', OHMS]], 800, 76, te + .2, { size: 46 });
   line(p, [['V', VOLT], [' = '], ['I', AMPS], [' × '], ['R', OHMS]], 800, 130, TV, { size: 38 });
   const Rof = t => t < tu + 1.4 ? 4 : t < td + .6 ? 2 : t < tx + .3 ? 6 : 2, I = t => 6 / Rof(t);
-  const c = loopCircuit(p, { x0: 360, y0: 340, x1: 1240, y1: 670, bw: 200, bh: 84, gap: 50 });
+  const c = loopCircuit(p, { x0: 360, y0: 340, x1: 1240, y1: 610, bw: 200, bh: 84, gap: 50 });
   const b = bulb(p, { x: 800, y: 340, s: .9 });
   phLabel(p, '6 V', { x: 270, y: 520, size: 40, fill: VOLT });
   const rl = phLabel(p, '', { x: 920, y: 270, size: 40, fill: OHMS, anchor: 'start' });
-  mk('rect', { x: 720, y: 650, width: 160, height: 40, fill: COL.board }, p);
-  const am = ammeter(p, 800, 670);
+  mk('rect', { x: 720, y: 590, width: 160, height: 40, fill: COL.board }, p);
+  const am = ammeter(p, 800, 610);
   say(p, 'smaller R: more current', 800, 480, TS, { size: 32 });
   say(p, 'larger R: less current', 800, 530, td + .6, { size: 32 });
-  const ex = line(p, [['I', AMPS], [' = 6 V ÷ 2 Ω = '], ['3 A', AMPS]], 800, 860, tx + 2.4, { size: 40 });
+  const ex = line(p, [['I', AMPS], [' = 6 V ÷ 2 Ω = '], ['3 A', AMPS]], 1140, 726, tx + 2.4, { size: 40 });
   clockRun(t => {
     // electrons drift at a speed in step with the current (from the same R(t), eased)
     const keys = [[0, 1.5], [tu + 1.4, 1.5], [tu + 1.9, 3], [td + .6, 3], [td + 1.1, 1], [tx + .3, 1], [tx + .8, 3]].map(([a, i]) => [a, 60 * i]);
@@ -787,12 +787,12 @@ const BEATS = [
   const car = G(B, { x: 700, y: 760 });
   phBlock(car, -90, -64, 180, 44, '#4f9a6a', { top: 5 }); phBlock(car, -50, -94, 90, 32, '#86c9e8', { top: 3 });
   const wh = [-56, 56].map(x => { const w = G(car, { x, y: -16 }); mk('circle', { r: 24, fill: '#2c3337', ...phLine() }, w); path(w, 'M-16 0H16M0 -16V16', { stroke: '#9aa5a8', 'stroke-width': 5 }); return w; });
-  phLabel(B, 'light', { x: 770, y: 126, size: 30, fill: LIGHT, anchor: 'start' }); phLabel(B, 'heat', { x: 1260, y: 420, size: 30, fill: HEAT }); phLabel(B, 'motion', { x: 880, y: 886, size: 30, fill: KIN });
+  phLabel(B, 'light', { x: 770, y: 126, size: 30, fill: LIGHT, anchor: 'start' }); phLabel(B, 'heat', { x: 1260, y: 420, size: 30, fill: HEAT }); phLabel(B, 'motion', { x: 880, y: 770, size: 30, fill: KIN });
   phLabel(B, 'stored energy', { x: 140, y: 380, size: 26, fill: CHEM });
   const tot = say(B, 'energy is never lost: 9 blocks in, 9 out', 700, 550, TM + 5, { size: 32 });
   const blocks = eBlocks(B, 9, CHEM, { size: 30 });
   // arc lengths along the route (it starts at the − end); energy leaves the + end (s 2280) and goes backward round
-  const SP = 2280, dev = [[0, 1760, [700, 116], LIGHT], [1, 1140, [1250, 540], HEAT], [2, 520, [880, 820], KIN]];
+  const SP = 2280, dev = [[0, 1760, [700, 116], LIGHT], [1, 1140, [1250, 540], HEAT], [2, 520, [880, 730], KIN]];
   clockRun(t => {
     toast.set(t); pf.set(V0 * t);
     bs.forEach(({ r, l, w, t0 }) => { const q = sm(t, t0, t0 + 1); thAtt(r, 'width', w * .18 * q); put(l, { x: 444 + w * .18 * q, o: q }); });
@@ -873,7 +873,7 @@ const BEATS = [
   show(glow, 17.6); hide(glow, 21);
   say(B, 'magnetic field', 800, 90, tl + .2, { size: 44, fill: MAGF });
   say(B, 'strongest where the lines crowd', 1200, 160, 18, { size: 30 });
-  say(B, 'inside: S back to N, a closed loop', 800, 870, ti + .8, { size: 32, fill: MAGF });
+  say(B, 'inside: S back to N, a closed loop', 800, 200, ti + .8, { size: 32, fill: MAGF });
   clockRun(t => {
     // phase A: the two magnets
     const rep = sm(t, tr + .1, tr + 1.1), turn = sm(t, ta - .2, ta + .6), snap = ramp(t, ta + .6, ta + 1.1) ** 2;
@@ -943,7 +943,7 @@ const BEATS = [
     const w1 = path(g, '', { stroke: COPPER, 'stroke-width': 10 }), w2 = path(g, '', { stroke: COPPER, 'stroke-width': 10 });
     const a1 = forceArrow(g), a2 = forceArrow(g);
     const hd = path(g, '', { stroke: AMPS, 'stroke-width': 5, fill: 'none' });
-    phLabel(g, s, { x: cx, y: 870, size: 28 });
+    phLabel(g, s, { x: cx, y: 550, size: 28 });
     return { cx, dir, sgn, w1, w2, a1, a2, hd };
   });
   // the coil
@@ -1051,7 +1051,7 @@ const BEATS = [
   const b = bulb(p, { x: 1400, y: 600, s: .9, r: 180 });
   // pedalling: slow start, harder from just before the bulb mark
   const dist = t => phaseOf(t, [[tc, 0], [tc + 1, 160], [tb - 1.2, 160], [tb - .2, 330]]);
-  const row = convRow(p, 900, 860, ['kinetic energy', KIN], 'generator', ['electric energy', ELE], tr + .3);
+  const row = convRow(p, 900, 230, ['kinetic energy', KIN], 'generator', ['electric energy', ELE], tr + .3);
   put(row, { o: 0 }); show(row, tr);
   const ghost = G(p, { o: 0 }); mk('rect', { x: 560, y: 760, width: 680, height: 44, rx: 12, fill: BOX, opacity: .9 }, ghost); phLabel(ghost, 'a motor runs the other way: electric → kinetic', { x: 900, y: 790, size: 26, fill: COL.dim }); show(ghost, tr + 1.4);
   say(p, 'electromagnetic induction', 400, 110, TI, { size: 40, fill: COL.task });

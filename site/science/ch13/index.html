@@ -49,11 +49,11 @@ function opener(p, x, y, part, name, name2) {
 }
 function summary(p, m, rows, next) {
   rows.forEach(([lines, icon], i) => {
-    const g = G(p, { x: -16, y: 250 + i * 220, o: 0 });
+    const g = G(p, { x: -16, y: 160 + i * 220, o: 0 });
     lines.forEach((s, j) => T(g, s, { x: 430, y: j * 50, size: 38, weight: 600 }));
     icon(g); tw(g, { o: 1, x: 0 }, m(['w1', 'w2', 'w3'][i]), .6);
   });
-  txt(p, next, 800, 860, m('end'), { size: 32, fill: COL.dim, weight: 500 });
+  txt(p, next, 800, 750, m('end'), { size: 32, fill: COL.dim, weight: 500 });
 }
 
 /* ---------- props: origin at the bottom centre unless noted ---------- */
@@ -242,7 +242,7 @@ function kineticRows(p, ts) {
       const es = Array.from({ length: 6 }, () => mk('circle', { r: 6, cy, fill: COL.chalk }, g));
       return t => es.forEach((c, i) => c.setAttribute('cx', (cx - 86 + ((i * 31 + 60 * t) % 186)).toFixed(1)));
     }],
-  ].map(([name, line, pic], i) => formRow(p, 300 + i * 120, 190, 320, name, KIN, [[line]], ts[i], pic));
+  ].map(([name, line, pic], i) => formRow(p, 300 + i * 110, 190, 320, name, KIN, [[line]], ts[i], pic));
   return t => ups.forEach(u => u(t));
 }
 function storedRows(p, m) {
@@ -282,7 +282,7 @@ function storedRows(p, m) {
         bl.forEach((e, i) => put(e, { x: cx, y: cy + (i ? 1 : -1) * 60 * q, o: t > tk ? 1 : 0 }));
       };
     }],
-  ].map(([name, lines, t0, pic], i) => formRow(p, 300 + i * 150, 930, 1040, name, POT, lines, t0, pic));
+  ].map(([name, lines, t0, pic], i) => formRow(p, 300 + i * 130, 930, 1040, name, POT, lines, t0, pic));
   return t => ups.forEach(u => u(t));
 }
 
@@ -464,7 +464,7 @@ const BEATS = [
   const x0 = hx + 22, y0 = hy - 4, yL = Y1 - 9, t0 = td + .6, t1 = tf + 1, pn = pen(p);
   const hb = distBar(p, { size: 30 }); put(hb, { o: 0 }); show(hb, tp);
   const tap = soundArcs(p, x0 + 70, Y1 - 20, { n: 2 }); put(tap, { o: 0 });
-  const eb = energyBars(p, { x: 980, y: 700, cols: [['potential', POT], ['kinetic', KIN], ['heat, sound', HEAT]], total: 9, unit: 36, w: 90, gap: 76 });
+  const eb = energyBars(p, { x: 980, y: 650, cols: [['potential', POT], ['kinetic', KIN], ['heat, sound', HEAT]], total: 9, unit: 36, w: 90, gap: 76 });
   put(eb, { o: 0 }); show(eb, tp);
   clockRun(t => {
     const k = ramp(t, t0, t1), y = lerp(y0, yL, k * k), pe = 9 * (yL - y) / (yL - y0), q = sm(t, t1, t1 + .4);
@@ -478,8 +478,8 @@ const BEATS = [
   runs(p, [['gravitational', POT], [': gravity can release it']], { x: 1160, y: 182, size: 30 }); show(p.lastChild, tp + 1.8);
   runs(p, [['kinetic energy', KIN], [': the energy of motion']], { x: 1160, y: 250, size: 40 }); show(p.lastChild, tk + 1.5);
   const mg = G(p, { o: 0 });
-  path(mg, 'M980 768V780H1236V768', { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' });
-  phLabel(mg, 'mechanical energy', { x: 1108, y: 818, size: 30 }); show(mg, tm);
+  path(mg, 'M980 718V730H1236V718', { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' });
+  phLabel(mg, 'mechanical energy', { x: 1108, y: 768, size: 30 }); show(mg, tm);
 }, { lead: false }],
 ['hill', 'Up and down a hill', (m, D) => {
   const p = panel(0), tk = m('kick'), ts = m('stop'), tt = m('total');
@@ -592,7 +592,7 @@ const BEATS = [
   const dC = drop(bC, pC, cC, cx + 6, cy - 14, 16, thi + 1, T * Math.sqrt(HC / HA), HC / HA, 10 * HC / HA);
   clockRun(t => { dA(t); dB(t); dC(t); }, D);
   hide(g1, thi - .3, .5); hide(youA, thi - .3, .5); show(g2, thi + .3);
-  [['tennis ball', ax, p], ['bowling ball', bxh, g1], ['tennis ball, from high up', cx, g2]].forEach(([s, x, g]) => phLabel(g, s, { x, y: 860, size: 30, fill: COL.dim }));
+  [['tennis ball', ax, p], ['bowling ball', bxh, g1], ['tennis ball, from high up', cx, g2]].forEach(([s, x, g]) => phLabel(g, s, { x, y: 260, size: 30, fill: COL.dim }));
 }, { lead: false }],
 ['shelf', 'Mass and height', (m, D) => {
   const p = panel(0), tt = m('top'), tb = m('bot'), th = m('heavy'), tf = m('fall');

@@ -45,11 +45,11 @@ function opener(p, x, y, part, name, name2) {
 }
 function summary(p, m, rows, next) {
   rows.forEach(([lines, icon], i) => {
-    const g = G(p, { x: -16, y: 250 + i * 220, o: 0 });
+    const g = G(p, { x: -16, y: 160 + i * 220, o: 0 });
     lines.forEach((s, j) => T(g, s, { x: 430, y: j * 50, size: 38, weight: 600 }));
     icon(g); tw(g, { o: 1, x: 0 }, m(['w1', 'w2', 'w3'][i]), .6);
   });
-  txt(p, next, 800, 860, m('end'), { size: 32, fill: COL.dim, weight: 500 });
+  txt(p, next, 800, 750, m('end'), { size: 32, fill: COL.dim, weight: 500 });
 }
 const frameBox = (p, x, y, w, h, fill = BOX, stroke = COL.faint) => mk('rect', { x, y, width: w, height: h, rx: 18, fill, stroke, 'stroke-width': 3 }, p);
 function starsIn(p, x, y, w, h, n = 60, seed = 1) {
@@ -344,7 +344,7 @@ const BEATS = [
   const p = panel(0), td = m('dock'), tt = m('ten'), t2 = m('two'), ti = m('inv'), TF = 13;   // TF: "Frequency is the number…"
   // Two lanes of water pass a dock post. A stopwatch runs ten seconds (sped up) for each: ten crests pass the
   // top post, two pass the bottom one. Same speed, so the many waves must be short and the few long.
-  const lanes = [{ y: 330, wl: 120, f: 1, A: 30, run: [3.4, 6.4], n: 10 }, { y: 650, wl: 600, f: .2, A: 60, run: [t2 + .2, t2 + 3.2], n: 2 }];
+  const lanes = [{ y: 330, wl: 120, f: 1, A: 30, run: [3.4, 6.4], n: 10 }, { y: 600, wl: 600, f: .2, A: 60, run: [t2 + .2, t2 + 3.2], n: 2 }];
   const sw = simClock(p, 1460, 120, 40);
   lanes.forEach((L, i) => {
     L.x0 = 800 - L.wl * .75;
@@ -366,13 +366,13 @@ const BEATS = [
     });
     sw.set(t < t2 ? lanes[0].s(t) : lanes[1].s(t));
   }, D);
-  say(p, 'high frequency', 130, 480, tt + .4, { size: 34, anchor: 'start' });
-  say(p, 'low frequency', 130, 800, t2 + 3.3, { size: 34, anchor: 'start' });
+  say(p, 'high frequency', 130, 428, tt + .4, { size: 34, anchor: 'start' });
+  say(p, 'low frequency', 130, 698, t2 + 3.3, { size: 34, anchor: 'start' });
   line(p, [['frequency', FREQ], [': waves passing a point each second, in '], ['hertz (Hz)', FREQ]], 700, 70, TF, { size: 34 });
   const sg = [G(p), G(p)], s1 = distBar(sg[0], { color: WLEN, w: 6, size: 28 }), s2 = distBar(sg[1], { color: WLEN, w: 6, size: 28 });   // sg: dip out at each hop
   [s1, s2].forEach(b => put(b, { o: 0 })); show(s1, ti + 1); show(s2, ti + 1.6);
   clockRun(t => { [s1, s2].forEach((b, i) => { const L = lanes[i], base = L.x0 + L.wl * (.25 + L.f * L.S(t)), x = base + L.wl * Math.ceil(([880, 400][i] - base) / L.wl), y = i ? L.y - 120 : L.y - L.A - 26, u = x - [880, 400][i]; put(sg[i], { o: Math.min(1, u / (L.wl * .2), (L.wl - u) / (L.wl * .2)) }); b.set(x, y, x + L.wl, y, i ? 'long wavelength' : 'short wavelength', 'above'); }); }, D);
-  line(p, [['higher frequency', FREQ], [' = '], ['shorter wavelength', WLEN]], 800, 860, 25.3, { size: 40 });
+  line(p, [['higher frequency', FREQ], [' = '], ['shorter wavelength', WLEN]], 800, 160, 25.3, { size: 40 });
 }, { lead: false }],
 ['speed', 'Wave speed', (m, D) => {
   const p = panel(0), te = m('eq'), tx = m('ex'), tm = m('medium'), tl = m('light'), TS = 15.7;   // TS: "Sound is a mechanical wave…"
@@ -719,7 +719,7 @@ const BEATS = [
     thAtt(eL, 'd', e); thAtt(eS, 'd', es); thAtt(bL, 'd', b); thAtt(bS, 'd', bs);
   }, D);
   line(B, [['electric', ELEC], [' and '], ['magnetic', MAG], [' fields, at right angles']], 800, 110, tf + .4, { size: 40 });
-  line(p, [['light waves', LIGHT], [': most of them invisible to our eyes']], 800, 820, tl + .3, { size: 38 });
+  line(p, [['light waves', LIGHT], [': most of them invisible to our eyes']], 800, 760, tl + .3, { size: 38 });
 }, { lead: false }],
 ['spectrum', 'The electromagnetic spectrum', (m, D) => {
   const p = panel(0), tb = m('band'), tv = m('vis'), tlo = m('low'), thi = m('high'), TN = 16.2;   // "A nanometer is…"
@@ -758,20 +758,20 @@ const BEATS = [
   const pointer = (k, x, t0) => { const [bx, , bw] = bar.box(k), g = G(p, { o: 0 }); path(g, `M${bx + bw / 2} 200L${x} 290`, { stroke: COL.dim, 'stroke-width': 3, 'stroke-dasharray': '6 6' }); show(g, t0); };
   pointer('radio', 300, tr + .8); pointer('micro', 800, tm + .3); pointer('ir', 1300, ti + .3);
   // radio
-  const r = G(p, { o: 0 }); show(r, tr + .8);
+  const r = G(p, { o: 0, y: -40 }); show(r, tr + .8);
   radioTower(r, 260, 700);
   const ra = arcSet(r, 3, { color: '#d8c9a0', w: 5 });
   phBlock(r, 380, 620, 120, 80, '#9a6a46', { top: 5 }); mk('circle', { cx: 415, cy: 660, r: 22, fill: '#2c3337' }, r);
   const notes = phLabel(r, '♪ ♫', { x: 470, y: 600, size: 36, fill: COL.task });
   phLabel(r, 'radio waves', { x: 300, y: 770, size: 34 }); phLabel(r, 'longest, lowest energy', { x: 300, y: 810, size: 26, fill: COL.dim });
   // microwave oven
-  const mo = G(p, { o: 0 }); show(mo, tm + .3);
+  const mo = G(p, { o: 0, y: -40 }); show(mo, tm + .3);
   phBlock(mo, 610, 420, 380, 280, ENAMEL, { top: 6, right: 10 }); phBlock(mo, 630, 445, 260, 230, '#2c3337', { top: 0 });
   mk('rect', { x: 908, y: 460, width: 56, height: 200, fill: '#cfcac0' }, mo);
   const mols = [[700, 560], [760, 610], [820, 545]].map(([x, y]) => { const g = G(mo, { x, y }); mk('circle', { r: 16, fill: '#e2553f' }, g); mk('circle', { cx: -16, cy: 12, r: 10, fill: '#f4f1e8' }, g); mk('circle', { cx: 16, cy: 12, r: 10, fill: '#f4f1e8' }, g); return g; });
   phLabel(mo, 'microwaves', { x: 800, y: 770, size: 34 }); phLabel(mo, 'shake water molecules', { x: 800, y: 810, size: 26, fill: COL.dim });
   // infrared
-  const ir = G(p, { o: 0 }); show(ir, ti + .3);
+  const ir = G(p, { o: 0, y: -40 }); show(ir, ti + .3);
   frameBox(ir, 1090, 390, 420, 320, '#06100c', '#3a6a4a');
   path(ir, 'M1160 700V560L1190 520L1220 560V700Z', { fill: '#163a2a' });
   const glow = G(ir); mk('circle', { cx: 1330, cy: 500, r: 34, fill: HEAT }, glow); mk('rect', { x: 1290, y: 540, width: 80, height: 130, rx: 30, fill: HEAT }, glow); mk('circle', { cx: 1330, cy: 500, r: 18, fill: COL.task }, glow); mk('rect', { x: 1308, y: 560, width: 44, height: 80, rx: 18, fill: COL.task }, glow);
@@ -801,7 +801,7 @@ const BEATS = [
   const vw = chirp(v, { x0: 100, x1: 408, y: 300, A: 20, wl0: 76, wl1: 44, color: COL.chalk, w: 4 });   // long red waves to short violet ones
   phLabel(v, 'red: longest', { x: 100, y: 540, size: 26, fill: ROYGBIV[0], anchor: 'start' }); phLabel(v, 'violet: shortest', { x: 408, y: 580, size: 26, fill: ROYGBIV[6], anchor: 'end' });
   // ultraviolet
-  const u = G(p, { o: 0 }); show(u, tu + .3); pics.push(u, pointer('uv', 640, tu + .3));
+  const u = G(p, { o: 0, y: -40 }); show(u, tu + .3); pics.push(u, pointer('uv', 640, tu + .3));
   phSun(u, { x: 560, y: 330, r: 44 });
   // two rays land on the bather's skin, one on the face and one on the arm; the burn reddens both spots
   const bather = phActor(u, 'you', { x: 680, y: 700, s: 2 }).face(-1);
@@ -809,7 +809,7 @@ const BEATS = [
   const uvr = waveRays(u, { x0: 590, y0: 368, x1: 670, y1: 550, n: 2, spread: 100, amp: 7, wl: 22, color: '#b48cff' });
   phLabel(u, 'ultraviolet', { x: 640, y: 770, size: 32 }); phLabel(u, 'sunburn', { x: 640, y: 810, size: 26, fill: COL.dim });
   // X-rays
-  const xr = G(p, { o: 0 }); show(xr, tx + .3); pics.push(xr, pointer('x', 1030, tx + .3));
+  const xr = G(p, { o: 0, y: -40 }); show(xr, tx + .3); pics.push(xr, pointer('x', 1030, tx + .3));
   frameBox(xr, 900, 290, 260, 420, '#101a2a', '#4a5a7a');
   const flesh = G(xr, { o: .35 }); mk('rect', { x: 960, y: 520, width: 140, height: 160, rx: 40, fill: '#9ab0c8' }, flesh);
   [[968, 340], [1002, 320], [1036, 326], [1070, 350]].forEach(([x, y]) => mk('rect', { x, y, width: 28, height: 200, rx: 14, fill: '#9ab0c8' }, flesh));
@@ -818,19 +818,19 @@ const BEATS = [
   const xin = waveRays(xr, { x0: 770, y0: 480, x1: 895, y1: 480, n: 1, amp: 9, wl: 16, color: '#eef3ff' }), xout = waveRays(xr, { x0: 1170, y0: 480, x1: 1280, y1: 480, n: 1, amp: 5, wl: 16, color: '#eef3ff' });   // a beam through the hand
   phLabel(xr, 'X-rays', { x: 1030, y: 770, size: 32 }); phLabel(xr, 'bones absorb more', { x: 1030, y: 810, size: 26, fill: COL.dim });
   // gamma
-  const gm = G(p, { o: 0 }); show(gm, tg + .3); pics.push(gm, pointer('gamma', 1400, tg + .3));
+  const gm = G(p, { o: 0, y: -40 }); show(gm, tg + .3); pics.push(gm, pointer('gamma', 1400, tg + .3));
   const burst = G(gm, { x: 1400, y: 430 });
   path(burst, Array.from({ length: 24 }, (_, i) => { const a = i * Math.PI / 12, r = i % 2 ? 40 : 110; return `${i ? 'L' : 'M'}${(r * Math.cos(a)).toFixed(1)} ${(r * Math.sin(a)).toFixed(1)}`; }).join('') + 'Z', { fill: '#c6f58a', ...phLine() });
   path(gm, 'M1400 580L1460 690H1340Z', { fill: COL.task, ...phLine() }); phLabel(gm, '!', { x: 1400, y: 680, size: 60, fill: PH.out });
   phLabel(gm, 'gamma rays', { x: 1400, y: 770, size: 32 }); phLabel(gm, 'can damage living cells', { x: 1400, y: 810, size: 26, fill: COL.dim });
   clockRun(t => { vw.set(t * 3); xin.set(t * 9, 1); xout.set(t * 9, 1); put(burst, { r: t * 20, s: 1 + .06 * Math.sin(t * 5) }); bather.show('stand'); uvr.set(t * 6, sm(t, tu + .3, tu + 1.6)); }, D);
-  pics.forEach(g => tw(g, { o: .2 }, tm, .5));
+  pics.forEach(g => tw(g, { o: 0 }, tm, .5));   // the mnemonic uses the labels' row once the pictures fade
   // the mnemonic
   const WORDS = [['Roger', 'radio'], ['Makes', 'micro'], ['Instruments:', 'ir'], ['Violins,', 'vis'], ['Ukuleles,', 'uv'], ['Xylophones,', 'x'], ['and Guitars', 'gamma']];
   const mg = G(p); let x = 120;
   WORDS.forEach(([w, k], i) => {
     const t0 = tm + 2.2 + i * .78, s = 40, c = COL.task;
-    const lab = runs(mg, [[w.startsWith('and') ? 'and ' : '', COL.chalk], [w.replace('and ', '')[0], c], [w.replace('and ', '').slice(1)]], { x, y: 850, size: s, anchor: 'start' });
+    const lab = runs(mg, [[w.startsWith('and') ? 'and ' : '', COL.chalk], [w.replace('and ', '')[0], c], [w.replace('and ', '').slice(1)]], { x, y: 750, size: s, anchor: 'start' });
     show(lab, t0, .3); x += uiW(w + ' ', s) + 4;
     const [bx, , bw] = bar.box(k), L = phLabel(mg, (k === 'gamma' ? 'G' : w[0]), { x: bx + bw / 2, y: 240, size: 34, fill: c, o: 0 }); show(L, t0, .3);
     tw(bar.bands[k], { o: 1 }, t0, .3);
@@ -842,7 +842,7 @@ const BEATS = [
   // raindrop does the same with a bounce off its back. Then light crosses from the Sun to Earth in about 8 minutes.
   const A = G(p); hide(A, tr - .3);
   const P = [[720, 250], [520, 600], [920, 600]];
-  path(A, `M${P[0]}L${P[1]}L${P[2]}Z`, { fill: '#c8e0ff' }); path(A, `M${P[0]}L${P[1]}L${P[2]}Z`, { stroke: '#c8e0ff', 'stroke-width': 5, fill: 'none' });
+  path(A, `M${P[0]}L${P[1]}L${P[2]}Z`, { fill: '#c8e0ff' }, { o: .18 }); path(A, `M${P[0]}L${P[1]}L${P[2]}Z`, { stroke: '#c8e0ff', 'stroke-width': 5, fill: 'none' });   // faint glass, clear edge
   phLabel(A, 'glass prism', { x: 720, y: 660, size: 30, fill: '#c8e0ff' });
   const start = [80, 620], dir = [Math.cos(-.42), Math.sin(-.42)], cols = prismPaths(P, start, dir);
   const white = lightRay(A, [start, cols[0][0]], { color: '#ffffff', w: 8 }); draw(white.line, tw_ + .2, 1.2); put(white.head, { o: 0 }); show(white.head, tw_ + 1);
@@ -991,7 +991,7 @@ const BEATS = [
   });
   const pl = lanes.map(([, y]) => [mk('circle', { r: 16, fill: SOUND, ...phLine(2) }, Cg), y]);
   clockRun(t => pl.forEach(([d, y], i) => put(d, { x: Math.min(1480, 340 + 1140 * lanes[i][2] / 5960 * Math.max(0, t - to - .5) / 2.8), y })), D);
-  line(Cg, [['solids: fastest. Molecules close together pass the bump quickly.']], 800, 820, to + 2.8, { size: 32 });
+  line(Cg, [['solids: fastest. Molecules close together pass the bump quickly.']], 800, 760, to + 2.8, { size: 32 });
   txt(Cg, 'a sound pulse racing in each', 800, 250, to, { size: 32, fill: COL.dim });
 }, { lead: false }],
 ['loud', 'Loudness and intensity', (m, D) => {
@@ -1032,24 +1032,24 @@ const BEATS = [
   say(B, 'farther away: lower intensity, quieter', 800, 90, tf + 2.4, { size: 36 });
   // the decibel scale
   const Cg = G(p, { o: 0 }); show(Cg, td - .2);
-  const DY = v => 820 - 4.4 * v;
+  const DY = v => 760 - 4 * v;
   path(Cg, `M760 ${DY(0)}V${DY(150)}`, { stroke: COL.chalk, 'stroke-width': 6 });
   for (let v = 0; v <= 150; v += 10) { path(Cg, `M760 ${DY(v)}h${v % 50 ? 18 : 30}`, { stroke: COL.chalk, 'stroke-width': 3 }); if (v % 50 === 0) phLabel(Cg, `${v} dB`, { x: 740, y: DY(v) + 10, size: 28, anchor: 'end' }); }
   phLabel(Cg, 'decibels', { x: 760, y: 120, size: 32, fill: AMP });
   const talk = G(Cg, { o: 0 }); phActor(talk, 'you', { x: 500, y: DY(50) + 60, s: 1.2 }); phActor(talk, 'friend', { x: 600, y: DY(50) + 60, s: 1.2 }).face(-1);
   phLabel(talk, 'talking: 50 dB', { x: 550, y: DY(50) - 150, size: 30 }); show(talk, TT);
   const steps = G(Cg, { o: 0 });
-  [50, 60, 70].forEach(v => { path(steps, `M${830} ${DY(v) - 4}q40 -${4.4 * 5} 0 -${4.4 * 10 - 8}`, { stroke: AMP, 'stroke-width': 4, fill: 'none' }); phLabel(steps, '× 10 intensity', { x: 880, y: DY(v + 5) + 10, size: 26, fill: AMP, anchor: 'start' }); });
+  [50, 60, 70].forEach(v => { path(steps, `M${830} ${DY(v) - 4}q40 -${4 * 5} 0 -${4 * 10 - 8}`, { stroke: AMP, 'stroke-width': 4, fill: 'none' }); phLabel(steps, '× 10 intensity', { x: 880, y: DY(v + 5) + 10, size: 26, fill: AMP, anchor: 'start' }); });
   show(steps, TT + 3.4);
   const jet = G(Cg, { o: 0 });
   path(jet, `M840 ${DY(140)}l180 -16l40 -30l24 0l-20 34l60 6l20 -20h16l-10 28l-10 4h-60l-30 30h-24l14 -30z`, { fill: ENAMEL, ...phLine(2) });
   phLabel(jet, 'jet taking off: about 140 dB', { x: 1190, y: DY(140) + 10, size: 26, anchor: 'start' });
   show(jet, tpl);
   const worker = G(Cg, { o: 0 }); phActor(worker, 'friend', { x: 1300, y: 740, s: 1.6 }); mk('rect', { x: 1284, y: 590, width: 32, height: 34, rx: 10, fill: COL.task, ...phLine(2) }, worker);
-  phLabel(worker, 'ear protection', { x: 1300, y: 790, size: 28, fill: COL.task }); show(worker, tpl + 2.6);
+  phLabel(worker, 'ear protection', { x: 1300, y: 770, size: 28, fill: COL.task }); show(worker, tpl + 2.6);
   const ptr = path(Cg, '', { stroke: AMP, 'stroke-width': 6, fill: AMP }); put(ptr, { o: 0 }); show(ptr, TT);
   const ta2 = arcSet(Cg, 3, { w: 5, maxH: 110 }), ja = arcSet(Cg, 4, { w: 6, maxH: 150 });   // quiet talk: small arcs; the jet: big ones
-  clockRun(t => { arcsFrom(ta2, t, TT, 555, 600, { v: 120, gap: .7, R: 230 }); arcsFrom(ja, t, tpl, 1000, 204, { v: 260, gap: .35, R: 330 });
+  clockRun(t => { arcsFrom(ta2, t, TT, 555, DY(50), { v: 120, gap: .7, R: 230 }); arcsFrom(ja, t, tpl, 1000, DY(140), { v: 260, gap: .35, R: 330 });
     const v = lerp(lerp(50, 70, sm(t, TT + 3.4, TT + 5.4)), 140, sm(t, tpl, tpl + 1.4)); thAtt(ptr, 'd', `M736 ${DY(v)}l-30 -14v28z`); }, D);
 }, { lead: false }],
 ['pitch', 'Pitch', (m, D) => {
@@ -1073,7 +1073,7 @@ const BEATS = [
   line(p, [['pitch', COL.task], [': how we hear '], ['frequency', FREQ]], 800, 80, td + .2, { size: 44 });
   say(p, 'loud and low', 1480, 200, tsa + 2.4, { size: 30, fill: AMP, anchor: 'end' });
   say(p, 'quiet and high', 1480, 760, tsa + 2.6, { size: 30, fill: AMP, anchor: 'end' });
-  line(p, [['pitch is not loudness: '], ['amplitude', AMP], [' changes, '], ['frequency', FREQ], [' does not']], 800, 870, tsa + 3.4, { size: 32 });
+  line(p, [['pitch is not loudness: '], ['amplitude', AMP], [' changes, '], ['frequency', FREQ], [' does not']], 800, 130, tsa + 3.4, { size: 32 });
 }, { lead: false }],
 ['signal', 'Analog and digital', (m, D) => {
   const p = panel(0), ta = m('analog'), td = m('digital'), tph = m('phone'), tc = m('clean'), TB = 4.5;   // TB: "…interference can blur it"

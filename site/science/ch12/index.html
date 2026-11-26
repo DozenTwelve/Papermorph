@@ -48,11 +48,11 @@ function opener(p, x, y, part, name, name2) {
 }
 function summary(p, m, rows, next) {
   rows.forEach(([lines, icon], i) => {
-    const g = G(p, { x: -16, y: 250 + i * 220, o: 0 });
+    const g = G(p, { x: -16, y: 160 + i * 220, o: 0 });   // rows start high, so the next line stays above the caption band
     lines.forEach((s, j) => T(g, s, { x: 430, y: j * 50, size: 38, weight: 600 }));
     icon(g); tw(g, { o: 1, x: 0 }, m(['w1', 'w2', 'w3'][i]), .6);
   });
-  txt(p, next, 800, 860, m('end'), { size: 32, fill: COL.dim, weight: 500 });
+  txt(p, next, 800, 750, m('end'), { size: 32, fill: COL.dim, weight: 500 });
 }
 // The big truck (s 2.6) with its rear end at x: dir 1 parks it to the right of x, −1 to the left (mirrored). A metal
 // loading plate 140 wide sticks out of the rear at bed height; the returned group holds it (hide it for ramp scenes).
@@ -296,7 +296,7 @@ const BEATS = [
     put(a, { x, y }); a.stride('walk', x - 200);
     put(bs, { x: x + 45, y: y - 60 });
     f.set(x + 120, y - 110, t > th ? 90 : 0, -90, '30 N', 'right');
-    side.set(245, 800, Math.min(x, 640) + 45, 800, x > 210 ? 'moves sideways' : '', 'below');
+    side.set(245, 780, Math.min(x, 640) + 45, 780, x > 210 ? 'moves sideways' : '', 'above');
     upB.set(760, Y1, 760, lerp(Y1, 380, sm(t, tc - .3, tc + .5)), t > tc ? '3 m up' : '', 'left');
   }, D);
   const w0 = workMeter(p, { x: 500, y: 200, size: 46, o: 0 }).set(30, 0, 0); show(w0, tz); hide(w0, tc - .5);
@@ -315,7 +315,7 @@ const BEATS = [
     const [hx, hy] = a.hand('F'), kx = hx - (700 - hy) / tan; if (k0 === undefined) k0 = kx;
     rope.setAttribute('d', `M${hx} ${hy}L${kx} 700`); put(bag, { x: kx, y: 700 });
     pullA.set(kx + 40, 650, t > tb + .5 ? 110 : 0, -36.87, '');
-    mv.set(k0 - 110, 800, kx - 110, 800, d > 10 ? 'slides along the floor' : '', 'below');
+    mv.set(k0 - 110, 780, kx - 110, 780, d > 10 ? 'slides along the floor' : '', 'above');
   }, D);
   const box = G(p, { o: 0 });
   mk('rect', { x: 80, y: 90, width: 540, height: 410, rx: 24, fill: '#22322d', stroke: COL.dim, 'stroke-width': 3 }, box);
@@ -345,8 +345,8 @@ const BEATS = [
   }, D);
   runs(p, [['power', POWER], [' = '], ['work', WORK], [' ÷ '], ['time', TIME]], { x: 800, y: 80, size: 50, weight: 700 }); show(p.lastChild, td);
   runs(p, [['same work: '], ['90 J', WORK]], { x: 800, y: 160, size: 38 }); show(p.lastChild, tsm);
-  const r1 = readout(p, [WORK, null, TIME, null, POWER], { x: 400, y: 860, size: 40, o: 0 }).set('90 J', ' ÷ ', '3 s', ' = ', '30 W'); show(r1, ty);
-  const r2 = readout(p, [WORK, null, TIME, null, POWER], { x: 1200, y: 860, size: 40, o: 0 }).set('90 J', ' ÷ ', '9 s', ' = ', '10 W'); show(r2, tr);
+  const r1 = readout(p, [WORK, null, TIME, null, POWER], { x: 400, y: 750, size: 40, o: 0 }).set('90 J', ' ÷ ', '3 s', ' = ', '30 W'); show(r1, ty);
+  const r2 = readout(p, [WORK, null, TIME, null, POWER], { x: 1200, y: 750, size: 40, o: 0 }).set('90 J', ' ÷ ', '9 s', ' = ', '10 W'); show(r2, tr);
 }, { lead: false }],
 ['q1', 'Quick check', (m, D) => {
   const p = panel(0);
@@ -499,7 +499,8 @@ const BEATS = [
     big.set(1300, 260, t > tn ? 150 : 0, 90, 'big force', 'left');
   }, D);
   txt(p, 'turns: far', 800, 270, tt + .5, { size: 30, fill: DIST });
-  txt(p, 'screw', 780, 820, .3, { size: 34 }); txt(p, 'nail', 1380, 820, .3, { size: 34 });
+  // names on the wood fronts, above the caption band
+  txt(p, 'screw', 780, 680, .3, { size: 34, fill: COL.board }); txt(p, 'nail', 1370, 680, .3, { size: 34, fill: COL.board });
 }],
 ['q2', 'Quick check', (m, D) => {
   const p = panel(0);
@@ -581,7 +582,7 @@ const BEATS = [
     path(g, `M${x + fx} 690L${x + fx - 22} 726H${x + fx + 22}Z`, { fill: COL.dim });
     mk('rect', { x: x + lx - 22, y: 636, width: 44, height: 44, fill: COL.int }, g);
     forceArrow(g, { w: 10 }).set(x + ex, dir > 0 ? 610 : 770, 64, dir > 0 ? 90 : -90, '');
-    phLabel(g, name, { x, y: 820, size: 36 }); phLabel(g, what, { x, y: 864, size: 28, fill: COL.dim });
+    phLabel(g, name, { x, y: 200, size: 36 }); phLabel(g, what, { x, y: 244, size: 28, fill: COL.dim });
     show(g, tc[i]);
   });
 }],
@@ -606,7 +607,7 @@ const BEATS = [
     bg.set(440, 420, t > tfo + 1 ? 90 : 0, 0, 'big force', 'tip', 110);
     const x = lerp(1000, 1350, ramp(t, tp, D)); put(bk, { x }); bk.ride(x - 1000);
     push.set(x + 16, Y1 - 190, t > tp ? 70 : 0, 90, 'big push', 'left', -95);
-    far.set(1000, 800, x, 800, t > tfar ? 'wheel goes far' : '', 'below');
+    far.set(1000, 780, x, 780, t > tfar ? 'wheel goes far' : '', 'above');
   }, D);
 }],
 ['pulley', 'Pulleys', (m, D) => {
@@ -638,8 +639,9 @@ const BEATS = [
     pl2.set(1272, 300, t > th ? 50 : 0, 90, 'half the force', 'right');
     up2.set(990, my + 150, t > th ? 100 : 0, -90, 'goes up', 'left');
   }, D);
-  txt(p, 'one fixed pulley: changes direction', 400, 870, tdr, { size: 32 });
-  txt(p, 'two pulleys: half the force', 1150, 870, th, { size: 32 });
+  // headings over the beam, clear of the caption band
+  txt(p, 'one fixed pulley: changes direction', 400, 70, tdr, { size: 32 });
+  txt(p, 'two pulleys: half the force', 1150, 70, th, { size: 32 });
   txt(p, 'twice the rope', 1380, 420, tr, { size: 30, fill: DIST, anchor: 'start' });
 }, { lead: false }],
 ['q3', 'Quick check', (m, D) => {

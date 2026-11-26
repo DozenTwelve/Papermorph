@@ -51,11 +51,11 @@ function opener(p, x, y, part, name, name2) {
 }
 function summary(p, m, rows, next) {
   rows.forEach(([lines, icon], i) => {
-    const g = G(p, { x: -16, y: 250 + i * 220, o: 0 });
+    const g = G(p, { x: -16, y: 160 + i * 220, o: 0 });
     lines.forEach((s, j) => T(g, s, { x: 430, y: j * 50, size: 38, weight: 600 }));
     icon(g); tw(g, { o: 1, x: 0 }, m(['w1', 'w2', 'w3'][i]), .6);
   });
-  txt(p, next, 800, 860, m('end'), { size: 32, fill: COL.dim, weight: 500 });
+  txt(p, next, 800, 750, m('end'), { size: 32, fill: COL.dim, weight: 500 });
 }
 // A floor lamp standing at (x, y) (as in ch15–16); g.glow is its light cone, g.shade its shade.
 function floorLamp(p, x, y = Y1) {
@@ -254,7 +254,8 @@ const BEATS = [
   const b = bulb(W, { x: 330, y: tg.term[1], r: -90 });
   const turnA = G(W, { o: 0 }); path(turnA, `M${RX - 56} 500A56 16 0 1 0 ${RX + 56} 500l-16 -10m16 10l-18 4`, { stroke: COL.task, 'stroke-width': 5, fill: 'none' });
   const hl = mk('rect', { x: RX - 128, y: RY - 106, width: 256, height: 212, rx: 20, fill: 'none', stroke: COL.task, 'stroke-width': 5 }, W); put(hl, { o: 0 });
-  say(W, 'turbine', RX + 150, RY + 110, tt + .4, { size: 40, anchor: 'start' });
+  const tl_ = say(W, 'turbine', RX - 150, RY + 40, tt + .4, { size: 40, anchor: 'end' });
+  hide(tl_, tg_ - .3, .3); show(tl_, te + 1.4);   // out of the generator close-up, where it would drop into the caption band
   show(hl, tt + .3, .3); hide(hl, ts - .2);
   show(turnA, ts + .2); hide(turnA, tp + 1);
   say(W, 'shaft', RX + 84, 512, ts + .3, { size: 36, anchor: 'start' });
@@ -311,10 +312,10 @@ const BEATS = [
   const coal = G(p, { o: 0 }); path(coal, 'M250 742L470 736L480 790L240 796Z', { fill: '#191a1b', ...phLine(2) });
   const gas = G(p, { o: 0 }); mk('ellipse', { cx: 470, cy: 580, rx: 74, ry: 26, fill: '#a9c6d6', opacity: .55, ...phLine(2) }, gas);
   show(oil, tf + .3); show(coal, tf + .9); show(gas, tf + 1.6);
-  say(p, 'oil', 160, 728, tf + .3, { size: 28 }); say(p, 'coal', 360, 830, tf + .9, { size: 28 }); say(p, 'natural gas', 470, 550, tf + 1.6, { size: 28 });
+  say(p, 'oil', 160, 728, tf + .3, { size: 28 }); say(p, 'coal', 495, 772, tf + .9, { size: 28, anchor: 'start' }); say(p, 'natural gas', 470, 550, tf + 1.6, { size: 28 });
   say(p, 'fossil fuels', 300, 470, tf + .2, { size: 40 });
   show(press, TM + .2); hide(press, TC - .5);
-  say(p, 'heat and pressure, millions of years', 800, 880, TM + 1.2, { size: 28, fill: COL.dim });
+  say(p, 'heat and pressure, millions of years', 800, 700, TM + 1.2, { size: 28, fill: COL.dim });
   say(p, 'stored chemical energy', 800, 640, TC + .6, { size: 32, fill: CHEM });
   // the plant
   const f = fossilPlant(p);
@@ -365,7 +366,7 @@ const BEATS = [
   say(p, 'fossil fuels', 300, 520, tg_ + .1, { size: 34 });
   line(p, [['nonrenewable', COL.task]], 300, 470, tg_ + .6, { size: 44 });
   const used = G(p, { o: 0 }); path(used, 'M440 600Q540 560 620 640M604 624L622 642L598 646', { stroke: COL.task, 'stroke-width': 5, fill: 'none' }); phLabel(used, 'used: fast', { x: 520, y: 560, size: 28, fill: COL.task }); show(used, TF + .4);
-  const nat = G(p, { o: 0 }); path(nat, 'M300 880V800M288 812L300 798L312 812', { stroke: COL.dim, 'stroke-width': 4, fill: 'none', 'stroke-dasharray': '6 8' }); phLabel(nat, 'nature: millions of years', { x: 330, y: 880, size: 26, fill: COL.dim, anchor: 'start' }); show(nat, TF + 2.4);
+  const nat = G(p, { o: 0, y: -60 }); path(nat, 'M300 880V800M288 812L300 798L312 812', { stroke: COL.dim, 'stroke-width': 4, fill: 'none', 'stroke-dasharray': '6 8' }); phLabel(nat, 'nature: millions of years', { x: 330, y: 836, size: 26, fill: COL.dim, anchor: 'start' }); show(nat, TF + 2.4);
   const tb = thermoTube(p, { x: 1500, y: 640, len: 330, w: 30, bulb: 30, o: 0 });
   show(tb, TW - .4);
   say(p, 'global warming', 1450, 470, TW + .3, { size: 36, anchor: 'end' });
@@ -435,7 +436,7 @@ const BEATS = [
   const hb = eBlocks(atom, 6, HEAT, { size: 34, o: 0 });
   const neu = [0, 1, 2].map(() => mk('circle', { r: 16, fill: '#9aa5a8', ...phLine(2), opacity: 0 }, atom));
   const al = say(p, 'a uranium nucleus', 800, 140, ta + .5, { size: 40 });
-  const al2 = say(p, 'it splits: an enormous amount of energy', 800, 820, tsp + 2.6, { size: 36, fill: HEAT });
+  const al2 = say(p, 'it splits: an enormous amount of energy', 800, 680, tsp + 2.6, { size: 36, fill: HEAT });
   hide(al, tst - .4); hide(al2, tst - .4);
   tw(atom, { s: .1, x: 520, y: 690, o: 0 }, tst - .3, 1.2, io);
   show(plant, tst - .3, .9);
@@ -444,8 +445,8 @@ const BEATS = [
   const cl = G(p, { o: 0 }); phLabel(cl, 'very little air pollution', { x: 1380, y: 330, size: 30, anchor: 'end' }); path(cl, 'M994 312l12 14l26 -30', { stroke: COL.good, 'stroke-width': 7, fill: 'none' });
   show(cl, tcl + .4);
   say(p, 'only steam', 1380, 372, tcl + 1.6, { size: 26, fill: COL.dim, anchor: 'end' });
-  say(p, 'toxic nuclear waste', 860, 800, tws + .6, { size: 30, fill: '#c8f08a' });
-  say(p, 'hard to store safely', 860, 840, tws + 2.4, { size: 26, fill: COL.dim });
+  say(p, 'toxic nuclear waste', 860, 230, tws + .6, { size: 30, fill: '#c8f08a' });
+  say(p, 'hard to store safely', 860, 270, tws + 2.4, { size: 26, fill: COL.dim });
   say(p, 'uranium is mined', 150, 420, tmi + .6, { size: 30 });
   say(p, 'it cannot be replaced', 150, 460, tmi + 2.4, { size: 26, fill: COL.dim });
   line(p, [['nonrenewable', COL.task]], 150, 510, tmi + 4, { size: 36 });
@@ -518,11 +519,11 @@ const BEATS = [
   mk('rect', { x: TX - 90, y: TT, width: 180, height: TB - TT, rx: 16, fill: '#22322d', stroke: GLASS, 'stroke-width': 4 }, p);
   const lvl = mk('rect', { x: TX - 84, y: 430, width: 168, height: TB - 436, rx: 10, fill: WATER }, p);
   const inS = pipeFlow(p, route([[TX, 150], [TX, 430]]), { w: 18, walls: false });
-  const outS = pipeFlow(p, route([[TX + 90, 670], [TX + 200, 670], [TX + 200, 800]]), { w: 18 });
+  const outS = pipeFlow(p, route([[TX + 90, 670], [TX + 290, 670], [TX + 290, 800]]), { w: 18 });
   say(p, 'replenished', TX - 110, 220, tr + 3, { size: 30, anchor: 'end', fill: COL.good });
-  say(p, 'used', TX + 230, 760, tr + 3.6, { size: 30, anchor: 'start', fill: COL.dim });
+  say(p, 'used', TX + 320, 760, tr + 3.6, { size: 30, anchor: 'start', fill: COL.dim });
   line(p, [['renewable', COL.good]], TX, 110, tr + .4, { size: 48 });
-  say(p, 'can be replenished: it does not run out', TX, 856, tr + 1.4, { size: 28 });
+  say(p, 'can be replenished: it does not run out', TX, 770, tr + 1.4, { size: 28 });
   // the ring of sources
   const CX = 1100, CY = 470, RX = 330, RY = 260;
   const ring = path(p, `M${CX - RX} ${CY}A${RX} ${RY} 0 1 0 ${CX + RX} ${CY}A${RX} ${RY} 0 1 0 ${CX - RX} ${CY}`, { stroke: COL.faint, 'stroke-width': 5, fill: 'none', 'stroke-dasharray': '18 14' });
@@ -564,7 +565,7 @@ const BEATS = [
   phLabel(hgt, 'high up', { x: 1020, y: 410, size: 28, fill: POT, anchor: 'end' });
   show(hgt, tpe + 1.6); hide(hgt, trl + 3);
   say(W, 'gravitational potential energy', 330, 160, tpe + .6, { size: 32, fill: POT });
-  say(W, 'kinetic energy', 690, 900 - 70, TK, { size: 28, fill: KIN });
+  say(W, 'kinetic energy', 600, 810, TK, { size: 28, fill: KIN });
   say(W, 'turbine', 970, 806, ttu + .4, { size: 26, anchor: 'start' });
   say(W, 'generator', 970, 690, tpw + .2, { size: 26, anchor: 'start' });
   say(W, 'power lines', 1290, 520, tpw + 1.2, { size: 30 });
@@ -672,7 +673,7 @@ const BEATS = [
   path(ins, 'M806 270L1010 230M806 270L1010 400', { stroke: COL.faint, 'stroke-width': 3 });
   show(ins, tg_ - .2); hide(ins, tsp - .6);
   const sl = [['hills', 2600, -40], ['plains', 4050, 150], ['at sea', 5300, 150]].map(([s, x, y]) => say(W, s, x, y, tsp + 1.4 + (x > 4000 ? 1 : 0) + (x > 5000 ? 1 : 0), { size: 110 }));
-  const tsL = say(p, 'built where it is windy', 800, 840, tsp + 4, { size: 40 });
+  const tsL = say(p, 'built where it is windy', 800, 790, tsp + 4, { size: 40 });
   clockRun(t => {
     wl.set(260 * t); put(waves, { x: 40 * Math.sin(t * .9) });
     const deg = phaseOf(t, [[tb, 0], [tb + 2.4, 150]]); big.set(deg);
@@ -766,9 +767,9 @@ const BEATS = [
   const lbL = eBlocks(p, 3, LIGHT, { size: 26, o: 0 }), lbR = eBlocks(p, 3, LIGHT, { size: 26, o: 0 });
   say(p, 'radiant energy', 800, 340, ts + .8, { size: 30, fill: LIGHT });
   say(p, 'thermal collector', 330, 400, tth + .4, { size: 32 });
-  say(p, 'heats water', 380, 800, tth + 2.4, { size: 26, fill: HEAT });
+  say(p, 'heats water', 380, 772, tth + 2.4, { size: 26, fill: HEAT });
   say(p, 'photovoltaic collector', 1270, 400, tpv + .4, { size: 32 });
-  say(p, 'electricity directly', 1220, 800, tpv + 3.4, { size: 26, fill: ELE });
+  say(p, 'electricity directly', 1220, 772, tpv + 3.4, { size: 26, fill: ELE });
   const nt = G(p, { o: 0, x: 55 }); phLabel(nt, 'no turbine', { x: 1460, y: 620, size: 28 });
   const mini = turbineGen(nt, { x: 1460, y: 680, s: .25, R: 70, L: 90, rows: 2, gen: false });
   path(nt, 'M1420 650L1500 710M1500 650L1420 710', { stroke: COL.bad, 'stroke-width': 6 });
@@ -823,7 +824,7 @@ const BEATS = [
   say(W, 'cooling tower', 1150, 380, tc + .3, { size: 28 });
   say(W, 'condenses to water', 1150, 420, tc + 2.6, { size: 24, fill: lt(WATER, .4) });
   say(W, 'injection well', 1340, 560, ti + .3, { size: 28, anchor: 'start' });
-  say(W, 'and the loop starts again', 900, 860, ti + 3.2, { size: 28, fill: lt(WATER, .4) });
+  say(W, 'and the loop starts again', 900, 775, ti + 3.2, { size: 28, fill: lt(WATER, .4) });
   draw(g.loop, ti + 2.2, 1.6);
   clockRun(t => {
     const a = spinAt(t, [[ts - .4, 0], [ts + 1.2, 6]]);

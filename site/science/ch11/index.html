@@ -47,11 +47,11 @@ function opener(p, x, y, part, name, name2) {
 }
 function summary(p, m, rows, next) {
   rows.forEach(([lines, icon], i) => {
-    const g = G(p, { x: -16, y: 250 + i * 220, o: 0 });
+    const g = G(p, { x: -16, y: 160 + i * 220, o: 0 });
     lines.forEach((s, j) => T(g, s, { x: 430, y: j * 50, size: 38, weight: 600 }));
     icon(g); tw(g, { o: 1, x: 0 }, m(['w1', 'w2', 'w3'][i]), .6);
   });
-  txt(p, next, 800, 860, m('end'), { size: 32, fill: COL.dim, weight: 500 });
+  txt(p, next, 800, 750, m('end'), { size: 32, fill: COL.dim, weight: 500 });
 }
 // Deep space: a dark field with fixed pixel stars.
 function space(p, n = 80, seed = 1) {
@@ -243,7 +243,7 @@ const BEATS = [
     const rock = pixDisc(p, 30, { c: 6, base: '#cfc6b2', seed: b, lump: 1 }), f = forceArrow(p, { w: 12, size: 28 });
     const pts = []; for (let u = t0; u < D; u += 1 / 30) pts.push(at(u));
     const end = pts.find(([x, y]) => y > 840 || x > 1580 || x < 20) || pts[pts.length - 1];
-    const vl = phLabel(p, verdict, { x: end[0] + 30, y: 870, size: 32, fill: col, anchor: 'start', o: 0 }); show(vl, t0 + 2.6);   // beside where its trail leaves, not on it
+    const vl = phLabel(p, verdict, { x: end[0] + 30, y: 750, size: 32, fill: col, anchor: 'start', o: 0 }); show(vl, t0 + 2.6);   // beside the trail, above the caption band
     return { cx, GM, t0, at, trail, rock, f, pts };
   });
   const same = phLabel(p, 'same speed, same distance', { x: 800, y: 60, size: 34, fill: COL.dim, weight: 600, o: 0 }); show(same, tb + .3); hide(same, tf - .3, .3);
@@ -275,7 +275,7 @@ const BEATS = [
     put(ring, { x: cx + 90, y: cyy });                        // beside you, on the side the building is
     put(tl, { x: Math.min(cx + 60, 800), y: Y - 360 });
     ef.set(cx, cyy, t > te ? 300 : 0, 90, '');
-    put(el, { x: cx + 40, y: Y + 60 });
+    put(el, { x: cx + 40, y: Y - 150 });
   }, D);
 }, { lead: false }],
 ['orbit', 'Orbits', (m, D) => {
@@ -321,7 +321,7 @@ const BEATS = [
     const u = t - t0, F = u < 0 ? 0 : W8 * (1 - Math.exp(-1.6 * u) * Math.cos(9 * u));   // let go at rest: ring, then settle
     const yb = sc.set(F); put(box, { x, y: yb + h });
     wf.set(x - 7, yb + h / 2, u > 0 ? W8 * WPX : 0, 90, '');   // from the centre (where the planks cross), down
-    phText(rd, u > 1.4 ? `weight ≈ ${Math.round(W8)} N` : ''); put(rd, { x: x + 40, y: yb + h + 50 });
+    phText(rd, u > 1.4 ? `weight ≈ ${Math.round(W8)} N` : ''); put(rd, { x: x + 130, y: yb + 30 });
   }), D);
 }, { lead: false }],
 ['moon', 'Mass and weight on the Moon', (m, D) => {
@@ -501,7 +501,7 @@ const BEATS = [
     const falling = t > tr && t < tl, fxx = fx0 + sway;
     fg.set(fxx + 30, yf + 6, falling ? 60 : 0, 90, ''); fa.set(fxx - 30, yf - 20, falling ? 60 : 0, -90, t > tfe ? 'air resistance' : '', 'right');
   }, D);
-  txt(p, 'the ball falls fast', bx + 340, Y - 40, tr + 1.4, { size: 32, weight: 600, anchor: 'start' });   // past the feather's swaying air-resistance label
+  txt(p, 'the ball falls fast', bx + 340, 750, tr + 1.4, { size: 32, weight: 600, anchor: 'start' });   // past the feather's swaying air-resistance label
 }, { lead: false }],
 ['kinds', 'Static, sliding, rolling', (m, D) => {
   const p = panel(0), Y = Y1, S3 = 3, ts = m('static'), tfr = m('free'), tr = m('roll'), CW = 300, CH = 260;
@@ -515,7 +515,7 @@ const BEATS = [
   ground(w, Y, -400, 4000); marks(w, Y, -400, 4000);
   const a = phActor(w, 'you', { y: Y, s: S3, anim: 'push' }), cr = crate(w, { w: CW, h: CH });
   const pf = forceArrow(w, { w: 16, size: 34 }), ff = forceArrow(w, { w: 16, size: 34 });
-  const nm = phLabel(w, 'no motion', { x: 800, y: Y + 110, size: 38, fill: COL.dim, o: 0 }); show(nm, ts + 1.2); hide(nm, tfr, .2);
+  const nm = phLabel(w, 'no motion', { x: 800, y: Y - CH - 40, size: 38, fill: COL.dim, o: 0 }); show(nm, ts + 1.2); hide(nm, tfr, .2);
   const umph = phLabel(w, 'UMPH!', { size: 60, fill: COL.int, o: 0 }); tw(umph, { o: 1 }, tfr, .15); hide(umph, tfr + 1.2, .4);
   a.show('push', 0); put(a, { x: 0 }); const off = 800 - CW / 2 - a.hand('F')[0] + 6;
   clockRun(t => {
@@ -569,8 +569,8 @@ const BEATS = [
   const curve = path(p, '', { stroke: VEL, 'stroke-width': 5, fill: 'none' });
   const l55 = G(p, { o: 0 }); path(l55, `M${GX} ${gy(VT)}H${GX + GW}`, { stroke: COL.chalk, 'stroke-width': 2, 'stroke-dasharray': '8 8' }); phLabel(l55, 'terminal velocity ≈ 55 m/s', { x: GX + 10, y: gy(VT) - 14, size: 26, anchor: 'start' }); show(l55, te + 1.5);
   const l5 = G(p, { o: 0 }); path(l5, `M${GX} ${gy(VP)}H${GX + GW}`, { stroke: COL.chalk, 'stroke-width': 2, 'stroke-dasharray': '8 8' }); phLabel(l5, 'with the parachute ≈ 5 m/s', { x: GX + GW, y: gy(VP) - 14, size: 26, anchor: 'end' }); show(l5, tc + 5);
-  const bal = G(p, { o: 0 }); phLabel(bal, 'balanced: no net force', { x: DX, y: 800, size: 40 }); phLabel(bal, 'so a steady speed', { x: DX, y: 846, size: 34, weight: 600 }); show(bal, te + .3); hide(bal, tc, .3);
-  const bal2 = G(p, { o: 0 }); phLabel(bal2, 'balanced again, much slower', { x: DX, y: 820, size: 40 }); show(bal2, tc + 5.5);
+  const bal = G(p, { o: 0 }); phLabel(bal, 'balanced: no net force', { x: DX, y: 680, size: 40 }); phLabel(bal, 'so a steady speed', { x: DX, y: 726, size: 34, weight: 600 }); show(bal, te + .3); hide(bal, tc, .3);
+  const bal2 = G(p, { o: 0 }); phLabel(bal2, 'balanced again, much slower', { x: DX, y: 700, size: 40 }); show(bal2, tc + 5.5);
   let pts = '';
   clockRun(t => {
     const [v, y] = st(t), D2 = drag(v, t), open = k(t);
@@ -717,7 +717,7 @@ const BEATS = [
   }, D);
 }, { lead: false }],
 ['electromagnet', 'Electromagnets', (m, D) => {
-  const p = panel(0), tw0 = m('wire'), tc = m('coil'), ton = m('on'), toff = m('off'), tf = m('flip'), WY = 330, BY = 720;
+  const p = panel(0), tw0 = m('wire'), tc = m('coil'), ton = m('on'), toff = m('off'), tf = m('flip'), WY = 330, BY = 670;
   // A circuit: battery and switch on the bottom wire, the top wire over where the nail will go. Moving dashes are
   // the current; when it flows, rings around the wire show its magnetic field. With the coil round the nail: on, the
   // nail is a magnet (clips jump up, the compass swings); off, the clips drop; battery reversed, the poles swap.
@@ -730,7 +730,7 @@ const BEATS = [
   const midW = G(p); path(midW, mid, { stroke: '#c98a3a', 'stroke-width': 10 }); hide(midW, tc + .3, .5);
   const cur = path(p, circ, { stroke: COL.int, 'stroke-width': 6, fill: 'none', 'stroke-dasharray': '6 34' }), curM = path(midW, mid, { stroke: COL.int, 'stroke-width': 6, 'stroke-dasharray': '6 34' });
   const bat = G(p, { x: 650, y: BY }), batIn = G(bat); phBlock(batIn, -130, -45, 260, 90, '#3a4541', { top: 0, ol: 2.5 }); phBlock(batIn, 70, -45, 60, 90, '#c0504d', { top: 0, ol: 0 }); mk('rect', { x: 130, y: -16, width: 14, height: 32, fill: '#9aa5a8' }, batIn);
-  phLabel(batIn, '+', { x: 100, y: 14, size: 40 }); phLabel(batIn, '−', { x: -100, y: 14, size: 40 }); const batL = phLabel(bat, 'battery', { y: 92, size: 30, fill: COL.dim, weight: 600 });
+  phLabel(batIn, '+', { x: 100, y: 14, size: 40 }); phLabel(batIn, '−', { x: -100, y: 14, size: 40 }); const batL = phLabel(bat, 'battery', { y: 74, size: 30, fill: COL.dim, weight: 600 });
   const lever = path(p, '', { stroke: '#c98a3a', 'stroke-width': 10, 'stroke-linecap': 'round' }); mk('circle', { cx: 920, cy: BY, r: 9, fill: COL.chalk }, p); mk('circle', { cx: 1000, cy: BY, r: 9, fill: COL.chalk }, p);
   const swl = phLabel(p, '', { x: 960, y: BY + 70, size: 30, fill: COL.dim, weight: 600 });
   const rings = G(p, { o: 0 }), ringEls = [560, 760, 960, 1160].map(x => mk('ellipse', { cx: x, cy: WY, rx: 22, ry: 62, fill: 'none', stroke: COL.irr, 'stroke-width': 4, 'stroke-dasharray': '10 8' }, rings));
@@ -808,7 +808,7 @@ const BEATS = [
   // From "center" the string's pull (orange) points to the centre. At "go" you let go: the ball leaves along the
   // tangent in a straight line. From "moon": Earth and the Moon, where gravity is the centripetal force.
   const s1 = G(p), w = whirl(s1, cx, cy, R, P, { release: tg, pull: tc - .1 });
-  const snap = G(s1, { o: 0 }); for (let k = 0; k < 8; k++) { const q = k * Math.PI / 4, x = cx + R * Math.cos(q), y = cy + R * Math.sin(q); arrowAt(path(snap, '', { stroke: VEL, 'stroke-width': 6 }), x, y, 80, q * 57.3 + 90, 14); }
+  const snap = G(s1, { o: 0 }); for (let k = 0; k < 8; k++) { const q = k * Math.PI / 4, x = cx + R * Math.cos(q), y = cy + R * Math.sin(q); arrowAt(path(snap, '', { stroke: VEL, 'stroke-width': 6 }, { o: .35 }), x, y, 80, q * 57.3 + 90, 14); }
   show(snap, 3.4); hide(snap, tc - .4, .3); show(snap, tc + 3, .4);   // the faint copies step back while 'string pull' rides past them
   const t1 = G(s1, { o: 0 }); phLabel(t1, 'same speed, but the direction keeps changing:', { x: 800, y: 70, size: 40 }); phLabel(t1, 'the velocity changes, so it is accelerating', { x: 800, y: 122, size: 36, fill: VEL, weight: 600 }); show(t1, 2.4); hide(t1, tc - .3, .3);
   const t2 = G(s1, { o: 0 }); phLabel(t2, 'Centripetal force', { x: 800, y: 80, size: 60, fill: FORCE }); phLabel(t2, 'always points toward the center of the circle', { x: 800, y: 132, size: 36, weight: 600 }); show(t2, tc + .2); hide(t2, tg - .3, .3);

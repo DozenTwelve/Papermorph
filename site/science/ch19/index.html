@@ -130,7 +130,7 @@ const BEATS = [
     call(m('tide') - .4, () => { k.face(1); dg.face(1); });
     prog(q => k.pose('pointUp', 'stand', q), m('tide') - .4, .5);
     tw(d.water, { y: -42, x: -90 }, m('tide') - .3, 4.5, soft);
-    lab(p, 'the tide comes in', 1330, 860, m('tide', .6), { anchor: 'middle' });
+    lab(p, 'the tide comes in', 1330, 760, m('tide', .6), { anchor: 'middle' });
     // a year passes on the tree
     const cols = ['#4f9a52', '#d9822b', '#e8eef5', '#7cc76f'];
     prog(q => { const u = q * 3, i = Math.min(2, Math.floor(u)); d.leaves.setAttribute('fill', mix(cols[i], cols[i + 1], u - i)); }, m('seas') - .2, 4, lin);
@@ -144,7 +144,7 @@ const BEATS = [
     const sqg = G(p), e = globe(sqg, { x: 600, y: 470, r: 270, kind: 'earthBig', light: 180, c: .9, night: .6 });
     prog(q => sqg.setAttribute('transform', `translate(600 470) scale(${1 + .06 * q} ${1 - .08 * q}) translate(-600 -470)`), m('sq'), 1.4);
     lab(p, 'SPHERE', 600, 150, .4, { anchor: 'middle', fill: INK.blue, size: 44 });
-    lab(p, '(squash exaggerated!)', 600, 800, m('sq', .9), { anchor: 'middle', fill: INK.hl, size: 28 });
+    lab(p, '(squash exaggerated!)', 600, 770, m('sq', .9), { anchor: 'middle', fill: INK.hl, size: 28 });
     // the kid walks in and spins a ball of dough on one finger; it flattens into a crust
     const k = kid(p, { x: 1700, y: 860, s: 1.1, face: -1 }), t0 = m('dough') - 1.9, t1 = m('dough') - .2;
     alive(D, k, null);
@@ -191,7 +191,7 @@ const BEATS = [
     path(nd, 'M0 -90L-14 0L0 0Z', { fill: '#c43f2c', stroke: 'none' }); path(nd, 'M0 90L14 0L0 0Z', { fill: '#7b8396', stroke: 'none' });
     mk('circle', { r: 8, fill: INK.ink }, cp);
     clockRun(t => { const u = Math.max(0, t - m('comp')); put(nd, { r: t < m('comp') ? 75 : 75 * Math.exp(-1.3 * u) * Math.cos(4.2 * u) }); }, D);
-    lab(p, 'compass', 1320, 790, m('comp', .4), { anchor: 'middle' });
+    lab(p, 'compass', 1320, 760, m('comp', .4), { anchor: 'middle' });
     const gn = G(p, { o: 0 }); show(gn, m('off'));
     mk('circle', { cx: C[0], cy: C[1] - R, r: 9, fill: INK.note }, gn);
     pen(gn, 'geographic North Pole', { x: C[0] + 70, y: C[1] - R - 70, size: 28, o: 1 });
@@ -204,7 +204,7 @@ const BEATS = [
     // it wanders: the dot drifts a little, leaving a dotted trail
     const trail = path(mn, `M${mx} ${my}Q${mx + 14} ${my - 6} ${mx + 26} ${my + 2}`, { stroke: '#ff8f7a', 'stroke-width': 3, 'stroke-dasharray': '3 6' }, { d: 0 });
     draw(trail, m('drift'), 2.4, lin); prog(q => put(md, { x: mx + 26 * q, y: my - 6 * Math.sin(q * Math.PI) + 2 * q }), m('drift'), 2.4, lin);
-    lab(p, 'it drifts a little every year', 220, 820, m('drift'), { fill: INK.hl });
+    lab(p, 'it drifts a little every year', 220, 760, m('drift'), { fill: INK.hl });
   }],
   ['rotate', 'Rotation', (m, D) => {
     const p = panel(0); spaceBg(p, { seed: 13 }); heading(p, "Earth's Motion");
@@ -236,7 +236,7 @@ const BEATS = [
     lab(p, 'evening', 900, 740, m('eve'), { anchor: 'middle' });
     draw(spinArrow(p, 900, 450, 290, 60, 120, { color: INK.hl }), m('ride'));
     // from the ground: the sun seems to cross the sky from east to west
-    const box = G(p, { o: 0 }); show(box, m('sky') - .2);
+    const box = G(p, { o: 0, y: -80 }); show(box, m('sky') - .2);
     mk('rect', { x: 1150, y: 540, width: 420, height: 300, rx: 18, fill: '#2f4f86', stroke: INK.note, 'stroke-width': 3 }, box);
     path(box, 'M1190 760Q1360 560 1530 760', { stroke: INK.hl, 'stroke-width': 3, 'stroke-dasharray': '8 8' });
     const bs = G(box); mk('circle', { r: 22, fill: SKY.sun }, bs);
@@ -245,7 +245,7 @@ const BEATS = [
     pen(box, 'E', { x: 1170, y: 805, size: 30, o: 1 }); pen(box, 'W', { x: 1535, y: 805, size: 30, o: 1 });
     pen(box, 'what we see from the ground', { x: 1360, y: 580, size: 26, anchor: 'middle', fill: INK.note, o: 1 });
     clockRun(t => { const u = clamp01((t - m('sky')) / 5.5); put(bs, { x: (1 - u) ** 2 * 1190 + 2 * u * (1 - u) * 1360 + u * u * 1530, y: (1 - u) ** 2 * 760 + 2 * u * (1 - u) * 560 + u * u * 760 }); }, D);
-    lab(p, "the sun isn't moving — we are!", 1360, 880, m('us'), { anchor: 'middle', fill: INK.hl });
+    lab(p, "the sun isn't moving — we are!", 1360, 800, m('us'), { anchor: 'middle', fill: INK.hl });
   }],
   ['revolve', 'Revolution', (m, D) => {
     const p = panel(0); spaceBg(p, { seed: 15 });
@@ -261,7 +261,7 @@ const BEATS = [
     }, D);
     hlAt(p, 'REVOLUTION', 800, 140, m('rev'));
     lab(p, 'ORBIT', 1290, 330, m('orb'), { size: 40, fill: INK.blue });
-    lab(p, '1 revolution = 365¼ days = 1 year', 800, 880, m('year'), { anchor: 'middle', size: 40, fill: INK.hl });
+    lab(p, '1 revolution = 365¼ days = 1 year', 800, 808, m('year'), { anchor: 'middle', size: 40, fill: INK.hl });
   }],
   ['leap', 'Leap years', (m, D) => {
     const p = panel(0); spaceBg(p, { seed: 16, o: .6 });
@@ -306,7 +306,7 @@ const BEATS = [
     clockRun(t => { const x = keyf(t, [[t0, 1700], [t1, 1400]]); put(k, { x }); if (t < t1) k.walk((1700 - x) / .6); }, D);
     prog(q => k.pose('stand', 'shrug', q), t1, .4);
     pop(bubble(p, 'closest in WINTER?!', { x: 1200, y: 700, tx: 150, ty: 70 }), t1 + .2);
-    lab(p, 'distance ≠ seasons', 800, 820, m('not'), { anchor: 'middle', size: 48, fill: '#ff8f7a' });
+    lab(p, 'distance ≠ seasons', 800, 805, m('not'), { anchor: 'middle', size: 48, fill: '#ff8f7a' });
   }],
   ['tilt', "Earth's tilt", (m, D) => {
     const p = panel(0); spaceBg(p, { seed: 18 });
@@ -362,7 +362,7 @@ const BEATS = [
     lab(p, 'north leans TOWARD the sun', C[0] - RX, C[1] + 160, m('jun', .5), { anchor: 'middle', size: 30, fill: INK.hl });
     lab(p, 'DECEMBER', C[0] + RX, C[1] - 170, m('dec'), { anchor: 'middle', size: 40, fill: INK.blue });
     lab(p, 'north leans AWAY', C[0] + RX, C[1] + 160, m('away'), { anchor: 'middle', size: 30, fill: INK.blue });
-    lab(p, "no wobble — Earth just moved\nto the other side of the sun", 800, 790, m('nowob'), { anchor: 'middle', fill: INK.note });
+    lab(p, "no wobble — Earth just moved\nto the other side of the sun", 800, 770, m('nowob'), { anchor: 'middle', fill: INK.note });
   }],
   ['angle', 'The angle of sunlight', (m, D) => {
     const p = panel(0); mk('rect', { width: 1600, height: 900, fill: '#20283f' }, p);
@@ -378,7 +378,7 @@ const BEATS = [
     mk('rect', { x: -18, y: -40, width: 36, height: 54, rx: 7, fill: '#9aa3b5' }, torch);
     path(torch, `M-18 12L${-W / 2} ${LENS}H${W / 2}L18 12Z`, { fill: '#cfd5e2', stroke: 'none' });
     path(ghost, `M${hx - W / 2} ${Y}H${hx + W / 2}`, { stroke: SKY.light, 'stroke-width': 14, 'stroke-opacity': .5 });
-    const span = lab(p, '', 0, Y + 70, 0, { size: 32, anchor: 'middle', fill: INK.hl });
+    const span = lab(p, '', 0, Y + 44, 0, { size: 32, anchor: 'middle', fill: INK.hl });
     const phi = t => 60 * soft(clamp01((t - m('tilt')) / 2.2));
     clockRun(t => {
       const f = phi(t), c = Math.cos(deg(f)), s = Math.sin(deg(f)), lx = hx + LENS * s, ly = hy + LENS * c, h = Y - ly;
@@ -391,9 +391,9 @@ const BEATS = [
     }, D);
     show(beam, m('spot') - .3, .3); show(patch, m('spot') - .3, .3);
     lab(p, 'flashlight', hx, hy - 70, m('torch'), { anchor: 'middle' });
-    lab(p, 'small, bright spot', hx, Y + 120, m('spot', .5), { anchor: 'middle', fill: INK.hl });
+    lab(p, 'small, bright spot', hx, Y + 92, m('spot', .5), { anchor: 'middle', fill: INK.hl });
     show(ghost, m('tilt'), .3);
-    lab(p, 'same light, spread out: dimmer', hx + 560, Y + 120, m('tilt', 2), { anchor: 'middle', fill: INK.blue });
+    lab(p, 'same light, spread out: dimmer', hx + 560, Y + 92, m('tilt', 2), { anchor: 'middle', fill: INK.blue });
     const s1 = G(p, { o: 0 }); show(s1, m('high')); sunBody(s1, { x: 380, y: 110, r: 36 }); pen(s1, 'summer sun: high, like the straight beam', { x: 440, y: 120, size: 30, fill: INK.hl, o: 1 });
     const s2 = G(p, { o: 0 }); show(s2, m('high', 1.4)); sunBody(s2, { x: 1460, y: 300, r: 36 }); pen(s2, 'winter sun: low,\nlike the tilted beam', { x: 1400, y: 270, size: 30, fill: INK.blue, anchor: 'end', o: 1 });
   }],
@@ -418,7 +418,7 @@ const BEATS = [
     }, D);
     lab(p, 'summer: long, high path', 1000, 170, m('sumd', .4), { fill: INK.hl });
     lab(p, 'winter: short, low path', 960, 500, m('wind', .4), { fill: INK.blue });
-    lab(p, 'more intense light + more hours = SUMMER', 800, 860, m('both'), { anchor: 'middle', size: 36, fill: INK.hl });
+    lab(p, 'more intense light + more hours = SUMMER', 800, 805, m('both'), { anchor: 'middle', size: 36, fill: INK.hl });
   }],
   ['hemis', 'Opposite seasons', (m, D) => {
     const p = panel(0); spaceBg(p, { seed: 20 });
@@ -471,7 +471,7 @@ const BEATS = [
     clockRun(t => ze.spin(30 * t), D);
     sunRays(z, { x0: 1010, x1: 1230, y0: 650, y1: 770, n: 3 })._lines.forEach(l => put(l, { d: 1 }));
     pen(z, 'sun over the equator', { x: 1020, y: 610, size: 28, fill: INK.hl, o: 1 });
-    lab(p, 'day ≈ night ≈ 12 hours, everywhere', 1260, 886, m('twelve'), { anchor: 'middle', size: 30, fill: INK.hl });
+    lab(p, 'day ≈ night ≈ 12 hours, everywhere', 70, 330, m('twelve'), { anchor: 'start', size: 30, fill: INK.hl });
     pulse(E.mar, m('mar'), 1.25); pulse(E.sep, m('sep'), 1.25);
     lab(p, 'VERNAL EQUINOX\n~ March 20: spring', 960, 200, m('mar'), { size: 32, fill: INK.def });
     lab(p, 'AUTUMNAL EQUINOX\n~ Sept 22: fall', 450, 760, m('sep'), { anchor: 'end', size: 32, fill: INK.def });
@@ -526,9 +526,9 @@ const BEATS = [
     mk('circle', { cx: C[0] + 30, cy: C[1] + R - 20, r: 24, fill: 'none', stroke: INK.blue, 'stroke-width': 4 }, ice);
     heading(p, 'The MOON');
     const labels = G(p);
-    lead(labels, C[0] + 40, C[1] + 230, 1160, 760, m('hi'), INK.hl);
-    hlAt(labels, 'LUNAR HIGHLANDS', 1300, 790, m('hi'));
-    lab(labels, 'bright mountains & craters', 1170, 850, m('hi', .6), { fill: INK.note, size: 28 });
+    lead(labels, C[0] + 40, C[1] + 230, 1160, 720, m('hi'), INK.hl);
+    hlAt(labels, 'LUNAR HIGHLANDS', 1300, 750, m('hi'));
+    lab(labels, 'bright mountains & craters', 1170, 810, m('hi', .6), { fill: INK.note, size: 28 });
     lead(labels, C[0] - 120, C[1] - 120, 340, 230, m('mar'), INK.hl);
     hlAt(labels, 'MARIA', 260, 200, m('mar'));
     lab(labels, 'dark plains of\nhardened lava', 160, 280, m('mar', .6), { size: 30 });
@@ -552,7 +552,7 @@ const BEATS = [
     const ghosts = [0, 90, 180, 270].map(a => { const g = flagMoon(0), [x, y] = orbitAt(C[0], C[1], OR, OR, a); put(g, { x, y }); put(g._f, { r: toward(x, y, ...C) }); return g; });
     ghosts.forEach((g, i) => tw(g, { o: .35 }, m('same') + i * .2, .4));
     const mo = flagMoon(1), T0 = m('rev') - .5, W = 360 / (m('far') - T0);
-    const days = lab(p, '', 560, 860, T0, { anchor: 'middle', fill: INK.hl, size: 34 });
+    const days = lab(p, '', 560, 650, T0, { anchor: 'middle', fill: INK.hl, size: 34 });
     clockRun(t => {
       const a = 300 + W * Math.max(0, t - T0), [x, y] = orbitAt(C[0], C[1], OR, OR, a);
       put(mo, { x, y }); put(mo._f, { r: toward(x, y, ...C) }); e.spin(8 * t);
@@ -702,7 +702,7 @@ const BEATS = [
     tw(dark, { o: .7 }, m('into') + .4, 1); tw(red, { o: .8 }, m('red'), 2); tw(dark, { o: .15 }, m('red'), 2);
     hlAt(p, 'LUNAR ECLIPSE', 800, 150, m('into'));
     lab(p, "the moon in Earth's shadow", mx, 540, m('into', 1), { anchor: 'middle', size: 30 });
-    const ph = G(p, { x: 1300, y: 740, o: 0, s: .8 }); tw(ph, { o: 1, s: 1 }, m('red', 1), .5, out);
+    const ph = G(p, { x: 1300, y: 655, o: 0, s: .7 }); tw(ph, { o: 1, s: .85 }, m('red', 1), .5, out);
     mk('image', { href: '../img/lunar_eclipse.jpg', x: -150, y: -100, width: 300, height: 200 }, ph);
     pen(ph, 'blood moon, 2025 (NASA)', { y: 125, size: 22, anchor: 'middle', fill: INK.dim, o: 1 });
     lab(p, "red light bent by\nEarth's atmosphere", 860, 720, m('red', .6), { fill: '#ff8f7a', size: 30 });
@@ -724,7 +724,7 @@ const BEATS = [
       put(mo, { x, y }); mo.light(toward(x, y, -40, 450)); dz(Math.sin(deg(a)) > 0); e.spin(15 * t);
     }, D);
     lab(p, 'usually passes above\nor below the shadow', 300, 640, m('miss'), { fill: INK.hl });
-    lab(p, 'eclipse only when all three line up exactly', 800, 840, m('line'), { anchor: 'middle', size: 34 });
+    lab(p, 'eclipse only when all three line up exactly', 800, 800, m('line'), { anchor: 'middle', size: 34 });
   }],
   ['q4', 'Quick check: eclipses', (m, D) => {
     const p = panel(0); spaceBg(p, { seed: 43 });
@@ -801,7 +801,7 @@ const BEATS = [
     grow(f1, E1[0] - 210, E1[1] - 160, 120, 180, m('line')); grow(f2, E1[0] - 210, E1[1] + 160, 70, 180, m('line') + .5);
     pen(L, 'NEW MOON: pulls line up', { x: E1[0] - 60, y: 210, size: 30, anchor: 'middle', o: 1 });
     hlAt(p, 'SPRING TIDES', E1[0] - 60, 760, m('spr'));
-    lab(p, 'the water "springs" up', E1[0] - 60, 820, m('name'), { anchor: 'middle', size: 28 });
+    lab(p, 'the water "springs" up', E1[0] + 70, 760, m('name'), { anchor: 'start', size: 28 });
     // quarter moon: the pulls are at right angles, so the bulges stay small
     const N = G(p, { o: 0 }); show(N, m('right') - .3);
     const E2 = [1240, 420];
@@ -815,7 +815,7 @@ const BEATS = [
     grow(f3, E2[0] + 170, E2[1] + 60, 120, 90, m('right')); grow(f4, E2[0] - 170, E2[1] - 40, 70, 180, m('right') + .5);
     pen(N, 'QUARTER MOON: right angle', { x: E2[0], y: 210, size: 30, anchor: 'middle', o: 1 });
     hlAt(p, 'NEAP TIDES', E2[0], 760, m('neap'), { color: INK.def });
-    lab(p, 'smaller tides', E2[0], 820, m('neap', .6), { anchor: 'middle', size: 28 });
+    lab(p, 'smaller tides', E2[0] + 105, 760, m('neap', .6), { anchor: 'start', size: 28 });
   }],
   ['q5', 'Quick check: tides', (m, D) => {
     const p = panel(0); spaceBg(p, { seed: 53 });

@@ -52,11 +52,11 @@ function opener(p, x, y, part, name, name2) {
 }
 function summary(p, m, rows, next) {
   rows.forEach(([lines, icon], i) => {
-    const g = G(p, { x: -16, y: 250 + i * 220, o: 0 });
+    const g = G(p, { x: -16, y: 160 + i * 220, o: 0 });
     lines.forEach((s, j) => T(g, s, { x: 430, y: j * 50, size: 38, weight: 600 }));
     icon(g); tw(g, { o: 1, x: 0 }, m(['w1', 'w2', 'w3'][i]), .6);
   });
-  txt(p, next, 800, 860, m('end'), { size: 32, fill: COL.dim, weight: 500 });
+  txt(p, next, 800, 750, m('end'), { size: 32, fill: COL.dim, weight: 500 });
 }
 
 /* ---------- props: origin at the bottom centre unless noted ---------- */
@@ -172,7 +172,7 @@ const BEATS = [
   // lines turn kinetic yellow; temperature is the average; thermometers beside them read high and low.
   table(p, 280, 1320, 770, 900);
   mug(p, { x: 480, y: 770 }); milkGlass(p, { x: 1120, y: 770 });
-  phLabel(p, 'hot cocoa', { x: 480, y: 850, size: 30, fill: HEAT }); phLabel(p, 'cold milk', { x: 1120, y: 850, size: 30, fill: COLD });
+  phLabel(p, 'hot cocoa', { x: 420, y: 726, size: 30, fill: HEAT, anchor: 'end' }); phLabel(p, 'cold milk', { x: 1175, y: 726, size: 30, fill: COLD, anchor: 'start' });
   const lens = (cx, mx, my, t0, color, n) => {
     const g = G(p, { o: 0 });
     path(g, `M${mx - 50} ${my}L${cx - 190} ${540}M${mx + 50} ${my}L${cx + 190} ${540}`, { stroke: COL.faint, 'stroke-width': 3, 'stroke-dasharray': '8 8' });
@@ -257,8 +257,8 @@ const BEATS = [
   pop(ig, tsl - .1); put(ig, { s: .9 });
   clockRun(t => { const k = TK(t); S_.setC(k - 273.15); f.set(phaseOf(t, keys), v(t)); phText(rd, `${Math.round(k)} K`); }, D);
   const [zx, zy] = cam.screen(1090, YC(-273.15), 4);
-  say(p, 'absolute zero', zx + 110, zy - 8, tz + .3, { size: 44, anchor: 'start' });
-  line(p, [['0 K', SC.K], [' = '], ['−273.15 °C', SC.C]], zx + 110, zy + 44, tz + 3, { size: 34, anchor: 'start' });
+  say(p, 'absolute zero', zx + 110, zy - 90, tz + .3, { size: 44, anchor: 'start' });
+  line(p, [['0 K', SC.K], [' = '], ['−273.15 °C', SC.C]], zx + 110, zy - 40, tz + 3, { size: 34, anchor: 'start' });
   say(p, 'colder: slower molecules', 1110, 700, tsl + .4, { size: 30, fill: COLD });
   say(p, 'as little motion as possible', 1110, 745, tst + .4, { size: 30, fill: COLD });
   const si = G(p, { o: 0 });
@@ -335,9 +335,9 @@ const BEATS = [
   path(tubG, 'M484 500V690Q484 726 520 726H1060Q1096 726 1096 690V500', { stroke: ENAMEL, 'stroke-width': 16, fill: 'none', 'stroke-linejoin': 'round' });
   [540, 1040].forEach(x => phBlock(tubG, x - 12, 724, 24, 16, '#9a958a', { top: 0 }));
   show(cupG, tcu); show(tubG, ttu);
-  [[250, 'cup of water'], [790, 'bathtub of water']].forEach(([x, s]) => phLabel(W, s, { x, y: 800, size: 30, fill: COL.dim }));
+  [[250, 'cup of water'], [790, 'bathtub of water']].forEach(([x, s]) => phLabel(W, s, { x, y: 360, size: 30, fill: COL.dim }));
   const t40 = G(W, { o: 0 }); [[250, 500], [790, 460]].forEach(([x, y]) => phLabel(t40, '40 °C', { x, y, size: 34, fill: HEAT })); show(t40, 8.3);
-  const cnt = G(W, { o: 0 }); phLabel(cnt, 'a few molecules', { x: 250, y: 850, size: 28, fill: COLD }); phLabel(cnt, 'far more molecules', { x: 790, y: 850, size: 28, fill: COLD }); show(cnt, tco);
+  const cnt = G(W, { o: 0 }); phLabel(cnt, 'a few molecules', { x: 250, y: 405, size: 28, fill: COLD }); phLabel(cnt, 'far more molecules', { x: 790, y: 405, size: 28, fill: COLD }); show(cnt, tco);
   const eb = energyBars(W, { x: 1240, y: 700, cols: [['', KIN], ['', KIN]], unit: 30, w: 90, gap: 70 });
   const ebl = G(W, { o: 0 });
   phLabel(ebl, 'cup', { x: 1285, y: 740, size: 28 }); phLabel(ebl, 'bathtub', { x: 1445, y: 740, size: 28 });
@@ -350,7 +350,7 @@ const BEATS = [
   phLabel(W, 'one brick', { x: 1960, y: 800, size: 30, fill: COL.dim }); phLabel(W, 'a stack of bricks', { x: 2530, y: 800, size: 30, fill: COL.dim });
   phLabel(W, 'one', { x: 2885, y: 740, size: 28 }); phLabel(W, 'stack', { x: 3045, y: 740, size: 28 });
   phLabel(W, 'same temperature', { x: 2250, y: 520, size: 34, fill: HEAT });
-  phLabel(W, 'the stack holds more thermal energy', { x: 2500, y: 860, size: 30, fill: HEAT });
+  phLabel(W, 'the stack holds more thermal energy', { x: 2500, y: 260, size: 30, fill: HEAT });
   clockRun(t => {
     fCup.set(150 * t, 150); fTub.set(150 * t, 150);
     const q1 = sm(t, tsu + .6, tsu + 2.4), q2 = sm(t, tsu + 2, tsu + 4);
@@ -376,9 +376,9 @@ const BEATS = [
   const ICE = [615, 565], ice = iceCube(hg, 124, { x: ICE[0], y: ICE[1] });
   const pud = mk('ellipse', { cx: ICE[0], cy: ICE[1] - 2, rx: 0, ry: 0, fill: '#a9d4ec', opacity: .7 }, hg);
   const blk = eBlocks(hg, 6, HEAT, { size: 28 }), arrive = i => tf + 1.9 + i * 1.9;
-  const TX = [1210, 1390], TB = 740, TL = 360, TBU = 34;
+  const TX = [1210, 1390], TB = 700, TL = 360, TBU = 34;
   const tH = thermoTube(p, { x: TX[0], y: TB, len: TL, w: 40, bulb: TBU }), tI = thermoTube(p, { x: TX[1], y: TB, len: TL, w: 40, bulb: TBU });
-  phLabel(p, 'hand', { x: TX[0], y: 820, size: 34, fill: HEAT }); phLabel(p, 'ice', { x: TX[1], y: 820, size: 34, fill: COLD });
+  phLabel(p, 'hand', { x: TX[0], y: 765, size: 34, fill: HEAT }); phLabel(p, 'ice', { x: TX[1], y: 765, size: 34, fill: COLD });
   const meetY = TB - TBU - .5 * TL, meet = path(p, `M${TX[0] - 40} ${meetY}H${TX[1] + 40}`, { stroke: COL.chalk, 'stroke-width': 3, 'stroke-dasharray': '10 8' }); put(meet, { o: 0 }); show(meet, te + 2.8);
   clockRun(t => {
     const gone = [0, 1, 2, 3].reduce((a, i) => a + sm(t, arrive(i) - .2, arrive(i) + .6), 0), s = 1 - .42 * gone / 4;
@@ -394,8 +394,8 @@ const BEATS = [
   const [wx, wy] = sc(360, 575), [cx, cy] = sc(ICE[0], ICE[1] - 124);
   say(p, 'warmer', wx, wy - 150, th + 1.9, { size: 40, fill: HEAT }); say(p, 'cooler', cx, cy - 36, th + 2.4, { size: 40, fill: COLD });
   line(p, [['heat', HEAT], [': thermal energy moving from warmer to cooler']], 800, 100, tf, { size: 42 });
-  say(p, 'same temperature', (TX[0] + TX[1]) / 2, 864, te + 2.8, { size: 32 });
-  line(p, [['ice feels cold: '], ['energy is leaving your hand', HEAT]], 480, 864, tfe, { size: 32 });
+  say(p, 'same temperature', (TX[0] + TX[1]) / 2, 160, te + 2.8, { size: 32 });
+  line(p, [['ice feels cold: '], ['energy is leaving your hand', HEAT]], 480, 210, tfe, { size: 32 });
   const dg = G(p, { o: 0 }), DX = 1300 - 700;   // the rule, centred over the thermometers
   phLabel(dg, 'warmer', { x: 560 + DX, y: 222, size: 34, fill: HEAT, anchor: 'end' }); path(dg, arrowPath(580 + DX, 210, 820 - 80 + DX), { stroke: COL.chalk, 'stroke-width': 6, fill: 'none' }); phLabel(dg, 'cooler', { x: 840 - 80 + DX, y: 222, size: 34, fill: COLD, anchor: 'start' });
   phLabel(dg, 'cooler', { x: 560 + DX, y: 282, size: 34, fill: COL.dim, anchor: 'end' }); path(dg, arrowPath(580 + DX, 270, 820 - 80 + DX), { stroke: COL.faint, 'stroke-width': 6, fill: 'none' }); phLabel(dg, 'warmer', { x: 840 - 80 + DX, y: 282, size: 34, fill: COL.dim, anchor: 'start' });
@@ -518,7 +518,7 @@ const BEATS = [
   const gp = G(p, { o: 0 });
   path(gp, 'M650 300v-20H850v20', { stroke: COL.chalk, 'stroke-width': 4, fill: 'none' });
   phLabel(gp, 'not touching', { x: 750, y: 262, size: 30 }); show(gp, tg);
-  say(p, 'the air isn’t carrying it', 750, 850, tg + 1.6, { size: 30, fill: COL.dim });
+  say(p, 'the air isn’t carrying it', 750, 770, tg + 1.6, { size: 30, fill: COL.dim });
   line(p, [['radiation', HEAT], [': heat carried by electromagnetic rays']], 800, 100, tra, { size: 42 });
   // the Sun and Earth across empty space
   const sp = G(p, { o: 0, x: 800, y: 450, s: 1.12 }), si = G(sp, { x: -800, y: -450 });
