@@ -10,13 +10,15 @@
     python3 new_book.py scroll story                   # a scroll page: scroll.js kit and a four-step sample, no engine
     python3 new_book.py explore italy                  # an explorable map: the explore kit and its sample (no engine, no chapters)
     python3 new_book.py lesson stats --chapter 9 --lang ja --root ~/work
+    python3 new_book.py --selftest                     # files the user wrote first are kept (no engine needed)
 
 Run it from the folder that holds site/, books/, content/ and tools/ (or pass --root). It refuses a book that
 already has a site/<book>/ folder, so it never overwrites work; resume an existing book from its own files.
 When a step fails (engine.py without network or a local engine/), the new site/<book>/ is removed, so a rerun works.
 The engine comes from engine.py (the repository's engine/ when at hand, else the latest compatible release).
 It copies and creates files only; the voice, effects and baking steps it prints come next. It also copies the tier's
-style.json template into books/<book>/ (kept if one is there), the file the style conversation fills (core/style.md).
+style.json template into books/<book>/, the file the style conversation fills (core/style.md). A file already in books/,
+content/ (a narration file written before the folder, a style.json) is kept, and the output names it.
 An explorable map (explore) is one page, site/<book>/index.html, on its own player (lib/explore.js), not the engine: no
 engine.py, no chapter folder; its narration file is content/<book>/narration.<lang>.json, which explore.py fills from
 the page's cards. A picture book's or a documentary's series page shows img/cover.webp, which no step makes on its own: the output
@@ -84,6 +86,16 @@ def copy(src: Path, dst: Path):
         shutil.copy2(src, dst)
 
 
+def keep_or_copy(src: Path, dst: Path) -> bool:
+    """A kit file into books/, content/ or tools/, where the user may already have written one (a script written before
+    the folder): an existing file is kept, and said so. True when it copied."""
+    if dst.exists():
+        print(f'kept {dst} (already there): the kit\'s {src.name} was not copied over it', file=sys.stderr)
+        return False
+    copy(src, dst)
+    return True
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('kind', choices=['lesson', 'picture', 'documentary', 'shorts', 'scroll', 'explore'])
@@ -125,9 +137,8 @@ def start(a, root, ch, site, work, content):
         sys.exit(f'engine.py failed; {site} removed, rerun once the engine is reachable')
     narration = content / f'narration.{a.lang}.json'
     style = work / 'style.json'   # the tier's template, the start of the style conversation (core/style.md)
-    fresh_style = not style.exists()
-    if fresh_style:
-        copy({'lesson': T, 'picture': PB, 'documentary': DK, 'shorts': SK}[a.kind] / 'style.json', style)
+    fresh_style = keep_or_copy({'lesson': T, 'picture': PB, 'documentary': DK, 'shorts': SK}[a.kind] / 'style.json', style)
+    fresh_narration = True
 
     if a.kind == 'lesson':
         for d in ('chapters', 'images/inbox'):
@@ -135,7 +146,7 @@ def start(a, root, ch, site, work, content):
         copy(T / 'book.html', site / 'index.html')
         copy(T / 'unit-art.js', site / 'unit-art.js')
         copy(T / 'chapter.html', site / ch / 'index.html')
-        copy(T / 'narration.en.json', narration)
+        fresh_narration = keep_or_copy(T / 'narration.en.json', narration)
     elif a.kind == 'picture':
         for d in (site / 'img' / 'puppets', work / 'art', site / ch / 'audio' / 'sfx'):
             d.mkdir(parents=True, exist_ok=True)
@@ -144,10 +155,10 @@ def start(a, root, ch, site, work, content):
             copy(f, site / 'lib' / f.name)
         copy(PB / 'chapter.html', site / ch / 'index.html')
         copy(PB / 'scene1.js', site / ch / 'scene1.js')
-        copy(PB / 'sets.js', work / 'art' / 'sets.js')
+        keep_or_copy(PB / 'sets.js', work / 'art' / 'sets.js')
         if a.painted:   # painted.py's manifest: only a painted look places generated pictures
-            copy(PB / 'painted.json', work / 'art' / 'painted.json')
-        copy(PB / 'narration.en.json', narration)
+            keep_or_copy(PB / 'painted.json', work / 'art' / 'painted.json')
+        fresh_narration = keep_or_copy(PB / 'narration.en.json', narration)
         (site / 'img' / 'puppets' / 'baked.js').write_text('window.BAKED = {};\n')   # until bake_puppets.py runs
     else:
         (work / 'art' / ('found' if a.kind == 'documentary' else '')).mkdir(parents=True, exist_ok=True)
@@ -160,7 +171,7 @@ def start(a, root, ch, site, work, content):
         else:
             copy(PB / 'series.html', site / 'index.html')   # a single film is a series of one
         copy(kit / 'chapter.html', site / ch / 'index.html')
-        copy(kit / 'narration.en.json', narration)
+        fresh_narration = keep_or_copy(kit / 'narration.en.json', narration)
         (site / 'img' / 'art.js').write_text('window.ART = {};\n')   # prep.py fills it
         if a.maps:
             for f in (MK / 'lib').glob('*.js'):
@@ -169,8 +180,11 @@ def start(a, root, ch, site, work, content):
     if a.clay:   # the page-side loader, and a scene that finds this kit wherever the Skill is installed
         copy(T / 'clay' / 'lib' / 'clay.js', site / 'lib' / 'clay.js')
         (work / 'art' / 'clay').mkdir(parents=True, exist_ok=True)
-        scene = (T / 'clay' / 'scene.py').read_text(encoding='utf-8')
-        (work / 'art' / 'clay' / 'scene.py').write_text(scene.replace("KIT = ''", f'KIT = {str(HERE)!r}', 1), encoding='utf-8')
+        scene, dst = (T / 'clay' / 'scene.py').read_text(encoding='utf-8'), work / 'art' / 'clay' / 'scene.py'
+        if dst.exists():
+            print(f'kept {dst} (already there): the kit\'s scene.py was not copied over it', file=sys.stderr)
+        else:
+            dst.write_text(scene.replace("KIT = ''", f'KIT = {str(HERE)!r}', 1), encoding='utf-8')
 
     if a.lang != 'en':   # the pages name the book's language: <html lang>, CHAPTER.language and the audio/<lang>/ paths
         for f in (site / 'index.html', *(site / ch).glob('*.*')):
@@ -178,7 +192,10 @@ def start(a, root, ch, site, work, content):
                 s = f.read_text(encoding='utf-8')
                 f.write_text(with_lang(s, a.lang).replace("language: 'en'", f"language: '{a.lang}'")
                              .replace('audio/en/', f'audio/{a.lang}/'), encoding='utf-8')
-        set_voice(narration, style, a.lang, fresh_style)
+        if fresh_narration:
+            set_voice(narration, style, a.lang, fresh_style)
+        else:   # the book's own narration file: its voice stands
+            style_language(style, a.lang, fresh_style)
 
     q = lambda p: shlex.quote(str(p.relative_to(root) if p.is_relative_to(root) else p))   # a path with spaces still pastes
     S, A = q(HERE), site / ch / 'audio' / a.lang
@@ -210,10 +227,7 @@ def start_scroll(a, root, site, work):
         copy(SC / f, site / f)
     copy(DK / 'lib' / 'fonts.css', site / 'lib' / 'fonts.css')
     copy(DK / 'lib' / 'fonts', site / 'lib' / 'fonts')
-    fresh_style = not (work / 'style.json').exists()
-    if fresh_style:
-        copy(SC / 'style.json', work / 'style.json')
-    copy(SC / 'e2e.py', root / 'tools' / a.book / 'e2e_scroll.py')
+    fresh_style = keep_or_copy(SC / 'style.json', work / 'style.json')
     if a.lang != 'en':
         style_language(work / 'style.json', a.lang, fresh_style)   # its language only: a scroll page has no voice
         f = site / 'index.html'
@@ -223,9 +237,10 @@ def start_scroll(a, root, site, work):
     print(f'\nscroll page started: {q(site)}/ (the four-step sample: index.html, story.js), style.json template in '
           f'{q(work / "style.json")}; next:')
     print(f'  python3 {S}/serve.py 8765 site   # then open http://localhost:8765/{a.book}/')
-    print(f'  uv run --with playwright python3 {q(root / "tools" / a.book / "e2e_scroll.py")} http://localhost:8765/{a.book}/ '
+    print(f'  uv run --with playwright python3 {q(SC / "e2e.py")} http://localhost:8765/{a.book}/ '
           f'--out {q(work / "review" / "scroll")}')
     print(f'  your own map data, over the sample\'s img/geo-lite.js: python3 {S}/geo.py {q(site / "img")} [--regions ...] [--cities ...]')
+    print(f'  no world map in the story: delete {q(site / "img" / "geo-lite.js")} (75 KB) and its <script> in index.html once the sample\'s map scenes are gone')
 
 
 def explore(a, root, ch, site, work, content):
@@ -233,9 +248,7 @@ def explore(a, root, ch, site, work, content):
     for d in (content, work / 'review', root / 'tools' / a.book):
         d.mkdir(parents=True, exist_ok=True)
     shutil.copytree(EK, site, ignore=shutil.ignore_patterns('style.json'))
-    fresh_style = not (work / 'style.json').exists()
-    if fresh_style:
-        copy(EK / 'style.json', work / 'style.json')
+    fresh_style = keep_or_copy(EK / 'style.json', work / 'style.json')
     nar_file, voice = content / f'narration.{a.lang}.json', VOICES.get(base(a.lang))
     if a.lang != 'en':
         style_language(work / 'style.json', a.lang, fresh_style)
@@ -262,5 +275,32 @@ def explore(a, root, ch, site, work, content):
     print(f'  uv run --with playwright python {S}/explore.py check {url}   # then shots and perf (references/explore/explore.md)')
 
 
+def selftest():
+    """A script and a style.json written before the folder survive new_book.py, for every kind (film #5: a documentary's
+    narration file was once replaced by the kit's sample). The engine step is stubbed: this checks the copying only."""
+    import tempfile, types
+    real_run = subprocess.run
+    subprocess.run = lambda *a, **k: types.SimpleNamespace(returncode=0)
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for kind in ('lesson', 'picture', 'documentary', 'shorts', 'scroll', 'explore'):
+                book, mine = f'b-{kind}', '{"mine": true}\n'
+                nar = root / 'content' / book / ('' if kind == 'explore' else 'ch01') / 'narration.ja.json'
+                own = [root / 'books' / book / 'style.json']
+                own += [] if kind == 'scroll' else [nar]
+                for f in own:
+                    f.parent.mkdir(parents=True, exist_ok=True)
+                    f.write_text(mine)
+                sys.argv = ['new_book.py', kind, book, '--lang', 'ja', '--root', tmp]
+                main()
+                for f in own:
+                    assert f.read_text() == mine, f'{kind}: {f} was overwritten'
+                assert (root / 'site' / book).is_dir(), kind
+    finally:
+        subprocess.run = real_run
+    print('new_book selftest: ok (a narration file and style.json already there are kept, every kind)')
+
+
 if __name__ == '__main__':
-    main()
+    selftest() if sys.argv[1:] == ['--selftest'] else main()

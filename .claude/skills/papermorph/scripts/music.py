@@ -13,7 +13,11 @@ headless page (or given with --length); with --video it is the exported MP4's (e
 beats, ends a `video: S` one at S and holds a film's waits), so the last note lands on the video's end. When the two
 differ the run prints both. The recording's last note lands that long after the in-point: the last moment
 its loudness is within 10 LU of its body (the median), so a long decay after it rings past the end instead of leaving
-the end card near silence (--end gives it by hand; the run also prints where the sound itself ends). The track runs 2 s
+the end card near silence (--end gives it by hand; the run also prints where the sound itself ends). --from S cuts a
+part from a chosen point instead: the recording from S s for the length, faded out over the 2 s past it (or over
+what is left of the recording, said; under half a second stops the run); with --rests the rests after S come out and
+the part runs on that much further. So several parts of a film can come from the movements of one long recording
+rather than all from its coda. The track runs 2 s
 past the film so its ring is not cut; --shift -1 starts it a second earlier, so the last note rings a second past the
 last frame. --at T: the music enters T s into the film (after an opener played as an effect): the cut starts with T s of
 silence and the recording fills the rest. A recording too short to its last note for that stops the run with how short
@@ -38,7 +42,9 @@ the music runs on through them, so the run names them and says the track is furt
 measures the exported mix, on the video's timeline (export.py's `video` and `hold`). Prints each gap's quietest momentary
 loudness (400 ms) against the median gap, marks a hole (8 LU or more under the median), and the median itself; then
 the ending after the last word, marked the same way (a decaying track leaves the end card silent), and, when the page's
-track runs under every beat, whether it was cut for this film's length: it says "recut" after any change of length.
+track runs under every beat, whether it was cut for this film's length: it says "recut" after any change of length. A
+quiet gap where an sfx() plays for half of it or more (a wordless opening on an archival recording, a bed) is named
+as that effect's, not as a hole: the music is meant to be low there.
 
 --selftest checks the splice and the in-point on a synthetic recording. Needs ffmpeg.
 """
@@ -143,6 +149,19 @@ def spans(end, at, rests):
     return list(zip(edges[::2], edges[1::2])), used
 
 
+def spans_from(start, at, rests):
+    """--from: the spans from a fixed in-point `start` that fill `at` s with rests taken out; returns (spans, rests used,
+    the recording's end). Each rest taken out moves the end later, which can only bring in more: it settles."""
+    used = []
+    for _ in range(len(rests) + 1):
+        end = start + at + sum(b - a for a, b in used) + XF * len(used)
+        now = [(a, b) for a, b in rests if b is not None and start + .5 < a and b < end - .05]
+        if now == used: break
+        used = now
+    edges = [start] + [x for r in used for x in r] + [None]
+    return list(zip(edges[::2], edges[1::2])), used, end
+
+
 def cut(a):
     if a.length is None:
         beats, _, _, film, _ = asyncio.run(timeline(a.url))
@@ -151,8 +170,16 @@ def cut(a):
         if abs(page - video) > .05:   # listen-and-find stops, `video` cuts, a film's holds: the MP4 is another length
             print(f"the page's beats run {page:.2f} s, the exported video {video:.2f} s (export.py's `video` and `hold`): cut to "
                   + ("the video" if a.video else "the page; --video cuts it so its last note lands on the MP4's end instead"))
-    end, ends = (a.end, None) if a.end is not None else (last_note(a.src), sound_end(a.src))
     at = a.length - a.shift - a.at   # where the last note falls in the recording's part of the cut (after --at's silence)
+    if a.start is not None:   # a part from a chosen point: the in-point is given, the end falls where the length does
+        found = silences(a.src, a.rests, .25, a.start) if a.rests is not None else []
+        keep, used, end = spans_from(a.start, at, found)
+        if end + .5 > (dur := duration(a.src)):   # the part, and at least half a second to fade out
+            sys.exit(f"from {a.start:g} s the recording has {dur - a.start:.1f} s, {end + .5 - dur:.1f} s short of the {end - a.start + .5:.1f} s the part and its fade need"
+                     + (" with its rests taken out" if used else "") + ": start earlier, or loop it in the page (music() loops a shorter track)")
+        ends, fade = None, min(TAIL, dur - end)   # the fade-out runs past the part on what the recording has left
+    else:
+        end, ends = (a.end, None) if a.end is not None else (last_note(a.src), sound_end(a.src))
     if end < at and a.fit:   # too short: slowed (or a long one sped up) by at most --fit, pitch kept
         k = end / at
         if 1 - k > a.fit: sys.exit(f"the recording is {end:.1f} s to its last note, {at - end:.1f} s short of the {at:.1f} s it must fill: "
@@ -161,8 +188,9 @@ def cut(a):
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(a.src), "-af", f"atempo={k:.5f}", str(tmp)], check=True)
         print(f"the recording is {end:.2f} s to its last note, the film needs {at:.2f} s: slowed {1 / k - 1:.1%} (atempo {k:.4f}, pitch kept)")
         a.src, end, ends = tmp, end / k, (ends / k if ends else None)
-    found = silences(a.src, a.rests, .25, max(0, end - at - 120), at + 120) if a.rests is not None else []   # ponytail: rests up to 2 min before the in-point, enough for a few short ones
-    keep, used = spans(end, at, found)
+    if a.start is None:
+        found = silences(a.src, a.rests, .25, max(0, end - at - 120), at + 120) if a.rests is not None else []   # ponytail: rests up to 2 min before the in-point, enough for a few short ones
+        keep, used = spans(end, at, found)
     if keep[0][0] < 0: sys.exit(f"the recording is {end:.1f} s to its last note, {at - end:.1f} s short of the film's {at:.1f} s"
                                 + (f" after --at {a.at:g}" if a.at else "") + f": --fit {math.ceil((1 - end / at) * 100) / 100:.2f} slows it "
                                 f"{at / end - 1:.1%} to fit (pitch kept), or loop it in the page (music() loops a shorter track)")
@@ -172,7 +200,8 @@ def cut(a):
         f.append(f"[{last}][s{i}]acrossfade=d={XF}:c1=tri:c2=tri[x{i}]"); last = f"x{i}"
     lifts = [(float(x), float(y or 6)) for x, _, y in (l.partition(":") for l in a.lift)]
     lift = "volume='pow(10,(" + "+".join(f"{db}*exp(-pow((t-{t})/0.9,2))" for t, db in lifts) + ")/20)':eval=frame" if lifts else ""
-    chain = ",".join(filter(None, [f"atrim=0:{a.length - a.at + TAIL:.3f}", a.af, EVEN if a.even else "", lift, "afade=t=in:d=0.4"]))
+    fade_out = f"afade=t=out:st={at:.3f}:d={fade:.3f}" if a.start is not None else ""   # from the part's end (`end` in the recording, --shift counted)   # a part ends mid-phrase: fade over the tail
+    chain = ",".join(filter(None, [f"atrim=0:{(at + fade) if a.start is not None else (a.length - a.at + TAIL):.3f}", a.af, EVEN if a.even else "", lift, "afade=t=in:d=0.4", fade_out]))
     out = pathlib.Path(a.out); out.parent.mkdir(parents=True, exist_ok=True)
     seen = []
     def render(gain, lim=None):   # one encode from the recording: each MP3 generation loses some loudness, so none is levelled twice
@@ -186,7 +215,8 @@ def cut(a):
     # levelled by level.py's own loop (the limiter lowered while the peak is over, the best try kept)
     i, tp, g, _ = lv.level_to(render, a.lufs, a.peak, 0.0) if a.lufs is not None else (*render(0.0), 0.0, None)
     i0 = seen[0][0]
-    print(f"film {a.length:.2f} s; " + (f"{a.at:g} s of silence, then " if a.at else "") + f"recording from {keep[0][0]:.2f} s, its last note ({end:.2f} s) at {at + a.at:.2f} s of the cut"
+    print(f"film {a.length:.2f} s; " + (f"{a.at:g} s of silence, then " if a.at else "") + f"recording from {keep[0][0]:.2f} s, "
+          + (f"a part to {end:.2f} s, faded out over the {fade:.2f} s after it" + (f" (the recording ends there, short of the {TAIL:g} s fade)" if fade < TAIL else "") if a.start is not None else f"its last note ({end:.2f} s) at {at + a.at:.2f} s of the cut")
           + (f"; its sound ends at {ends:.2f} s (--end {ends:.2f} lands that on the end instead)" if ends and ends - end > .5 else ""))
     if a.rests is not None:
         print(f"rests taken out: {', '.join(f'{x:.2f}-{y:.2f}' for x, y in used) or 'none'}")
@@ -246,6 +276,24 @@ def bed_track(beats, tracks, levels):
     return bed, lens, end_of, how
 
 
+def effect_spans(beats, dur=duration):
+    """[(t0, t1, name)] of every sfx() on the film's timeline: a bed to its `to` or its beat's end, a one-shot for its
+    file's length (an archival recording played as itself, a sting)."""
+    out, t0 = [], 0.0
+    for b in beats:
+        for e in b[9]:   # as the engine plays it: from `at` inside the beat, stopped at the beat's end
+            if not 0 <= e["at"] < b[1]: continue
+            stop = (b[1] if e["to"] is None else min(b[1], e["to"])) if e["loop"] else min(b[1], e["at"] + dur(e["src"]))
+            out.append((t0 + e["at"], t0 + stop, e["name"]))
+        t0 += b[1]
+    return out
+
+
+def played(effects, g0, d):
+    """The effect that covers at least half of the gap at g0 for d s, or None."""
+    return next((n for a0, a1, n in effects if min(a1, g0 + d) - max(a0, g0) >= d / 2), None)
+
+
 def gaps(a):
     import numpy as np
     beats, lang, bgm, film, levels = asyncio.run(timeline(a.url))
@@ -288,6 +336,7 @@ def gaps(a):
     for b in beats:
         silenced += [t0 + f / OFF_HZ for f, x in enumerate(b[4]) if x]; t0 += b[1]
     meant = lambda g0, d: any(g0 <= t <= g0 + d for t in silenced)
+    effects = effect_spans(beats)   # a gap an effect fills (a recording played as itself) is the effect's, not a hole
     rows = []
     for g0, g1 in runs:
         sel = [m for t, m in M if g0 + .4 <= t <= g1]   # windows wholly inside the gap
@@ -296,9 +345,12 @@ def gaps(a):
     med = statistics.median(r[2] for r in rows)
     print(f"film {L:.2f} s, {len(rows)} voice-free gaps; {what}")
     for t, d, m in rows:
+        fx = played(effects, t, d) if m <= med - 8 and not a.mp4 else None   # the MP4's mix has the effect in it already
         print(f"gap at {t:6.2f} s for {d:4.2f} s: {m:6.1f} LUFS momentary min ({m - med:+5.1f})"
-              + ("  <- MUSIC_OFF (the page silences the music here)" if meant(t, d) else "  <- hole" if m <= med - 8 else ""))
-    print(f"median gap {med:.1f} LUFS; {sum(m <= med - 8 and not meant(t, d) for t, d, m in rows)} holes")
+              + ("  <- MUSIC_OFF (the page silences the music here)" if meant(t, d) else
+                 f"  <- the effect '{fx}' plays here (the music alone is quiet; listen to the two together)" if fx else
+                 "  <- hole" if m <= med - 8 else ""))
+    print(f"median gap {med:.1f} LUFS; {sum(m <= med - 8 and not meant(t, d) and not (not a.mp4 and played(effects, t, d)) for t, d, m in rows)} holes")
     loud = [i for i in range(0, len(voice) - w, hop) if 20 * np.log10(np.sqrt(np.mean(voice[i:i + w] ** 2)) + 1e-9) >= -45]
     last = (loud[-1] + w) / SR if loud else 0.0   # the end of the last word
     tail = [m for t, m in M if last + .4 <= t <= L and not math.isnan(m)]
@@ -398,7 +450,7 @@ def selftest():
         tone = "0.3*sin(2*PI*330*t)*(1-between(t,16,16.5))*(1-between(t,20,20.4))*lt(t,28)"
         subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", f"aevalsrc='{tone}':d=30:s=44100", str(src)], check=True)
         assert abs(last_note(src) - 28) < .05, last_note(src)
-        a = argparse.Namespace(src=src, out=out, url=None, length=14.0, video=False, end=None, shift=0.0, rests=-40.0, af="", even=False, lufs=-16.0, peak=-1.5, lift=[], at=0.0, fit=0.0)
+        a = argparse.Namespace(src=src, out=out, url=None, length=14.0, video=False, end=None, start=None, shift=0.0, rests=-40.0, af="", even=False, lufs=-16.0, peak=-1.5, lift=[], at=0.0, fit=0.0)
         keep, used = cut(a)
         assert len(used) == 2 and abs(used[0][0] - 16) < .05 and abs(used[1][1] - 20.4) < .05, used
         assert abs(keep[0][0] - (28 - 14 - .9 - 2 * XF)) < .1, keep[0]
@@ -415,11 +467,38 @@ def selftest():
         assert silences(out, -50, 2.5) and silences(out, -50, 2.5)[0][0] < .05 and 2.9 < silences(out, -50, 2.5)[0][1] < 3.2, silences(out, -50, 2.5)
         a.at, a.length, a.fit = 0.0, 29.0, .05; keep, _ = cut(a)
         assert keep[0][0] < .2 and abs(last_note(out) - 29) < .3, (keep, last_note(out))
+        # --from: a part from a chosen point (the recording's opening, not its coda), rests taken out after it
+        a.src, a.length, a.fit, a.start = src, 10.0, 0.0, 2.0; keep, _ = cut(a)   # --fit left a.src on its slowed copy
+        assert abs(keep[0][0] - 2) < .01 and abs(lv.measure(out)[2] - 12) < .1, keep
+        a.start, a.rests = 12.0, -40.0; keep, used = cut(a)
+        assert abs(keep[0][0] - 12) < .05 and len(used) == 2, (keep, used)
+        a.start, a.length = 15.0, 8.0; keep, used = cut(a)   # a rest just after the in-point: the start stays put
+        assert keep[0][0] == 15 and len(used) == 2, (keep, used)
+        a.start, a.length = 19.0, 10.6   # 10.6 s fits after 19 s, but not once the rests at 20 s and 28 s come out
+        try: cut(a); raise AssertionError("a part that runs out once its rests are out must stop")
+        except SystemExit as e: assert "with its rests taken out" in str(e), e
+        a.start, a.rests = 25.0, None
+        try: cut(a); raise AssertionError("--from past what the recording holds must stop")
+        except SystemExit as e: assert "short of" in str(e), e
+        a.start, a.length = 24.0, 5.0; keep, _ = cut(a)   # the recording ends 1 s after the part: a 1 s fade, said
+        assert abs(lv.measure(out)[2] - 6) < .1, lv.measure(out)
+        a.start = 25.3
+        try: cut(a); raise AssertionError("a part with no room to fade out must stop")
+        except SystemExit as e: assert "short of" in str(e), e
     # the video's timeline: a listen-and-find stop out, `video: S` cut at S, a film's wait held, `video: true` as it is
     beats = [("a", 5, 0, False, [], False, None, None), ("find", 4, 0, False, [], True, False, None), ("mill", 6, 0, False, [], True, 3.6, None),
              ("fire", 2, 0, False, [], True, None, None), ("end", 3, 0, False, [], False, True, None)]
     assert [b[1] for b in video_timeline(beats, True)] == [5, 3.6, 3.5, 3], video_timeline(beats, True)
     assert [b[0] for b in video_timeline(beats, False)] == ["a", "end"], "a lesson's questions are left out"
+    # gaps: a wordless opening filled by a recording played as an effect is named as the effect, not a hole
+    fx = lambda at, name, loop=False, to=None: {"at": at, "name": name, "vol": 1, "loop": loop, "to": to, "src": name}
+    beats = [("open", 10, 0, True, [], False, None, None, [], [fx(.5, "air-to-ground")], []),
+             ("rain", 8, 0, False, [], False, None, None, [], [fx(0, "rain", True, 5)], [])]
+    E = effect_spans(beats, dur=lambda src: 9.0)
+    assert E == [(.5, 9.5, "air-to-ground"), (10, 15, "rain")], E
+    short = [("a", 5, 0, False, [], False, None, None, [], [fx(4, "long"), fx(6, "late")], [])]   # a one-shot stops with its beat
+    assert effect_spans(short, dur=lambda src: 20.0) == [(4, 5, "long")], effect_spans(short, dur=lambda src: 20.0)
+    assert played(E, 0, 10.6) == "air-to-ground" and played(E, 14, 3) is None and played(E, 12, 2) == "rain"
     print("music.py selftest passed")
 
 
@@ -433,6 +512,7 @@ def main():
     c.add_argument("--length", type=float, help="the film's length in s, instead of reading the page")
     c.add_argument("--video", action="store_true", help="cut to the exported MP4's length (export.py's `video` and `hold`), not the page's")
     c.add_argument("--end", type=float, help="the recording's last note in s (default: the last moment within 10 LU of its body)")
+    c.add_argument("--from", dest="start", type=float, metavar="S", help="a part from S s of the recording, the film's (or --length's) seconds long, faded out at its end, instead of ending on the last note")
     c.add_argument("--shift", type=float, default=0.0, help="move the in-point by this many s (-1: the last note a second past the end)")
     c.add_argument("--at", type=float, default=0.0, metavar="T", help="the music enters T s into the film (after an opener): the cut starts with T s of silence")
     c.add_argument("--fit", type=float, nargs="?", const=.05, default=0.0, metavar="K",

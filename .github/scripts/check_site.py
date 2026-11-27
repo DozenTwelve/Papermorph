@@ -7,6 +7,7 @@
 - lint.py on every book (errors fail; narration is not checked, since content/ is not in the repository);
 - node --check on every script: the .js files and each inline <script> of every page, so a syntax error that
   would stop a chapter is caught before it ships.
+- check_film_kit.js: the documentary kit's closeups() and dateChip() measure and say what they could not do.
 
 Needs Python 3 and Node. Exits 1 if any check fails.
 """
@@ -57,6 +58,7 @@ def main():
                 out.write_text(body)
                 node_check(out, f'{f} <script> #{i + 1}')
                 inline += 1
+    run('documentary kit', ['node', str(ROOT / '.github/scripts/check_film_kit.js')])
     print(f'{len(books)} books linted, {len(js)} scripts and {inline} inline scripts checked; '
           f'{len(failed)} failed' + (': ' + ', '.join(failed) if failed else ''))
     sys.exit(1 if failed else 0)

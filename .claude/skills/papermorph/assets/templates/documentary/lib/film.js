@@ -130,7 +130,7 @@ function dateChip(p, year, topic, t0 = .2, { fill = CREAM, year: yc = HOT, groun
   const rtl = isRTL(topic), s = rtl ? -1 : 1, anchor = rtl ? 'end' : 'start', ys = rtl ? '' : 'italic';
   const g = G(p, { x: rtl ? SW - 80 : 80, y: 112, o: 0 });
   const ls = rtl ? 0 : .28;
-  const tw_ = wid(topic.toUpperCase(), size, SER) * (ls ? 1.3 : 1) + 8;   // letter-spacing .28em widens the caps by about 30 %
+  const tw_ = wid(topic.toUpperCase(), size, SER) + [...topic.toUpperCase()].length * ls * size + 8;   // measured, plus the spacing each letter adds
   const bw = Math.max(220, tw_, wid(year, 72, SER, ys)) + 56;
   if (ground) mk('rect', { x: rtl ? 28 - bw : -28, y: -78, width: bw, height: 104 + size * 1.6, fill: ground, opacity: .94 }, g);
   const ye = T(g, year, { size: 72, font: SER, weight: 400, fill: yc, anchor });
@@ -169,12 +169,21 @@ function dots(p, n, box, r, seed, fill = CREAM) {
   return { g, el: [...Array(n)].map(() => mk('circle', { cx: box[0] + R() * box[2], cy: box[1] + R() * box[3], r, fill }, g)).map(e => put(e, { o: 0 })) };
 }
 // close-ups inside a print as their words are spoken: shots [[mark, fx, fy, label, zoom]], fx/fy the point in the picture
-// (0..1 of the picture inside its border); the view never leaves the picture; a band names each one; back to the whole after
-function closeups(p, g, name, shots, m, tBack, home) {
+// (0..1 of the picture inside its border); a band names each one; back to the whole after. The view stays inside the
+// picture, so a point near its edge, or a picture narrower than the frame at that zoom, cannot be centred: the console
+// says so for each such shot (check.py lists it), with the zoom that would reach the point. { ground: true } goes to
+// the point anyway and lets the film's ground show beside the picture
+function closeups(p, g, name, shots, m, tBack, home, { ground = false } = {}) {
   const [W, H] = artSize(name), k = g._w / W, iw = (W - 112) * k, ih = (H - 112) * k;   // a print's picture sits 56 px in
-  const clamp = (v, lim) => Math.max(-lim, Math.min(lim, v));
+  // the farthest the view's centre can go from the picture's centre and keep the frame filled (none when it is narrower)
+  const clamp = (v, lim) => ground ? v : lim <= 0 ? 0 : Math.max(-lim, Math.min(lim, v));
   shots.forEach(([mark, fx, fy, label, Z = 3], i) => {
-    const dx = clamp((fx - .5) * iw, iw / 2 - 800 / Z), dy = clamp((fy - .5) * ih, ih / 2 - 450 / Z), t0 = m(mark) - .15;
+    const wx = (fx - .5) * iw, wy = (fy - .5) * ih, dx = clamp(wx, iw / 2 - 800 / Z), dy = clamp(wy, ih / 2 - 450 / Z), t0 = m(mark) - .15;
+    if (Z * Math.abs(wx - dx) > 48 || Z * Math.abs(wy - dy) > 27) {   // more than 3 % of the frame off the point
+      const need = Math.max(Math.abs(wx) < iw / 2 ? 800 / (iw / 2 - Math.abs(wx)) : Infinity, Math.abs(wy) < ih / 2 ? 450 / (ih / 2 - Math.abs(wy)) : Infinity);
+      console.warn(`closeups '${label}' on ${name}: the view stops ${Math.round(Z * Math.hypot(wx - dx, wy - dy))} px short of the point, `
+        + `at the picture's edge (zoom ${Z}): ${isFinite(need) ? `a zoom of ${need.toFixed(1)} reaches it, or ` : ''}pass { ground: true } to go there with the ground beside the picture`);
+    }
     tw(g, { s: Z, x: 800 - Z * dx, y: 450 - Z * dy, r: 0 }, t0, .35, out);
     // the band at the top for a low subject, else low but above the captions
     const l = G(p, { x: 800, y: fy > .7 ? 130 : CAPTION_TOP - 40, o: 0 }), lw = wid(label.toUpperCase(), 72, KEY, '', 600) + 70;

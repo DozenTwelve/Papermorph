@@ -2,7 +2,7 @@
 
 An explorable page is one map the reader moves through in time. Each year (or step) plays its events on the map: the camera goes to the place, a pin drops, a card with a picture and a clip, a region lit, the borders redrawn when the story changes them. Then the people walk to where that year took them, the camera following each. Between films the reader is in charge: a click on a person or a ringed place opens its card and plays its clip, ← and → move through the years. *Time of the Magicians* (Europe 1919–1929, four philosophers) and *The Map Redrawn* (Japan 1868–1878, the domains becoming prefectures) on https://papermorph.diamonddoge.org/ are the two reference pages; the kit is *The Map Redrawn*'s player, made general.
 
-The kit is one way to start, not the shape every page must take. *Time of the Magicians* was built without it; a subject that wants a different page (no years, a city plan instead of a country, a globe, no walking people) is better served by drawing it fresh than by bending the sample. Take from the kit and the two pages what fits, and keep `explore.py`'s checks either way.
+The kit is one way to start, not the shape every page must take. *Time of the Magicians* was built without it; a subject that wants a different page (no years, a city plan instead of a country, a globe, no walking people) is better served by drawing it fresh than by bending the sample. Take from the kit and the two pages what fits, and keep `explore.py`'s checks either way ([A page drawn fresh](#a-page-drawn-fresh)).
 
 Choose it over a film when the subject is **where**, and the reader's own order is worth more than the narrator's: borders that move, several lives crossing one map, a decade the reader wants to step back and forth through. A film argues, one picture after another, at the narrator's pace; this page lets the reader look at what the film would only pass. When the user wants both, make the film ([films.md](../films/films.md)) and this page from the same research; they share the facts, the pictures and the voice, not the code.
 
@@ -62,13 +62,23 @@ The map is SVG, and Firefox redraws all of it on every frame the view changes. W
 
 The bar is a median frame under 20 ms in Firefox while the camera moves, measured with `explore.py perf`. Over it, simplify the data (`--tol`), or lower `ATLAS.rough` and `ATLAS.coastCell` (in the file's units) before touching the code.
 
+## A page drawn fresh
+
+Some subjects are explored along something other than a map: a spaceflight along its path and a mission clock, a voyage, a process in a diagram. *Apollo 13: The Way Home* (`site/apollo-13-explore/`, a schematic Earth–Moon path with a clock and eight stops) is drawn that way, in three files of its own (`lib/app.js`, `lib/data.js`, `lib/moon.js`); read `index.html` and `app.js` for what follows.
+
+The style conversation asks other questions than a map's region and years: what the reader moves (time on a slider, a point along a path, a view turned round), what each stop holds (a picture, a clip, a real recording), and which parts of the drawing are measured and which are drawn by hand. That last answer goes on the page. A drawing that mixes the two says so where the eye is: *Apollo 13*'s caption under the picture reads "Schematic drawing. The Moon's path is real; Apollo 13's line is sketched. Earth and Moon are drawn bigger than they are", links to a "How the drawing is made" section that gives the method and the scale, and keeps measured numbers to the cards, each with its source. A reader who takes a sketch for a measurement has been told something untrue, however good the sketch looks.
+
+What the kit does for a reader, a fresh page does too, since it is the same reader: `<html lang>`, a card that becomes a sheet at the bottom on an upright phone with the place still in view above it, every stop reachable from the keyboard (Tab, Enter, Escape to close; arrow keys on a slider), motion that settles at once under `prefers-reduced-motion`, a credits section naming every picture, recording and dataset with its licence, and `body.ready` set once the page can be used, so a check knows when to start. A real recording on a card is played by the reader, with its transcript beside it ([core/sound.md](../core/sound.md#a-real-recording-used-as-itself)).
+
+`explore.py` runs what needs no kit on such a page and says what it skipped: `check` gives errors, missing files, console messages and whether every `<audio>` and `<video>` file loads, in both browsers; `shots` the window at `--size` and the whole page; `perf` Firefox frame times as the page stands. Opening each stop and playing its clip is then the page's own to check: expose a small hook for what a click cannot reach (*Apollo 13*'s `window.APOLLO` gives its stop ids, `setT(v)` for the clock and `close()`), and drive the page with a short Playwright script that clicks each stop's button as a reader would, with shots at desktop and phone sizes.
+
 ## Seeing your own page
 
-`check.py`, `shot.py` and `perf.py` seek beats; on an explore page they stop and say so. `explore.py` drives the page through `window.MAP` instead (`python3 SKILL/scripts/serve.py 8765 site` first):
+`check.py`, `shot.py` and `perf.py` seek beats; on an explore page they stop and say so. `explore.py` drives the page through `window.MAP` instead (on a page without it, only the checks that need no kit, [above](#a-page-drawn-fresh)) (`python3 SKILL/scripts/serve.py 8765 site` first):
 
 | | What it shows |
 |---|---|
-| `explore.py check URL` | in Chromium and Firefox: page errors, missing files, the kit's console messages; every year's film run with each card clicked on (`?speed=8` for waits and walks; clips still play through); every person's and every ringed place's card opened by a click, and whether its clip plays. Exit 1 on an error, a missing file or a clip that does not play |
+| `explore.py check URL` | in Chromium and Firefox: page errors, missing files, the kit's console messages, every `<audio>` and `<video>` file the page names; every year's film run with each card clicked on (`?speed=8` for waits and walks; clips still play through); every person's and every ringed place's card opened by a click, and whether its clip plays. Exit 1 on an error, a missing file or a clip that does not play |
 | `explore.py shots URL --out DIR` | the start, every event card as it shows, every year's end, every place card; `--size 390x844` for an upright phone, `844x390` for one held sideways |
 | `explore.py perf URL` | Firefox frame times during camera moves to each event and back, and one year's film |
 | `explore.py narration URL FILE` | the card texts into the narration file |

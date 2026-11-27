@@ -75,21 +75,6 @@ function partLabel(p, s, k, name, sub, t0, { size = 56 } = {}) {
   return g;
 }
 
-// close-ups that go to the point even where the picture is narrower than the frame at that zoom (the ground shows at
-// the side): shots [[mark, fx, fy, label, zoom]] as in closeups(), fx/fy inside the print's border
-function zoomTo(p, g, name, shots, m, tBack, home) {
-  const [W, H] = artSize(name), k = g._w / W, iw = (W - 112) * k, ih = (H - 112) * k;
-  shots.forEach(([mark, fx, fy, label, Z = 2], i) => {
-    const dx = (fx - .5) * iw, dy = (fy - .5) * ih, t0 = m(mark) - .2;
-    tw(g, { s: Z, x: 800 - Z * dx, y: 400 - Z * dy, r: 0 }, t0, .5, out);
-    const l = G(p, { x: 800, y: CAPTION_TOP - 40, o: 0 }), lw = wid(label.toUpperCase(), 64, KEY, '', 600) + 64;
-    mk('rect', { x: -lw / 2, y: -62, width: lw, height: 84, fill: COL.board }, l);
-    T(l, label.toUpperCase(), { y: 0, size: 64, font: KEY, weight: 600, fill: CREAM, anchor: 'middle' });
-    show(l, t0 + .2, .15);
-    hide(l, i < shots.length - 1 ? m(shots[i + 1][0]) - .2 : tBack, .15);
-  });
-  if (home) tw(g, { s: 1, r: 0, ...home }, tBack, .8, soft);
-}
 // a small caption on a band of the ground, for words over a photograph
 function plate(p, str, x, y, t0, { size = 28, anchor = 'start', fill = CREAM } = {}) {
   const w = wid(str, size, SER, 'italic') + 28, x0 = anchor === 'middle' ? x - w / 2 : anchor === 'end' ? x - w + 14 : x - 14;
@@ -172,10 +157,10 @@ const BEATS = [
     const p = panel(0);
     const g = pic(p, 'crew', { x: 800, y: 380, h: 640, at: 0, from: [0, 30] });
     // left to right: Swigert, Lovell ("Jim" on his shirt), Haise, matched against the captioned USS Iwo Jima photograph
-    zoomTo(p, g, 'crew', [
+    closeups(p, g, 'crew', [
       ['lovell', .5, .27, 'Jim Lovell · commander', 2],
       ['swigert', .19, .2, 'Jack Swigert', 2],
-      ['haise', .74, .3, 'Fred Haise', 2]], m, m('ken') - .5, { x: 800, y: 380 });
+      ['haise', .74, .3, 'Fred Haise', 2]], m, m('ken') - .5, { x: 800, y: 380 }, { ground: true });
     // Ken is not in the photograph: it fades back while his name stands alone
     tw(g, { o: .18 }, m('ken') - .4, .6);
     key(p, 'KEN MATTINGLY', 800, 330, m('ken'), { size: 72 });
@@ -399,10 +384,10 @@ const BEATS = [
   ['mailbox', 'The fix', (m, D) => {
     const p = panel(0);
     const g = pic(p, 'mailbox-ground', { x: 800, y: 380, h: 620, at: 0, from: [0, 30] });
-    zoomTo(p, g, 'mailbox-ground', [
+    closeups(p, g, 'mailbox-ground', [
       ['covers', .54, .37, 'checklist covers', 2.6],
       ['tape', .55, .39, 'tape', 3.2],
-      ['hoses', .66, .6, 'spacesuit hoses', 2.2]], m, m('tested'), { x: 800, y: 380 });
+      ['hoses', .66, .6, 'spacesuit hoses', 2.2]], m, m('tested'), { x: 800, y: 380 }, { ground: true });
     plate(p, 'the fix, shown in Mission Control', 1520, 130, m('tested') + .3, { anchor: 'end', size: 28 });
     // an hour, read up one step at a time: a clock face sweeping
     const c = G(p, { x: 1400, y: 560, o: 0 });
@@ -451,7 +436,7 @@ const BEATS = [
     const g = pic(p, 'sm-damage', { x: 800, y: 400, h: 760, at: 0, from: [0, 0] });
     tw(g, { y: 380, s: .96 }, 0, m('first'), lin);
     hide(plate(p, 'photographed by the crew as it drifted away', 1540, 300, m('go'), { anchor: 'end', size: 28 }), m('side') - .4, .3);
-    zoomTo(p, g, 'sm-damage', [['side', .52, .42, 'one whole side panel gone', 1.7]], m, D + .5);
+    closeups(p, g, 'sm-damage', [['side', .52, .42, 'one whole side panel gone', 1.7]], m, D + .5, null, { ground: true });
   }],
 
   ['wake', 'Waking Odyssey', (m, D) => {

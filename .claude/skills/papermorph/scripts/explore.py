@@ -19,6 +19,13 @@ shots   a screenshot of the start, every event card as it shows, and every year'
 perf    Firefox frame times (requestAnimationFrame) while the camera moves: home to each event's close-up and back,
         and one year's walks with the follow shot. Prints the median, p95 and max frame time and the frames over 50 ms;
         the bar is a median under 20 ms. The machine counts as much as the page: run it when nothing else is busy.
+A page drawn fresh, without the kit (a timeline, a diagram: explore.md, "A page drawn fresh"), has no window.MAP. The
+commands then run what needs no kit: check gives page errors, missing files, console messages and whether every
+<audio>/<video> file the page names loads, in each browser; shots one screenshot at --size and one of the whole page;
+perf Firefox frame times for 12 s as the page stands. Each says which of its checks it skipped and why; narration,
+which reads the kit's EVENTS, stops. The page's own cards and stops are then the page's to check (a click per card in a
+short Playwright script of its own).
+
 narration  writes the card texts (events '<year>-e<n>', people '<year>-<person>', places 'place-<key>') into the
         narration file's beats, keeping its other keys (engine, voice, rate), so tts.py or eleven.py voices exactly
         what the cards say; rerun after changing a text, then the voice step remakes only the changed clips.
@@ -30,6 +37,7 @@ from browsers import LOAD_FAILED, answers, exe, firefox, missing
 from perf import load
 
 READY = "() => window.MAP && document.body.classList.contains('ready')"
+SKIPPED = "skipped (they need the explore kit's window.MAP): {}"
 STATE = """() => ({ film: !!MAP.film, walking: MAP.walking, year: MAP.year,
   card: (e => e && !e.hidden ? e.querySelector('h2').textContent : null)(document.querySelector('#event')) })"""
 VOICE = "() => { const v = document.querySelector('#voice'); return { src: v.currentSrc || v.getAttribute('src') || '', paused: v.paused, err: v.error && v.error.code }; }"
@@ -41,13 +49,33 @@ async def open_page(b, url, cur, size=(1512, 982)):
     pg.on("console", lambda m: m.type in ("error", "warning", "info") and LOAD_FAILED not in m.text
           and cur["cons"].append(f"{m.type}: {m.text}"))
     missing(pg, cur["miss"].append)
-    await pg.goto(url)
-    try:
-        await pg.wait_for_function(READY, timeout=15000)
+    r = await pg.goto(url)
+    if not r or not r.ok:   # the page itself missing: nothing else to check
+        cur["errs"].append(f"{url} did not load")
+        return pg, None
+    try:   # the kit, and a page drawn fresh that follows explore.md, set body.ready once the page can be used
+        await pg.wait_for_function("() => document.body.classList.contains('ready')", timeout=15000)
     except Exception:
-        cur["errs"].append("the page did not become ready (no window.MAP, or body.ready never set): is it an explore-kit page?")
-        return pg, False
-    return pg, True
+        if await pg.evaluate("!!window.MAP"):
+            cur["errs"].append("the page did not become ready: window.MAP is there, but body.ready was never set")
+            return pg, None
+        cur["cons"].append("note: body.ready was never set, so the checks began after 15 s (explore.md: a page drawn fresh sets it)")
+    return pg, await pg.evaluate("!!window.MAP")
+
+
+MEDIA = """async () => {
+  const MIME = { mp3: 'audio/mpeg', ogg: 'audio/ogg', oga: 'audio/ogg', opus: 'audio/ogg', m4a: 'audio/mp4', aac: 'audio/aac', wav: 'audio/wav',
+                 mp4: 'video/mp4', m4v: 'video/mp4', webm: 'video/webm', ogv: 'video/ogg', mov: 'video/quicktime' };
+  const els = [...document.querySelectorAll('audio[src], video[src], source[src]')];
+  const srcs = [...new Map(els.map(e => [e.src, (e.closest('video') ? 'video' : 'audio')])).entries()];
+  return Promise.all(srcs.map(([u, kind]) => new Promise(done => {
+    const m = document.createElement(kind), type = MIME[(u.split(/[?#]/)[0].split('.').pop() || '').toLowerCase()] || '';
+    const t = setTimeout(() => done([u, 'no metadata after 10 s']), 10000);
+    m.preload = 'metadata'; m.muted = true;
+    m.onloadedmetadata = () => { clearTimeout(t); done([u, 'ok']); };
+    m.onerror = () => { clearTimeout(t); done([u, type && !m.canPlayType(type) ? `ok (this browser cannot play ${type}; another may)`
+                                                    : `error ${m.error && m.error.code}: does not load or decode`]); };
+    m.src = u; }))); }"""
 
 
 async def play_year(pg, on_card=None, step=0.4):
@@ -84,6 +112,11 @@ async def check(a):
             cur = {"errs": [], "cons": [], "miss": []}
             pg, ok = await open_page(b, a.url + "?speed=8", cur)
             lines = []
+            if ok is not None:
+                media = await pg.evaluate(MEDIA)
+                lines += [f"media {u.rsplit('/', 1)[-1]}: {st}" + ("" if st.startswith("ok") else "  <- DOES NOT LOAD") for u, st in media]
+            if ok is False:
+                lines.append(SKIPPED.format("the years' films, the people's and places' cards and their clips"))
             if ok:
                 first, last, voiced = await pg.evaluate("[MAP.first, MAP.last, MAP.voiced]")
                 await pg.click("#begin")
@@ -112,7 +145,7 @@ async def check(a):
             for m in sorted(set(cur["miss"])): print("  " + m)
             for m in cur["cons"]: print("  " + m)
             for l in lines: print("  " + l)
-            bad += len(cur["errs"]) + len(cur["miss"]) + sum("DOES NOT PLAY" in l for l in lines)
+            bad += len(cur["errs"]) + len(cur["miss"]) + sum("DOES NOT PLAY" in l or "DOES NOT LOAD" in l for l in lines)
     sys.exit(1 if bad else 0)
 
 
@@ -123,9 +156,15 @@ async def shots(a):
         b = await p.chromium.launch(**exe())
         cur = {"errs": [], "cons": [], "miss": []}
         pg, ok = await open_page(b, a.url + "?speed=8", cur, (w, h))
-        if not ok:
+        if ok is None:
             sys.exit("; ".join(cur["errs"]))
         await pg.screenshot(path=out / "start.png")
+        if not ok:
+            await pg.screenshot(path=out / "whole.png", full_page=True)
+            await b.close()
+            for e in cur["errs"] + sorted(set(cur["miss"])): print("  ", e)
+            print(f"shots in {out}/: start.png (the window), whole.png (the whole page); " + SKIPPED.format("each year's cards and the place cards"))
+            return
         first, last = await pg.evaluate("[MAP.first, MAP.last]")
         await pg.click("#begin")
         for y in range(first, last + 1):
@@ -153,31 +192,35 @@ FRAMES = """async ms => { const d = []; let last = performance.now(), on = true;
 
 
 async def perf(a):
+    rows = []
     async with async_playwright() as p:
         b = await p.firefox.launch(**firefox())
         cur = {"errs": [], "cons": [], "miss": []}
         pg, ok = await open_page(b, a.url, cur)
-        if not ok:
+        if ok is None:
             sys.exit("; ".join(cur["errs"]))
-        await pg.evaluate("() => MAP.begin()")
-        await pg.evaluate("() => { document.querySelector('#voice').muted = true; }")
-        spots = await pg.evaluate("Object.values(EVENTS).flat().map(e => [e.at[1], e.at[2]])")
-        rows, alld = [], []
-        for lon, lat in spots[: a.moves]:
-            js = f"""async () => {{ const t = FRAMES_PROMISE(3000); await MAP.cam(MAP.viewFor([MAP.xy({lon}, {lat})], 'left', 430), 1300);
-                    await MAP.cam(MAP.home(), 1300); return t; }}"""
-            d = await pg.evaluate(js.replace("FRAMES_PROMISE", f"({FRAMES})"))
-            rows.append((f"camera to {lon:.2f},{lat:.2f} and back", d)); alld += d
-        await pg.evaluate("() => MAP.replay()")   # the first year's film: its events and walks, camera and all, at speed 1
-        d = await pg.evaluate(f"({FRAMES})(12000)")
-        rows.append(("the first year's film, 12 s", d)); alld += d
+        if not ok:   # a page drawn fresh: its frame times as it stands
+            rows.append(("the page as it stands, 12 s", await pg.evaluate(f"({FRAMES})(12000)")))
+        else:
+            await pg.evaluate("() => MAP.begin()")
+            await pg.evaluate("() => { document.querySelector('#voice').muted = true; }")
+            spots = await pg.evaluate("Object.values(EVENTS).flat().map(e => [e.at[1], e.at[2]])")
+            for lon, lat in spots[: a.moves]:
+                js = f"""async () => {{ const t = FRAMES_PROMISE(3000); await MAP.cam(MAP.viewFor([MAP.xy({lon}, {lat})], 'left', 430), 1300);
+                        await MAP.cam(MAP.home(), 1300); return t; }}"""
+                rows.append((f"camera to {lon:.2f},{lat:.2f} and back", await pg.evaluate(js.replace("FRAMES_PROMISE", f"({FRAMES})"))))
+            await pg.evaluate("() => MAP.replay()")   # the first year's film: its events and walks, camera and all, at speed 1
+            rows.append(("the first year's film, 12 s", await pg.evaluate(f"({FRAMES})(12000)")))
         await b.close()
+    alld = [x for _, d in rows for x in d]
     lines = [load()]
     for k, d in rows + [("all", alld)]:
         d = sorted(d); n = len(d)
         lines.append(f"{k:40s} median {statistics.median(d):5.1f}  p95 {d[int(n * .95)]:5.1f}  max {d[-1]:6.1f}  >50ms {sum(x > 50 for x in d)}  ({n} frames)")
     verdict = "under" if statistics.median(alld) < 20 else "OVER"
     lines.append(f"median {statistics.median(alld):.1f} ms: {verdict} the 20 ms bar")
+    if not ok:
+        lines.append(SKIPPED.format("the camera moves and a year's walks") + "; for the page's own motion, start it from the page (a hook of its own) while timing")
     for e in cur["errs"]: lines.append("PAGE ERROR " + e)
     print("\n".join(lines))
     if a.out:
@@ -190,7 +233,8 @@ async def narration(a):
         cur = {"errs": [], "cons": [], "miss": []}
         pg, ok = await open_page(b, a.url, cur)
         if not ok:
-            sys.exit("; ".join(cur["errs"]))
+            sys.exit("; ".join(cur["errs"]) or "narration reads the explore kit's EVENTS, YEARS and PLACE_CARDS, and this page has no "
+                     "window.MAP: write a page drawn fresh's narration file by hand (core/sound.md)")
         beats = await pg.evaluate("""() => { const o = {};
           for (const [y, evs] of Object.entries(EVENTS)) evs.forEach((e, i) => { o[`${y}-e${i + 1}`] = e.text; });
           for (const [y, cards] of Object.entries(YEARS)) for (const [w, c] of Object.entries(cards)) o[`${y}-${w}`] = c.text;

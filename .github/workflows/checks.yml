@@ -18,6 +18,8 @@ jobs:
         run: python3 .github/scripts/check_skill.py
       - name: Narration captions and marks (no voice needed)
         run: python3 .github/scripts/check_tts_text.py
+      - name: new_book.py keeps files the user wrote first
+        run: python3 .claude/skills/papermorph/scripts/new_book.py --selftest
       - name: Python scripts (pyflakes errors, no unused-import noise)
         run: pipx run ruff check --select F,E9 --ignore F401 --output-format concise .claude/skills/papermorph/scripts .github engine
 
@@ -35,6 +37,7 @@ jobs:
           python3 level.py --selftest
           uv run --with numpy python music.py --selftest
           uv run --with numpy python sfx.py --selftest
+          uv run --with pillow --with numpy python prep.py --selftest
 
   site:
     runs-on: ubuntu-latest

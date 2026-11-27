@@ -26,7 +26,7 @@ Read the tier's first file, then only what the current step needs. Every file be
 | A book, an idea or a stretch of history to explain as a narrated film | Films: documentary | [films.md](references/films/films.md) | [documentary.md](references/films/documentary.md) |
 | One point to make in under three minutes, upright, for a phone feed (YouTube Shorts, TikTok, Reels), or a long film to recut | Films: shorts | [films.md](references/films/films.md) | [shorts.md](references/films/shorts.md) |
 | A film's material, or an idea that is mostly maps and numbers, to read at the reader's own pace on a page whose picture changes as it scrolls (a scroll story) | Films: scroll page | [films.md](references/films/films.md) | [scroll.md](references/films/scroll.md) |
-| A stretch of history to explore on a map, year by year: borders that change, people who move (one page, its own player, not the engine) | Pages you explore | [explore.md](references/explore/explore.md) | |
+| A stretch of history to explore on a map, year by year: borders that change, people who move (one page, its own player, not the engine); or a subject explored along a path, a clock or a diagram, drawn fresh | Pages you explore | [explore.md](references/explore/explore.md) | |
 
 Every tier shares the core:
 
@@ -84,7 +84,7 @@ All in `SKILL/scripts/`; each prints its usage with `--help` when run with the `
 | Optional clay look (all tiers) | `claykit.py` Blender geometry, materials, orthographic renders, WebP packing and manifest · `clayprops.py` shared people, vehicles, trees, ground, table and boards (both imported by a Blender scene) · `check_clay.py` image decode, dimensions, strip frames and deterministic motion |
 | Lessons | `outline.py` and `split_pages.py` page map and chapter text · `check_blank.py` empty openings · `overlap.py` arrows through text · `sprites.py` image processing steps · `refs.py` verified citations · `items.py` question bank · `scorm.py` LMS package |
 | Picture books | `mouths.py` mouth shapes · `join.py` one clip per scene · `bake_sets.py` set layers · `bake_puppets.py` puppet bitmaps · `paint.py` / `paint_openai.py` image-model pictures · `painted.py` place them in the book · `lift.py` figures, sets and lettering cut from a scanned book's own pictures · `cutout.py` image-model pictures on a key colour cut into puppet pieces and props |
-| Pages you explore | `topo.py` the map's TopoJSON from Natural Earth · `explore.py` checks, shots, Firefox timing and the narration file for an explorable map |
+| Pages you explore | `topo.py` the map's TopoJSON from Natural Earth · `explore.py` checks, shots, Firefox timing and the narration file for an explorable map (on a page drawn fresh, the checks that need no kit) |
 | Films | `commons.py` public-domain pictures and recordings with their licences · `prep.py` print, line and full-bleed treatments · `trace.py` drawings that draw themselves on · `video.py` a clip from a still · `frames.py` a clip as treated frames · `geo.py` the map kit's data from Natural Earth · `music.py` a track cut to the film, the bed in the voice's gaps, and the music, beds and effects against each line · `safe.py` words outside an upright film's safe area |
 
 `silence.py`, `ledger.py` (the one cost ledger: date, chapter, file, model, what, cost) and `browsers.py` are helpers the others import.

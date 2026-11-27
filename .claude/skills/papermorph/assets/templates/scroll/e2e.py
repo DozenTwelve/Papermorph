@@ -1,11 +1,14 @@
 """A scroll page's checks, in Chromium and Firefox, on a desktop window and a 390 px phone: page errors, console
 errors and missing files; that scrolling down passes every step in order and scrolling back up draws the same P at
 the same place (the picture is a function of the scroll alone); that reduced motion shows each step's finished
-picture; cards too tall for the band they stick in; render times. With --out, a screenshot of every step's middle
-and end at both sizes (from the first browser): open them, they are the only way to see the pictures.
+picture; that each step's picture has settled by its end (P = k + 0.98 drawn against k + 1: a value still moving,
+such as a number eased across two steps, is named); that every <audio>, <video> and <source> file the page names
+loads; cards too tall for the band they stick in; render times. With --out, a screenshot of every step's middle and
+end at both sizes in every browser (OUT/<browser>_<size>_stepNN_mid.png), and of each step under reduced motion
+(..._reduced_stepNN.png): open them, they are the only way to see the pictures.
 
     python3 SKILL/scripts/serve.py 8765 site &
-    uv run --with playwright python3 tools/BOOK/e2e_scroll.py http://localhost:8765/BOOK/ [--out books/BOOK/review/scroll]
+    uv run --with playwright python3 SKILL/assets/templates/scroll/e2e.py http://localhost:8765/BOOK/ [--out books/BOOK/review/scroll]
     ... --browsers firefox          # one browser; CHROME=/path/to/chrome for an installed Chromium
 
 The engine's tools (check.py, shot.py, strip.py, still.py, perf.py, export.py, lint.py) read a chapter's BEATS and
@@ -24,6 +27,28 @@ SIZES = {'desktop': (1280, 800), 'phone': (390, 844)}
 WAIT = "() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))"   # the next frame is drawn
 P = "() => +document.documentElement.dataset.p"
 problems = []
+# the canvas at P = k + .98 and at k + 1 for every step, as the number of pixels that differ: a step's picture should
+# have settled before the next card arrives. Every pixel is compared, since a number in a chip changing is only a few
+SETTLED = """n => { const cv = document.querySelector('.graphic canvas'), g = cv.getContext('2d');
+  const grab = P => { scrollyRender(P); return g.getImageData(0, 0, cv.width, cv.height).data; };
+  const out = []; for (let k = 0; k < n; k++) { const a = grab(k + .98), b = grab(k + 1); let c = 0;
+    for (let i = 0; i < a.length; i += 4) c += Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]) > 30;
+    out.push(c); }
+  scrollyRender(scrollyP()); return out; }"""
+# each file loaded by the element its page uses, as a reader's browser would: a broken file served whole fails too
+MEDIA = """async () => {
+  const MIME = { mp3: 'audio/mpeg', ogg: 'audio/ogg', oga: 'audio/ogg', opus: 'audio/ogg', m4a: 'audio/mp4', aac: 'audio/aac', wav: 'audio/wav',
+                 mp4: 'video/mp4', m4v: 'video/mp4', webm: 'video/webm', ogv: 'video/ogg', mov: 'video/quicktime' };
+  const els = [...document.querySelectorAll('audio[src], video[src], source[src]')];
+  const srcs = [...new Map(els.map(e => [e.src, (e.closest('video') ? 'video' : 'audio')])).entries()];
+  return Promise.all(srcs.map(([u, kind]) => new Promise(done => {
+    const m = document.createElement(kind), type = MIME[(u.split(/[?#]/)[0].split('.').pop() || '').toLowerCase()] || '';
+    const t = setTimeout(() => done([u, 'no metadata after 10 s']), 10000);
+    m.preload = 'metadata'; m.muted = true;
+    m.onloadedmetadata = () => { clearTimeout(t); done([u, 'ok']); };
+    m.onerror = () => { clearTimeout(t); done([u, type && !m.canPlayType(type) ? `ok (this browser cannot play ${type}; another may)`
+                                                    : `error ${m.error && m.error.code}: does not load or decode`]); };
+    m.src = u; }))); }"""
 
 
 def bad(msg):
@@ -56,6 +81,10 @@ async def walk(pg, where):
       return [...document.querySelectorAll('.step .card')].map((c, i) => [i + 1, Math.round(c.offsetHeight), Math.round(innerHeight - t)]).filter(([, h, room]) => h > room); }""")
     for i, h, room in tall:
         bad(f'{where}: step {i}\'s card is {h} px, the room under the trigger line {room} px: shorten it or split the step')
+    for k, d in enumerate(await pg.evaluate(SETTLED, n)):
+        if d > 50:   # ponytail: a few px of edge noise pass; a changed digit or a fade still running does not
+            bad(f'{where}: step {k + 1}\'s picture still moves at its end ({d} px differ between P {k + .98:.2f} and {k + 1}): '
+                f'the next card arrives on a moving picture (a value eased across two steps?); finish its windows by the step\'s end')
     st = await pg.evaluate("() => scrollyStats()")
     print(f'  {where}: {len(down)} scroll positions, P 0 to {down[-1]:.2f} over {n} steps; render ms median {st["median"]:.1f}, '
           f'p95 {st["p95"]:.1f}, max {st["max"]:.1f}' + ('  (over 16 ms: a phone will drop frames)' if st['p95'] > 16 else ''))
@@ -82,7 +111,7 @@ async def main():
     if out:
         out.mkdir(parents=True, exist_ok=True)
     async with async_playwright() as p:
-        for bi, name in enumerate(a.browsers.split(',')):
+        for name in a.browsers.split(','):
             kw = {'executable_path': os.environ['CHROME']} if name == 'chromium' and os.environ.get('CHROME') else {}
             b = await getattr(p, name).launch(**kw)
             for size, (w, h) in SIZES.items():
@@ -103,13 +132,19 @@ async def main():
                             await pg.evaluate(f"() => document.querySelectorAll('.step')[{i}].scrollIntoView()")
                             await pg.evaluate(f"() => scrollBy(0, innerHeight / 4)"); await pg.evaluate(WAIT)
                             ps.append(await pg.evaluate(P))
+                            if out:
+                                await pg.wait_for_timeout(150)
+                                await pg.screenshot(path=str(out / f'{name}_{size}_reduced_step{i + 1:02d}.png'))
                         if any(abs(q - round(q)) > 1e-4 for q in ps):
                             bad(f'{where}: P {ps}: reduced motion should hold each step at its finished picture')
                         print(f'  {where}: P at each step {ps}')
                     else:
+                        for u, status in await pg.evaluate(MEDIA):
+                            if not status.startswith('ok'): bad(f'{where}: {u} {status}')
+                            elif status != 'ok': print(f'  {where}: {u} not checked here: {status}')   # another browser checks it
                         n = await walk(pg, where)
-                        if out and bi == 0:
-                            await shots(pg, size, n, out)
+                        if out:
+                            await shots(pg, f'{name}_{size}', n, out)
                     await ctx.close()
             await b.close()
     print(f'{len(problems)} problems' if problems else 'ok')
