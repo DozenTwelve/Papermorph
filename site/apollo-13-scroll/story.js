@@ -6,8 +6,9 @@ const AMBER = '#f2b544', PALE = '#dcd5c6', DIM = '#59606e', HULL = '#161c29', HO
 pictures(['launch', 'crew', 'damaged-sm', 'moon-far-side', 'mailbox-ground', 'mailbox-aquarius', 'splashdown', 'mission-control']);
 
 /* ---------- the mission clock: hours after launch at each place in the story (MR / AFJ times, rounded) ---------- */
-const CLOCK = [['out', 0, 0], ['out', .85, 55], ['tank', .2, 56], ['lost', .1, 56], ['lost', .85, 58], ['lifeboat', .8, 58.7],
-  ['back', .15, 61], ['back', .6, 61.5], ['back', 1, 61.9], ['faster', 0, 77], ['faster', .55, 79.5], ['faster', 1, 79.9], ['aim', .05, 100], ['aim', .4, 105.3],
+// a key at a step's start (f 0) holds the hour of the step before until its end, so each step ends on a still clock
+const CLOCK = [['out', 0, 0], ['out', .85, 55], ['tank', 0, 55], ['tank', .2, 56], ['lost', .1, 56], ['lost', .85, 58], ['lifeboat', 0, 58],
+  ['lifeboat', .8, 58.7], ['back', 0, 58.7], ['back', .15, 61], ['back', .6, 61.5], ['back', 1, 61.9], ['faster', 0, 77], ['faster', .55, 79.5], ['faster', 1, 79.9], ['aim', .05, 100], ['aim', .4, 105.3],
   ['aim', .85, 137.7], ['letgo', .4, 138], ['letgo', 1, 138.5], ['wake', .25, 140], ['wake', .8, 141.5]];
 function hours(P) {
   const k = CLOCK.map(([key, f, h]) => [at(key, f), h]);
@@ -78,8 +79,8 @@ function shipScene(P, a) {
       if (panel > 0) { ctx.globalAlpha = a * smA * panel * .55; ctx.fillStyle = hatch({ s: 1 }); ctx.fillRect(ox, oy, ow, oh); }
       ring(X(53 + smDx), Y(-7.5), 3.6 * k, PALE, Math.max(1.2, k * .25), a * smA * seeIn);
       ring(X(64 + smDx), Y(-7.5), 3.6 * k, ramp(P, at('tank', .3), at('tank', .45)) ? HOT : PALE, Math.max(1.2, k * .25), a * smA * seeIn);
-      text('TANK 1', X(53 + smDx), Y(-7.5) + fs(1), { size: 2.4, fill: PALE, align: 'center', a: a * smA * seeIn * (1 - ramp(P, at('lost', .9), at('lifeboat', .1))) });
-      text('TANK 2', X(64 + smDx), Y(-7.5) + fs(1), { size: 2.4, fill: HOT, align: 'center', a: a * smA * seeIn * (1 - ramp(P, at('lost', .9), at('lifeboat', .1))) });
+      text('TANK 1', X(53 + smDx), Y(-7.5) + fs(1), { size: 2.4, fill: PALE, align: 'center', a: a * smA * seeIn * (1 - ramp(P, at('lost', .8), at('lost', .95))) });
+      text('TANK 2', X(64 + smDx), Y(-7.5) + fs(1), { size: 2.4, fill: HOT, align: 'center', a: a * smA * seeIn * (1 - ramp(P, at('lost', .8), at('lost', .95))) });
       const glow = win(P, at('tank', .28), at('tank', .42), at('tank', .6), at('tank', .9));
       if (glow > 0) {
         const g = ctx.createRadialGradient(X(64 + smDx), Y(-7.5), 0, X(64 + smDx), Y(-7.5), 7 * k);
