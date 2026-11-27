@@ -1,0 +1,1 @@
+window.ART = {"crew":[1512,1244],"launch":[838,1712],"control":[1912,1257],"moon":[1912,1900],"sm-damage":[1052,1712],"tank":[569,545],"mailbox-ground":[1912,1284],"splash":[1912,1283],"celebrate":[1912,1276],"aquarius-away":[1512,1507],"crew-ship":[1712,1367],"chutes":[1712,1383],"ship-drawing":[1800,1174],"lm-inside":[1712,1495],"earth":[1110,1139],"crescent":[1451,1512]};

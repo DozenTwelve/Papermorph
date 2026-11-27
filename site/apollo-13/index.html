@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apollo 13</title>
+<meta name="description" content="A five-minute documentary on Apollo 13 for young viewers: a Moon landing that became a rescue, told with NASA's own pictures and the real radio call, and how it was made with the Papermorph Skill.">
+<link rel="stylesheet" href="lib/fonts.css">
+<link rel="stylesheet" href="lib/book.css"><!-- only for --progress-key, if the book sets one -->
+<style>
+  :root { --ink: #1c2633; --soft: #5a6878; --paper: #eef1f4; --card: #f8fafb; --line: #d3dbe3; --accent: #f2a93b; --accent-text: #9a5a00; --night: #0f2238; --night-deep: #060d17;
+    --ui: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif; --serif: "EB Garamond", "Iowan Old Style", Palatino, Georgia, serif;
+    --key: "Oswald", "Avenir Next Condensed", "Arial Narrow", sans-serif; color-scheme: light; }
+  * { box-sizing: border-box; }
+  html, body { overflow-x: clip; }
+  @media (prefers-reduced-motion: reduce) { *, ::after { transition: none !important; } a:hover, a:focus-visible { transform: none !important; } }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 19px/1.62 var(--serif); }
+  a { color: inherit; }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+  ::selection { background: var(--accent); color: var(--night-deep); }
+  .top { background: radial-gradient(120% 140% at 30% 0%, var(--night) 0%, var(--night-deep) 100%); color: #eef1f4; }
+  .top nav { max-width: 1180px; margin: 0 auto; padding: 10px 24px 0; font: 500 14px/1 var(--key); }
+  .top nav a { color: #a9b8c9; text-decoration: none; display: inline-block; padding: 8px 0; }
+  .top nav a:hover { color: #eef1f4; }
+  header { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 40px; align-items: center; max-width: 1180px; margin: 0 auto; padding: 28px 24px 52px; }
+  header .film { position: relative; display: block; border-radius: 6px; overflow: hidden; box-shadow: 0 18px 50px #0009; }
+  header .film img { display: block; width: 100%; height: auto; }
+  header .film span { position: absolute; left: 18px; bottom: 16px; padding: 10px 18px; background: var(--accent); color: var(--night-deep); font: 600 16px/1 var(--key); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+  header .film:hover span, header .film:focus-visible span { background: #ffc266; }
+  .kicker { margin: 0 0 6px; color: var(--accent); font: 500 14px/1.2 var(--key); letter-spacing: .06em; text-transform: uppercase; }
+  h1 { margin: 0 0 10px; font: 600 clamp(40px, 5.4vw, 66px)/1 var(--key); letter-spacing: .02em; text-transform: uppercase; }
+  .lede { margin: 0 0 14px; font-size: 21px; color: #d8e2ec; }
+  .meta { margin: 0; color: #a9b8c9; font: 15px/1.5 var(--ui); }
+  .watched .meta::after { display: block; content: "✓ Watched"; color: var(--accent); }
+  .shapes { max-width: 1180px; margin: 0 auto; padding: 36px 24px 8px; }
+  .shapes:empty { display: none; }
+  main { max-width: 760px; margin: 0 auto; padding: 24px 24px 40px; }
+  main h2 { margin: 56px 0 8px; font: 600 26px/1.2 var(--key); letter-spacing: .04em; text-transform: uppercase; }
+  main h2:first-child { margin-top: 32px; }
+  main p { margin: 0 0 16px; }
+  figure { margin: 26px -60px; }
+  figure img { display: block; width: 100%; height: auto; border-radius: 4px; box-shadow: 0 8px 26px #0f22382e; }
+  figcaption { margin: 8px 60px 0; color: var(--soft); font: 15px/1.5 var(--ui); }
+  .pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; } .pair figcaption { grid-column: 1 / -1; margin-top: -6px; }
+  ol.steps { padding-left: 22px; } ol.steps li { margin-bottom: 8px; }
+  blockquote { margin: 18px 0; padding: 4px 0 4px 18px; border-left: 4px solid var(--accent); font-style: italic; }
+  .numbers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
+  .numbers div { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; }
+  .numbers b { display: block; font: 600 30px/1.1 var(--key); color: var(--night); }
+  .numbers span { font: 14px/1.4 var(--ui); color: var(--soft); }
+  .credits { max-width: 1000px; margin: 20px auto 70px; padding: 0 24px; color: var(--soft); font: 14px/1.6 var(--ui); }
+  .credits h2 { font: 600 20px/1.3 var(--key); letter-spacing: .04em; text-transform: uppercase; color: var(--ink); }
+  .credits h3 { font-size: 13px; letter-spacing: .04em; text-transform: uppercase; margin: 18px 0 6px; color: var(--ink); }
+  .credits ul { margin: 0; padding-left: 18px; columns: 2 340px; }
+  @media (max-width: 860px) { figure { margin: 22px 0; } figcaption { margin: 8px 0 0; } }
+  @media (max-width: 760px) { header { grid-template-columns: minmax(0, 1fr); gap: 24px; } header .film span { left: 10px; bottom: 10px; padding: 7px 11px; font-size: 13px; } .pair, .numbers { grid-template-columns: minmax(0, 1fr); } }
+</style>
+</head>
+<body>
+<div class="top">
+  <nav><a href="../">← Bookshelf</a></nav>
+  <header id="film">
+    <a class="film" href="ch01/"><img src="img/cover.webp" width="1400" height="788" alt="A radio trace in amber on deep blue, with the words of April 1970 typed beside the speakers: Okay, Houston, we've had a problem here."><span>▶ Watch the film</span></a>
+    <div>
+      <p class="kicker">A documentary · April 1970</p>
+      <h1>Apollo 13</h1>
+      <p class="lede">Three astronauts on their way to the Moon, an oxygen tank that burst, and the many people who brought them home one problem at a time.</p>
+      <p class="meta">About 5 minutes, English with captions, for young viewers, made with the Papermorph Skill</p>
+    </div>
+  </header>
+</div>
+
+<!-- The same story in other shapes (shorts, an interactive page, a scroll story): cards go here. -->
+<section class="shapes" id="shapes"></section>
+
+<main>
+  <h2>One article, checked</h2>
+  <p>The film starts from one Wikipedia article, “Apollo 13”, pinned to the revision of 18 November 2026. Every time and number in it was traced back to NASA's own papers: the Mission Evaluation Report of September 1970, the air-to-ground transcript and the Apollo Flight Journal. Where they disagree with the article, the film follows NASA. The article puts Lovell's “Houston, we've had a problem” seven seconds late, and gives the end of two engine burns as their start; the film uses the corrected times. Where the sources disagree with each other, it says less: the farthest distance from Earth has two published values, so the film says “farther from Earth than anyone had ever been” and leaves the number out. Even “a successful failure” was checked: the words are Jim Lovell's own, in NASA's <i>Apollo Expeditions to the Moon</i> (1975).</p>
+
+  <h2>The real voices first</h2>
+  <p>The film opens on the actual radio recording from 13 April 1970, nine seconds of it, before any narration. A trace drawn from the recording's own loudness moves as each man speaks, and their words are typed as you hear them, under the names the corrected Flight Journal gives. No picture from the 1995 film and no actor's voice is used anywhere.</p>
+
+  <h2>A spaceship in three parts</h2>
+  <p>Young viewers need to know which part is which before the story can make sense: the capsule they ride home in, the service module that held the oxygen, and the lander that became a lifeboat. A NASA drawing of the docked spacecraft comes back four times, and each time the part the story is about lights up or goes dark.</p>
+  <figure class="pair">
+    <img src="img/making/ship.webp" width="1200" height="675" alt="NASA's line drawing of the docked spacecraft in white on deep blue, with Aquarius, Odyssey and the service module labelled and washed in colour." loading="lazy">
+    <img src="img/making/wake.webp" width="1200" height="675" alt="The same drawing with a five-step checklist ticked off beside it, under the words It worked." loading="lazy">
+    <figcaption>The three parts, then Odyssey waking up step by step on the last day.</figcaption>
+  </figure>
+
+  <h2>Where they were, and when</h2>
+  <p>One drawn route, from Earth around the Moon and back, carries the trip. A dot shows where the crew were and a mission clock shows the hours since launch: 55:54 when the tank burst, 61:29 for the 34-second burn that set them on a path around the Moon, 79:32 when the longer push ended. The route is a picture, labelled “not to scale”; the clock's times are NASA's.</p>
+  <figure>
+    <img src="img/making/route.webp" width="1200" height="675" alt="A drawn Earth and Moon with the route around the Moon, the dot heading home, the mission clock at 79:32 and the words Home about 9 hours sooner." loading="lazy">
+    <figcaption>After the push behind the Moon: home about nine hours sooner, by the mission report's own reckoning.</figcaption>
+  </figure>
+
+  <h2>How it was made</h2>
+  <ol class="steps">
+    <li><b>Research.</b> The article and NASA's reports, saved with their revision numbers; a list of 25 times and what each one counts.</li>
+    <li><b>Script and storyboard</b>, shown to the owner before anything was voiced, with plain words for elementary-school readers.</li>
+    <li><b>Voice.</b> ElevenLabs v4, the voice “Roger”, sped up 1.1 times; the word times it returns place every move on screen.</li>
+    <li><b>Pictures.</b> Sixteen NASA photographs and drawings from Wikimedia Commons, each with its licence checked.</li>
+    <li><b>Music.</b> Holst's <i>The Planets</i>, played by the U.S. Air Force Band and the U.S. Marine Band: Jupiter for the launch and the homecoming, Mercury for the trouble and the fix, Neptune behind the Moon.</li>
+    <li><b>Review.</b> The film exported as a video and watched by a fresh Claude, with no memory of making it, as a director.</li>
+  </ol>
+  <figure>
+    <img src="img/making/mailbox.webp" width="1200" height="675" alt="A close-up of the black-and-white photograph of engineers in Mission Control holding up the improvised filter adapter, labelled Checklist covers." loading="lazy">
+    <figcaption>The “mailbox”, the engineers' fix for the air, shown in Mission Control. The camera goes to each part as the voice names it.</figcaption>
+  </figure>
+
+  <h2>The numbers</h2>
+  <div class="numbers">
+    <div><b>4.6 min</b><span>26 beats, 687 words of narration</span></div>
+    <div><b>$0.31</b><span>voice, every take included (ElevenLabs v4 via OpenRouter)</span></div>
+    <div><b>$0</b><span>pictures, recording and music: all public domain</span></div>
+    <div><b>16</b><span>NASA pictures, each listed below with its source</span></div>
+    <div><b>25</b><span>mission times checked against NASA's reports</span></div>
+    <div><b>0</b><span>servers: the film is one static page</span></div>
+  </div>
+  <p>The research, the script, the code for every beat and the review were done by Claude (Opus) with the <a href="https://github.com/DozenTwelve/Papermorph" target="_blank" rel="noopener noreferrer">Papermorph Skill</a>.</p>
+</main>
+
+<section class="credits">
+  <h2>Sources and credits</h2>
+  <p>Adapted from “<a href="https://en.wikipedia.org/w/index.php?title=Apollo_13&amp;oldid=1386441839">Apollo 13</a>” by Wikipedia contributors, revision 1386441839 (18 November 2026), licensed <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>. Changes: selected, simplified and reorganized; numerical claims checked against NASA's Apollo 13 Mission Report (MSC-02680, September 1970), the air-to-ground transcript and the Apollo Flight Journal. “A successful failure”: James A. Lovell, “Houston, We've Had a Problem”, in <a href="https://www.nasa.gov/wp-content/uploads/static/history/SP-350/ch-13-1.html"><i>Apollo Expeditions to the Moon</i></a>, NASA SP-350 (1975), chapter 13.1.</p>
+  <p>The radio recording: <a href="https://commons.wikimedia.org/wiki/File:Apollo13-wehaveaproblem_(short).ogg">Apollo 13 air-to-ground, “we've had a problem”</a>, NASA, Public domain. Voice: ElevenLabs v4. Music: Gustav Holst, <i>The Planets</i>: <a href="https://commons.wikimedia.org/wiki/File:Holst_The_Planets_Jupiter.ogg">Jupiter</a> and <a href="https://commons.wikimedia.org/wiki/File:Holst_The_Planets_Mercury.ogg">Mercury</a>, United States Air Force Band; <a href="https://commons.wikimedia.org/wiki/File:HOLST_%22The_Planets,_Op._32_7._Neptune,_the_Mystic%22_-_%22The_President%27s_Own%22_U.S._Marine_Band.opus">Neptune</a>, United States Marine Band; recordings Public domain. Type: Oswald and EB Garamond (SIL Open Font License, <code>lib/fonts/</code>). NASA's pictures and names do not imply NASA's endorsement.</p>
+  <h3>Pictures (NASA, Public domain, via Wikimedia Commons)</h3>
+  <ul>
+    <li><a href="https://commons.wikimedia.org/wiki/File:Apollo_13_Crew_before_launch_-_S70-34767.jpg">The crew before launch</a> (S70-34767)</li>
+    <li><a href="https://commons.wikimedia.org/wiki/File:2010-06-11_CSM%26LM.jpg">The docked spacecraft</a>, line drawing, levelled and recoloured</li>
+    <li><a href="https://commons.wikimedia.org/wiki/File:Apollo_13_Launch_(S70-38747).jpg">Launch</a> (S70-38747), National Museum of the U.S. Navy</li>
+    <li><a href="https://commons.wikimedia.org/wiki/File:Apollo13_tank2.jpg">Oxygen tank diagram</a>, David R. Williams, NASA, recoloured</li>
+    <li><a href="https://commons.wikimedia.org/wiki/File:1970_Mission_Control_Apollo_13.jpg">Mission Control during Apollo 13</a></li>
+    <li><a href="https://commons.wikimedia.org/wiki/File:Mare_Moscoviense_AS13-60-8648.jpg">The Moon's far side</a> (AS13-60-8648), the crew of Apollo 13</li>
+    <li><a href="https://commons.wikimedia.org/wiki/File:AS13-60-8725_-_Apollo_13_-_Apollo_13_Mission_image_-_Distant_crescent_Earth_-_DPLA_-_c76361b8212c17fab18fc5a14ef3c592.jpg">Distant crescent Earth</a> (AS13-60-8725)</li>
+    <li><a href="https://commons.wikimedia.org/wiki/File:Apollo_13_LM_with_Mailbox.jpg">The “mailbox” inside Aquarius</a>, taken by the crew</li>
+    <li><a href="https://commons.wikimedia.org/wiki/File:Apollo_13_Mailbox_at_Mission_Control.jpg">The “mailbox” at Mission Control</a></li>
+    <li><a href="https://commons.wikimedia.org/wiki/File:Apollo_13_-_View_of_Earth.jpg">View of Earth</a>, scan by Kipp Teague</li>
+    <li><a href="https://commons.wikimedia.org/wiki/File:Apollo_13_Service_Module_(lossless_crop).jpg">The damaged service module</a>, scan by Kipp Teague</li>
+    <li><a href="https://commons.wikimedia.org/wiki/File:Apollo_13_Lunar_Module_after_separation_from_CSM_(AS13-59-8562).jpg">Aquarius after separation</a> (AS13-59-8562)</li>
+    <li><a href="https://commons.wikimedia.org/wiki/File:Apollo_13_descends_through_the_clouds_(S70-35652).jpg">Odyssey under its parachutes</a> (S70-35652)</li>
+    <li><a href="https://commons.wikimedia.org/wiki/File:Apollo_13_spacecraft_splashdown_in_the_South_Pacific_Ocean_(s70-35644).jpg">Splashdown</a> (S70-35644), NASA Johnson Space Center</li>
+    <li><a href="https://commons.wikimedia.org/wiki/File:Apollo_13_Astronauts_on_the_U.S.S._Iwo_Jima_-_GPN-2002-000054.jpg">The crew on USS Iwo Jima</a> (GPN-2002-000054)</li>
+    <li><a href="https://commons.wikimedia.org/wiki/File:Mission_Control_Celebrates_-_GPN-2000-001313.jpg">Mission Control celebrates</a> (GPN-2000-001313)</li>
+  </ul>
+</section>
+
+<script>
+'use strict';
+// The player records finished films under the same key as here (engine progress(): lib/book.css --progress-key, else this folder's path).
+const key = getComputedStyle(document.documentElement).getPropertyValue('--progress-key').trim().replace(/^["']|["']$/g, '')
+  || 'animebook:progress:' + new URL('.', location.href).pathname;
+try { if ((JSON.parse(localStorage.getItem(key) || '{}').done || []).includes(1)) document.getElementById('film').classList.add('watched'); } catch {}
+</script>
+</body>
+</html>

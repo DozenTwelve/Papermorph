@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apollo 13</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/film.js"></script>
+<script src="audio/en/timings.js"></script>
+<script src="../img/art.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 1, title: 'Apollo 13', minutes: 5, language: 'en', lead: false };
+
+/* The real air-to-ground recording (NASA, public domain), played as itself in the wordless opening. Its loudness every
+   0.05 s, measured from audio/sfx/problem.mp3, drives the radio trace; its three lines as heard, with who said them
+   (speakers as the corrected Apollo Flight Journal gives them). */
+const PROBLEM_AT = .4;
+SFX_BED.problem = 9.1;   // a long one-shot: a seek into the opening joins it part-way
+const PROBLEM_ENV = [0,0.01,0.01,0,0,0,0,0.01,0.01,0.01,0.02,0.02,0.02,0.03,0.04,0.04,0.05,0.04,0.04,0.05,0.06,0.08,0.07,0.06,0.07,0.06,0.07,0.06,0.05,0.06,0.08,0.09,0.29,0.31,0.21,0.21,0.3,0.41,0.42,0.39,0.39,0.79,0.93,0.52,0.11,0.56,0.94,0.92,0.94,0.96,0.99,0.93,0.81,0.8,0.81,0.84,0.79,0.87,0.94,0.92,1,0.78,0.92,0.15,0.14,0.87,0.96,0.97,0.78,0.82,0.7,0.51,0.61,0.65,0.36,0.09,0.09,0.07,0.08,0.1,0.11,0.1,0.07,0.1,0.08,0.08,0.07,0.06,0.07,0.08,0.11,0.14,0.09,0.15,0.09,0.09,0.09,0.15,0.41,0.21,0.21,0.21,0.21,0.65,0.56,0.12,0.26,0.23,0.18,0.38,0.81,0.55,0.33,0.4,0.67,0.26,0.11,0.19,0.62,0.68,0.34,0.14,0.3,0.25,0.2,0.21,0.59,0.58,0.16,0.14,0.16,0.14,0.12,0.13,0.19,0.14,0.12,0.12,0.14,0.16,0.48,0.35,0.24,0.76,0.97,0.83,0.69,0.79,0.6,0.45,0.34,0.75,0.72,0.76,0.88,0.8,0.87,0.68,0.17,0.89,0.95,0.71,0.88,0.38,0.08,0.12,0.09,0.11,0.11,0.14,0.12,0.12,0.11,0.12,0.12,0.1,0.12,0.13,0.34,0.14,0.12,0.13];
+const PROBLEM_LINES = [
+  [1.9, 3.75, 'JACK SWIGERT', 'Okay, Houston, we’ve had a problem here.'],
+  [4.5, 6.1, 'HOUSTON', 'This is Houston. Say again, please.'],
+  [7.0, 8.2, 'JIM LOVELL', 'Houston, we’ve had a problem.']];
+// the radio trace: bars whose height follows the recording at the beat's clock
+function radioTrace(p, x, y, w, t0, D) {
+  const n = 48, g = G(p, { o: 0 }), bars = [];
+  for (let i = 0; i < n; i++) bars.push(mk('rect', { x: x + i * w / n, y, width: w / n * .55, height: 2, fill: HOT }, g));
+  tw(g, { o: 1 }, t0, .5);
+  let last = -1;
+  clockRun(t => {
+    const k = Math.floor((t - PROBLEM_AT) * 20);
+    if (k === last) return; last = k;
+    bars.forEach((b, i) => {
+      const v = PROBLEM_ENV[k - (n - 1 - i)] || 0, h = 2 + 90 * v;
+      b.setAttribute('y', (y - h / 2).toFixed(1)); b.setAttribute('height', h.toFixed(1));
+    });
+  }, D, { tail: true });
+  return g;
+}
+
+/* The NASA drawing of the docked spacecraft (line), and a soft amber wash behind one part at a time. Parts as fractions
+   of the drawing's width, read off its own scale bar: the lander 0-.42, the capsule .42-.555, the service module .555-.99 */
+const SHIP = { x: 800, y: 400, h: 480 };
+const PARTS = { aquarius: [.0, .42], odyssey: [.42, .555], sm: [.555, .99] };
+function shipShot(p, at, { o = 1 } = {}) {
+  const [W, H] = artSize('ship-drawing'), w = SHIP.h * W / H, x0 = SHIP.x - w / 2;
+  const back = G(p, {}), g = pic(p, 'ship-drawing', { ...SHIP, at, from: [0, 0], o });
+  const box = k => [x0 + PARTS[k][0] * w, x0 + PARTS[k][1] * w];
+  // a part lit (amber), dimmed (dark over it) or plain; each returns its rect so a later moment can change it
+  const wash = (k, t0, { fill = HOT, op = .28, dur = .5 } = {}) => {
+    const [a, b] = box(k), r = mk('rect', { x: a, y: SHIP.y - SHIP.h * .36, width: b - a, height: SHIP.h * .62, rx: 18, fill }, back);
+    put(r, { o: 0 }); tw(r, { o: op }, t0, dur);
+    return r;
+  };
+  const shade = (k, t0, op = .62) => {   // over the drawing: the part goes dark
+    const [a, b] = box(k), r = mk('rect', { x: a, y: SHIP.y - SHIP.h * .4, width: b - a, height: SHIP.h * .7, fill: COL.board }, p);
+    put(r, { o: 0 }); tw(r, { o: op }, t0, .8);
+    return r;
+  };
+  const mid = k => { const [a, b] = box(k); return (a + b) / 2; };
+  return { g, back, wash, shade, mid };
+}
+// a label over a part: the name large, a line of what it is under it
+// where each part's label goes: beside the lander on the left, above the capsule, beside the service module on the right
+const LABEL_AT = { aquarius: [230, 360], odyssey: [null, 110], sm: [1395, 360] };
+function partLabel(p, s, k, name, sub, t0, { size = 56 } = {}) {
+  const [lx, y] = LABEL_AT[k], x = lx ?? s.mid(k), g = G(p, {});
+  key(g, name, x, y, t0, { size });
+  if (sub) tag(g, sub, x, y + 42, t0 + .3, { anchor: 'middle', size: 28, fill: SOFT });
+  return g;
+}
+
+// close-ups that go to the point even where the picture is narrower than the frame at that zoom (the ground shows at
+// the side): shots [[mark, fx, fy, label, zoom]] as in closeups(), fx/fy inside the print's border
+function zoomTo(p, g, name, shots, m, tBack, home) {
+  const [W, H] = artSize(name), k = g._w / W, iw = (W - 112) * k, ih = (H - 112) * k;
+  shots.forEach(([mark, fx, fy, label, Z = 2], i) => {
+    const dx = (fx - .5) * iw, dy = (fy - .5) * ih, t0 = m(mark) - .2;
+    tw(g, { s: Z, x: 800 - Z * dx, y: 400 - Z * dy, r: 0 }, t0, .5, out);
+    const l = G(p, { x: 800, y: CAPTION_TOP - 40, o: 0 }), lw = wid(label.toUpperCase(), 64, KEY, '', 600) + 64;
+    mk('rect', { x: -lw / 2, y: -62, width: lw, height: 84, fill: COL.board }, l);
+    T(l, label.toUpperCase(), { y: 0, size: 64, font: KEY, weight: 600, fill: CREAM, anchor: 'middle' });
+    show(l, t0 + .2, .15);
+    hide(l, i < shots.length - 1 ? m(shots[i + 1][0]) - .2 : tBack, .15);
+  });
+  if (home) tw(g, { s: 1, r: 0, ...home }, tBack, .8, soft);
+}
+// a small caption on a band of the ground, for words over a photograph
+function plate(p, str, x, y, t0, { size = 28, anchor = 'start', fill = CREAM } = {}) {
+  const w = wid(str, size, SER, 'italic') + 28, x0 = anchor === 'middle' ? x - w / 2 : anchor === 'end' ? x - w + 14 : x - 14;
+  const g = G(p, { o: 0 });
+  mk('rect', { x: x0, y: y - size * 1.05, width: w, height: size * 1.5, rx: 4, fill: COL.board, opacity: .92 }, g);
+  T(g, str, { x, y, size, fill, font: SER, anchor }).setAttribute('font-style', 'italic');
+  show(g, t0, .4);
+  return g;
+}
+
+// mission times on the clock, in decimal hours (facts.md: MR Table 4-II and the corrected Flight Journal)
+const H = (h, mi = 0, s = 0) => h + mi / 60 + s / 3600;
+const MET = { problem: H(55, 54, 53), freeReturn: H(61, 29, 43), pericynthion: H(77, 20, 57), pc2: H(79, 27, 39), pc2off: H(79, 32, 3),
+  steer: H(105, 18, 28), smOff: H(138, 1, 48), entry: H(142, 40, 46), splash: H(142, 54, 41) };
+const S_PROBLEM = .83;   // where on the way out the dot stands at the accident (a picture, not a measurement)
+
+// a small amber flash at a point: an engine firing
+function burnFlash(p, x, y, t0, dur) {
+  const g = G(p, { x, y, o: 0, s: .6 });
+  mk('circle', { r: 30, fill: HOT, opacity: .35 }, g); mk('circle', { r: 14, fill: '#ffe2a8' }, g);
+  tw(g, { o: 1, s: 1 }, t0, .25, out);
+  clockRun(t => { if (t >= t0 && t <= t0 + dur) put(g, { s: 1 + .12 * Math.sin(t * 22) }); }, 0, { tail: true });
+  tw(g, { o: 0 }, t0 + dur, .4);
+  return g;
+}
+// a warning lamp: a rounded amber light with its label; blinks from t0
+function lamp(p, x, y, label, t0, seed = 0) {
+  const g = G(p, { x, y, o: 0 });
+  mk('rect', { x: -120, y: -40, width: 240, height: 80, rx: 10, fill: '#1a2c44', stroke: SOFT, 'stroke-width': 2 }, g);
+  const glow = mk('rect', { x: -112, y: -32, width: 224, height: 64, rx: 7, fill: HOT }, g);
+  T(g, label, { y: 10, size: 26, fill: '#2a1a05', font: KEY, weight: 600, anchor: 'middle' }).setAttribute('letter-spacing', '.08em');
+  tw(g, { o: 1 }, t0, .15);
+  let last = -1;
+  clockRun(t => { const on = t < t0 ? 0 : (Math.floor((t - t0) * 2.4 + seed) % 2 ? .35 : 1); if (on !== last) { last = on; glow.setAttribute('opacity', on); } }, 0, { tail: true });
+  return g;
+}
+// a tank gauge: a tall rounded bar filled to f(t)
+function gauge(p, x, y, label, f, t0) {
+  const g = G(p, { x, y, o: 0 }), hh = 300;
+  mk('rect', { x: -50, y: -hh, width: 100, height: hh, rx: 14, fill: 'none', stroke: CREAM, 'stroke-width': 3 }, g);
+  const lvl = mk('rect', { x: -42, y: -8, width: 84, height: 0, rx: 8, fill: CREAM }, g);
+  T(g, label, { y: 44, size: 26, fill: SOFT, font: KEY, weight: 500, anchor: 'middle' }).setAttribute('letter-spacing', '.1em');
+  tw(g, { o: 1 }, t0, .5);
+  let last = -1;
+  clockRun(t => { const v = Math.round((hh - 16) * Math.max(0, Math.min(1, f(t)))); if (v !== last) { last = v; lvl.setAttribute('y', -8 - v); lvl.setAttribute('height', v); } }, 0, { tail: true });
+  return g;
+}
+
+/* ---------- beats ---------- */
+const BEATS = [
+  ['open', 'Houston', (m, D) => {
+    const p = panel(0);
+    sfx('open', PROBLEM_AT, 'problem', 2);
+    dateChip(p, '1970', 'April · Apollo 13', -.7);   // already there on the first frame (the video's thumbnail)
+    radioTrace(p, 560, 330, 480, -.6, D);
+    PROBLEM_LINES.forEach(([a, b, who, line], i) => {
+      const y = 470 + i * 70, t0 = PROBLEM_AT + a, t1 = PROBLEM_AT + b;
+      const w = T(p, who, { x: 360, y, size: 24, fill: i === 1 ? SOFT : HOT, font: KEY, weight: 600, anchor: 'end', o: 0 });
+      w.setAttribute('letter-spacing', '.1em'); show(w, t0 - .1, .3);
+      say(p, [line], 390, y, t0, t1, { size: 40, fill: i === 1 ? SOFT : CREAM });
+    });
+    tag(p, 'The real recording, NASA', 1520, 640, 1, { anchor: 'end', size: 22 });
+  }, { dur: 10 }],
+
+  ['real', 'Real voices', (m, D) => {
+    const p = panel(0);
+    const moon = pic(p, 'moon', { x: 1060, y: 360, h: 640, at: .1, from: [60, 0], o: .9 });
+    push(moon, 0, D + .6, 1.08, -20);
+    tw(moon, { o: .3 }, m('many') - .3, .6);
+    const k = key(p, 'REAL VOICES', 330, 330, m('real'), { size: 80 });
+    const t = tag(p, 'April 1970', 330, 380, m('y1970'), { anchor: 'middle', size: 34, fill: CREAM });
+    const earth = pic(p, 'crescent', { x: 330, y: 380, h: 420, at: m('home') - .2, from: [-40, 0] });
+    hide(k, m('home') - .3, .3); hide(t, m('home') - .3, .3);
+    const ctl = pic(p, 'control', { x: 820, y: 370, h: 560, r: -1.5, at: m('many') - .2, from: [0, 60] });
+    push(ctl, m('many'), D + .6, 1.04);
+    void earth;
+  }],
+
+  ['crew', 'The crew', (m, D) => {
+    const p = panel(0);
+    const g = pic(p, 'crew', { x: 800, y: 380, h: 640, at: 0, from: [0, 30] });
+    // left to right: Swigert, Lovell ("Jim" on his shirt), Haise, matched against the captioned USS Iwo Jima photograph
+    zoomTo(p, g, 'crew', [
+      ['lovell', .5, .27, 'Jim Lovell · commander', 2],
+      ['swigert', .19, .2, 'Jack Swigert', 2],
+      ['haise', .74, .3, 'Fred Haise', 2]], m, m('ken') - .5, { x: 800, y: 380 });
+    // Ken is not in the photograph: it fades back while his name stands alone
+    tw(g, { o: .18 }, m('ken') - .4, .6);
+    key(p, 'KEN MATTINGLY', 800, 330, m('ken'), { size: 72 });
+    tag(p, 'the first pick for the crew, not in this photograph', 800, 395, m('ken') + .6, { anchor: 'middle', size: 32 });
+    tag(p, 'he stayed home: he had been near German measles', 800, 445, m('measles'), { anchor: 'middle', size: 32, fill: CREAM });
+  }],
+
+  ['ship', 'Three parts', (m, D) => {
+    const p = panel(0);
+    const s = shipShot(p, 0);
+    hide(key(p, 'THREE PARTS', 800, 110, m('three'), { size: 56 }), m('odyssey') - .3, .3);
+    s.wash('odyssey', m('odyssey') - .1, { fill: '#e8eef5', op: .3 });
+    partLabel(p, s, 'odyssey', 'ODYSSEY', 'the capsule: their ride home', m('odyssey'));
+    s.wash('sm', m('sm') - .1, { fill: '#7fb0e0' });
+    partLabel(p, s, 'sm', 'SERVICE MODULE', 'oxygen and electricity', m('sm'), { size: 48 });
+    s.wash('aquarius', m('aquarius') - .1);
+    partLabel(p, s, 'aquarius', 'AQUARIUS', 'the lander', m('aquarius'));
+  }],
+
+  ['launch', 'Launch', (m, D) => {
+    const p = panel(0);
+    const g = pic(p, 'launch', { x: 800, y: 330, h: 900, at: 0, from: [0, 0] });
+    tw(g, { y: 520 }, 0, m('two') + .2, lin);
+    hide(dateChip(p, '1970', '11 April · launch', .3), m('two') - .5, .3);
+    // at "two days", the route: the dot goes out toward the Moon as the clock runs to the accident
+    const r = route(p, { at: m('two') - .3, legs: [0, 0, 0] });
+    hide(g, m('two') - .3, .5);
+    const t0 = m('two'), t1 = D + 1.6;
+    prog(q => put(r._legs[0], { d: q * S_PROBLEM }), t0, t1 - t0, soft);
+    craft(r, t => S_PROBLEM * soft(span01(t, t0, t1)), t0, D + 2);
+    clock(p, 0, MET.problem, t0, t1, { at: t0 });
+  }],
+
+  ['tank', 'The tank', (m, D) => {
+    const p = panel(0);
+    const r = route(p, { legs: [S_PROBLEM, 0, 0] });
+    craft(r, () => S_PROBLEM, 0, D);
+    const ck = clock(p, MET.problem, MET.problem, 0, 1);
+    pulse(r._dot, m('h56'), 2.2);
+    hide(r, m('routine') - .2, .4);
+    hide(ck, m('routine') - .2, .4);
+    // the tank: NASA's cutaway, the fans and the heater on the long tube inside
+    const g = pic(p, 'tank', { x: 800, y: 380, h: 560, at: m('routine'), from: [0, 30] });
+    key(p, 'OXYGEN TANK 2', 1310, 200, m('two') - .4, { size: 48 });
+    const fan = G(p, { x: 868, y: 186, o: 0 });
+    mk('circle', { r: 34, fill: 'none', stroke: HOT, 'stroke-width': 5 }, fan);
+    show(fan, m('stir') - .1, .3); pulse(fan, m('stir'), 1.3);
+    tag(p, 'stirring fan', 930, 180, m('stir'), { size: 28, fill: HOT });
+    // the wire sparks, then the tank bursts: a red mark, a jolt, a brief white flash (no flames drawn)
+    const sp = G(p, { x: 852, y: 420, o: 0 });
+    mk('path', { d: 'M0 -26L8 -6L26 -2L10 8L16 28L0 14L-16 28L-10 8L-26 -2L-8 -6Z', fill: HOT }, sp);
+    tw(sp, { o: 1, s: 1.3 }, m('spark'), .2, out); pulse(sp, m('spark') + .3, 1.4);
+    tw(g, { x: 812, r: 1.5 }, m('burst'), .06, lin); tw(g, { x: 792, r: -1 }, m('burst') + .06, .08, lin); tw(g, { x: 800, r: 0 }, m('burst') + .14, .2, out);
+    const fl = mk('rect', { x: 0, y: 0, width: SW, height: SH, fill: '#ffffff' }, p);
+    put(fl, { o: 0 }); tw(fl, { o: .7 }, m('burst'), .05, lin); tw(fl, { o: 0 }, m('burst') + .05, .5, out);
+    key(p, 'BURST', 1310, 560, m('burst') + .1, { size: 96, fill: HOT });
+  }],
+
+  ['fault', 'Not their fault', (m, D) => {
+    const p = panel(0);
+    const g = pic(p, 'tank', { x: 800, y: 380, h: 560 });
+    tw(g, { x: 300, o: 0 }, 0, 1.2, io);
+    key(p, "NOT THE CREW'S FAULT", 900, 360, m('fault') - .1, { size: 84 });
+    tag(p, 'a heater test on the ground, before launch,', 900, 440, m('test') - .2, { anchor: 'middle', size: 34, fill: CREAM });
+    tag(p, 'had most likely damaged the wire', 900, 486, m('test') + .5, { anchor: 'middle', size: 34, fill: CREAM });
+  }],
+
+  ['lights', 'Warning lights', (m, D) => {
+    const p = panel(0);
+    lamp(p, 330, 200, 'ALARM', m('lights'), 0);
+    lamp(p, 620, 200, 'OXYGEN', m('lights') + .25, 1);
+    lamp(p, 330, 300, 'POWER', m('lights') + .5, 1);
+    lamp(p, 620, 300, 'PRESSURE', m('lights') + .7, 0);
+    gauge(p, 1000, 560, 'TANK 2', t => t < m('empty') - .2 ? .96 : .96 * (1 - smooth01(span01(t, m('empty') - .2, m('empty') + .4))), m('lights') + .4);
+    gauge(p, 1200, 560, 'TANK 1', t => .94 - .7 * span01(t, m('leaking'), D + 2), m('lights') + .6);
+    key(p, 'EMPTY', 1000, 210, m('empty'), { size: 44, fill: HOT });
+    key(p, 'LEAKING', 1200, 210, m('leaking'), { size: 44, fill: HOT });
+    // Odyssey's power: a battery bar fading
+    const b = G(p, { x: 470, y: 500, o: 0 });
+    mk('rect', { x: -170, y: -40, width: 330, height: 80, rx: 8, fill: 'none', stroke: CREAM, 'stroke-width': 3 }, b);
+    mk('rect', { x: 162, y: -16, width: 14, height: 32, rx: 3, fill: CREAM }, b);
+    const lv = mk('rect', { x: -160, y: -30, width: 310, height: 60, rx: 4, fill: CREAM }, b);
+    T(b, "ODYSSEY'S POWER", { y: 84, size: 28, fill: SOFT, font: KEY, weight: 500, anchor: 'middle' }).setAttribute('letter-spacing', '.1em');
+    show(b, m('power') - .4, .4);
+    let last = -1;
+    clockRun(t => { const w = Math.round(310 * (1 - .8 * smooth01(span01(t, m('power'), D + 1.2)))); if (w !== last) { last = w; lv.setAttribute('width', w); lv.setAttribute('fill', w < 120 ? HOT : CREAM); } }, 0, { tail: true });
+  }],
+
+  ['control', 'Mission Control', (m, D) => {
+    const p = panel(0);
+    const g = pic(p, 'control', { x: 800, y: 370, h: 620, at: 0, from: [0, 0] });
+    push(g, 0, D + .6, 1.08, -30, 10);
+    dateChip(p, 'Houston', 'Mission Control', m('houston'), { ground: COL.board });
+    hide(plate(p, 'flight director Gene Kranz and his team', 1520, 130, m('kranz'), { anchor: 'end', size: 30 }), m('off') - .4, .3);
+    tw(g, { o: .22 }, m('off') - .5, .6);
+    const k = key(p, 'LAND ON THE MOON', 800, 540, m('off') - .4, { size: 72 });
+    strike(p, k, 800, 540, m('off'), 72);
+    key(p, 'BRING THREE PEOPLE HOME', 800, 630, m('three') - .2, { size: 64, fill: HOT });
+  }],
+
+  ['lifeboat', 'The lifeboat', (m, D) => {
+    const p = panel(0);
+    const s = shipShot(p, 0, { o: 1 });
+    s.wash('aquarius', m('lander') - .1, { op: .4 });
+    partLabel(p, s, 'aquarius', 'AQUARIUS', 'its own batteries and oxygen', m('lander'));
+    const a = key(p, '2 PEOPLE · 2 DAYS', 1395, 360, m('two') - .3, { size: 48 });
+    tw(a, { o: 0 }, m('four') - .4, .3);
+    key(p, 'LIFEBOAT', 800, 120, m('lifeboat'), { size: 80, fill: HOT });
+    key(p, '3 PEOPLE', 1395, 340, m('four') - .3, { size: 48, fill: HOT });
+    tag(p, 'for almost 4 days', 1395, 384, m('four'), { anchor: 'middle', size: 30, fill: CREAM });
+  }],
+
+  ['switchoff', 'Switched off', (m, D) => {
+    const p = panel(0);
+    const s = shipShot(p, 0);
+    s.wash('aquarius', 0, { op: .4, dur: .01 });
+    s.shade('odyssey', m('off'), .7);
+    partLabel(p, s, 'odyssey', 'ODYSSEY: OFF', 'its batteries saved', m('off') + .1);
+    tag(p, 'for the very end:', 1395, 340, m('end') - .1, { anchor: 'middle', size: 32, fill: CREAM });
+    tag(p, 'the trip home through the air', 1395, 382, m('end') + .3, { anchor: 'middle', size: 32, fill: CREAM });
+  }],
+
+  ['loop', 'Round the Moon', (m, D) => {
+    const p = panel(0);
+    const r = route(p, { legs: [1, 0, 0], dash: [0, 1, 1] });
+    craft(r, t => S_PROBLEM + (1 - S_PROBLEM) * .5 * span01(t, 0, D), 0, D);
+    clock(p, H(58, 40), MET.freeReturn, 0, m('s34') + .5);
+    hide(key(p, "CAN'T TURN AROUND", 760, 160, m('turn') - .2, { size: 56 }), m('around') - .2, .3);
+    show(r._legs[1], m('around'), 1);   // dashed: the way still to come
+    show(r._legs[2], m('earth') - .2, 1);
+    const [x, y] = routeAt(r, S_PROBLEM + (1 - S_PROBLEM) * .5 * (m('s34') / D));
+    burnFlash(p, x - 26, y + 8, m('s34'), 1.6);
+    const c = G(p, { x: 760, y: 170, o: 0 });
+    const v = T(c, '', { size: 72, fill: HOT, font: KEY, weight: 600, anchor: 'middle' });
+    T(c, 'SECONDS OF ENGINE', { y: 40, size: 24, fill: SOFT, font: KEY, weight: 500, anchor: 'middle' }).setAttribute('letter-spacing', '.12em');
+    show(c, m('s34') - .2, .3);
+    let last = -1;
+    clockRun(t => { const n = Math.round(34 * span01(t, m('s34'), m('s34') + 1.4)); if (n !== last) { last = n; v.textContent = n; } }, 0, { tail: true });
+  }],
+
+  ['farside', 'The far side', (m, D) => {
+    const p = panel(0);
+    const g = pic(p, 'moon', { x: 800, y: 470, h: 1000, at: 0, from: [0, 0] });
+    const dc = dateChip(p, '1970', '15 April · far side of the Moon', m('apr15') - .2, { ground: COL.board });   // over the photograph
+    hide(dc, m('farther') - .4, .3);
+    tw(g, { x: 700, y: 430 }, 0, m('farther'), lin);
+    tw(g, { o: 0 }, m('farther') - .3, .6);
+    const e = pic(p, 'crescent', { x: 1060, y: 410, h: 500, at: m('farther') - .2, from: [0, 0] });
+    push(e, m('farther'), D + .6, 1.08);
+    key(p, 'FARTHER THAN ANYONE HAD BEEN', 800, 110, m('farther') + .2, { size: 52 });
+    tag(p, 'a record from 1970', 470, 380, m('fifty') - .1, { anchor: 'middle', size: 34, fill: CREAM });
+    tag(p, 'until 2026', 470, 426, m('fifty') + .5, { anchor: 'middle', size: 34, fill: CREAM });
+    plate(p, 'Earth, seen from Apollo 13', 1060, 650, m('farther') + .6, { anchor: 'middle', size: 28 });
+  }],
+
+  ['pc2', 'A longer push', (m, D) => {
+    const p = panel(0);
+    const r = route(p, { legs: [1, 1, 1], dash: [0, 0, 1] });
+    const home = path(r, LEGS[2], { stroke: CREAM, 'stroke-width': 3 }, { d: 0 });   // the way home, drawn as they take it
+    const sOf = t => 2 + .3 * soft(span01(t, m('four'), m('nine') + .4)) + .08 * span01(t, m('nine') + .4, D + 1);
+    prog(q => put(home, { d: q * .3 }), m('four'), m('nine') + .4 - m('four'), soft);
+    craft(r, sOf, 0, D);
+    clock(p, [[0, MET.pericynthion], [m('four') - .3, MET.pc2], [m('nine'), MET.pc2off]]);   // two hours on, then the burn's own minutes
+    hide(key(p, 'OVER 4 MINUTES', 760, 160, m('four'), { size: 56 }), m('nine') - .2, .2);
+    const [fx_, fy_] = routeAt(r, sOf(m('four') + .1));
+    burnFlash(p, fx_, fy_, m('four') + .1, 3);
+    key(p, 'HOME ABOUT 9 HOURS SOONER', 760, 160, m('nine'), { size: 52, fill: HOT });
+    // the ships, waiting at the Earth end
+    const sh = G(p, { x: EARTH[0] + 130, y: EARTH[1] + 140, o: 0 });
+    mk('path', { d: 'M-34 0H34L24 14H-24Z M-10 0V-14H10V0', fill: CREAM }, sh);
+    T(sh, 'SHIPS IN THE PACIFIC', { x: 50, y: 10, size: 24, fill: CREAM, font: KEY, weight: 500 }).setAttribute('letter-spacing', '.08em');
+    show(sh, m('pacific') - .1, .4);
+  }],
+
+  ['cold', 'Cold', (m, D) => {
+    const p = panel(0);
+    const g = pic(p, 'lm-inside', { x: 620, y: 370, h: 600, at: 0, from: [0, 0], o: .55 });
+    const cool = mk('rect', { x: 620 - g._w / 2, y: 370 - g._h / 2, width: g._w, height: g._h, fill: '#2a5a9a' }, p);
+    put(cool, { o: 0 }); tw(cool, { o: .45 }, m('dark') - .2, .8);
+    tag(p, 'inside Aquarius', 620, 690 - 20, .6, { anchor: 'middle', size: 24 });
+    // a thermometer drawn falling to 3 °C (Wikipedia: as low as 3 °C, 38 °F)
+    const th = G(p, { x: 1220, y: 520, o: 0 });
+    mk('rect', { x: -16, y: -360, width: 32, height: 360, rx: 16, fill: 'none', stroke: CREAM, 'stroke-width': 3 }, th);
+    mk('circle', { cy: 20, r: 32, fill: '#7fb8f0' }, th);
+    const col = mk('rect', { x: -9, y: -200, width: 18, height: 220, rx: 9, fill: '#7fb8f0' }, th);
+    const rd = T(th, '', { x: 50, y: -80, size: 56, fill: CREAM, font: KEY, weight: 600 });
+    show(th, m('cold') - .5, .4);
+    let last = '';
+    clockRun(t => { const q = smooth01(span01(t, m('cold'), m('water'))), h = Math.round(40 + 200 * (1 - q)), txt = q >= 1 ? '3 °C' : '';
+      if (`${h}${txt}` !== last) { last = `${h}${txt}`; rd.textContent = txt; col.setAttribute('y', 20 - h); col.setAttribute('height', h); } }, 0, { tail: true });
+    tag(th, 'just above freezing', 50, -30, m('water'), { size: 28, fill: CREAM });
+    // water: a drop that shrinks
+    const dr = G(p, { x: 1420, y: 360, o: 0 });
+    mk('path', { d: 'M0 -60C20 -24 40 0 40 22A40 40 0 0 1 -40 22C-40 0 -20 -24 0 -60Z', fill: '#7fb8f0' }, dr);
+    T(dr, 'WATER', { y: 110, size: 26, fill: SOFT, font: KEY, weight: 500, anchor: 'middle' }).setAttribute('letter-spacing', '.1em');
+    show(dr, m('water') - .2, .3); tw(dr, { s: .55 }, m('water') + .2, D - m('water') + .4, lin);
+  }],
+
+  ['air', 'The air', (m, D) => {
+    const p = panel(0);
+    // breath: CO2 dots filling the cabin's air (a picture of an idea, not a measurement)
+    const box = [180, 150, 620, 440];
+    mk('rect', { x: box[0], y: box[1], width: box[2], height: box[3], rx: 28, fill: 'none', stroke: SOFT, 'stroke-width': 2 }, p);
+    T(p, 'THE AIR IN AQUARIUS', { x: box[0] + box[2] / 2, y: box[1] - 24, size: 26, fill: SOFT, font: KEY, weight: 500, anchor: 'middle' }).setAttribute('letter-spacing', '.12em');
+    const d = dots(p, 90, [box[0] + 30, box[1] + 30, box[2] - 60, box[3] - 60], 9, 13, HOT);
+    d.el.forEach((e, i) => show(e, m('air') + i * (m('filling') + 1.2 - m('air')) / 90, .3));
+    key(p, 'CO₂', box[0] + box[2] / 2, box[1] + box[3] / 2 + 30, m('co2'), { size: 120, fill: CREAM });
+    // square cartridge, round holder
+    const sq = G(p, { x: 1080, y: 300, o: 0 });
+    mk('rect', { x: -80, y: -80, width: 160, height: 160, rx: 6, fill: 'none', stroke: CREAM, 'stroke-width': 6 }, sq);
+    T(sq, "ODYSSEY'S SPARE", { y: 130, size: 24, fill: SOFT, font: KEY, weight: 500, anchor: 'middle' }).setAttribute('letter-spacing', '.1em');
+    const rn = G(p, { x: 1360, y: 470, o: 0 });
+    mk('circle', { r: 78, fill: 'none', stroke: HOT, 'stroke-width': 6, 'stroke-dasharray': '14 10' }, rn);
+    T(rn, "AQUARIUS'S HOLDER", { y: 130, size: 24, fill: SOFT, font: KEY, weight: 500, anchor: 'middle' }).setAttribute('letter-spacing', '.1em');
+    show(sq, m('square') - .2, .3); show(rn, m('round') - .2, .3);
+    // the square tries the round hole and stops at its rim
+    tw(sq, { x: 1300, y: 420 }, m('round') + .4, .6, io);
+    tw(sq, { x: 1270, y: 395, r: -6 }, m('round') + 1, .25, out);
+  }],
+
+  ['mailbox', 'The fix', (m, D) => {
+    const p = panel(0);
+    const g = pic(p, 'mailbox-ground', { x: 800, y: 380, h: 620, at: 0, from: [0, 30] });
+    zoomTo(p, g, 'mailbox-ground', [
+      ['covers', .54, .37, 'checklist covers', 2.6],
+      ['tape', .55, .39, 'tape', 3.2],
+      ['hoses', .66, .6, 'spacesuit hoses', 2.2]], m, m('tested'), { x: 800, y: 380 });
+    plate(p, 'the fix, shown in Mission Control', 1520, 130, m('tested') + .3, { anchor: 'end', size: 28 });
+    // an hour, read up one step at a time: a clock face sweeping
+    const c = G(p, { x: 1400, y: 560, o: 0 });
+    mk('circle', { r: 70, fill: COL.board, stroke: CREAM, 'stroke-width': 3 }, c);
+    const hand = mk('path', { d: '', fill: HOT, opacity: .7 }, c);
+    T(c, 'ABOUT AN HOUR', { y: 110, size: 24, fill: CREAM, font: KEY, weight: 500, anchor: 'middle' }).setAttribute('letter-spacing', '.1em');
+    show(c, m('hour') - 2.4, .4);
+    prog(q => { const a = q * 2 * Math.PI - 1e-4, x = 62 * Math.sin(a), y = -62 * Math.cos(a);
+      hand.setAttribute('d', q >= 1 ? 'M0 -62A62 62 0 1 1 0 62A62 62 0 1 1 0 -62Z' : q > 0 ? `M0 0V-62A62 62 0 ${a > Math.PI ? 1 : 0} 1 ${x.toFixed(1)} ${y.toFixed(1)}Z` : ''); }, m('hour') - 2.2, 2.6, lin);
+  }],
+
+  ['built', 'The mailbox', (m, D) => {
+    const p = panel(0);
+    const b = pic(p, 'lm-inside', { x: 560, y: 390, h: 600, r: -1, at: 0, from: [-60, 0] });
+    plate(p, 'built in Aquarius', 560, 660, .6, { anchor: 'middle', size: 26 });
+    key(p, 'THE MAILBOX', 1230, 150, m('mailbox'), { size: 72, fill: HOT });
+    // the air box of the beat before, its dots going out on "drop" (no numbers: the readings are sparse)
+    const box = [1000, 260, 460, 330], ab = G(p, { o: 0 });
+    mk('rect', { x: box[0], y: box[1], width: box[2], height: box[3], rx: 24, fill: 'none', stroke: SOFT, 'stroke-width': 2 }, ab);
+    T(ab, 'THE AIR IN AQUARIUS', { x: box[0] + box[2] / 2, y: box[1] - 18, size: 22, fill: SOFT, font: KEY, weight: 500, anchor: 'middle' }).setAttribute('letter-spacing', '.12em');
+    show(ab, m('drop') - 2, .5);
+    const d = dots(ab, 60, [box[0] + 24, box[1] + 24, box[2] - 48, box[3] - 48], 8, 13, HOT);
+    d.el.forEach((e, i) => { put(e, { o: 1 }); hide(e, m('drop') + i * 1.6 / 60, .3); });
+    key(ab, 'CO₂', box[0] + box[2] / 2, box[1] + box[3] / 2 + 26, m('drop') - 2, { size: 96, fill: CREAM });
+    void b;
+  }],
+
+  ['steer', 'By hand', (m, D) => {
+    const p = panel(0);
+    // Earth through the window: its line between day and night held level while the picture drifts back
+    const e = pic(p, 'earth', { x: 800, y: 380, h: 600, at: 0, from: [0, 0], r: 10 });
+    tw(e, { r: 0 }, m('burn'), m('day') - m('burn') + .8, soft);
+    const win = G(p, { x: 800, y: 380, o: 0 });
+    mk('rect', { x: -330, y: -300, width: 660, height: 600, rx: 60, fill: 'none', stroke: COL.board, 'stroke-width': 120 }, win);
+    mk('rect', { x: -270, y: -240, width: 540, height: 480, rx: 30, fill: 'none', stroke: SOFT, 'stroke-width': 3 }, win);
+    show(win, m('burn') - .4, .5);
+    const ln = line(p, 'M884 170V618', m('day'), .8, 3, { stroke: HOT, 'stroke-dasharray': '12 10' });   // the day-night edge, at .66 of the picture
+    void ln;
+    key(p, 'STEERED BY HAND', 1320, 200, m('burn'), { size: 52 });
+    tag(p, 'the line between day and night', 1320, 260, m('day'), { anchor: 'middle', size: 30, fill: CREAM });
+    clock(p, MET.steer, MET.steer, 0, 1, { at: m('burn') });
+  }],
+
+  ['sm', 'The damage', (m, D) => {
+    const p = panel(0);
+    const g = pic(p, 'sm-damage', { x: 800, y: 400, h: 760, at: 0, from: [0, 0] });
+    tw(g, { y: 380, s: .96 }, 0, m('first'), lin);
+    hide(plate(p, 'photographed by the crew as it drifted away', 1540, 300, m('go'), { anchor: 'end', size: 28 }), m('side') - .4, .3);
+    zoomTo(p, g, 'sm-damage', [['side', .52, .42, 'one whole side panel gone', 1.7]], m, D + .5);
+  }],
+
+  ['wake', 'Waking Odyssey', (m, D) => {
+    const p = panel(0);
+    const s = shipShot(p, 0);
+    const sh = s.shade('odyssey', -.8, .82);
+    const off = key(p, 'OFF', s.mid('odyssey'), 300, -.6, { size: 44, fill: SOFT });
+    const wk = key(p, 'WAKING ODYSSEY', 800, 110, m('wake'), { size: 64 });
+    tag(p, 'never meant to be switched off and on again in space', 800, 160, m('wake') + 2.4, { anchor: 'middle', size: 30, fill: CREAM });
+    pulse(off, m('wake'), 1.25);
+    const lit = s.wash('odyssey', m('worked') - .3, { fill: HOT, op: .45 });
+    hide(off, m('worked') - .3, .3);
+    key(p, 'ON', s.mid('odyssey'), 300, m('worked') - .2, { size: 44, fill: HOT });
+    void lit;
+    tag(p, 'controller John Aaron', 1500, 560, m('aaron'), { anchor: 'end', size: 30, fill: CREAM });
+    tag(p, 'astronaut Ken Mattingly', 1500, 600, m('ken'), { anchor: 'end', size: 30, fill: CREAM });
+    tag(p, 'and the engineers', 1500, 640, m('ken') + .7, { anchor: 'end', size: 30, fill: CREAM });
+    // the checklist: steps tick one by one while Odyssey's dark lifts in steps
+    const cl = G(p, { x: 150, y: 470, o: 0 });
+    const steps = ['POWER', 'COMPUTER', 'HEATERS', 'RADIO', 'GUIDANCE'];
+    steps.forEach((w, i) => {
+      const y = i * 40;
+      mk('rect', { x: 0, y: y - 22, width: 24, height: 24, rx: 3, fill: 'none', stroke: CREAM, 'stroke-width': 2 }, cl);
+      T(cl, w, { x: 40, y, size: 24, fill: CREAM, font: KEY, weight: 500 }).setAttribute('letter-spacing', '.1em');
+      const tk = path(cl, `M4 ${y - 10}l7 8l12 -16`, { stroke: HOT, 'stroke-width': 4 }, { d: 0 });
+      const at = m('steps') + .4 + i * (m('worked') - m('steps') - .6) / steps.length;
+      draw(tk, at, .25);
+      tw(sh, { o: .82 * (1 - (i + 1) / steps.length) }, at, .3);
+    });
+    show(cl, m('steps') - .2, .4);
+    key(p, 'IT WORKED', 800, 120, m('worked'), { size: 72, fill: HOT });
+    hide(wk, m('worked') - .2, .2);
+  }],
+
+  ['goodbye', 'Goodbye, Aquarius', (m, D) => {
+    const p = panel(0);
+    const g = pic(p, 'aquarius-away', { x: 800, y: 380, h: 620, at: 0, from: [0, 0] });
+    tw(g, { s: .7, y: 400 }, .3, D + 1.4, lin);
+    key(p, 'GOODBYE, AQUARIUS', 800, 110, m('bye'), { size: 60 });
+    clock(p, MET.entry - 1.18, MET.entry - 1.18, 0, 1);
+  }],
+
+  ['entry', 'Into the air', (m, D) => {
+    const p = panel(0);
+    const r = route(p, { legs: [1, 1, 1], dash: [0, 0, 0] });
+    craft(r, t => 2.82 + .18 * soft(span01(t, 0, m('quiet'))), 0, D);
+    clock(p, MET.entry, MET.entry + .02, 0, m('quiet'));
+    const blk = mk('rect', { x: 0, y: 0, width: SW, height: SH, fill: '#05090f' }, p);
+    put(blk, { o: 0 }); tw(blk, { o: 1 }, m('quiet') - .3, .4);
+    const c = G(p, { x: 800, y: 400, o: 0 });
+    T(c, 'RADIO QUIET', { y: -130, size: 30, fill: SOFT, font: KEY, weight: 500, anchor: 'middle' }).setAttribute('letter-spacing', '.2em');
+    const v = T(c, '0:00', { size: 120, fill: CREAM, font: KEY, weight: 600, anchor: 'middle' });
+    T(c, 'minutes', { y: 60, size: 28, fill: SOFT, font: SER, anchor: 'middle' }).setAttribute('font-style', 'italic');
+    show(c, m('quiet'), .3);
+    let last = '';
+    clockRun(t => { const sec = Math.floor(360 * span01(t, m('quiet'), m('back') - .2)), s = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+      if (s !== last) { last = s; v.textContent = s; } }, 0, { tail: true });
+    const lx = key(p, 'LONGER THAN EXPECTED', 800, 640 - 40, m('expected'), { size: 44, fill: HOT });
+    hide(c, m('back') - .1, .3); hide(lx, m('back') - .1, .3);
+    const ch = pic(p, 'chutes', { x: 800, y: 380, h: 620, at: m('chutes') - .4, from: [0, -40] });
+    push(ch, m('chutes'), D + .8, 1.06, 0, 10);
+  }],
+
+  ['splash', 'Splashdown', (m, D) => {
+    const p = panel(0);
+    const g = pic(p, 'splash', { x: 960, y: 400, h: 540, at: 0, from: [0, 0] });
+    push(g, 0, m('safe'), 1.04);
+    hide(dateChip(p, '1970', '17 April · South Pacific', m('apr17') - .2, { ground: COL.board }), m('iwo') - .4, .3);
+    plate(p, 'the ship, USS Iwo Jima ↓', 560, 112, m('iwo'), { size: 30 });
+    clock(p, MET.splash, MET.splash, 0, 1, { x: 1390, at: m('ocean') });
+    const c = pic(p, 'crew-ship', { x: 800, y: 370, h: 620, at: m('safe') - .4, from: [0, 40] });
+    tag(p, 'Fred Haise, Jim Lovell, Jack Swigert', 800, 690 - 20, m('safe') + .3, { anchor: 'middle', size: 26, fill: CREAM });
+    void c;
+  }],
+
+  ['end', 'A rescue', (m, D) => {
+    const p = panel(0);
+    const g = pic(p, 'celebrate', { x: 800, y: 410, h: 500, at: 0, from: [0, 0] });
+    push(g, 0, m('rescue') + .4, 1.05, 0, 0);
+    const k = key(p, 'A SUCCESSFUL FAILURE', 800, 100, m('failure') - .1, { size: 56, fill: HOT });
+    const t = tag(p, 'Jim Lovell, 1975', 800, 142, m('failure') + .8, { anchor: 'middle', size: 26, fill: CREAM });
+    tw(g, { o: 0 }, m('rescue') - .2, .6);
+    hide(k, m('rescue') - .2, .4); hide(t, m('rescue') - .2, .4);
+    const a = pic(p, 'crew-ship', { x: 440, y: 390, h: 480, r: -2, at: m('rescue'), from: [-60, 0] });
+    const b = pic(p, 'celebrate', { x: 1170, y: 390, h: 440, r: 2, at: m('ground') - .3, from: [60, 0] });
+    tag(p, 'in space', 440, 670 - 14, m('rescue') + .4, { anchor: 'middle', size: 30, fill: CREAM });
+    tag(p, 'on the ground', 1170, 670 - 14, m('ground'), { anchor: 'middle', size: 30, fill: CREAM });
+    key(p, 'ONE PROBLEM AT A TIME', 800, 120, m('time') - .3, { size: 56 });
+    void a; void b;
+  }],
+
+  ['card', 'Apollo 13', (m, D) => {
+    const p = panel(0);
+    const r = route(p, { legs: [1, 1, 1], dash: [0, 0, 0], label: false, o: .35, at: 0 });
+    void r;
+    key(p, 'APOLLO 13', 800, 380, .3, { size: 140 });
+    tag(p, '11–17 April 1970', 800, 440, .8, { anchor: 'middle', size: 34, fill: CREAM });
+    tag(p, 'From Wikipedia, “Apollo 13” (revision 1386441839, CC BY-SA 4.0), checked against NASA’s reports', 800, 560, 1.4, { anchor: 'middle', size: 22 });
+    tag(p, 'Pictures and recordings: NASA, public domain · Music: Holst, The Planets, U.S. Air Force Band and U.S. Marine Band', 800, 596, 1.6, { anchor: 'middle', size: 22 });
+  }, { dur: 6 }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+/* ---------- music ---------- */
+window.MUSIC_UP = { card: () => true };
+// Holst, The Planets (U.S. Air Force Band, U.S. Marine Band; public domain), one track a part, each cut by music.py to
+// its part's length and levelled to -16 LUFS: Jupiter's opening, Mercury's end, Neptune's end, Mercury's opening,
+// Jupiter's end. The real recording in the opening plays alone
+music('audio/bgm/p1-jupiter.mp3', ['real', 'crew', 'ship', 'launch'], .4, 2);
+music('audio/bgm/p2-mercury.mp3', ['tank', 'fault', 'lights', 'control'], .4, 2);
+music('audio/bgm/p3-neptune.mp3', ['lifeboat', 'switchoff', 'loop', 'farside', 'pc2', 'cold'], .4, 2);
+music('audio/bgm/p4-mercury.mp3', ['air', 'mailbox', 'built', 'steer'], .4, 2);
+music('audio/bgm/p5-jupiter.mp3', ['sm', 'wake', 'goodbye', 'entry', 'splash', 'end', 'card'], .4, 2);
+
+Promise.all(['600 40px Oswald', '500 40px Oswald', 'italic 400 40px "EB Garamond"', '400 40px "EB Garamond"']
+  .map(f => document.fonts.load(f))).then(boot);
+</script>
+</body>
+</html>
