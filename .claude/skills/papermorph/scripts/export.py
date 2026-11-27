@@ -219,7 +219,12 @@ async def main(a):
         for i, bid in beats:
             STEP = f'pass 1 (the sound), beat {bid}'
             await open_beat(pg, base, i)
-            end, T = await pg.evaluate('[P.end, TIMINGS[BEATS[P.i].id]]')
+            # the cues as the page shows them, a long sentence in short pieces (ENGINE.captionCues, engine-v2.14)
+            end, T, C = await pg.evaluate('[P.end, TIMINGS[BEATS[P.i].id], typeof ENGINE === "undefined" ? null : ENGINE.captionCues?.(BEATS[P.i].id)]')
+            if C is None:
+                if bid == beats[0][1]: print('warning: the page\'s engine has no captionCues (older than engine-v2.14): '
+                                                  'the .srt keeps each sentence whole; sync the engine (engine.py) for short pieces', flush=True)
+                C = T['cues']
             if T.get('silent'): silent.add(bid)   # { dur } in the beat's fourth slot: no clip, its sound is silence
             cut = info['beats'][i]['video']
             if isinstance(cut, (int, float)) and not isinstance(cut, bool): end = min(end, cut)
@@ -238,8 +243,8 @@ async def main(a):
                                                [bid, count, a.fps]))
             music_up.append(await pg.evaluate('([id, n, fps]) => Array.from({length: n}, (_, f) => !!window.MUSIC_UP?.[id]?.(f / fps))',
                                               [bid, count, a.fps]))
-            for k, c in enumerate(T['cues']):   # [t, text, end?]: the page shows it at pre + t
-                stop = c[2] if len(c) > 2 else T['cues'][k + 1][0] if k + 1 < len(T['cues']) else T['dur']
+            for k, c in enumerate(C):   # [t, text, end?]: the page shows it at pre + t
+                stop = c[2] if len(c) > 2 and c[2] is not None else C[k + 1][0] if k + 1 < len(C) else T['dur']
                 if pre + c[0] < end: cues.append((offset + pre + c[0], offset + pre + min(stop, end - pre), c[1]))
             offset += end
         total = offset + end_s

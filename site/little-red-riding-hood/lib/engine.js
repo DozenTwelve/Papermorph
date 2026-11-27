@@ -2069,6 +2069,59 @@ function goSeg(i, x) {
   const r = segs[i].parentNode.getBoundingClientRect();
   hideCover(); seekInto(i, x == null ? 0 : Math.max(0, Math.min(1, (x - r.left) / r.width)));
 }
+// Captions in pieces a young reader takes in at a glance (core/sound.md "Captions"): a cue wider than CAPTION_CHARS (a
+// Chinese, Japanese or Korean character counts two) is cut at the clause mark (, ; : — ، ؛ ，、；：！？) nearest its
+// middle, else (when it is over by more than a fifth) at the space nearest it, else between two Chinese or Japanese
+// characters; never inside an expression (5 + x = 7, س + 3 = 7) or short brackets (f(x, y)), and never leaving a piece
+// under a quarter of the limit; a line its author marked left to right or right to left keeps the mark on each piece. timings.js holds no word times (the voice scripts keep them in the .timings.json beside the
+// narration), so a piece starts at its share of the cue's characters along the cue's time: from its start to its end,
+// else the next cue, else the clip's end. The page and export.py's .srt both
+// read captionCues(); TIMINGS keeps the voice script's cues as written (a kit's cueAt() counts those).
+const CAPTION_CHARS = 42;
+const WIDE_CHAR = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}　-〿！-｠]/u;
+const capWidth = s => { let n = 0; for (const c of s) n += WIDE_CHAR.test(c) ? 2 : 1; return n; };
+const CLAUSE_BREAK = /[,;:،؛](?=\s)|\s[—–](?=\s)|[，、；：！？]/g;
+const SHORT_BRACKETS = /\([^()]{1,20}\)|\[[^[\]]{1,20}\]/g;   // f(x, y), [0, 1]: kept whole like an expression
+const SIGN_END = /[=+×÷*<>≤≥≠^−\-]$/, SIGN_START = /^[=+×÷*<>≤≥≠^−\-]/;   // nor beside a sign: 'س + 3 = 7', 'x² + y² = z²'
+const SPACE_BREAK = /\s+/g, WIDE_BREAK = /(?<=[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}])(?=[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}])/gu;
+function splitLine(line, beat) {
+  const width = capWidth(line);
+  if (width <= CAPTION_CHARS) return [line];
+  const maths = [...line.matchAll(EXPRESSION)].map(m => [m.index + m[1].length, m.index + m[0].length])
+    .concat([...line.matchAll(SHORT_BRACKETS)].map(m => [m.index, m.index + m[0].length]));
+  for (const re of [CLAUSE_BREAK, SPACE_BREAK, WIDE_BREAK]) {
+    if (re !== CLAUSE_BREAK && width <= CAPTION_CHARS * 1.2) return [line];   // a clause a little over stays whole
+    let best = null;
+    for (const m of line.matchAll(re)) {
+      const i = re === CLAUSE_BREAK ? m.index + m[0].length : m.index;
+      const a = line.slice(0, i).trimEnd(), b = line.slice(i).trimStart(), wa = capWidth(a), off = Math.abs(wa - width / 2);
+      if (wa < CAPTION_CHARS / 4 || capWidth(b) < CAPTION_CHARS / 4 || maths.some(([s, e]) => i > s && i < e)
+        || SIGN_END.test(a) || SIGN_START.test(b)) continue;
+      if (!best || off < best[0]) best = [off, a, b];
+    }
+    if (best) return [...splitLine(best[1], beat), ...splitLine(best[2], beat)];
+  }
+  console.warn(`beat ${beat}: caption "${line}" is wider than ${CAPTION_CHARS} characters and has no place to cut, so it shows whole`);
+  return [line];
+}
+const capCues = new WeakMap();
+function captionCues(id) {
+  const tm = TIMINGS[id], cues = tm?.cues || [];
+  if (capCues.has(cues)) return capCues.get(cues);
+  const out = [];
+  cues.forEach((c, k) => {
+    const line = String(c[1] ?? ''), mark = /^[\u200E\u200F]/.test(line) ? line[0] : '';   // the author's direction, on every piece
+    const parts = splitLine(line, id).map(p => p.startsWith(mark) ? p : mark + p);
+    if (parts.length === 1) return out.push(c);
+    const t = c[0], stop = Math.max(t, c[2] ?? cues[k + 1]?.[0] ?? tm.dur), all = parts.reduce((n, p) => n + capWidth(p), 0);
+    let w = 0;
+    const at = parts.map(p => { const s = +(t + (stop - t) * w / all).toFixed(3); w += capWidth(p); return s; });
+    // the last piece keeps the cue's end and its other-language mark; an earlier marked piece ends where the next starts
+    parts.forEach((p, j) => out.push(j === parts.length - 1 ? [at[j], p, ...c.slice(2)] : c.length > 3 ? [at[j], p, at[j + 1], ...c.slice(3)] : [at[j], p]));
+  });
+  capCues.set(cues, out);
+  return out;
+}
 // ui() runs on every frame, paused or not: it writes only what changed, so an idle lesson does no layout work.
 let stepText = '';
 const setWidth = (f, w) => { if (f._w !== w) { f._w = w; f.style.width = w + '%'; } };
@@ -2091,7 +2144,7 @@ function ui() {
     // words are over; a 1 marks a line in another language, whose subtitle shows even with captions off (as does every
     // cue of a beat whose timings say forced: true, from tts.py or eleven.py)
     // the last line without an end clears a second after the narration, so it does not sit on a closing title
-    const cues = TIMINGS[b.id].cues;
+    const cues = captionCues(b.id);
     for (const [k, [t, line, end = k === cues.length - 1 ? TIMINGS[b.id].dur + 1 : null, forced]] of cues.entries()) {
       if (t + (b.pre || 0) > P.t + .05) break;
       text = (captions || forced || TIMINGS[b.id].forced) && !(end != null && P.t > end + (b.pre || 0)) ? line : '';
@@ -2301,7 +2354,7 @@ return { TRANSLATIONS, PORTRAIT, SW, SH, LANGUAGE, translate, DECIMAL_SIGN, isSh
   show, hide, draw, pop, pulse, stream, mix, evalTo, soft, clockRun, camera, scene, S, AXIS, X, Y0, num, reset, tick,
   dot, arrow, panel, retire, header, fx, fxp, finishFx, pulseFx, shakeFx, floatText, TF, $, kbd, sources, uiW, SCORE,
   h, rich, card, mascotEl, quiz, qlayer, keyAct, choice, mcq, tap, tapEls, pickEls, findWords, FIND, findMouth, findSaw, grid, rat, gcd, lowest, blanks,
-  SND, P, HOLD, clearCards, seek, seekInto, start, setSpeed, setPlaying, setCaptions, hideCover, restart, boot,
+  SND, P, HOLD, clearCards, seek, seekInto, start, setSpeed, setPlaying, setCaptions, captionCues, hideCover, restart, boot,
   finishCard };
 })();
 

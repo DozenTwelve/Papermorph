@@ -538,6 +538,55 @@ async def check_arabic_maths(browser, errors):
     print("PASS Arabic maths: an expression inside a right-to-left line keeps its order on the stage, in cards and in captions")
 
 
+async def check_captions(browser, errors):
+    """A long cue shows as short pieces, cut at clause marks first, timed by its characters; Chinese and Japanese
+    characters count two and cut between characters; a line is never cut inside an expression or beside a sign, and
+    an author's direction mark goes on every piece."""
+    page = await open_lesson(browser, "en", errors)
+    crew = [[0, "The crew were Jim Lovell, the commander, Jack Swigert and Fred Haise."],
+            [4.72, "Swigert joined only days before launch, because Ken Mattingly, the first pick, had been near someone with German measles."]]
+    await page.evaluate(f"TIMINGS.idea.cues = {json.dumps(crew)}; TIMINGS.idea.dur = 11.5")
+    cues = await page.evaluate("ENGINE.captionCues('idea')")
+    assert [c[1] for c in cues] == ["The crew were Jim Lovell, the commander,", "Jack Swigert and Fred Haise.", "Swigert joined only days before launch,",
+                                    "because Ken Mattingly,", "the first pick,", "had been near someone with German measles."], f"English pieces: {cues}"
+    assert [c[0] for c in cues] == [0, 2.776, 4.72, 6.961, 8.225, 9.087], f"English times: {cues}"
+    assert await page.evaluate("TIMINGS.idea.cues") == crew, "TIMINGS keeps the voice script's cues"
+    await page.evaluate("setCaptions(true, false); hideCover(); seek(1, false)")
+    await page.wait_for_function("document.getElementById('caption').textContent")
+    assert await page.evaluate("document.getElementById('caption').textContent") == "The crew were Jim Lovell, the commander,", "first piece shown"
+    # a marked line (another language) keeps its mark on every piece and its end on the last
+    forced = await page.evaluate("""TIMINGS.idea.cues = [[1, 'Houston, we have had a problem here, we have had a main bus B undervolt.', 6, 1]];
+      ENGINE.captionCues('idea')""")
+    assert [len(c) for c in forced] == [4, 4] and forced[0][2] == forced[1][0] and forced[1][2:] == [6, 1], f"marked pieces: {forced}"
+    # Chinese at its commas, counted two a character; Japanese with no marks between characters; a word with no place to cut stays whole
+    zh = await page.evaluate("""TIMINGS.idea.cues = [[0, '他打开了搅动氧气罐的风扇，二号罐里一根受损的电线冒出火花，罐子爆炸了。']]; ENGINE.captionCues('idea').map(c => c[1])""")
+    assert zh == ["他打开了搅动氧气罐的风扇，", "二号罐里一根受损的电线冒出火花，", "罐子爆炸了。"], f"Chinese pieces: {zh}"
+    ja = await page.evaluate("""TIMINGS.idea.cues = [[0, 'さんにんのうちゅうひこうしはつきへむかっていたがとちゅうでたいへんなことがおきました']]; ENGINE.captionCues('idea').map(c => c[1])""")
+    assert len(ja) > 1 and ''.join(ja) == "さんにんのうちゅうひこうしはつきへむかっていたがとちゅうでたいへんなことがおきました" and all(len(p) <= 21 for p in ja), f"Japanese pieces: {ja}"
+    fxy = await page.evaluate("TIMINGS.idea.cues = [[0, 'The displayed equation is f(x, y) = x + y + z + a + b which gives the result.']]; ENGINE.captionCues('idea').map(c => c[1])")
+    assert len(fxy) > 1 and any("f(x, y) = x + y + z + a + b" in p for p in fxy), f"pieces cut an expression: {fxy}"
+    url = "https://history.nasa.gov/SP-350/ch-13-1.html#and-a-very-long-anchor-name"
+    assert await page.evaluate(f"TIMINGS.idea.cues = [[0, {json.dumps(url)}]]; ENGINE.captionCues('idea').map(c => c[1])") == [url], "uncuttable line"
+    await page.close()
+    page = await open_lesson(browser, "ar", errors)
+    line = "نعرف من السؤال الطويل أن 5 + x + 2 + y = 7 + 3 + z ثم نبحث عن قيمة كل حرف"
+    pieces = await page.evaluate(f"TIMINGS.idea.cues = [[0, {json.dumps(line)}]]; ENGINE.captionCues('idea').map(c => c[1])")
+    assert len(pieces) > 1 and any("5 + x + 2 + y = 7 + 3 + z" in p for p in pieces), f"Arabic pieces: {pieces}"
+    for text, whole in [("نعرف من السؤال الطويل أن س + 3 = 7 ثم نبحث عن قيمة كل حرف", "س + 3 = 7"),
+                        ("Look at a² + b² + c² + d² + e² + f² = g² for a long while now.", "a² + b² + c² + d² + e² + f² = g²")]:
+        cut = await page.evaluate(f"TIMINGS.idea.cues = [[0, {json.dumps(text)}]]; ENGINE.captionCues('idea').map(c => c[1])")
+        assert len(cut) > 1 and any(whole in p for p in cut), f"pieces cut an expression: {cut}"
+    marked = await page.evaluate("TIMINGS.idea.cues = [[0, '\\u200Eنعرف من السؤال الطويل أن 5 + x = 7، ثم نبحث عن قيمة كل حرف في المعادلة']]; ENGINE.captionCues('idea').map(c => c[1])")
+    assert len(marked) > 1 and all(p.startswith(chr(0x200E)) for p in marked), f"direction mark lost: {marked!r}"
+    await page.evaluate(f"TIMINGS.idea.cues = [[0, {json.dumps(line)}]]")
+    await page.evaluate("setCaptions(true, false); hideCover(); seek(1, false)")
+    await page.wait_for_function("document.getElementById('caption').textContent")
+    shown = await page.evaluate("document.getElementById('caption').textContent")
+    assert shown.replace(chr(0x2066), "").replace(chr(0x2069), "") == pieces[0], f"Arabic caption: {shown!r}"
+    await page.close()
+    print("PASS captions: long cues show as short pieces (English, Chinese, Japanese, Arabic with maths), marks and ends kept")
+
+
 async def main():
     errors = []
     async with async_playwright() as playwright:
@@ -550,6 +599,7 @@ async def main():
         await check_arabic_lesson(browser, errors)
         await check_arabic_book(browser, errors)
         await check_arabic_maths(browser, errors)
+        await check_captions(browser, errors)
         await browser.close()
     assert not errors, errors
     print("PASS no page errors, console errors or failed requests")
