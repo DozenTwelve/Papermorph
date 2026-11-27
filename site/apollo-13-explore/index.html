@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Apollo 13: The Way Home</title>
+<meta name="description" content="Explore Apollo 13’s trip around the Moon and home: a mission clock, eight stops with NASA pictures, and the real radio call.">
+<link rel="stylesheet" href="lib/page.css">
+</head>
+<body>
+<header class="top">
+  <p class="kicker">April 1970 · an explorable page</p>
+  <h1>Apollo 13: The Way Home</h1>
+  <div class="intro">
+    <img src="img/crew-before-launch.jpg" width="960" height="776" alt="Three smiling men in flight suits; two hold small models of the spacecraft.">
+    <p>Jim Lovell, Jack Swigert and Fred Haise set off to land on the Moon. Almost 56 hours later an oxygen tank failed, and the trip became a journey home. Drag the mission clock, press <b>Play</b>, or pick a stop to see where they were and what happened.</p>
+  </div>
+  <p class="photo-credit">Swigert, Lovell and Haise before launch (NASA).</p>
+</header>
+
+<main class="layout">
+  <section class="stage" aria-label="The drawing and the mission clock">
+    <div class="figure">
+      <svg id="map" role="img" aria-labelledby="map-desc"></svg>
+      <button type="button" id="zoom" class="zoom" aria-pressed="false">Zoom in on the Moon</button>
+      <p class="schematic" id="map-desc"><b>Schematic drawing.</b> The Moon’s path is real; Apollo 13’s line is sketched. Earth and Moon are drawn bigger than they are. <a href="#how">How it is drawn</a></p>
+    </div>
+
+    <div class="clock">
+      <button type="button" id="play" aria-pressed="false"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2 1 L9 5 L2 9 Z"/></svg><span>Play</span></button>
+      <div class="track">
+        <label for="met">Mission clock</label>
+        <input type="range" id="met" min="0" max="514481" step="1" value="0" aria-describedby="keys">
+        <div id="ticks"></div>
+      </div>
+    </div>
+    <p class="now" aria-hidden="true">
+      <span class="met">MET <b id="now-met">000:00:00</b></span>
+      <span id="now-utc"></span>
+      <span class="phase" id="now-phase"></span>
+      <span class="moon-d">Moon <b id="now-moon"></b> km from Earth</span>
+    </p>
+    <p id="keys" class="keys">Arrow keys: one hour (with Shift: ten minutes). Page Up and Page Down: the next or the last stop. Enter: open the last stop passed.</p>
+
+    <fieldset class="routes">
+      <legend>Compare the paths</legend>
+      <label class="flown"><input type="radio" name="route" value="flown" checked> <i></i> What flew</label>
+      <label class="free"><input type="radio" name="route" value="free"> <i></i> Free return only</label>
+      <label class="planned"><input type="radio" name="route" value="planned"> <i></i> The plan</label>
+    </fieldset>
+    <p id="route-text" class="route-text" aria-live="polite"></p>
+  </section>
+
+  <aside class="side">
+    <section id="card" class="card" aria-labelledby="card-h" hidden>
+      <button type="button" id="close" class="close" aria-label="Close">×</button>
+      <p class="when"><span class="n" id="card-n" aria-hidden="true"></span><span id="card-when"></span></p>
+      <h2 id="card-h" tabindex="-1"></h2>
+      <div id="card-figs" class="figs"></div>
+      <div id="card-text" class="text"></div>
+      <div id="card-audio" class="audio" hidden><h3>Listen to the real radio</h3></div>
+      <p class="facts"><b>The numbers.</b> <span id="card-facts"></span></p>
+      <p class="src"><b>Source.</b> <span id="card-src"></span></p>
+      <div class="steps">
+        <button type="button" id="prev">‹ <span></span></button>
+        <button type="button" id="next"><span></span> ›</button>
+      </div>
+    </section>
+
+    <nav aria-label="The eight stops">
+      <h2 class="list-h">The eight stops</h2>
+      <ol id="events" class="events"></ol>
+    </nav>
+  </aside>
+</main>
+
+<footer class="about">
+  <section id="how">
+    <h2>How the drawing is made</h2>
+    <p>The drawing looks down on the Moon’s orbit, with Earth held still in the middle. The grey track is where the Moon really was, hour by hour, from NASA JPL’s Horizons system; its dots mark each midnight (UTC). The distance under the clock is from Earth’s centre to the Moon’s centre.</p>
+    <p>Apollo 13’s line is a sketch, not its real track. At the moments NASA listed in its Mission Report (Table 4-II), the line is as far from Earth as NASA measured; which way it points in between is drawn by hand. Near the Moon it is drawn wide, so the loop around the far side can be seen, and near Earth it is lifted clear of the enlarged Earth. Earth is drawn about 3 times bigger than it is, the Moon about 7½ times. The three paths are compared as ideas: nothing here predicts what a different burn would have done.</p>
+    <p>MET is mission elapsed time, the mission clock: hours, minutes and seconds since launch, 11 April 1970 at 19:13:00 UTC.</p>
+  </section>
+  <section>
+    <h2>Credits</h2>
+    <p>Adapted from “<a href="https://en.wikipedia.org/w/index.php?title=Apollo_13&amp;oldid=1386441839">Apollo 13</a>” by Wikipedia contributors, revision 1386441839 (18 November 2026), licensed <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>. Changes: selected, simplified and reorganized; times and numbers checked against the NASA sources below. This page’s words are shared under the same licence.</p>
+    <p>Times and numbers: NASA, <a href="https://ntrs.nasa.gov/citations/19710003598">Apollo 13 Mission Report</a> (MSC-02680, September 1970); NASA Apollo 13 air-to-ground voice transcript (1970); spoken words and times as transcribed in the <a href="https://www.apollojournals.org/afj/ap13fj/">Apollo Flight Journal</a>. The Moon: NASA JPL <a href="https://ssd.jpl.nasa.gov/horizons/">Horizons</a> (DE441), Earth-centred, ecliptic J2000, hourly, 11–17 April 1970.</p>
+    <p>Pictures and sound, all public domain (NASA), via Wikimedia Commons:
+      <a href="https://commons.wikimedia.org/wiki/File:Apollo_13_Crew_before_launch_-_S70-34767.jpg">crew before launch</a>,
+      <a href="https://commons.wikimedia.org/wiki/File:Apollo13_tank2.jpg">oxygen tank 2</a>,
+      <a href="https://commons.wikimedia.org/wiki/File:Apollo_13_Lunar_Module_after_separation_from_CSM_(AS13-59-8562).jpg">Aquarius</a>,
+      <a href="https://commons.wikimedia.org/wiki/File:Apollo-13-mission-profile.png">mission profile</a>,
+      <a href="https://commons.wikimedia.org/wiki/File:Mare_Moscoviense_AS13-60-8648.jpg">Mare Moscoviense</a>,
+      <a href="https://commons.wikimedia.org/wiki/File:Apollo_13_-_Earth_during_journey_home.jpg">Earth on the way home</a>,
+      <a href="https://commons.wikimedia.org/wiki/File:Apollo_13_Mailbox_at_Mission_Control.jpg">the adapter in Mission Control</a>,
+      <a href="https://commons.wikimedia.org/wiki/File:Apollo13_apparatus.jpg">the adapter in Aquarius</a>,
+      <a href="https://commons.wikimedia.org/wiki/File:Apollo_13_Service_Module_(lossless_crop).jpg">the service module</a>,
+      <a href="https://commons.wikimedia.org/wiki/File:Apollo_13_spacecraft_splashdown_in_the_South_Pacific_Ocean_(s70-35644).jpg">splashdown</a>;
+      recordings <a href="https://commons.wikimedia.org/wiki/File:Apollo13-wehaveaproblem_(short).ogg">the call</a> and
+      <a href="https://commons.wikimedia.org/wiki/File:Apollo13-wehaveaproblem.ogg">the radio loop</a>. NASA’s pictures do not mean NASA or the astronauts endorse this page.</p>
+    <p class="made">Made with <a href="../">Papermorph</a>.</p>
+  </section>
+</footer>
+
+<script src="lib/moon.js"></script>
+<script src="lib/data.js"></script>
+<script src="lib/app.js"></script>
+</body>
+</html>
