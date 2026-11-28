@@ -1,0 +1,50 @@
+name: Bug in a book or the player
+description: Something on a book page or in the player doesn't work or looks wrong.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. For a problem making a book with the Skill, use the **Skill problem** form instead.
+  - type: input
+    id: url
+    attributes:
+      label: Book and chapter
+      description: The URL of the page, with the chapter if there is one.
+      placeholder: https://papermorph.diamonddoge.org/linear-algebra/ch12/
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and device
+      placeholder: Firefox 140 on Windows 11, Safari on iPhone 15, …
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps
+      description: What you did, in order. A time or step number in the chapter helps.
+      placeholder: |
+        1. Open the chapter and press Play
+        2. At step 4, press →
+    validations:
+      required: true
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot or recording
+      description: Drag an image or video here. Errors from the browser console help too.

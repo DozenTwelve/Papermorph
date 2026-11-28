@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Commission books for your titles
+    url: https://papermorph.diamonddoge.org/work/
+    about: For publishers, schools and studios. We build the pipeline around your own titles and style.
+  - name: Make your own book
+    url: https://github.com/DozenTwelve/Papermorph/blob/main/.claude/skills/papermorph/SKILL.md
+    about: We don't make books on request. The Skill makes them; start here.
+  - name: Questions
+    url: https://github.com/DozenTwelve/Papermorph/discussions
+    about: Ask and talk in GitHub Discussions.

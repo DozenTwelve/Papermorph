@@ -1,0 +1,27 @@
+name: Idea or new shape
+description: A feature for the Skill or the player, or a new shape of book.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        We don't make books on request. To make your own, see the [Skill](https://github.com/DozenTwelve/Papermorph/blob/main/.claude/skills/papermorph/SKILL.md).
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea
+      description: What it is and who it is for.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: What it would let a reader or a book maker do that they can't now.
+    validations:
+      required: true
+  - type: textarea
+    id: examples
+    attributes:
+      label: Examples
+      description: Links to something like it, sketches or screenshots.

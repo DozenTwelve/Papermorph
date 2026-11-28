@@ -105,7 +105,7 @@ The shelf is a set of examples: the shapes that suit a maths book, a language co
 
 ## Contributing
 
-Fixes to the Skill and the player are welcome. Please don't open pull requests that add a copyrighted book, its PDF, or lessons made from one. Agents and people changing the repository: start with [AGENTS.md](AGENTS.md).
+Fixes to the Skill and the player are welcome. Please don't open pull requests that add a copyrighted book, its PDF, or lessons made from one. How to set up, run the checks and send a change: [CONTRIBUTING.md](CONTRIBUTING.md). Agents changing the repository: start with [AGENTS.md](AGENTS.md).
 
 To try the examples locally:
 

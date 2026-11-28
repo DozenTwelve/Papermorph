@@ -1,0 +1,53 @@
+name: Skill problem
+description: Making a book with the Skill went wrong, or a doc or script misled the model.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Reports of where the Skill misled a model are some of the most useful we get. If you can, say which of the five rules in [AGENTS.md › Changing the Skill](https://github.com/DozenTwelve/Papermorph/blob/main/AGENTS.md#changing-the-skill) the problem falls under, or that it fits none of them.
+  - type: dropdown
+    id: tier
+    attributes:
+      label: What you were making
+      options:
+        - Lesson (from a textbook PDF)
+        - Picture book
+        - Documentary
+        - Upright short
+        - Scroll story
+        - Explorable map
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: where
+    attributes:
+      label: Which doc or script
+      description: The file in `.claude/skills/papermorph/`, if you know it.
+      placeholder: references/films/films.md, scripts/tts.py, …
+  - type: input
+    id: models
+    attributes:
+      label: Models used
+      description: The agent and the model for each step you know of.
+      placeholder: Claude Code with Opus 5.5; Sonnet 5.5 for scenes
+    validations:
+      required: true
+  - type: textarea
+    id: did
+    attributes:
+      label: What the model did
+      description: What it tried, ran or wrote. A short excerpt of the transcript or a tool's output helps.
+    validations:
+      required: true
+  - type: textarea
+    id: wrong
+    attributes:
+      label: What went wrong
+    validations:
+      required: true
+  - type: textarea
+    id: helped
+    attributes:
+      label: What would have helped
+      description: A sentence in a doc, a message from a tool, a missing piece in a kit.
