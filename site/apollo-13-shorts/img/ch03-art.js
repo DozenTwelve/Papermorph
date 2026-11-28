@@ -1,0 +1,1 @@
+window.ART = Object.assign(typeof ART === 'object' ? ART : {}, {"ch03-mailbox-lm":[1800,1555],"ch03-sm-damage":[939,1600],"ch03-aquarius":[1600,1593],"ch03-control":[1800,1217],"ch03-prototype":[1800,1172],"ch03-crew-rig":[1600,1600],"ch03-splash":[1600,1041],"ch03-crew-ship":[1600,1255]});

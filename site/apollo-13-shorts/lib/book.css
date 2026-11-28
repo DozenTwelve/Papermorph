@@ -1,0 +1,18 @@
+/* Apollo 13 shorts: the documentary's look (site/apollo-13/lib/book.css), upright. Imported by engine.css; engine.py
+   never overwrites it. The first block is the player's palette, the second the shorts kit's (shorts.js reads it: DARK,
+   LIGHT, RED, …). RED is the film's amber, not a red: the documentary has no red, and the kit's stamps and markers use
+   it. Series choices: books/apollo-13/shorts/SERIES.md. Fonts: lib/fonts.css and lib/fonts/. */
+@import url("fonts.css");
+:root {
+  --page: #060d17; --board: #0f2238; --panel: #0c1c2f; --edge: #060d17;   /* --edge: the page colour, every shot is full bleed */
+  --chalk: #eef1f4; --dim: #a9b8c9; --faint: #5c7088;
+  --task: #f2a93b; --quiz: #d8e2ec; --good: #b8e0c0; --bad: #ffb0a0;
+  --vignette: rgba(2, 6, 14, .5);
+  --rule: #1d3654; --track: #1a3150; --track-ask: #1a3150;
+  --bar-edge: #1a3150; --hover: #1d3a5c; --veil: #050b14;
+}
+:root {
+  --dark: #0f2238; --light: #eef1f4; --red: #f2a93b; --teal: #5c7088; --muted: #a9b8c9; --mark: #f2a93b; --sea: #0c1c2f;
+}
+/* Every shot is full bleed: square corners like a phone video, and nothing light behind the stage's edge. */
+#frame { border-radius: 0; background: var(--page); }

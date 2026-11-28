@@ -34,6 +34,17 @@
   .watched .meta::after { display: block; content: "✓ Watched"; color: var(--accent); }
   .shapes { max-width: 1180px; margin: 0 auto; padding: 36px 24px 8px; }
   .shapes:empty { display: none; }
+  .shorts h2 { margin: 0; font: 600 26px/1.2 var(--key); letter-spacing: .04em; text-transform: uppercase; }
+  .shorts > p { margin: 4px 0 0; color: var(--soft); font: 16px/1.5 var(--ui); }
+  .shorts ul { list-style: none; padding: 0; margin: 18px 0 0; display: grid; grid-template-columns: repeat(3, minmax(0, 240px)); gap: 14px; }
+  .shorts a { display: flex; flex-direction: column; height: 100%; background: var(--card); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; text-decoration: none; transition: border-color .15s, transform .15s; }
+  .shorts a:hover, .shorts a:focus-visible { border-color: var(--accent); transform: translateY(-2px); }
+  .shorts img { display: block; width: 100%; height: auto; aspect-ratio: 9 / 16; object-fit: cover; }
+  .shorts small { margin: 10px 12px 0; color: var(--soft); font: 600 12px/1.3 var(--ui); }
+  .shorts b { margin: 2px 12px 4px; font: 600 19px/1.2 var(--key); letter-spacing: .03em; text-transform: uppercase; }
+  .shorts span { margin: 0 12px 12px; color: var(--soft); font: 14px/1.45 var(--ui); }
+  .shorts .watched small::after { display: block; content: "✓ Watched"; color: var(--accent-text); }
+  @media (max-width: 560px) { .shorts ul { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   main { max-width: 760px; margin: 0 auto; padding: 24px 24px 40px; }
   main h2 { margin: 56px 0 8px; font: 600 26px/1.2 var(--key); letter-spacing: .04em; text-transform: uppercase; }
   main h2:first-child { margin-top: 32px; }
@@ -71,7 +82,20 @@
 </div>
 
 <!-- The same story in other shapes (shorts, an interactive page, a scroll story): cards go here. -->
-<section class="shapes" id="shapes"></section>
+<section class="shapes" id="shapes">
+  <div class="shorts">
+    <h2 id="shorts">As shorts</h2>
+    <p>The same story told upright for a phone, in three episodes of about a minute and a half. Each makes one point and stands on its own.</p>
+    <ul id="shortList">
+      <li><a href="../apollo-13-shorts/ch01/"><img src="img/still-shorts-ch01.webp" width="600" height="1067" alt="The lunar module Aquarius in black and white against space, labelled Moon lander." loading="lazy">
+        <small>Episode 1 · 1:34</small><b>The Lifeboat</b><span>A machine built to land on the Moon never landed, and kept three astronauts alive on the way home.</span></a></li>
+      <li><a href="../apollo-13-shorts/ch02/"><img src="img/still-shorts-ch02.webp" width="600" height="1067" alt="The Moon's cratered surface close up, an amber path crossing it, under the words 2 pushes." loading="lazy">
+        <small>Episode 2 · 1:24</small><b>Two Pushes</b><span>The first engine push put them back on a path home; the second made the trip shorter and aimed it at the Pacific.</span></a></li>
+      <li><a href="../apollo-13-shorts/ch03/"><img src="img/still-shorts-ch03.webp" width="600" height="1067" alt="The taped-together air filter hanging inside the lunar module, tagged 1970." loading="lazy">
+        <small>Episode 3 · 1:32</small><b>The Adapter</b><span>The air filters they needed were on board. They worked once a square one was made to fit a round hole.</span></a></li>
+    </ul>
+  </div>
+</section>
 
 <main>
   <h2>One article, checked</h2>
@@ -152,6 +176,11 @@
 const key = getComputedStyle(document.documentElement).getPropertyValue('--progress-key').trim().replace(/^["']|["']$/g, '')
   || 'animebook:progress:' + new URL('.', location.href).pathname;
 try { if ((JSON.parse(localStorage.getItem(key) || '{}').done || []).includes(1)) document.getElementById('film').classList.add('watched'); } catch {}
+// Shorts live in their own folder (../apollo-13-shorts/), so their progress is kept under that folder's key.
+try {
+  const seen = JSON.parse(localStorage.getItem('animebook:progress:' + new URL('../apollo-13-shorts/', location.href).pathname) || '{}').done || [];
+  document.querySelectorAll('#shortList li').forEach((li, i) => { if (seen.includes(i + 1)) li.classList.add('watched'); });
+} catch {}
 </script>
 </body>
 </html>

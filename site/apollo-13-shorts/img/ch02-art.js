@@ -1,0 +1,1 @@
+window.ART = Object.assign(typeof ART === 'object' ? ART : {}, {"ch02-moon":[1800,1788],"ch02-earth":[1600,1600],"ch02-launch":[907,2000],"ch02-control":[1920,1298],"ch02-crew":[1920,1552],"ch02-aquarius":[1800,1793],"ch02-crescent":[1722,1800],"ch02-chutes":[1920,1525],"ch02-splash":[1920,1249],"ch02-crewship":[1920,1506]});

@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en" data-stage="portrait">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apollo 13 · 3 · The Adapter</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="audio/en/timings.js"></script>
+<script src="../img/art.js"></script>
+<script src="../img/ch03-art.js"></script>
+<script src="../lib/icons.js"></script>
+<script src="../lib/shorts.js"></script>
+<script src="../lib/apollo13.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 3, title: 'The Adapter', minutes: 2, language: 'en' };   // the last episode: no next
+
+/* ---------- this episode's pieces ----------
+   Two colours keep one meaning each for the whole film: white dots are oxygen (breathed in, from Aquarius's tank),
+   amber dots carbon dioxide (breathed out, caught by a filter). A filter takes amber out and makes no white. */
+const OXY = LIGHT, CO2 = MARK, STEEL = '#8e9aa7', STEEL_D = '#4e5a67';
+
+// a small grey box with a number's unit and source, always shown (the voice says no numbers); bottom left, in the safe area
+function numTag(g, lines, t0, { y = 1196 } = {}) {
+  const e = G(g, { x: 50, y, o: 0 });
+  const w = Math.max(...lines.map(l => inkW(l.toUpperCase(), 22, SANS, 500) + l.length * 22 * .06)) + 24;
+  rect(e, 0, -28, Math.min(w, 760), 14 + lines.length * 32, { fill: 'rgba(6,13,23,.78)', rx: 4 });
+  lines.forEach((l, i) => T(e, l.toUpperCase(), { x: 12, y: i * 32, size: 22, fill: LIGHT, font: SANS, weight: 500 }).setAttribute('letter-spacing', '.06em'));
+  show(e, t0, .3);
+  return e;
+}
+// a photograph's source, small, top left (shown with ?tags and in the export, as srcTag)
+const nasa = (g, t0, what = 'NASA') => srcTag(g, what, 50, 150, t0);
+
+// a crew member drawn simply: helmet-less head and shoulders, facing us; returns the mouth point
+function crewman(g, x, y) {
+  path(g, `M${x - 120} ${y + 210}Q${x - 118} ${y + 78} ${x} ${y + 74}Q${x + 118} ${y + 78} ${x + 120} ${y + 210}Z`, { fill: TEAL, stroke: 'none' });
+  mk('circle', { cx: x, cy: y, r: 58, fill: '#7d8ea2' }, g);
+  return [x, y + 22];
+}
+// the oxygen tank: a white-grey capsule
+function tank(g, x, y) {
+  const e = G(g, { x, y });
+  rect(e, -62, -110, 124, 220, { rx: 58, fill: '#c9d3de' });
+  rect(e, -14, -134, 28, 30, { rx: 6, fill: '#c9d3de' });
+  ['AQUARIUS\u2019S', 'OXYGEN'].forEach((w, k) => T(e, w, { y: 160 + k * 38, size: 34, fill: LIGHT, font: SANS, weight: 600, anchor: 'middle' }).setAttribute('letter-spacing', '.08em'));
+  return e;
+}
+// Aquarius's own filter, round, seen end on
+function roundFilter(g, x, y, r = 100) {
+  const e = G(g, { x, y });
+  mk('circle', { r, fill: '#24384f', stroke: LIGHT, 'stroke-width': 6 }, e);
+  mk('circle', { r: r * .68, fill: '#31475f', stroke: STEEL, 'stroke-width': 3 }, e);
+  for (let i = 0; i < 12; i++) { const a = i / 12 * 2 * Math.PI; mk('circle', { cx: Math.cos(a) * r * .45, cy: Math.sin(a) * r * .45, r: 7, fill: STEEL_D }, e); }
+  mk('circle', { r: 9, fill: STEEL_D }, e);
+  return e;
+}
+// Odyssey's filter, square, its vented face toward us (after the photographs: grey, a grid of square vents)
+function squareFilter(g, x, y, size) {
+  const e = G(g, { x, y }), h = size / 2, c = size / 4;
+  rect(e, -h, -h, size, size, { rx: size * .05, fill: STEEL, stroke: LIGHT, 'stroke-width': 5 });
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) rect(e, -h + c * .5 + i * c * 1.02, -h + c * .5 + j * c * 1.02, c * .86, c * .86, { rx: 4, fill: STEEL_D });
+  return e;
+}
+// the cabin as a diagram, over the real cabin wall dimmed: tank left, filter right, three crew below; returns the points
+function cabin(s, D, { filter = false, push = [1.04, 1.1] } = {}) {
+  photo(s, 'ch03-mailbox-lm', 0, D + .6, { s0: push[0], s1: push[1], dim: .78, ai: false });
+  const tk = tank(s, 170, 580), mouths = [crewman(s, 250, 940), crewman(s, 450, 940), crewman(s, 650, 940)];
+  const fl = filter ? roundFilter(s, 715, 580) : null;
+  return { tk, fl, mouths, tankOut: [240, 560], filterAt: [715, 580] };
+}
+// dots crossing from a to b one after another, a stream from t0 to t1 (fading), n of them each `cross` s on the way
+function flow(g, n, a, b, t0, t1, D, { fill = OXY, r = 12, cross = 1.4, wob = 22, seed = 1 } = {}) {
+  const R = seeded(seed), dots = [...Array(n)].map(() => ({ e: mk('circle', { r, fill, opacity: 0 }, g), j: (R() - .5) * 2, ph: R() * 6 }));
+  clockRun(t => dots.forEach((d, i) => {
+    const age = t - t0 - i * cross / n;
+    if (age < 0 || t > t1 + .4) return d.e.setAttribute('opacity', 0);
+    const q = (age / cross) % 1;
+    d.e.setAttribute('cx', (a[0] + (b[0] - a[0]) * q + d.j * wob * Math.sin(Math.PI * q)).toFixed(1));
+    d.e.setAttribute('cy', (a[1] + (b[1] - a[1]) * q + 8 * Math.sin(q * 9 + d.ph)).toFixed(1));
+    d.e.setAttribute('opacity', (Math.min(1, q * 6, (1 - q) * 6) * (1 - ramp01(t, t1, t1 + .4))).toFixed(2));
+  }), D, { tail: true });
+}
+// carbon dioxide breathed out: dots leaving the mouths one by one from t0 and drifting into the air above them, where
+// they hang; with tGo each is drawn into the filter at `to`, one after another, and is gone
+function breath(g, mouths, n, t0, D, { rate = 7, area = [300, 640, 520, 180], tGo, gap = .09, to, seed = 3 } = {}) {
+  const R = seeded(seed);
+  const dots = [...Array(n)].map((_, i) => ({ e: mk('circle', { r: 13, fill: CO2, opacity: 0 }, g), m: mouths[i % mouths.length],
+    x: area[0] + R() * area[2], y: area[1] + R() * area[3], ph: R() * 6, born: t0 + i / rate, gone: tGo === undefined ? Infinity : tGo + i * gap }));
+  clockRun(t => dots.forEach(d => {
+    if (t < d.born) return d.e.setAttribute('opacity', 0);
+    const q = smooth(ramp01(t, d.born, d.born + 1.3));
+    let x = d.m[0] + (d.x - d.m[0]) * q + 7 * Math.sin(t * 1.3 + d.ph), y = d.m[1] + (d.y - d.m[1]) * q + 7 * Math.cos(t * 1.1 + d.ph), o = 1;
+    if (t > d.gone) { const k = smooth(ramp01(t, d.gone, d.gone + .6)); x += (to[0] - x) * k; y += (to[1] - y) * k; o = 1 - ramp01(t, d.gone + .45, d.gone + .6); }
+    d.e.setAttribute('cx', x.toFixed(1)); d.e.setAttribute('cy', y.toFixed(1)); d.e.setAttribute('opacity', o.toFixed(2));
+  }), D, { tail: true });
+}
+// the carbon dioxide dial: a half circle from none (left) to the doctors' limit (right), its needle at v(t) (0..1 of
+// the limit). A sketch of the reading, not a measured curve: the numbers are on the tag
+function dial(g, x, y, r, v, t0) {
+  const e = G(g, { x, y, o: 0 });
+  path(e, `M${-r} 0A${r} ${r} 0 0 1 ${r} 0Z`, { fill: 'rgba(6,13,23,.82)', stroke: 'none' });
+  path(e, `M${-r * .86} 0A${r * .86} ${r * .86} 0 0 1 ${r * .86} 0`, { stroke: MUTED, 'stroke-width': 10 });
+  const a = k => Math.PI * (1 - k), arc = (k0, k1, rr) => `M${rr * Math.cos(a(k0))} ${-rr * Math.sin(a(k0))}A${rr} ${rr} 0 0 1 ${rr * Math.cos(a(k1))} ${-rr * Math.sin(a(k1))}`;
+  path(e, arc(.8, 1, r * .86), { stroke: CO2, 'stroke-width': 22 });
+  for (let i = 0; i <= 10; i++) { const c = Math.cos(a(i / 10)), sn = Math.sin(a(i / 10)); path(e, `M${c * r * .7} ${-sn * r * .7}L${c * r * .78} ${-sn * r * .78}`, { stroke: MUTED, 'stroke-width': 4 }); }
+  T(e, 'LIMIT', { x: r * .98, y: 52, size: 34, fill: CO2, font: SANS, weight: 600, anchor: 'end' });
+  T(e, 'CARBON DIOXIDE', { y: 52, size: 30, fill: MUTED, font: SANS, weight: 500, anchor: 'middle' }).setAttribute('letter-spacing', '.1em');
+  const nd = G(e, {});
+  path(nd, `M0 0L${-r * .8} 0`, { stroke: LIGHT, 'stroke-width': 12 });
+  mk('circle', { r: 20, fill: LIGHT }, nd);
+  let last = '';
+  clockRun(t => { const k = Math.max(0, Math.min(1, v(t))).toFixed(3); if (k !== last) { last = k; put(nd, { r: 180 * k }); } }, 0, { tail: true });
+  if (t0 <= .01) put(e, { o: 1 }); else show(e, t0, .3);
+  return e;
+}
+// a step of the procedure, a card flying up and settling in a stack
+function stepCard(g, n, x, y, t0) {
+  const e = G(g, { x, y: y - 260, o: 0, r: -6 + n * 4 });
+  rect(e, -150, -60, 300, 120, { rx: 10, fill: LIGHT });
+  T(e, `STEP ${n}`, { y: 18, size: 54, fill: DARK, font: SANS, weight: 600, anchor: 'middle' });
+  tw(e, { y, o: 1 }, t0, .3, out); sfx(BEAT_ID, t0, 'tick', .9);
+  return e;
+}
+
+/* ---------- beats ---------- */
+const OPEN_PRE = .3;
+const BEATS = [
+  // The hook, the point: the real adapter already moving; then a round hole; then the tape on it
+  ['hook', 'The hook', (m, D) => {
+    const p = panel(0), sq = m('square'), rd = m('round'), tp = m('tape');
+    let s = shot(p, 0, rd);
+    wide(s, 'ch03-mailbox-lm', [[0, .6, .32, 1.15], [rd + .3, .6, .3, 1.45]]);
+    nasa(s, 0);
+    label(s, '1970', CX - 20, 250, m('y1970'), { size: 56, fill: MARK, colour: DARK });
+    word(s, 'A square filter', CX - 20, 1160, sq, { size: 120, fill: LIGHT, stroke: DARK });
+    s = shot(p, rd, tp, { bg: SEA, whip: true });
+    photo(s, 'ch03-mailbox-lm', rd, tp + .3, { s0: 1.3, s1: 1.36, dim: .8, ai: false });
+    const hole = G(s, { x: CX - 20, y: 820 });
+    mk('circle', { r: 230, fill: '#050b14', stroke: LIGHT, 'stroke-width': 16 }, hole);
+    mk('circle', { r: 200, fill: 'none', stroke: STEEL_D, 'stroke-width': 6 }, hole);
+    tw(hole, { s: 1.08 }, rd, tp - rd + .3, lin);
+    word(s, 'A round hole', CX - 20, 1240, rd, { size: 120, fill: LIGHT, stroke: DARK });
+    s = shot(p, tp, undefined, { whip: true });
+    wide(s, 'ch03-mailbox-lm', [[tp, .62, .28, 2.0], [D, .6, .3, 2.25]]);
+    nasa(s, tp);
+    word(s, '+ a lot of tape', CX - 20, 1160, tp + .1, { size: 120, fill: MARK, stroke: DARK });
+  }, { pre: OPEN_PRE }],
+
+  // Which series, which episode (wordless)
+  ['card', 'The series', (m, D) => {
+    const s = shot(panel(0), 0, undefined, { bg: DARK, swipe: true });
+    seriesCard(s, 0, 3, .7);
+  }, { dur: 1.4 }],
+
+  // Why they were in the lander at all: the burst, then Aquarius
+  ['lander', 'The lander', (m, D) => {
+    const p = panel(0), aq = m('aquarius');
+    let s = shot(p, 0, aq, { bg: DARK });
+    photo(s, 'ch03-sm-damage', 0, aq + .3, { s0: 1.02, s1: 1.14, dy: 30, ai: false });
+    nasa(s, 0);
+    metClock(s, [[.2, met(55, 54)]]);
+    word(s, 'Oxygen tank', CX - 20, 1100, m('burst'), { size: 120, fill: LIGHT, stroke: DARK });
+    word(s, 'burst', CX - 20, 1240, m('burst') + .25, { size: 120, fill: MARK, stroke: DARK });
+    s = shot(p, aq, undefined, { bg: '#000', swipe: true });
+    wide(s, 'ch03-aquarius', [[aq, .5, .44, 1.0], [D + .6, .5, .42, 1.25]]);
+    nasa(s, aq);
+    word(s, 'Aquarius', CX - 20, 1110, aq, { size: 140, fill: LIGHT, stroke: DARK });
+    label(s, 'the little Moon lander', CX - 20, 1240, m('lander'), { size: 52, fill: MARK, colour: DARK });
+  }],
+
+  // Two gases: oxygen breathed in (white, from the tank), carbon dioxide breathed out (amber)
+  ['gases', 'Two gases', (m, D) => {
+    const p = panel(0), ox = m('oxygen'), bo = m('out');
+    const s = shot(p, 0, undefined, { bg: DARK, whip: true });
+    const C = cabin(s, D);
+    C.mouths.forEach((mo, i) => flow(s, 7, C.tankOut, mo, ox + i * .15, D + 2, D, { seed: 11 + i }));
+    word(s, 'Oxygen in', CX - 20, 330, ox, { size: 110, fill: OXY, stroke: DARK });
+    breath(s, C.mouths, 24, bo, D, { rate: 9 });
+    word(s, 'Carbon dioxide out', CX - 20, 1290, m('co2'), { size: 100, fill: CO2, stroke: DARK });
+  }],
+
+  // A filter soaks the amber up; it makes no oxygen, which still comes from the tank
+  ['clean', 'Filters', (m, D) => {
+    const p = panel(0), no = m('nooxygen');
+    const s = shot(p, 0, undefined, { bg: DARK });
+    const C = cabin(s, D, { filter: true, push: [1.1, 1.16] });
+    put(C.fl, { s: .4, o: 0 }); tw(C.fl, { s: 1, o: 1 }, 0, .35, back); sfx('clean', 0, 'thud', .8);
+    C.mouths.forEach((mo, i) => flow(s, 7, C.tankOut, mo, -3 + i * .15, D + 2, D, { seed: 11 + i }));
+    breath(s, C.mouths, 24, -4, D, { rate: 9, tGo: .3, to: C.filterAt });
+    C.mouths.forEach((mo, i) => flow(s, 5, mo, C.filterAt, 2.6 + i * .2, D + 2, D, { fill: CO2, r: 10, cross: 1.5, seed: 21 + i }));
+    word(s, 'Filters soak it up', CX - 20, 330, 0, { size: 100, fill: LIGHT, stroke: DARK });
+    label(s, 'makes no oxygen', 645, 730, no, { size: 40, fill: LIGHT, colour: DARK });
+    pulse(C.tk, no + .5, 1.12);
+    word(s, 'Takes out only', CX - 20, 1200, m('out2') - .9, { size: 96, fill: CO2, stroke: DARK });
+    word(s, 'what they breathe out', CX - 20, 1290, m('out2') - .6, { size: 84, fill: CO2, stroke: DARK });
+  }],
+
+  // Not enough: filters for two people for two days, and here were three for four
+  ['filters', 'Not enough', (m, D) => {
+    const p = panel(0), t2 = m('two'), t3 = m('three');
+    const s = shot(p, 0, undefined, { bg: DARK, whip: true });
+    photo(s, 'ch03-aquarius', 0, D + .6, { s0: 1.2, s1: 1.3, dim: .8, ai: false });
+    const f = roundFilter(s, CX - 20, 560, 90); put(f, { o: 0, s: .5 }); tw(f, { o: 1, s: 1 }, .1, .3, back);
+    word(s, 'Aquarius\'s filters', CX - 20, 370, 0, { size: 84, fill: LIGHT, stroke: DARK });
+    const people = n => [...Array(n)].map((_, i) => CX - 20 + (i - (n - 1) / 2) * 170);
+    const two = G(s, { o: 0 }); people(2).forEach(x => ico(two, 'person', x, 830, 190, LIGHT));
+    show(two, t2, .25); hide(two, t3 - .05, .1, lin);
+    const three = G(s, { o: 0 }); people(3).forEach((x, i) => ico(three, 'person', x, 830, 190, LIGHT));
+    show(three, t3, .15, lin);
+    const l2 = label(s, 'made for 2 people · 2 days', CX - 20, 1020, t2, { size: 52, fill: LIGHT, colour: DARK }); hide(l2, t3 - .05, .1, lin);
+    label(s, 'now 3 people · 4 days', CX - 20, 1020, t3, { size: 56, fill: MARK, colour: DARK });
+    stamp(s, 'NOT ENOUGH', CX - 20, 1220, t3 + .9, { size: 90 });
+  }],
+
+  // The reading climbs toward the doctors' limit
+  ['reading', 'The reading', (m, D) => {
+    const p = panel(0), f = m('fifteen');
+    const s = shot(p, 0, undefined, { bg: DARK, swipe: true });
+    photo(s, 'ch03-mailbox-lm', 0, D + .6, { s0: 1.2, s1: 1.32, dim: .62, ai: false });
+    dial(s, CX - 20, 860, 330, t => .55 + .44 * smooth(ramp01(t, .1, f + .5)), 0);
+    word(s, 'Close to the limit', CX - 20, 330, f, { size: 110, fill: CO2, stroke: DARK });
+    label(s, 'the doctors’ limit', CX + 140, 1010, m('doctors'), { size: 40, fill: CO2, colour: DARK });
+    numTag(s, ['Highest reading 14.9 mm Hg; limit set at 15', 'NASA Apollo 13 Mission Report, 6.7 and 9.2.2'], .4);
+  }],
+
+  // Odyssey's spares were square; Aquarius's holders round: it will not go in
+  ['shapes', 'Square and round', (m, D) => {
+    const p = panel(0), sq = m('sq'), rd = m('rd');
+    let s = shot(p, 0, sq, { bg: SEA, whip: true });
+    const sky = G(s, {}), R = seeded(13);   // Odyssey in space: a starfield, drifting slowly
+    for (let i = 0; i < 90; i++) mk('circle', { cx: R() * W, cy: R() * H, r: .8 + R() * 2.2, fill: LIGHT, opacity: (.25 + R() * .6).toFixed(2) }, sky);
+    tw(sky, { y: -40 }, 0, sq + .3, lin);
+    // Odyssey, the capsule, drawn as its cone, and its spare filters sliding out in a row
+    const cone = G(s, { x: CX - 20, y: 640 });
+    path(cone, 'M-170 150L-60 -170Q0 -200 60 -170L170 150Q0 190 -170 150Z', { fill: '#b9c3ce', stroke: LIGHT, 'stroke-width': 6 });
+    path(cone, 'M-40 -175L-30 -215H30L40 -175', { fill: '#b9c3ce', stroke: LIGHT, 'stroke-width': 6 });
+    tw(cone, { s: 1.08 }, 0, sq + .3, lin);
+    word(s, 'Odyssey', CX - 20, 330, 0, { size: 120, fill: LIGHT, stroke: DARK });
+    [0, 1, 2, 3].forEach(i => { const f = squareFilter(s, 180 + i * 180, 1030, 130); put(f, { o: 0, x: CX - 20, y: 700, s: .3 }); tw(f, { o: 1, x: 180 + i * 180, y: 1030, s: 1 }, .9 + i * .25, .4, out); });
+    label(s, 'spare filters', CX - 20, 1220, 1.0, { size: 56, fill: MARK, colour: DARK });
+    s = shot(p, sq, undefined, { bg: SEA, whip: true });
+    photo(s, 'ch03-mailbox-lm', sq, D + .6, { s0: 1.25, s1: 1.32, dim: .8, ai: false });
+    // Aquarius's holder: a round can, open at the top, narrower than the square filter
+    const hole = G(s, { x: CX - 20, y: 1000 });
+    path(hole, 'M-125 0V150Q0 200 125 150V0Z', { fill: STEEL_D, stroke: LIGHT, 'stroke-width': 8 });
+    mk('ellipse', { rx: 125, ry: 44, fill: '#050b14', stroke: LIGHT, 'stroke-width': 10 }, hole);
+    ['AQUARIUS’S', 'HOLDER'].forEach((w, k) => T(s, w, { x: 290, y: 1080 + k * 42, size: 36, fill: MUTED, font: SANS, weight: 500, anchor: 'end' }).setAttribute('letter-spacing', '.1em'));
+    const f = squareFilter(s, CX - 20, 560, 330);
+    word(s, 'Square', CX - 20, 300, 0, { size: 120, fill: LIGHT, stroke: DARK });
+    // down toward the hole, the corners hit the rim on "round", and it bounces back
+    const hit = rd + .1;
+    tw(f, { y: 800 }, .1, hit - .1, io);
+    tw(f, { y: 700, r: -5 }, hit, .25, out); tw(f, { y: 760, r: 3 }, hit + .25, .3, io); tw(f, { r: 0 }, hit + .55, .2);
+    label(s, 'won\u2019t fit', 590, 700, hit + .1, { size: 48, fill: MARK, colour: DARK, anchor: 'start' });
+    sfx('shapes', hit, 'thud', 1.4);
+    word(s, 'Round', CX - 20, 1290, rd, { size: 120, fill: MARK, stroke: DARK });
+  }],
+
+  // Houston, and what they had to work with
+  ['parts', 'On board', (m, D) => {
+    const p = panel(0), cd = m('card');
+    let s = shot(p, 0, cd, { whip: true });
+    wide(s, 'ch03-control', [[0, .45, .5, 1.0], [cd + .3, .62, .5, 1.12]]);
+    nasa(s, 0);
+    word(s, 'Houston', CX - 20, 1160, m('houston'), { size: 140, fill: LIGHT, stroke: DARK });
+    s = shot(p, cd, undefined, { bg: DARK, swipe: true });
+    photo(s, 'ch03-prototype', cd, D + .6, { s0: 1.25, s1: 1.33, dim: .8, ai: false });
+    word(s, 'Already on board', CX - 20, 300, cd, { size: 96, fill: LIGHT, stroke: DARK });
+    const item = (x, y, t0, draw, name) => { const e = G(s, { x, y, o: 0, s: .5 }); draw(e); tw(e, { o: 1, s: 1 }, t0, .3, back); sfx('parts', t0, 'tick', .8); label(s, name, x, y + 170, t0 + .05, { size: 44, fill: LIGHT, colour: DARK }); };
+    item(240, 560, cd, e => { rect(e, -110, -140, 220, 280, { rx: 6, fill: '#c9a87a' }); [-90, -30, 30, 90].forEach(y => mk('circle', { cx: -80, cy: y, r: 9, fill: DARK }, e)); }, 'cardboard');
+    item(620, 560, m('bags'), e => path(e, 'M-110 -120Q-120 40 -95 130Q0 150 95 130Q120 40 110 -120Q0 -100 -110 -120Z', { fill: 'rgba(220,235,245,.45)', stroke: LIGHT, 'stroke-width': 5 }), 'plastic bags');
+    item(240, 930, m('gtape'), e => { rect(e, 0, 72, 150, 30, { fill: '#9aa3ab' }); mk('circle', { r: 105, fill: '#9aa3ab', stroke: '#c3cad1', 'stroke-width': 6 }, e); mk('circle', { r: 50, fill: DARK, stroke: '#6d7782', 'stroke-width': 8 }, e); }, 'grey tape');
+    item(620, 930, m('hose'), e => { const d = 'M-120 90C-120 -40 -40 -120 40 -90S130 0 120 -120'; path(e, d, { stroke: '#eef1f4', 'stroke-width': 46 }); path(e, d, { stroke: STEEL, 'stroke-width': 46, 'stroke-dasharray': '4 14', 'stroke-linecap': 'butt' }); }, 'spacesuit hose');
+  }],
+
+  // Tested on the ground; read up step by step, for about an hour
+  ['radio', 'Read up', (m, D) => {
+    const p = panel(0), one = m('one');
+    let s = shot(p, 0, one, { whip: true });
+    wide(s, 'ch03-prototype', [[0, .5, .45, 1.0], [one + .3, .55, .4, 1.35]]);
+    nasa(s, 0);
+    label(s, 'the test model, Mission Control', CX - 20, 1000, .3, { size: 40, fill: DARK, colour: LIGHT });
+    stamp(s, 'TESTED', CX - 20, 1200, m('tested') + .5, { size: 110, colour: MARK });
+    s = shot(p, one, undefined, { swipe: true });
+    wide(s, 'ch03-crew-rig', [[one, .5, .5, 1.0], [D + .6, .45, .52, 1.12]]);
+    rect(s, 0, 0, W, H, { fill: '#000', opacity: .35 });
+    nasa(s, one);
+    metClock(s, [[one, met(90, 22)], [m('hour') + .4, met(91, 12)]]);
+    [1, 2, 3].forEach(i => stepCard(s, i, CX - 20, 620 + (i - 1) * 40, one + (i - 1) * .55));
+    word(s, 'One at a time', CX - 20, 1060, one + .1, { size: 110, fill: LIGHT, stroke: DARK });
+    word(s, 'About an hour', CX - 20, 1240, m('hour'), { size: 110, fill: MARK, stroke: DARK });
+  }],
+
+  // How it works, drawn as said: a bag over the square filter, the hose in the bag, air pulled through
+  ['how', 'How it works', (m, D) => {
+    const p = panel(0), bg = m('bag'), hi = m('hosein'), pl = m('pulled');
+    const s = shot(p, 0, undefined, { bg: DARK, whip: true });
+    photo(s, 'ch03-mailbox-lm', 0, D + .6, { s0: 1.3, s1: 1.36, dim: .82, ai: false });
+    const fy = 820, fs = 340;
+    squareFilter(s, CX - 20, fy, fs);
+    // the bag over the top, its neck up to the right; tape belts
+    const bag = path(s, `M${CX - 20 - fs / 2 - 14} ${fy - 40}L${CX - 20 - fs / 2 - 14} ${fy - fs / 2 - 30}Q${CX - 20} ${fy - fs / 2 - 150} ${CX + 140} ${fy - fs / 2 - 120}L${CX + 190} ${fy - fs / 2 - 150}L${CX + 200} ${fy - fs / 2 - 70}Q${CX + 170} ${fy - fs / 2 - 20} ${CX - 20 + fs / 2 + 14} ${fy - fs / 2 - 10}L${CX - 20 + fs / 2 + 14} ${fy - 40}Z`,
+      { fill: 'rgba(220,235,245,.4)', stroke: LIGHT, 'stroke-width': 5 }, { o: 0 });
+    tw(bag, { o: 1 }, bg, .4); sfx('how', bg, 'whoosh', .4);
+    const belt = rect(s, CX - 20 - fs / 2 - 20, fy - 70, fs + 40, 30, { fill: '#9aa3ab' }); put(belt, { o: 0 }); show(belt, bg + .7, .2);
+    label(s, 'bag', CX - 260, 500, bg, { size: 56, fill: LIGHT, colour: DARK });
+    // the hose: in from the top right into the bag's neck, taped
+    const hose = path(s, `M${W + 40} 330C${W - 80} 330 ${CX + 300} 420 ${CX + 200} ${fy - fs / 2 - 110}`, { stroke: LIGHT, 'stroke-width': 46 }, { d: 0 });
+    draw(hose, hi, .5, out); sfx('how', hi, 'whoosh', .5);
+    label(s, 'hose', CX + 230, 300, hi + .2, { size: 56, fill: LIGHT, colour: DARK });
+    // air: cabin air (white and amber) in at the bottom; amber stays in the filter; white goes on up the hose
+    const inA = [CX - 20, fy + fs / 2 + 220], mid = [CX - 20, fy], neck = [CX + 200, fy - fs / 2 - 110], away = [W + 40, 330];
+    [-90, 0, 90].forEach((dx, i) => {
+      flow(s, 5, [inA[0] + dx, inA[1]], [mid[0] + dx * .6, mid[1]], pl - .2 + i * .1, D + 2, D, { fill: CO2, r: 11, cross: 1.2, seed: 31 + i });
+      flow(s, 5, [inA[0] + dx, inA[1] + 40], [mid[0] + dx * .6, mid[1] - 40], pl + .2 + i * .1, D + 2, D, { fill: OXY, r: 10, cross: 1.2, seed: 41 + i });
+    });
+    flow(s, 8, [mid[0], mid[1] - fs / 2], neck, pl + 1, D + 2, D, { fill: OXY, r: 10, cross: .9, seed: 51 });
+    flow(s, 8, neck, away, pl + 1.6, D + 2, D, { fill: OXY, r: 10, cross: .9, wob: 6, seed: 52 });
+    word(s, 'Air pulled through', CX - 20, 1290, pl, { size: 104, fill: LIGHT, stroke: DARK });
+  }],
+
+  // The real one, and the reading coming down
+  ['mailbox', 'The mailbox', (m, D) => {
+    const p = panel(0), dr = m('drop');
+    let s = shot(p, 0, dr, { swipe: true });
+    wide(s, 'ch03-mailbox-lm', [[0, .6, .3, 1.35], [dr + .3, .6, .3, 1.6]]);
+    nasa(s, 0);
+    word(s, 'The mailbox', CX - 20, 1160, m('mailbox'), { size: 140, fill: MARK, stroke: DARK });
+    s = shot(p, dr, undefined, { bg: DARK, whip: true });
+    photo(s, 'ch03-mailbox-lm', dr, D + .6, { s0: 1.2, s1: 1.26, dim: .62, ai: false });
+    dial(s, CX - 20, 860, 330, t => .8 - .35 * smooth(ramp01(t, dr + .1, D + .4)), dr);
+    word(s, 'Going down', CX - 20, 330, dr + .1, { size: 120, fill: LIGHT, stroke: DARK });
+  }],
+
+  // A second filter stacked on; far below the limit
+  ['under', 'Far below', (m, D) => {
+    const p = panel(0), sc = m('second'), lo = m('two2');
+    const s = shot(p, 0, undefined, { bg: DARK, whip: true });
+    photo(s, 'ch03-mailbox-lm', 0, D + .6, { s0: 1.26, s1: 1.3, dim: .7, ai: false });
+    const a = squareFilter(s, CX - 20, 470, 220);
+    const b = squareFilter(s, CX - 20, 600, 220); put(b, { o: 0, y: 760 }); tw(b, { o: 1, y: 695 }, sc, .35, back); sfx('under', sc + .3, 'thud', 1);
+    put(a, { y: 470 });
+    label(s, 'second filter', 312, 700, sc + .2, { size: 40, fill: LIGHT, colour: DARK, anchor: 'end' });
+    dial(s, CX - 20, 1100, 260, t => .45 - .33 * smooth(ramp01(t, .2, lo + .4)), 0);
+    word(s, 'Far below the limit', CX - 20, 260, lo, { size: 96, fill: LIGHT, stroke: DARK });
+    numTag(s, ['0.1 to 1.8 mm Hg once only the square', 'filters were used · NASA Mission Report, 6.7'], .3, { y: 1258 });
+  }],
+
+  // Home: splashdown, and the three of them
+  ['safe', 'Home', (m, D) => {
+    const p = panel(0), sf = m('sea');
+    let s = shot(p, 0, sf, { swipe: true });
+    wide(s, 'ch03-splash', [[0, .49, .56, 1.5], [sf + .3, .49, .57, 1.9]]);
+    nasa(s, 0);
+    metClock(s, [[0, met(142, 54)]]);
+    label(s, 'April 17, 1970', CX - 20, 1160, .2, { size: 56, fill: DARK, colour: LIGHT });
+    s = shot(p, sf, undefined, { whip: true });
+    wide(s, 'ch03-crew-ship', [[sf, .45, .45, 1.0], [D + .6, .45, .42, 1.12]]);
+    nasa(s, sf);
+    word(s, 'All three safe', CX - 20, 1200, sf, { size: 130, fill: MARK, stroke: DARK });
+  }],
+
+  // The end card (wordless)
+  ['end', 'Credits', (m, D) => {
+    const s = shot(panel(0), 0, undefined, { bg: DARK, swipe: 'quiet' });
+    endCard(s, 0, 3, 'Holst, Neptune · U.S. Marine Band', 2.5);
+  }, { dur: 3 }],
+].map(shortsBeat);
+
+// one track under the whole episode, Holst's Neptune (U.S. Marine Band); ?bgm= sets its level by ear
+music('audio/bgm/neptune.mp3', undefined, +(new URLSearchParams(location.search).get('bgm') || .6), .05);
+startShorts();
+</script>
+</body>
+</html>

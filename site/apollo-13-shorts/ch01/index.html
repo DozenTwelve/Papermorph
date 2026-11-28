@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en" data-stage="portrait">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apollo 13 · 1 The Lifeboat</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<!-- Apollo 13 shorts, episode 1: a Moon lander that never landed kept three astronauts alive on the way home.
+     Script: content/apollo-13-shorts/ch01/narration.en.json; storyboard and sources: books/apollo-13/shorts/ch01/. -->
+<script src="../lib/engine.js"></script>
+<script src="audio/en/timings.js"></script>
+<script src="../img/art.js"></script>
+<script src="../img/ch01-art.js"></script>
+<script src="../lib/icons.js"></script>
+<script src="../lib/shorts.js"></script>
+<script src="../lib/apollo13.js"></script>
+<script>
+'use strict';
+const CHAPTER = { number: 1, title: 'The Lifeboat', minutes: 2, language: 'en', next: '../ch02/' };
+
+/* ---------- the stack ----------
+   The docked spacecraft standing upright as it flew, drawn in chalk lines (after NASA's CSM & LM drawing): Aquarius
+   on top (descent stage with its legs folded and its engine pointing up, ascent stage below it), Odyssey in the middle
+   (its nose in the lander's tunnel), the service module at the bottom with its engine bell. Drawing units: x 218..682,
+   y 250..1292, centre x 450. Each part is a group (o dims it) with a glow (o lights it amber). */
+const PANEL = '#16304f', GREY = '#5c7088';
+const PARTS = {
+  lm: { d: 'M320 470L580 470L600 450L600 350L580 330L320 330L300 350L300 450Z M340 615L560 615L585 560L560 480L340 480L315 560Z M432 330L414 272L486 272L468 330Z',
+    lines: 'M300 360L240 262M600 360L660 262M330 330L240 262M570 330L660 262M218 258H262M638 258H682M300 400H600M380 330V470M520 330V470M425 520H475V570H425ZM352 500H390L381 538ZM548 500H510L519 538Z' },
+  cm: { d: 'M290 830L417 645L483 645L610 830Z M430 615H470V645H430Z',
+    lines: 'M432 712H446V734H432ZM454 712H468V734H454ZM300 815H600' },
+  sm: { d: 'M290 830H610V1170H290Z M405 1170L360 1292H540L495 1170Z',
+    lines: 'M290 865H610M290 1135H610M330 900V1100M350 900V1100M550 900V1100M570 900V1100M375 1292L410 1170M525 1292L490 1170M290 990H272M610 990H628' },
+};
+const CRACK = 'M300 940L360 965L395 945L440 1000L500 975L540 1010L600 990';
+function stack(p, { lit = {}, dim = {}, only, drawOn = false, broken = false } = {}) {
+  const cam = G(p, {}), S = { cam };
+  for (const [k, { d, lines }] of Object.entries(PARTS)) {
+    if (only && !only.includes(k)) continue;
+    const g = G(cam, { o: dim[k] ?? 1 });
+    path(g, d, { fill: PANEL });
+    const glow = G(g, { o: lit[k] ?? 0 });
+    path(glow, d, { fill: MARK }, { o: .55 });
+    const ln = path(g, lines, { fill: 'none', stroke: LIGHT, 'stroke-width': 2.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, { o: .8 });
+    const ol = path(g, d, { fill: 'none', stroke: LIGHT, 'stroke-width': 4.5, 'stroke-linejoin': 'round' }, drawOn ? { d: 0 } : {});   // d: 0 sets up draw()
+    S[k] = { g, glow, ln, ol };
+  }
+  if (broken && S.sm) { put(S.sm.g, { o: .45 }); path(S.sm.g, CRACK, { stroke: LIGHT, 'stroke-width': 5 }); }
+  return S;
+}
+// the camera over the stack: keys [t, cx, cy, s], the drawing's point (cx, cy) at the frame's centre at scale s
+function cam(S, keys) {
+  const at = ([, cx, cy, s]) => ({ x: CX - s * cx, y: H / 2 - s * cy, s });
+  put(S.cam, at(keys[0]));
+  keys.slice(1).forEach((k, i) => tw(S.cam, at(k), keys[i][0], k[0] - keys[i][0], io));
+}
+const lightUp = (part, t, dur = .3) => tw(part.glow, { o: 1 }, t, dur, out);
+const lightOff = (part, t, dur = .3) => tw(part.glow, { o: 0 }, t, dur, lin);
+// a caption in the film's serif, italic, captions colour
+function note(g, str, x, y, t0, { size = 46, fill = MUTED, anchor = 'middle' } = {}) {
+  const e = T(g, str, { x, y, size, fill, font: SERIF, weight: 400, anchor, o: 0 });
+  e.setAttribute('font-style', 'italic');
+  if (t0 <= .01) put(e, { o: 1 }); else show(e, t0, .25, lin);
+  return e;
+}
+// a word or label on screen only from t0 to t1
+function during(g, t0, t1, f) {
+  const e = G(g, { o: t0 <= .01 ? 1 : 0 }); f(e);
+  if (t0 > .01) show(e, t0, .12, lin);
+  if (t1 !== undefined) hide(e, t1, .15, lin);
+  return e;
+}
+// simple drawn icons for what Phosphor's set here lacks: a drop of water, a battery
+function drop(g, x, y, s, fill, t0) {
+  const e = G(g, { x, y, s: .4, o: 0 });
+  path(e, 'M0 -60C22 -28 40 -6 40 18A40 40 0 0 1 -40 18C-40 -6 -22 -28 0 -60Z', { fill, transform: `scale(${s})` });
+  tw(e, { s: 1, o: 1 }, t0, .25, out);
+  return e;
+}
+function battery(g, x, y, t0) {
+  const e = G(g, { x, y, s: .5, o: 0 });
+  rect(e, -46, -80, 92, 160, { rx: 12, fill: 'none', stroke: LIGHT, 'stroke-width': 8 });
+  rect(e, -18, -96, 36, 16, { rx: 4, fill: LIGHT });
+  [0, 1, 2].forEach(i => rect(e, -32, 30 - i * 46, 64, 36, { rx: 5, fill: MARK }));
+  tw(e, { s: 1, o: 1 }, t0, .3, back);
+  return e;
+}
+function o2(g, x, y, t0) {
+  const e = G(g, { x, y, s: .4, o: 0 });
+  mk('circle', { r: 54, fill: 'none', stroke: MARK, 'stroke-width': 9 }, e);
+  T(e, 'O₂', { x: 0, y: 22, size: 64, fill: MARK, font: SANS, weight: 600, anchor: 'middle' });
+  tw(e, { s: 1, o: 1 }, t0, .25, out);
+  return e;
+}
+
+/* ---------- beats ---------- */
+const OPEN_PRE = .3;
+const BEATS = [
+  // 1. The hook: the lander itself, already moving; it never landed; it became a lifeboat; home
+  ['hook', 'The hook', (m, D) => {
+    const p = panel(0), lb = m('lifeboat'), hm = m('home');
+    let s = shot(p, 0, lb, { bg: '#000' });
+    photo(s, 'ch01-lm-aquarius', 0, lb + .3, { s0: 1.0, s1: 1.16, dy: 30, ai: false });
+    srcTag(s, 'NASA', 50, 150, 0);
+    label(s, 'Moon lander', CX, 300, 0, { size: 64, fill: DARK, colour: LIGHT });
+    stamp(s, 'NEVER LANDED', CX, 1160, m('moon') - .75, { size: 104, colour: MARK, r: -7 });
+    s = shot(p, lb, hm);
+    wide(s, 'ch01-lm-aquarius', [[lb, .36, .5, 1.55], [hm + .3, .36, .47, 1.75]]);
+    srcTag(s, 'NASA', 50, 150, lb);
+    word(s, 'Lifeboat', CX, 1140, lb, { size: 160, fill: MARK, stroke: DARK });
+    sfx('hook', lb, 'thud', 1);
+    icons(s, 'person', 3, 3, 255, 1190, 130, LIGHT, m('alive') - .45, .45);
+    s = shot(p, hm, undefined, { whip: true, bg: '#000' });
+    photo(s, 'ch01-earth-journey-home', hm, D + .8, { s0: 1.05, s1: 1.14, ai: false });
+    srcTag(s, 'NASA', 50, 150, hm);
+    word(s, 'Home', CX, 1160, hm + .05, { size: 170, fill: LIGHT, stroke: DARK });
+  }, { pre: OPEN_PRE }],
+
+  // 2. The series card, this episode lit
+  ['card', 'Apollo 13', (m, D) => {
+    const p = panel(0);
+    const s = shot(p, 0, undefined, { bg: DARK, swipe: true });
+    seriesCard(s, 0, 1, .9);
+  }, { dur: 2 }],
+
+  // 3. The crew, each face as named (Lovell holds a model of the lander, Swigert one of the capsule); the launch
+  ['crew', 'The crew', (m, D) => {
+    const p = panel(0), mo = m('moon');
+    let s = shot(p, 0, mo);
+    const L = m('lovell'), Sw = m('swigert'), Ha = m('haise');
+    wide(s, 'ch01-crew-before-launch', [[0, .5, .5, 1.0], [L, .49, .33, 1.3], [Sw - .35, .49, .33, 1.3], [Sw, .23, .3, 1.3], [Ha - .35, .23, .3, 1.3], [Ha, .73, .34, 1.3], [mo - .3, .73, .34, 1.3], [mo, .62, .4, 1.22]]);
+    srcTag(s, 'NASA', 50, 150, 0);
+    label(s, 'April 1970', CX, 250, 0, { size: 58, fill: DARK, colour: MARK });
+    during(s, L, Sw, e => label(e, 'Jim Lovell', CX, 1160, L, { size: 76, fill: DARK, colour: LIGHT }));
+    during(s, Sw, Ha, e => label(e, 'Jack Swigert', CX, 1160, Sw, { size: 76, fill: DARK, colour: LIGHT }));
+    during(s, Ha, mo, e => label(e, 'Fred Haise', CX, 1160, Ha, { size: 76, fill: DARK, colour: LIGHT }));
+    s = shot(p, mo, undefined, { whip: true });
+    wide(s, 'ch01-launch', [[mo, .42, .66, 1.0], [D + .8, .42, .56, 1.12]]);
+    srcTag(s, 'NASA', 50, 150, mo);
+    word(s, 'Apollo 13', CX, 1120, mo + .05, { size: 150, fill: LIGHT, stroke: DARK });
+  }],
+
+  // 4. Three parts, one at a time: the capsule, the service module, the lander
+  ['ship', 'Three parts', (m, D) => {
+    const p = panel(0), od = m('odyssey'), sm = m('sm'), aq = m('aquarius'), mo = m('moon');
+    const s = shot(p, 0, undefined, { bg: DARK });
+    const S = stack(s, { drawOn: true });
+    for (const k of ['sm', 'cm', 'lm']) put(S[k].g, { o: 0 });
+    ['sm', 'cm', 'lm'].forEach((k, i) => { show(S[k].g, .05 + i * .2, .3, lin); draw(S[k].ol, .05 + i * .2, .8, out); });
+    cam(S, [[0, 450, 770, .95], [od - .1, 450, 770, .95], [od + .5, 450, 735, 2.0], [sm - .1, 450, 735, 2.0], [sm + .5, 450, 1050, 1.55],
+      [aq - .1, 450, 1050, 1.55], [aq + .5, 450, 450, 1.55], [mo - .1, 450, 450, 1.55], [mo + .6, 450, 770, .95]]);
+    during(s, m('three'), od, e => word(e, '3 parts', CX, 270, m('three'), { size: 110, fill: LIGHT }));
+    lightUp(S.cm, od); lightOff(S.cm, sm);
+    during(s, od, sm, e => { label(e, 'Odyssey', CX, 1150, od, { size: 100, fill: DARK, colour: MARK }); label(e, 'the capsule: it rides home', CX, 1250, od + .2, { size: 44, fill: DARK, colour: LIGHT }); });
+    lightUp(S.sm, sm); lightOff(S.sm, aq);
+    during(s, sm, aq, e => {
+      label(e, 'Service module', CX, 300, sm, { size: 90, fill: DARK, colour: MARK });
+      rect(e, 200, 1110, 500, 200, { rx: 14, fill: DARK, opacity: .9 });
+      ico(e, 'lightning', 330, 1180, 100, LIGHT, sm + .5); o2(e, 560, 1180, sm + .6);
+      note(e, 'power', 330, 1280, sm + .5, { size: 40 }); note(e, 'oxygen', 560, 1280, sm + .6, { size: 40 });
+    });
+    lightUp(S.lm, aq);
+    during(s, aq, mo + .5, e => { label(e, 'Aquarius', CX, 1150, aq, { size: 100, fill: DARK, colour: MARK }); label(e, 'the lander: only for the Moon', CX, 1250, aq + .2, { size: 44, fill: DARK, colour: LIGHT }); });
+    word(s, 'For the Moon', CX, 270, mo + .3, { size: 100, fill: LIGHT });
+  }],
+
+  // 5. 56 hours in, a tank in the service module bursts (a white flash, no flames)
+  ['burst', 'The tank', (m, D) => {
+    const p = panel(0), tk = m('tank'), bu = m('burst');
+    const s = shot(p, 0, undefined, { bg: DARK });
+    const S = stack(s);
+    cam(S, [[0, 450, 850, 1.2], [tk + .2, 450, 960, 1.6], [D, 450, 960, 1.66]]);
+    const tank = G(S.cam, { o: 0 });
+    mk('circle', { cx: 450, cy: 1000, r: 46, fill: 'none', stroke: MARK, 'stroke-width': 5, 'stroke-dasharray': '10 8' }, tank);
+    show(tank, tk, .3, lin);
+    during(s, tk, bu, e => label(e, 'Oxygen tank', CX, 1220, tk, { size: 64, fill: DARK, colour: MARK }));
+    metClock(s, [[0, 0], [1.6, met(55, 54)]]);
+    // the burst: one white flash, a jolt, a crack, and the service module goes grey
+    const crack = path(S.cam, CRACK, { fill: 'none', stroke: LIGHT, 'stroke-width': 5, 'stroke-linejoin': 'round' }, { d: 0 });
+    draw(crack, bu, .25, out);
+    tw(tank, { o: .25 }, bu, .3, lin);
+    tw(S.sm.g, { o: .45 }, bu + .1, .5, lin);
+    const R = seeded(3);
+    prog(q => { const a = (1 - q) * 14; put(s, { x: (R() - .5) * a, y: (R() - .5) * a }); }, bu, .45, lin);
+    const fl = rect(s, -20, -20, W + 40, H + 40, { fill: '#fff', opacity: 0 });
+    prog(q => fl.setAttribute('opacity', (.85 * (1 - q)).toFixed(3)), bu, .4, out);
+    sfx('burst', bu, 'bang', 1.1);
+    label(s, 'Burst', CX, 1240, bu + .1, { size: 110, fill: DARK, colour: LIGHT });
+  }],
+
+  // 6. The real recording: Jim Lovell to Houston, 55:55 (NASA, public domain)
+  ['call', 'Houston', (m, D) => {
+    const p = panel(0);
+    const s = shot(p, 0, undefined, { bg: DARK });
+    photo(s, 'ch01-mission-control', 0, D + .6, { s0: 1.05, s1: 1.14, dx: -40, dim: .55, ai: false });
+    label(s, 'Mission Control, Houston', CX, 300, 0, { size: 50, fill: DARK, colour: LIGHT });
+    srcTag(s, 'NASA recording', 50, 150, 0);
+    sfx('call', .25, 'lovell', 2);   // vol 2 is full: sfx() plays at half volume under the voice
+    // a radio trace: bars flickering while he speaks
+    const R = seeded(11), bars = [];
+    for (let i = 0; i < 24; i++) bars.push(rect(s, 150 + i * 25, 700, 13, 4, { fill: MARK, rx: 3 }));
+    prog(q => {
+      const t = q * D, on = t > .3 && t < 1.65;
+      bars.forEach(b => { const h = on ? 8 + R() * 110 : 4; b.setAttribute('y', 700 - h / 2); b.setAttribute('height', h); });
+    }, 0, D, lin);
+    rect(s, 40, 840, 820, 360, { rx: 18, fill: DARK, opacity: .88 });
+    note(s, '“Houston, we’ve had', CX, 930, .25, { size: 82, fill: LIGHT });
+    note(s, 'a problem.”', CX, 1030, .25, { size: 82, fill: LIGHT });
+    note(s, 'Jim Lovell, from the spacecraft · 55:55', CX, 1140, .5, { size: 44, fill: MARK });
+  }, { dur: 1.9 }],
+
+  // 7. Power and oxygen running out; the lander lights up; inside Aquarius; LANDER ON at 57:41
+  ['lander', 'The lifeboat', (m, D) => {
+    const p = panel(0), la = m('lander'), aq = m('aq'), on = m('on');
+    let s = shot(p, 0, aq, { bg: DARK });
+    const S = stack(s, { broken: true, lit: { cm: 1 } });
+    cam(S, [[0, 450, 700, 1.2], [la - .1, 450, 700, 1.2], [la + .5, 450, 520, 1.35]]);
+    metClock(s, [[0, met(55, 55)]]);
+    // two bars beside Odyssey draining as they are named
+    during(s, 0, la, e => {
+      rect(e, 70, 1035, 760, 250, { rx: 16, fill: DARK, opacity: .92 });
+      [['Power', m('power')], ['Oxygen', m('power') + .35]].forEach(([n, t], i) => {
+        const y = 1130 + i * 110;
+        T(e, n.toUpperCase(), { x: 120, y: y - 18, size: 36, fill: LIGHT, font: SANS, weight: 600 });
+        rect(e, 300, y - 50, 480, 40, { rx: 8, fill: 'none', stroke: LIGHT, 'stroke-width': 3 });
+        const b = rect(e, 306, y - 44, 468, 28, { rx: 5, fill: MARK });
+        prog(q => b.setAttribute('width', (468 * (1 - .9 * q)).toFixed(1)), t, m('out') + .7 - t, io);
+      });
+    });
+    tw(S.cm.g, { o: .45 }, la, .4, lin); lightOff(S.cm, la);
+    lightUp(S.lm, la + .1, .4);
+    label(s, 'The lander', CX, 1180, la + .1, { size: 110, fill: DARK, colour: MARK });
+    s = shot(p, aq, undefined, { whip: true });
+    wide(s, 'ch01-mailbox-in-lm', [[aq, .2, .62, 1.12], [D + .8, .22, .58, 1.22]]);
+    srcTag(s, 'NASA · inside Aquarius', 50, 150, aq);
+    metClock(s, [[aq, met(55, 55)], [on + .2, met(57, 41)]]);
+    stamp(s, 'LANDER ON', CX, 1150, on, { size: 110, colour: MARK, r: -6 });
+  }],
+
+  // 8. Swigert switches Odyssey off, its batteries saved for the end; the ride home through the air
+  ['off', 'Odyssey off', (m, D) => {
+    const p = panel(0), of = m('off'), en = m('end'), ai = m('air');
+    let s = shot(p, 0, of);
+    wide(s, 'ch01-crew-before-launch', [[0, .25, .3, 1.35], [of + .3, .24, .29, 1.45]]);
+    srcTag(s, 'NASA', 50, 150, 0);
+    label(s, 'Jack Swigert', CX, 1160, 0, { size: 76, fill: DARK, colour: LIGHT });
+    s = shot(p, of, ai, { bg: DARK });
+    const S = stack(s, { broken: true, lit: { lm: 1, cm: 1 } });
+    cam(S, [[of, 450, 620, 1.2], [ai + .3, 450, 680, 1.35]]);
+    metClock(s, [[of, met(57, 41)], [of + .6, met(58, 40)]]);
+    lightOff(S.cm, of + .15, .4); tw(S.cm.g, { o: .4 }, of + .15, .5, lin);
+    during(s, of, en, e => stamp(e, 'ODYSSEY OFF', CX, 1050, of, { size: 100, colour: MARK, r: -6 }));
+    battery(S.cam, 450, 745, en);
+    label(s, 'saved for the very end', CX, 1240, en + .15, { size: 48, fill: DARK, colour: LIGHT });
+    s = shot(p, ai, undefined, { whip: true });
+    wide(s, 'ch01-parachutes-clouds', [[ai, .56, .42, 1.0], [D + .8, .56, .42, 1.12]]);
+    srcTag(s, 'NASA', 50, 150, ai);
+    word(s, 'The ride home', CX, 1180, ai + .05, { size: 120, fill: LIGHT, stroke: DARK });
+  }],
+
+  // 9. Built for 2 people and 2 days; it kept 3 people going 3½ days: oxygen, water, power
+  ['tally', 'Two and three', (m, D) => {
+    const p = panel(0), th = m('three'), d4 = m('days4');
+    const s = shot(p, 0, undefined, { bg: DARK });
+    wide(s, 'ch01-mailbox-in-lm', [[0, .78, .7, 1.15], [D + .8, .7, .66, 1.3]]);
+    rect(s, -20, -20, W + 40, H + 40, { fill: DARK, opacity: .72 });
+    srcTag(s, 'NASA · inside Aquarius', 50, 150, 0);
+    during(s, 0, th, e => word(e, 'Built for', CX, 290, 0, { size: 100, fill: LIGHT }));
+    word(s, 'Now', CX, 290, th, { size: 110, fill: MARK });
+    // people: 2, then 3; days: 2, then 3½
+    const pe = G(s, {}), da = G(s, {});
+    during(pe, m('two'), th, e => word(e, '2', 270, 640, m('two'), { size: 240, fill: LIGHT }));
+    word(pe, '3', 270, 640, th, { size: 240, fill: MARK, from: 1.4 });
+    note(s, 'people', 270, 720, m('two'), { size: 54, fill: LIGHT });
+    icons(s, 'person', 2, 3, 175, 760, 64, LIGHT, m('two'), .2);
+    ico(s, 'person', 175 + 64 * 2.5, 792, 55, MARK, th);
+    during(da, m('days2'), d4, e => word(e, '2', 630, 640, m('days2'), { size: 240, fill: LIGHT }));
+    word(da, '3½', 630, 640, d4, { size: 240, fill: MARK, from: 1.4 });
+    note(s, 'days', 630, 720, m('days2'), { size: 54, fill: LIGHT });
+    sfx('tally', th, 'thud', .9); sfx('tally', d4, 'thud', .9);
+    // what it gave them, as named
+    o2(s, 210, 1060, m('o2'));
+    drop(s, 450, 1060, 1.1, '#8ec5ff', m('water'));
+    ico(s, 'lightning', 690, 1060, 120, MARK, m('power'));
+    note(s, 'oxygen', 210, 1170, m('o2'), { size: 44, fill: LIGHT });
+    note(s, 'water', 450, 1170, m('water'), { size: 44, fill: LIGHT });
+    note(s, 'power', 690, 1170, m('power'), { size: 44, fill: LIGHT });
+    ['o2', 'water', 'power'].forEach(k => sfx('tally', m(k), 'tick', .9));
+  }],
+
+  // 10. Its landing engine steered them round the Moon and back toward Earth (the burns themselves are episode 2's)
+  ['engine', 'The engine', (m, D) => {
+    const p = panel(0), eg = m('engine'), mo = m('moon'), ea = m('earth');
+    let s = shot(p, 0, mo, { bg: DARK });
+    const S = stack(s, { broken: true, dim: { cm: .4 }, lit: { lm: 1 } });
+    cam(S, [[0, 450, 470, 1.45], [mo + .3, 450, 420, 1.6]]);
+    const pl = G(S.cam, { o: 0 });
+    const flame = path(pl, 'M418 272L450 120L482 272Z', { fill: MARK });
+    path(pl, 'M434 272L450 190L466 272Z', { fill: '#fff6dc' });
+    show(pl, eg, .15, lin);
+    const R = seeded(5);
+    prog(() => flame.setAttribute('d', `M418 272L450 ${(110 + R() * 30).toFixed(0)}L482 272Z`), eg, mo - eg + .4, lin);
+    sfx('engine', eg, 'whoosh', .7);
+    label(s, 'Landing engine', CX, 1200, eg, { size: 96, fill: DARK, colour: MARK });
+    s = shot(p, mo, ea, { whip: true });
+    wide(s, 'ch01-moon-far-side', [[mo, .4, .5, 1.0], [ea + .3, .5, .5, 1.08]]);
+    srcTag(s, 'NASA', 50, 150, mo);
+    word(s, 'Around the Moon', CX, 1180, mo + .05, { size: 110, fill: LIGHT, stroke: DARK });
+    s = shot(p, ea, undefined, { whip: true, bg: '#000' });
+    photo(s, 'ch01-earth-view', ea, D + .8, { s0: 1.04, s1: 1.12, ai: false });
+    srcTag(s, 'NASA', 50, 150, ea);
+    word(s, 'Toward Earth', CX, 1180, ea + .05, { size: 120, fill: LIGHT, stroke: DARK });
+  }],
+
+  // 11. The last day: the service module let go (138:01), Odyssey woken up, Aquarius let go; the real photo of it
+  ['goodbye', 'Goodbye', (m, D) => {
+    const p = panel(0), dy = m('day'), wk = m('wake'), go = m('aqgo'), cut = go + 1.15;
+    let s = shot(p, 0, cut, { bg: DARK });
+    const S = stack(s, { broken: true, dim: { cm: .4 }, lit: { lm: 1 } });
+    cam(S, [[0, 450, 760, .9], [wk, 450, 580, 1.05], [cut + .3, 450, 600, 1.0]]);
+    metClock(s, [[0, met(58, 40)], [dy + .6, met(138, 1)], [wk, met(140, 9)], [go + .3, met(141, 30)]]);
+    tw(S.sm.g, { y: 700, r: 5, o: 0 }, dy + .2, 1.6, io);
+    during(s, dy + .2, wk, e => label(e, 'Service module let go', CX, 1200, dy + .2, { size: 64, fill: DARK, colour: LIGHT }));
+    sfx('goodbye', dy + .2, 'whoosh', .4);
+    tw(S.cm.g, { o: 1 }, wk, .5, lin); lightUp(S.cm, wk + .1, .5);
+    during(s, wk, go, e => label(e, 'Odyssey on', CX, 1200, wk, { size: 100, fill: DARK, colour: MARK }));
+    sfx('goodbye', wk, 'tick', 1);
+    tw(S.lm.g, { y: -760, r: -8 }, go, 1.4, io);
+    word(s, 'Goodbye, Aquarius', CX, 1180, go + .1, { size: 110, fill: LIGHT, stroke: DARK });
+    sfx('goodbye', go, 'whoosh', .6);
+    s = shot(p, cut, undefined, { bg: '#000' });
+    photo(s, 'ch01-lm-aquarius', cut, D + .9, { s0: 1.05, s1: .78, ai: false });
+    srcTag(s, 'NASA · Aquarius, let go', 50, 150, cut);
+  }],
+
+  // 12. Splashdown; all three home; the lander that never landed
+  ['home', 'Home', (m, D) => {
+    const p = panel(0), sp = m('splash'), th = m('three'), la = m('landed');
+    let s = shot(p, 0, th);
+    wide(s, 'ch01-splashdown', [[0, .44, .55, 1.0], [th + .3, .46, .56, 1.12]]);
+    srcTag(s, 'NASA', 50, 150, 0);
+    metClock(s, [[0, met(141, 30)], [sp + .3, met(142, 54)]]);
+    label(s, 'Pacific Ocean', CX, 1160, sp, { size: 72, fill: DARK, colour: LIGHT });
+    s = shot(p, th, la, { whip: true });
+    wide(s, 'ch01-crew-iwo-jima', [[th, .45, .45, 1.0], [la + .3, .45, .42, 1.04]]);
+    srcTag(s, 'NASA', 50, 150, th);
+    word(s, 'All three home', CX, 1160, th + .05, { size: 130, fill: LIGHT, stroke: DARK });
+    icons(s, 'person', 3, 3, 255, 1215, 130, MARK, th + .3, .4);
+    s = shot(p, la, undefined, { bg: '#000' });
+    photo(s, 'ch01-lm-aquarius', la, D + .9, { s0: .9, s1: .98, ai: false });
+    srcTag(s, 'NASA', 50, 150, la);
+    word(s, 'Lifeboat', CX, 330, la, { size: 150, fill: MARK, stroke: DARK });
+    stamp(s, 'NEVER LANDED', CX, 1160, la + .3, { size: 104, colour: MARK, r: -7 });
+  }],
+
+  // 13. The end card: the series, this episode, the credits
+  ['end', 'Apollo 13', (m, D) => {
+    const p = panel(0);
+    const s = shot(p, 0, undefined, { bg: DARK, swipe: 'quiet' });
+    endCard(s, 0, 1, 'Holst, Jupiter · U.S. Air Force Band');
+  }, { dur: 3.5 }],
+].map(shortsBeat);
+
+// One track for the whole film, cut to its timeline; ?bgm= sets its level by ear (gain under the ducking to 30 %).
+// the real recording's line, for the .srt and the page's captions (the beat has no clip of its own)
+TIMINGS.call = { dur: 1.9, marks: {}, cues: [[.25, '“Houston, we’ve had a problem.” (Jim Lovell)', 1.75]], silent: true };
+// music up where nobody speaks: the hook's tail, the series card, the end card
+window.MUSIC_UP = { hook: t => t > 8.1, card: () => true, end: () => true };
+music('audio/bgm/ep1.mp3', undefined, +(new URLSearchParams(location.search).get('bgm') || .4), .05);
+startShorts();
+</script>
+</body>
+</html>

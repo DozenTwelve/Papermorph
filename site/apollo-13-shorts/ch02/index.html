@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en" data-stage="portrait">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apollo 13 · 2 · Two Pushes</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="audio/en/timings.js"></script>
+<script src="../img/art.js"></script>
+<script src="../img/ch02-art.js"></script>
+<script src="../lib/icons.js"></script>
+<script src="../lib/shorts.js"></script>
+<script src="../lib/apollo13.js"></script>
+<script src="route.js"></script>
+<script>
+'use strict';
+// one point: the first push put them back on a path home; the second shortened the trip and aimed them at the Pacific
+const CHAPTER = { number: 2, title: 'Two Pushes', minutes: 2, language: 'en', next: '../ch03/' };
+
+/* Mission times (MR Tables 3-I, 4-II, 4-III; books/apollo-13/facts.md): the tank 55:54:53, the landing path left at
+   30:40:50, push 1 lit 61:29:43, closest to the Moon 77:20:57, push 2 lit 79:27:39 (263.8 s), splashdown 142:54:41. */
+const H_TANK = met(55, 54), H_HYB = met(30, 40), H_P1 = met(61, 29), H_PERI = met(77, 20), H_P2 = met(79, 27), H_SPLASH = met(142, 54);
+const OPEN_PRE = .3;
+const BG = { bg: DARK };
+// where the dot is on the way out at the burst and at push 1 (fractions of the out leg; schematic)
+const AT_HYB = .45, AT_TANK = .82, AT_P1 = .9;
+// the routes seen so far, as each route shot opens on them: [drawn, opacity] per leg
+const R_OUT = { out: [1, 1] };
+
+const BEATS = [
+  // 0. The hook: the far side of the Moon already pushing in, an amber path sweeping round it; the point said at once
+  ['hook', 'Two pushes', (m, D) => {
+    const p = panel(0);
+    const hm = m('home'), jb = m('job');
+    let s = shot(p, 0, hm);
+    found(s, 'ch02-moon', 'NASA · the far side of the Moon, from Apollo 13', 0, hm + .3, { s0: 1.1, s1: 1.24, dim: .18 });
+    const arc = path(s, 'M-40 1420C300 1240 760 1100 820 760C860 520 700 330 520 300', { fill: 'none', stroke: MARK, 'stroke-width': 8, 'stroke-linecap': 'round' }, { d: 0 });
+    draw(arc, 0, hm, lin);
+    c2Burn(s, 90, 1360, .1, 1.2, { big: .9 });
+    word(s, '2 pushes', CX, 330, 0, { size: 170, fill: '#fff', stroke: DARK });
+    s = shot(p, hm, jb, { whip: true });
+    found(s, 'ch02-earth', 'NASA · Earth, from Apollo 13', hm, jb + .3, { s0: 1.25, s1: 1.36 });
+    word(s, 'Apollo 13', CX, 1220, hm + .1, { size: 150, fill: '#fff', stroke: DARK });
+    word(s, 'home', CX, 330, hm + .5, { size: 130, fill: MARK, stroke: DARK });
+    s = shot(p, jb, undefined, BG);
+    const r = c2Route(s, { legs: { out: [1, 1], top: [1, 1], freeA: [1, 0], pc2: [1, 1], free: [1, .45] } });
+    const [x1, y1] = c2At(r, 'out', AT_P1), [x2, y2] = C2_FREE_A[3];
+    c2Burn(r, x1, y1, jb + .05, .6); c2Burn(r, x2, y2, jb + .35, .5);
+    word(s, '1', x1 - 90, y1 + 30, jb + .05, { size: 110, fill: MARK, stroke: DARK });
+    word(s, '2', x2 + 90, y2 + 40, jb + .4, { size: 110, fill: MARK, stroke: DARK });
+    word(s, '2 jobs', CX, 300, jb + .15, { size: 160, fill: LIGHT, stroke: DARK });
+  }, { pre: OPEN_PRE }],
+
+  // 1. The series card: where this episode sits (wordless)
+  ['card', 'Apollo 13', (m, D) => {
+    const p = panel(0);
+    const s = shot(p, 0, undefined, { bg: DARK, swipe: 'quiet' });
+    seriesCard(s, 0, 2, .7);
+  }, { dur: 2 }],
+
+  // 2. The trouble: launch, the way out, the burst, the landing off, the new goal
+  ['trouble', 'The trouble', (m, D) => {
+    const p = panel(0);
+    const wy = m('way'), bu = m('burst'), of = m('off'), th = m('three'), hm = m('home');
+    let s = shot(p, 0, wy);
+    found(s, 'ch02-launch', 'NASA · launch, 11 April 1970', 0, wy + .3, { s0: 1.05, s1: 1.16, dy: 120 });
+    label(s, 'April 1970', CX, 1230, m('y1970'), { size: 64, fill: MARK, colour: DARK });
+    s = shot(p, wy, of, BG);
+    const r = c2Route(s, { legs: { out: [0, 1] } });
+    draw(r._legs.out, wy, bu - wy, lin);
+    c2Craft(r, ['out'], [[wy, 0], [bu, AT_TANK]]);
+    metClock(s, [[wy, 0], [bu, H_TANK]]);
+    const [bx, by] = c2At(r, 'out', AT_TANK);
+    const fl = put(mk('circle', { cx: bx, cy: by, r: 20, fill: '#fff' }, s), { o: 0 });
+    prog(q => { fl.setAttribute('r', 20 + 120 * q); }, bu, .45, out); show(fl, bu, .05, lin); hide(fl, bu + .1, .35, lin);
+    sfx(BEAT_ID, bu, 'bang', .9);
+    tw(r._dot, { s: 1.6 }, bu, .1, out); tw(r._dot, { s: 1 }, bu + .1, .3, io);
+    label(s, 'An oxygen tank', 590, 820, bu + .15, { size: 60, fill: MARK, colour: DARK });
+    label(s, 'burst', 590, 900, bu + .33, { size: 60, fill: MARK, colour: DARK });
+    s = shot(p, of, th, { whip: true });
+    found(s, 'ch02-control', 'NASA · Mission Control, Houston', of, th + .3, { s0: 1.12, s1: 1.2, dx: -70 });
+    const ln = word(s, 'Land on the Moon', CX, 330, of, { size: 96, fill: '#fff', stroke: DARK });
+    c2Strike(s, ln, CX, 330, of + .4, 96);
+    s = shot(p, th, undefined, { bg: DARK, whip: true });
+    const cr = plate(s, 'ch02-crew', CX, 720, { w: 860 });   // whole, so all three are in it
+    tw(cr, { s: 1.06 }, th, D + .6 - th, lin);
+    srcTag(s, 'NASA · the crew before launch', 50, 150, th);
+    word(s, 'Bring them', CX, 1160, th + .1, { size: 120, fill: '#fff', stroke: DARK });
+    word(s, 'home', CX, 1280, hm, { size: 120, fill: MARK, stroke: DARK });
+  }],
+
+  // 3. The landing path: they had left the safe loop a day earlier, so the way they were going passes Earth by
+  ['miss', 'A path that misses', (m, D) => {
+    const p = panel(0);
+    const ea = m('earlier'), lf = m('left'), lo = m('loops'), nw = m('now'), sw = m('swing'), mi = m('miss');
+    const s = shot(p, 0, undefined, BG);
+    const r = c2Route(s, { legs: { out: [1, 1] } });
+    c2Craft(r, ['out', 'top', 'hyb'], [[0, AT_TANK], [ea, AT_TANK], [ea + .9, AT_HYB], [lf + .6, AT_HYB], [lf + 1.4, AT_TANK]]);
+    metClock(s, [[0, H_TANK], [ea, H_TANK], [ea + .9, H_HYB], [lf + .6, H_HYB], [lf + 1.4, H_TANK]]);
+    const de = label(s, 'a day earlier', CX, 345, ea + .3, { size: 46, fill: LIGHT, colour: DARK });
+    hide(de, lf + 1.4, .25, lin);
+    // the safe loop: round the Moon and back by itself
+    show(r._legs.topG, lo, .4, lin); show(r._legs.freeG, lo + .3, .5, lin);
+    const sl = label(s, 'Comes back by itself', 450, 820, lo + .3, { size: 38, fill: DARK, colour: LIGHT });
+    hide(sl, nw, .3, lin);
+    tw(r._legs.topG, { o: .3 }, nw, .4); tw(r._legs.freeG, { o: .3 }, nw, .4);
+    put(r._legs.hyb, { d: 0, o: 1 });
+    draw(r._legs.top, sw, .7, io);
+    draw(r._legs.hyb, sw + .6, mi - sw, lin);
+    stamp(s, 'MISS', 640, 960, mi, { size: 120, colour: MARK, r: -9 });
+  }],
+
+  // 4. Which engine: their Moon lander's
+  ['lander', 'Aquarius', (m, D) => {
+    const p = panel(0);
+    const en = m('engine'), aq = m('aquarius');
+    const s = shot(p, 0, undefined, { whip: true });
+    found(s, 'ch02-aquarius', 'NASA · Aquarius, photographed from Odyssey on 17 April', 0, D + .6, { s0: 1.0, s1: 1.18, dy: -120 });
+    const ar = G(s, { x: CX, y: 1100, o: 0 });
+    path(ar, 'M0 -120V-20', { stroke: MARK, 'stroke-width': 10, 'stroke-linecap': 'round' });
+    path(ar, 'M-26 -46L0 -12L26 -46', { fill: 'none', stroke: MARK, 'stroke-width': 10, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
+    tw(ar, { o: 1, y: 1140 }, en, .3, out);
+    label(s, 'its engine, underneath', CX, 990, en + .1, { size: 52, fill: MARK, colour: DARK });
+    word(s, 'Aquarius', CX, 330, aq, { size: 160, fill: '#fff', stroke: DARK });
+  }],
+
+  // 5. Push 1: thirty-four seconds, and the safe loop is theirs again
+  ['push1', 'Push one', (m, D) => {
+    const p = panel(0);
+    const one = m('one'), s34 = m('s34'), bk = m('back'), ar = m('around'), ea = m('earth');
+    const s = shot(p, 0, undefined, { bg: DARK, whip: true });
+    const r = c2Route(s, { legs: { out: [1, 1], topG: [1, .3], freeG: [1, .3], hyb: [1, 1] } });
+    c2Craft(r, ['out'], [[0, AT_TANK], [one, AT_P1]]);
+    metClock(s, [[0, H_TANK], [one, H_TANK], [one + .7, H_P1]]);
+    word(s, 'Push 1', CX, 385, one, { size: 120, fill: MARK, stroke: DARK });
+    const [x, y] = c2At(r, 'out', AT_P1);
+    c2Burn(r, x, y, one + .2, 2.2);
+    const cnt = T(s, '0 S', { x: x - 150, y: y + 150, size: 84, fill: LIGHT, font: SANS, weight: 600, anchor: 'middle', o: 0 });
+    show(cnt, s34, .1, lin);
+    prog(q => { cnt.textContent = Math.round(34 * q) + ' S'; }, s34, .8, out);
+    for (let k = 0; k < 6; k++) sfx(BEAT_ID, s34 + k * .8 / 6, 'tick', .35);
+    hide(r._legs.hyb, bk, .4, lin);
+    draw(r._legs.top, bk, ar - bk + .2, io);
+    draw(r._legs.free, ar + .1, ea - ar, io);
+    label(s, 'A way home', CX, 860, ea, { size: 56, fill: LIGHT, colour: DARK });
+  }],
+
+  // 6. But slow, and to the wrong ocean: the Indian Ocean, few ships
+  ['slow', 'The slow way', (m, D) => {
+    const p = panel(0);
+    const sl = m('slow'), fo = m('four'), ind = m('indian'), fw = m('few'), sh = m('ships');
+    let s = shot(p, 0, ind, BG);
+    const r = c2Route(s, { legs: { out: [1, 1], top: [1, 1], free: [1, 1] } });
+    c2Craft(r, ['out', 'top', 'free'], [[0, AT_P1], [ind + .3, 1.12]]);
+    metClock(s, [[0, H_P1]]);
+    word(s, 'Slow', CX, 385, sl, { size: 130, fill: LIGHT, stroke: DARK });
+    label(s, '4 more days', CX, 860, fo, { size: 60, fill: LIGHT, colour: DARK });
+    s = shot(p, ind, undefined, BG);
+    const gl = c2Globe(s);
+    tw(gl, { s: 1.06 }, ind, D + .6 - ind, lin);
+    c2X(gl, -60, 230, ind + .1);
+    label(s, 'Indian Ocean', CX, 330, ind + .1, { size: 72, fill: LIGHT, colour: DARK });
+    c2Boat(gl, 190, -170, 90, fw);
+    word(s, 'Few ships', CX, 1250, sh - .1, { size: 110, fill: '#fff', stroke: DARK });
+  }],
+
+  // 7. Round the far side, farther from Earth than anyone had been (no distance number: the sources differ)
+  ['farside', 'The far side', (m, D) => {
+    const p = panel(0);
+    const fr = m('farther');
+    let s = shot(p, 0, fr, { whip: true });
+    wide(s, 'ch02-moon', [[0, .38, .45, 1.15], [fr + .3, .6, .55, 1.3]]);
+    srcTag(s, 'NASA · the far side of the Moon, from Apollo 13', 50, 150, 0);
+    metClock(s, [[0, H_PERI]], { y: 304 });
+    word(s, 'The far side', CX, 1220, m('far'), { size: 130, fill: '#fff', stroke: DARK });
+    s = shot(p, fr, undefined);
+    found(s, 'ch02-crescent', 'NASA · Earth, from Apollo 13', fr, D + .6, { s0: 1.45, s1: 1.1 });
+    band(s, ['Farther from Earth', 'than anyone had been'], 330, fr + .1, { size: 72, fill: LIGHT, colour: DARK, step: .2 });
+  }],
+
+  // 8. Push 2: over four minutes, faster and shorter, the splashdown moved to the Pacific where the ships were
+  ['push2', 'Push two', (m, D) => {
+    const p = panel(0);
+    const two = m('two'), fo = m('four'), sp = m('sped'), ni = m('nine'), mv = m('moved'), pa = m('pacific'), wt = m('waiting');
+    let s = shot(p, 0, pa, BG);
+    const r = c2Route(s, { legs: { out: [1, 1], top: [1, 1], free: [1, 1] } });
+    c2Craft(r, ['out', 'top', 'freeA', 'pc2'], [[0, 1.0], [two, 3.0], [sp + .1, 3.0], [sp + 1.3, 4.0]]);
+    metClock(s, [[0, H_PERI], [.2, H_PERI], [two, H_P2]]);
+    const p2w = word(s, 'Push 2', CX, 385, two, { size: 120, fill: MARK, stroke: DARK });
+    const [x, y] = C2_FREE_A[3];
+    c2Burn(r, x, y, two + .2, 3.4, { big: 1.4 });
+    const cnt = T(s, '0:00', { x: x - 210, y: y + 30, size: 84, fill: LIGHT, font: SANS, weight: 600, anchor: 'middle', o: 0 });
+    show(cnt, fo, .1, lin);
+    prog(q => { const sec = Math.round(264 * q); cnt.textContent = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`; }, fo, 1.3, lin);
+    for (let k = 0; k < 8; k++) sfx(BEAT_ID, fo + k * 1.3 / 8, 'tick', .3);
+    tw(r._legs.free, { o: .3 }, sp, .4);
+    draw(r._legs.pc2, sp, 1.2, io);
+    hide(p2w, ni - .1, .15, lin);
+    label(s, '9 hours sooner', CX, 360, ni, { size: 64, fill: MARK, colour: DARK });
+    srcTag(s, 'NASA mission report, 1970: about 9 h', 50, 272, ni);
+    const end = put(mk('circle', { cx: 465, cy: 1067, r: 16, fill: MARK }, s), { o: 0 });
+    show(end, mv, .1, lin); prog(q => end.setAttribute('r', 16 + 10 * Math.sin(q * 12)), mv, pa - mv + .3, lin);
+    s = shot(p, pa, undefined, BG);
+    const gl = c2Globe(s);
+    tw(gl, { s: 1.06 }, pa, D + .6 - pa, lin);
+    const xi = c2X(gl, -60, 230, -1, MUTED);
+    put(xi, { s: 1, o: .5 });
+    c2X(gl, 160, -60, pa + .1);
+    label(s, 'Pacific', CX, 330, pa + .1, { size: 80, fill: MARK, colour: DARK });
+    [[90, -170, 0], [250, -150, 1.3], [170, 70, 2.1], [270, 40, 3.4]].forEach(([bx, by, ph], i) => c2Boat(gl, bx, by, 80, wt - .5 + i * .12, ph));
+    word(s, 'Ships waiting', CX, 1250, wt, { size: 110, fill: '#fff', stroke: DARK });
+  }],
+
+  // 9. The two jobs, side by side
+  ['jobs', 'Two jobs', (m, D) => {
+    const p = panel(0);
+    const fi = m('first'), hm = m('home'), se = m('second'), fa = m('faster'), sh = m('ships');
+    const s = shot(p, 0, undefined, { bg: DARK, whip: true });
+    const r = c2Route(s, { legs: { out: [1, 1], top: [1, 1], free: [1, .6], pc2: [1, .6] } });
+    tw(r._legs.free, { o: 1, 'a_stroke-width': 7 }, fi, .3);
+    const [j1x, j1y] = c2At(r, 'out', AT_P1), [j2x, j2y] = C2_FREE_A[3];
+    word(s, '1', j1x - 90, j1y + 30, fi, { size: 100, fill: LIGHT, stroke: DARK });
+    word(s, '2', j2x + 80, j2y + 40, se, { size: 100, fill: MARK, stroke: DARK });
+    label(s, '1 · A way home', CX, 190, hm - .2, { size: 54, fill: LIGHT, colour: DARK });
+    tw(r._legs.free, { o: .45, 'a_stroke-width': 4 }, se, .3);
+    tw(r._legs.pc2, { o: 1, 'a_stroke-width': 10 }, se, .3);
+    label(s, '2 · Faster', CX, 275, fa, { size: 54, fill: MARK, colour: DARK });
+    label(s, 'to the ships', CX, 360, sh, { size: 54, fill: MARK, colour: DARK });
+  }],
+
+  // 10. Home: 17 April, the South Pacific, USS Iwo Jima, all three safe
+  ['splash', 'Splashdown', (m, D) => {
+    const p = panel(0);
+    const pa = m('pacific'), iw = m('iwo'), sf = m('safe');
+    let s = shot(p, 0, pa, { whip: true });
+    found(s, 'ch02-chutes', 'NASA · Odyssey under its parachutes', 0, pa + .3, { s0: 1.05, s1: 1.18, dy: 60 });
+    metClock(s, [[0, H_SPLASH]], { y: 294 });
+    label(s, '17 April 1970', CX, 1230, m('apr17'), { size: 60, fill: MARK, colour: DARK });
+    s = shot(p, pa, iw);
+    wide(s, 'ch02-splash', [[pa, .3, .5, 1.0], [iw + .3, .5, .5, 1.08]]);
+    srcTag(s, 'NASA · splashdown, South Pacific', 50, 150, pa);
+    word(s, 'South Pacific', CX, 1220, pa + .1, { size: 120, fill: '#fff', stroke: DARK });
+    s = shot(p, iw, undefined, { bg: DARK, whip: true });
+    const cs = plate(s, 'ch02-crewship', CX, 720, { w: 860 });   // whole, so all three are in it
+    tw(cs, { s: 1.06 }, iw, D + .6 - iw, lin);
+    srcTag(s, 'NASA · the crew on USS Iwo Jima', 50, 150, iw);
+    label(s, 'USS Iwo Jima', CX, 290, iw + .1, { size: 56, fill: LIGHT, colour: DARK });
+    word(s, 'All three', CX, 1150, sf, { size: 130, fill: '#fff', stroke: DARK });
+    word(s, 'safe', CX, 1280, sf + .25, { size: 130, fill: MARK, stroke: DARK });
+  }],
+
+  // 11. The end card (wordless): the series, this episode, the credits
+  ['end', 'Credits', (m, D) => {
+    const p = panel(0);
+    const s = shot(p, 0, undefined, { bg: DARK });
+    endCard(s, .1, 2, 'Holst, Mercury · U.S. Air Force Band', 3);
+  }, { dur: 3 }],
+].map(shortsBeat);
+
+// One track for the whole film (Holst, Mercury, U.S. Air Force Band, PD), cut to its timeline; ?bgm= sets its level by ear.
+music('audio/bgm/mercury.mp3', undefined, +(new URLSearchParams(location.search).get('bgm') || .5), .05);
+// the two wordless cards: the music comes up where nobody speaks
+window.MUSIC_UP = { card: () => true, end: () => true };
+startShorts();
+</script>
+</body>
+</html>
