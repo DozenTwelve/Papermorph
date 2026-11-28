@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://papermorph.diamonddoge.org/">
-    <img src="img/readme/bookshelf.webp" alt="The Papermorph bookshelf: lessons, picture books, documentaries and interactive pages on a birch shelf" width="420">
+    <img src="img/readme/bookshelf.webp" alt="The Papermorph bookshelf: an Apollo 13 row of four shapes above a birch shelf of lessons, picture books, documentaries and interactive pages" width="420">
   </a>
 </p>
 
@@ -16,11 +16,23 @@
   <a href="https://papermorph.diamonddoge.org/work/">Work with us</a>
 </p>
 
-> **1,000 stars.** Thank you to everyone who starred Papermorph, tried the Skill, filed issues and sent pull requests. The first roadmap is done; the next is [below](#roadmap).
-
 Everything is a static web page: no server, no database, no account. A book is a folder you can host anywhere.
 
 ## On the shelf
+
+### One article, four shapes
+
+One Wikipedia article, [Apollo 13](https://en.wikipedia.org/w/index.php?title=Apollo_13&oldid=1386441839) (CC BY-SA 4.0), made over two days into a documentary, three upright shorts, an explorable path around the Moon and a scroll story. The facts are the same in all four, checked against NASA's own papers; what changes is the pace, the frame, and who is in control. Codex gathered and checked the research, Claude made the shapes with the Skill, and Codex reviewed every change; [the making-of page](https://papermorph.diamonddoge.org/one-source/) shows how one article became four shapes.
+[The film](https://papermorph.diamonddoge.org/apollo-13/) (5 minutes) · [Three shorts](https://papermorph.diamonddoge.org/apollo-13/#shorts) (each under 100 seconds) · [The Earth-Moon path](https://papermorph.diamonddoge.org/apollo-13-explore/) (8 stops, drag the mission clock) · [The scroll story](https://papermorph.diamonddoge.org/apollo-13-scroll/) (20 steps)
+
+<p align="center">
+  <a href="https://papermorph.diamonddoge.org/apollo-13/ch01/"><img src="img/readme/apollo-13.webp" alt="Apollo 13, the documentary: Mission Control in Houston, and 'land on the Moon' struck out for 'bring three people home'" width="73%"></a>
+  <a href="https://papermorph.diamonddoge.org/apollo-13-shorts/ch01/"><img src="img/readme/apollo-13-short.webp" alt="Apollo 13 as a short: power and oxygen run out, and the lander becomes the lifeboat" width="23%"></a>
+</p>
+<p align="center">
+  <a href="https://papermorph.diamonddoge.org/apollo-13-explore/"><img src="img/readme/apollo-13-explore.webp" alt="Apollo 13, the Earth-Moon path: the mission clock plays, stops at the bang and at the lifeboat, and opens each stop's card" width="49%"></a>
+  <a href="https://papermorph.diamonddoge.org/apollo-13-scroll/"><img src="img/readme/apollo-13-scroll.webp" alt="Apollo 13 as a scroll story: the call to Houston, then the photograph of the damaged service module, as the reader scrolls" width="49%"></a>
+</p>
 
 ### Lessons, from a textbook PDF
 
@@ -45,7 +57,7 @@ Paper puppets in front of sets drawn in code or painted by an image model, with 
 ### Documentaries and upright shorts, from a book or an idea
 
 Public-domain engravings, paintings, maps and charts, moved in step with the voice, with music. A documentary can be recut as a series of upright shorts for a phone feed.
-[Madness and Civilization](https://papermorph.diamonddoge.org/madness/) (10 minutes, and 4 shorts) · [The Pandemic](https://papermorph.diamonddoge.org/pandemic/) (7 minutes, 6 shorts and a scroll story)
+[Madness and Civilization](https://papermorph.diamonddoge.org/madness/) (10 minutes, and 4 shorts) · [The Pandemic](https://papermorph.diamonddoge.org/pandemic/) (7 minutes, 6 shorts and a scroll story) · [Apollo 13](https://papermorph.diamonddoge.org/apollo-13/) (5 minutes, 3 shorts, an explorable path and a scroll story)
 
 <p align="center">
   <a href="https://papermorph.diamonddoge.org/pandemic/ch01/"><img src="img/readme/pandemic.webp" alt="The Pandemic: a world map and charts of cases and deaths as the Delta wave rises" width="73%"></a>
@@ -55,7 +67,7 @@ Public-domain engravings, paintings, maps and charts, moved in step with the voi
 ### Pages you play
 
 A film can stop and hand the reader the next move, a map can be walked a year at a time, and a story can unfold as the reader scrolls. The Skill makes all three: explorable maps and scroll stories have their own starting kits.
-[Shooting an Elephant](https://papermorph.diamonddoge.org/shooting-an-elephant/) (Orwell's essay; you hold the rifle) · [Explorable maps](https://papermorph.diamonddoge.org/maps/): [Time of the Magicians](https://papermorph.diamonddoge.org/time-of-the-magicians/) (Europe 1919–1929, four philosophers on the map) and [The Map Redrawn](https://papermorph.diamonddoge.org/meiji/) (Japan 1868–1878) · [The Pandemic as a scroll story](https://papermorph.diamonddoge.org/pandemic-scroll/)
+[Shooting an Elephant](https://papermorph.diamonddoge.org/shooting-an-elephant/) (Orwell's essay; you hold the rifle) · [Explorable maps](https://papermorph.diamonddoge.org/maps/): [Time of the Magicians](https://papermorph.diamonddoge.org/time-of-the-magicians/) (Europe 1919–1929, four philosophers on the map) and [The Map Redrawn](https://papermorph.diamonddoge.org/meiji/) (Japan 1868–1878) · [The Pandemic as a scroll story](https://papermorph.diamonddoge.org/pandemic-scroll/) · Apollo 13 as an [Earth-Moon path](https://papermorph.diamonddoge.org/apollo-13-explore/) you play on a mission clock and a [scroll story](https://papermorph.diamonddoge.org/apollo-13-scroll/)
 
 <p align="center">
   <a href="https://papermorph.diamonddoge.org/shooting-an-elephant/"><img src="img/readme/elephant.webp" alt="Shooting an Elephant: where to aim, then the view through the rifle sight, click to fire" width="49%"></a>
@@ -86,16 +98,15 @@ Any chapter or episode also renders to a 1080p MP4 with an `.srt`, frame by fram
 
 ## Roadmap
 
-The first roadmap is done: maths books, science books, picture books, a model of your choice for every step, documentaries, and upright shorts. So are picture books for children who can't read yet: layered paper sets, four-legged puppets and listen-and-find games, in *The Little Horse* and the second *Little Red Riding Hood*; and a picture book cut from a scanned book's own pages, *Millions of Cats*. A rifle, explorable maps and a scroll story came along the way, and the Skill now makes the maps and scroll stories too. Next:
+The first roadmap is done: maths books, science books, picture books, a model of your choice for every step, documentaries, and upright shorts. So are picture books for children who can't read yet: layered paper sets, four-legged puppets and listen-and-find games, in *The Little Horse* and the second *Little Red Riding Hood*; and a picture book cut from a scanned book's own pages, *Millions of Cats*. A rifle, explorable maps and a scroll story came along the way, and the Skill now makes the maps and scroll stories too. And one source in every shape: the Wikipedia article on Apollo 13 is now a documentary, three shorts, an explorable path and a scroll story, side by side ([how](https://papermorph.diamonddoge.org/one-source/)). Next:
 
 - **More from a PDF of pictures.** *Millions of Cats* cut its figures into puppets; next, tap to hear names over the painting and layers that drift in parallax. For your own books or a publisher's; our own examples use public-domain books or pictures we draw.
 - **Lessons with their own examples.** The textbook sets what is taught, in what order and how hard; the Skill writes new worked examples and exercises, with answers computed in code, so nothing is copied from the book.
-- **One source, every shape.** A single Wikipedia article made into a documentary, shorts, an interactive page and a scroll story, side by side.
 - **Elementary Physics, remade** with what the newer books can do.
 
 ## Working with us
 
-The shelf is a set of examples: the shapes that suit a maths book, a language course, a picture book or a documentary, and one source can take several of them (*The Pandemic* is a film, six shorts and a scroll story). For publishers, schools and studios we build the pipeline around your own titles and your own style. See [the work page](https://papermorph.diamonddoge.org/work/), or write to [a972848363@gmail.com](mailto:a972848363@gmail.com) with what the titles are, who they are for, and how many you have in mind.
+The shelf is a set of examples: the shapes that suit a maths book, a language course, a picture book or a documentary, and one source can take several of them (*Apollo 13* is a film, three shorts, an explorable path and a scroll story). For publishers, schools and studios we build the pipeline around your own titles and your own style. See [the work page](https://papermorph.diamonddoge.org/work/), or write to [a972848363@gmail.com](mailto:a972848363@gmail.com) with what the titles are, who they are for, and how many you have in mind.
 
 ## FAQ
 
