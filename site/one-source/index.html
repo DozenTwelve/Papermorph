@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>One article, four shapes: Apollo 13 on Papermorph</title>
+<meta name="description" content="One Wikipedia article about Apollo 13, checked against NASA's own reports, made into a documentary, three upright shorts, a page to explore and a scroll story, with the Papermorph Skill.">
+<link rel="canonical" href="https://papermorph.diamonddoge.org/one-source/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Papermorph">
+<meta property="og:title" content="One article, four shapes: Apollo 13 on Papermorph">
+<meta property="og:description" content="A documentary, three shorts, a page to explore and a scroll story, all from one checked Wikipedia article.">
+<meta property="og:url" content="https://papermorph.diamonddoge.org/one-source/">
+<meta property="og:image" content="https://papermorph.diamonddoge.org/assets/apollo/og-one-source.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A cut-paper model of the Apollo 13 spacecraft, Odyssey docked to Aquarius, on deep blue">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231d2b27'/%3E%3Ctext x='32' y='45' text-anchor='middle' font-size='48' fill='%23f0b45a'%3E∞%3C/text%3E%3C/svg%3E">
+<link rel="preload" href="../lib/fonts/Oswald-latin.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+  /* Hallmark · page: one-source · genre: editorial · theme: the Papermorph bookshelf with the Apollo 13 series (house style) · signature: the paper ship, then the four shapes side by side · v2.0.0 */
+  /* Hallmark · waive 58 · an explainer the brief asked for in four parts (source, shapes, making, onward) for readers new to Papermorph; each section stays one idea */
+  /* The shelf's world (its cut-paper banner, the paper ship on the wall) meeting the Apollo 13 series' night blue and amber. */
+  @font-face { font-family: Oswald; font-weight: 600; font-display: swap; src: url(../lib/fonts/Oswald-latin.woff2) format('woff2'); }   /* SIL OFL, ../lib/fonts/OFL-Oswald.txt */
+  :root {
+    --ui: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    --book: "Iowan Old Style", Palatino, Georgia, serif;
+    --key: Oswald, "Avenir Next Condensed", "Arial Narrow", sans-serif;
+    --night: #0f2238; --night-deep: #091726; --amber: #f2a93b; --amber-hi: #ffc266;
+    --paper: #eef1f4; --sheet: #f8fafb; --ink: #1c2633; --soft: #4f5d6d; --line: #d3dbe3;
+    --on-night: #eef1f4; --on-night-soft: #b4c2d2; --cloth: #1c1f1d; --cut: #f3efe3; --shade: #0f22382e; --shade-deep: #0009;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  html, body { overflow-x: clip; }
+  html { background: var(--paper); }
+  body { margin: 0; color: var(--ink); background: var(--paper); font: 18px/1.6 var(--book); }
+  a { color: inherit; text-underline-offset: .18em; text-decoration-thickness: 1px; }
+  a:focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; border-radius: 2px; }
+  ::selection { background: var(--amber); color: var(--night-deep); }
+  h1, h2, h3 { margin: 0; font-family: var(--key); font-weight: 600; line-height: 1.1; text-wrap: balance; overflow-wrap: break-word; min-width: 0; }
+  p { margin: 0 0 1em; text-wrap: pretty; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+  .measure { max-width: 64ch; }
+
+  /* Top: night blue with the banner's triangle cloth, the paper ship pinned in the middle, the banner's ring trim under it. */
+  .top { color: var(--on-night); background: radial-gradient(120% 90% at 50% 0%, #0f223800, var(--night-deep)), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cpath d='M0 28 14 4 28 28M0 0l14 24L28 0' fill='none' stroke='%23eef1f4' stroke-opacity='.08' stroke-width='1.2'/%3E%3Ccircle cx='14' cy='14' r='1.6' fill='%23eef1f4' fill-opacity='.14'/%3E%3C/svg%3E"), var(--night); }
+  .top::after { content: ""; display: block; height: 16px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='16'%3E%3Crect width='22' height='16' fill='%23131514'/%3E%3Ccircle cx='11' cy='8' r='4.5' fill='none' stroke='%23f2a93b' stroke-opacity='.8' stroke-width='1.4'/%3E%3C/svg%3E"); }
+  .top nav { padding-top: 12px; font: 15px/1 var(--ui); }
+  .top nav a { display: inline-block; padding: 12px 0; color: var(--on-night-soft); text-decoration: none; }
+  .top nav a:hover { color: var(--on-night); text-decoration: underline; }
+  .hero { padding: 8px 0 44px; text-align: center; }
+  .hero img { display: block; width: min(92%, 620px); height: auto; margin: 0 auto 20px; filter: drop-shadow(4px 10px 10px var(--shade-deep)); }
+  .hero h1 { font-size: clamp(40px, 9vw, 76px); letter-spacing: .01em; text-transform: uppercase; }
+  .hero .lede { max-width: 46ch; margin: 16px auto 0; color: var(--on-night-soft); font-size: 20px; }
+
+  section { padding: 48px 0 8px; }
+  h2 { margin-bottom: 16px; font-size: clamp(28px, 5vw, 40px); text-transform: uppercase; letter-spacing: .02em; }
+  .note { color: var(--soft); font: 16px/1.55 var(--ui); }
+
+  /* The source: the article and what was checked, beside three of the corrections it took. */
+  .fixes { margin: 24px 0 0; padding: 0; list-style: none; display: grid; gap: 12px; }
+  .fixes li { padding: 16px 20px; background: var(--sheet); border: 1px solid var(--line); border-radius: 6px; font: 16px/1.5 var(--ui); }
+  .fixes b { display: block; margin-bottom: 4px; font: 600 19px/1.2 var(--key); color: var(--night); }
+
+  /* The four shapes. Each: its picture, what it is for, and the three things that change between them. */
+  .shapes { display: grid; grid-template-columns: minmax(0, 1fr); gap: 36px 28px; margin-top: 28px; }
+  .shape img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 4px; box-shadow: 0 8px 24px var(--shade); }
+  .shape h3 { margin: 16px 0 8px; font-size: 26px; text-transform: uppercase; letter-spacing: .03em; }
+  .shape h3 a { text-decoration: none; }
+  .shape h3 a:hover { text-decoration: underline; text-decoration-color: var(--amber); text-decoration-thickness: 3px; }
+  .shape figure { margin: 0; }
+  .shape figure a { display: block; border-radius: 4px; transition: transform .2s cubic-bezier(.2, .8, .2, 1); }
+  .shape figure a:hover { transform: translateY(-4px); }
+  .shape dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 16px; margin: 12px 0 0; padding-top: 12px; border-top: 1px solid var(--line); font: 15px/1.45 var(--ui); }
+  .shape dt { color: var(--soft); }
+  .shape dd { margin: 0; }
+  .same { margin-top: 32px; padding: 20px 24px; background: var(--night); color: var(--on-night); border-radius: 6px; font-size: 19px; }
+  .same p { margin: 0; }
+  .same b { color: var(--amber); font-weight: 600; }
+
+
+  /* Two ways onward. */
+  .onward { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; margin-top: 24px; }
+  .way { padding: 24px; border-top: 6px solid var(--amber); background: var(--sheet); box-shadow: 0 6px 18px var(--shade); }
+  .way h3 { font-size: 24px; text-transform: uppercase; letter-spacing: .03em; margin-bottom: 8px; }
+  .way p { font: 16px/1.55 var(--ui); color: var(--soft); }
+  .go { display: inline-flex; align-items: center; min-height: 44px; padding: 12px 20px; background: var(--night); color: var(--on-night); font: 600 16px/1 var(--key); letter-spacing: .03em; text-decoration: none; border-radius: 3px; transition: background-color .15s; }
+  .go:hover { background: var(--night-deep); color: var(--amber-hi); }
+  .go:active { transform: translateY(1px); }
+
+  footer { margin-top: 56px; padding: 32px 0 56px; border-top: 1px solid var(--line); color: var(--soft); font: 14px/1.6 var(--ui); }
+  footer h2 { font-size: 20px; color: var(--ink); margin-bottom: 8px; }
+  footer p { max-width: 72ch; }
+
+  @media (min-width: 760px) {
+    .shapes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .onward { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .fixes { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .shape figure a, .go { transition: none; }
+    .shape figure a:hover, .go:active { transform: none; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <nav><a href="../">&larr; Bookshelf</a></nav>
+    <div class="hero">
+      <img src="../assets/apollo/ship.webp" width="1200" height="475" alt="A cut-paper model of the Apollo 13 spacecraft: the command and service modules docked nose to nose with the lunar module Aquarius.">
+      <h1>One article, four shapes</h1>
+      <p class="lede">A film, three shorts, a page to explore and a scroll story, all from one Wikipedia article.</p>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section aria-labelledby="source">
+    <h2 id="source">The source</h2>
+    <div class="measure">
+      <p>Everything starts from one article: &ldquo;<a href="https://en.wikipedia.org/w/index.php?title=Apollo_13&amp;oldid=1386441839">Apollo 13</a>&rdquo; on English Wikipedia, pinned to revision 1386441839 of 18 November 2026 and shared under CC BY-SA 4.0. The pictures and the radio recordings are NASA&rsquo;s own, in the public domain.</p>
+      <p>Before anything was made, 25 events of the mission were each traced from the article&rsquo;s sentence to NASA&rsquo;s papers: the Mission Report of September 1970, the air-to-ground transcript and the Apollo Flight Journal. Where they disagree, all four shapes follow NASA.</p>
+    </div>
+    <ul class="fixes">
+      <li><b>Two burns</b>The article gives 105:18:42 and 137:40:13, the times the two engine burns <em>ended</em>. NASA&rsquo;s report has them starting at 105:18:28 and 137:39:51.</li>
+      <li><b>The famous call</b>The article puts Lovell&rsquo;s &ldquo;Houston, we&rsquo;ve had a problem&rdquo; at 55:55:42. The original transcript has it seven seconds earlier, at 55:55:35.</li>
+      <li><b>The farthest point</b>Two published distances disagree, 400,171 km and 400,046 km. So the pages say &ldquo;farther from Earth than anyone had ever been&rdquo; and leave the number out.</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="shapes">
+    <h2 id="shapes">Four shapes</h2>
+    <p class="measure">The same facts, pictures and credits go into all four. What changes is the pace, the frame, and who is in control.</p>
+    <div class="shapes">
+      <article class="shape">
+        <figure><a href="../apollo-13/" tabindex="-1" aria-hidden="true"><img src="../assets/apollo/film.webp" width="560" height="420" loading="lazy" decoding="async" alt=""></a></figure>
+        <h3><a href="../apollo-13/">The documentary</a></h3>
+        <p>To watch, start to finish. It opens on nine seconds of the real air-to-ground recording, then a narrator tells how a Moon landing became a rescue.</p>
+        <dl><dt>Pace</dt><dd>The film&rsquo;s: 4.6 minutes</dd><dt>Frame</dt><dd>A wide screen, narrated, with captions</dd><dt>Control</dt><dd>Play and pause</dd></dl>
+      </article>
+      <article class="shape">
+        <figure><a href="../apollo-13/#shorts" tabindex="-1" aria-hidden="true"><img src="../assets/apollo/shorts.webp" width="560" height="420" loading="lazy" decoding="async" alt=""></a></figure>
+        <h3><a href="../apollo-13/#shorts">Three upright shorts</a></h3>
+        <p>For a phone feed. Each makes one point and stands on its own: the lander that became a lifeboat, the two engine pushes, the square filter made to fit a round hole.</p>
+        <dl><dt>Pace</dt><dd>1:34, 1:24 and 1:32, each under 100 seconds</dd><dt>Frame</dt><dd>Upright, narrated, big labels and close crops</dd><dt>Control</dt><dd>Play; each episode leads on to the next</dd></dl>
+      </article>
+      <article class="shape">
+        <figure><a href="../apollo-13-explore/" tabindex="-1" aria-hidden="true"><img src="../assets/apollo/explore.webp" width="560" height="420" loading="lazy" decoding="async" alt=""></a></figure>
+        <h3><a href="../apollo-13-explore/">The Earth-Moon path</a></h3>
+        <p>To find out what happened where. The reader drags the mission clock, or presses Play, along a drawn path around the Moon and home, and opens each stop for its pictures and its source.</p>
+        <dl><dt>Pace</dt><dd>The reader&rsquo;s: 8 stops</dd><dt>Frame</dt><dd>A labelled drawing, not to scale; the real recordings when the reader asks</dd><dt>Control</dt><dd>The reader drags, stops and compares three paths</dd></dl>
+      </article>
+      <article class="shape">
+        <figure><a href="../apollo-13-scroll/" tabindex="-1" aria-hidden="true"><img src="../assets/apollo/scroll.webp" width="560" height="420" loading="lazy" decoding="async" alt=""></a></figure>
+        <h3><a href="../apollo-13-scroll/">The scroll story</a></h3>
+        <p>To read at your own speed. Words on one side, and a picture that changes as you scroll: the launch, the broken ship, the fix for the air, the splashdown.</p>
+        <dl><dt>Pace</dt><dd>The reader&rsquo;s: 20 steps</dd><dt>Frame</dt><dd>Text beside NASA photographs and four drawings</dd><dt>Control</dt><dd>Scrolling sets the pace; scroll back to rewind</dd></dl>
+      </article>
+    </div>
+    <div class="same"><p><b>One ledger of facts, four tellings.</b> A film decides when you see each thing; a page to explore lets you decide; a scroll story sits in between.</p></div>
+  </section>
+
+  <section aria-labelledby="made">
+    <h2 id="made">How it was made</h2>
+    <div class="measure">
+      <p>The research and all four shapes were made over two days, 27 and 28 November 2026. Codex, OpenAI&rsquo;s coding agent, gathered and checked the research: it pinned the article, traced the 25 events to NASA&rsquo;s papers, and collected the pictures and recordings. Claude, Anthropic&rsquo;s model, made the four shapes from the <a href="https://github.com/DozenTwelve/Papermorph/blob/main/.claude/skills/papermorph/SKILL.md">Papermorph Skill</a> and that checked research. Codex reviewed every change.</p>
+      <p>The documentary and the shorts were exported as video and watched by a fresh Claude, with no memory of making them, as a director; its notes were fixed. Then a person watched every shape and approved it before it went on the shelf.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="onward">
+    <h2 id="onward">Make your own</h2>
+    <p class="measure">One source can take several shapes. Any article, chapter or story you have the rights to can go the same way.</p>
+    <div class="onward">
+      <div class="way">
+        <h3>With the Skill</h3>
+        <p>Papermorph is an open-source (MIT) Claude Code Skill. Give it your text and it plans, writes, voices and builds the pages, asking you along the way.</p>
+        <a class="go" href="https://github.com/DozenTwelve/Papermorph" target="_blank" rel="noopener noreferrer">Get it on GitHub</a>
+      </div>
+      <div class="way">
+        <h3>Built for your titles</h3>
+        <p>For publishers, schools and studios: we make your books into these shapes, in your own style, or set up the pipeline for your team.</p>
+        <a class="go" href="../work/">Work with us</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <h2>Credits</h2>
+    <p>Adapted from &ldquo;<a href="https://en.wikipedia.org/w/index.php?title=Apollo_13&amp;oldid=1386441839">Apollo 13</a>&rdquo; by Wikipedia contributors, revision 1386441839 (18 November 2026), licensed <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>. Changes: selected and summarised; times checked against NASA&rsquo;s Apollo 13 Mission Report (MSC-02680, September 1970), the air-to-ground transcript and the Apollo Flight Journal. This page&rsquo;s words are shared under the same licence.</p>
+    <p>Pictures and recordings: NASA, public domain, via Wikimedia Commons; each page lists its own. Music in the films: Gustav Holst, <i>The Planets</i>, played by the United States Air Force Band and the United States Marine Band, recordings public domain. NASA&rsquo;s pictures and names do not mean NASA endorses this page. The paper spaceship is a picture made for Papermorph, not a NASA drawing. Type: Oswald (SIL Open Font License).</p>
+  </div>
+</footer>
+</body>
+</html>

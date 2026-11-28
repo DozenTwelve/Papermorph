@@ -92,7 +92,10 @@ a.book:hover .tag { transform: translateY(-2px); }
    the left, hanging a little past the shelf's edge, and the story's four shapes as cards (books without a shelf). */
 .special { --s: calc(84.375cqw / 864); --c: var(--navy); top: calc(205 * 100cqw / 1024); height: calc(175 * 100cqw / 1024); display: grid; grid-template-columns: minmax(0, 1fr) calc(546 * var(--s)); grid-template-rows: minmax(0, 1fr); gap: calc(12 * var(--s)); }
 .ship { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(6 * var(--s)); margin-left: calc(-26 * var(--s)); }
-.ship img { display: block; flex: 0 1 auto; min-height: 0; width: 100%; height: auto; object-fit: contain; filter: drop-shadow(3px 5px 4px #0003); }
+/* The ship is the link to one-source/, the page on how the row was made; it lifts like a card. */
+.ship-link { display: flex; flex: 0 1 auto; min-height: 0; width: 100%; }
+.ship img { display: block; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(3px 5px 4px #0003); transition: transform .2s, filter .2s; }
+.ship-link:hover img, .ship-link:focus-visible img { transform: translateY(-5px); filter: drop-shadow(5px 10px 8px #0003); }
 .ship .label { text-align: center; }
 .credit { margin: 0; color: #4b463e; font: clamp(10px, calc(10 * var(--s)), 12px)/1.2 var(--ui); }
 .cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 calc(12 * var(--s)); align-items: start; }
@@ -191,6 +194,7 @@ a.book:hover .tag { transform: translateY(-2px); }
 }
 @media (prefers-reduced-motion: reduce) {
   .doc, .tag, .work-sign, .spine { transition: none; }
+  .ship img { transition: none; } .ship-link:hover img, .ship-link:focus-visible img { transform: none; }
   .banner a:hover .work-sign, .banner a:focus-visible .work-sign { transform: rotate(-3deg); }
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
 }
