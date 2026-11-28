@@ -10,7 +10,7 @@
   --book: "Iowan Old Style", Palatino, Georgia, serif;
   --ink: #26231f;
   --focus: #f6b741; --paper-white: #fffaf0;
-  --red: #b5383c; --blue: #2b78a6; --purple: #6a3f9c; --brown: #5b3c2d;
+  --red: #b5383c; --blue: #2b78a6; --purple: #6a3f9c; --brown: #5b3c2d; --navy: #1f3f6b;
   color-scheme: light;
 }
 * { box-sizing: border-box; }
@@ -25,7 +25,13 @@ a { color: inherit; }
 #shelf a:focus-visible, #shelf button:focus-visible, .drawer:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; box-shadow: 0 0 0 3px var(--focus); }
 
 /* The photo, as wide as the window (it is 1024 px: wider than that it softens a little). The shelf in it spans source x 82-946 and starts at y 175. */
-.scene { position: relative; width: 100%; aspect-ratio: 1024 / 1536; margin: 0 auto; container-type: inline-size; background: url(../assets/shelf/wall.webp) 0 0 / 100% 100%; }
+/* Between the banner and the shelf, a 212 px strip of wall holds the Apollo 13 row: the photo is drawn 212 px lower
+   (::before), and its plain wall above the shelf (rows 0-170) is drawn stretched down to meet it (::after), so the
+   shelf itself keeps its proportions. */
+.scene { position: relative; isolation: isolate; width: 100%; aspect-ratio: 1024 / 1748; margin: 0 auto; container-type: inline-size; }
+.scene::before, .scene::after { content: ""; position: absolute; z-index: -1; left: 0; right: 0; background: url(../assets/shelf/wall.webp) 0 0 / 100% 100% no-repeat; }
+.scene::before { top: 20.703cqw; height: 150cqw; }
+.scene::after { top: 0; height: 37.305cqw; background-size: 100% calc(150cqw * 382 / 170); }
 .scene > * { position: absolute; left: 8.008cqw; width: 84.375cqw; }
 .banner { z-index: 5; top: 1.37cqw; margin: 0; line-height: 0; filter: drop-shadow(3px 6px 6px #0004); }
 .banner a { position: relative; display: block; width: 100%; transition: transform .15s; }
@@ -35,7 +41,7 @@ a { color: inherit; }
    under its lower-right corner on a punched hole and swings a little on hover. */
 .work-sign { position: absolute; right: 3%; top: calc(100% - .2cqw); padding: .55em .9em .5em 1.5em; background: #f3efe3 radial-gradient(circle at .7em 50%, #1c1f1d .22em, #0000 .25em); color: #1c1f1d; font: 600 clamp(11px, 1.6cqw, 16px)/1 Oswald, var(--ui); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; clip-path: polygon(.6em 0, 100% 0, 100% 100%, .6em 100%, 0 50%); transform: rotate(-3deg); transform-origin: 85% -40%; filter: drop-shadow(2px 4px 3px #0005); transition: transform .3s cubic-bezier(.3, 1.6, .5, 1); }
 .banner a:hover .work-sign, .banner a:focus-visible .work-sign { transform: rotate(2deg); }
-.case { --s: calc(84.375cqw / 864); top: 17.09cqw; }
+.case { --s: calc(84.375cqw / 864); top: 37.793cqw; }
 .cap, .lip { background: 0 0 / 100% 100% no-repeat; }
 .cap { aspect-ratio: 864 / 15; background-image: url(../assets/shelf/cap.webp); }
 .shelf { position: relative; background: 0 0 / 100% 100% no-repeat; }
@@ -81,6 +87,21 @@ a.book:hover .tag { transform: translateY(-2px); }
 .pictures { --c: var(--blue); }
 .films { --c: var(--purple); }
 .archive { --c: var(--brown); }
+
+/* The Apollo 13 special, on the wall between the banner and the shelf: the paper Odyssey and Aquarius pinned up on
+   the left, hanging a little past the shelf's edge, and the story's four shapes as cards (books without a shelf). */
+.special { --s: calc(84.375cqw / 864); --c: var(--navy); top: calc(205 * 100cqw / 1024); height: calc(175 * 100cqw / 1024); display: grid; grid-template-columns: minmax(0, 1fr) calc(546 * var(--s)); grid-template-rows: minmax(0, 1fr); gap: calc(12 * var(--s)); }
+.ship { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(6 * var(--s)); margin-left: calc(-26 * var(--s)); }
+.ship img { display: block; flex: 0 1 auto; min-height: 0; width: 100%; height: auto; object-fit: contain; filter: drop-shadow(3px 5px 4px #0003); }
+.ship .label { text-align: center; }
+.credit { margin: 0; color: #4b463e; font: clamp(10px, calc(10 * var(--s)), 12px)/1.2 var(--ui); }
+.cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 calc(12 * var(--s)); align-items: start; }
+.special .doc { background: #1c1f1d; }
+.special .doc img { inset: 0 0 auto; height: 56%; object-position: 50% 15%; }
+/* The cards are narrower than the books, so their one line needs a wider scene (1500 px) and a taller card. */
+@container (min-width: 1500px) { .special .tag { inset: 51% 0 0; } .special .doc img { height: 54%; } }
+@container (max-width: 1499px) { .special .tag > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; } }
+.cards > :nth-child(1) .doc { rotate: .5deg; } .cards > :nth-child(2) .doc { rotate: -.4deg; } .cards > :nth-child(3) .doc { rotate: .3deg; } .cards > :nth-child(4) .doc { rotate: -.6deg; }
 
 /* Not ready yet: a black binder in its place, the card says so, nothing to open. */
 .soon .doc { background: linear-gradient(100deg, #2a2a2a, #111 45%, #262626); box-shadow: 2px 0 0 #000, 2px 2px 2px #0004, 7px 9px 12px #0003; }
@@ -149,6 +170,13 @@ a.book:hover .tag { transform: translateY(-2px); }
   .scene { aspect-ratio: auto; width: calc(100% - 16px); padding: 12px 0 40px; background: none; }
   .scene > * { position: static; width: auto; }
   .banner { position: relative; inset: auto; }   /* so its z-index holds the hanging tag above the case */
+  .scene::before, .scene::after { display: none; }
+  .special { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; height: auto; margin: 32px 0; }
+  .ship { margin: 0 auto; width: 88%; }
+  .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 14px; }
+  .special .book { aspect-ratio: 5 / 4; }
+  .special .doc img { height: 62%; }
+  .special .tag { inset: 57% 0 0; }
   .case { --s: calc(100cqw / 864); margin-top: 0; filter: drop-shadow(5px 8px 10px #0003); }
   .shelf { aspect-ratio: auto !important; }
   .row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: calc(75 * var(--s)) calc(30 * var(--s)); padding-top: calc(40 * var(--s)); padding-bottom: 0; }
